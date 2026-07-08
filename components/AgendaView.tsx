@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Check, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import clsx from "clsx";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";

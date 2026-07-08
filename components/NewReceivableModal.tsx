@@ -71,6 +71,17 @@ export default function NewReceivableModal({ categories, cases, clients }: { cat
                 </select>
               </div>
               <div>
+                <label className="text-xs font-medium text-navy-800/60">Categoria</label>
+                <select name="categoryId" className="fin-input">
+                  <option value="">Sem categoria</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="text-xs font-medium text-navy-800/60">Cliente</label>
                 <select name="clientId" className="fin-input">
                   <option value="">Nenhum</option>

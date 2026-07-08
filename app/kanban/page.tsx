@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui";
-import KanbanBoard from "@/components/KanbanBoard";
+import KanbanBoard, { ColumnData } from "@/components/KanbanBoard";
 import NewTaskModal from "@/components/NewTaskModal";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +24,24 @@ export default async function KanbanPage() {
   const columnsForModal = columns.map((c) => ({ id: c.id, name: c.name }));
   const casesForModal = cases.map((c) => ({ id: c.id, name: c.title }));
 
-  const serialized = columns.map((c) => ({
-    ...c,
-    tasks: c.tasks.map((t) => ({ ...t, dueDate: t.dueDate.toISOString() })),
+  const serialized: ColumnData[] = columns.map((c) => ({
+    id: c.id,
+    name: c.name,
+    color: c.color,
+    isDoneCol: c.isDoneCol,
+    tasks: c.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      type: t.type,
+      priority: t.priority,
+      status: t.status,
+      dueDate: t.dueDate.toISOString(),
+      dueTime: t.dueTime,
+      columnId: t.columnId,
+      case: t.case ? { id: t.case.id, title: t.case.title } : null,
+      responsible: t.responsible ? { id: t.responsible.id, name: t.responsible.name, color: t.responsible.color } : null,
+      _count: t._count,
+    })),
   }));
 
   return (
@@ -37,7 +52,7 @@ export default async function KanbanPage() {
         action={<NewTaskModal cases={casesForModal} users={users} columns={columnsForModal} />}
       />
       <div className="flex-1 min-h-0">
-        <KanbanBoard columns={serialized as any} />
+        <KanbanBoard columns={serialized} />
       </div>
     </div>
   );

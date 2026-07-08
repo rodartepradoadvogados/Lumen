@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { getAlerts } from "@/lib/alerts";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
-import { AlertTriangle, Clock, Newspaper, Wallet, AtSign } from "lucide-react";
+import { AlertTriangle, Clock, Newspaper, Wallet, AtSign, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const kindMeta: Record<string, { label: string; icon: any }> = {
+const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   PRAZO_VENCIDO: { label: "Prazo Vencido", icon: AlertTriangle },
   PRAZO_PROXIMO: { label: "Prazo Próximo", icon: Clock },
   PUBLICACAO_NAO_LIDA: { label: "Publicação Não Lida", icon: Newspaper },

@@ -72,12 +72,15 @@ export default async function FluxoDeCaixaPage() {
           {months.map((m) => {
             saldoAcumulado += m.entradas - m.saidas;
             return (
-              <div key={m.key} className="grid grid-cols-4 gap-3 px-5 py-3 text-sm">
+              <div key={m.key} className="grid grid-cols-5 gap-3 px-5 py-3 text-sm">
                 <span className="font-semibold text-navy-900">{m.label}</span>
                 <span className="text-emerald-600 text-right">{formatCurrency(m.entradas)}</span>
                 <span className="text-red-500 text-right">{formatCurrency(m.saidas)}</span>
                 <span className={`text-right font-semibold ${m.entradas - m.saidas >= 0 ? "text-navy-900" : "text-red-600"}`}>
                   {formatCurrency(m.entradas - m.saidas)}
+                </span>
+                <span className={`text-right font-semibold ${saldoAcumulado >= 0 ? "text-gold-700" : "text-red-600"}`}>
+                  {formatCurrency(saldoAcumulado)}
                 </span>
               </div>
             );

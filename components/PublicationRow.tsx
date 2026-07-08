@@ -40,13 +40,13 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
       <div className="flex items-center gap-2 mt-2.5">
         {!pub.read && (
           <button
-            onClick={() =>
-              setLoading(true) ||
+            onClick={() => {
+              setLoading(true);
               markPublicationRead(pub.id).then(() => {
                 router.refresh();
                 setLoading(false);
-              })
-            }
+              });
+            }}
             disabled={loading}
             className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
           >

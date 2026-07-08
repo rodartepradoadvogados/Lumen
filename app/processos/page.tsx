@@ -31,8 +31,6 @@ export default async function ProcessosPage({
     orderBy: { updatedAt: "desc" },
   });
 
-  const areas = await prisma.case.findMany({ select: { area: true }, distinct: ["area"] });
-
   return (
     <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
       <PageHeader

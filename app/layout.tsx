@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description: "Controle financeiro, processos, agenda e kanban do escritório Rodarte Prado Advogados",
 };
 
+// TopBar consulta o banco em toda renderização (alertas) — nunca pré-renderizar estaticamente.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

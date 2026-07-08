@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, StatCard, Card, CardHeader, formatCurrency, EmptyState } from "@/components/ui";
+import { PageHeader, StatCard, Card, formatCurrency } from "@/components/ui";
 import { TrendingDown, TrendingUp, Wallet, BookOpen, PieChart, ArrowRight, ListChecks } from "lucide-react";
 
 export const dynamic = "force-dynamic";

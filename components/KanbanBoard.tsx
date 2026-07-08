@@ -4,10 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatDate } from "@/components/ui";
-import { Check, MessageSquare, User as UserIcon } from "lucide-react";
+import { Check, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
-type TaskCardData = {
+export type TaskCardData = {
   id: string;
   title: string;
   type: string;
@@ -21,7 +21,7 @@ type TaskCardData = {
   _count: { comments: number };
 };
 
-type ColumnData = {
+export type ColumnData = {
   id: string;
   name: string;
   color: string;
