@@ -1,0 +1,257 @@
+// Rodarte Prado Advogados - Sistema interno
+// Schema completo: casos/atendimentos, agenda/kanban integrados, financeiro, contatos, publicações
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ EQUIPE ============
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
+  oab       String?
+  color     String   @default("#0f1f3d") // cor de identificação em cards/agenda
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tasksResponsible   Task[]        @relation("TaskResponsible")
+  casesResponsible   Case[]        @relation("CaseResponsible")
+  comments           Comment[]
+  mentions           Mention[]
+  attendances        Attendance[]  @relation("AttendanceResponsible")
+}
+
+// ============ CONTATOS ============
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("PF") // PF | PJ
+  document    String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  cases       Case[]
+  receivables Receivable[]
+}
+
+model OpposingParty {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("PF")
+  document  String?
+  email     String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  cases     Case[]
+}
+
+model Lawyer {
+  id        String   @id @default(cuid())
+  name      String
+  oab       String?
+  firm      String?
+  side      String   @default("PARCEIRO") // PARCEIRO | ADVERSO
+  email     String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  cases     Case[]
+}
+
+// ============ CASOS / CARDS ============
+
+model Case {
+  id                String    @id @default(cuid())
+  title             String
+  type              String    @default("JUDICIAL") // JUDICIAL | EXTRAJUDICIAL | ATENDIMENTO | CONSULTIVO
+  area              String?
+  status            String    @default("ATIVO") // ATIVO | SUSPENSO | ENCERRADO | ARQUIVADO
+  processNumber     String?
+  court             String?
+  caseValue         Float?
+  instance          String?
+  distributedAt     DateTime?
+  description       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  clientId          String?
+  client            Client?   @relation(fields: [clientId], references: [id])
+
+  opposingPartyId   String?
+  opposingParty     OpposingParty? @relation(fields: [opposingPartyId], references: [id])
+
+  opposingLawyerId  String?
+  opposingLawyer    Lawyer?   @relation(fields: [opposingLawyerId], references: [id])
+
+  responsibleId     String?
+  responsible       User?     @relation("CaseResponsible", fields: [responsibleId], references: [id])
+
+  tasks             Task[]
+  comments          Comment[]
+  receivables       Receivable[]
+  payables          Payable[]
+  publications      Publication[]
+}
+
+// ============ AGENDA + KANBAN (fonte única: Task) ============
+
+model KanbanColumn {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  color     String   @default("#94a3b8")
+  isDoneCol Boolean  @default(false)
+
+  tasks     Task[]
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  title          String
+  type           String    @default("TAREFA") // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
+  description    String?
+  dueDate        DateTime
+  dueTime        String?
+  priority       String    @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
+  status         String    @default("PENDENTE") // PENDENTE | EM_ANDAMENTO | CONCLUIDO | CANCELADO
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  caseId         String?
+  case           Case?     @relation(fields: [caseId], references: [id])
+
+  responsibleId  String?
+  responsible    User?     @relation("TaskResponsible", fields: [responsibleId], references: [id])
+
+  columnId       String?
+  column         KanbanColumn? @relation(fields: [columnId], references: [id])
+  columnOrder    Int       @default(0)
+
+  comments       Comment[]
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  createdAt DateTime  @default(now())
+
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
+
+  taskId    String?
+  task      Task?     @relation(fields: [taskId], references: [id])
+
+  caseId    String?
+  case      Case?     @relation(fields: [caseId], references: [id])
+
+  mentions  Mention[]
+}
+
+model Mention {
+  id        String   @id @default(cuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ============ ATENDIMENTO (setor de atendimento / triagem) ============
+
+model Attendance {
+  id            String   @id @default(cuid())
+  clientName    String
+  contact       String?
+  subject       String
+  channel       String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
+  status        String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  responsibleId String?
+  responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
+}
+
+// ============ FINANCEIRO ============
+
+model FinancialCategory {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String   // RECEITA | DESPESA
+  payables    Payable[]
+  receivables Receivable[]
+}
+
+model Payable {
+  id           String    @id @default(cuid())
+  description  String
+  supplier     String?
+  amount       Float
+  dueDate      DateTime
+  paidDate     DateTime?
+  paidAmount   Float?
+  status       String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  categoryId   String?
+  category     FinancialCategory? @relation(fields: [categoryId], references: [id])
+
+  caseId       String?
+  case         Case?     @relation(fields: [caseId], references: [id])
+}
+
+model Receivable {
+  id           String    @id @default(cuid())
+  description  String
+  amount       Float
+  dueDate      DateTime
+  paidDate     DateTime?
+  paidAmount   Float?
+  status       String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  kind         String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  categoryId   String?
+  category     FinancialCategory? @relation(fields: [categoryId], references: [id])
+
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id])
+
+  caseId       String?
+  case         Case?     @relation(fields: [caseId], references: [id])
+}
+
+// ============ PUBLICAÇÕES / ANDAMENTOS ============
+
+model Publication {
+  id                String    @id @default(cuid())
+  source            String    @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL
+  content           String
+  publishedAt       DateTime
+  read              Boolean   @default(false)
+  deadlineGenerated Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+
+  caseId            String?
+  case              Case?     @relation(fields: [caseId], references: [id])
+}
