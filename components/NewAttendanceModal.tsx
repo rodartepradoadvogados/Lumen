@@ -31,6 +31,8 @@ export default function NewAttendanceModal({ users }: { users: { id: string; nam
                   clientName: String(formData.get("clientName")),
                   contact: String(formData.get("contact") || ""),
                   subject: String(formData.get("subject")),
+                  area: String(formData.get("area") || ""),
+                  description: String(formData.get("description") || ""),
                   channel: String(formData.get("channel")),
                   responsibleId: String(formData.get("responsibleId") || ""),
                 });
@@ -45,10 +47,26 @@ export default function NewAttendanceModal({ users }: { users: { id: string; nam
                 <input name="clientName" required className="at-input" />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Assunto</label>
+                <label className="text-xs font-medium text-navy-800/60">Assunto (do que se trata)</label>
                 <input name="subject" required className="at-input" />
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Matéria</label>
+                  <select name="area" className="at-input">
+                    <option value="">Não definida</option>
+                    <option value="Cível">Cível</option>
+                    <option value="Trabalhista">Trabalhista</option>
+                    <option value="Tributário">Tributário</option>
+                    <option value="Família">Família</option>
+                    <option value="Criminal">Criminal</option>
+                    <option value="Previdenciário">Previdenciário</option>
+                    <option value="Empresarial">Empresarial</option>
+                    <option value="Consumidor">Consumidor</option>
+                    <option value="Administrativo">Administrativo</option>
+                    <option value="Outra">Outra</option>
+                  </select>
+                </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Canal</label>
                   <select name="channel" className="at-input">
@@ -58,10 +76,14 @@ export default function NewAttendanceModal({ users }: { users: { id: string; nam
                     <option value="PRESENCIAL">Presencial</option>
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Contato</label>
-                  <input name="contact" className="at-input" placeholder="Telefone/e-mail" />
-                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Contato</label>
+                <input name="contact" className="at-input" placeholder="Telefone/e-mail" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Descrição detalhada do que precisa</label>
+                <textarea name="description" rows={3} className="at-input" />
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Responsável pela triagem</label>

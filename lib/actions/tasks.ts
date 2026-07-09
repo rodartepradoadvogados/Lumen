@@ -38,6 +38,7 @@ export async function createTask(data: {
   dueTime?: string;
   priority: string;
   caseId?: string;
+  attendanceId?: string;
   responsibleId?: string;
   columnId?: string;
   description?: string;
@@ -54,6 +55,7 @@ export async function createTask(data: {
       dueTime: data.dueTime || null,
       priority: data.priority,
       caseId: data.caseId || null,
+      attendanceId: data.attendanceId || null,
       responsibleId: data.responsibleId || null,
       columnId: data.columnId || firstColumn?.id || null,
       description: data.description || null,
@@ -65,6 +67,7 @@ export async function createTask(data: {
   revalidatePath("/kanban");
   revalidatePath("/agenda");
   revalidatePath("/");
+  if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
 }
 
 export async function addComment(data: { content: string; authorId: string; taskId?: string; caseId?: string }) {

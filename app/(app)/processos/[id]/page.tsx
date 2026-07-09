@@ -6,6 +6,9 @@ import NewTaskModal from "@/components/NewTaskModal";
 import NewReceivableModal from "@/components/NewReceivableModal";
 import CommentBox from "@/components/CommentBox";
 import CaseStatusSelect from "@/components/CaseStatusSelect";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
+import AttachmentList from "@/components/AttachmentList";
+import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
@@ -18,6 +21,7 @@ const TABS = [
   { key: "comentarios", label: "Comentários" },
   { key: "financeiro", label: "Financeiro" },
   { key: "publicacoes", label: "Publicações" },
+  { key: "anexos", label: "Anexos" },
 ];
 
 export default async function CaseDetailPage({
@@ -39,10 +43,19 @@ export default async function CaseDetailPage({
       receivables: { orderBy: { dueDate: "asc" } },
       payables: { orderBy: { dueDate: "asc" } },
       publications: { orderBy: { publishedAt: "desc" } },
+      attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!c) notFound();
+
+  const serializedAttachments = c.attachments.map((att) => ({
+    id: att.id,
+    name: att.name,
+    driveUrl: att.driveUrl,
+    createdAt: att.createdAt.toISOString(),
+    uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
+  }));
 
   const [cases, users, columns, receivableCategories] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
@@ -59,7 +72,10 @@ export default async function CaseDetailPage({
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <h1 className="font-serif text-2xl font-bold text-navy-900">{c.title}</h1>
-        <CaseStatusSelect caseId={c.id} status={c.status} />
+        <div className="flex items-center gap-2">
+          <CaseStatusSelect caseId={c.id} status={c.status} />
+          <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
+        </div>
       </div>
       <p className="text-sm text-navy-800/50 mb-5">
         {c.processNumber && <span>{c.processNumber} · </span>}
@@ -95,6 +111,12 @@ export default async function CaseDetailPage({
             <h4 className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-2">Descrição</h4>
             <p className="text-sm text-navy-800 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
           </Card>
+          {c.type !== "JUDICIAL" && (
+            <Card className="p-5 md:col-span-2">
+              <h4 className="text-sm font-semibold text-navy-900 mb-3">Converter em Processo Judicial</h4>
+              <PromoteToJudicialForm caseId={c.id} />
+            </Card>
+          )}
         </div>
       )}
 
@@ -109,10 +131,12 @@ export default async function CaseDetailPage({
             ) : (
               <div className="divide-y divide-navy-800/5">
                 {c.tasks.map((t) => (
-                  <form key={t.id} action={async () => { "use server"; await toggleTaskDone(t.id); }} className="flex items-center gap-3 px-5 py-3.5">
-                    <button type="submit" className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center ${t.status === "CONCLUIDO" ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 hover:border-emerald-500"}`}>
-                      <Check size={12} strokeWidth={3} />
-                    </button>
+                  <div key={t.id} className="flex items-center gap-3 px-5 py-3.5">
+                    <form action={async () => { "use server"; await toggleTaskDone(t.id); }}>
+                      <button type="submit" className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center ${t.status === "CONCLUIDO" ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 hover:border-emerald-500"}`}>
+                        <Check size={12} strokeWidth={3} />
+                      </button>
+                    </form>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
@@ -122,7 +146,8 @@ export default async function CaseDetailPage({
                       {t.responsible && <p className="text-xs text-navy-800/40 mt-0.5">Responsável: {t.responsible.name}</p>}
                     </div>
                     <p className="text-xs font-semibold text-navy-800/60 shrink-0">{formatDate(t.dueDate)}</p>
-                  </form>
+                    <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir a atividade "${t.title}"?`} />
+                  </div>
                 ))}
               </div>
             )}
@@ -230,6 +255,7 @@ export default async function CaseDetailPage({
                       {p.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}
                     </Badge>
                     <Badge color="navy">{p.source}</Badge>
+                    {p.lawyerTag && <Badge color="gold">{p.lawyerTag}</Badge>}
                     {!p.read && <Badge color="gold">Não lida</Badge>}
                     <span className="text-xs text-navy-800/40">{formatDate(p.publishedAt)}</span>
                   </div>
@@ -238,6 +264,12 @@ export default async function CaseDetailPage({
               ))}
             </div>
           )}
+        </Card>
+      )}
+
+      {tab === "anexos" && (
+        <Card className="p-5">
+          <AttachmentList attachments={serializedAttachments} caseId={c.id} />
         </Card>
       )}
     </div>

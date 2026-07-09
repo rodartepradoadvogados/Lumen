@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatDate } from "@/components/ui";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { Check, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
@@ -106,16 +107,19 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
     >
       <div className="flex items-center justify-between mb-1.5">
         <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>
-        <button
-          onClick={onToggle}
-          title={done ? "Reabrir" : "Concluir"}
-          className={clsx(
-            "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
-            done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 text-transparent hover:border-emerald-500"
-          )}
-        >
-          <Check size={12} strokeWidth={3} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggle}
+            title={done ? "Reabrir" : "Concluir"}
+            className={clsx(
+              "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
+              done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 text-transparent hover:border-emerald-500"
+            )}
+          >
+            <Check size={12} strokeWidth={3} />
+          </button>
+          <DeleteEntityButton entityType="TASK" entityId={task.id} entityLabel={task.title} confirmMessage={`Excluir "${task.title}"?`} />
+        </div>
       </div>
       <p className={clsx("text-sm font-medium text-navy-900 leading-snug", done && "line-through")}>{task.title}</p>
       {task.case && <p className="text-xs text-navy-800/45 mt-1 truncate">{task.case.title}</p>}

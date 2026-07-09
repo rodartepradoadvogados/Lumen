@@ -26,6 +26,7 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
     publishedAt: p.publishedAt.toISOString(),
     read: p.read,
     deadlineGenerated: p.deadlineGenerated,
+    lawyerTag: p.lawyerTag,
     case: p.case ? { id: p.case.id, title: p.case.title } : null,
   }));
 

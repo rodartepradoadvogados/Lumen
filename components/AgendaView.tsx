@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import clsx from "clsx";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 
 type TaskData = {
   id: string;
@@ -190,6 +191,9 @@ export default function AgendaView({
                     <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                     <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
                     {t.dueTime && <span className="text-[11px] font-semibold text-navy-800/50">{t.dueTime}</span>}
+                    <span className="ml-auto">
+                      <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir "${t.title}" da agenda?`} />
+                    </span>
                   </div>
                   <p className={clsx("text-sm font-medium text-navy-900 mt-1", done && "line-through text-navy-800/40")}>
                     {t.title}

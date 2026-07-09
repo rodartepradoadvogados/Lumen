@@ -111,6 +111,7 @@ model Case {
   payables          Payable[]
   publications      Publication[]
   attachments       Attachment[]
+  convertedFromAttendances Attendance[] @relation("AttendanceConvertedCase")
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
@@ -202,6 +203,9 @@ model Attendance {
 
   responsibleId String?
   responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
+
+  convertedCaseId String?
+  convertedCase   Case?  @relation("AttendanceConvertedCase", fields: [convertedCaseId], references: [id])
 
   tasks         Task[]
   attachments   Attachment[]

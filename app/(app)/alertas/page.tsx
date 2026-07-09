@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getAlerts } from "@/lib/alerts";
-import { PageHeader, Card, EmptyState } from "@/components/ui";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
+import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
+import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import { AlertTriangle, Clock, Newspaper, Wallet, AtSign, CalendarClock, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +25,35 @@ const severityStyle: Record<string, string> = {
 };
 
 export default async function AlertasPage() {
-  const alerts = await getAlerts();
+  const [alerts, viewer] = await Promise.all([getAlerts(), getCurrentUser()]);
+  const isAdmin = viewer?.isAdmin ?? false;
+
+  const pendingDeletions = isAdmin
+    ? await prisma.deletionRequest.findMany({
+        where: { status: "PENDENTE" },
+        include: { requestedBy: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
+    <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-6">
       <PageHeader title="Central de Alertas" subtitle={`${alerts.length} alerta(s) ativo(s)`} />
+
+      {isAdmin && pendingDeletions.length > 0 && (
+        <Card>
+          <CardHeader title="Solicitações de Exclusão Pendentes" subtitle={`${pendingDeletions.length} aguardando aprovação`} />
+          <DeletionRequestsPanel
+            requests={pendingDeletions.map((r) => ({
+              id: r.id,
+              entityType: r.entityType,
+              entityLabel: r.entityLabel,
+              createdAt: r.createdAt.toISOString(),
+              requestedBy: { name: r.requestedBy.name },
+            }))}
+          />
+        </Card>
+      )}
 
       <Card>
         {alerts.length === 0 ? (

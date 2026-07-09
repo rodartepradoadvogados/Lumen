@@ -28,6 +28,18 @@ type ExtractedEntry = { processNumber: string | null; content: string; kind: str
 
 const PROCESS_NUMBER_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
 
+const JAIRO_OAB_RE = /78[.\s]?295/;
+const RODRIGO_OAB_RE = /32[.\s]?943/;
+
+export function detectLawyerTag(text: string): string | null {
+  const hasJairo = JAIRO_OAB_RE.test(text);
+  const hasRodrigo = RODRIGO_OAB_RE.test(text);
+  if (hasJairo && hasRodrigo) return "Jairo e Rodrigo";
+  if (hasJairo) return "Jairo";
+  if (hasRodrigo) return "Rodrigo";
+  return null;
+}
+
 // publicacoes-diarios@jusbrasil.com.br: blocos repetidos iniciando em "Processo <numero>", "Processo nº <numero>" ou "Título - <numero> - ..."
 function extractPublicacoes(text: string): ExtractedEntry[] {
   const entries: ExtractedEntry[] = [];
@@ -139,6 +151,7 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
                 emailAccount: account.user,
                 emailSubject: subject,
                 processNumberRaw: entry.processNumber,
+                lawyerTag: detectLawyerTag(entry.content),
                 caseId,
               },
             });

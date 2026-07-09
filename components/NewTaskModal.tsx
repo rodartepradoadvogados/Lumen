@@ -14,6 +14,7 @@ export default function NewTaskModal({
   defaultDate,
   defaultColumnId,
   defaultCaseId,
+  defaultAttendanceId,
   label,
 }: {
   cases: Option[];
@@ -22,6 +23,7 @@ export default function NewTaskModal({
   defaultDate?: string;
   defaultColumnId?: string;
   defaultCaseId?: string;
+  defaultAttendanceId?: string;
   label?: string;
 }) {
   const router = useRouter();
@@ -39,6 +41,7 @@ export default function NewTaskModal({
       dueTime: String(formData.get("dueTime") || ""),
       priority: String(formData.get("priority")),
       caseId: String(formData.get("caseId") || ""),
+      attendanceId: defaultAttendanceId,
       responsibleId: String(formData.get("responsibleId") || ""),
       columnId: String(formData.get("columnId") || ""),
       description: String(formData.get("description") || ""),

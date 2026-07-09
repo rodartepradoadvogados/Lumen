@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/components/ui";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { Plus, Scale } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,7 @@ export default async function ProcessosPage({
                 <div className="text-xs text-navy-800/40 shrink-0 w-20 text-right hidden md:block">
                   {c._count.tasks} tarefa(s)
                 </div>
+                <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"?`} />
               </Link>
             ))}
           </div>

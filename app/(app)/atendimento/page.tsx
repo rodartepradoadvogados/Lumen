@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -39,12 +40,13 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         ) : (
           <div className="divide-y divide-navy-800/5">
             {attendances.map((a) => (
-              <div key={a.id} className="flex items-center gap-4 px-5 py-3.5">
+              <Link key={a.id} href={`/atendimento/${a.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-cream-50 transition-colors">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-navy-900">{a.clientName}</p>
                     <Badge color={statusColors[a.status]}>{a.status.replace("_", " ")}</Badge>
                     <Badge color="navy">{channelLabels[a.channel]}</Badge>
+                    {a.area && <Badge color="gold">{a.area}</Badge>}
                   </div>
                   <p className="text-xs text-navy-800/45 mt-0.5">{a.subject}</p>
                 </div>
@@ -52,7 +54,13 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
                   <p className="text-xs text-navy-800/40">{formatDate(a.createdAt)}</p>
                   {a.responsible && <p className="text-xs text-navy-800/50 mt-0.5">{a.responsible.name}</p>}
                 </div>
-              </div>
+                <DeleteEntityButton
+                  entityType="ATTENDANCE"
+                  entityId={a.id}
+                  entityLabel={`${a.clientName} — ${a.subject}`}
+                  confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
+                />
+              </Link>
             ))}
           </div>
         )}

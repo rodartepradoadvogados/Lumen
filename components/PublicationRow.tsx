@@ -16,6 +16,7 @@ type Pub = {
   publishedAt: string;
   read: boolean;
   deadlineGenerated: boolean;
+  lawyerTag: string | null;
   case: { id: string; title: string } | null;
 };
 
@@ -49,6 +50,7 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
             {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
           </Badge>
           <Badge color="navy">{pub.source}</Badge>
+          {pub.lawyerTag && <Badge color="gold">{pub.lawyerTag}</Badge>}
           {!pub.read && <Badge color="gold">Não lida</Badge>}
           {pub.deadlineGenerated && <Badge color="green">Compromisso gerado</Badge>}
           <span className="text-xs text-navy-800/40">{formatDate(pub.publishedAt)}</span>
