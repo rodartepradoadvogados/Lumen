@@ -1,7 +1,16 @@
 import { SignJWT, jwtVerify } from "jose";
 
 const SESSION_COOKIE = "rp_session";
-const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || "dev-only-insecure-secret");
+const secret = () => {
+  const value = process.env.AUTH_SECRET;
+  if (!value) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET não configurado — defina essa variável de ambiente antes de usar em produção.");
+    }
+    return new TextEncoder().encode("dev-only-insecure-secret");
+  }
+  return new TextEncoder().encode(value);
+};
 
 export const SESSION_COOKIE_NAME = SESSION_COOKIE;
 
