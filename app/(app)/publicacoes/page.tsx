@@ -1,22 +1,20 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
-import PublicationRow from "@/components/PublicationRow";
+import PublicationsList from "@/components/PublicationsList";
 import SyncJusbrasilButton from "@/components/SyncJusbrasilButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicacoesPage({ searchParams }: { searchParams: { filter?: string; kind?: string } }) {
+export default async function PublicacoesPage({ searchParams }: { searchParams: { kind?: string } }) {
   const publications = await prisma.publication.findMany({
     where: {
-      read: searchParams.filter === "nao-lidas" ? false : undefined,
+      read: false,
       kind: searchParams.kind || undefined,
     },
     include: { case: true },
     orderBy: { publishedAt: "desc" },
   });
-
-  const unreadCount = await prisma.publication.count({ where: { read: false } });
 
   const serialized = publications.map((p) => ({
     id: p.id,
@@ -32,7 +30,7 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
 
   const qs = (extra: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
-    const merged = { filter: searchParams.filter, kind: searchParams.kind, ...extra };
+    const merged = { kind: searchParams.kind, ...extra };
     Object.entries(merged).forEach(([k, v]) => v && params.set(k, v));
     const s = params.toString();
     return `/publicacoes${s ? `?${s}` : ""}`;
@@ -42,14 +40,10 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
       <PageHeader
         title="Publicações e Andamentos Processuais"
-        subtitle={`${unreadCount} não lida(s)`}
+        subtitle={`${serialized.length} não lida(s) — some daqui assim que marcada como lida`}
         action={<SyncJusbrasilButton />}
       />
 
-      <div className="flex gap-2 mb-2 flex-wrap">
-        <FilterLink label="Todas" href={qs({ filter: undefined })} active={!searchParams.filter} />
-        <FilterLink label="Não lidas" href={qs({ filter: "nao-lidas" })} active={searchParams.filter === "nao-lidas"} />
-      </div>
       <div className="flex gap-2 mb-4 flex-wrap">
         <FilterLink label="Todos os tipos" href={qs({ kind: undefined })} active={!searchParams.kind} />
         <FilterLink label="Publicações" href={qs({ kind: "PUBLICACAO" })} active={searchParams.kind === "PUBLICACAO"} />
@@ -58,13 +52,9 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
 
       <Card>
         {serialized.length === 0 ? (
-          <EmptyState title="Nenhuma publicação encontrada" />
+          <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
         ) : (
-          <div className="divide-y divide-navy-800/5">
-            {serialized.map((p) => (
-              <PublicationRow key={p.id} pub={p} />
-            ))}
-          </div>
+          <PublicationsList publications={serialized} />
         )}
       </Card>
     </div>

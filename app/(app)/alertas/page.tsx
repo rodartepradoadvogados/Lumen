@@ -1,21 +1,29 @@
 import Link from "next/link";
-import { getAlerts } from "@/lib/alerts";
+import { getAlerts, getTodayItems } from "@/lib/alerts";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
-import { AlertTriangle, Clock, Newspaper, Wallet, AtSign, CalendarClock, LucideIcon } from "lucide-react";
+import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   PRAZO_VENCIDO: { label: "Prazo Vencido", icon: AlertTriangle },
-  PRAZO_PROXIMO: { label: "Prazo Próximo", icon: Clock },
-  PUBLICACAO_NAO_LIDA: { label: "Publicação Não Lida", icon: Newspaper },
   CONTA_PAGAR_VENCIDA: { label: "Conta a Pagar Vencida", icon: Wallet },
   CONTA_RECEBER_VENCIDA: { label: "Conta a Receber Vencida", icon: Wallet },
   MENCAO: { label: "Menção", icon: AtSign },
   PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
+};
+
+const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
+  TAREFA: { label: "Tarefa", icon: ListTodo },
+  EVENTO: { label: "Evento", icon: CalendarCheck2 },
+  AUDIENCIA: { label: "Audiência", icon: Gavel },
+  PERICIA: { label: "Perícia", icon: Stethoscope },
+  PRAZO: { label: "Prazo", icon: AlertTriangle },
+  CONTA_PAGAR: { label: "Conta a Pagar", icon: Wallet },
+  CONTA_RECEBER: { label: "Conta a Receber", icon: Wallet },
 };
 
 const severityStyle: Record<string, string> = {
@@ -24,8 +32,9 @@ const severityStyle: Record<string, string> = {
   baixa: "border-l-4 border-slate-300",
 };
 
-export default async function AlertasPage() {
-  const [alerts, viewer] = await Promise.all([getAlerts(), getCurrentUser()]);
+export default async function AlertasPage({ searchParams }: { searchParams: { tab?: string } }) {
+  const tab = searchParams.tab === "hoje" ? "hoje" : "pendentes";
+  const [alerts, todayItems, viewer] = await Promise.all([getAlerts(), getTodayItems(), getCurrentUser()]);
   const isAdmin = viewer?.isAdmin ?? false;
 
   const pendingDeletions = isAdmin
@@ -37,49 +46,96 @@ export default async function AlertasPage() {
     : [];
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-6">
-      <PageHeader title="Central de Alertas" subtitle={`${alerts.length} alerta(s) ativo(s)`} />
+    <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-4">
+      <PageHeader title="Central de Alertas" subtitle={tab === "pendentes" ? `${alerts.length} pendente(s)` : `${todayItems.length} item(ns) para hoje`} />
 
-      {isAdmin && pendingDeletions.length > 0 && (
-        <Card>
-          <CardHeader title="Solicitações de Exclusão Pendentes" subtitle={`${pendingDeletions.length} aguardando aprovação`} />
-          <DeletionRequestsPanel
-            requests={pendingDeletions.map((r) => ({
-              id: r.id,
-              entityType: r.entityType,
-              entityLabel: r.entityLabel,
-              createdAt: r.createdAt.toISOString(),
-              requestedBy: { name: r.requestedBy.name },
-            }))}
-          />
-        </Card>
+      <div className="flex gap-2">
+        <Link
+          href="/alertas?tab=pendentes"
+          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "pendentes" ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"}`}
+        >
+          Pendentes
+        </Link>
+        <Link
+          href="/alertas?tab=hoje"
+          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "hoje" ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"}`}
+        >
+          Hoje
+        </Link>
+      </div>
+
+      {tab === "pendentes" && (
+        <div className="space-y-6">
+          {isAdmin && pendingDeletions.length > 0 && (
+            <Card>
+              <CardHeader title="Solicitações de Exclusão Pendentes" subtitle={`${pendingDeletions.length} aguardando aprovação`} />
+              <DeletionRequestsPanel
+                requests={pendingDeletions.map((r) => ({
+                  id: r.id,
+                  entityType: r.entityType,
+                  entityLabel: r.entityLabel,
+                  createdAt: r.createdAt.toISOString(),
+                  requestedBy: { name: r.requestedBy.name },
+                }))}
+              />
+            </Card>
+          )}
+
+          <Card>
+            {alerts.length === 0 ? (
+              <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
+            ) : (
+              <div className="divide-y divide-navy-800/5">
+                {alerts.map((a) => {
+                  const meta = kindMeta[a.kind];
+                  const Icon = meta.icon;
+                  return (
+                    <Link key={a.id} href={a.href} className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 transition-colors ${severityStyle[a.severity]}`}>
+                      <div className="p-2 rounded-lg bg-navy-900/5 text-navy-800 shrink-0">
+                        <Icon size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-semibold text-navy-800/40 uppercase tracking-wide">{meta.label}</p>
+                        <p className="text-sm font-medium text-navy-900 mt-0.5">{a.title}</p>
+                        {a.subtitle && <p className="text-xs text-navy-800/50 mt-0.5">{a.subtitle}</p>}
+                      </div>
+                      <span className="text-xs text-navy-800/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
-      <Card>
-        {alerts.length === 0 ? (
-          <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
-        ) : (
-          <div className="divide-y divide-navy-800/5">
-            {alerts.map((a) => {
-              const meta = kindMeta[a.kind];
-              const Icon = meta.icon;
-              return (
-                <Link key={a.id} href={a.href} className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 transition-colors ${severityStyle[a.severity]}`}>
-                  <div className="p-2 rounded-lg bg-navy-900/5 text-navy-800 shrink-0">
-                    <Icon size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-navy-800/40 uppercase tracking-wide">{meta.label}</p>
-                    <p className="text-sm font-medium text-navy-900 mt-0.5">{a.title}</p>
-                    {a.subtitle && <p className="text-xs text-navy-800/50 mt-0.5">{a.subtitle}</p>}
-                  </div>
-                  <span className="text-xs text-navy-800/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+      {tab === "hoje" && (
+        <Card>
+          {todayItems.length === 0 ? (
+            <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
+          ) : (
+            <div className="divide-y divide-navy-800/5">
+              {todayItems.map((item) => {
+                const meta = todayMeta[item.kind];
+                const Icon = meta.icon;
+                return (
+                  <Link key={item.id} href={item.href} className="flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 transition-colors">
+                    <div className="p-2 rounded-lg bg-navy-900/5 text-navy-800 shrink-0">
+                      <Icon size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold text-navy-800/40 uppercase tracking-wide">{meta.label}</p>
+                      <p className="text-sm font-medium text-navy-900 mt-0.5">{item.title}</p>
+                      {item.subtitle && <p className="text-xs text-navy-800/50 mt-0.5">{item.subtitle}</p>}
+                    </div>
+                    {item.time && <span className="text-xs font-semibold text-navy-800/50 shrink-0">{item.time}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

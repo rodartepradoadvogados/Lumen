@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
-import { Plus, Scale } from "lucide-react";
+import NewEntityMenu from "@/components/NewEntityMenu";
+import { Scale } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -36,14 +37,7 @@ export default async function ProcessosPage({
       <PageHeader
         title="Processos e Casos"
         subtitle={`${cases.length} registro(s)`}
-        action={
-          <Link
-            href="/processos/novo"
-            className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={16} /> Novo Caso
-          </Link>
-        }
+        action={<NewEntityMenu />}
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">

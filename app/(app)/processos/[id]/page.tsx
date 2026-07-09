@@ -12,6 +12,7 @@ import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
+import { getDriveStatus } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +58,12 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories] = await Promise.all([
+  const [cases, users, columns, receivableCategories, driveStatus] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
     getLeafCategoryOptions("RECEITA"),
+    getDriveStatus(),
   ]);
 
   return (
@@ -269,7 +271,7 @@ export default async function CaseDetailPage({
 
       {tab === "anexos" && (
         <Card className="p-5">
-          <AttachmentList attachments={serializedAttachments} caseId={c.id} />
+          <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} />
         </Card>
       )}
     </div>

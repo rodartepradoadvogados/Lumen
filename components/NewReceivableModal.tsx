@@ -80,7 +80,7 @@ export default function NewReceivableModal({
                 <label className="text-xs font-medium text-navy-800/60">Descrição</label>
                 <input name="description" required className="fin-input" placeholder="Ex: Honorários contratuais - parcela 1/6" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">{splitSuccess ? "Valor a receber agora (R$)" : "Valor (R$)"}</label>
                   <input name="amount" type="number" step="0.01" required className="fin-input" />
@@ -112,7 +112,7 @@ export default function NewReceivableModal({
                   <option value="REEMBOLSO">Reembolso</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Categoria</label>
                   <select name="categoryId" className="fin-input">

@@ -118,7 +118,7 @@ export default function AgendaView({
                 key={key}
                 onClick={() => setSelected(key)}
                 className={clsx(
-                  "border-b border-r border-navy-800/5 p-1.5 text-left flex flex-col min-h-[86px] transition-colors",
+                  "border-b border-r border-navy-800/5 p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
                   !inMonth && "bg-cream-50/60 text-navy-800/25",
                   isSelected && "bg-gold-500/10 ring-1 ring-inset ring-gold-500/40"
                 )}

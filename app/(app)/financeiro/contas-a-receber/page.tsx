@@ -114,7 +114,7 @@ export default async function ContasAReceberPage({
         ) : (
           <div className="divide-y divide-navy-800/5">
             {filtered.map((r) => (
-              <div key={r.id} className="flex items-center gap-4 px-5 py-3.5">
+              <div key={r.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-navy-900">{r.description}</p>
                   <p className="text-xs text-navy-800/45 mt-0.5">
@@ -126,12 +126,14 @@ export default async function ContasAReceberPage({
                     {r.isSuccessPortion && <span> · Êxito</span>}
                   </p>
                 </div>
-                <div className="text-right shrink-0 w-28">
-                  <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
-                  <p className="text-xs text-navy-800/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
-                </div>
-                <div className="shrink-0 w-24">
-                  <Badge color={statusColor[r.effectiveStatus]}>{r.effectiveStatus}</Badge>
+                <div className="flex items-center justify-between sm:contents">
+                  <div className="text-left sm:text-right shrink-0 sm:w-28">
+                    <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
+                    <p className="text-xs text-navy-800/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                  </div>
+                  <div className="shrink-0 sm:w-24">
+                    <Badge color={statusColor[r.effectiveStatus]}>{r.effectiveStatus}</Badge>
+                  </div>
                 </div>
                 <div className="shrink-0">
                   <SettleButton id={r.id} kind="receivable" amount={r.paidAmount ?? r.amount} status={r.status} />

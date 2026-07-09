@@ -4,7 +4,8 @@ import { PageHeader, Card } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewCasePage() {
+export default async function NewCasePage({ searchParams }: { searchParams: { type?: string } }) {
+  const defaultType = searchParams.type || "JUDICIAL";
   const [clients, users] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
@@ -37,10 +38,10 @@ export default async function NewCasePage() {
             <input name="title" required className="input" placeholder="Ex: Fulano de Tal x Empresa XYZ" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-navy-800/60">Tipo</label>
-              <select name="type" className="input">
+              <select name="type" defaultValue={defaultType} className="input">
                 <option value="JUDICIAL">Judicial</option>
                 <option value="EXTRAJUDICIAL">Extrajudicial</option>
                 <option value="ATENDIMENTO">Atendimento</option>
@@ -53,7 +54,7 @@ export default async function NewCasePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-navy-800/60">Número do Processo</label>
               <input name="processNumber" className="input" placeholder="0000000-00.0000.0.00.0000" />
@@ -64,7 +65,7 @@ export default async function NewCasePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-navy-800/60">Valor da Causa (R$)</label>
               <input name="caseValue" type="number" step="0.01" className="input" />
@@ -94,7 +95,7 @@ export default async function NewCasePage() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-navy-800/60">Parte Adversa (nome)</label>
               <input name="opposingPartyName" className="input" placeholder="Nome da parte contrária" />

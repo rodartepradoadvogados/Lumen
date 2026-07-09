@@ -1,0 +1,133 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Pencil, Power, Trash2, X } from "lucide-react";
+import { updateUser, toggleUserActive, deleteUser } from "@/lib/actions/settings";
+import { Badge } from "@/components/ui";
+
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  username: string | null;
+  role: string;
+  oab: string | null;
+  color: string;
+  active: boolean;
+  isAdmin: boolean;
+};
+
+export default function UserRow({ user, canManage }: { user: User; canManage: boolean }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSave(formData: FormData) {
+    setError(null);
+    startTransition(async () => {
+      await updateUser(user.id, {
+        name: String(formData.get("name")),
+        email: String(formData.get("email")),
+        role: String(formData.get("role")),
+        oab: String(formData.get("oab") || ""),
+        color: String(formData.get("color") || user.color),
+      });
+      setEditing(false);
+      router.refresh();
+    });
+  }
+
+  function handleToggleActive() {
+    setError(null);
+    startTransition(async () => {
+      const result = await toggleUserActive(user.id);
+      if (result.error) setError(result.error);
+      router.refresh();
+    });
+  }
+
+  function handleDelete() {
+    if (!window.confirm(`Excluir definitivamente "${user.name}"? Essa ação não pode ser desfeita.`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteUser(user.id);
+      if (result.error) setError(result.error);
+      router.refresh();
+    });
+  }
+
+  if (editing) {
+    return (
+      <form action={handleSave} className="px-5 py-3 space-y-2 bg-cream-50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input name="name" defaultValue={user.name} required placeholder="Nome" className="cfg-input" />
+          <input name="email" type="email" defaultValue={user.email} required placeholder="E-mail" className="cfg-input" />
+          <select name="role" defaultValue={user.role} className="cfg-input">
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <input name="oab" defaultValue={user.oab ?? ""} placeholder="OAB (opcional)" className="cfg-input" />
+          <input name="color" type="color" defaultValue={user.color} className="cfg-input h-9 p-1" />
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            {pending ? "Salvando..." : "Salvar"}
+          </button>
+          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-5 py-3 relative">
+      <span className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: user.color }}>
+        {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-navy-900">{user.name}</p>
+        <p className="text-xs text-navy-800/45 truncate">
+          {user.role} {user.oab && `· ${user.oab}`} · {user.email}
+          {user.username && ` · login: ${user.username}`}
+        </p>
+      </div>
+      <Badge color={user.active ? "green" : "slate"}>{user.active ? "Ativo" : "Inativo"}</Badge>
+      {user.isAdmin && <Badge color="gold">Admin</Badge>}
+      {canManage && !user.isAdmin && (
+        <div className="flex items-center gap-1">
+          <button onClick={() => setEditing(true)} title="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={handleToggleActive}
+            disabled={pending}
+            title={user.active ? "Inativar" : "Reativar"}
+            className="p-1.5 rounded-lg text-navy-800/30 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40"
+          >
+            <Power size={14} />
+          </button>
+          <button onClick={handleDelete} disabled={pending} title="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+      {error && (
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-red-50 text-red-700 border border-red-200 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+          {error}
+          <button onClick={() => setError(null)} className="ml-auto shrink-0">
+            <X size={12} />
+          </button>
+        </span>
+      )}
+    </div>
+  );
+}

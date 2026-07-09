@@ -1,12 +1,12 @@
-import { Search, Bell, Plus, LogOut } from "lucide-react";
+import { Search, Bell, LogOut } from "lucide-react";
 import Link from "next/link";
-import { getAlerts } from "@/lib/alerts";
+import { getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { logout } from "@/lib/actions/auth";
+import NewEntityMenu from "@/components/NewEntityMenu";
 
 export default async function TopBar() {
-  const [alerts, user] = await Promise.all([getAlerts(), getCurrentUser()]);
-  const highCount = alerts.filter((a) => a.severity === "alta").length;
+  const [todayItems, user] = await Promise.all([getTodayItems(), getCurrentUser()]);
   const initials = user
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
     : "??";
@@ -23,18 +23,13 @@ export default async function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Link
-          href="/processos/novo"
-          className="hidden sm:flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
-        >
-          <Plus size={16} /> Novo Caso
-        </Link>
+        <NewEntityMenu />
 
-        <Link href="/alertas" className="relative p-2 rounded-lg hover:bg-navy-900/5 transition-colors">
+        <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-navy-900/5 transition-colors">
           <Bell size={20} className="text-navy-800" />
-          {alerts.length > 0 && (
-            <span className={`absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white ${highCount > 0 ? "bg-red-600" : "bg-gold-600"}`}>
-              {alerts.length > 9 ? "9+" : alerts.length}
+          {todayItems.length > 0 && (
+            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-red-600">
+              {todayItems.length > 9 ? "9+" : todayItems.length}
             </span>
           )}
         </Link>

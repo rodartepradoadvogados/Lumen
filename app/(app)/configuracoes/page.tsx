@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import {
   createUser,
-  deleteUser,
   createKanbanColumn,
   deleteKanbanColumn,
   createFinancialCategory,
@@ -12,9 +11,11 @@ import {
   deleteCostCenter,
 } from "@/lib/actions/settings";
 import DeleteButton from "@/components/DeleteButton";
+import UserRow from "@/components/UserRow";
 import TestEmailButton from "@/components/TestEmailButton";
-import { Upload } from "lucide-react";
+import { Upload, HardDrive, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getDriveStatus } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
 
@@ -59,13 +60,14 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
   );
 }
 
-export default async function ConfiguracoesPage() {
-  const [viewer, users, columns, categories, costCenters] = await Promise.all([
+export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string } }) {
+  const [viewer, users, columns, categories, costCenters, driveStatus] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
     prisma.financialCategory.findMany(),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    getDriveStatus(),
   ]);
   const isAdmin = viewer?.isAdmin ?? false;
 
@@ -124,6 +126,36 @@ export default async function ConfiguracoesPage() {
         </div>
       </Card>
 
+      {isAdmin && (
+        <Card>
+          <CardHeader title="Integração com Google Drive" subtitle="Necessária para anexar documentos arrastando/selecionando do computador" />
+          <div className="p-5 space-y-3">
+            {searchParams.google === "conectado" && (
+              <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Google Drive conectado com sucesso!</p>
+            )}
+            {searchParams.google === "erro" && (
+              <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                Erro ao conectar: {searchParams.msg || "tente novamente."}
+              </p>
+            )}
+            {driveStatus.connected ? (
+              <div className="flex items-center gap-2 text-sm text-navy-900">
+                <CheckCircle2 size={16} className="text-emerald-600" />
+                Conectado como <strong>{driveStatus.accountEmail}</strong>
+              </div>
+            ) : (
+              <p className="text-sm text-navy-800/60">Nenhuma conta conectada ainda.</p>
+            )}
+            <a
+              href="/api/google/connect"
+              className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+            >
+              <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google Drive
+            </a>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório" />
         <div className="p-5 flex gap-4 flex-wrap">
@@ -139,27 +171,7 @@ export default async function ConfiguracoesPage() {
         <CardHeader title="Equipe" subtitle={`${users.length} membro(s)`} />
         <div className="divide-y divide-navy-800/5">
           {users.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 px-5 py-3">
-              <span className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: u.color }}>
-                {u.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-              </span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-navy-900">{u.name}</p>
-                <p className="text-xs text-navy-800/45">
-                  {u.role} {u.oab && `· ${u.oab}`} · {u.email}
-                  {u.username && ` · login: ${u.username}`}
-                </p>
-              </div>
-              <Badge color={u.active ? "green" : "slate"}>{u.active ? "Ativo" : "Inativo"}</Badge>
-              {u.isAdmin && <Badge color="gold">Admin</Badge>}
-              {isAdmin && !u.isAdmin && u.active && (
-                <DeleteButton
-                  id={u.id}
-                  confirmMessage={`Remover "${u.name}" da equipe? Ele(a) perderá o acesso ao sistema.`}
-                  action={deleteUser}
-                />
-              )}
-            </div>
+            <UserRow key={u.id} user={u} canManage={isAdmin} />
           ))}
         </div>
         <form action={submitUser} className="p-5 grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-navy-800/8">
@@ -170,6 +182,9 @@ export default async function ConfiguracoesPage() {
             <option value="Sócio">Sócio</option>
             <option value="Estagiário">Estagiário</option>
             <option value="Financeiro">Financeiro</option>
+            <option value="Recepcionista">Recepcionista</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Contador">Contador</option>
           </select>
           <input name="oab" placeholder="OAB (opcional)" className="cfg-input" />
           <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1" />

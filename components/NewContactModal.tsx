@@ -64,7 +64,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
               </div>
 
               {kind !== "lawyer" && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-navy-800/60">Tipo</label>
                     <select name="type" className="ct-input">
@@ -80,7 +80,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
               )}
 
               {kind === "lawyer" && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-navy-800/60">OAB</label>
                     <input name="oab" className="ct-input" />
@@ -102,7 +102,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">E-mail</label>
                   <input name="email" type="email" className="ct-input" />

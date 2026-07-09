@@ -7,6 +7,7 @@ import AttachmentList from "@/components/AttachmentList";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
 import AttendanceStatusSelect from "@/components/AttendanceStatusSelect";
+import { getDriveStatus } from "@/lib/googleDrive";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +26,10 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   });
   if (!a) notFound();
 
-  const [users, columns] = await Promise.all([
+  const [users, columns, driveStatus] = await Promise.all([
     prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
+    getDriveStatus(),
   ]);
 
   const serializedAttachments = a.attachments.map((att) => ({
@@ -116,7 +118,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
       <Card className="p-5">
         <h4 className="text-sm font-semibold text-navy-900 mb-3">Anexos</h4>
-        <AttachmentList attachments={serializedAttachments} attendanceId={a.id} />
+        <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={driveStatus.connected} />
       </Card>
     </div>
   );

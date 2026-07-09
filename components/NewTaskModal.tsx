@@ -81,7 +81,7 @@ export default function NewTaskModal({
                 <input name="title" required className="input" placeholder="Ex: Audiência de instrução" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Tipo</label>
                   <select name="type" className="input" value={type} onChange={(e) => setType(e.target.value)}>
@@ -103,7 +103,7 @@ export default function NewTaskModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Data</label>
                   <input type="date" name="dueDate" required defaultValue={defaultDate} className="input" />
@@ -126,7 +126,7 @@ export default function NewTaskModal({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Responsável</label>
                   <select name="responsibleId" className="input">

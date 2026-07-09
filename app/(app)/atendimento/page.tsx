@@ -15,7 +15,7 @@ const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
-export default async function AtendimentoPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function AtendimentoPage({ searchParams }: { searchParams: { status?: string; novo?: string } }) {
   const attendances = await prisma.attendance.findMany({
     where: { status: searchParams.status || undefined },
     include: { responsible: true },
@@ -25,7 +25,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">
-      <PageHeader title="Atendimento" subtitle="Triagem de novos contatos antes de virarem processos/casos" action={<NewAttendanceModal users={users} />} />
+      <PageHeader title="Atendimento" subtitle="Triagem de novos contatos antes de virarem processos/casos" action={<NewAttendanceModal users={users} autoOpen={searchParams.novo === "1"} />} />
 
       <div className="flex gap-2 mb-4 flex-wrap">
         <FilterLink label="Todos" href="/atendimento" active={!searchParams.status} />

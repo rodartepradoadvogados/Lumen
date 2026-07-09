@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 export type AlertItem = {
   id: string;
-  kind: "PRAZO_VENCIDO" | "PRAZO_PROXIMO" | "PUBLICACAO_NAO_LIDA" | "CONTA_PAGAR_VENCIDA" | "CONTA_RECEBER_VENCIDA" | "MENCAO" | "PARCELA_SEM_VENCIMENTO";
+  kind: "PRAZO_VENCIDO" | "CONTA_PAGAR_VENCIDA" | "CONTA_RECEBER_VENCIDA" | "MENCAO" | "PARCELA_SEM_VENCIMENTO";
   title: string;
   subtitle?: string;
   date: Date;
@@ -10,24 +10,39 @@ export type AlertItem = {
   severity: "alta" | "media" | "baixa";
 };
 
+export type TodayItem = {
+  id: string;
+  kind: "TAREFA" | "EVENTO" | "AUDIENCIA" | "PERICIA" | "PRAZO" | "CONTA_PAGAR" | "CONTA_RECEBER";
+  title: string;
+  subtitle?: string;
+  time?: string | null;
+  href: string;
+};
+
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+// Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
+// ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
 export async function getAlerts(): Promise<AlertItem[]> {
   const now = new Date();
-  const soon = new Date();
-  soon.setDate(now.getDate() + 3);
 
-  const [overdueTasks, upcomingTasks, unreadPubs, overduePayables, overdueReceivables, unreadMentions, undatedPayables, undatedReceivables] =
+  const [overdueTasks, overduePayables, overdueReceivables, unreadMentions, undatedPayables, undatedReceivables] =
     await Promise.all([
       prisma.task.findMany({
         where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
         include: { case: true },
         orderBy: { dueDate: "asc" },
       }),
-      prisma.task.findMany({
-        where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
-        include: { case: true },
-        orderBy: { dueDate: "asc" },
-      }),
-      prisma.publication.findMany({ where: { read: false }, include: { case: true }, orderBy: { publishedAt: "desc" } }),
       prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } }),
       prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } }),
       prisma.mention.findMany({ where: { read: false }, include: { comment: { include: { author: true, case: true, task: true } } } }),
@@ -46,28 +61,6 @@ export async function getAlerts(): Promise<AlertItem[]> {
       date: t.dueDate,
       href: `/agenda`,
       severity: "alta",
-    });
-  }
-  for (const t of upcomingTasks) {
-    alerts.push({
-      id: `task-upcoming-${t.id}`,
-      kind: "PRAZO_PROXIMO",
-      title: t.title,
-      subtitle: t.case?.title,
-      date: t.dueDate,
-      href: `/agenda`,
-      severity: "media",
-    });
-  }
-  for (const p of unreadPubs) {
-    alerts.push({
-      id: `pub-${p.id}`,
-      kind: "PUBLICACAO_NAO_LIDA",
-      title: `Publicação (${p.source})`,
-      subtitle: p.case?.title ?? p.content.slice(0, 60),
-      date: p.publishedAt,
-      href: `/publicacoes`,
-      severity: "media",
     });
   }
   for (const p of overduePayables) {
@@ -127,4 +120,54 @@ export async function getAlerts(): Promise<AlertItem[]> {
   }
 
   return alerts.sort((a, b) => b.date.getTime() - a.date.getTime());
+}
+
+// Tudo que vence HOJE: tarefas/eventos/audiências/perícias/prazos + contas a pagar/receber — reforço do dia.
+export async function getTodayItems(): Promise<TodayItem[]> {
+  const now = new Date();
+  const start = startOfDay(now);
+  const end = endOfDay(now);
+
+  const [tasksToday, payablesToday, receivablesToday] = await Promise.all([
+    prisma.task.findMany({
+      where: { dueDate: { gte: start, lte: end }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+      include: { case: true },
+      orderBy: { dueTime: "asc" },
+    }),
+    prisma.payable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } }),
+    prisma.receivable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } }),
+  ]);
+
+  const items: TodayItem[] = [];
+
+  for (const t of tasksToday) {
+    items.push({
+      id: `task-today-${t.id}`,
+      kind: (["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"].includes(t.type) ? t.type : "TAREFA") as TodayItem["kind"],
+      title: t.title,
+      subtitle: t.case?.title,
+      time: t.dueTime,
+      href: "/agenda",
+    });
+  }
+  for (const p of payablesToday) {
+    items.push({
+      id: `payable-today-${p.id}`,
+      kind: "CONTA_PAGAR",
+      title: p.description,
+      subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      href: "/financeiro/contas-a-pagar",
+    });
+  }
+  for (const r of receivablesToday) {
+    items.push({
+      id: `receivable-today-${r.id}`,
+      kind: "CONTA_RECEBER",
+      title: r.description,
+      subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      href: "/financeiro/contas-a-receber",
+    });
+  }
+
+  return items;
 }

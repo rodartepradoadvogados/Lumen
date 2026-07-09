@@ -58,7 +58,7 @@ export default function NewPayableModal({ categories, cases, costCenters = [] }:
                 <label className="text-xs font-medium text-navy-800/60">Descrição</label>
                 <input name="description" required className="fin-input" placeholder="Ex: Aluguel escritório" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">{parcelar ? "Valor de cada parcela (R$)" : "Valor (R$)"}</label>
                   <input name="amount" type="number" step="0.01" required className="fin-input" />
@@ -88,7 +88,7 @@ export default function NewPayableModal({ categories, cases, costCenters = [] }:
               )}
 
               {parcelar && (
-                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-cream-50 border border-navy-800/8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-cream-50 border border-navy-800/8">
                   <div>
                     <label className="text-xs font-medium text-navy-800/60">Quantidade de parcelas</label>
                     <input name="installmentCount" type="number" min="2" defaultValue="2" className="fin-input" />
@@ -104,7 +104,7 @@ export default function NewPayableModal({ categories, cases, costCenters = [] }:
                 <label className="text-xs font-medium text-navy-800/60">Fornecedor</label>
                 <input name="supplier" className="fin-input" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Categoria</label>
                   <select name="categoryId" className="fin-input">

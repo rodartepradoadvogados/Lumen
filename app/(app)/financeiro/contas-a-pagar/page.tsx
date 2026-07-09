@@ -106,7 +106,7 @@ export default async function ContasAPagarPage({
         ) : (
           <div className="divide-y divide-navy-800/5">
             {filtered.map((p) => (
-              <div key={p.id} className="flex items-center gap-4 px-5 py-3.5">
+              <div key={p.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-navy-900">{p.description}</p>
                   <p className="text-xs text-navy-800/45 mt-0.5">
@@ -116,12 +116,14 @@ export default async function ContasAPagarPage({
                     {p.case && <span> · {p.case.title}</span>}
                   </p>
                 </div>
-                <div className="text-right shrink-0 w-28">
-                  <p className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</p>
-                  <p className="text-xs text-navy-800/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
-                </div>
-                <div className="shrink-0 w-24">
-                  <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
+                <div className="flex items-center justify-between sm:contents">
+                  <div className="text-left sm:text-right shrink-0 sm:w-28">
+                    <p className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</p>
+                    <p className="text-xs text-navy-800/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
+                  </div>
+                  <div className="shrink-0 sm:w-24">
+                    <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
+                  </div>
                 </div>
                 <div className="shrink-0">
                   <SettleButton id={p.id} kind="payable" amount={p.paidAmount ?? p.amount} status={p.status} />

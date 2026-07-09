@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { createAttendance } from "@/lib/actions/attendance";
 import { Plus, X } from "lucide-react";
 
-export default function NewAttendanceModal({ users }: { users: { id: string; name: string }[] }) {
+export default function NewAttendanceModal({ users, autoOpen }: { users: { id: string; name: string }[]; autoOpen?: boolean }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!autoOpen);
   const [loading, setLoading] = useState(false);
 
   return (
@@ -50,7 +50,7 @@ export default function NewAttendanceModal({ users }: { users: { id: string; nam
                 <label className="text-xs font-medium text-navy-800/60">Assunto (do que se trata)</label>
                 <input name="subject" required className="at-input" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Matéria</label>
                   <select name="area" className="at-input">
@@ -59,6 +59,7 @@ export default function NewAttendanceModal({ users }: { users: { id: string; nam
                     <option value="Trabalhista">Trabalhista</option>
                     <option value="Tributário">Tributário</option>
                     <option value="Família">Família</option>
+                    <option value="Sucessões">Sucessões</option>
                     <option value="Criminal">Criminal</option>
                     <option value="Previdenciário">Previdenciário</option>
                     <option value="Empresarial">Empresarial</option>

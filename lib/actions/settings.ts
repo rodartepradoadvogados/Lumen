@@ -23,13 +23,53 @@ export async function createUser(data: { name: string; email: string; role: stri
   revalidatePath("/configuracoes");
 }
 
+export async function updateUser(
+  id: string,
+  data: { name: string; email: string; role: string; oab?: string; color: string }
+): Promise<{ error?: string }> {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return { error: "Usuário não encontrado." };
+  await prisma.user.update({
+    where: { id },
+    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color },
+  });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
+export async function toggleUserActive(id: string): Promise<{ error?: string }> {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return { error: "Usuário não encontrado." };
+  if (user.isAdmin) return { error: "Não é possível inativar um administrador (Jairo/Rodrigo)." };
+  await prisma.user.update({ where: { id }, data: { active: !user.active } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 export async function deleteUser(id: string): Promise<{ error?: string }> {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) {
     return { error: "Não é possível excluir um administrador (Jairo/Rodrigo) por aqui." };
   }
-  await prisma.user.update({ where: { id }, data: { active: false } });
+
+  const [commentCount, mentionCount, deletionReqCount] = await Promise.all([
+    prisma.comment.count({ where: { authorId: id } }),
+    prisma.mention.count({ where: { userId: id } }),
+    prisma.deletionRequest.count({ where: { requestedById: id } }),
+  ]);
+  if (commentCount + mentionCount + deletionReqCount > 0) {
+    return { error: "Não é possível excluir: este usuário já tem histórico no sistema (comentários, menções ou solicitações). Use \"Inativar\" em vez de excluir." };
+  }
+
+  await prisma.$transaction([
+    prisma.task.updateMany({ where: { responsibleId: id }, data: { responsibleId: null } }),
+    prisma.case.updateMany({ where: { responsibleId: id }, data: { responsibleId: null } }),
+    prisma.attendance.updateMany({ where: { responsibleId: id }, data: { responsibleId: null } }),
+    prisma.attachment.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } }),
+    prisma.deletionRequest.updateMany({ where: { resolvedById: id }, data: { resolvedById: null } }),
+    prisma.user.delete({ where: { id } }),
+  ]);
   revalidatePath("/configuracoes");
   return {};
 }
