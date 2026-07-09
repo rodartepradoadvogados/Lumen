@@ -18,6 +18,9 @@ type TaskData = {
   dueTime: string | null;
   case: { id: string; title: string } | null;
   responsible: { id: string; name: string; color: string } | null;
+  meetingType: string | null;
+  location: string | null;
+  meetingUrl: string | null;
 };
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -197,6 +200,14 @@ export default function AgendaView({
                     </Link>
                   )}
                   {t.responsible && <p className="text-[11px] text-navy-800/40 mt-1">Responsável: {t.responsible.name}</p>}
+                  {t.meetingType === "PRESENCIAL" && t.location && (
+                    <p className="text-[11px] text-navy-800/50 mt-1">📍 {t.location}</p>
+                  )}
+                  {t.meetingType === "ONLINE" && t.meetingUrl && (
+                    <a href={t.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 block truncate">
+                      🔗 {t.meetingUrl}
+                    </a>
+                  )}
                 </div>
               </div>
             );

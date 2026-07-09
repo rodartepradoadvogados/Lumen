@@ -1,10 +1,15 @@
-import { Search, Bell, Plus } from "lucide-react";
+import { Search, Bell, Plus, LogOut } from "lucide-react";
 import Link from "next/link";
 import { getAlerts } from "@/lib/alerts";
+import { getCurrentUser } from "@/lib/currentUser";
+import { logout } from "@/lib/actions/auth";
 
 export default async function TopBar() {
-  const alerts = await getAlerts();
+  const [alerts, user] = await Promise.all([getAlerts(), getCurrentUser()]);
   const highCount = alerts.filter((a) => a.severity === "alta").length;
+  const initials = user
+    ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
+    : "??";
 
   return (
     <header className="h-16 shrink-0 bg-cream-50/80 backdrop-blur border-b border-gold-500/20 flex items-center justify-between px-6 gap-4">
@@ -36,12 +41,21 @@ export default async function TopBar() {
 
         <div className="flex items-center gap-2 pl-3 border-l border-navy-800/10">
           <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold">
-            JR
+            {initials}
           </div>
           <div className="hidden md:block leading-tight">
-            <p className="text-sm font-medium text-navy-900">Jairo Rodarte</p>
-            <p className="text-[11px] text-navy-800/50">Sócio</p>
+            <p className="text-sm font-medium text-navy-900">{user?.name ?? "Não identificado"}</p>
+            <p className="text-[11px] text-navy-800/50">{user?.role ?? ""}</p>
           </div>
+          <form action={logout}>
+            <button
+              type="submit"
+              title="Sair"
+              className="p-2 rounded-lg hover:bg-navy-900/5 transition-colors text-navy-800/50 hover:text-navy-900"
+            >
+              <LogOut size={16} />
+            </button>
+          </form>
         </div>
       </div>
     </header>

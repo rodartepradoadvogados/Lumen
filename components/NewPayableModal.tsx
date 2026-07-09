@@ -7,7 +7,7 @@ import { Plus, X } from "lucide-react";
 
 type Option = { id: string; name: string };
 
-export default function NewPayableModal({ categories, cases }: { categories: Option[]; cases: Option[] }) {
+export default function NewPayableModal({ categories, cases, costCenters = [] }: { categories: Option[]; cases: Option[]; costCenters?: Option[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,6 +38,7 @@ export default function NewPayableModal({ categories, cases }: { categories: Opt
                   amount: String(formData.get("amount")),
                   dueDate: String(formData.get("dueDate")),
                   categoryId: String(formData.get("categoryId") || ""),
+                  costCenterId: String(formData.get("costCenterId") || ""),
                   caseId: String(formData.get("caseId") || ""),
                 });
                 setLoading(false);
@@ -64,16 +65,29 @@ export default function NewPayableModal({ categories, cases }: { categories: Opt
                 <label className="text-xs font-medium text-navy-800/60">Fornecedor</label>
                 <input name="supplier" className="fin-input" />
               </div>
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Categoria</label>
-                <select name="categoryId" className="fin-input">
-                  <option value="">Sem categoria</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Categoria</label>
+                  <select name="categoryId" className="fin-input">
+                    <option value="">Sem categoria</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Centro de Custo</label>
+                  <select name="costCenterId" className="fin-input">
+                    <option value="">Nenhum</option>
+                    {costCenters.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Processo vinculado (opcional)</label>

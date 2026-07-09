@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, formatCurrency, formatDate, EmptyState } from 
 import NewReceivableModal from "@/components/NewReceivableModal";
 import SettleButton from "@/components/SettleButton";
 import Link from "next/link";
+import { getLeafCategoryOptions } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,11 @@ export default async function ContasAReceberPage({ searchParams }: { searchParam
   const filtered = searchParams.status ? normalized.filter((r) => r.effectiveStatus === searchParams.status) : normalized;
   const total = filtered.reduce((s, r) => s + r.amount, 0);
 
-  const [categories, cases, clients] = await Promise.all([
-    prisma.financialCategory.findMany({ where: { kind: "RECEITA" } }),
+  const [categories, cases, clients, costCenters] = await Promise.all([
+    getLeafCategoryOptions("RECEITA"),
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true } }),
     prisma.client.findMany({ select: { id: true, name: true } }),
+    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -41,7 +43,7 @@ export default async function ContasAReceberPage({ searchParams }: { searchParam
       <PageHeader
         title="Contas a Receber"
         subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
-        action={<NewReceivableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} clients={clients} />}
+        action={<NewReceivableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} clients={clients} costCenters={costCenters} />}
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">

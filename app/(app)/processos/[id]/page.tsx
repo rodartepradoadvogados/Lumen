@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
+import NewReceivableModal from "@/components/NewReceivableModal";
 import CommentBox from "@/components/CommentBox";
 import CaseStatusSelect from "@/components/CaseStatusSelect";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
+import { getLeafCategoryOptions } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +46,11 @@ export default async function CaseDetailPage({
 
   if (!c) notFound();
 
-  const [cases, users, columns] = await Promise.all([
+  const [cases, users, columns, receivableCategories] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true } }),
     prisma.user.findMany({ where: { active: true } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
+    getLeafCategoryOptions("RECEITA"),
   ]);
 
   return (
@@ -153,6 +156,17 @@ export default async function CaseDetailPage({
       )}
 
       {tab === "financeiro" && (
+        <div>
+          <div className="flex justify-end mb-3">
+            <NewReceivableModal
+              categories={receivableCategories}
+              cases={[]}
+              clients={c.clientId ? [{ id: c.clientId, name: c.client?.name ?? "" }] : []}
+              defaultCaseId={c.id}
+              defaultClientId={c.clientId ?? undefined}
+              label="Lançar Honorários"
+            />
+          </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card>
             <div className="px-5 py-3 border-b border-navy-800/8">
@@ -201,6 +215,7 @@ export default async function CaseDetailPage({
             )}
           </Card>
         </div>
+        </div>
       )}
 
       {tab === "publicacoes" && (
@@ -212,6 +227,9 @@ export default async function CaseDetailPage({
               {c.publications.map((p) => (
                 <div key={p.id} className="px-5 py-3.5">
                   <div className="flex items-center gap-2 mb-1">
+                    <Badge color={p.kind === "PUBLICACAO" ? "blue" : "gold"}>
+                      {p.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}
+                    </Badge>
                     <Badge color="navy">{p.source}</Badge>
                     {!p.read && <Badge color="gold">Não lida</Badge>}
                     <span className="text-xs text-navy-800/40">{formatDate(p.publishedAt)}</span>

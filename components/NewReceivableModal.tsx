@@ -7,7 +7,23 @@ import { Plus, X } from "lucide-react";
 
 type Option = { id: string; name: string };
 
-export default function NewReceivableModal({ categories, cases, clients }: { categories: Option[]; cases: Option[]; clients: Option[] }) {
+export default function NewReceivableModal({
+  categories,
+  cases,
+  clients,
+  costCenters = [],
+  defaultCaseId,
+  defaultClientId,
+  label,
+}: {
+  categories: Option[];
+  cases: Option[];
+  clients: Option[];
+  costCenters?: Option[];
+  defaultCaseId?: string;
+  defaultClientId?: string;
+  label?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,13 +34,13 @@ export default function NewReceivableModal({ categories, cases, clients }: { cat
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
-        <Plus size={16} /> Nova Conta a Receber
+        <Plus size={16} /> {label ?? "Nova Conta a Receber"}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-xl shadow-pop w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900">Nova Conta a Receber</h3>
+              <h3 className="font-serif font-bold text-navy-900">{label ?? "Nova Conta a Receber"}</h3>
               <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
                 <X size={18} />
               </button>
@@ -38,6 +54,7 @@ export default function NewReceivableModal({ categories, cases, clients }: { cat
                   dueDate: String(formData.get("dueDate")),
                   kind: String(formData.get("kind")),
                   categoryId: String(formData.get("categoryId") || ""),
+                  costCenterId: String(formData.get("costCenterId") || ""),
                   clientId: String(formData.get("clientId") || ""),
                   caseId: String(formData.get("caseId") || ""),
                 });
@@ -62,7 +79,7 @@ export default function NewReceivableModal({ categories, cases, clients }: { cat
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Tipo</label>
+                <label className="text-xs font-medium text-navy-800/60">Tipo de Honorário</label>
                 <select name="kind" className="fin-input">
                   <option value="HONORARIOS_CONTRATUAIS">Honorários Contratuais</option>
                   <option value="HONORARIOS_SUCUMBENCIAIS">Honorários Sucumbenciais</option>
@@ -70,20 +87,33 @@ export default function NewReceivableModal({ categories, cases, clients }: { cat
                   <option value="OUTROS">Outros</option>
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Categoria</label>
-                <select name="categoryId" className="fin-input">
-                  <option value="">Sem categoria</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Categoria</label>
+                  <select name="categoryId" className="fin-input">
+                    <option value="">Sem categoria</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Centro de Custo</label>
+                  <select name="costCenterId" className="fin-input">
+                    <option value="">Nenhum</option>
+                    {costCenters.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Cliente</label>
-                <select name="clientId" className="fin-input">
+                <select name="clientId" className="fin-input" defaultValue={defaultClientId ?? ""}>
                   <option value="">Nenhum</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -92,17 +122,20 @@ export default function NewReceivableModal({ categories, cases, clients }: { cat
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Processo vinculado (opcional)</label>
-                <select name="caseId" className="fin-input">
-                  <option value="">Nenhum</option>
-                  {cases.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!defaultCaseId && (
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Processo vinculado (opcional)</label>
+                  <select name="caseId" className="fin-input">
+                    <option value="">Nenhum</option>
+                    {cases.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {defaultCaseId && <input type="hidden" name="caseId" value={defaultCaseId} />}
               <button type="submit" disabled={loading} className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Criar"}
               </button>

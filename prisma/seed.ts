@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -19,6 +20,7 @@ async function main() {
   await prisma.payable.deleteMany();
   await prisma.receivable.deleteMany();
   await prisma.financialCategory.deleteMany();
+  await prisma.costCenter.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.case.deleteMany();
   await prisma.client.deleteMany();
@@ -28,10 +30,26 @@ async function main() {
 
   console.log("Criando equipe...");
   const jairo = await prisma.user.create({
-    data: { name: "Jairo Rodarte", email: "jairo@rodarteprado.com.br", role: "Sócio", oab: "OAB/GO 45.123", color: "#0f1f3d" },
+    data: {
+      name: "Jairo Rodarte",
+      email: "jairo@rodarteprado.com.br",
+      role: "Sócio",
+      oab: "OAB/GO 78.295",
+      color: "#0f1f3d",
+      username: "JairoRodarte",
+      passwordHash: await bcrypt.hash("Goiabada1#", 10),
+    },
   });
   const rodrigo = await prisma.user.create({
-    data: { name: "Rodrigo Prado", email: "rodrigo@rodarteprado.com.br", role: "Sócio", oab: "OAB/GO 45.987", color: "#8a6a1f" },
+    data: {
+      name: "Rodrigo Prado",
+      email: "rodrigo@rodarteprado.com.br",
+      role: "Sócio",
+      oab: "OAB/GO 32.943",
+      color: "#8a6a1f",
+      username: "RodrigoPrado",
+      passwordHash: await bcrypt.hash("Goiabada1", 10),
+    },
   });
   const estagiaria = await prisma.user.create({
     data: { name: "Ana Beatriz", email: "ana@rodarteprado.com.br", role: "Estagiária", color: "#557" },
@@ -159,14 +177,112 @@ async function main() {
     data: { content: "Cliente confirmou os novos documentos, já anexei na pasta do caso.", authorId: rodrigo.id, caseId: caso2.id },
   });
 
-  console.log("Categorias financeiras...");
-  const catHonorarios = await prisma.financialCategory.create({ data: { name: "Honorários Contratuais", kind: "RECEITA" } });
-  const catSucumbencia = await prisma.financialCategory.create({ data: { name: "Honorários Sucumbenciais", kind: "RECEITA" } });
-  const catAluguel = await prisma.financialCategory.create({ data: { name: "Aluguel e Condomínio", kind: "DESPESA" } });
-  const catFolha = await prisma.financialCategory.create({ data: { name: "Folha de Pagamento", kind: "DESPESA" } });
-  const catCustas = await prisma.financialCategory.create({ data: { name: "Custas Processuais", kind: "DESPESA" } });
-  const catSoftware = await prisma.financialCategory.create({ data: { name: "Softwares e Assinaturas", kind: "DESPESA" } });
-  const catMarketing = await prisma.financialCategory.create({ data: { name: "Marketing", kind: "DESPESA" } });
+  console.log("Plano de contas...");
+  type CatNode = { code: string; name: string; kind: string; children?: CatNode[] };
+  const chart: CatNode[] = [
+    {
+      code: "1", name: "Receita", kind: "RECEITA", children: [
+        { code: "1.1", name: "Honorários Contratuais", kind: "RECEITA" },
+        { code: "1.2", name: "Honorários Sucumbenciais", kind: "RECEITA" },
+        { code: "1.3", name: "Honorários de Consultoria", kind: "RECEITA" },
+        { code: "1.4", name: "Reembolso", kind: "RECEITA" },
+        { code: "1.5", name: "Rendimentos Financeiros", kind: "RECEITA" },
+        { code: "1.6", name: "Outras Receitas", kind: "RECEITA" },
+      ],
+    },
+    {
+      code: "2", name: "Despesa", kind: "DESPESA", children: [
+        {
+          code: "2.1", name: "Tributos e Contribuições", kind: "DESPESA", children: [
+            {
+              code: "2.1.1", name: "Impostos", kind: "DESPESA", children: [
+                { code: "2.1.1.1", name: "IRPJ", kind: "DESPESA" },
+                { code: "2.1.1.2", name: "IRPF", kind: "DESPESA" },
+                { code: "2.1.1.3", name: "ICMS", kind: "DESPESA" },
+                { code: "2.1.1.4", name: "ISS", kind: "DESPESA" },
+              ],
+            },
+            { code: "2.1.2", name: "Contribuição Social", kind: "DESPESA" },
+            { code: "2.1.3", name: "FGTS", kind: "DESPESA" },
+            { code: "2.1.4", name: "DCTF", kind: "DESPESA" },
+            { code: "2.1.5", name: "Simples Nacional", kind: "DESPESA" },
+            { code: "2.1.6", name: "Taxas", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.2", name: "Folha e Pró-labore", kind: "DESPESA", children: [
+            { code: "2.2.1", name: "Salário", kind: "DESPESA" },
+            { code: "2.2.2", name: "Pró-labore", kind: "DESPESA" },
+            { code: "2.2.3", name: "Pagamento de Advogado Parceiro", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.3", name: "Estrutura e Ocupação", kind: "DESPESA", children: [
+            { code: "2.3.1", name: "Aluguel", kind: "DESPESA" },
+            { code: "2.3.2", name: "Condomínio", kind: "DESPESA" },
+            { code: "2.3.3", name: "IPTU", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.4", name: "Tecnologia", kind: "DESPESA", children: [
+            { code: "2.4.1", name: "Software Jurídico", kind: "DESPESA" },
+            { code: "2.4.2", name: "Ferramentas de IA", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.5", name: "Marketing", kind: "DESPESA", children: [
+            { code: "2.5.1", name: "Marketing", kind: "DESPESA" },
+            { code: "2.5.2", name: "Tráfego Pago", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.6", name: "Serviços Profissionais", kind: "DESPESA", children: [
+            { code: "2.6.1", name: "Contador", kind: "DESPESA" },
+            { code: "2.6.2", name: "Anuidade OAB", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.7", name: "Financeiras e Bancárias", kind: "DESPESA", children: [
+            { code: "2.7.1", name: "Tarifas Bancárias", kind: "DESPESA" },
+          ],
+        },
+        {
+          code: "2.8", name: "Outras Despesas", kind: "DESPESA", children: [
+            { code: "2.8.1", name: "Ajuste", kind: "DESPESA" },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const catByCode: Record<string, { id: string }> = {};
+  async function createTree(nodes: CatNode[], parentId: string | null, order: number) {
+    for (const [i, node] of nodes.entries()) {
+      const created = await prisma.financialCategory.create({
+        data: { code: node.code, name: node.name, kind: node.kind, parentId: parentId ?? undefined, order: order + i },
+      });
+      catByCode[node.code] = created;
+      if (node.children) await createTree(node.children, created.id, 0);
+    }
+  }
+  await createTree(chart, null, 0);
+
+  const catHonorarios = catByCode["1.1"];
+  const catSucumbencia = catByCode["1.2"];
+  const catAluguel = catByCode["2.3.1"];
+  const catFolha = catByCode["2.2.1"];
+  const catCustas = catByCode["2.1.6"];
+  const catSoftware = catByCode["2.4.1"];
+  const catMarketing = catByCode["2.5.1"];
+
+  console.log("Centros de custo...");
+  await prisma.costCenter.createMany({
+    data: [
+      { name: "Assessorias Jurídicas" },
+      { name: "Gestão Patrimonial" },
+      { name: "Outros" },
+    ],
+  });
 
   console.log("Contas a pagar...");
   const payables = [
@@ -213,11 +329,11 @@ async function main() {
 
   console.log("Publicações...");
   const publications = [
-    { source: "PJE", content: "Intimação para manifestação sobre laudo pericial no prazo de 15 dias.", publishedAt: daysFromNow(-2), caseId: caso3.id },
-    { source: "DJE", content: "Sentença de procedência parcial publicada. Prazo recursal em curso.", publishedAt: daysFromNow(-1), caseId: caso1.id, read: true },
-    { source: "PJE", content: "Designada audiência de instrução e julgamento.", publishedAt: daysFromNow(-3), caseId: caso2.id },
-    { source: "ESAJ", content: "Determinada expedição de ofício para localização de endereço do executado.", publishedAt: daysFromNow(-6), caseId: caso4.id },
-    { source: "DJE", content: "Homologado acordo entre as partes.", publishedAt: daysFromNow(-10), caseId: caso5.id, read: true },
+    { kind: "PUBLICACAO", source: "PJE", content: "Intimação para manifestação sobre laudo pericial no prazo de 15 dias.", publishedAt: daysFromNow(-2), caseId: caso3.id },
+    { kind: "PUBLICACAO", source: "DJE", content: "Sentença de procedência parcial publicada. Prazo recursal em curso.", publishedAt: daysFromNow(-1), caseId: caso1.id, read: true },
+    { kind: "ANDAMENTO", source: "PJE", content: "Designada audiência de instrução e julgamento.", publishedAt: daysFromNow(-3), caseId: caso2.id },
+    { kind: "ANDAMENTO", source: "ESAJ", content: "Determinada expedição de ofício para localização de endereço do executado.", publishedAt: daysFromNow(-6), caseId: caso4.id },
+    { kind: "ANDAMENTO", source: "DJE", content: "Homologado acordo entre as partes.", publishedAt: daysFromNow(-10), caseId: caso5.id, read: true },
   ];
   for (const p of publications) {
     await prisma.publication.create({ data: p as any });

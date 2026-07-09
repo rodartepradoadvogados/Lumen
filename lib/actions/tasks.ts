@@ -41,6 +41,9 @@ export async function createTask(data: {
   responsibleId?: string;
   columnId?: string;
   description?: string;
+  meetingType?: string;
+  location?: string;
+  meetingUrl?: string;
 }) {
   const firstColumn = data.columnId ? null : await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
   await prisma.task.create({
@@ -54,6 +57,9 @@ export async function createTask(data: {
       responsibleId: data.responsibleId || null,
       columnId: data.columnId || firstColumn?.id || null,
       description: data.description || null,
+      meetingType: data.meetingType || null,
+      location: data.location || null,
+      meetingUrl: data.meetingUrl || null,
     },
   });
   revalidatePath("/kanban");

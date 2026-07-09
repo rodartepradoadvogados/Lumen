@@ -10,14 +10,18 @@ export async function markPublicationRead(id: string) {
   revalidatePath("/");
 }
 
-export async function generateDeadlineFromPublication(id: string, data: { title: string; dueDate: string; priority: string }) {
+export async function generateTaskFromPublication(
+  id: string,
+  data: { title: string; type: string; dueDate: string; dueTime?: string; priority: string }
+) {
   const pub = await prisma.publication.findUniqueOrThrow({ where: { id } });
   const firstColumn = await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
   await prisma.task.create({
     data: {
       title: data.title,
-      type: "PRAZO",
+      type: data.type,
       dueDate: new Date(data.dueDate),
+      dueTime: data.dueTime || null,
       priority: data.priority,
       caseId: pub.caseId,
       columnId: firstColumn?.id,

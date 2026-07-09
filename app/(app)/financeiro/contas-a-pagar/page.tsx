@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, formatCurrency, formatDate, EmptyState } from 
 import NewPayableModal from "@/components/NewPayableModal";
 import SettleButton from "@/components/SettleButton";
 import Link from "next/link";
+import { getLeafCategoryOptions } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,10 @@ export default async function ContasAPagarPage({ searchParams }: { searchParams:
   const filtered = searchParams.status ? normalized.filter((p) => p.effectiveStatus === searchParams.status) : normalized;
   const total = filtered.reduce((s, p) => s + p.amount, 0);
 
-  const [categories, cases] = await Promise.all([
-    prisma.financialCategory.findMany({ where: { kind: "DESPESA" } }),
+  const [categories, cases, costCenters] = await Promise.all([
+    getLeafCategoryOptions("DESPESA"),
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true } }),
+    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -33,7 +35,7 @@ export default async function ContasAPagarPage({ searchParams }: { searchParams:
       <PageHeader
         title="Contas a Pagar"
         subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
-        action={<NewPayableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} />}
+        action={<NewPayableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} costCenters={costCenters} />}
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">

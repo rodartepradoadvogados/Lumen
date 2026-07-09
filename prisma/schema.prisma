@@ -13,14 +13,16 @@ datasource db {
 // ============ EQUIPE ============
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
-  oab       String?
-  color     String   @default("#0f1f3d") // cor de identificação em cards/agenda
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  username     String?  @unique
+  passwordHash String?
+  role         String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
+  oab          String?
+  color        String   @default("#0f1f3d") // cor de identificação em cards/agenda
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   tasksResponsible   Task[]        @relation("TaskResponsible")
   casesResponsible   Case[]        @relation("CaseResponsible")
@@ -80,13 +82,27 @@ model Case {
   title             String
   type              String    @default("JUDICIAL") // JUDICIAL | EXTRAJUDICIAL | ATENDIMENTO | CONSULTIVO
   area              String?
+  secondaryArea     String?
   status            String    @default("ATIVO") // ATIVO | SUSPENSO | ENCERRADO | ARQUIVADO
+  folder            String?
   processNumber     String?
   court             String?
+  forum             String?
   caseValue         Float?
-  instance          String?
+  convictionValue   Float?
+  instance          String?   // Instância Original
+  currentInstance   String?   // Instância Atual
   distributedAt     DateTime?
+  closedAt          DateTime?
   description       String?
+  clientRole        String?   // Autor, Réu, Interessado, Recorrente, Recorrido...
+  actionType         String?  // Ação (ex: Execução Fiscal)
+  decision          String?
+  outcome           String?
+  tags              String?
+  sourceUrl         String?
+  lastHistoryAt     DateTime?
+  lastHistoryDesc   String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -133,6 +149,11 @@ model Task {
   completedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  // Reunião (quando type = EVENTO)
+  meetingType    String?   // PRESENCIAL | ONLINE
+  location       String?
+  meetingUrl     String?
 
   caseId         String?
   case           Case?     @relation(fields: [caseId], references: [id])
@@ -194,8 +215,26 @@ model Attendance {
 
 model FinancialCategory {
   id        String   @id @default(cuid())
+  code      String   // ex: "1.1", "2.1.1.1" - ordena e mostra a hierarquia (plano de contas)
   name      String
   kind      String   // RECEITA | DESPESA
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  parentId  String?
+  parent    FinancialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  FinancialCategory[] @relation("CategoryTree")
+
+  payables    Payable[]
+  receivables Receivable[]
+}
+
+model CostCenter {
+  id        String   @id @default(cuid())
+  name      String
+  notes     String?
+  createdAt DateTime @default(now())
+
   payables    Payable[]
   receivables Receivable[]
 }
@@ -214,6 +253,9 @@ model Payable {
 
   categoryId   String?
   category     FinancialCategory? @relation(fields: [categoryId], references: [id])
+
+  costCenterId String?
+  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id])
 
   caseId       String?
   case         Case?     @relation(fields: [caseId], references: [id])
@@ -234,6 +276,9 @@ model Receivable {
   categoryId   String?
   category     FinancialCategory? @relation(fields: [categoryId], references: [id])
 
+  costCenterId String?
+  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id])
+
   clientId     String?
   client       Client?   @relation(fields: [clientId], references: [id])
 
@@ -245,6 +290,7 @@ model Receivable {
 
 model Publication {
   id                String    @id @default(cuid())
+  kind              String    @default("PUBLICACAO") // PUBLICACAO | ANDAMENTO
   source            String    @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL
   content           String
   publishedAt       DateTime

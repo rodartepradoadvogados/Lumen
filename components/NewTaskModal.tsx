@@ -27,6 +27,8 @@ export default function NewTaskModal({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [type, setType] = useState("TAREFA");
+  const [meetingType, setMeetingType] = useState("PRESENCIAL");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -40,6 +42,9 @@ export default function NewTaskModal({
       responsibleId: String(formData.get("responsibleId") || ""),
       columnId: String(formData.get("columnId") || ""),
       description: String(formData.get("description") || ""),
+      meetingType: String(formData.get("meetingType") || ""),
+      location: String(formData.get("location") || ""),
+      meetingUrl: String(formData.get("meetingUrl") || ""),
     });
     setLoading(false);
     setOpen(false);
@@ -76,9 +81,9 @@ export default function NewTaskModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Tipo</label>
-                  <select name="type" className="input">
+                  <select name="type" className="input" value={type} onChange={(e) => setType(e.target.value)}>
                     <option value="TAREFA">Tarefa</option>
-                    <option value="EVENTO">Evento</option>
+                    <option value="EVENTO">Evento / Reunião</option>
                     <option value="AUDIENCIA">Audiência</option>
                     <option value="PERICIA">Perícia</option>
                     <option value="PRAZO">Prazo</option>
@@ -141,6 +146,45 @@ export default function NewTaskModal({
                   </select>
                 </div>
               </div>
+
+              {type === "EVENTO" && (
+                <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 p-3 space-y-3">
+                  <p className="text-xs font-semibold text-gold-800 uppercase tracking-wide">Reunião</p>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 text-sm text-navy-800">
+                      <input
+                        type="radio"
+                        name="meetingType"
+                        value="PRESENCIAL"
+                        checked={meetingType === "PRESENCIAL"}
+                        onChange={() => setMeetingType("PRESENCIAL")}
+                      />
+                      Presencial
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm text-navy-800">
+                      <input
+                        type="radio"
+                        name="meetingType"
+                        value="ONLINE"
+                        checked={meetingType === "ONLINE"}
+                        onChange={() => setMeetingType("ONLINE")}
+                      />
+                      Online
+                    </label>
+                  </div>
+                  {meetingType === "PRESENCIAL" ? (
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60">Endereço</label>
+                      <input name="location" className="input" placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO" />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60">Link da reunião</label>
+                      <input name="meetingUrl" type="url" className="input" placeholder="https://meet.google.com/..." />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Descrição (opcional)</label>

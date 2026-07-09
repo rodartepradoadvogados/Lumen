@@ -46,6 +46,7 @@ export async function createPayable(data: {
   amount: string;
   dueDate: string;
   categoryId?: string;
+  costCenterId?: string;
   caseId?: string;
 }) {
   await prisma.payable.create({
@@ -55,6 +56,7 @@ export async function createPayable(data: {
       amount: parseFloat(data.amount),
       dueDate: new Date(data.dueDate),
       categoryId: data.categoryId || null,
+      costCenterId: data.costCenterId || null,
       caseId: data.caseId || null,
     },
   });
@@ -67,6 +69,7 @@ export async function createReceivable(data: {
   dueDate: string;
   kind: string;
   categoryId?: string;
+  costCenterId?: string;
   clientId?: string;
   caseId?: string;
 }) {
@@ -77,9 +80,11 @@ export async function createReceivable(data: {
       dueDate: new Date(data.dueDate),
       kind: data.kind,
       categoryId: data.categoryId || null,
+      costCenterId: data.costCenterId || null,
       clientId: data.clientId || null,
       caseId: data.caseId || null,
     },
   });
   revalidateFinance();
+  if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
 }

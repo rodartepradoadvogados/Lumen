@@ -38,6 +38,9 @@ export default async function AgendaPage({
     dueTime: t.dueTime,
     case: t.case ? { id: t.case.id, title: t.case.title } : null,
     responsible: t.responsible ? { id: t.responsible.id, name: t.responsible.name, color: t.responsible.color } : null,
+    meetingType: t.meetingType,
+    location: t.location,
+    meetingUrl: t.meetingUrl,
   }));
 
   return (
