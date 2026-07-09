@@ -291,12 +291,17 @@ model Receivable {
 model Publication {
   id                String    @id @default(cuid())
   kind              String    @default("PUBLICACAO") // PUBLICACAO | ANDAMENTO
-  source            String    @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL
+  source            String    @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL | JUSBRASIL_EMAIL
   content           String
   publishedAt       DateTime
   read              Boolean   @default(false)
   deadlineGenerated Boolean   @default(false)
   createdAt         DateTime  @default(now())
+
+  emailMessageId    String?   @unique
+  emailAccount      String?
+  emailSubject      String?
+  processNumberRaw  String?
 
   caseId            String?
   case              Case?     @relation(fields: [caseId], references: [id])

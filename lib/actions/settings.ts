@@ -3,9 +3,17 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
+import { syncJusbrasilEmails, type SyncResult } from "@/lib/jusbrasilEmailSync";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   return sendDailyAgendaEmail();
+}
+
+export async function runJusbrasilSync(): Promise<SyncResult> {
+  const result = await syncJusbrasilEmails();
+  revalidatePath("/publicacoes");
+  revalidatePath("/configuracoes");
+  return result;
 }
 
 export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }) {

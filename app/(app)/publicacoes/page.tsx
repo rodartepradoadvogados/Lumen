@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import PublicationRow from "@/components/PublicationRow";
+import SyncJusbrasilButton from "@/components/SyncJusbrasilButton";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,11 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
 
   return (
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
-      <PageHeader title="Publicações e Andamentos Processuais" subtitle={`${unreadCount} não lida(s)`} />
+      <PageHeader
+        title="Publicações e Andamentos Processuais"
+        subtitle={`${unreadCount} não lida(s)`}
+        action={<SyncJusbrasilButton />}
+      />
 
       <div className="flex gap-2 mb-2 flex-wrap">
         <FilterLink label="Todas" href={qs({ filter: undefined })} active={!searchParams.filter} />
