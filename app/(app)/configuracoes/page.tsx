@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import {
   createUser,
+  deleteUser,
   createKanbanColumn,
   deleteKanbanColumn,
   createFinancialCategory,
@@ -13,6 +14,7 @@ import {
 import DeleteButton from "@/components/DeleteButton";
 import TestEmailButton from "@/components/TestEmailButton";
 import { Upload } from "lucide-react";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
 
@@ -58,12 +60,14 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
 }
 
 export default async function ConfiguracoesPage() {
-  const [users, columns, categories, costCenters] = await Promise.all([
+  const [viewer, users, columns, categories, costCenters] = await Promise.all([
+    getCurrentUser(),
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
     prisma.financialCategory.findMany(),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
   ]);
+  const isAdmin = viewer?.isAdmin ?? false;
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
 
@@ -147,6 +151,14 @@ export default async function ConfiguracoesPage() {
                 </p>
               </div>
               <Badge color={u.active ? "green" : "slate"}>{u.active ? "Ativo" : "Inativo"}</Badge>
+              {u.isAdmin && <Badge color="gold">Admin</Badge>}
+              {isAdmin && !u.isAdmin && u.active && (
+                <DeleteButton
+                  id={u.id}
+                  confirmMessage={`Remover "${u.name}" da equipe? Ele(a) perderá o acesso ao sistema.`}
+                  action={deleteUser}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -193,6 +205,8 @@ export default async function ConfiguracoesPage() {
         </form>
       </Card>
 
+      {isAdmin && (
+      <>
       <Card>
         <CardHeader title="Plano de Contas" subtitle="Grupos e subgrupos de receitas e despesas" />
         <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-navy-800/5">
@@ -250,6 +264,8 @@ export default async function ConfiguracoesPage() {
           </button>
         </form>
       </Card>
+      </>
+      )}
 
       <style>{`
         .cfg-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }

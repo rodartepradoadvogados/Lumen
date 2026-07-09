@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReceivable } from "@/lib/actions/financeiro";
+import { createClientQuick } from "@/lib/actions/contatos";
+import { createCaseQuick } from "@/lib/actions/cases";
 import { Plus, X } from "lucide-react";
+import QuickAddSelect from "@/components/QuickAddSelect";
 
 type Option = { id: string; name: string };
 
@@ -15,6 +18,7 @@ export default function NewReceivableModal({
   defaultCaseId,
   defaultClientId,
   label,
+  alreadyReceivedForCase,
 }: {
   categories: Option[];
   cases: Option[];
@@ -23,10 +27,12 @@ export default function NewReceivableModal({
   defaultCaseId?: string;
   defaultClientId?: string;
   label?: string;
+  alreadyReceivedForCase?: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [splitSuccess, setSplitSuccess] = useState(false);
 
   return (
     <>
@@ -57,6 +63,7 @@ export default function NewReceivableModal({
                   costCenterId: String(formData.get("costCenterId") || ""),
                   clientId: String(formData.get("clientId") || ""),
                   caseId: String(formData.get("caseId") || ""),
+                  successAmount: splitSuccess ? String(formData.get("successAmount") || "") : undefined,
                 });
                 setLoading(false);
                 setOpen(false);
@@ -64,27 +71,45 @@ export default function NewReceivableModal({
               }}
               className="p-5 space-y-3"
             >
+              {alreadyReceivedForCase !== undefined && (
+                <p className="text-xs text-navy-800/50 bg-cream-50 rounded-lg px-3 py-2">
+                  Já recebido neste processo: <span className="font-semibold text-navy-900">{alreadyReceivedForCase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                </p>
+              )}
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Descrição</label>
                 <input name="description" required className="fin-input" placeholder="Ex: Honorários contratuais - parcela 1/6" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Valor (R$)</label>
+                  <label className="text-xs font-medium text-navy-800/60">{splitSuccess ? "Valor a receber agora (R$)" : "Valor (R$)"}</label>
                   <input name="amount" type="number" step="0.01" required className="fin-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Vencimento</label>
+                  <label className="text-xs font-medium text-navy-800/60">Vencimento (parte de agora)</label>
                   <input name="dueDate" type="date" required className="fin-input" />
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 text-xs text-navy-800/70">
+                <input type="checkbox" checked={splitSuccess} onChange={(e) => setSplitSuccess(e.target.checked)} />
+                Dividir: parte agora + parte no êxito (sem vencimento definido)
+              </label>
+
+              {splitSuccess && (
+                <div className="p-3 rounded-lg bg-cream-50 border border-navy-800/8">
+                  <label className="text-xs font-medium text-navy-800/60">Valor a receber no êxito (R$)</label>
+                  <input name="successAmount" type="number" step="0.01" className="fin-input" />
+                  <p className="text-[11px] text-navy-800/45 mt-1">Fica sem vencimento e aparece na Central de Alertas para acompanhamento.</p>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Tipo de Honorário</label>
                 <select name="kind" className="fin-input">
                   <option value="HONORARIOS_CONTRATUAIS">Honorários Contratuais</option>
                   <option value="HONORARIOS_SUCUMBENCIAIS">Honorários Sucumbenciais</option>
-                  <option value="REEMBOLSO">Reembolso</option>
                   <option value="OUTROS">Outros</option>
+                  <option value="REEMBOLSO">Reembolso</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -113,26 +138,25 @@ export default function NewReceivableModal({
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Cliente</label>
-                <select name="clientId" className="fin-input" defaultValue={defaultClientId ?? ""}>
-                  <option value="">Nenhum</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <QuickAddSelect
+                  name="clientId"
+                  options={clients}
+                  defaultValue={defaultClientId}
+                  placeholder="Nome do novo cliente"
+                  addLabel="Cadastrar novo cliente"
+                  onQuickAdd={createClientQuick}
+                />
               </div>
               {!defaultCaseId && (
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Processo vinculado (opcional)</label>
-                  <select name="caseId" className="fin-input">
-                    <option value="">Nenhum</option>
-                    {cases.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  <QuickAddSelect
+                    name="caseId"
+                    options={cases}
+                    placeholder="Título do novo processo/caso"
+                    addLabel="Cadastrar novo processo"
+                    onQuickAdd={(name) => createCaseQuick(name)}
+                  />
                 </div>
               )}
               {defaultCaseId && <input type="hidden" name="caseId" value={defaultCaseId} />}

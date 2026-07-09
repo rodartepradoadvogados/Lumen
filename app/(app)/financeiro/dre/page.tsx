@@ -7,16 +7,24 @@ export const dynamic = "force-dynamic";
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-export default async function DrePage({ searchParams }: { searchParams: { year?: string; month?: string } }) {
+export default async function DrePage({
+  searchParams,
+}: {
+  searchParams: { year?: string; month?: string; from?: string; to?: string; costCenterId?: string };
+}) {
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
   const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth();
-  const start = new Date(year, month, 1);
-  const end = new Date(year, month + 1, 1);
+  const usingCustomRange = !!(searchParams.from && searchParams.to);
+  const start = usingCustomRange ? new Date(searchParams.from!) : new Date(year, month, 1);
+  const end = usingCustomRange ? new Date(`${searchParams.to}T23:59:59`) : new Date(year, month + 1, 1);
 
-  const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+  const costCenterId = searchParams.costCenterId || undefined;
+
+  const [receivables, payables, costCenters] = await Promise.all([
+    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
+    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
+    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const receitasPorCategoria: Record<string, number> = {};
@@ -34,8 +42,9 @@ export default async function DrePage({ searchParams }: { searchParams: { year?:
   const totalDespesas = Object.values(despesasPorCategoria).reduce((s, v) => s + v, 0);
   const resultado = totalReceitas - totalDespesas;
 
-  const prevHref = `/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}`;
-  const nextHref = `/financeiro/dre?year=${month === 11 ? year + 1 : year}&month=${month === 11 ? 0 : month + 1}`;
+  const carryParams = costCenterId ? `&costCenterId=${costCenterId}` : "";
+  const prevHref = `/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}${carryParams}`;
+  const nextHref = `/financeiro/dre?year=${month === 11 ? year + 1 : year}&month=${month === 11 ? 0 : month + 1}${carryParams}`;
 
   return (
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
@@ -46,19 +55,57 @@ export default async function DrePage({ searchParams }: { searchParams: { year?:
         title="DRE — Demonstrativo de Resultado"
         subtitle="Baseado em valores efetivamente pagos/recebidos (regime de caixa)"
         action={
-          <div className="flex items-center gap-1">
-            <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-cream-100 text-navy-800">
-              <ChevronLeft size={18} />
-            </Link>
-            <span className="text-sm font-semibold text-navy-900 px-2">
-              {MONTHS[month]} {year}
+          !usingCustomRange ? (
+            <div className="flex items-center gap-1">
+              <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-cream-100 text-navy-800">
+                <ChevronLeft size={18} />
+              </Link>
+              <span className="text-sm font-semibold text-navy-900 px-2">
+                {MONTHS[month]} {year}
+              </span>
+              <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-cream-100 text-navy-800">
+                <ChevronRight size={18} />
+              </Link>
+            </div>
+          ) : (
+            <span className="text-sm font-semibold text-navy-900">
+              {start.toLocaleDateString("pt-BR")} — {end.toLocaleDateString("pt-BR")}
             </span>
-            <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-cream-100 text-navy-800">
-              <ChevronRight size={18} />
-            </Link>
-          </div>
+          )
         }
       />
+
+      <Card className="mb-5">
+        <form className="p-4 flex flex-wrap items-end gap-3">
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 block mb-1">De (opcional, substitui o mês)</label>
+            <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 block mb-1">Até</label>
+            <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 block mb-1">Centro de Custo</label>
+            <select name="costCenterId" defaultValue={searchParams.costCenterId} className="fp-input">
+              <option value="">Todos</option>
+              {costCenters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+            Filtrar
+          </button>
+          {usingCustomRange && (
+            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2">
+              Voltar para visão mensal
+            </Link>
+          )}
+        </form>
+      </Card>
 
       <Card className="mb-5">
         <CardHeader title="Receitas" />
@@ -98,6 +145,10 @@ export default async function DrePage({ searchParams }: { searchParams: { year?:
         <span className="font-serif font-bold text-navy-900">Resultado do Período</span>
         <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-gold-800" : "text-red-600"}`}>{formatCurrency(resultado)}</span>
       </Card>
+      <style>{`
+        .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }
+        .fp-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+      `}</style>
     </div>
   );
 }

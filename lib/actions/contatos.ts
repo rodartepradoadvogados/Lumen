@@ -19,19 +19,11 @@ export async function createClient(data: { name: string; type: string; document?
   revalidatePath("/contatos");
 }
 
-export async function createOpposingParty(data: { name: string; type: string; document?: string; email?: string; phone?: string; notes?: string }) {
-  await prisma.opposingParty.create({
-    data: {
-      name: data.name,
-      type: data.type,
-      document: data.document || null,
-      email: data.email || null,
-      phone: data.phone || null,
-      notes: data.notes || null,
-    },
-  });
-  revalidatePath("/contatos/parte-adversa");
+export async function createClientQuick(name: string): Promise<{ id: string; name: string }> {
+  const client = await prisma.client.create({ data: { name, type: "PJ" } });
+  revalidatePath("/contatos/clientes");
   revalidatePath("/contatos");
+  return { id: client.id, name: client.name };
 }
 
 export async function createLawyer(data: { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; notes?: string }) {

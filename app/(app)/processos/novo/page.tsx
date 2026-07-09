@@ -5,10 +5,8 @@ import { PageHeader, Card } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export default async function NewCasePage() {
-  const [clients, opposingParties, lawyers, users] = await Promise.all([
+  const [clients, users] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
-    prisma.opposingParty.findMany({ orderBy: { name: "asc" } }),
-    prisma.lawyer.findMany({ where: { side: "ADVERSO" }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
   ]);
 
@@ -22,8 +20,8 @@ export default async function NewCasePage() {
       court: String(formData.get("court") || ""),
       caseValue: String(formData.get("caseValue") || ""),
       clientId: String(formData.get("clientId") || ""),
-      opposingPartyId: String(formData.get("opposingPartyId") || ""),
-      opposingLawyerId: String(formData.get("opposingLawyerId") || ""),
+      opposingPartyName: String(formData.get("opposingPartyName") || ""),
+      opposingPartyRole: String(formData.get("opposingPartyRole") || ""),
       responsibleId: String(formData.get("responsibleId") || ""),
       description: String(formData.get("description") || ""),
     });
@@ -98,25 +96,16 @@ export default async function NewCasePage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Parte Adversa</label>
-              <select name="opposingPartyId" className="input">
-                <option value="">Nenhuma</option>
-                {opposingParties.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
+              <label className="text-xs font-medium text-navy-800/60">Parte Adversa (nome)</label>
+              <input name="opposingPartyName" className="input" placeholder="Nome da parte contrária" />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Advogado Adverso</label>
-              <select name="opposingLawyerId" className="input">
-                <option value="">Nenhum</option>
-                {lawyers.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
+              <label className="text-xs font-medium text-navy-800/60">Polo da Parte Adversa</label>
+              <select name="opposingPartyRole" className="input">
+                <option value="">Não definido</option>
+                <option value="AUTOR">Autor</option>
+                <option value="REU">Réu</option>
+                <option value="OUTRO">Outro</option>
               </select>
             </div>
           </div>

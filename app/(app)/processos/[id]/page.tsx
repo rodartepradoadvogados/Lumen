@@ -33,8 +33,6 @@ export default async function CaseDetailPage({
     where: { id: params.id },
     include: {
       client: true,
-      opposingParty: true,
-      opposingLawyer: true,
       responsible: true,
       tasks: { include: { responsible: true, _count: { select: { comments: true } } }, orderBy: { dueDate: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
@@ -47,8 +45,8 @@ export default async function CaseDetailPage({
   if (!c) notFound();
 
   const [cases, users, columns, receivableCategories] = await Promise.all([
-    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true } }),
-    prisma.user.findMany({ where: { active: true } }),
+    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
     getLeafCategoryOptions("RECEITA"),
   ]);
@@ -87,8 +85,8 @@ export default async function CaseDetailPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card className="p-5 space-y-3">
             <Field label="Cliente" value={c.client?.name} />
-            <Field label="Parte Adversa" value={c.opposingParty?.name} />
-            <Field label="Advogado Adverso" value={c.opposingLawyer?.name} />
+            <Field label="Parte Adversa" value={c.opposingPartyName} />
+            <Field label="Polo da Parte Adversa" value={c.opposingPartyRole} />
             <Field label="Advogado Responsável" value={c.responsible?.name} />
             <Field label="Vara/Comarca" value={c.court} />
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
@@ -165,6 +163,7 @@ export default async function CaseDetailPage({
               defaultCaseId={c.id}
               defaultClientId={c.clientId ?? undefined}
               label="Lançar Honorários"
+              alreadyReceivedForCase={c.receivables.filter((r) => r.status === "PAGO").reduce((s, r) => s + (r.paidAmount ?? r.amount), 0)}
             />
           </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

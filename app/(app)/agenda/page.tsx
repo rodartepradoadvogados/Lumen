@@ -24,7 +24,7 @@ export default async function AgendaPage({
       orderBy: { dueDate: "asc" },
     }),
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
   ]);
 

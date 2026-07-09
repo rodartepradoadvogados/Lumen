@@ -18,7 +18,7 @@ export default async function KanbanPage() {
       },
     }),
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const columnsForModal = columns.map((c) => ({ id: c.id, name: c.name }));

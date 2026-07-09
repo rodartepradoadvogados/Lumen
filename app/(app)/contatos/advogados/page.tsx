@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function AdvogadosPage({ searchParams }: { searchParams: { side?: string } }) {
   const lawyers = await prisma.lawyer.findMany({
     where: { side: searchParams.side || undefined },
-    include: { _count: { select: { cases: true } } },
     orderBy: { name: "asc" },
   });
 
@@ -43,7 +42,6 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
                     {l.phone && <span> · {l.phone}</span>}
                   </p>
                 </div>
-                <span className="text-xs text-navy-800/40 shrink-0">{l._count.cases} processo(s)</span>
               </div>
             ))}
           </div>

@@ -24,11 +24,10 @@ export default async function ProcessosPage({
     },
     include: {
       client: true,
-      opposingParty: true,
       responsible: true,
       _count: { select: { tasks: true, comments: true } },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { title: "asc" },
   });
 
   return (
@@ -72,7 +71,7 @@ export default async function ProcessosPage({
                   <p className="text-xs text-navy-800/45 mt-1 truncate">
                     {c.processNumber ? `${c.processNumber} · ` : ""}
                     {c.client?.name}
-                    {c.opposingParty ? ` x ${c.opposingParty.name}` : ""}
+                    {c.opposingPartyName ? ` x ${c.opposingPartyName}` : ""}
                   </p>
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">

@@ -20,7 +20,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
     include: { responsible: true },
     orderBy: { createdAt: "desc" },
   });
-  const users = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true } });
+  const users = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">

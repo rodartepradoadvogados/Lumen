@@ -23,6 +23,17 @@ export async function createUser(data: { name: string; email: string; role: stri
   revalidatePath("/configuracoes");
 }
 
+export async function deleteUser(id: string): Promise<{ error?: string }> {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return { error: "Usuário não encontrado." };
+  if (user.isAdmin) {
+    return { error: "Não é possível excluir um administrador (Jairo/Rodrigo) por aqui." };
+  }
+  await prisma.user.update({ where: { id }, data: { active: false } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 export async function createKanbanColumn(data: { name: string; color: string }) {
   const count = await prisma.kanbanColumn.count();
   await prisma.kanbanColumn.create({ data: { name: data.name, color: data.color, order: count } });

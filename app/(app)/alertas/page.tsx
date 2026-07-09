@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getAlerts } from "@/lib/alerts";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
-import { AlertTriangle, Clock, Newspaper, Wallet, AtSign, LucideIcon } from "lucide-react";
+import { AlertTriangle, Clock, Newspaper, Wallet, AtSign, CalendarClock, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,7 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   CONTA_PAGAR_VENCIDA: { label: "Conta a Pagar Vencida", icon: Wallet },
   CONTA_RECEBER_VENCIDA: { label: "Conta a Receber Vencida", icon: Wallet },
   MENCAO: { label: "Menção", icon: AtSign },
+  PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
 };
 
 const severityStyle: Record<string, string> = {

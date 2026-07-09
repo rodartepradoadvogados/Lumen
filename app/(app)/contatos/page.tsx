@@ -1,27 +1,25 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card } from "@/components/ui";
-import { Users, UserX, Scale as ScaleIcon, ArrowRight } from "lucide-react";
+import { Users, Scale as ScaleIcon, ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContatosPage() {
-  const [clients, opposing, lawyers] = await Promise.all([
+  const [clients, lawyers] = await Promise.all([
     prisma.client.count(),
-    prisma.opposingParty.count(),
     prisma.lawyer.count(),
   ]);
 
   const modules = [
     { href: "/contatos/clientes", label: "Clientes", icon: Users, count: clients, desc: "Base de clientes do escritório" },
-    { href: "/contatos/parte-adversa", label: "Parte Adversa", icon: UserX, count: opposing, desc: "Pessoas e empresas do outro lado" },
     { href: "/contatos/advogados", label: "Advogados", icon: ScaleIcon, count: lawyers, desc: "Parceiros e adversos" },
   ];
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
-      <PageHeader title="Contatos" subtitle="Banco de dados de clientes, parte adversa e advogados" />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <PageHeader title="Contatos" subtitle="Banco de dados de clientes e advogados" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {modules.map((m) => (
           <Link key={m.href} href={m.href}>
             <Card className="p-5 h-full hover:shadow-pop transition-shadow">

@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient, createOpposingParty, createLawyer } from "@/lib/actions/contatos";
+import { createClient, createLawyer } from "@/lib/actions/contatos";
 import { Plus, X } from "lucide-react";
 
-export default function NewContactModal({ kind }: { kind: "client" | "opposing" | "lawyer" }) {
+export default function NewContactModal({ kind }: { kind: "client" | "lawyer" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const titles = { client: "Novo Cliente", opposing: "Nova Parte Adversa", lawyer: "Novo Advogado" };
+  const titles = { client: "Novo Cliente", lawyer: "Novo Advogado" };
 
   async function submit(formData: FormData) {
     setLoading(true);
@@ -22,15 +22,6 @@ export default function NewContactModal({ kind }: { kind: "client" | "opposing" 
         email: String(formData.get("email") || ""),
         phone: String(formData.get("phone") || ""),
         address: String(formData.get("address") || ""),
-        notes: String(formData.get("notes") || ""),
-      });
-    } else if (kind === "opposing") {
-      await createOpposingParty({
-        name: String(formData.get("name")),
-        type: String(formData.get("type")),
-        document: String(formData.get("document") || ""),
-        email: String(formData.get("email") || ""),
-        phone: String(formData.get("phone") || ""),
         notes: String(formData.get("notes") || ""),
       });
     } else {

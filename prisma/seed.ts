@@ -21,10 +21,11 @@ async function main() {
   await prisma.receivable.deleteMany();
   await prisma.financialCategory.deleteMany();
   await prisma.costCenter.deleteMany();
+  await prisma.attachment.deleteMany();
+  await prisma.deletionRequest.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.case.deleteMany();
   await prisma.client.deleteMany();
-  await prisma.opposingParty.deleteMany();
   await prisma.lawyer.deleteMany();
   await prisma.user.deleteMany();
 
@@ -38,6 +39,7 @@ async function main() {
       color: "#0f1f3d",
       username: "JairoRodarte",
       passwordHash: await bcrypt.hash("Goiabada1#", 10),
+      isAdmin: true,
     },
   });
   const rodrigo = await prisma.user.create({
@@ -49,6 +51,7 @@ async function main() {
       color: "#8a6a1f",
       username: "RodrigoPrado",
       passwordHash: await bcrypt.hash("Goiabada1", 10),
+      isAdmin: true,
     },
   });
   const estagiaria = await prisma.user.create({
@@ -67,17 +70,10 @@ async function main() {
   const vidaLocadora = await prisma.client.create({ data: { name: "Vida Locadora - Fórmula Locação de Veículos Especiais Ltda", type: "PJ", document: "33.444.555/0001-22" } });
   const bancoBrasil = await prisma.client.create({ data: { name: "Banco do Brasil S/A", type: "PJ", document: "00.000.000/0001-91" } });
   const carlosSilva = await prisma.client.create({ data: { name: "Carlos Eduardo da Silva", type: "PF", document: "123.456.789-00", phone: "(62) 99123-4567" } });
-
-  console.log("Parte adversa...");
-  const estadoRoraima = await prisma.opposingParty.create({ data: { name: "Estado de Roraima", type: "PJ" } });
-  const lourivalSantos = await prisma.opposingParty.create({ data: { name: "Lourival Barbosa Santos", type: "PF" } });
-  const villageAdm = await prisma.opposingParty.create({ data: { name: "Village Administração de Serviços Ltda", type: "PJ" } });
-  const estadoGoias = await prisma.opposingParty.create({ data: { name: "Estado de Goiás", type: "PJ" } });
+  await prisma.client.create({ data: { name: "Geral", type: "PJ", notes: "Cliente genérico para lançamentos financeiros gerais do escritório." } });
 
   console.log("Advogados parceiros e adversos...");
   const advParceiro = await prisma.lawyer.create({ data: { name: "Fernanda Lima", oab: "OAB/GO 33.210", side: "PARCEIRO", firm: "Lima & Associados", phone: "(62) 99888-1122" } });
-  const advAdverso = await prisma.lawyer.create({ data: { name: "Marcos Vinícius Teixeira", oab: "OAB/RR 12.045", side: "ADVERSO", firm: "Teixeira Advocacia" } });
-  const advAdverso2 = await prisma.lawyer.create({ data: { name: "Procuradoria Geral do Estado de Goiás", side: "ADVERSO" } });
 
   console.log("Casos...");
   const caso1 = await prisma.case.create({
@@ -86,7 +82,7 @@ async function main() {
       type: "JUDICIAL", area: "Tributário", status: "ATIVO",
       processNumber: "0801234-56.2024.8.23.0010", court: "1ª Vara da Fazenda Pública - RR",
       caseValue: 480000, instance: "1º Grau",
-      clientId: multipedras.id, opposingPartyId: estadoRoraima.id, opposingLawyerId: advAdverso.id,
+      clientId: multipedras.id, opposingPartyName: "Estado de Roraima", opposingPartyRole: "REU",
       responsibleId: jairo.id,
       description: "Ação anulatória de auto de infração tributário.",
     },
@@ -97,7 +93,7 @@ async function main() {
       type: "JUDICIAL", area: "Cível", status: "ATIVO",
       processNumber: "0709876-12.2023.8.09.0051", court: "3ª Vara Cível de Goiânia",
       caseValue: 92000, instance: "1º Grau",
-      clientId: pneulandia.id, opposingPartyId: lourivalSantos.id,
+      clientId: pneulandia.id, opposingPartyName: "Lourival Barbosa Santos", opposingPartyRole: "REU",
       responsibleId: rodrigo.id,
       description: "Execução suspensa aguardando cumprimento de acordo.",
     },
@@ -108,7 +104,7 @@ async function main() {
       type: "JUDICIAL", area: "Cível", status: "ATIVO",
       processNumber: "0812233-44.2022.8.09.0051", court: "5ª Vara Cível de Goiânia",
       caseValue: 215000,
-      clientId: bancoBrasil.id, opposingPartyId: villageAdm.id,
+      clientId: bancoBrasil.id, opposingPartyName: "Village Administração de Serviços Ltda", opposingPartyRole: "REU",
       responsibleId: jairo.id,
     },
   });
@@ -127,7 +123,7 @@ async function main() {
       title: "Execução de Sentença - Estado de Goiás x Médicos Legistas",
       type: "JUDICIAL", area: "Administrativo", status: "ATIVO",
       processNumber: "0844556-77.2021.8.09.0051",
-      clientId: carlosSilva.id, opposingPartyId: estadoGoias.id, opposingLawyerId: advAdverso2.id,
+      clientId: carlosSilva.id, opposingPartyName: "Estado de Goiás", opposingPartyRole: "REU",
       responsibleId: jairo.id,
     },
   });

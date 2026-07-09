@@ -33,29 +33,31 @@ export default async function LivroCaixaPage() {
         {withBalance.length === 0 ? (
           <EmptyState title="Nenhuma movimentação registrada ainda" subtitle="Dê baixa em contas a pagar/receber para elas aparecerem aqui" />
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-navy-800/45 uppercase tracking-wide border-b border-navy-800/8">
-                <th className="px-5 py-3 font-semibold">Data</th>
-                <th className="px-5 py-3 font-semibold">Descrição</th>
-                <th className="px-5 py-3 font-semibold text-right">Valor</th>
-                <th className="px-5 py-3 font-semibold text-right">Saldo Acumulado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-800/5">
-              {withBalance.map((e, i) => (
-                <tr key={i}>
-                  <td className="px-5 py-2.5 text-navy-800/60 whitespace-nowrap">{formatDate(e.date)}</td>
-                  <td className="px-5 py-2.5 text-navy-900">{e.description}</td>
-                  <td className={`px-5 py-2.5 text-right font-semibold ${e.type === "entrada" ? "text-emerald-600" : "text-red-500"}`}>
-                    {e.type === "entrada" ? "+" : ""}
-                    {formatCurrency(e.value)}
-                  </td>
-                  <td className="px-5 py-2.5 text-right font-semibold text-navy-900">{formatCurrency(e.balance)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="text-left text-xs text-navy-800/45 uppercase tracking-wide border-b border-navy-800/8">
+                  <th className="px-5 py-3 font-semibold">Data</th>
+                  <th className="px-5 py-3 font-semibold">Descrição</th>
+                  <th className="px-5 py-3 font-semibold text-right">Valor</th>
+                  <th className="px-5 py-3 font-semibold text-right">Saldo Acumulado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-navy-800/5">
+                {withBalance.map((e, i) => (
+                  <tr key={i}>
+                    <td className="px-5 py-2.5 text-navy-800/60 whitespace-nowrap">{formatDate(e.date)}</td>
+                    <td className="px-5 py-2.5 text-navy-900">{e.description}</td>
+                    <td className={`px-5 py-2.5 text-right font-semibold ${e.type === "entrada" ? "text-emerald-600" : "text-red-500"}`}>
+                      {e.type === "entrada" ? "+" : ""}
+                      {formatCurrency(e.value)}
+                    </td>
+                    <td className="px-5 py-2.5 text-right font-semibold text-navy-900">{formatCurrency(e.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

@@ -12,7 +12,7 @@ export default async function TopBar() {
     : "??";
 
   return (
-    <header className="h-16 shrink-0 bg-cream-50/80 backdrop-blur border-b border-gold-500/20 flex items-center justify-between px-6 gap-4">
+    <header className="h-16 shrink-0 bg-cream-50/80 backdrop-blur border-b border-gold-500/20 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
       <div className="flex-1 max-w-md relative">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/40" />
         <input

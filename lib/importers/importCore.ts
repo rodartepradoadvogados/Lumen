@@ -26,25 +26,11 @@ async function findOrCreateClient(name: string, cache: Map<string, string>) {
   return created.id;
 }
 
-async function findOrCreateOpposingParty(name: string, cache: Map<string, string>) {
-  const key = norm(name);
-  if (cache.has(key)) return cache.get(key)!;
-  const existing = await prisma.opposingParty.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
-  if (existing) {
-    cache.set(key, existing.id);
-    return existing.id;
-  }
-  const created = await prisma.opposingParty.create({ data: { name, type: "PJ" } });
-  cache.set(key, created.id);
-  return created.id;
-}
-
 const instanceLabels: Record<string, string> = { "1": "1º Grau", "2": "2º Grau", "3": "3º Grau" };
 
 export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
   const users = await prisma.user.findMany({ select: { id: true, name: true } });
   const clientCache = new Map<string, string>();
-  const opposingCache = new Map<string, string>();
 
   let created = 0;
   let skipped = 0;
@@ -64,11 +50,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
       const clientId = clientName ? await findOrCreateClient(clientName, clientCache) : null;
 
       const othersRaw = col(row, "Outros envolvidos");
-      let opposingPartyId: string | null = null;
-      if (othersRaw) {
-        const firstName = othersRaw.split(",")[0].replace(/\(PARTE\)/gi, "").trim();
-        if (firstName) opposingPartyId = await findOrCreateOpposingParty(firstName, opposingCache);
-      }
+      const opposingPartyName = othersRaw ? othersRaw.split(",")[0].replace(/\(PARTE\)/gi, "").trim() || null : null;
 
       const responsibleName = col(row, "Responsável", "Responsavel");
       const responsibleId = await findUserByName(responsibleName, users);
@@ -106,7 +88,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
           court: col(row, "Vara") || null,
           forum: col(row, "Foro") || null,
           clientId,
-          opposingPartyId,
+          opposingPartyName,
           responsibleId,
         },
       });

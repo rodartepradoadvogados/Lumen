@@ -45,3 +45,7 @@ export function parseBrCurrency(value: string): number | null {
   const n = parseFloat(cleaned);
   return isNaN(n) ? null : n;
 }
+
+export function norm(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}

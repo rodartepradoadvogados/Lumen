@@ -21,6 +21,7 @@ model User {
   role         String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
   oab          String?
   color        String   @default("#0f1f3d") // cor de identificação em cards/agenda
+  isAdmin      Boolean  @default(false) // apenas admins veem o Financeiro e aprovam exclusões de terceiros
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -29,6 +30,9 @@ model User {
   comments           Comment[]
   mentions           Mention[]
   attendances        Attendance[]  @relation("AttendanceResponsible")
+  attachments        Attachment[]
+  deletionRequested  DeletionRequest[] @relation("DeletionRequestedBy")
+  deletionResolved   DeletionRequest[] @relation("DeletionResolvedBy")
 }
 
 // ============ CONTATOS ============
@@ -48,19 +52,6 @@ model Client {
   receivables Receivable[]
 }
 
-model OpposingParty {
-  id        String   @id @default(cuid())
-  name      String
-  type      String   @default("PF")
-  document  String?
-  email     String?
-  phone     String?
-  notes     String?
-  createdAt DateTime @default(now())
-
-  cases     Case[]
-}
-
 model Lawyer {
   id        String   @id @default(cuid())
   name      String
@@ -71,8 +62,6 @@ model Lawyer {
   phone     String?
   notes     String?
   createdAt DateTime @default(now())
-
-  cases     Case[]
 }
 
 // ============ CASOS / CARDS ============
@@ -95,25 +84,23 @@ model Case {
   distributedAt     DateTime?
   closedAt          DateTime?
   description       String?
-  clientRole        String?   // Autor, Réu, Interessado, Recorrente, Recorrido...
-  actionType         String?  // Ação (ex: Execução Fiscal)
+  clientRole        String?   // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
+  actionType        String?   // Ação (ex: Execução Fiscal)
   decision          String?
   outcome           String?
   tags              String?
   sourceUrl         String?
   lastHistoryAt     DateTime?
   lastHistoryDesc   String?
+
+  opposingPartyName String?   // nome da parte adversa (sem cadastro próprio, só texto)
+  opposingPartyRole String?   // AUTOR | REU | OUTRO — polo da parte adversa
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   clientId          String?
   client            Client?   @relation(fields: [clientId], references: [id])
-
-  opposingPartyId   String?
-  opposingParty     OpposingParty? @relation(fields: [opposingPartyId], references: [id])
-
-  opposingLawyerId  String?
-  opposingLawyer    Lawyer?   @relation(fields: [opposingLawyerId], references: [id])
 
   responsibleId     String?
   responsible       User?     @relation("CaseResponsible", fields: [responsibleId], references: [id])
@@ -123,6 +110,7 @@ model Case {
   receivables       Receivable[]
   payables          Payable[]
   publications      Publication[]
+  attachments       Attachment[]
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
@@ -157,6 +145,9 @@ model Task {
 
   caseId         String?
   case           Case?     @relation(fields: [caseId], references: [id])
+
+  attendanceId   String?
+  attendance     Attendance? @relation(fields: [attendanceId], references: [id])
 
   responsibleId  String?
   responsible    User?     @relation("TaskResponsible", fields: [responsibleId], references: [id])
@@ -202,6 +193,8 @@ model Attendance {
   clientName    String
   contact       String?
   subject       String
+  area          String?  // matéria
+  description   String?  // descrição detalhada do que precisa
   channel       String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
   status        String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO
   notes         String?
@@ -209,6 +202,45 @@ model Attendance {
 
   responsibleId String?
   responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
+
+  tasks         Task[]
+  attachments   Attachment[]
+}
+
+// ============ ANEXOS (referência ao Google Drive) ============
+
+model Attachment {
+  id           String   @id @default(cuid())
+  name         String
+  driveUrl     String
+  createdAt    DateTime @default(now())
+
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+
+  caseId       String?
+  case         Case?    @relation(fields: [caseId], references: [id])
+
+  attendanceId String?
+  attendance   Attendance? @relation(fields: [attendanceId], references: [id])
+}
+
+// ============ SOLICITAÇÕES DE EXCLUSÃO (aprovação de admin) ============
+
+model DeletionRequest {
+  id             String    @id @default(cuid())
+  entityType     String    // TASK | CASE | ATTENDANCE
+  entityId       String
+  entityLabel    String    // snapshot legível (título/nome) para exibir mesmo após excluir
+  status         String    @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
+  createdAt      DateTime  @default(now())
+
+  requestedById  String
+  requestedBy    User      @relation("DeletionRequestedBy", fields: [requestedById], references: [id])
+
+  resolvedById   String?
+  resolvedBy     User?     @relation("DeletionResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt     DateTime?
 }
 
 // ============ FINANCEIRO ============
@@ -240,16 +272,20 @@ model CostCenter {
 }
 
 model Payable {
-  id           String    @id @default(cuid())
-  description  String
-  supplier     String?
-  amount       Float
-  dueDate      DateTime
-  paidDate     DateTime?
-  paidAmount   Float?
-  status       String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
-  notes        String?
-  createdAt    DateTime  @default(now())
+  id               String    @id @default(cuid())
+  description      String
+  supplier         String?
+  amount           Float
+  dueDate          DateTime
+  paidDate         DateTime?
+  paidAmount       Float?
+  status           String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  notes            String?
+  noDueDate        Boolean   @default(false) // parcela sem vencimento definido — aparece na Central de Alertas
+  groupId          String?   // agrupa parcelas geradas juntas
+  installmentNumber Int?
+  installmentTotal  Int?
+  createdAt        DateTime  @default(now())
 
   categoryId   String?
   category     FinancialCategory? @relation(fields: [categoryId], references: [id])
@@ -262,16 +298,21 @@ model Payable {
 }
 
 model Receivable {
-  id           String    @id @default(cuid())
-  description  String
-  amount       Float
-  dueDate      DateTime
-  paidDate     DateTime?
-  paidAmount   Float?
-  status       String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
-  kind         String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
-  notes        String?
-  createdAt    DateTime  @default(now())
+  id               String    @id @default(cuid())
+  description      String
+  amount           Float
+  dueDate          DateTime
+  paidDate         DateTime?
+  paidAmount       Float?
+  status           String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  kind             String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
+  notes            String?
+  noDueDate        Boolean   @default(false)
+  groupId          String?
+  installmentNumber Int?
+  installmentTotal  Int?
+  isSuccessPortion Boolean   @default(false) // parcela "a receber no êxito"
+  createdAt        DateTime  @default(now())
 
   categoryId   String?
   category     FinancialCategory? @relation(fields: [categoryId], references: [id])
@@ -296,6 +337,7 @@ model Publication {
   publishedAt       DateTime
   read              Boolean   @default(false)
   deadlineGenerated Boolean   @default(false)
+  lawyerTag         String?   // Jairo | Rodrigo | Jairo e Rodrigo — identificado pela OAB citada no conteúdo
   createdAt         DateTime  @default(now())
 
   emailMessageId    String?   @unique
