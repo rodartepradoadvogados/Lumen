@@ -12,6 +12,8 @@ export type SyncResult = {
   errors: string[];
 };
 
+const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andamentos@jusbrasil.com.br"];
+
 function getAccounts(): EmailAccount[] {
   const raw = process.env.JUSBRASIL_EMAIL_ACCOUNTS;
   if (!raw) return [];
@@ -22,12 +24,54 @@ function getAccounts(): EmailAccount[] {
   }
 }
 
-const PROCESS_NUMBER_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d{1}\.?\d{2}\.?\d{4}/;
+type ExtractedEntry = { processNumber: string | null; content: string; kind: string };
 
-function classifyKind(text: string): string {
-  const lower = text.toLowerCase();
-  if (lower.includes("andamento") || lower.includes("movimenta")) return "ANDAMENTO";
-  return "PUBLICACAO";
+const PROCESS_NUMBER_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
+
+// publicacoes-diarios@jusbrasil.com.br: blocos repetidos iniciando em "Processo <numero>", "Processo nº <numero>" ou "Título - <numero> - ..."
+function extractPublicacoes(text: string): ExtractedEntry[] {
+  const entries: ExtractedEntry[] = [];
+  const blocks = text
+    .split(/(?=Processo\s*n?[ºo]?\.?\s*\d)|(?=Título\s*-\s*\d)/gi)
+    .filter((b) => /^(Processo\s*n?[ºo]?\.?\s*\d|Título\s*-\s*\d)/i.test(b.trim()));
+  for (const block of blocks) {
+    entries.push({
+      processNumber: extractProcessNumber(block),
+      content: block.trim().slice(0, 3000),
+      kind: "PUBLICACAO",
+    });
+  }
+  return entries;
+}
+
+function extractProcessNumber(block: string): string | null {
+  const cnj = block.match(PROCESS_NUMBER_RE);
+  if (cnj) return cnj[0];
+  const loose = block.match(/(?:Processo|NR\.?\s*PROCESSO|N[ÚU]MERO\s*[ÚU]NICO)\s*:?\s*n?[ºo]?\.?\s*(\d[\d.\-]{5,})/i);
+  return loose ? loose[1] : null;
+}
+
+// andamentos@jusbrasil.com.br: blocos repetidos iniciando em "TÍTULO Processo"
+function extractAndamentos(text: string): ExtractedEntry[] {
+  const entries: ExtractedEntry[] = [];
+  const blocks = text.split(/(?=TÍTULO\s*Processo)/g).filter((b) => /^TÍTULO\s*Processo/.test(b.trim()));
+  for (const block of blocks) {
+    const cleaned = block.replace(/Abrir no Jusbrasil.*$/s, "").trim();
+    entries.push({
+      processNumber: extractProcessNumber(block),
+      content: cleaned.slice(0, 3000),
+      kind: "ANDAMENTO",
+    });
+  }
+  return entries;
+}
+
+async function findCaseIdByProcessNumber(processNumberRaw: string | null): Promise<string | null> {
+  if (!processNumberRaw) return null;
+  const digits = processNumberRaw.replace(/\D/g, "");
+  const allCases = await prisma.case.findMany({ where: { processNumber: { not: null } }, select: { id: true, processNumber: true } });
+  const found = allCases.find((c) => c.processNumber && c.processNumber.replace(/\D/g, "") === digits);
+  return found?.id ?? null;
 }
 
 async function syncAccount(account: EmailAccount, result: SyncResult) {
@@ -43,10 +87,15 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
   try {
     const lock = await client.getMailboxLock("INBOX");
     try {
-      const uids = await client.search({ from: "jusbrasil", seen: false }, { uid: true });
-      const list = Array.isArray(uids) ? uids : [];
+      const priorSync = await prisma.publication.findFirst({ where: { emailAccount: account.user } });
+      const since = priorSync ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) : undefined;
 
-      for (const uid of list) {
+      const uidSets = await Promise.all(
+        RELEVANT_SENDERS.map((from) => client.search(since ? { from, since } : { from }, { uid: true }))
+      );
+      const allUids = [...new Set(uidSets.flatMap((u) => (Array.isArray(u) ? u : [])))];
+
+      for (const uid of allUids) {
         result.found++;
         try {
           const { content: rawSource } = await client.download(String(uid), undefined, { uid: true });
@@ -54,42 +103,47 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
           for await (const chunk of rawSource) chunks.push(chunk as Buffer);
           const parsed = await simpleParser(Buffer.concat(chunks));
 
-          const messageId = parsed.messageId || `${account.user}-${uid}`;
-          const already = await prisma.publication.findUnique({ where: { emailMessageId: messageId } });
-          if (already) {
-            result.skipped++;
-            continue;
-          }
-
-          const bodyText = (parsed.text || parsed.html?.toString() || "").trim().slice(0, 5000);
+          const baseMessageId = parsed.messageId || `${account.user}-${uid}`;
+          const senderAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || "";
+          const bodyText = (parsed.text || "").trim();
           const subject = parsed.subject || "";
-          const processMatch = (subject + " " + bodyText).match(PROCESS_NUMBER_RE);
-          const processNumberRaw = processMatch ? processMatch[0] : null;
 
-          let caseId: string | null = null;
-          if (processNumberRaw) {
-            const digits = processNumberRaw.replace(/\D/g, "");
-            const allCases = await prisma.case.findMany({ where: { processNumber: { not: null } }, select: { id: true, processNumber: true } });
-            const found = allCases.find((c) => c.processNumber && c.processNumber.replace(/\D/g, "") === digits);
-            caseId = found?.id ?? null;
+          const defaultKind = senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
+          let entries: ExtractedEntry[] = [];
+          if (senderAddress.includes("publicacoes-diarios")) {
+            entries = extractPublicacoes(bodyText);
+          } else if (senderAddress.includes("andamentos")) {
+            entries = extractAndamentos(bodyText);
+          }
+          if (entries.length === 0) {
+            entries = [{ processNumber: extractProcessNumber(bodyText), content: bodyText.slice(0, 3000) || subject, kind: defaultKind }];
           }
 
-          await prisma.publication.create({
-            data: {
-              kind: classifyKind(subject + " " + bodyText),
-              source: "JUSBRASIL_EMAIL",
-              content: bodyText || subject,
-              publishedAt: parsed.date || new Date(),
-              emailMessageId: messageId,
-              emailAccount: account.user,
-              emailSubject: subject,
-              processNumberRaw,
-              caseId,
-            },
-          });
-          result.created++;
+          for (const [idx, entry] of entries.entries()) {
+            const emailMessageId = entries.length > 1 ? `${baseMessageId}#${idx}` : baseMessageId;
+            const already = await prisma.publication.findUnique({ where: { emailMessageId } });
+            if (already) {
+              result.skipped++;
+              continue;
+            }
 
-          await client.messageFlagsAdd({ uid }, ["\\Seen"], { uid: true });
+            const caseId = await findCaseIdByProcessNumber(entry.processNumber);
+
+            await prisma.publication.create({
+              data: {
+                kind: entry.kind,
+                source: "JUSBRASIL_EMAIL",
+                content: entry.content,
+                publishedAt: parsed.date || new Date(),
+                emailMessageId,
+                emailAccount: account.user,
+                emailSubject: subject,
+                processNumberRaw: entry.processNumber,
+                caseId,
+              },
+            });
+            result.created++;
+          }
         } catch (e) {
           const message = e instanceof Error ? e.message : "erro desconhecido";
           result.errors.push(`${account.label}: ${message}`);
