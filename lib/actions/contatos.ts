@@ -3,12 +3,51 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function createClient(data: { name: string; type: string; document?: string; email?: string; phone?: string; address?: string; notes?: string }) {
+type ClientInput = {
+  name: string;
+  type: string;
+  document?: string;
+  rg?: string;
+  nationality?: string;
+  maritalStatus?: string;
+  profession?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+};
+
+export async function createClient(data: ClientInput) {
   await prisma.client.create({
     data: {
       name: data.name,
       type: data.type,
       document: data.document || null,
+      rg: data.rg || null,
+      nationality: data.nationality || null,
+      maritalStatus: data.maritalStatus || null,
+      profession: data.profession || null,
+      email: data.email || null,
+      phone: data.phone || null,
+      address: data.address || null,
+      notes: data.notes || null,
+    },
+  });
+  revalidatePath("/contatos/clientes");
+  revalidatePath("/contatos");
+}
+
+export async function updateClient(id: string, data: ClientInput) {
+  await prisma.client.update({
+    where: { id },
+    data: {
+      name: data.name,
+      type: data.type,
+      document: data.document || null,
+      rg: data.rg || null,
+      nationality: data.nationality || null,
+      maritalStatus: data.maritalStatus || null,
+      profession: data.profession || null,
       email: data.email || null,
       phone: data.phone || null,
       address: data.address || null,

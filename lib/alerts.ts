@@ -33,7 +33,7 @@ function endOfDay(d: Date) {
 
 // Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
-export async function getAlerts(): Promise<AlertItem[]> {
+export async function getAlerts(includeFinance: boolean = true): Promise<AlertItem[]> {
   const now = new Date();
 
   const [overdueTasks, overduePayables, overdueReceivables, unreadMentions, undatedPayables, undatedReceivables] =
@@ -43,11 +43,19 @@ export async function getAlerts(): Promise<AlertItem[]> {
         include: { case: true },
         orderBy: { dueDate: "asc" },
       }),
-      prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } }),
-      prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } }),
+      includeFinance
+        ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+        : Promise.resolve([]),
+      includeFinance
+        ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+        : Promise.resolve([]),
       prisma.mention.findMany({ where: { read: false }, include: { comment: { include: { author: true, case: true, task: true } } } }),
-      prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } }),
-      prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } }),
+      includeFinance
+        ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+        : Promise.resolve([]),
+      includeFinance
+        ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+        : Promise.resolve([]),
     ]);
 
   const alerts: AlertItem[] = [];
@@ -123,7 +131,7 @@ export async function getAlerts(): Promise<AlertItem[]> {
 }
 
 // Tudo que vence HOJE: tarefas/eventos/audiências/perícias/prazos + contas a pagar/receber — reforço do dia.
-export async function getTodayItems(): Promise<TodayItem[]> {
+export async function getTodayItems(includeFinance: boolean = true): Promise<TodayItem[]> {
   const now = new Date();
   const start = startOfDay(now);
   const end = endOfDay(now);
@@ -134,8 +142,12 @@ export async function getTodayItems(): Promise<TodayItem[]> {
       include: { case: true },
       orderBy: { dueTime: "asc" },
     }),
-    prisma.payable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } }),
-    prisma.receivable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } }),
+    includeFinance
+      ? prisma.payable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
+      : Promise.resolve([]),
+    includeFinance
+      ? prisma.receivable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
+      : Promise.resolve([]),
   ]);
 
   const items: TodayItem[] = [];

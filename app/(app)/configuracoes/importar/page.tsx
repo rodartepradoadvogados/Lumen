@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import ImportForm from "@/components/ImportForm";
 import { importCases, importAgenda, importFinance } from "@/lib/actions/import";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,9 @@ function TemplateLink({ href }: { href: string }) {
   );
 }
 
-export default function ImportarPage() {
+export default async function ImportarPage() {
+  const viewer = await getCurrentUser();
+  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
   return (
     <div className="p-6 max-w-[800px] mx-auto animate-fade-in">
       <Link href="/configuracoes" className="text-xs font-semibold text-navy-800/50 hover:text-navy-900">
@@ -50,6 +53,7 @@ export default function ImportarPage() {
           </div>
         </Card>
 
+        {hasFinanceAccess && (
         <Card>
           <CardHeader title="Financeiro" subtitle="Colunas: Data, Descricao, Categoria, Centro de custo, Pago para / Recebido de, Cliente, Caso, Responsavel, Valor, Tipo (Entrada/Saída/Fatura), Status" />
           <div className="p-5 space-y-3">
@@ -61,6 +65,7 @@ export default function ImportarPage() {
             />
           </div>
         </Card>
+        )}
 
         <Card>
           <CardHeader title="Contatos (Clientes)" subtitle="Colunas: Nome, Tipo (PF/PJ), Documento, Email, Telefone, Endereço, Observações" />

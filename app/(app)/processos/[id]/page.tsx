@@ -17,6 +17,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,10 @@ export default async function CaseDetailPage({
   params: { id: string };
   searchParams: { tab?: string };
 }) {
-  const tab = searchParams.tab || "visao-geral";
+  const requestedTab = searchParams.tab || "visao-geral";
+  const viewer = await getCurrentUser();
+  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  const tab = requestedTab === "financeiro" && !hasFinanceAccess ? "visao-geral" : requestedTab;
 
   const c = await prisma.case.findUnique({
     where: { id: params.id },
@@ -93,7 +97,7 @@ export default async function CaseDetailPage({
       </p>
 
       <div className="flex gap-1 border-b border-navy-800/10 mb-6 overflow-x-auto">
-        {TABS.map((t) => (
+        {TABS.filter((t) => t.key !== "financeiro" || hasFinanceAccess).map((t) => (
           <Link
             key={t.key}
             href={`/processos/${c.id}?tab=${t.key}`}

@@ -34,8 +34,10 @@ const severityStyle: Record<string, string> = {
 
 export default async function AlertasPage({ searchParams }: { searchParams: { tab?: string } }) {
   const tab = searchParams.tab === "hoje" ? "hoje" : "pendentes";
-  const [alerts, todayItems, viewer] = await Promise.all([getAlerts(), getTodayItems(), getCurrentUser()]);
+  const viewer = await getCurrentUser();
   const isAdmin = viewer?.isAdmin ?? false;
+  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  const [alerts, todayItems] = await Promise.all([getAlerts(hasFinanceAccess), getTodayItems(hasFinanceAccess)]);
 
   const pendingDeletions = isAdmin
     ? await prisma.deletionRequest.findMany({

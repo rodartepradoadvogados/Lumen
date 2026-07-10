@@ -1,9 +1,11 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
 import { syncJusbrasilEmails, type SyncResult } from "@/lib/jusbrasilEmailSync";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   return sendDailyAgendaEmail();
@@ -25,15 +27,40 @@ export async function createUser(data: { name: string; email: string; role: stri
 
 export async function updateUser(
   id: string,
-  data: { name: string; email: string; role: string; oab?: string; color: string }
+  data: { name: string; email: string; role: string; oab?: string; color: string; phone?: string }
 ): Promise<{ error?: string }> {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return { error: "Usuário não encontrado." };
   await prisma.user.update({
     where: { id },
-    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color },
+    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, phone: data.phone || null },
   });
   revalidatePath("/configuracoes");
+  return {};
+}
+
+export async function setFinanceAccess(id: string, financeAccess: boolean): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem alterar o acesso ao Financeiro." };
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return { error: "Usuário não encontrado." };
+  if (user.isAdmin) return { error: "Sócios sempre têm acesso ao Financeiro." };
+  await prisma.user.update({ where: { id }, data: { financeAccess } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/");
+  revalidatePath("/alertas");
+  return {};
+}
+
+export async function changeOwnPassword(currentPassword: string, newPassword: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+  if (newPassword.length < 6) return { error: "A nova senha deve ter ao menos 6 caracteres." };
+  if (!user.passwordHash) return { error: "Este usuário ainda não tem senha configurada. Fale com Jairo ou Rodrigo." };
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) return { error: "Senha atual incorreta." };
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
   return {};
 }
 

@@ -10,7 +10,9 @@ import TeamMonitorPanel from "@/components/TeamMonitorPanel";
 import { getTodayElapsedSeconds } from "@/lib/timesheet";
 
 export default async function TopBar() {
-  const [todayItems, user] = await Promise.all([getTodayItems(), getCurrentUser()]);
+  const user = await getCurrentUser();
+  const hasFinanceAccess = Boolean(user?.isAdmin || user?.financeAccess);
+  const todayItems = await getTodayItems(hasFinanceAccess);
   const initials = user
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
     : "??";

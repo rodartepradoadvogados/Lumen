@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireFinanceAccess } from "@/lib/permissions";
 
 function revalidateFinance() {
   revalidatePath("/financeiro");
@@ -20,6 +21,7 @@ function firstOfNextMonth() {
 }
 
 export async function markPayablePaid(id: string, paidAmount: number, paidDate: string) {
+  await requireFinanceAccess();
   await prisma.payable.update({
     where: { id },
     data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate) },
@@ -28,6 +30,7 @@ export async function markPayablePaid(id: string, paidAmount: number, paidDate: 
 }
 
 export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string) {
+  await requireFinanceAccess();
   await prisma.receivable.update({
     where: { id },
     data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate) },
@@ -36,11 +39,13 @@ export async function markReceivablePaid(id: string, paidAmount: number, paidDat
 }
 
 export async function reopenPayable(id: string) {
+  await requireFinanceAccess();
   await prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null } });
   revalidateFinance();
 }
 
 export async function reopenReceivable(id: string) {
+  await requireFinanceAccess();
   await prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null } });
   revalidateFinance();
 }
@@ -55,6 +60,7 @@ export async function updatePayable(id: string, data: {
   caseId?: string;
   noDueDate?: boolean;
 }) {
+  await requireFinanceAccess();
   const noDueDate = data.noDueDate ?? false;
   await prisma.payable.update({
     where: { id },
@@ -83,6 +89,7 @@ export async function updateReceivable(id: string, data: {
   caseId?: string;
   noDueDate?: boolean;
 }) {
+  await requireFinanceAccess();
   const noDueDate = data.noDueDate ?? false;
   await prisma.receivable.update({
     where: { id },
@@ -113,6 +120,7 @@ export async function createPayable(data: {
   installmentCount?: string;
   installmentIntervalDays?: string;
 }) {
+  await requireFinanceAccess();
   const noDueDate = data.noDueDate ?? false;
   const count = Math.max(1, parseInt(data.installmentCount || "1") || 1);
   const intervalDays = Math.max(1, parseInt(data.installmentIntervalDays || "30") || 30);
@@ -152,6 +160,7 @@ export async function createReceivable(data: {
   caseId?: string;
   successAmount?: string;
 }) {
+  await requireFinanceAccess();
   const hasSuccessPortion = !!data.successAmount && parseFloat(data.successAmount) > 0;
   const groupId = hasSuccessPortion ? crypto.randomUUID() : null;
 

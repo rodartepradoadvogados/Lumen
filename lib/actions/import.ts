@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { parseSpreadsheet } from "@/lib/importers/parse";
 import { importCasesCore, importAgendaCore, type ImportResult } from "@/lib/importers/importCore";
 import { importFinanceCore } from "@/lib/importers/importFinance";
+import { requireFinanceAccess } from "@/lib/permissions";
 
 export type { ImportResult };
 
@@ -21,6 +22,7 @@ export async function importCases(_prevState: ImportResult, formData: FormData):
 }
 
 export async function importFinance(_prevState: ImportResult, formData: FormData): Promise<ImportResult> {
+  await requireFinanceAccess();
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { created: 0, skipped: 0, errors: ["Nenhum arquivo enviado."] };
 

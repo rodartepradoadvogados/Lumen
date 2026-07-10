@@ -19,6 +19,10 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
         name: String(formData.get("name")),
         type: String(formData.get("type")),
         document: String(formData.get("document") || ""),
+        rg: String(formData.get("rg") || ""),
+        nationality: String(formData.get("nationality") || ""),
+        maritalStatus: String(formData.get("maritalStatus") || ""),
+        profession: String(formData.get("profession") || ""),
         email: String(formData.get("email") || ""),
         phone: String(formData.get("phone") || ""),
         address: String(formData.get("address") || ""),
@@ -117,6 +121,32 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Endereço</label>
                   <input name="address" className="ct-input" />
+                </div>
+              )}
+
+              {kind === "client" && (
+                <div className="border-t border-navy-800/8 pt-3 space-y-3">
+                  <p className="text-[11px] font-semibold text-navy-800/45 uppercase tracking-wide">Dados para geração de documentos (opcional)</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60">Nacionalidade</label>
+                      <input name="nationality" placeholder="brasileiro(a)" className="ct-input" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60">Estado civil</label>
+                      <input name="maritalStatus" placeholder="solteiro(a), casado(a)..." className="ct-input" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60">Profissão</label>
+                      <input name="profession" className="ct-input" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60">RG</label>
+                      <input name="rg" className="ct-input" />
+                    </div>
+                  </div>
                 </div>
               )}
 

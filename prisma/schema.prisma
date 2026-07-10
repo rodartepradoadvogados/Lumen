@@ -20,8 +20,10 @@ model User {
   passwordHash String?
   role         String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
   oab          String?
+  phone        String?
   color        String   @default("#0f1f3d") // cor de identificação em cards/agenda
-  isAdmin      Boolean  @default(false) // apenas admins veem o Financeiro e aprovam exclusões de terceiros
+  isAdmin      Boolean  @default(false) // apenas Jairo/Rodrigo (sócios): aprovam exclusões, gerenciam equipe e acesso ao financeiro
+  financeAccess Boolean @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -53,15 +55,19 @@ model LoginSession {
 // ============ CONTATOS ============
 
 model Client {
-  id          String   @id @default(cuid())
-  name        String
-  type        String   @default("PF") // PF | PJ
-  document    String?
-  email       String?
-  phone       String?
-  address     String?
-  notes       String?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  type          String   @default("PF") // PF | PJ
+  document      String?
+  rg            String?
+  nationality   String?
+  maritalStatus String?
+  profession    String?
+  email         String?
+  phone         String?
+  address       String?
+  notes         String?
+  createdAt     DateTime @default(now())
 
   cases       Case[]
   receivables Receivable[]

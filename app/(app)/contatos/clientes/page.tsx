@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
+import EditClientModal from "@/components/EditClientModal";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function ClientesPage() {
                   </p>
                 </div>
                 <span className="text-xs text-navy-800/40 shrink-0">{c._count.cases} processo(s)</span>
+                <EditClientModal client={c} />
               </div>
             ))}
           </div>

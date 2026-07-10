@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
+import { getCurrentUser } from "@/lib/currentUser";
 import {
   Card,
   CardHeader,
@@ -21,6 +22,9 @@ export default async function DashboardPage() {
   const soon = new Date();
   soon.setDate(now.getDate() + 7);
 
+  const viewer = await getCurrentUser();
+  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+
   const [
     payablesPending,
     receivablesPending,
@@ -30,8 +34,8 @@ export default async function DashboardPage() {
     alerts,
     recentComments,
   ] = await Promise.all([
-    prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }),
-    prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }),
+    hasFinanceAccess ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }) : Promise.resolve([]),
+    hasFinanceAccess ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }) : Promise.resolve([]),
     prisma.case.count({ where: { status: "ATIVO" } }),
     prisma.task.findMany({
       where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -40,7 +44,7 @@ export default async function DashboardPage() {
       take: 8,
     }),
     prisma.task.count({ where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } } }),
-    getAlerts(),
+    getAlerts(hasFinanceAccess),
     prisma.comment.findMany({
       include: { author: true, case: true, task: true },
       orderBy: { createdAt: "desc" },
@@ -68,10 +72,14 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="A Receber (pendente)" value={formatCurrency(totalReceivable)} tone="green" icon={<TrendingUp size={18} />} hint={`${receivablesPending.length} contas em aberto`} />
-        <StatCard label="A Pagar (pendente)" value={formatCurrency(totalPayable)} tone="red" icon={<TrendingDown size={18} />} hint={`${payablesPending.length} contas em aberto`} />
-        <StatCard label="Saldo Projetado" value={formatCurrency(saldoProjetado)} tone={saldoProjetado >= 0 ? "gold" : "red"} icon={<Wallet size={18} />} />
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasFinanceAccess ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-4 mb-6`}>
+        {hasFinanceAccess && (
+          <>
+            <StatCard label="A Receber (pendente)" value={formatCurrency(totalReceivable)} tone="green" icon={<TrendingUp size={18} />} hint={`${receivablesPending.length} contas em aberto`} />
+            <StatCard label="A Pagar (pendente)" value={formatCurrency(totalPayable)} tone="red" icon={<TrendingDown size={18} />} hint={`${payablesPending.length} contas em aberto`} />
+            <StatCard label="Saldo Projetado" value={formatCurrency(saldoProjetado)} tone={saldoProjetado >= 0 ? "gold" : "red"} icon={<Wallet size={18} />} />
+          </>
+        )}
         <StatCard label="Prazos Atrasados" value={String(overdueTasksCount)} tone="red" icon={<AlertTriangle size={18} />} hint={`${activeCases} processos ativos`} />
       </div>
 

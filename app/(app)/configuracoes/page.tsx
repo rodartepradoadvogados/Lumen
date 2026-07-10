@@ -14,6 +14,7 @@ import DeleteButton from "@/components/DeleteButton";
 import UserRow from "@/components/UserRow";
 import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 import { Upload, HardDrive, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -107,14 +108,10 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
-      <PageHeader title="Configurações" subtitle="Equipe, identidade visual, colunas do Kanban, plano de contas e importação" />
-
-      <Card>
-        <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para jairo@ e rodrigo@rodarteprado.com.br" />
-        <div className="p-5">
-          <TestEmailButton />
-        </div>
-      </Card>
+      <PageHeader
+        title="Configurações"
+        subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}
+      />
 
       <Card>
         <CardHeader title="Importação de Dados" subtitle="Traga contatos, processos e agenda de uma planilha" />
@@ -127,6 +124,22 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
           </Link>
         </div>
       </Card>
+
+      <Card>
+        <CardHeader title="Alterar Senha" subtitle="Sua senha de acesso ao sistema" />
+        <div className="p-5">
+          <ChangePasswordForm />
+        </div>
+      </Card>
+
+      {isAdmin && (
+      <Card>
+        <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para jairo@ e rodrigo@rodarteprado.com.br" />
+        <div className="p-5">
+          <TestEmailButton />
+        </div>
+      </Card>
+      )}
 
       {isAdmin && (
         <Card>
@@ -173,6 +186,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
         </Card>
       )}
 
+      {isAdmin && (
       <Card>
         <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório" />
         <div className="p-5 flex gap-4 flex-wrap">
@@ -183,9 +197,11 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
           <Swatch color="#f3efe6" label="Fundo (Creme)" border />
         </div>
       </Card>
+      )}
 
+      {isAdmin && (
       <Card>
-        <CardHeader title="Equipe" subtitle={`${users.length} membro(s)`} />
+        <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone e conceda/revogue acesso ao Financeiro pelo ícone da carteira`} />
         <div className="divide-y divide-navy-800/5">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />
@@ -210,7 +226,9 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
           </button>
         </form>
       </Card>
+      )}
 
+      {isAdmin && (
       <Card>
         <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
         <div className="divide-y divide-navy-800/5">
@@ -236,6 +254,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
           </button>
         </form>
       </Card>
+      )}
 
       {isAdmin && (
       <>

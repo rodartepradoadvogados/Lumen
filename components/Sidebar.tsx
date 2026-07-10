@@ -32,7 +32,7 @@ const nav = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-export default function Sidebar({ isAdmin = true }: { isAdmin?: boolean }) {
+export default function Sidebar({ hasFinanceAccess = true }: { hasFinanceAccess?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -40,7 +40,7 @@ export default function Sidebar({ isAdmin = true }: { isAdmin?: boolean }) {
     setOpen(false);
   }, [pathname]);
 
-  const items = nav.filter((item) => !item.adminOnly || isAdmin);
+  const items = nav.filter((item) => !item.adminOnly || hasFinanceAccess);
 
   return (
     <>

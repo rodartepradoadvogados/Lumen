@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X } from "lucide-react";
-import { updateUser, toggleUserActive, deleteUser } from "@/lib/actions/settings";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards } from "lucide-react";
+import { updateUser, toggleUserActive, deleteUser, setFinanceAccess } from "@/lib/actions/settings";
 import { Badge } from "@/components/ui";
 
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
@@ -15,9 +15,11 @@ type User = {
   username: string | null;
   role: string;
   oab: string | null;
+  phone: string | null;
   color: string;
   active: boolean;
   isAdmin: boolean;
+  financeAccess: boolean;
 };
 
 export default function UserRow({ user, canManage }: { user: User; canManage: boolean }) {
@@ -34,9 +36,19 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         email: String(formData.get("email")),
         role: String(formData.get("role")),
         oab: String(formData.get("oab") || ""),
+        phone: String(formData.get("phone") || ""),
         color: String(formData.get("color") || user.color),
       });
       setEditing(false);
+      router.refresh();
+    });
+  }
+
+  function handleToggleFinanceAccess() {
+    setError(null);
+    startTransition(async () => {
+      const result = await setFinanceAccess(user.id, !user.financeAccess);
+      if (result.error) setError(result.error);
       router.refresh();
     });
   }
@@ -74,6 +86,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             ))}
           </select>
           <input name="oab" defaultValue={user.oab ?? ""} placeholder="OAB (opcional)" className="cfg-input" />
+          <input name="phone" defaultValue={user.phone ?? ""} placeholder="Telefone (opcional)" className="cfg-input" />
           <input name="color" type="color" defaultValue={user.color} className="cfg-input h-9 p-1" />
         </div>
         <div className="flex gap-2">
@@ -97,13 +110,25 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         <p className="text-sm font-medium text-navy-900">{user.name}</p>
         <p className="text-xs text-navy-800/45 truncate">
           {user.role} {user.oab && `· ${user.oab}`} · {user.email}
+          {user.phone && ` · ${user.phone}`}
           {user.username && ` · login: ${user.username}`}
         </p>
       </div>
       <Badge color={user.active ? "green" : "slate"}>{user.active ? "Ativo" : "Inativo"}</Badge>
       {user.isAdmin && <Badge color="gold">Admin</Badge>}
+      {!user.isAdmin && user.financeAccess && <Badge color="green">Financeiro</Badge>}
       {canManage && !user.isAdmin && (
         <div className="flex items-center gap-1">
+          <button
+            onClick={handleToggleFinanceAccess}
+            disabled={pending}
+            title={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
+            className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+              user.financeAccess ? "text-emerald-600 hover:text-red-600 hover:bg-red-50" : "text-navy-800/30 hover:text-emerald-600 hover:bg-emerald-50"
+            }`}
+          >
+            {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
+          </button>
           <button onClick={() => setEditing(true)} title="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
             <Pencil size={14} />
           </button>
