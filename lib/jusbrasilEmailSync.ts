@@ -1,8 +1,7 @@
-import { ImapFlow } from "imapflow";
+import { google } from "googleapis";
 import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
-
-type EmailAccount = { label: string; host: string; port: number; user: string; pass: string; secure?: boolean };
+import { getOAuthClient } from "@/lib/googleDrive";
 
 export type SyncResult = {
   accountsScanned: number;
@@ -13,16 +12,6 @@ export type SyncResult = {
 };
 
 const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andamentos@jusbrasil.com.br"];
-
-function getAccounts(): EmailAccount[] {
-  const raw = process.env.JUSBRASIL_EMAIL_ACCOUNTS;
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
 
 type ExtractedEntry = { processNumber: string | null; content: string; kind: string };
 
@@ -96,109 +85,105 @@ async function findClientIdByName(content: string): Promise<string | null> {
   return null;
 }
 
-async function syncAccount(account: EmailAccount, result: SyncResult) {
-  const client = new ImapFlow({
-    host: account.host,
-    port: account.port,
-    secure: account.secure ?? true,
-    auth: { user: account.user, pass: account.pass },
-    logger: false,
-  });
+async function getGmailClient(): Promise<{ gmail: ReturnType<typeof google.gmail>; accountEmail: string } | null> {
+  const cred = await prisma.googleCredential.findFirst();
+  if (!cred) return null;
+  const client = getOAuthClient();
+  client.setCredentials({ refresh_token: cred.refreshToken });
+  return { gmail: google.gmail({ version: "v1", auth: client }), accountEmail: cred.accountEmail };
+}
 
-  await client.connect();
-  try {
-    const lock = await client.getMailboxLock("INBOX");
-    try {
-      const priorSync = await prisma.publication.findFirst({ where: { emailAccount: account.user } });
-      const since = priorSync ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) : undefined;
+async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId: string, accountEmail: string, result: SyncResult) {
+  const raw = await gmail.users.messages.get({ userId: "me", id: messageId, format: "raw" });
+  if (!raw.data.raw) return;
+  const parsed = await simpleParser(Buffer.from(raw.data.raw, "base64url"));
 
-      const uidSets = await Promise.all(
-        RELEVANT_SENDERS.map((from) => client.search(since ? { from, since } : { from }, { uid: true }))
-      );
-      const allUids = [...new Set(uidSets.flatMap((u) => (Array.isArray(u) ? u : [])))];
+  const baseMessageId = parsed.messageId || `gmail-${messageId}`;
+  const senderAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || "";
+  const bodyText = (parsed.text || "").trim();
+  const subject = parsed.subject || "";
 
-      for (const uid of allUids) {
-        result.found++;
-        try {
-          const { content: rawSource } = await client.download(String(uid), undefined, { uid: true });
-          const chunks: Buffer[] = [];
-          for await (const chunk of rawSource) chunks.push(chunk as Buffer);
-          const parsed = await simpleParser(Buffer.concat(chunks));
+  const defaultKind = senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
+  let entries: ExtractedEntry[] = [];
+  if (senderAddress.includes("publicacoes-diarios")) {
+    entries = extractPublicacoes(bodyText);
+  } else if (senderAddress.includes("andamentos")) {
+    entries = extractAndamentos(bodyText);
+  }
+  if (entries.length === 0) {
+    entries = [{ processNumber: extractProcessNumber(bodyText), content: bodyText.slice(0, 3000) || subject, kind: defaultKind }];
+  }
 
-          const baseMessageId = parsed.messageId || `${account.user}-${uid}`;
-          const senderAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || "";
-          const bodyText = (parsed.text || "").trim();
-          const subject = parsed.subject || "";
-
-          const defaultKind = senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
-          let entries: ExtractedEntry[] = [];
-          if (senderAddress.includes("publicacoes-diarios")) {
-            entries = extractPublicacoes(bodyText);
-          } else if (senderAddress.includes("andamentos")) {
-            entries = extractAndamentos(bodyText);
-          }
-          if (entries.length === 0) {
-            entries = [{ processNumber: extractProcessNumber(bodyText), content: bodyText.slice(0, 3000) || subject, kind: defaultKind }];
-          }
-
-          for (const [idx, entry] of entries.entries()) {
-            const emailMessageId = entries.length > 1 ? `${baseMessageId}#${idx}` : baseMessageId;
-            const already = await prisma.publication.findUnique({ where: { emailMessageId } });
-            if (already) {
-              result.skipped++;
-              continue;
-            }
-
-            const caseId = await findCaseIdByProcessNumber(entry.processNumber);
-            const clientId = caseId ? null : await findClientIdByName(entry.content);
-
-            await prisma.publication.create({
-              data: {
-                kind: entry.kind,
-                source: "JUSBRASIL_EMAIL",
-                content: entry.content,
-                publishedAt: parsed.date || new Date(),
-                emailMessageId,
-                emailAccount: account.user,
-                emailSubject: subject,
-                processNumberRaw: entry.processNumber,
-                clientId,
-                lawyerTag: detectLawyerTag(entry.content),
-                caseId,
-              },
-            });
-            result.created++;
-          }
-        } catch (e) {
-          const message = e instanceof Error ? e.message : "erro desconhecido";
-          result.errors.push(`${account.label}: ${message}`);
-        }
-      }
-    } finally {
-      lock.release();
+  for (const [idx, entry] of entries.entries()) {
+    const emailMessageId = entries.length > 1 ? `${baseMessageId}#${idx}` : baseMessageId;
+    const already = await prisma.publication.findUnique({ where: { emailMessageId } });
+    if (already) {
+      result.skipped++;
+      continue;
     }
-  } finally {
-    await client.logout().catch(() => {});
+
+    const caseId = await findCaseIdByProcessNumber(entry.processNumber);
+    const clientId = caseId ? null : await findClientIdByName(entry.content);
+
+    await prisma.publication.create({
+      data: {
+        kind: entry.kind,
+        source: "JUSBRASIL_EMAIL",
+        content: entry.content,
+        publishedAt: parsed.date || new Date(),
+        emailMessageId,
+        emailAccount: accountEmail,
+        emailSubject: subject,
+        processNumberRaw: entry.processNumber,
+        clientId,
+        lawyerTag: detectLawyerTag(entry.content),
+        caseId,
+      },
+    });
+    result.created++;
   }
 }
 
 export async function syncJusbrasilEmails(): Promise<SyncResult> {
-  const accounts = getAccounts();
   const result: SyncResult = { accountsScanned: 0, found: 0, created: 0, skipped: 0, errors: [] };
 
-  if (accounts.length === 0) {
-    result.errors.push("Nenhuma conta configurada (JUSBRASIL_EMAIL_ACCOUNTS ausente).");
+  const client = await getGmailClient();
+  if (!client) {
+    result.errors.push("Google não conectado. Vá em Configurações e conecte a conta do Google (Drive + Gmail).");
     return result;
   }
+  const { gmail, accountEmail } = client;
+  result.accountsScanned = 1;
 
-  for (const account of accounts) {
-    result.accountsScanned++;
-    try {
-      await syncAccount(account, result);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "erro desconhecido";
-      result.errors.push(`${account.label}: falha de conexão — ${message}`);
+  const priorSync = await prisma.publication.findFirst({ where: { source: "JUSBRASIL_EMAIL" }, orderBy: { publishedAt: "desc" } });
+  const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const afterEpochSeconds = Math.floor(sinceDate.getTime() / 1000);
+  const senderQuery = RELEVANT_SENDERS.map((s) => `from:${s}`).join(" OR ");
+  const query = `(${senderQuery}) after:${afterEpochSeconds}`;
+
+  try {
+    const messageIds: string[] = [];
+    let pageToken: string | undefined;
+    do {
+      const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 100, pageToken });
+      for (const m of list.data.messages ?? []) if (m.id) messageIds.push(m.id);
+      pageToken = list.data.nextPageToken ?? undefined;
+    } while (pageToken);
+
+    for (const messageId of messageIds) {
+      result.found++;
+      try {
+        await processMessage(gmail, messageId, accountEmail, result);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "erro desconhecido";
+        result.errors.push(`Mensagem ${messageId}: ${message}`);
+      }
     }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "erro desconhecido";
+    result.errors.push(
+      `Falha ao consultar o Gmail — ${message}. Se a conta do Google foi conectada antes desta atualização, reconecte em Configurações para autorizar o acesso ao Gmail.`
+    );
   }
 
   return result;

@@ -156,10 +156,13 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
 
       {isAdmin && (
         <Card>
-          <CardHeader title="Integração com Google Drive" subtitle="Necessária para anexar documentos arrastando/selecionando do computador" />
+          <CardHeader
+            title="Integração com Google (Drive + Gmail)"
+            subtitle="Necessária para anexar documentos e para sincronizar as publicações/andamentos que chegam por e-mail da Jusbrasil"
+          />
           <div className="p-5 space-y-3">
             {searchParams.google === "conectado" && (
-              <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Google Drive conectado com sucesso!</p>
+              <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Google conectado com sucesso!</p>
             )}
             {searchParams.google === "erro" && (
               <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -178,8 +181,13 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
               href="/api/google/connect"
               className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
             >
-              <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google Drive
+              <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google
             </a>
+            {driveStatus.connected && (
+              <p className="text-[11px] text-navy-800/45">
+                Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para o Jusbrasil).
+              </p>
+            )}
           </div>
         </Card>
       )}
