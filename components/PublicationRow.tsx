@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { markPublicationRead, generateTaskFromPublication } from "@/lib/actions/publications";
+import { markPublicationRead, markPublicationUnread, generateTaskFromPublication } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
 import PeticionarButton from "@/components/PeticionarButton";
-import { Check, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2 } from "lucide-react";
+import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -56,6 +56,14 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
     });
   }
 
+  function markUnread() {
+    setLoading(true);
+    markPublicationUnread(pub.id).then(() => {
+      router.refresh();
+      setLoading(false);
+    });
+  }
+
   function pickAction(type: string) {
     setAgendaOpen(false);
     setFormType(type);
@@ -87,13 +95,21 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
       </button>
 
       <div className="flex items-center gap-2 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
-        {!pub.read && (
+        {!pub.read ? (
           <button
             onClick={markRead}
             disabled={loading}
             className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
           >
             <Check size={12} /> Marcar como lida
+          </button>
+        ) : (
+          <button
+            onClick={markUnread}
+            disabled={loading}
+            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
+          >
+            <Undo2 size={12} /> Marcar como não lida
           </button>
         )}
 

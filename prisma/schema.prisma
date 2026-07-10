@@ -37,6 +37,19 @@ model User {
   deletionRequested  DeletionRequest[] @relation("DeletionRequestedBy")
   deletionResolved   DeletionRequest[] @relation("DeletionResolvedBy")
   loginSessions      LoginSession[]
+  notices            Notice[]
+}
+
+// ============ MURAL DE RECADOS ============
+
+model Notice {
+  id        String   @id @default(cuid())
+  content   String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
 }
 
 // ============ TIMESHEET (sessões de login) ============

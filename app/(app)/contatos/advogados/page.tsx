@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
+import EditLawyerModal from "@/components/EditLawyerModal";
+import DeleteButton from "@/components/DeleteButton";
+import { deleteLawyer } from "@/lib/actions/contatos";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +44,10 @@ export default async function AdvogadosPage({ searchParams }: { searchParams: { 
                     {l.firm}
                     {l.phone && <span> · {l.phone}</span>}
                   </p>
+                </div>
+                <div className="shrink-0 flex items-center gap-1">
+                  <EditLawyerModal lawyer={l} />
+                  <DeleteButton id={l.id} action={deleteLawyer} confirmMessage={`Excluir o advogado "${l.name}"?`} />
                 </div>
               </div>
             ))}

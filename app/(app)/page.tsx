@@ -14,6 +14,7 @@ import {
   taskTypeColors,
 } from "@/components/ui";
 import { Wallet, TrendingDown, TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
+import NoticesPanel from "@/components/NoticesPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,19 @@ export default async function DashboardPage() {
       take: 5,
     }),
   ]);
+
+  const notices = await prisma.notice.findMany({
+    include: { author: { select: { id: true, name: true, color: true } } },
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    take: 10,
+  });
+  const serializedNotices = notices.map((n) => ({
+    id: n.id,
+    content: n.content,
+    pinned: n.pinned,
+    createdAt: n.createdAt.toISOString(),
+    author: { id: n.author.id, name: n.author.name, color: n.author.color },
+  }));
 
   const totalPayable = payablesPending.reduce((s, p) => s + p.amount, 0);
   const totalReceivable = receivablesPending.reduce((s, r) => s + r.amount, 0);
@@ -145,6 +159,11 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <Card className="flex flex-col">
+          <CardHeader title="Recados do Escritório" subtitle="Mural de comunicação entre a equipe" />
+          <NoticesPanel notices={serializedNotices} currentUserId={viewer?.id ?? null} isAdmin={Boolean(viewer?.isAdmin)} />
+        </Card>
+
         <Card>
           <CardHeader title="Atividade Recente" subtitle="Comentários em processos e tarefas" />
           <div className="divide-y divide-navy-800/5">

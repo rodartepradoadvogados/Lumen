@@ -86,6 +86,32 @@ async function findCaseIdByProcessNumber(processNumberRaw: string | null): Promi
   return found?.id ?? null;
 }
 
+// Deduplicação: a mesma intimação costuma chegar pelas duas caixas de e-mail.
+// Consideramos duplicata quando coincidem: data da publicação (mesmo dia) +
+// processNumberRaw + os primeiros 200 caracteres do conteúdo.
+export function contentKey(content: string): string {
+  return content.trim().slice(0, 200);
+}
+
+async function isDuplicatePublication(
+  publishedAt: Date,
+  processNumberRaw: string | null,
+  content: string
+): Promise<boolean> {
+  const dayStart = new Date(publishedAt.getFullYear(), publishedAt.getMonth(), publishedAt.getDate());
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  const key = contentKey(content);
+  const candidates = await prisma.publication.findMany({
+    where: {
+      publishedAt: { gte: dayStart, lt: dayEnd },
+      processNumberRaw: processNumberRaw ?? null,
+    },
+    select: { content: true },
+  });
+  return candidates.some((c) => contentKey(c.content) === key);
+}
+
 async function findClientIdByName(content: string): Promise<string | null> {
   const clients = await prisma.client.findMany({ select: { id: true, name: true } });
   const normalized = content.toLowerCase();
@@ -149,6 +175,12 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
               continue;
             }
 
+            const publishedAt = parsed.date || new Date();
+            if (await isDuplicatePublication(publishedAt, entry.processNumber, entry.content)) {
+              result.skipped++;
+              continue;
+            }
+
             const caseId = await findCaseIdByProcessNumber(entry.processNumber);
             const clientId = caseId ? null : await findClientIdByName(entry.content);
 
@@ -157,7 +189,7 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
                 kind: entry.kind,
                 source: "JUSBRASIL_EMAIL",
                 content: entry.content,
-                publishedAt: parsed.date || new Date(),
+                publishedAt,
                 emailMessageId,
                 emailAccount: account.user,
                 emailSubject: subject,

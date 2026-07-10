@@ -15,24 +15,62 @@ const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
-export default async function AtendimentoPage({ searchParams }: { searchParams: { status?: string; novo?: string } }) {
+export default async function AtendimentoPage({ searchParams }: { searchParams: { status?: string; novo?: string; q?: string } }) {
+  const q = (searchParams.q || "").trim();
   const attendances = await prisma.attendance.findMany({
-    where: { status: searchParams.status || undefined },
+    where: {
+      status: searchParams.status || undefined,
+      ...(q
+        ? {
+            OR: [
+              { clientName: { contains: q, mode: "insensitive" } },
+              { subject: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     include: { responsible: true },
     orderBy: { createdAt: "desc" },
   });
   const users = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+
+  const statusHref = (status?: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (status) params.set("status", status);
+    const s = params.toString();
+    return `/atendimento${s ? `?${s}` : ""}`;
+  };
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">
       <PageHeader title="Atendimento" subtitle="Triagem de novos contatos antes de virarem processos/casos" action={<NewAttendanceModal users={users} autoOpen={searchParams.novo === "1"} />} />
 
       <div className="flex gap-2 mb-4 flex-wrap">
-        <FilterLink label="Todos" href="/atendimento" active={!searchParams.status} />
+        <FilterLink label="Todos" href={statusHref()} active={!searchParams.status} />
         {["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"].map((s) => (
-          <FilterLink key={s} label={s.replace("_", " ")} href={`/atendimento?status=${s}`} active={searchParams.status === s} />
+          <FilterLink key={s} label={s.replace("_", " ")} href={statusHref(s)} active={searchParams.status === s} />
         ))}
       </div>
+
+      <form className="mb-4 flex gap-2">
+        {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
+        <input
+          type="text"
+          name="q"
+          defaultValue={searchParams.q}
+          placeholder="Buscar por nome do cliente ou assunto"
+          className="flex-1 border border-navy-800/12 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+        />
+        <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+          Buscar
+        </button>
+        {q && (
+          <Link href={statusHref(searchParams.status)} className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2 flex items-center">
+            Limpar
+          </Link>
+        )}
+      </form>
 
       <Card>
         {attendances.length === 0 ? (

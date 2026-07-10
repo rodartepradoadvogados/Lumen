@@ -10,6 +10,21 @@ export async function markPublicationRead(id: string) {
   revalidatePath("/");
 }
 
+export async function markPublicationUnread(id: string) {
+  await prisma.publication.update({ where: { id }, data: { read: false } });
+  revalidatePath("/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/");
+}
+
+export async function markAllPublicationsRead() {
+  const result = await prisma.publication.updateMany({ where: { read: false }, data: { read: true } });
+  revalidatePath("/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/");
+  return { count: result.count };
+}
+
 export async function generateTaskFromPublication(
   id: string,
   data: { title: string; type: string; dueDate: string; dueTime?: string; priority: string }

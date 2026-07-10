@@ -5,7 +5,9 @@ import EditPayableModal from "@/components/EditPayableModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
+import { getFilteredPayables } from "@/lib/financeQuery";
 
 export const dynamic = "force-dynamic";
 
@@ -14,27 +16,9 @@ const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", 
 export default async function ContasAPagarPage({
   searchParams,
 }: {
-  searchParams: { status?: string; from?: string; to?: string; costCenterId?: string };
+  searchParams: { status?: string; from?: string; to?: string; costCenterId?: string; q?: string; categoryId?: string };
 }) {
-  const now = new Date();
-  const all = await prisma.payable.findMany({
-    where: {
-      dueDate: {
-        gte: searchParams.from ? new Date(searchParams.from) : undefined,
-        lte: searchParams.to ? new Date(`${searchParams.to}T23:59:59`) : undefined,
-      },
-      costCenterId: searchParams.costCenterId || undefined,
-    },
-    include: { category: true, case: true, costCenter: true },
-    orderBy: { dueDate: "asc" },
-  });
-
-  const normalized = all.map((p) => ({
-    ...p,
-    effectiveStatus: p.status === "PENDENTE" && p.dueDate < now && !p.noDueDate ? "ATRASADO" : p.status,
-  }));
-
-  const filtered = searchParams.status ? normalized.filter((p) => p.effectiveStatus === searchParams.status) : normalized;
+  const filtered = await getFilteredPayables(searchParams);
   const total = filtered.reduce((s, p) => s + p.amount, 0);
 
   const [categories, cases, costCenters] = await Promise.all([
@@ -42,6 +26,12 @@ export default async function ContasAPagarPage({
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
   ]);
+
+  const exportHref = (() => {
+    const params = new URLSearchParams();
+    Object.entries({ ...searchParams, tipo: "pagar" }).forEach(([k, v]) => v && params.set(k, v));
+    return `/api/financeiro/export?${params.toString()}`;
+  })();
 
   const qs = (extra: Record<string, string | undefined>) => {
     const merged = { ...searchParams, ...extra };
@@ -72,6 +62,21 @@ export default async function ContasAPagarPage({
       <Card className="mb-4">
         <form className="p-4 flex flex-wrap items-end gap-3">
           {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
+          <div className="flex-1 min-w-[180px]">
+            <label className="text-xs font-medium text-navy-800/60 block mb-1">Buscar</label>
+            <input type="text" name="q" defaultValue={searchParams.q} placeholder="Descrição ou fornecedor" className="fp-input w-full" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 block mb-1">Categoria</label>
+            <select name="categoryId" defaultValue={searchParams.categoryId} className="fp-input">
+              <option value="">Todas</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="text-xs font-medium text-navy-800/60 block mb-1">De</label>
             <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
@@ -94,9 +99,15 @@ export default async function ContasAPagarPage({
           <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
             Filtrar
           </button>
-          {(searchParams.from || searchParams.to || searchParams.costCenterId) && (
-            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined })} className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2">
-              Limpar período/centro
+          <a
+            href={exportHref}
+            className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5"
+          >
+            <Download size={15} /> Exportar .xlsx
+          </a>
+          {(searchParams.from || searchParams.to || searchParams.costCenterId || searchParams.q || searchParams.categoryId) && (
+            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2">
+              Limpar filtros
             </Link>
           )}
         </form>

@@ -80,3 +80,51 @@ export async function createLawyer(data: { name: string; oab?: string; firm?: st
   revalidatePath("/contatos/advogados");
   revalidatePath("/contatos");
 }
+
+export async function updateLawyer(
+  id: string,
+  data: { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; notes?: string }
+) {
+  await prisma.lawyer.update({
+    where: { id },
+    data: {
+      name: data.name,
+      oab: data.oab || null,
+      firm: data.firm || null,
+      side: data.side,
+      email: data.email || null,
+      phone: data.phone || null,
+      notes: data.notes || null,
+    },
+  });
+  revalidatePath("/contatos/advogados");
+  revalidatePath("/contatos");
+}
+
+export async function deleteLawyer(id: string): Promise<{ error?: string }> {
+  await prisma.lawyer.delete({ where: { id } });
+  revalidatePath("/contatos/advogados");
+  revalidatePath("/contatos");
+  return {};
+}
+
+export async function deleteClient(id: string): Promise<{ error?: string }> {
+  const [cases, receivables, publications] = await Promise.all([
+    prisma.case.count({ where: { clientId: id } }),
+    prisma.receivable.count({ where: { clientId: id } }),
+    prisma.publication.count({ where: { clientId: id } }),
+  ]);
+  if (cases > 0 || receivables > 0 || publications > 0) {
+    const parts: string[] = [];
+    if (cases > 0) parts.push(`${cases} processo(s)/caso(s)`);
+    if (receivables > 0) parts.push(`${receivables} lançamento(s) a receber`);
+    if (publications > 0) parts.push(`${publications} publicação(ões)`);
+    return {
+      error: `Não é possível excluir: há ${parts.join(", ")} vinculado(s) a este cliente. Remova ou reatribua esses itens antes de excluir.`,
+    };
+  }
+  await prisma.client.delete({ where: { id } });
+  revalidatePath("/contatos/clientes");
+  revalidatePath("/contatos");
+  return {};
+}

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
 import EditClientModal from "@/components/EditClientModal";
+import DeleteButton from "@/components/DeleteButton";
+import { deleteClient } from "@/lib/actions/contatos";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,9 @@ export default async function ClientesPage() {
               <div key={c.id} id={`client-${c.id}`} className="flex items-center gap-4 px-5 py-3.5 target:bg-gold-500/10 scroll-mt-20">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-navy-900">{c.name}</p>
+                    <Link href={`/contatos/clientes/${c.id}`} className="text-sm font-medium text-navy-900 hover:text-gold-700 hover:underline">
+                      {c.name}
+                    </Link>
                     <Badge color={c.type === "PJ" ? "navy" : "slate"}>{c.type}</Badge>
                   </div>
                   <p className="text-xs text-navy-800/45 mt-0.5">
@@ -37,7 +41,10 @@ export default async function ClientesPage() {
                   </p>
                 </div>
                 <span className="text-xs text-navy-800/40 shrink-0">{c._count.cases} processo(s)</span>
-                <EditClientModal client={c} />
+                <div className="shrink-0 flex items-center gap-1">
+                  <EditClientModal client={c} />
+                  <DeleteButton id={c.id} action={deleteClient} confirmMessage={`Excluir o cliente "${c.name}"?`} />
+                </div>
               </div>
             ))}
           </div>

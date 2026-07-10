@@ -19,7 +19,7 @@ type Pub = {
 
 const STORAGE_KEY = "rp_seen_publications";
 
-export default function PublicationsList({ publications }: { publications: Pub[] }) {
+export default function PublicationsList({ publications, highlightNew = true }: { publications: Pub[]; highlightNew?: boolean }) {
   // Starts empty so the very first client render matches the server-rendered
   // HTML exactly (the server has no localStorage) — avoids a hydration
   // mismatch. The real "seen" set is computed client-side after mount.
@@ -27,6 +27,7 @@ export default function PublicationsList({ publications }: { publications: Pub[]
   const hasRun = useRef(false);
 
   useEffect(() => {
+    if (!highlightNew) return;
     if (hasRun.current) return; // guards against Strict Mode's double effect invocation in dev
     hasRun.current = true;
 

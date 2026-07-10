@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui";
 import AgendaView from "@/components/AgendaView";
@@ -5,21 +6,50 @@ import NewTaskModal from "@/components/NewTaskModal";
 
 export const dynamic = "force-dynamic";
 
+function startOfWeek(d: Date) {
+  const s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  s.setDate(s.getDate() - s.getDay());
+  return s;
+}
+
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string };
+  searchParams: { year?: string; month?: string; visao?: string; week?: string; responsibleId?: string; tipo?: string };
 }) {
   const now = new Date();
+  const visao = searchParams.visao === "semana" || searchParams.visao === "lista" ? searchParams.visao : "mes";
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
   const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth();
 
-  const rangeStart = new Date(year, month - 1, 20);
-  const rangeEnd = new Date(year, month + 2, 10);
+  const weekRef = searchParams.week ? new Date(`${searchParams.week}T00:00:00`) : now;
+  const weekStart = startOfWeek(weekRef);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  let rangeStart: Date;
+  let rangeEnd: Date;
+  if (visao === "semana") {
+    rangeStart = weekStart;
+    rangeEnd = weekEnd;
+  } else if (visao === "lista") {
+    rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + 31);
+  } else {
+    rangeStart = new Date(year, month - 1, 20);
+    rangeEnd = new Date(year, month + 2, 10);
+  }
+
+  const where: Prisma.TaskWhereInput = {
+    dueDate: { gte: rangeStart, lte: rangeEnd },
+    responsibleId: searchParams.responsibleId || undefined,
+    type: searchParams.tipo || undefined,
+  };
 
   const [tasks, cases, users, columns] = await Promise.all([
     prisma.task.findMany({
-      where: { dueDate: { gte: rangeStart, lte: rangeEnd } },
+      where,
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
     }),
@@ -50,7 +80,18 @@ export default async function AgendaPage({
         subtitle="Integrada ao Kanban — dar baixa aqui reflete automaticamente lá"
         action={<NewTaskModal cases={cases.map((c) => ({ id: c.id, name: c.title }))} users={users} columns={columns} />}
       />
-      <AgendaView year={year} month={month} tasks={serialized} />
+      <AgendaView
+        visao={visao}
+        year={year}
+        month={month}
+        weekStart={weekStart.toISOString()}
+        tasks={serialized}
+        users={users}
+        responsibleId={searchParams.responsibleId || ""}
+        tipo={searchParams.tipo || ""}
+        cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+        columns={columns}
+      />
     </div>
   );
 }
