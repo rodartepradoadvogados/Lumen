@@ -51,7 +51,7 @@ export default async function CaseDetailPage({
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
       receivables: { orderBy: { dueDate: "asc" } },
       payables: { orderBy: { dueDate: "asc" } },
-      publications: { orderBy: { publishedAt: "desc" } },
+      publications: { orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }] },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
     },
   });

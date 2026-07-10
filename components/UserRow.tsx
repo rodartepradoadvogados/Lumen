@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X, Wallet, WalletCards } from "lucide-react";
-import { updateUser, toggleUserActive, deleteUser, setFinanceAccess } from "@/lib/actions/settings";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound } from "lucide-react";
+import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, createUserLogin } from "@/lib/actions/settings";
 import { Badge } from "@/components/ui";
 
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
@@ -25,8 +25,10 @@ type User = {
 export default function UserRow({ user, canManage }: { user: User; canManage: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [creatingLogin, setCreatingLogin] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   function handleSave(formData: FormData) {
     setError(null);
@@ -72,6 +74,22 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
     });
   }
 
+  function handleCreateLogin(formData: FormData) {
+    setLoginError(null);
+    startTransition(async () => {
+      const result = await createUserLogin(user.id, {
+        username: String(formData.get("username")),
+        password: String(formData.get("password")),
+      });
+      if (result.error) {
+        setLoginError(result.error);
+        return;
+      }
+      setCreatingLogin(false);
+      router.refresh();
+    });
+  }
+
   if (editing) {
     return (
       <form action={handleSave} className="px-5 py-3 space-y-2 bg-cream-50">
@@ -94,6 +112,29 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             {pending ? "Salvando..." : "Salvar"}
           </button>
           <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  if (creatingLogin) {
+    return (
+      <form action={handleCreateLogin} className="px-5 py-3 space-y-2 bg-cream-50">
+        <p className="text-xs text-navy-800/60">
+          Criar acesso ao sistema para <strong>{user.name}</strong>. O login pode ser o próprio e-mail cadastrado.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input name="username" defaultValue={user.username ?? user.email} required placeholder="Login (usuário)" className="cfg-input" />
+          <input name="password" type="password" required minLength={6} placeholder="Senha (mín. 6 caracteres)" className="cfg-input" />
+        </div>
+        {loginError && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">{loginError}</p>}
+        <div className="flex gap-2">
+          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            {pending ? "Salvando..." : user.username ? "Redefinir senha" : "Criar acesso"}
+          </button>
+          <button type="button" onClick={() => { setCreatingLogin(false); setLoginError(null); }} className="px-3 text-xs font-semibold text-navy-800/50 hover:text-navy-900">
             Cancelar
           </button>
         </div>
@@ -139,6 +180,13 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             className="p-1.5 rounded-lg text-navy-800/30 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40"
           >
             <Power size={14} />
+          </button>
+          <button
+            onClick={() => setCreatingLogin(true)}
+            title={user.username ? "Redefinir senha de acesso" : "Criar usuário de acesso ao sistema"}
+            className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors"
+          >
+            <KeyRound size={14} />
           </button>
           <button onClick={handleDelete} disabled={pending} title="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40">
             <Trash2 size={14} />

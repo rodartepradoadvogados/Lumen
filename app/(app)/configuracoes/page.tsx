@@ -15,6 +15,7 @@ import UserRow from "@/components/UserRow";
 import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
+import TestDjenButton from "@/components/TestDjenButton";
 import { Upload, HardDrive, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -113,6 +114,18 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
         subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}
       />
 
+      {isAdmin && (
+        <Card>
+          <CardHeader
+            title="DJEN — Diário de Justiça Eletrônico Nacional (CNJ)"
+            subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
+          />
+          <div className="p-5">
+            <TestDjenButton />
+          </div>
+        </Card>
+      )}
+
       <Card>
         <CardHeader title="Importação de Dados" subtitle="Traga contatos, processos e agenda de uma planilha" />
         <div className="p-5">
@@ -201,7 +214,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
 
       {isAdmin && (
       <Card>
-        <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone e conceda/revogue acesso ao Financeiro pelo ícone da carteira`} />
+        <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone, conceda acesso ao Financeiro e crie login pelos ícones`} />
         <div className="divide-y divide-navy-800/5">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />

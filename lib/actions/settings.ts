@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
 import { syncJusbrasilEmails, type SyncResult } from "@/lib/jusbrasilEmailSync";
+import { testDjenConnection, type DjenTestResult } from "@/lib/djenSync";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
@@ -16,6 +17,15 @@ export async function runJusbrasilSync(): Promise<SyncResult> {
   revalidatePath("/publicacoes");
   revalidatePath("/configuracoes");
   return result;
+}
+
+export async function runDjenConnectionTest(): Promise<{ error?: string; results?: DjenTestResult[] }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) {
+    return { error: "Apenas Jairo ou Rodrigo podem testar essa integração." };
+  }
+  const results = await testDjenConnection();
+  return { results };
 }
 
 export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }) {
@@ -69,6 +79,27 @@ export async function toggleUserActive(id: string): Promise<{ error?: string }> 
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) return { error: "Não é possível inativar um administrador (Jairo/Rodrigo)." };
   await prisma.user.update({ where: { id }, data: { active: !user.active } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
+export async function createUserLogin(id: string, data: { username: string; password: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) {
+    return { error: "Apenas Jairo ou Rodrigo podem criar acesso de login." };
+  }
+  const username = data.username.trim();
+  if (!username) return { error: "Informe um login." };
+  if (data.password.length < 6) return { error: "A senha deve ter pelo menos 6 caracteres." };
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return { error: "Usuário não encontrado." };
+
+  const existing = await prisma.user.findFirst({ where: { username, NOT: { id } } });
+  if (existing) return { error: "Já existe um usuário com esse login." };
+
+  const passwordHash = await bcrypt.hash(data.password, 10);
+  await prisma.user.update({ where: { id }, data: { username, passwordHash } });
   revalidatePath("/configuracoes");
   return {};
 }

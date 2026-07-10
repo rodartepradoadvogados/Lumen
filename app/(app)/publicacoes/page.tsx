@@ -13,7 +13,7 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
       kind: searchParams.kind || undefined,
     },
     include: { case: true, client: true },
-    orderBy: { publishedAt: "desc" },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
   });
 
   const serialized = publications.map((p) => ({
