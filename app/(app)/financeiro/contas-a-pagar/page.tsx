@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import NewPayableModal from "@/components/NewPayableModal";
+import EditPayableModal from "@/components/EditPayableModal";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
 import Link from "next/link";
 import { getLeafCategoryOptions } from "@/lib/categories";
@@ -125,8 +127,25 @@ export default async function ContasAPagarPage({
                     <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
                   </div>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-1">
                   <SettleButton id={p.id} kind="payable" amount={p.paidAmount ?? p.amount} status={p.status} />
+                  <EditPayableModal
+                    payable={{
+                      id: p.id,
+                      description: p.description,
+                      supplier: p.supplier,
+                      amount: p.amount,
+                      dueDate: p.dueDate.toISOString(),
+                      noDueDate: p.noDueDate,
+                      categoryId: p.categoryId,
+                      costCenterId: p.costCenterId,
+                      caseId: p.caseId,
+                    }}
+                    categories={categories}
+                    cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+                    costCenters={costCenters}
+                  />
+                  <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
                 </div>
               </div>
             ))}

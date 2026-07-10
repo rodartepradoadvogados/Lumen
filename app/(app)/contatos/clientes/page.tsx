@@ -23,7 +23,7 @@ export default async function ClientesPage() {
         ) : (
           <div className="divide-y divide-navy-800/5">
             {clients.map((c) => (
-              <div key={c.id} className="flex items-center gap-4 px-5 py-3.5">
+              <div key={c.id} id={`client-${c.id}`} className="flex items-center gap-4 px-5 py-3.5 target:bg-gold-500/10 scroll-mt-20">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-navy-900">{c.name}</p>

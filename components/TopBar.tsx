@@ -4,12 +4,17 @@ import { getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { logout } from "@/lib/actions/auth";
 import NewEntityMenu from "@/components/NewEntityMenu";
+import PeticionarButton from "@/components/PeticionarButton";
+import TimesheetTimer from "@/components/TimesheetTimer";
+import TeamMonitorPanel from "@/components/TeamMonitorPanel";
+import { getTodayElapsedSeconds } from "@/lib/timesheet";
 
 export default async function TopBar() {
   const [todayItems, user] = await Promise.all([getTodayItems(), getCurrentUser()]);
   const initials = user
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
     : "??";
+  const todaySeconds = user ? await getTodayElapsedSeconds(user.id) : 0;
 
   return (
     <header className="h-16 shrink-0 bg-cream-50/80 backdrop-blur border-b border-gold-500/20 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
@@ -23,7 +28,10 @@ export default async function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <PeticionarButton />
         <NewEntityMenu />
+
+        {user && <TimesheetTimer initialSeconds={todaySeconds} />}
 
         <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-navy-900/5 transition-colors">
           <Bell size={20} className="text-navy-800" />
@@ -35,13 +43,19 @@ export default async function TopBar() {
         </Link>
 
         <div className="flex items-center gap-2 pl-3 border-l border-navy-800/10">
-          <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold">
-            {initials}
-          </div>
-          <div className="hidden md:block leading-tight">
-            <p className="text-sm font-medium text-navy-900">{user?.name ?? "Não identificado"}</p>
-            <p className="text-[11px] text-navy-800/50">{user?.role ?? ""}</p>
-          </div>
+          {user?.isAdmin ? (
+            <TeamMonitorPanel initials={initials} name={user.name} role={user.role} />
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold">
+                {initials}
+              </div>
+              <div className="hidden md:block leading-tight">
+                <p className="text-sm font-medium text-navy-900">{user?.name ?? "Não identificado"}</p>
+                <p className="text-[11px] text-navy-800/50">{user?.role ?? ""}</p>
+              </div>
+            </div>
+          )}
           <form action={logout}>
             <button
               type="submit"

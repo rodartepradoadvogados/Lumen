@@ -4,7 +4,7 @@ import { PageHeader, Card } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewCasePage({ searchParams }: { searchParams: { type?: string } }) {
+export default async function NewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string; title?: string } }) {
   const defaultType = searchParams.type || "JUDICIAL";
   const [clients, users] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
@@ -35,7 +35,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
         <form action={submit} className="space-y-4">
           <div>
             <label className="text-xs font-medium text-navy-800/60">Título do Caso</label>
-            <input name="title" required className="input" placeholder="Ex: Fulano de Tal x Empresa XYZ" />
+            <input name="title" required defaultValue={searchParams.title} className="input" placeholder="Ex: Fulano de Tal x Empresa XYZ" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -57,7 +57,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-navy-800/60">Número do Processo</label>
-              <input name="processNumber" className="input" placeholder="0000000-00.0000.0.00.0000" />
+              <input name="processNumber" defaultValue={searchParams.processNumber} className="input" placeholder="0000000-00.0000.0.00.0000" />
             </div>
             <div>
               <label className="text-xs font-medium text-navy-800/60">Vara/Comarca</label>

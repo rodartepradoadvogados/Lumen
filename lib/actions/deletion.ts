@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
-type EntityType = "TASK" | "CASE" | "ATTENDANCE";
+type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE";
 
 async function performDelete(entityType: string, entityId: string) {
   if (entityType === "TASK") {
@@ -40,6 +40,26 @@ async function performDelete(entityType: string, entityId: string) {
       prisma.attendance.delete({ where: { id: entityId } }),
     ]);
     revalidatePath("/atendimento");
+  } else if (entityType === "PAYABLE") {
+    const payable = await prisma.payable.findUnique({ where: { id: entityId } });
+    await prisma.payable.delete({ where: { id: entityId } });
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/contas-a-pagar");
+    revalidatePath("/financeiro/dre");
+    revalidatePath("/financeiro/livro-caixa");
+    revalidatePath("/alertas");
+    revalidatePath("/");
+    if (payable?.caseId) revalidatePath(`/processos/${payable.caseId}`);
+  } else if (entityType === "RECEIVABLE") {
+    const receivable = await prisma.receivable.findUnique({ where: { id: entityId } });
+    await prisma.receivable.delete({ where: { id: entityId } });
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/contas-a-receber");
+    revalidatePath("/financeiro/dre");
+    revalidatePath("/financeiro/livro-caixa");
+    revalidatePath("/alertas");
+    revalidatePath("/");
+    if (receivable?.caseId) revalidatePath(`/processos/${receivable.caseId}`);
   }
 }
 

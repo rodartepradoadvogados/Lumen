@@ -4,10 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
 import NewReceivableModal from "@/components/NewReceivableModal";
+import EditReceivableModal from "@/components/EditReceivableModal";
+import EditPayableModal from "@/components/EditPayableModal";
 import CommentBox from "@/components/CommentBox";
 import CaseStatusSelect from "@/components/CaseStatusSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import AttachmentList from "@/components/AttachmentList";
+import PeticionarButton from "@/components/PeticionarButton";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
@@ -58,11 +61,13 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, driveStatus] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, driveStatus] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
     getLeafCategoryOptions("RECEITA"),
+    getLeafCategoryOptions("DESPESA"),
+    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
     getDriveStatus(),
   ]);
 
@@ -75,6 +80,7 @@ export default async function CaseDetailPage({
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <h1 className="font-serif text-2xl font-bold text-navy-900">{c.title}</h1>
         <div className="flex items-center gap-2">
+          <PeticionarButton compact />
           <CaseStatusSelect caseId={c.id} status={c.status} />
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>
@@ -203,14 +209,35 @@ export default async function CaseDetailPage({
             ) : (
               <div className="divide-y divide-navy-800/5">
                 {c.receivables.map((r) => (
-                  <div key={r.id} className="flex justify-between px-5 py-3">
+                  <div key={r.id} className="flex justify-between items-center px-5 py-3">
                     <div>
                       <p className="text-sm text-navy-900">{r.description}</p>
-                      <p className="text-xs text-navy-800/40">{formatDate(r.dueDate)}</p>
+                      <p className="text-xs text-navy-800/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
-                      <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : "amber"}>{r.status}</Badge>
+                    <div className="flex items-center gap-1">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
+                        <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : "amber"}>{r.status}</Badge>
+                      </div>
+                      <EditReceivableModal
+                        receivable={{
+                          id: r.id,
+                          description: r.description,
+                          amount: r.amount,
+                          dueDate: r.dueDate.toISOString(),
+                          noDueDate: r.noDueDate,
+                          kind: r.kind,
+                          categoryId: r.categoryId,
+                          costCenterId: r.costCenterId,
+                          clientId: r.clientId,
+                          caseId: r.caseId,
+                        }}
+                        categories={receivableCategories}
+                        cases={cases.map((x) => ({ id: x.id, name: x.title }))}
+                        clients={c.clientId ? [{ id: c.clientId, name: c.client?.name ?? "" }] : []}
+                        costCenters={costCenters}
+                      />
+                      <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
                     </div>
                   </div>
                 ))}
@@ -226,14 +253,33 @@ export default async function CaseDetailPage({
             ) : (
               <div className="divide-y divide-navy-800/5">
                 {c.payables.map((p) => (
-                  <div key={p.id} className="flex justify-between px-5 py-3">
+                  <div key={p.id} className="flex justify-between items-center px-5 py-3">
                     <div>
                       <p className="text-sm text-navy-900">{p.description}</p>
-                      <p className="text-xs text-navy-800/40">{formatDate(p.dueDate)}</p>
+                      <p className="text-xs text-navy-800/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</p>
-                      <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
+                    <div className="flex items-center gap-1">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</p>
+                        <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
+                      </div>
+                      <EditPayableModal
+                        payable={{
+                          id: p.id,
+                          description: p.description,
+                          supplier: p.supplier,
+                          amount: p.amount,
+                          dueDate: p.dueDate.toISOString(),
+                          noDueDate: p.noDueDate,
+                          categoryId: p.categoryId,
+                          costCenterId: p.costCenterId,
+                          caseId: p.caseId,
+                        }}
+                        categories={payableCategories}
+                        cases={cases.map((x) => ({ id: x.id, name: x.title }))}
+                        costCenters={costCenters}
+                      />
+                      <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
                     </div>
                   </div>
                 ))}

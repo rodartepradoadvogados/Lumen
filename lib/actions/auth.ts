@@ -23,6 +23,7 @@ export async function login(username: string, password: string): Promise<{ error
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
+  await prisma.loginSession.create({ data: { userId: user.id } });
   redirect("/");
 }
 

@@ -45,6 +45,62 @@ export async function reopenReceivable(id: string) {
   revalidateFinance();
 }
 
+export async function updatePayable(id: string, data: {
+  description: string;
+  supplier?: string;
+  amount: string;
+  dueDate: string;
+  categoryId?: string;
+  costCenterId?: string;
+  caseId?: string;
+  noDueDate?: boolean;
+}) {
+  const noDueDate = data.noDueDate ?? false;
+  await prisma.payable.update({
+    where: { id },
+    data: {
+      description: data.description,
+      supplier: data.supplier || null,
+      amount: parseFloat(data.amount),
+      dueDate: noDueDate ? undefined : new Date(data.dueDate),
+      categoryId: data.categoryId || null,
+      costCenterId: data.costCenterId || null,
+      caseId: data.caseId || null,
+      noDueDate,
+    },
+  });
+  revalidateFinance();
+}
+
+export async function updateReceivable(id: string, data: {
+  description: string;
+  amount: string;
+  dueDate: string;
+  kind: string;
+  categoryId?: string;
+  costCenterId?: string;
+  clientId?: string;
+  caseId?: string;
+  noDueDate?: boolean;
+}) {
+  const noDueDate = data.noDueDate ?? false;
+  await prisma.receivable.update({
+    where: { id },
+    data: {
+      description: data.description,
+      amount: parseFloat(data.amount),
+      dueDate: noDueDate ? undefined : new Date(data.dueDate),
+      kind: data.kind,
+      categoryId: data.categoryId || null,
+      costCenterId: data.costCenterId || null,
+      clientId: data.clientId || null,
+      caseId: data.caseId || null,
+      noDueDate,
+    },
+  });
+  revalidateFinance();
+}
+
 export async function createPayable(data: {
   description: string;
   supplier?: string;

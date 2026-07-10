@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import NewReceivableModal from "@/components/NewReceivableModal";
+import EditReceivableModal from "@/components/EditReceivableModal";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
 import Link from "next/link";
 import { getLeafCategoryOptions } from "@/lib/categories";
@@ -135,8 +137,27 @@ export default async function ContasAReceberPage({
                     <Badge color={statusColor[r.effectiveStatus]}>{r.effectiveStatus}</Badge>
                   </div>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-1">
                   <SettleButton id={r.id} kind="receivable" amount={r.paidAmount ?? r.amount} status={r.status} />
+                  <EditReceivableModal
+                    receivable={{
+                      id: r.id,
+                      description: r.description,
+                      amount: r.amount,
+                      dueDate: r.dueDate.toISOString(),
+                      noDueDate: r.noDueDate,
+                      kind: r.kind,
+                      categoryId: r.categoryId,
+                      costCenterId: r.costCenterId,
+                      clientId: r.clientId,
+                      caseId: r.caseId,
+                    }}
+                    categories={categories}
+                    cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+                    clients={clients}
+                    costCenters={costCenters}
+                  />
+                  <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
                 </div>
               </div>
             ))}

@@ -86,6 +86,16 @@ async function findCaseIdByProcessNumber(processNumberRaw: string | null): Promi
   return found?.id ?? null;
 }
 
+async function findClientIdByName(content: string): Promise<string | null> {
+  const clients = await prisma.client.findMany({ select: { id: true, name: true } });
+  const normalized = content.toLowerCase();
+  for (const client of clients) {
+    const name = client.name.trim().toLowerCase();
+    if (name.length >= 5 && normalized.includes(name)) return client.id;
+  }
+  return null;
+}
+
 async function syncAccount(account: EmailAccount, result: SyncResult) {
   const client = new ImapFlow({
     host: account.host,
@@ -140,6 +150,7 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
             }
 
             const caseId = await findCaseIdByProcessNumber(entry.processNumber);
+            const clientId = caseId ? null : await findClientIdByName(entry.content);
 
             await prisma.publication.create({
               data: {
@@ -151,6 +162,7 @@ async function syncAccount(account: EmailAccount, result: SyncResult) {
                 emailAccount: account.user,
                 emailSubject: subject,
                 processNumberRaw: entry.processNumber,
+                clientId,
                 lawyerTag: detectLawyerTag(entry.content),
                 caseId,
               },

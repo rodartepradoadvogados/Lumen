@@ -33,6 +33,20 @@ model User {
   attachments        Attachment[]
   deletionRequested  DeletionRequest[] @relation("DeletionRequestedBy")
   deletionResolved   DeletionRequest[] @relation("DeletionResolvedBy")
+  loginSessions      LoginSession[]
+}
+
+// ============ TIMESHEET (sessões de login) ============
+
+model LoginSession {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  loginAt    DateTime @default(now())
+  lastPingAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId, loginAt])
 }
 
 // ============ CONTATOS ============
@@ -50,6 +64,7 @@ model Client {
 
   cases       Case[]
   receivables Receivable[]
+  publications Publication[]
 }
 
 model Lawyer {
@@ -362,4 +377,7 @@ model Publication {
 
   caseId            String?
   case              Case?     @relation(fields: [caseId], references: [id])
+
+  clientId          String?   // preenchido quando não há processo compatível mas o nome de um cliente cadastrado aparece no conteúdo
+  client            Client?   @relation(fields: [clientId], references: [id])
 }

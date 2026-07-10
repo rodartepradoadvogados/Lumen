@@ -12,7 +12,7 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
       read: false,
       kind: searchParams.kind || undefined,
     },
-    include: { case: true },
+    include: { case: true, client: true },
     orderBy: { publishedAt: "desc" },
   });
 
@@ -25,7 +25,9 @@ export default async function PublicacoesPage({ searchParams }: { searchParams: 
     read: p.read,
     deadlineGenerated: p.deadlineGenerated,
     lawyerTag: p.lawyerTag,
+    processNumberRaw: p.processNumberRaw,
     case: p.case ? { id: p.case.id, title: p.case.title } : null,
+    client: p.client ? { id: p.client.id, name: p.client.name } : null,
   }));
 
   const qs = (extra: Record<string, string | undefined>) => {

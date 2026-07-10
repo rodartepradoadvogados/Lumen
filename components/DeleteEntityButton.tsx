@@ -11,7 +11,7 @@ export default function DeleteEntityButton({
   entityLabel,
   confirmMessage,
 }: {
-  entityType: "TASK" | "CASE" | "ATTENDANCE";
+  entityType: "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE";
   entityId: string;
   entityLabel: string;
   confirmMessage: string;

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { markPublicationRead, generateTaskFromPublication } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
-import { Check, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X } from "lucide-react";
+import PeticionarButton from "@/components/PeticionarButton";
+import { Check, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -17,7 +18,9 @@ type Pub = {
   read: boolean;
   deadlineGenerated: boolean;
   lawyerTag: string | null;
+  processNumberRaw: string | null;
   case: { id: string; title: string } | null;
+  client: { id: string; name: string } | null;
 };
 
 const actionButtons = [
@@ -32,7 +35,18 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
   const router = useRouter();
   const [detailOpen, setDetailOpen] = useState(false);
   const [formType, setFormType] = useState<string | null>(null);
+  const [agendaOpen, setAgendaOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!agendaOpen) return;
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setAgendaOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [agendaOpen]);
 
   function markRead() {
     setLoading(true);
@@ -40,6 +54,11 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
       router.refresh();
       setLoading(false);
     });
+  }
+
+  function pickAction(type: string) {
+    setAgendaOpen(false);
+    setFormType(type);
   }
 
   return (
@@ -56,10 +75,11 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
           <span className="text-xs text-navy-800/40">{formatDate(pub.publishedAt)}</span>
         </div>
         {pub.case && <p className="text-xs font-medium text-gold-700">{pub.case.title}</p>}
+        {!pub.case && pub.client && <p className="text-xs font-medium text-emerald-700">Cliente compatível: {pub.client.name}</p>}
         <p className="text-sm text-navy-800 mt-1 line-clamp-2">{pub.content}</p>
       </button>
 
-      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+      <div className="flex items-center gap-2 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
         {!pub.read && (
           <button
             onClick={markRead}
@@ -69,15 +89,49 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
             <Check size={12} /> Marcar como lida
           </button>
         )}
-        {actionButtons.map((a) => (
+
+        {pub.case && (
+          <Link href={`/processos/${pub.case.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200">
+            Abrir Processo
+          </Link>
+        )}
+        {!pub.case && pub.client && (
+          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-emerald-800 hover:text-emerald-900 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20">
+            Abrir Cadastro do Cliente
+          </Link>
+        )}
+        {!pub.case && pub.processNumberRaw && (
+          <Link
+            href={`/processos/novo?type=JUDICIAL&processNumber=${encodeURIComponent(pub.processNumberRaw)}`}
+            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
+          >
+            <FilePlus2 size={12} /> Cadastrar Processo
+          </Link>
+        )}
+
+        <PeticionarButton compact />
+
+        <div className="relative" ref={menuRef}>
           <button
-            key={a.type}
-            onClick={() => setFormType(a.type)}
+            onClick={() => setAgendaOpen((o) => !o)}
             className="flex items-center gap-1 text-[11px] font-semibold text-gold-800 hover:text-gold-900 px-2.5 py-1 rounded-lg bg-gold-500/10 hover:bg-gold-500/20"
           >
-            <a.icon size={12} /> {a.label}
+            <CalendarClock size={12} /> Agenda <ChevronDown size={11} />
           </button>
-        ))}
+          {agendaOpen && (
+            <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg border border-navy-800/10 shadow-pop z-20 overflow-hidden">
+              {actionButtons.map((a) => (
+                <button
+                  key={a.type}
+                  onClick={() => pickAction(a.type)}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-navy-900 hover:bg-cream-50 transition-colors"
+                >
+                  <a.icon size={13} /> {a.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {formType && (
@@ -96,6 +150,7 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
             router.refresh();
           }}
           className="mt-3 p-3 rounded-lg bg-cream-50 border border-navy-800/8 space-y-2"
+          onClick={(e) => e.stopPropagation()}
         >
           <input name="title" defaultValue={`${pub.content.slice(0, 50)}`} required className="w-full text-sm border border-navy-800/12 rounded-lg px-2.5 py-1.5" />
           <div className="flex gap-2 flex-wrap">
@@ -145,6 +200,11 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
               {pub.case && (
                 <Link href={`/processos/${pub.case.id}`} className="text-sm font-medium text-gold-700 hover:underline block">
                   {pub.case.title}
+                </Link>
+              )}
+              {!pub.case && pub.client && (
+                <Link href={`/contatos/clientes#client-${pub.client.id}`} className="text-sm font-medium text-emerald-700 hover:underline block">
+                  Cliente: {pub.client.name}
                 </Link>
               )}
               <p className={clsx("text-sm text-navy-800 whitespace-pre-wrap")}>{pub.content}</p>

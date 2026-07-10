@@ -12,7 +12,9 @@ type Pub = {
   read: boolean;
   deadlineGenerated: boolean;
   lawyerTag: string | null;
+  processNumberRaw: string | null;
   case: { id: string; title: string } | null;
+  client: { id: string; name: string } | null;
 };
 
 const STORAGE_KEY = "rp_seen_publications";
