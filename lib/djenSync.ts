@@ -25,7 +25,15 @@ export type DjenTestResult = {
 
 async function fetchDjenRaw(numeroOab: string, ufOab: string): Promise<{ status: number; body: unknown }> {
   const url = `${DJEN_API_BASE}?numeroOab=${encodeURIComponent(numeroOab)}&ufOab=${encodeURIComponent(ufOab)}&itensPorPagina=5`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      Referer: "https://comunica.pje.jus.br/",
+      Origin: "https://comunica.pje.jus.br",
+      "Accept-Language": "pt-BR,pt;q=0.9",
+    },
+  });
   const status = res.status;
   let body: unknown;
   try {
