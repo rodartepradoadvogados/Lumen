@@ -6,7 +6,13 @@
 // conferirmos juntos o formato real da resposta antes de ligar a sincronização
 // automática (que ainda vai gravar em Publication, como o Jusbrasil por e-mail).
 
+const DJEN_PUBLIC_PAGE = "https://comunica.pje.jus.br/consulta";
 const DJEN_API_BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
+
+const BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept-Language": "pt-BR,pt;q=0.9",
+};
 
 export const DJEN_OAB_TARGETS = [
   { label: "Jairo Rodarte", numeroOab: "78295", ufOab: "GO" },
@@ -21,17 +27,28 @@ export type DjenTestResult = {
   status?: number;
   error?: string;
   sample?: unknown;
+  cookieObtained?: boolean;
 };
 
-async function fetchDjenRaw(numeroOab: string, ufOab: string): Promise<{ status: number; body: unknown }> {
+// Visita a página pública de consulta primeiro (como um navegador faria) para capturar
+// eventuais cookies de sessão/anti-bot antes de chamar a API — a API sozinha responde 403.
+async function getSessionCookie(): Promise<string | null> {
+  const res = await fetch(DJEN_PUBLIC_PAGE, {
+    headers: { ...BROWSER_HEADERS, Accept: "text/html" },
+  });
+  const setCookie = res.headers.get("set-cookie");
+  return setCookie ? setCookie.split(";")[0] : null;
+}
+
+async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | null): Promise<{ status: number; body: unknown }> {
   const url = `${DJEN_API_BASE}?numeroOab=${encodeURIComponent(numeroOab)}&ufOab=${encodeURIComponent(ufOab)}&itensPorPagina=5`;
   const res = await fetch(url, {
     headers: {
+      ...BROWSER_HEADERS,
       Accept: "application/json",
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      Referer: "https://comunica.pje.jus.br/",
+      Referer: DJEN_PUBLIC_PAGE,
       Origin: "https://comunica.pje.jus.br",
-      "Accept-Language": "pt-BR,pt;q=0.9",
+      ...(cookie ? { Cookie: cookie } : {}),
     },
   });
   const status = res.status;
@@ -46,9 +63,17 @@ async function fetchDjenRaw(numeroOab: string, ufOab: string): Promise<{ status:
 
 export async function testDjenConnection(): Promise<DjenTestResult[]> {
   const results: DjenTestResult[] = [];
+
+  let cookie: string | null = null;
+  try {
+    cookie = await getSessionCookie();
+  } catch {
+    cookie = null;
+  }
+
   for (const target of DJEN_OAB_TARGETS) {
     try {
-      const { status, body } = await fetchDjenRaw(target.numeroOab, target.ufOab);
+      const { status, body } = await fetchDjenRaw(target.numeroOab, target.ufOab, cookie);
       results.push({
         label: target.label,
         numeroOab: target.numeroOab,
@@ -56,6 +81,7 @@ export async function testDjenConnection(): Promise<DjenTestResult[]> {
         ok: status >= 200 && status < 300,
         status,
         sample: body,
+        cookieObtained: Boolean(cookie),
       });
     } catch (e) {
       results.push({
@@ -64,6 +90,7 @@ export async function testDjenConnection(): Promise<DjenTestResult[]> {
         ufOab: target.ufOab,
         ok: false,
         error: e instanceof Error ? e.message : "erro desconhecido ao conectar no DJEN",
+        cookieObtained: Boolean(cookie),
       });
     }
   }

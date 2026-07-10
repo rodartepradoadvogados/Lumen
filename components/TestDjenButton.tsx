@@ -33,6 +33,7 @@ export default function TestDjenButton() {
             <div key={r.numeroOab} className="border border-navy-800/10 rounded-lg p-3">
               <p className="text-xs font-semibold text-navy-900">
                 {r.label} — OAB {r.numeroOab}/{r.ufOab} {r.ok ? "✅" : "❌"} {r.status ? `(HTTP ${r.status})` : ""}
+                {r.cookieObtained !== undefined && ` · cookie de sessão: ${r.cookieObtained ? "obtido" : "não obtido"}`}
               </p>
               {r.error && <p className="text-xs text-red-600 mt-1">{r.error}</p>}
               {r.sample !== undefined && (
