@@ -110,7 +110,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         <div className="flex items-center gap-1">
           <button
             onClick={onToggle}
-            title={done ? "Reabrir" : "Concluir"}
+            data-tip={done ? "Reabrir" : "Concluir"}
             className={clsx(
               "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
               done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 text-transparent hover:border-emerald-500"

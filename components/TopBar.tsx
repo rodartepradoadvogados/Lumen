@@ -1,8 +1,9 @@
-import { Search, Bell, LogOut } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import Link from "next/link";
 import { getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { logout } from "@/lib/actions/auth";
+import GlobalSearch from "@/components/GlobalSearch";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import PeticionarButton from "@/components/PeticionarButton";
 import TimesheetTimer from "@/components/TimesheetTimer";
@@ -20,14 +21,7 @@ export default async function TopBar() {
 
   return (
     <header className="h-16 shrink-0 bg-cream-50/80 backdrop-blur border-b border-gold-500/20 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
-      <div className="flex-1 max-w-md relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/40" />
-        <input
-          type="text"
-          placeholder="Pesquisar processo, contato ou tarefa..."
-          className="w-full pl-9 pr-3 py-2 rounded-lg border border-navy-800/10 bg-white text-sm text-navy-900 placeholder:text-navy-800/40 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
-        />
-      </div>
+      <GlobalSearch />
 
       <div className="flex items-center gap-3">
         <PeticionarButton />
@@ -61,7 +55,7 @@ export default async function TopBar() {
           <form action={logout}>
             <button
               type="submit"
-              title="Sair"
+              data-tip="Sair"
               className="p-2 rounded-lg hover:bg-navy-900/5 transition-colors text-navy-800/50 hover:text-navy-900"
             >
               <LogOut size={16} />

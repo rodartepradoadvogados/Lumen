@@ -102,7 +102,7 @@ export default function AttachmentList({
             <button
               onClick={() => handleDelete(a.id)}
               disabled={pending}
-              title="Remover anexo"
+              data-tip="Remover anexo"
               className="absolute top-1 right-1 p-1 rounded-md text-navy-800/25 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-all"
             >
               <X size={12} />

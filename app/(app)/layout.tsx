@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import { getCurrentUser } from "@/lib/currentUser";
+import { prisma } from "@/lib/prisma";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
@@ -14,9 +15,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
+  const unreadPublications = await prisma.publication.count({ where: { read: false } });
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} />
+      <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} unreadPublications={unreadPublications} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
         <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>

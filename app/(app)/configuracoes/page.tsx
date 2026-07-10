@@ -62,7 +62,14 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
   );
 }
 
-export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string } }) {
+const SECOES = [
+  { key: "geral", label: "Geral", adminOnly: false },
+  { key: "equipe", label: "Equipe & Acesso", adminOnly: true },
+  { key: "financeiro", label: "Financeiro", adminOnly: true },
+  { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
+] as const;
+
+export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string; secao?: string } }) {
   const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
@@ -73,6 +80,12 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
     prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
   const isAdmin = viewer?.isAdmin ?? false;
+
+  // Se houver retorno da conexão do Google Drive, o card fica na aba "Modelos & Integrações"
+  const defaultSecao = searchParams.google ? "modelos" : "geral";
+  const requestedSecao = searchParams.secao || defaultSecao;
+  const availableSecoes = SECOES.filter((s) => !s.adminOnly || isAdmin);
+  const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
 
@@ -113,6 +126,23 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
         subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}
       />
 
+      {isAdmin && (
+        <div className="flex gap-2 flex-wrap">
+          {availableSecoes.map((s) => (
+            <Link
+              key={s.key}
+              href={`/configuracoes?secao=${s.key}`}
+              className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
+                secao === s.key ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+              }`}
+            >
+              {s.label}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {secao === "geral" && (
       <Card>
         <CardHeader title="Importação de Dados" subtitle="Traga contatos, processos e agenda de uma planilha" />
         <div className="p-5">
@@ -124,15 +154,18 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
           </Link>
         </div>
       </Card>
+      )}
 
+      {secao === "geral" && (
       <Card>
         <CardHeader title="Alterar Senha" subtitle="Sua senha de acesso ao sistema" />
         <div className="p-5">
           <ChangePasswordForm />
         </div>
       </Card>
+      )}
 
-      {isAdmin && (
+      {isAdmin && secao === "geral" && (
       <Card>
         <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para jairo@ e rodrigo@rodarteprado.com.br" />
         <div className="p-5">
@@ -141,7 +174,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && secao === "modelos" && (
         <Card>
           <CardHeader title="Integração com Google Drive" subtitle="Necessária para anexar documentos arrastando/selecionando do computador" />
           <div className="p-5 space-y-3">
@@ -171,7 +204,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
         </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && secao === "modelos" && (
         <Card>
           <CardHeader
             title="Modelos de Documento"
@@ -186,7 +219,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
         </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && secao === "geral" && (
       <Card>
         <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório" />
         <div className="p-5 flex gap-4 flex-wrap">
@@ -199,9 +232,9 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && secao === "equipe" && (
       <Card>
-        <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone e conceda/revogue acesso ao Financeiro pelo ícone da carteira`} />
+        <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
         <div className="divide-y divide-navy-800/5">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />
@@ -228,7 +261,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && secao === "modelos" && (
       <Card>
         <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
         <div className="divide-y divide-navy-800/5">
@@ -256,7 +289,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       </Card>
       )}
 
-      {isAdmin && (
+      {isAdmin && secao === "financeiro" && (
       <>
       <Card>
         <CardHeader title="Plano de Contas" subtitle="Grupos e subgrupos de receitas e despesas" />

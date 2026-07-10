@@ -63,7 +63,14 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
 
   return (
     <div className="px-5 py-4">
-      <button onClick={() => setDetailOpen(true)} className="block w-full text-left">
+      <button onClick={() => setDetailOpen(true)} className="block w-full text-left relative pr-7">
+        <ChevronDown
+          size={16}
+          className={clsx(
+            "absolute right-0 top-0.5 text-navy-800/30 transition-transform",
+            detailOpen && "rotate-180"
+          )}
+        />
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
           <Badge color={pub.kind === "PUBLICACAO" ? "blue" : "gold"}>
             {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}

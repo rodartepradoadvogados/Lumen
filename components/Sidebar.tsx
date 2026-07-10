@@ -32,7 +32,13 @@ const nav = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-export default function Sidebar({ hasFinanceAccess = true }: { hasFinanceAccess?: boolean }) {
+export default function Sidebar({
+  hasFinanceAccess = true,
+  unreadPublications = 0,
+}: {
+  hasFinanceAccess?: boolean;
+  unreadPublications?: number;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -99,7 +105,12 @@ export default function Sidebar({ hasFinanceAccess = true }: { hasFinanceAccess?
                 )}
               >
                 <Icon size={18} strokeWidth={2} />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/publicacoes" && unreadPublications > 0 && (
+                  <span className="bg-gold-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
+                    {unreadPublications > 99 ? "99+" : unreadPublications}
+                  </span>
+                )}
               </Link>
             );
           })}

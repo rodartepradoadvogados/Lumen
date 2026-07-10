@@ -78,7 +78,7 @@ export default function QuickAddSelect({
       <button
         type="button"
         onClick={() => setAdding(true)}
-        title={addLabel}
+        data-tip={addLabel}
         className="px-2 rounded-lg border border-navy-800/12 text-navy-800/60 hover:text-navy-900 hover:bg-cream-100"
       >
         <Plus size={14} />

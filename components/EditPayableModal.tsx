@@ -37,7 +37,7 @@ export default function EditPayableModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} title="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
         <Pencil size={14} />
       </button>
       {open && (

@@ -30,6 +30,7 @@ export default function SettleButton({
           setLoading(false);
         }}
         disabled={loading}
+        data-tip="Reabrir e desfazer a baixa"
         className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 hover:text-navy-900 px-2 py-1 rounded-lg hover:bg-cream-100"
       >
         <RotateCcw size={12} /> Reabrir

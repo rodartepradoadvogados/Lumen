@@ -92,8 +92,9 @@ export default function TeamMonitorPanel({ initials, name, role }: { initials: s
                       Último login: {formatDateTime(s.lastLoginAt)} · Timesheet: {formatHMS(s.todaySeconds)}
                     </p>
                   </div>
-                  <button onClick={() => toggleHistory(s.id)} className="text-[11px] font-semibold text-gold-700 hover:text-gold-900 shrink-0">
+                  <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-[11px] font-semibold text-gold-700 hover:text-gold-900 shrink-0">
                     Histórico
+                    <ChevronDown size={12} className={`transition-transform ${expanded === s.id ? "rotate-180" : ""}`} />
                   </button>
                 </div>
                 {expanded === s.id && (

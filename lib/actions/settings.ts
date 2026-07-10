@@ -52,6 +52,29 @@ export async function setFinanceAccess(id: string, financeAccess: boolean): Prom
   return {};
 }
 
+export async function setUserCredentials(id: string, username: string, password: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem definir credenciais de acesso." };
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return { error: "Usuário não encontrado." };
+
+  const normalizedUsername = username.trim().toLowerCase();
+  if (normalizedUsername.length < 4) return { error: "O usuário deve ter ao menos 4 caracteres." };
+  if (/\s/.test(normalizedUsername)) return { error: "O usuário não pode conter espaços." };
+  if (password.length < 6) return { error: "A senha deve ter ao menos 6 caracteres." };
+
+  const existing = await prisma.user.findFirst({
+    where: { username: { equals: normalizedUsername, mode: "insensitive" }, id: { not: id } },
+  });
+  if (existing) return { error: "Já existe outro membro com esse usuário." };
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.update({ where: { id }, data: { username: normalizedUsername, passwordHash } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 export async function changeOwnPassword(currentPassword: string, newPassword: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };

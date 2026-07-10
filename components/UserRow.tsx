@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X, Wallet, WalletCards } from "lucide-react";
-import { updateUser, toggleUserActive, deleteUser, setFinanceAccess } from "@/lib/actions/settings";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound } from "lucide-react";
+import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, setUserCredentials } from "@/lib/actions/settings";
 import { Badge } from "@/components/ui";
 
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
@@ -25,8 +25,33 @@ type User = {
 export default function UserRow({ user, canManage }: { user: User; canManage: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [credOpen, setCredOpen] = useState(false);
+  const [credError, setCredError] = useState<string | null>(null);
+  const [credSuccess, setCredSuccess] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  function handleSaveCredentials(formData: FormData) {
+    setCredError(null);
+    setCredSuccess(false);
+    const username = String(formData.get("username") || "").trim();
+    const password = String(formData.get("password") || "");
+    const confirm = String(formData.get("confirm") || "");
+    if (password !== confirm) {
+      setCredError("As senhas não coincidem.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await setUserCredentials(user.id, username, password);
+      if (result.error) {
+        setCredError(result.error);
+      } else {
+        setCredSuccess(true);
+        setCredOpen(false);
+        router.refresh();
+      }
+    });
+  }
 
   function handleSave(formData: FormData) {
     setError(null);
@@ -101,6 +126,45 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
     );
   }
 
+  if (credOpen) {
+    return (
+      <form action={handleSaveCredentials} className="px-5 py-3 space-y-2 bg-cream-50">
+        <p className="text-xs font-semibold text-navy-900">
+          {user.username ? `Redefinir senha de acesso — ${user.name}` : `Definir acesso — ${user.name}`}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input
+            name="username"
+            defaultValue={user.username ?? ""}
+            required
+            minLength={4}
+            autoComplete="off"
+            placeholder="Usuário (login)"
+            className="cfg-input"
+          />
+          <input name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Senha (mín. 6)" className="cfg-input" />
+          <input name="confirm" type="password" required minLength={6} autoComplete="new-password" placeholder="Confirmar senha" className="cfg-input" />
+        </div>
+        {credError && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">{credError}</p>}
+        <div className="flex gap-2">
+          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            {pending ? "Salvando..." : user.username ? "Redefinir senha" : "Definir acesso"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCredOpen(false);
+              setCredError(null);
+            }}
+            className="px-3 text-xs font-semibold text-navy-800/50 hover:text-navy-900"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 px-5 py-3 relative">
       <span className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: user.color }}>
@@ -117,30 +181,42 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       <Badge color={user.active ? "green" : "slate"}>{user.active ? "Ativo" : "Inativo"}</Badge>
       {user.isAdmin && <Badge color="gold">Admin</Badge>}
       {!user.isAdmin && user.financeAccess && <Badge color="green">Financeiro</Badge>}
+      {credSuccess && <Badge color="green">Acesso definido</Badge>}
       {canManage && !user.isAdmin && (
         <div className="flex items-center gap-1">
           <button
+            onClick={() => {
+              setCredSuccess(false);
+              setCredError(null);
+              setCredOpen(true);
+            }}
+            data-tip={user.username ? "Redefinir senha" : "Definir acesso"}
+            className="p-1.5 rounded-lg text-navy-800/30 hover:text-gold-700 hover:bg-gold-500/10 transition-colors"
+          >
+            <KeyRound size={14} />
+          </button>
+          <button
             onClick={handleToggleFinanceAccess}
             disabled={pending}
-            title={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
+            data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
             className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
               user.financeAccess ? "text-emerald-600 hover:text-red-600 hover:bg-red-50" : "text-navy-800/30 hover:text-emerald-600 hover:bg-emerald-50"
             }`}
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
           </button>
-          <button onClick={() => setEditing(true)} title="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
+          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
             <Pencil size={14} />
           </button>
           <button
             onClick={handleToggleActive}
             disabled={pending}
-            title={user.active ? "Inativar" : "Reativar"}
+            data-tip={user.active ? "Inativar" : "Reativar"}
             className="p-1.5 rounded-lg text-navy-800/30 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40"
           >
             <Power size={14} />
           </button>
-          <button onClick={handleDelete} disabled={pending} title="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40">
+          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40">
             <Trash2 size={14} />
           </button>
         </div>
