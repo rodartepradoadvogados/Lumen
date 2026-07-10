@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 function TemplateLink({ href }: { href: string }) {
   return (
     <a href={href} download className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 hover:text-gold-800">
-      <Download size={12} /> Baixar modelo .csv
+      <Download size={12} /> Baixar modelo .xlsx
     </a>
   );
 }
@@ -29,7 +29,7 @@ export default function ImportarPage() {
             subtitle="Tipo aceita: Processo, Caso ou Atendimento. Colunas: Papel do cliente, Cliente, Outros envolvidos, Pasta, Ação, Número, Data de distribuição, Objeto, Matéria, Valor da causa, Vara, Foro, Responsável, entre outras."
           />
           <div className="p-5 space-y-3">
-            <TemplateLink href="/templates/modelo-processos-casos-atendimentos.csv" />
+            <TemplateLink href="/templates/modelo-processos-casos-atendimentos.xlsx" />
             <ImportForm
               action={importCases}
               label="Importar Processos/Casos/Atendimentos"
@@ -41,7 +41,7 @@ export default function ImportarPage() {
         <Card>
           <CardHeader title="Agenda" subtitle="Colunas: Data, Hora, Tipo, Responsável, Título, Título do processo/caso/atendimento, Número do processo, Juízo, Status, Prioridade" />
           <div className="p-5 space-y-3">
-            <TemplateLink href="/templates/modelo-agenda.csv" />
+            <TemplateLink href="/templates/modelo-agenda.xlsx" />
             <ImportForm
               action={importAgenda}
               label="Importar Agenda"
@@ -53,7 +53,7 @@ export default function ImportarPage() {
         <Card>
           <CardHeader title="Financeiro" subtitle="Colunas: Data, Descricao, Categoria, Centro de custo, Pago para / Recebido de, Cliente, Caso, Responsavel, Valor, Tipo (Entrada/Saída/Fatura), Status" />
           <div className="p-5 space-y-3">
-            <TemplateLink href="/templates/modelo-financeiro.csv" />
+            <TemplateLink href="/templates/modelo-financeiro.xlsx" />
             <ImportForm
               action={importFinance}
               label="Importar Financeiro"
@@ -65,7 +65,7 @@ export default function ImportarPage() {
         <Card>
           <CardHeader title="Contatos (Clientes)" subtitle="Colunas: Nome, Tipo (PF/PJ), Documento, Email, Telefone, Endereço, Observações" />
           <div className="p-5 space-y-3">
-            <TemplateLink href="/templates/modelo-contatos.csv" />
+            <TemplateLink href="/templates/modelo-contatos.xlsx" />
             <p className="text-xs text-navy-800/50">
               Para importar contatos avulsos, cadastre diretamente em{" "}
               <Link href="/contatos/clientes" className="text-gold-700 hover:underline">

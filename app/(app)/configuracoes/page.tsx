@@ -13,6 +13,7 @@ import {
 import DeleteButton from "@/components/DeleteButton";
 import UserRow from "@/components/UserRow";
 import TestEmailButton from "@/components/TestEmailButton";
+import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import { Upload, HardDrive, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -61,13 +62,14 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
 }
 
 export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string } }) {
-  const [viewer, users, columns, categories, costCenters, driveStatus] = await Promise.all([
+  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
     prisma.financialCategory.findMany(),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
     getDriveStatus(),
+    prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
   ]);
   const isAdmin = viewer?.isAdmin ?? false;
 
@@ -152,6 +154,21 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
             >
               <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google Drive
             </a>
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && (
+        <Card>
+          <CardHeader
+            title="Modelos de Documento"
+            subtitle="Contratos, procurações, declarações e petições — usados no botão “Gerar Documento” de cada processo/atendimento"
+          />
+          <div className="p-5">
+            <DocumentTemplatesManager
+              templates={documentTemplates.map((t) => ({ id: t.id, name: t.name, category: t.category, driveUrl: t.driveUrl }))}
+              driveConnected={driveStatus.connected}
+            />
           </div>
         </Card>
       )}

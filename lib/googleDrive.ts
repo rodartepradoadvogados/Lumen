@@ -2,8 +2,17 @@ import { google } from "googleapis";
 import { Readable } from "stream";
 import { prisma } from "@/lib/prisma";
 
-const SCOPES = ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/userinfo.email"];
-const FOLDER_NAME = "RP Financeiro - Anexos";
+const SCOPES = [
+  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/documents",
+  "https://www.googleapis.com/auth/userinfo.email",
+];
+
+const FOLDERS = {
+  anexos: { name: "RP Financeiro - Anexos", field: "folderId" as const },
+  modelos: { name: "RP Financeiro - Modelos de Documento", field: "templatesFolderId" as const },
+  gerados: { name: "RP Financeiro - Documentos Gerados", field: "generatedFolderId" as const },
+};
 
 function getOAuthClient() {
   return new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
@@ -54,33 +63,40 @@ async function getDriveClient() {
   if (!cred) throw new Error("Google Drive não conectado. Vá em Configurações e conecte a conta do Google.");
   const client = getOAuthClient();
   client.setCredentials({ refresh_token: cred.refreshToken });
-  return { drive: google.drive({ version: "v3", auth: client }), cred };
+  return { drive: google.drive({ version: "v3", auth: client }), docs: google.docs({ version: "v1", auth: client }), cred };
 }
 
-async function getOrCreateFolderId(): Promise<string> {
+async function getOrCreateFolderId(kind: keyof typeof FOLDERS): Promise<string> {
   const { drive, cred } = await getDriveClient();
-  if (cred.folderId) return cred.folderId;
+  const { name, field } = FOLDERS[kind];
+  const existingId = cred[field];
+  if (existingId) return existingId;
 
   const res = await drive.files.list({
-    q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     fields: "files(id,name)",
   });
   let folderId = res.data.files?.[0]?.id;
   if (!folderId) {
     const created = await drive.files.create({
-      requestBody: { name: FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" },
+      requestBody: { name, mimeType: "application/vnd.google-apps.folder" },
       fields: "id",
     });
     folderId = created.data.id ?? undefined;
   }
   if (!folderId) throw new Error("Não foi possível criar a pasta no Google Drive.");
-  await prisma.googleCredential.update({ where: { id: cred.id }, data: { folderId } });
+  await prisma.googleCredential.update({ where: { id: cred.id }, data: { [field]: folderId } });
   return folderId;
 }
 
-export async function uploadFileToDrive(fileName: string, mimeType: string, buffer: Buffer): Promise<{ id: string; webViewLink: string }> {
+export async function uploadFileToDrive(
+  fileName: string,
+  mimeType: string,
+  buffer: Buffer,
+  folder: keyof typeof FOLDERS = "anexos"
+): Promise<{ id: string; webViewLink: string }> {
   const { drive } = await getDriveClient();
-  const folderId = await getOrCreateFolderId();
+  const folderId = await getOrCreateFolderId(folder);
 
   const created = await drive.files.create({
     requestBody: { name: fileName, parents: [folderId] },
@@ -98,4 +114,48 @@ export async function uploadFileToDrive(fileName: string, mimeType: string, buff
   const file = await drive.files.get({ fileId, fields: "id, webViewLink" });
   if (!file.data.webViewLink) throw new Error("Arquivo enviado, mas o link não pôde ser obtido.");
   return { id: fileId, webViewLink: file.data.webViewLink };
+}
+
+export function extractDriveFileId(url: string): string | null {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
+
+// Copia um Google Docs modelo, substitui placeholders {{CHAVE}} pelos valores informados
+// e devolve o link do novo documento preenchido.
+export async function copyAndFillTemplate(
+  templateFileId: string,
+  newName: string,
+  replacements: Record<string, string>
+): Promise<{ id: string; webViewLink: string }> {
+  const { drive, docs } = await getDriveClient();
+  const folderId = await getOrCreateFolderId("gerados");
+
+  const copied = await drive.files.copy({
+    fileId: templateFileId,
+    requestBody: { name: newName, parents: [folderId] },
+    fields: "id",
+  });
+  const newFileId = copied.data.id;
+  if (!newFileId) throw new Error("Não foi possível copiar o modelo.");
+
+  const requests = Object.entries(replacements).map(([key, value]) => ({
+    replaceAllText: {
+      containsText: { text: `{{${key}}}`, matchCase: false },
+      replaceText: value || "",
+    },
+  }));
+
+  if (requests.length > 0) {
+    await docs.documents.batchUpdate({ documentId: newFileId, requestBody: { requests } });
+  }
+
+  await drive.permissions.create({
+    fileId: newFileId,
+    requestBody: { role: "reader", type: "anyone" },
+  });
+
+  const file = await drive.files.get({ fileId: newFileId, fields: "id, webViewLink" });
+  if (!file.data.webViewLink) throw new Error("Documento gerado, mas o link não pôde ser obtido.");
+  return { id: newFileId, webViewLink: file.data.webViewLink };
 }

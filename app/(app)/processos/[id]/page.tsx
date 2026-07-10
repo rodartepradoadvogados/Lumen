@@ -11,6 +11,7 @@ import CaseStatusSelect from "@/components/CaseStatusSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import AttachmentList from "@/components/AttachmentList";
 import PeticionarButton from "@/components/PeticionarButton";
+import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
@@ -316,9 +317,14 @@ export default async function CaseDetailPage({
       )}
 
       {tab === "anexos" && (
-        <Card className="p-5">
-          <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} />
-        </Card>
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <GerarDocumentoButton caseId={c.id} />
+          </div>
+          <Card className="p-5">
+            <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} />
+          </Card>
+        </div>
       )}
     </div>
   );

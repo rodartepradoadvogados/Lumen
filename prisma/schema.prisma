@@ -31,6 +31,7 @@ model User {
   mentions           Mention[]
   attendances        Attendance[]  @relation("AttendanceResponsible")
   attachments        Attachment[]
+  documentTemplates  DocumentTemplate[]
   deletionRequested  DeletionRequest[] @relation("DeletionRequestedBy")
   deletionResolved   DeletionRequest[] @relation("DeletionResolvedBy")
   loginSessions      LoginSession[]
@@ -244,6 +245,19 @@ model Attachment {
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
 }
 
+// ============ MODELOS DE DOCUMENTO (contratos, procurações, declarações...) ============
+
+model DocumentTemplate {
+  id           String   @id @default(cuid())
+  name         String   // ex: "Contrato de honorários com pagamento de entrada + êxito"
+  category     String   // CONTRATO | PETICAO | PROCURACAO | DECLARACAO_HIPOSSUFICIENCIA | DECLARACAO_MORADIA | OUTRO
+  driveUrl     String
+  createdAt    DateTime @default(now())
+
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+}
+
 // ============ SOLICITAÇÕES DE EXCLUSÃO (aprovação de admin) ============
 
 model DeletionRequest {
@@ -265,12 +279,14 @@ model DeletionRequest {
 // ============ INTEGRAÇÃO GOOGLE DRIVE ============
 
 model GoogleCredential {
-  id           String   @id @default(cuid())
-  accountEmail String
-  refreshToken String
-  folderId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(cuid())
+  accountEmail      String
+  refreshToken      String
+  folderId          String?
+  templatesFolderId String?
+  generatedFolderId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 // ============ FINANCEIRO ============

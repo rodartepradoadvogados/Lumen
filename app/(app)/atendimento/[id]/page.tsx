@@ -7,6 +7,7 @@ import AttachmentList from "@/components/AttachmentList";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
 import AttendanceStatusSelect from "@/components/AttendanceStatusSelect";
+import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { ArrowLeft } from "lucide-react";
 
@@ -117,7 +118,10 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
       </Card>
 
       <Card className="p-5">
-        <h4 className="text-sm font-semibold text-navy-900 mb-3">Anexos</h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-navy-900">Anexos</h4>
+          <GerarDocumentoButton attendanceId={a.id} />
+        </div>
         <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={driveStatus.connected} />
       </Card>
     </div>
