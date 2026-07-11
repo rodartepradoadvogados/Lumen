@@ -12,6 +12,7 @@ import DeleteEntityButton from "@/components/DeleteEntityButton";
 import AttachmentList from "@/components/AttachmentList";
 import PeticionarButton from "@/components/PeticionarButton";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
+import PublicationsList from "@/components/PublicationsList";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
@@ -51,7 +52,7 @@ export default async function CaseDetailPage({
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
       receivables: { orderBy: { dueDate: "asc" } },
       payables: { orderBy: { dueDate: "asc" } },
-      publications: { orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }] },
+      publications: { include: { client: true }, orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }] },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
     },
   });
@@ -66,7 +67,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, driveStatus] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, driveStatus, taskCounts] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
@@ -74,7 +75,27 @@ export default async function CaseDetailPage({
     getLeafCategoryOptions("DESPESA"),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
     getDriveStatus(),
+    prisma.task.groupBy({
+      by: ["publicationId"],
+      where: { publicationId: { in: c.publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
+      _count: { _all: true },
+    }),
   ]);
+  const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
+  const serializedPublications = c.publications.map((p) => ({
+    id: p.id,
+    kind: p.kind,
+    source: p.source,
+    content: p.content,
+    publishedAt: p.publishedAt.toISOString(),
+    read: p.read,
+    deadlineGenerated: p.deadlineGenerated,
+    lawyerTag: p.lawyerTag,
+    processNumberRaw: p.processNumberRaw,
+    case: { id: c.id, title: c.title },
+    client: p.client ? { id: p.client.id, name: p.client.name } : null,
+    taskCount: taskCountMap.get(p.id) ?? 0,
+  }));
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
@@ -297,25 +318,10 @@ export default async function CaseDetailPage({
 
       {tab === "publicacoes" && (
         <Card>
-          {c.publications.length === 0 ? (
+          {serializedPublications.length === 0 ? (
             <EmptyState title="Nenhuma publicação vinculada" />
           ) : (
-            <div className="divide-y divide-navy-800/5">
-              {c.publications.map((p) => (
-                <div key={p.id} className="px-5 py-3.5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge color={p.kind === "PUBLICACAO" ? "blue" : "gold"}>
-                      {p.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}
-                    </Badge>
-                    <Badge color="navy">{p.source}</Badge>
-                    {p.lawyerTag && <Badge color="gold">{p.lawyerTag}</Badge>}
-                    {!p.read && <Badge color="gold">Não lida</Badge>}
-                    <span className="text-xs text-navy-800/40">{formatDate(p.publishedAt)}</span>
-                  </div>
-                  <p className="text-sm text-navy-800">{p.content}</p>
-                </div>
-              ))}
-            </div>
+            <PublicationsList publications={serializedPublications} highlightNew={false} />
           )}
         </Card>
       )}

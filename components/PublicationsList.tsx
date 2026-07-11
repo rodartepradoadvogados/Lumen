@@ -15,6 +15,7 @@ type Pub = {
   processNumberRaw: string | null;
   case: { id: string; title: string } | null;
   client: { id: string; name: string } | null;
+  taskCount?: number;
 };
 
 const STORAGE_KEY = "rp_seen_publications";

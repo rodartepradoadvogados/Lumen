@@ -1,17 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
+import { PageHeader, Card, formatCurrency } from "@/components/ui";
 import NewPayableModal from "@/components/NewPayableModal";
-import EditPayableModal from "@/components/EditPayableModal";
-import DeleteEntityButton from "@/components/DeleteEntityButton";
-import SettleButton from "@/components/SettleButton";
+import PayablesList from "@/components/PayablesList";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getFilteredPayables } from "@/lib/financeQuery";
 
 export const dynamic = "force-dynamic";
-
-const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", CANCELADO: "red" };
 
 export default async function ContasAPagarPage({
   searchParams,
@@ -114,54 +110,29 @@ export default async function ContasAPagarPage({
       </Card>
 
       <Card>
-        {filtered.length === 0 ? (
-          <EmptyState title="Nenhuma conta encontrada" />
-        ) : (
-          <div className="divide-y divide-navy-800/5">
-            {filtered.map((p) => (
-              <div key={p.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-navy-900">{p.description}</p>
-                  <p className="text-xs text-navy-800/45 mt-0.5">
-                    {p.supplier && <span>{p.supplier} · </span>}
-                    {p.category?.name}
-                    {p.costCenter && <span> · {p.costCenter.name}</span>}
-                    {p.case && <span> · {p.case.title}</span>}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between sm:contents">
-                  <div className="text-left sm:text-right shrink-0 sm:w-28">
-                    <p className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</p>
-                    <p className="text-xs text-navy-800/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
-                  </div>
-                  <div className="shrink-0 sm:w-24">
-                    <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
-                  </div>
-                </div>
-                <div className="shrink-0 flex items-center gap-1">
-                  <SettleButton id={p.id} kind="payable" amount={p.paidAmount ?? p.amount} status={p.status} />
-                  <EditPayableModal
-                    payable={{
-                      id: p.id,
-                      description: p.description,
-                      supplier: p.supplier,
-                      amount: p.amount,
-                      dueDate: p.dueDate.toISOString(),
-                      noDueDate: p.noDueDate,
-                      categoryId: p.categoryId,
-                      costCenterId: p.costCenterId,
-                      caseId: p.caseId,
-                    }}
-                    categories={categories}
-                    cases={cases.map((c) => ({ id: c.id, name: c.title }))}
-                    costCenters={costCenters}
-                  />
-                  <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <PayablesList
+          payables={filtered.map((p) => ({
+            id: p.id,
+            description: p.description,
+            supplier: p.supplier,
+            amount: p.amount,
+            dueDate: p.dueDate.toISOString(),
+            noDueDate: p.noDueDate,
+            status: p.status,
+            effectiveStatus: p.effectiveStatus,
+            paidAmount: p.paidAmount,
+            paymentReceiptNumber: p.paymentReceiptNumber,
+            categoryId: p.categoryId,
+            costCenterId: p.costCenterId,
+            caseId: p.caseId,
+            category: p.category ? { name: p.category.name } : null,
+            costCenter: p.costCenter ? { name: p.costCenter.name } : null,
+            case: p.case ? { title: p.case.title } : null,
+          }))}
+          categories={categories}
+          cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+          costCenters={costCenters}
+        />
       </Card>
       <style>{`
         .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }

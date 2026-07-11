@@ -2,55 +2,51 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { markPayablePaid, markReceivablePaid, reopenPayable, reopenReceivable } from "@/lib/actions/financeiro";
-import { Check, RotateCcw, X } from "lucide-react";
+import { X, CheckCheck } from "lucide-react";
+import { formatCurrency } from "@/components/ui";
 
-export default function SettleButton({
-  id,
-  kind,
-  amount,
-  status,
+export default function BulkSettleBar({
+  count,
+  total,
+  onConfirm,
+  onClear,
 }: {
-  id: string;
-  kind: "payable" | "receivable";
-  amount: number;
-  status: string;
+  count: number;
+  total: number;
+  onConfirm: (paidDate: string, receiptNumber: string) => Promise<void>;
+  onClear: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  if (status === "PAGO") {
-    return (
-      <button
-        onClick={async () => {
-          setLoading(true);
-          await (kind === "payable" ? reopenPayable(id) : reopenReceivable(id));
-          router.refresh();
-          setLoading(false);
-        }}
-        disabled={loading}
-        data-tip="Reabrir e desfazer a baixa"
-        className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 hover:text-navy-900 px-2 py-1 rounded-lg hover:bg-cream-100"
-      >
-        <RotateCcw size={12} /> Reabrir
-      </button>
-    );
-  }
-
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg"
-      >
-        <Check size={12} /> Dar Baixa
-      </button>
+      <div className="sticky bottom-4 z-30 mt-4">
+        <div className="bg-navy-900 text-white rounded-xl shadow-pop px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold">{count} selecionada(s)</span>
+            <span className="text-sm text-gold-300 font-bold">Total: {formatCurrency(total)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setOpen(true)}
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg"
+            >
+              <CheckCheck size={14} /> Dar Baixa em Bloco
+            </button>
+            <button onClick={onClear} data-tip="Limpar seleção" className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900 text-sm">Confirmar Baixa</h3>
+              <h3 className="font-serif font-bold text-navy-900 text-sm">Confirmar Baixa em Bloco</h3>
               <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
                 <X size={16} />
               </button>
@@ -58,26 +54,24 @@ export default function SettleButton({
             <form
               action={async (formData) => {
                 setLoading(true);
-                const paidAmount = parseFloat(String(formData.get("paidAmount")));
                 const paidDate = String(formData.get("paidDate"));
                 const receiptNumber = String(formData.get("receiptNumber") || "");
-                await (kind === "payable" ? markPayablePaid(id, paidAmount, paidDate, receiptNumber) : markReceivablePaid(id, paidAmount, paidDate, receiptNumber));
+                await onConfirm(paidDate, receiptNumber);
                 setLoading(false);
                 setOpen(false);
                 router.refresh();
               }}
               className="p-5 space-y-3"
             >
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Valor pago (R$)</label>
-                <input name="paidAmount" type="number" step="0.01" defaultValue={amount} required className="settle-input" />
-              </div>
+              <p className="text-xs text-navy-800/60">
+                {count} lançamento(s) selecionado(s) · Total <strong>{formatCurrency(total)}</strong>. Cada lançamento será baixado pelo seu próprio valor.
+              </p>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Data do pagamento</label>
                 <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input" />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Nº do comprovante (opcional)</label>
+                <label className="text-xs font-medium text-navy-800/60">Nº do comprovante (opcional, único para todos)</label>
                 <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input" />
               </div>
               <button
@@ -85,7 +79,7 @@ export default function SettleButton({
                 disabled={loading}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50"
               >
-                {loading ? "Confirmando..." : "Confirmar Baixa"}
+                {loading ? "Confirmando..." : `Confirmar Baixa de ${count} Lançamento(s)`}
               </button>
             </form>
           </div>

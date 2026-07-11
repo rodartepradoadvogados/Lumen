@@ -43,6 +43,13 @@ export default async function PublicacoesPage({
     prisma.publication.count({ where: { read: false } }),
   ]);
 
+  const taskCounts = await prisma.task.groupBy({
+    by: ["publicationId"],
+    where: { publicationId: { in: publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
+    _count: { _all: true },
+  });
+  const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
+
   const serialized = publications.map((p) => ({
     id: p.id,
     kind: p.kind,
@@ -55,6 +62,7 @@ export default async function PublicacoesPage({
     processNumberRaw: p.processNumberRaw,
     case: p.case ? { id: p.case.id, title: p.case.title } : null,
     client: p.client ? { id: p.client.id, name: p.client.name } : null,
+    taskCount: taskCountMap.get(p.id) ?? 0,
   }));
 
   const qs = (extra: Record<string, string | undefined>) => {

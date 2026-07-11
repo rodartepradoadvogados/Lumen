@@ -185,6 +185,9 @@ model Task {
   attendanceId   String?
   attendance     Attendance? @relation(fields: [attendanceId], references: [id])
 
+  publicationId  String?
+  publication    Publication? @relation(fields: [publicationId], references: [id])
+
   responsibleId  String?
   responsible    User?     @relation("TaskResponsible", fields: [responsibleId], references: [id])
 
@@ -350,6 +353,7 @@ model Payable {
   groupId          String?   // agrupa parcelas geradas juntas
   installmentNumber Int?
   installmentTotal  Int?
+  paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
   createdAt        DateTime  @default(now())
 
   categoryId   String?
@@ -377,6 +381,7 @@ model Receivable {
   installmentNumber Int?
   installmentTotal  Int?
   isSuccessPortion Boolean   @default(false) // parcela "a receber no êxito"
+  paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
   createdAt        DateTime  @default(now())
 
   categoryId   String?
@@ -415,4 +420,6 @@ model Publication {
 
   clientId          String?   // preenchido quando não há processo compatível mas o nome de um cliente cadastrado aparece no conteúdo
   client            Client?   @relation(fields: [clientId], references: [id])
+
+  tasks             Task[]
 }

@@ -1,24 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
+import { PageHeader, Card, formatCurrency } from "@/components/ui";
 import NewReceivableModal from "@/components/NewReceivableModal";
-import EditReceivableModal from "@/components/EditReceivableModal";
-import DeleteEntityButton from "@/components/DeleteEntityButton";
-import SettleButton from "@/components/SettleButton";
+import ReceivablesList from "@/components/ReceivablesList";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getFilteredReceivables } from "@/lib/financeQuery";
 
 export const dynamic = "force-dynamic";
-
-const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", CANCELADO: "red" };
-
-const kindLabels: Record<string, string> = {
-  HONORARIOS_CONTRATUAIS: "Honorários Contratuais",
-  HONORARIOS_SUCUMBENCIAIS: "Honorários Sucumbenciais",
-  REEMBOLSO: "Reembolso",
-  OUTROS: "Outros",
-};
 
 export default async function ContasAReceberPage({
   searchParams,
@@ -122,58 +111,33 @@ export default async function ContasAReceberPage({
       </Card>
 
       <Card>
-        {filtered.length === 0 ? (
-          <EmptyState title="Nenhuma conta encontrada" />
-        ) : (
-          <div className="divide-y divide-navy-800/5">
-            {filtered.map((r) => (
-              <div key={r.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-navy-900">{r.description}</p>
-                  <p className="text-xs text-navy-800/45 mt-0.5">
-                    {r.client?.name}
-                    {r.case && <span> · {r.case.title}</span>}
-                    {r.costCenter && <span> · {r.costCenter.name}</span>}
-                    {" · "}
-                    {kindLabels[r.kind]}
-                    {r.isSuccessPortion && <span> · Êxito</span>}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between sm:contents">
-                  <div className="text-left sm:text-right shrink-0 sm:w-28">
-                    <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
-                    <p className="text-xs text-navy-800/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
-                  </div>
-                  <div className="shrink-0 sm:w-24">
-                    <Badge color={statusColor[r.effectiveStatus]}>{r.effectiveStatus}</Badge>
-                  </div>
-                </div>
-                <div className="shrink-0 flex items-center gap-1">
-                  <SettleButton id={r.id} kind="receivable" amount={r.paidAmount ?? r.amount} status={r.status} />
-                  <EditReceivableModal
-                    receivable={{
-                      id: r.id,
-                      description: r.description,
-                      amount: r.amount,
-                      dueDate: r.dueDate.toISOString(),
-                      noDueDate: r.noDueDate,
-                      kind: r.kind,
-                      categoryId: r.categoryId,
-                      costCenterId: r.costCenterId,
-                      clientId: r.clientId,
-                      caseId: r.caseId,
-                    }}
-                    categories={categories}
-                    cases={cases.map((c) => ({ id: c.id, name: c.title }))}
-                    clients={clients}
-                    costCenters={costCenters}
-                  />
-                  <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <ReceivablesList
+          receivables={filtered.map((r) => ({
+            id: r.id,
+            description: r.description,
+            amount: r.amount,
+            dueDate: r.dueDate.toISOString(),
+            noDueDate: r.noDueDate,
+            status: r.status,
+            effectiveStatus: r.effectiveStatus,
+            paidAmount: r.paidAmount,
+            paymentReceiptNumber: r.paymentReceiptNumber,
+            kind: r.kind,
+            isSuccessPortion: r.isSuccessPortion,
+            categoryId: r.categoryId,
+            costCenterId: r.costCenterId,
+            clientId: r.clientId,
+            caseId: r.caseId,
+            category: r.category ? { name: r.category.name } : null,
+            costCenter: r.costCenter ? { name: r.costCenter.name } : null,
+            case: r.case ? { title: r.case.title } : null,
+            client: r.client ? { name: r.client.name } : null,
+          }))}
+          categories={categories}
+          cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+          clients={clients}
+          costCenters={costCenters}
+        />
       </Card>
       <style>{`
         .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }

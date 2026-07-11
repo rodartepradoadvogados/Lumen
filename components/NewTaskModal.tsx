@@ -150,9 +150,11 @@ export default function NewTaskModal({
                 </div>
               </div>
 
-              {type === "EVENTO" && (
+              {(type === "EVENTO" || type === "AUDIENCIA") && (
                 <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 p-3 space-y-3">
-                  <p className="text-xs font-semibold text-gold-800 uppercase tracking-wide">Reunião</p>
+                  <p className="text-xs font-semibold text-gold-800 uppercase tracking-wide">
+                    {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
+                  </p>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-1.5 text-sm text-navy-800">
                       <input
@@ -177,12 +179,12 @@ export default function NewTaskModal({
                   </div>
                   {meetingType === "PRESENCIAL" ? (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60">Endereço</label>
+                      <label className="text-xs font-medium text-navy-800/60">Endereço (opcional)</label>
                       <input name="location" className="input" placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO" />
                     </div>
                   ) : (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60">Link da reunião</label>
+                      <label className="text-xs font-medium text-navy-800/60">{type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}</label>
                       <input name="meetingUrl" type="url" className="input" placeholder="https://meet.google.com/..." />
                     </div>
                   )}

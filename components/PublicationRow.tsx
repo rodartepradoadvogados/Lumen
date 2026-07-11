@@ -21,6 +21,7 @@ type Pub = {
   processNumberRaw: string | null;
   case: { id: string; title: string } | null;
   client: { id: string; name: string } | null;
+  taskCount?: number;
 };
 
 const actionButtons = [
@@ -70,7 +71,17 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
   }
 
   return (
-    <div className="px-5 py-4">
+    <div className="px-5 py-4 relative">
+      {pub.case && !!pub.taskCount && (
+        <Link
+          href={`/processos/${pub.case.id}?tab=atividades`}
+          onClick={(e) => e.stopPropagation()}
+          data-tip="Ver atividades vinculadas a esta publicação"
+          className="absolute right-7 top-4 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold hover:bg-red-700 z-10"
+        >
+          {pub.taskCount}
+        </Link>
+      )}
       <button onClick={() => setDetailOpen(true)} className="block w-full text-left relative pr-7">
         <ChevronDown
           size={16}

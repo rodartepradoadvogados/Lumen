@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       Status: p.effectiveStatus,
       "Pago em": p.paidDate ? formatDate(p.paidDate) : "",
       "Valor pago": p.paidAmount ?? "",
+      Comprovante: p.paymentReceiptNumber || "",
     }));
   } else {
     const receivables = await getFilteredReceivables(params);
@@ -56,11 +57,12 @@ export async function GET(request: NextRequest) {
       Status: r.effectiveStatus,
       "Pago em": r.paidDate ? formatDate(r.paidDate) : "",
       "Valor pago": r.paidAmount ?? "",
+      Comprovante: r.paymentReceiptNumber || "",
     }));
   }
 
   const worksheet = XLSX.utils.json_to_sheet(rows, {
-    header: ["Descrição", "Fornecedor/Cliente", "Categoria", "Centro de Custo", "Vencimento", "Valor", "Status", "Pago em", "Valor pago"],
+    header: ["Descrição", "Fornecedor/Cliente", "Categoria", "Centro de Custo", "Vencimento", "Valor", "Status", "Pago em", "Valor pago", "Comprovante"],
   });
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, tipo === "pagar" ? "Contas a Pagar" : "Contas a Receber");

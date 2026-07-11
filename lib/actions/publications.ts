@@ -39,6 +39,7 @@ export async function generateTaskFromPublication(
       dueTime: data.dueTime || null,
       priority: data.priority,
       caseId: pub.caseId,
+      publicationId: pub.id,
       columnId: firstColumn?.id,
     },
   });
@@ -48,4 +49,5 @@ export async function generateTaskFromPublication(
   revalidatePath("/agenda");
   revalidatePath("/alertas");
   revalidatePath("/");
+  if (pub.caseId) revalidatePath(`/processos/${pub.caseId}`);
 }

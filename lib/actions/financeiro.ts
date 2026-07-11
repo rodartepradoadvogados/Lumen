@@ -20,33 +20,70 @@ function firstOfNextMonth() {
   return new Date(d.getFullYear(), d.getMonth() + 1, 1);
 }
 
-export async function markPayablePaid(id: string, paidAmount: number, paidDate: string) {
+export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string) {
   await requireFinanceAccess();
   await prisma.payable.update({
     where: { id },
-    data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate) },
+    data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate), paymentReceiptNumber: receiptNumber || null },
   });
   revalidateFinance();
 }
 
-export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string) {
+export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string) {
   await requireFinanceAccess();
   await prisma.receivable.update({
     where: { id },
-    data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate) },
+    data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate), paymentReceiptNumber: receiptNumber || null },
   });
   revalidateFinance();
+}
+
+// Baixa em bloco: várias contas quitadas na mesma transferência/pagamento.
+// Cada lançamento é pago pelo seu próprio valor (não dividido); o nº do comprovante,
+// quando informado, é o mesmo para todos os selecionados.
+export async function markManyPayablesPaid(ids: string[], paidDate: string, receiptNumber?: string): Promise<{ count: number }> {
+  await requireFinanceAccess();
+  if (ids.length === 0) return { count: 0 };
+  const items = await prisma.payable.findMany({ where: { id: { in: ids } }, select: { id: true, amount: true } });
+  const date = new Date(paidDate);
+  await prisma.$transaction(
+    items.map((p) =>
+      prisma.payable.update({
+        where: { id: p.id },
+        data: { status: "PAGO", paidAmount: p.amount, paidDate: date, paymentReceiptNumber: receiptNumber || null },
+      })
+    )
+  );
+  revalidateFinance();
+  return { count: items.length };
+}
+
+export async function markManyReceivablesPaid(ids: string[], paidDate: string, receiptNumber?: string): Promise<{ count: number }> {
+  await requireFinanceAccess();
+  if (ids.length === 0) return { count: 0 };
+  const items = await prisma.receivable.findMany({ where: { id: { in: ids } }, select: { id: true, amount: true } });
+  const date = new Date(paidDate);
+  await prisma.$transaction(
+    items.map((r) =>
+      prisma.receivable.update({
+        where: { id: r.id },
+        data: { status: "PAGO", paidAmount: r.amount, paidDate: date, paymentReceiptNumber: receiptNumber || null },
+      })
+    )
+  );
+  revalidateFinance();
+  return { count: items.length };
 }
 
 export async function reopenPayable(id: string) {
   await requireFinanceAccess();
-  await prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null } });
+  await prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null } });
   revalidateFinance();
 }
 
 export async function reopenReceivable(id: string) {
   await requireFinanceAccess();
-  await prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null } });
+  await prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null } });
   revalidateFinance();
 }
 
