@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 const SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/documents",
+  "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
@@ -14,7 +15,7 @@ const FOLDERS = {
   gerados: { name: "RP Financeiro - Documentos Gerados", field: "generatedFolderId" as const },
 };
 
-function getOAuthClient() {
+export function getOAuthClient() {
   return new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
 }
 

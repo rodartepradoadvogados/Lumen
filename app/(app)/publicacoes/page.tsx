@@ -37,7 +37,7 @@ export default async function PublicacoesPage({
     prisma.publication.findMany({
       where,
       include: { case: true, client: true },
-      orderBy: { publishedAt: "desc" },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: isLidas ? 100 : undefined,
     }),
     prisma.publication.count({ where: { read: false } }),

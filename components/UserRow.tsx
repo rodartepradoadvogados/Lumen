@@ -135,7 +135,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input
             name="username"
-            defaultValue={user.username ?? ""}
+            defaultValue={user.username ?? user.email}
             required
             minLength={4}
             autoComplete="off"

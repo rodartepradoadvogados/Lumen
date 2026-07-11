@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
-import { contentKey } from "../lib/jusbrasilEmailSync";
+
+const contentKey = (content: string) => content.slice(0, 200);
 
 // Encontra publicações duplicadas pelo mesmo critério do sync:
 // mesma data de publicação (dia) + mesmo processNumberRaw + primeiros 200 chars do conteúdo.

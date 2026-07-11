@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
 import { syncJusbrasilEmails, type SyncResult } from "@/lib/jusbrasilEmailSync";
+import { testDjenConnection, type DjenTestResult } from "@/lib/djenSync";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
@@ -16,6 +17,15 @@ export async function runJusbrasilSync(): Promise<SyncResult> {
   revalidatePath("/publicacoes");
   revalidatePath("/configuracoes");
   return result;
+}
+
+export async function runDjenConnectionTest(): Promise<{ error?: string; results?: DjenTestResult[] }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) {
+    return { error: "Apenas Jairo ou Rodrigo podem testar essa integração." };
+  }
+  const results = await testDjenConnection();
+  return { results };
 }
 
 export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }) {
