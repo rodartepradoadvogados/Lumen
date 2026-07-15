@@ -14,6 +14,7 @@ import PeticionarButton from "@/components/PeticionarButton";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import PublicationsList from "@/components/PublicationsList";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
+import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
@@ -67,7 +68,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, driveStatus, taskCounts] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, driveStatus, workflowTemplates, taskCounts] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
@@ -75,6 +76,7 @@ export default async function CaseDetailPage({
     getLeafCategoryOptions("DESPESA"),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
     getDriveStatus(),
+    prisma.workflowTemplate.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.task.groupBy({
       by: ["publicationId"],
       where: { publicationId: { in: c.publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
@@ -95,6 +97,8 @@ export default async function CaseDetailPage({
     case: { id: c.id, title: c.title },
     client: p.client ? { id: p.client.id, name: p.client.name } : null,
     taskCount: taskCountMap.get(p.id) ?? 0,
+    assignedToId: p.assignedToId,
+    triageStatus: p.triageStatus,
   }));
 
   return (
@@ -156,7 +160,12 @@ export default async function CaseDetailPage({
 
       {tab === "atividades" && (
         <div>
-          <div className="flex justify-end mb-3">
+          <div className="flex justify-end gap-2 mb-3">
+            <ApplyWorkflowModal
+              caseId={c.id}
+              templates={workflowTemplates}
+              users={users.map((u) => ({ id: u.id, name: u.name }))}
+            />
             <NewTaskModal cases={cases.map((x) => ({ id: x.id, name: x.title }))} users={users} columns={columns} defaultCaseId={c.id} label="Nova Atividade" />
           </div>
           <Card>

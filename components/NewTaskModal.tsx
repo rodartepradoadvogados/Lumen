@@ -34,6 +34,7 @@ export default function NewTaskModal({
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
+    const pointsRaw = String(formData.get("points") || "").trim();
     await createTask({
       title: String(formData.get("title")),
       type: String(formData.get("type")),
@@ -48,6 +49,7 @@ export default function NewTaskModal({
       meetingType: String(formData.get("meetingType") || ""),
       location: String(formData.get("location") || ""),
       meetingUrl: String(formData.get("meetingUrl") || ""),
+      points: pointsRaw === "" ? undefined : Number(pointsRaw),
     });
     setLoading(false);
     setOpen(false);
@@ -148,6 +150,19 @@ export default function NewTaskModal({
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Pontos (opcional)</label>
+                <input
+                  type="number"
+                  name="points"
+                  min={0}
+                  step={1}
+                  className="input"
+                  placeholder="Padrão do tipo de tarefa"
+                />
+                <p className="text-[11px] text-navy-800/40 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
               </div>
 
               {(type === "EVENTO" || type === "AUDIENCIA") && (

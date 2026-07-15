@@ -16,6 +16,8 @@ import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import TestDjenButton from "@/components/TestDjenButton";
+import TaskTypePointsManager from "@/components/TaskTypePointsManager";
+import WorkflowsManager from "@/components/WorkflowsManager";
 import { Upload, HardDrive, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -67,11 +69,16 @@ const SECOES = [
   { key: "geral", label: "Geral", adminOnly: false },
   { key: "equipe", label: "Equipe & Acesso", adminOnly: true },
   { key: "financeiro", label: "Financeiro", adminOnly: true },
+  { key: "produtividade", label: "Produtividade", adminOnly: true },
+  { key: "workflows", label: "Workflows", adminOnly: true },
   { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
 ] as const;
 
+const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+
 export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string; secao?: string } }) {
-  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates] = await Promise.all([
+  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -79,8 +86,18 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
     getDriveStatus(),
     prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
+    prisma.taskTypePoints.findMany(),
+    prisma.workflowTemplate.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { steps: { orderBy: { order: "asc" } } },
+    }),
   ]);
   const isAdmin = viewer?.isAdmin ?? false;
+
+  const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
+    const found = taskTypePoints.find((p) => p.type === type);
+    return { type, points: found?.points ?? 10 };
+  });
 
   // Se houver retorno da conexão do Google Drive, o card fica na aba "Modelos & Integrações"
   const defaultSecao = searchParams.google ? "modelos" : "geral";
@@ -370,6 +387,47 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
         </form>
       </Card>
       </>
+      )}
+
+      {isAdmin && secao === "produtividade" && (
+      <Card>
+        <CardHeader
+          title="TaskScore — Pontuação por Tipo de Tarefa"
+          subtitle="Pontos atribuídos automaticamente a cada tarefa concluída, conforme o tipo. Alimenta o ranking da página Produtividade."
+        />
+        <TaskTypePointsManager items={taskTypePointsRows} />
+      </Card>
+      )}
+
+      {isAdmin && secao === "workflows" && (
+      <Card>
+        <CardHeader
+          title="Workflows"
+          subtitle="Cadeias padronizadas de tarefas aplicadas manualmente a um processo (botão “Aplicar Workflow” na aba Atividades)"
+        />
+        <div className="p-5">
+          <WorkflowsManager
+            templates={workflowTemplates.map((t) => ({
+              id: t.id,
+              name: t.name,
+              area: t.area,
+              description: t.description,
+              active: t.active,
+              steps: t.steps.map((s) => ({
+                id: s.id,
+                order: s.order,
+                title: s.title,
+                taskType: s.taskType,
+                offsetDays: s.offsetDays,
+                priority: s.priority,
+                role: s.role,
+                points: s.points,
+              })),
+            }))}
+            roles={ROLE_OPTIONS}
+          />
+        </div>
+      </Card>
       )}
 
       <style>{`

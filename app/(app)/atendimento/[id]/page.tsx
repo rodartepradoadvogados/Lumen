@@ -7,6 +7,8 @@ import AttachmentList from "@/components/AttachmentList";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
 import AttendanceStatusSelect from "@/components/AttendanceStatusSelect";
+import FunnelStageSelect from "@/components/FunnelStageSelect";
+import AttendanceCommercialForm from "@/components/AttendanceCommercialForm";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { ArrowLeft } from "lucide-react";
@@ -49,7 +51,8 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <h1 className="font-serif text-2xl font-bold text-navy-900">{a.clientName}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
           <AttendanceStatusSelect attendanceId={a.id} status={a.status} />
           <DeleteEntityButton
             entityType="ATTENDANCE"
@@ -76,6 +79,14 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               </Link>
             </div>
           )}
+          <div className="pt-2 border-t border-navy-800/8">
+            <AttendanceCommercialForm
+              attendanceId={a.id}
+              estimatedValue={a.estimatedValue}
+              leadSource={a.leadSource}
+              nextContactAt={a.nextContactAt ? a.nextContactAt.toISOString() : null}
+            />
+          </div>
         </Card>
         <Card className="p-5">
           <h4 className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-2">Descrição detalhada</h4>

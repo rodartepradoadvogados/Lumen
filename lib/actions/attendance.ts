@@ -12,6 +12,9 @@ export async function createAttendance(data: {
   description?: string;
   channel: string;
   responsibleId?: string;
+  estimatedValue?: number | null;
+  leadSource?: string;
+  nextContactAt?: string;
 }) {
   await prisma.attendance.create({
     data: {
@@ -22,15 +25,57 @@ export async function createAttendance(data: {
       description: data.description || null,
       channel: data.channel,
       responsibleId: data.responsibleId || null,
+      estimatedValue: data.estimatedValue ?? null,
+      leadSource: data.leadSource || null,
+      nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
+      stageChangedAt: new Date(),
     },
   });
   revalidatePath("/atendimento");
+  revalidatePath("/atendimento/funil");
 }
 
 export async function updateAttendanceStatus(id: string, status: string) {
   await prisma.attendance.update({ where: { id }, data: { status } });
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
+}
+
+// ===== Funil comercial (CRM de captação) — eixo independente do status operacional =====
+
+export async function setAttendanceStage(id: string, stage: string, lostReason?: string) {
+  await prisma.attendance.update({
+    where: { id },
+    data: {
+      stage,
+      stageChangedAt: new Date(),
+      // motivo só é gravado (ou limpo) quando o estágio é PERDIDO
+      lostReason: stage === "PERDIDO" ? lostReason || null : null,
+      // não mexe no `status` operacional: os dois eixos são independentes
+    },
+  });
+  revalidatePath("/atendimento");
+  revalidatePath("/atendimento/funil");
+  revalidatePath(`/atendimento/${id}`);
+  revalidatePath("/alertas");
+}
+
+export async function updateAttendanceCommercial(
+  id: string,
+  data: { estimatedValue?: number | null; leadSource?: string | null; nextContactAt?: string | null }
+) {
+  await prisma.attendance.update({
+    where: { id },
+    data: {
+      estimatedValue: data.estimatedValue ?? null,
+      leadSource: data.leadSource || null,
+      nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
+    },
+  });
+  revalidatePath("/atendimento");
+  revalidatePath("/atendimento/funil");
+  revalidatePath(`/atendimento/${id}`);
+  revalidatePath("/alertas");
 }
 
 export async function convertAttendanceToCase(

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 export type AlertItem = {
   id: string;
-  kind: "PRAZO_VENCIDO" | "CONTA_PAGAR_VENCIDA" | "CONTA_RECEBER_VENCIDA" | "MENCAO" | "PARCELA_SEM_VENCIMENTO";
+  kind: "PRAZO_VENCIDO" | "CONTA_PAGAR_VENCIDA" | "CONTA_RECEBER_VENCIDA" | "MENCAO" | "PARCELA_SEM_VENCIMENTO" | "FOLLOWUP_ATRASADO";
   title: string;
   subtitle?: string;
   date: Date;
@@ -36,7 +36,7 @@ function endOfDay(d: Date) {
 export async function getAlerts(includeFinance: boolean = true): Promise<AlertItem[]> {
   const now = new Date();
 
-  const [overdueTasks, overduePayables, overdueReceivables, unreadMentions, undatedPayables, undatedReceivables] =
+  const [overdueTasks, overduePayables, overdueReceivables, unreadMentions, undatedPayables, undatedReceivables, overdueFollowups] =
     await Promise.all([
       prisma.task.findMany({
         where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -56,6 +56,10 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       includeFinance
         ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
         : Promise.resolve([]),
+      prisma.attendance.findMany({
+        where: { nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
+        orderBy: { nextContactAt: "asc" },
+      }),
     ]);
 
   const alerts: AlertItem[] = [];
@@ -113,6 +117,18 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: r.dueDate,
       href: `/financeiro/contas-a-receber`,
       severity: "baixa",
+    });
+  }
+  for (const f of overdueFollowups) {
+    if (!f.nextContactAt) continue;
+    alerts.push({
+      id: `followup-${f.id}`,
+      kind: "FOLLOWUP_ATRASADO",
+      title: `Follow-up atrasado: ${f.clientName}`,
+      subtitle: f.subject,
+      date: f.nextContactAt,
+      href: `/atendimento/${f.id}`,
+      severity: "media",
     });
   }
   for (const m of unreadMentions) {

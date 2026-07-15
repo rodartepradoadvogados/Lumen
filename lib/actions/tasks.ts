@@ -45,8 +45,17 @@ export async function createTask(data: {
   meetingType?: string;
   location?: string;
   meetingUrl?: string;
+  points?: number;
 }) {
   const firstColumn = data.columnId ? null : await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
+
+  // TaskScore: usa o override manual se informado; senão, o padrão do tipo (fallback 10).
+  let points = data.points;
+  if (points == null || Number.isNaN(points)) {
+    const typePoints = await prisma.taskTypePoints.findUnique({ where: { type: data.type } });
+    points = typePoints?.points ?? 10;
+  }
+
   await prisma.task.create({
     data: {
       title: data.title,
@@ -62,6 +71,7 @@ export async function createTask(data: {
       meetingType: data.meetingType || null,
       location: data.location || null,
       meetingUrl: data.meetingUrl || null,
+      points,
     },
   });
   revalidatePath("/kanban");

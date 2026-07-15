@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui
 import NewAttendanceModal from "@/components/NewAttendanceModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
+import { Filter } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,21 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">
-      <PageHeader title="Atendimento" subtitle="Triagem de novos contatos antes de virarem processos/casos" action={<NewAttendanceModal users={users} autoOpen={searchParams.novo === "1"} />} />
+      <PageHeader
+        title="Atendimento"
+        subtitle="Triagem de novos contatos antes de virarem processos/casos"
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/atendimento/funil"
+              className="inline-flex items-center gap-1.5 bg-white text-navy-800/70 border border-navy-800/10 hover:bg-cream-100 text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+            >
+              <Filter size={16} /> Funil Comercial
+            </Link>
+            <NewAttendanceModal users={users} autoOpen={searchParams.novo === "1"} />
+          </div>
+        }
+      />
 
       <div className="flex gap-2 mb-4 flex-wrap">
         <FilterLink label="Todos" href={statusHref()} active={!searchParams.status} />

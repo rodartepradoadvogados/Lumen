@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
-import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, LucideIcon } from "lucide-react";
+import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   CONTA_RECEBER_VENCIDA: { label: "Conta a Receber Vencida", icon: Wallet },
   MENCAO: { label: "Menção", icon: AtSign },
   PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
+  FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
 };
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {

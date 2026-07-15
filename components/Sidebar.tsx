@@ -14,6 +14,7 @@ import {
   Bell,
   Settings,
   Headset,
+  Trophy,
   Menu,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const nav = [
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/processos", label: "Processos e Casos", icon: Briefcase },
   { href: "/atendimento", label: "Atendimento", icon: Headset },
+  { href: "/produtividade", label: "Produtividade", icon: Trophy },
   { href: "/financeiro", label: "Financeiro", icon: Wallet, adminOnly: true },
   { href: "/contatos", label: "Contatos", icon: Users },
   { href: "/publicacoes", label: "Publicações", icon: Newspaper },

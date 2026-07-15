@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import PublicationsList from "@/components/PublicationsList";
+import PublicationRespFilter from "@/components/PublicationRespFilter";
 import SyncJusbrasilButton from "@/components/SyncJusbrasilButton";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import { Search } from "lucide-react";
@@ -12,16 +14,19 @@ export const dynamic = "force-dynamic";
 export default async function PublicacoesPage({
   searchParams,
 }: {
-  searchParams: { aba?: string; kind?: string; q?: string; adv?: string };
+  searchParams: { aba?: string; kind?: string; q?: string; adv?: string; resp?: string };
 }) {
   const isLidas = searchParams.aba === "lidas";
   const q = (searchParams.q || "").trim();
   const adv = searchParams.adv === "Jairo" || searchParams.adv === "Rodrigo" ? searchParams.adv : undefined;
+  const viewer = await getCurrentUser();
+  const resp = (searchParams.resp || "").trim() || undefined;
 
   const where: Prisma.PublicationWhereInput = {
     read: isLidas,
     kind: searchParams.kind || undefined,
     lawyerTag: adv ? { contains: adv } : undefined,
+    assignedToId: resp || undefined,
     ...(q
       ? {
           OR: [
@@ -33,7 +38,7 @@ export default async function PublicacoesPage({
       : {}),
   };
 
-  const [publications, unreadCount] = await Promise.all([
+  const [publications, unreadCount, users] = await Promise.all([
     prisma.publication.findMany({
       where,
       include: { case: true, client: true },
@@ -41,6 +46,7 @@ export default async function PublicacoesPage({
       take: isLidas ? 100 : undefined,
     }),
     prisma.publication.count({ where: { read: false } }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const taskCounts = await prisma.task.groupBy({
@@ -63,10 +69,12 @@ export default async function PublicacoesPage({
     case: p.case ? { id: p.case.id, title: p.case.title } : null,
     client: p.client ? { id: p.client.id, name: p.client.name } : null,
     taskCount: taskCountMap.get(p.id) ?? 0,
+    assignedToId: p.assignedToId,
+    triageStatus: p.triageStatus,
   }));
 
   const qs = (extra: Record<string, string | undefined>) => {
-    const merged = { aba: searchParams.aba, kind: searchParams.kind, q: searchParams.q, adv: searchParams.adv, ...extra };
+    const merged = { aba: searchParams.aba, kind: searchParams.kind, q: searchParams.q, adv: searchParams.adv, resp: searchParams.resp, ...extra };
     const params = new URLSearchParams();
     Object.entries(merged).forEach(([k, v]) => v && params.set(k, v));
     const s = params.toString();
@@ -98,12 +106,18 @@ export default async function PublicacoesPage({
         <FilterLink label="Todos advogados" href={qs({ adv: undefined })} active={!adv} />
         <FilterLink label="Jairo" href={qs({ adv: "Jairo" })} active={adv === "Jairo"} />
         <FilterLink label="Rodrigo" href={qs({ adv: "Rodrigo" })} active={adv === "Rodrigo"} />
+        <span className="w-px h-5 bg-navy-800/10 mx-1" />
+        <PublicationRespFilter users={users} value={resp} baseParams={{ aba: searchParams.aba, kind: searchParams.kind, q: searchParams.q, adv: searchParams.adv }} />
+        {viewer && (
+          <FilterLink label="Minhas" href={qs({ resp: viewer.id })} active={resp === viewer.id} />
+        )}
       </div>
 
       <form className="flex gap-2 mb-4">
         {searchParams.aba && <input type="hidden" name="aba" value={searchParams.aba} />}
         {searchParams.kind && <input type="hidden" name="kind" value={searchParams.kind} />}
         {searchParams.adv && <input type="hidden" name="adv" value={searchParams.adv} />}
+        {searchParams.resp && <input type="hidden" name="resp" value={searchParams.resp} />}
         <div className="relative flex-1">
           <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30" />
           <input
@@ -138,7 +152,7 @@ export default async function PublicacoesPage({
             <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
           )
         ) : (
-          <PublicationsList publications={serialized} highlightNew={!isLidas} />
+          <PublicationsList publications={serialized} highlightNew={!isLidas} users={users} />
         )}
       </Card>
     </div>

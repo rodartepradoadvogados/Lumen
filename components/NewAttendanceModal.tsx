@@ -27,6 +27,7 @@ export default function NewAttendanceModal({ users, autoOpen }: { users: { id: s
             <form
               action={async (formData) => {
                 setLoading(true);
+                const rawValue = String(formData.get("estimatedValue") || "").trim();
                 await createAttendance({
                   clientName: String(formData.get("clientName")),
                   contact: String(formData.get("contact") || ""),
@@ -35,6 +36,9 @@ export default function NewAttendanceModal({ users, autoOpen }: { users: { id: s
                   description: String(formData.get("description") || ""),
                   channel: String(formData.get("channel")),
                   responsibleId: String(formData.get("responsibleId") || ""),
+                  estimatedValue: rawValue ? Number(rawValue) : null,
+                  leadSource: String(formData.get("leadSource") || ""),
+                  nextContactAt: String(formData.get("nextContactAt") || ""),
                 });
                 setLoading(false);
                 setOpen(false);
@@ -96,6 +100,28 @@ export default function NewAttendanceModal({ users, autoOpen }: { users: { id: s
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Valor estimado (R$)</label>
+                  <input name="estimatedValue" type="number" step="0.01" min="0" className="at-input" placeholder="0,00" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Origem do lead</label>
+                  <select name="leadSource" className="at-input">
+                    <option value="">Não definida</option>
+                    <option value="INDICACAO">Indicação</option>
+                    <option value="INSTAGRAM">Instagram</option>
+                    <option value="GOOGLE">Google</option>
+                    <option value="SITE">Site</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="OUTRO">Outro</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Próximo contato / follow-up</label>
+                <input name="nextContactAt" type="date" className="at-input" />
               </div>
               <button type="submit" disabled={loading} className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Criar"}

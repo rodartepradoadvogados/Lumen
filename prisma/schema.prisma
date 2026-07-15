@@ -38,6 +38,7 @@ model User {
   deletionResolved   DeletionRequest[] @relation("DeletionResolvedBy")
   loginSessions      LoginSession[]
   notices            Notice[]
+  publicationsAssigned Publication[] @relation("PublicationAssignee")
 }
 
 // ============ MURAL DE RECADOS ============
@@ -195,7 +196,44 @@ model Task {
   column         KanbanColumn? @relation(fields: [columnId], references: [id])
   columnOrder    Int       @default(0)
 
+  points         Int       @default(0) // TaskScore: pontuação de produtividade da tarefa
+
   comments       Comment[]
+}
+
+// ============ TASKSCORE (pontuação de produtividade por tipo de tarefa) ============
+
+model TaskTypePoints {
+  id     String @id @default(cuid())
+  type   String @unique // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
+  points Int    @default(10)
+}
+
+// ============ WORKFLOWS (cadeias padronizadas de tarefas) ============
+
+model WorkflowTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  area        String?
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  steps       WorkflowStep[]
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  order      Int      @default(0)
+  title      String
+  taskType   String   @default("TAREFA") // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
+  offsetDays Int      @default(0) // dias após a aplicação do workflow
+  priority   String   @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
+  role       String?  // cargo sugerido do responsável (Advogado, Estagiário, etc.)
+  points     Int?     // pontuação opcional; se nula usa o padrão do tipo
+
+  templateId String
+  template   WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
@@ -238,6 +276,14 @@ model Attendance {
   status        String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO
   notes         String?
   createdAt     DateTime @default(now())
+
+  // Funil comercial (CRM de captação) — eixo independente do status operacional acima
+  stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
+  estimatedValue Float?    // valor estimado do contrato
+  leadSource     String?   // INDICACAO | INSTAGRAM | GOOGLE | SITE | WHATSAPP | OUTRO
+  lostReason     String?   // preenchido ao mover para PERDIDO
+  nextContactAt  DateTime? // data do próximo contato/follow-up
+  stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
 
   responsibleId String?
   responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
@@ -420,6 +466,11 @@ model Publication {
 
   clientId          String?   // preenchido quando não há processo compatível mas o nome de um cliente cadastrado aparece no conteúdo
   client            Client?   @relation(fields: [clientId], references: [id])
+
+  // RIDT — fila de triagem com atribuição de responsável
+  assignedToId      String?
+  assignedTo        User?     @relation("PublicationAssignee", fields: [assignedToId], references: [id])
+  triageStatus      String    @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
   tasks             Task[]
 }

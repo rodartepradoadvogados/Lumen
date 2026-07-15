@@ -25,6 +25,18 @@ export async function markAllPublicationsRead() {
   return { count: result.count };
 }
 
+// ===== RIDT — fila de triagem de publicações com atribuição de responsável =====
+
+export async function assignPublication(id: string, userId: string | null) {
+  await prisma.publication.update({ where: { id }, data: { assignedToId: userId || null } });
+  revalidatePath("/publicacoes");
+}
+
+export async function setPublicationTriageStatus(id: string, status: string) {
+  await prisma.publication.update({ where: { id }, data: { triageStatus: status } });
+  revalidatePath("/publicacoes");
+}
+
 export async function generateTaskFromPublication(
   id: string,
   data: { title: string; type: string; dueDate: string; dueTime?: string; priority: string }
@@ -43,7 +55,7 @@ export async function generateTaskFromPublication(
       columnId: firstColumn?.id,
     },
   });
-  await prisma.publication.update({ where: { id }, data: { deadlineGenerated: true, read: true } });
+  await prisma.publication.update({ where: { id }, data: { deadlineGenerated: true, read: true, triageStatus: "TRATADA" } });
   revalidatePath("/publicacoes");
   revalidatePath("/kanban");
   revalidatePath("/agenda");

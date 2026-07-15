@@ -16,11 +16,21 @@ type Pub = {
   case: { id: string; title: string } | null;
   client: { id: string; name: string } | null;
   taskCount?: number;
+  assignedToId: string | null;
+  triageStatus: string;
 };
 
 const STORAGE_KEY = "rp_seen_publications";
 
-export default function PublicationsList({ publications, highlightNew = true }: { publications: Pub[]; highlightNew?: boolean }) {
+export default function PublicationsList({
+  publications,
+  highlightNew = true,
+  users = [],
+}: {
+  publications: Pub[];
+  highlightNew?: boolean;
+  users?: { id: string; name: string }[];
+}) {
   // Starts empty so the very first client render matches the server-rendered
   // HTML exactly (the server has no localStorage) — avoids a hydration
   // mismatch. The real "seen" set is computed client-side after mount.
@@ -51,7 +61,7 @@ export default function PublicationsList({ publications, highlightNew = true }: 
     <div className="divide-y divide-navy-800/5">
       {publications.map((p) => (
         <div key={p.id} className={newIds.has(p.id) ? "bg-gold-500/10" : "bg-white"}>
-          <PublicationRow pub={p} />
+          <PublicationRow pub={p} users={users} />
         </div>
       ))}
     </div>

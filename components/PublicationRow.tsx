@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { markPublicationRead, markPublicationUnread, generateTaskFromPublication } from "@/lib/actions/publications";
+import {
+  markPublicationRead,
+  markPublicationUnread,
+  generateTaskFromPublication,
+  assignPublication,
+  setPublicationTriageStatus,
+} from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
 import PeticionarButton from "@/components/PeticionarButton";
 import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2 } from "lucide-react";
@@ -22,6 +28,20 @@ type Pub = {
   case: { id: string; title: string } | null;
   client: { id: string; name: string } | null;
   taskCount?: number;
+  assignedToId: string | null;
+  triageStatus: string;
+};
+
+const triageLabels: Record<string, string> = {
+  PENDENTE: "Pendente",
+  EM_ANALISE: "Em análise",
+  TRATADA: "Tratada",
+};
+
+const triageColors: Record<string, "amber" | "blue" | "green"> = {
+  PENDENTE: "amber",
+  EM_ANALISE: "blue",
+  TRATADA: "green",
 };
 
 const actionButtons = [
@@ -32,7 +52,7 @@ const actionButtons = [
   { type: "EVENTO", label: "Gerar Evento", icon: CalendarPlus },
 ];
 
-export default function PublicationRow({ pub }: { pub: Pub }) {
+export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: { id: string; name: string }[] }) {
   const router = useRouter();
   const [detailOpen, setDetailOpen] = useState(false);
   const [formType, setFormType] = useState<string | null>(null);
@@ -70,6 +90,22 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
     setFormType(type);
   }
 
+  function handleAssign(userId: string) {
+    setLoading(true);
+    assignPublication(pub.id, userId || null).then(() => {
+      router.refresh();
+      setLoading(false);
+    });
+  }
+
+  function handleTriage(status: string) {
+    setLoading(true);
+    setPublicationTriageStatus(pub.id, status).then(() => {
+      router.refresh();
+      setLoading(false);
+    });
+  }
+
   return (
     <div className="px-5 py-4 relative">
       {pub.case && !!pub.taskCount && (
@@ -98,6 +134,7 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
           {pub.lawyerTag && <Badge color="gold">{pub.lawyerTag}</Badge>}
           {!pub.read && <Badge color="gold">Não lida</Badge>}
           {pub.deadlineGenerated && <Badge color="green">Compromisso gerado</Badge>}
+          <Badge color={triageColors[pub.triageStatus] || "amber"}>{triageLabels[pub.triageStatus] || pub.triageStatus}</Badge>
           <span className="text-xs text-navy-800/40">{formatDate(pub.publishedAt)}</span>
         </div>
         {pub.case && <p className="text-xs font-medium text-gold-700">{pub.case.title}</p>}
@@ -166,6 +203,35 @@ export default function PublicationRow({ pub }: { pub: Pub }) {
             </div>
           )}
         </div>
+
+        {users.length > 0 && (
+          <select
+            value={pub.assignedToId || ""}
+            disabled={loading}
+            onChange={(e) => handleAssign(e.target.value)}
+            data-tip="Responsável pela triagem"
+            className="text-[11px] font-semibold text-navy-800/70 px-2 py-1 rounded-lg bg-cream-100 border border-navy-800/10 cursor-pointer disabled:opacity-50"
+          >
+            <option value="">Sem responsável</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <select
+          value={pub.triageStatus}
+          disabled={loading}
+          onChange={(e) => handleTriage(e.target.value)}
+          data-tip="Status da triagem"
+          className="text-[11px] font-semibold text-navy-800/70 px-2 py-1 rounded-lg bg-cream-100 border border-navy-800/10 cursor-pointer disabled:opacity-50"
+        >
+          <option value="PENDENTE">Pendente</option>
+          <option value="EM_ANALISE">Em análise</option>
+          <option value="TRATADA">Tratada</option>
+        </select>
       </div>
 
       {formType && (
