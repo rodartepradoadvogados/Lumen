@@ -15,6 +15,7 @@ import {
   Settings,
   Headset,
   Trophy,
+  BarChart3,
   Menu,
   X,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const nav = [
   { href: "/processos", label: "Processos e Casos", icon: Briefcase },
   { href: "/atendimento", label: "Atendimento", icon: Headset },
   { href: "/produtividade", label: "Produtividade", icon: Trophy },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/financeiro", label: "Financeiro", icon: Wallet, adminOnly: true },
   { href: "/contatos", label: "Contatos", icon: Users },
   { href: "/publicacoes", label: "Publicações", icon: Newspaper },

@@ -128,12 +128,25 @@ export async function applyWorkflowToCase(
   if (!template.active) return { error: "Este workflow está inativo." };
   if (template.steps.length === 0) return { error: "Este workflow não tem passos cadastrados." };
 
-  const [firstColumn, typePoints, activeUsers] = await Promise.all([
+  const [firstColumn, typePoints, activeUsers, openTaskCounts] = await Promise.all([
     prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } }),
     prisma.taskTypePoints.findMany(),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, role: true } }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true, role: true } }),
+    prisma.task.groupBy({
+      by: ["responsibleId"],
+      where: { status: { in: ["PENDENTE", "EM_ANDAMENTO"] }, responsibleId: { not: null } },
+      _count: { _all: true },
+    }),
   ]);
   const pointsByType = new Map(typePoints.map((t) => [t.type, t.points]));
+
+  // Contagem de tarefas abertas (PENDENTE/EM_ANDAMENTO) por usuário, incrementada em memória
+  // a cada passo atribuído para distribuir de forma balanceada dentro da mesma aplicação.
+  const openCountByUser = new Map<string, number>();
+  for (const u of activeUsers) openCountByUser.set(u.id, 0);
+  for (const c of openTaskCounts) {
+    if (c.responsibleId) openCountByUser.set(c.responsibleId, c._count._all);
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -143,11 +156,27 @@ export async function applyWorkflowToCase(
       const due = new Date(today);
       due.setDate(due.getDate() + step.offsetDays);
 
-      // Se o passo indica um cargo e existe exatamente um usuário ativo com ele, usa-o; senão, o responsável padrão.
+      // Resolve o responsável do passo:
+      // - 0 usuários ativos com o cargo → responsável padrão;
+      // - exatamente 1 → ele;
+      // - mais de 1 → o com menos tarefas abertas (empate: ordem alfabética de nome).
       let stepResponsible = responsibleId || null;
       if (step.role) {
         const matches = activeUsers.filter((u) => u.role === step.role);
-        if (matches.length === 1) stepResponsible = matches[0].id;
+        if (matches.length === 1) {
+          stepResponsible = matches[0].id;
+        } else if (matches.length > 1) {
+          const chosen = matches
+            .slice()
+            .sort((a, b) => {
+              const ca = openCountByUser.get(a.id) ?? 0;
+              const cb = openCountByUser.get(b.id) ?? 0;
+              if (ca !== cb) return ca - cb;
+              return a.name.localeCompare(b.name, "pt-BR");
+            })[0];
+          stepResponsible = chosen.id;
+          openCountByUser.set(chosen.id, (openCountByUser.get(chosen.id) ?? 0) + 1);
+        }
       }
 
       const points = step.points ?? pointsByType.get(step.taskType) ?? 10;

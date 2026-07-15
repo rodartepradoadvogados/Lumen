@@ -6,6 +6,7 @@ import { PageHeader, Card, EmptyState } from "@/components/ui";
 import PublicationsList from "@/components/PublicationsList";
 import PublicationRespFilter from "@/components/PublicationRespFilter";
 import SyncJusbrasilButton from "@/components/SyncJusbrasilButton";
+import DistributePublicationsButton from "@/components/DistributePublicationsButton";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import { Search } from "lucide-react";
 
@@ -90,7 +91,12 @@ export default async function PublicacoesPage({
             ? `Histórico de lidas (100 mais recentes)`
             : `${unreadCount} não lida(s) — some daqui assim que marcada como lida`
         }
-        action={<SyncJusbrasilButton />}
+        action={
+          <div className="flex items-start gap-2 flex-wrap">
+            {viewer?.isAdmin && <DistributePublicationsButton />}
+            <SyncJusbrasilButton />
+          </div>
+        }
       />
 
       <div className="flex gap-2 mb-4">
