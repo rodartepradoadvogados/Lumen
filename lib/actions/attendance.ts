@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/currentUser";
+import { sendWhatsappText } from "@/lib/whatsapp";
 
 export async function createAttendance(data: {
   clientName: string;
@@ -76,6 +78,44 @@ export async function updateAttendanceCommercial(
   revalidatePath("/atendimento/funil");
   revalidatePath(`/atendimento/${id}`);
   revalidatePath("/alertas");
+}
+
+// ===== WhatsApp: responder ao cliente pelo número oficial da Meta =====
+
+export async function replyWhatsapp(attendanceId: string, body: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+
+  const text = body.trim();
+  if (!text) return { error: "Digite uma mensagem antes de enviar." };
+
+  const attendance = await prisma.attendance.findUnique({ where: { id: attendanceId } });
+  if (!attendance) return { error: "Atendimento não encontrado." };
+  if (!attendance.waPhone) return { error: "Este atendimento não tem WhatsApp vinculado." };
+
+  const result = await sendWhatsappText(attendance.waPhone, text);
+  if (!result.ok) {
+    return { error: result.error || "Não foi possível enviar a mensagem." };
+  }
+
+  await prisma.whatsappMessage.create({
+    data: {
+      attendanceId,
+      direction: "OUT",
+      body: text,
+      waMessageId: result.waMessageId || null,
+      status: "SENT",
+      fromNumber: attendance.waPhone,
+    },
+  });
+
+  await prisma.attendance.update({
+    where: { id: attendanceId },
+    data: { waLastMessageAt: new Date() },
+  });
+
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
 }
 
 export async function convertAttendanceToCase(
