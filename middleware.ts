@@ -3,7 +3,17 @@ import { verifySession, SESSION_COOKIE_NAME } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (pathname === "/login" || pathname.startsWith("/_next") || pathname.startsWith("/api")) {
+  // Rotas públicas: login, assets internos do Next e — para o PWA funcionar sem sessão —
+  // o manifesto e os ícones gerados por convenção (/manifest.webmanifest, /icon*, /apple-icon).
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/apple-icon" ||
+    pathname.startsWith("/icon") ||
+    pathname === "/favicon.ico"
+  ) {
     return NextResponse.next();
   }
 
@@ -12,6 +22,8 @@ export async function middleware(req: NextRequest) {
 
   if (!session) {
     const loginUrl = new URL("/login", req.url);
+    // Preserva o destino original para retornar a ele após o login.
+    loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 

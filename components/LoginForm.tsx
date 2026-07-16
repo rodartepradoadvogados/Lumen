@@ -1,10 +1,16 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import { login } from "@/lib/actions/auth";
 
 async function action(_prevState: { error?: string }, formData: FormData) {
-  return login(String(formData.get("username") || ""), String(formData.get("password") || ""));
+  const next = String(formData.get("next") || "");
+  return login(
+    String(formData.get("username") || ""),
+    String(formData.get("password") || ""),
+    next || undefined
+  );
 }
 
 function SubmitButton() {
@@ -22,9 +28,12 @@ function SubmitButton() {
 
 export default function LoginForm() {
   const [state, formAction] = useFormState(action, {});
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "";
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="next" value={next} />
       <div>
         <label className="text-xs font-medium text-navy-800/60">Usuário</label>
         <input

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Rodarte Prado Advogados | Sistema Interno",
   description: "Controle financeiro, processos, agenda e kanban do escritório Rodarte Prado Advogados",
+  // Habilita o comportamento de app instalável (tela cheia) no iOS.
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "RP Advogados" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b1730",
 };
 
 export default function RootLayout({
