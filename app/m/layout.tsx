@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
+import InstallPrompt from "@/components/mobile/InstallPrompt";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function MobileLayout({ children }: { children: React.React
       <main className="pt-[52px] pb-20 min-h-screen">{children}</main>
 
       <MobileBottomNav unreadCount={unreadCount} />
+      <InstallPrompt />
     </div>
   );
 }
