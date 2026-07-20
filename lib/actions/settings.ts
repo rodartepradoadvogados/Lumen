@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
 import { syncJusbrasilEmails, type SyncResult } from "@/lib/jusbrasilEmailSync";
 import { testDjenConnection, type DjenTestResult } from "@/lib/djenSync";
+import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
@@ -14,6 +15,13 @@ export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: 
 
 export async function runJusbrasilSync(): Promise<SyncResult> {
   const result = await syncJusbrasilEmails();
+  revalidatePath("/publicacoes");
+  revalidatePath("/configuracoes");
+  return result;
+}
+
+export async function runRoboBridgeSync(): Promise<RoboBridgeResult> {
+  const result = await syncRoboParaSite();
   revalidatePath("/publicacoes");
   revalidatePath("/configuracoes");
   return result;
