@@ -19,16 +19,47 @@ export function getOAuthClient() {
   return new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
 }
 
-export function getAuthUrl() {
+export function getAuthUrl(state?: string) {
   const client = getOAuthClient();
   return client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: SCOPES,
+    state,
   });
 }
 
+// Conecta a conta Google "principal" do escritório (Drive/Docs + opcionalmente
+// Jusbrasil). Continua sendo só uma — é a que guarda as pastas de anexos/modelos.
 export async function saveTokensFromCode(code: string) {
+  const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
+  const existing = await prisma.googleCredential.findFirst({ where: { isPrimaryDrive: true } });
+  if (existing) {
+    await prisma.googleCredential.update({
+      where: { id: existing.id },
+      data: { accountEmail, refreshToken },
+    });
+    return;
+  }
+  await prisma.googleCredential.upsert({
+    where: { accountEmail },
+    update: { refreshToken, isPrimaryDrive: true },
+    create: { accountEmail, refreshToken, isPrimaryDrive: true },
+  });
+}
+
+// Conecta uma conta Google adicional só para leitura de e-mail (Jusbrasil),
+// vinculada ao usuário logado que clicou em "conectar meu e-mail".
+export async function saveJusbrasilTokensFromCode(code: string, userId: string) {
+  const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
+  await prisma.googleCredential.upsert({
+    where: { accountEmail },
+    update: { refreshToken, syncJusbrasil: true, userId },
+    create: { accountEmail, refreshToken, syncJusbrasil: true, userId },
+  });
+}
+
+async function exchangeCodeForTokens(code: string): Promise<{ accountEmail: string; refreshToken: string }> {
   const client = getOAuthClient();
   const { tokens } = await client.getToken(code);
   if (!tokens.refresh_token) {
@@ -39,28 +70,33 @@ export async function saveTokensFromCode(code: string) {
   client.setCredentials(tokens);
   const oauth2 = google.oauth2({ version: "v2", auth: client });
   const { data } = await oauth2.userinfo.get();
-
-  const existing = await prisma.googleCredential.findFirst();
-  if (existing) {
-    await prisma.googleCredential.update({
-      where: { id: existing.id },
-      data: { accountEmail: data.email || "", refreshToken: tokens.refresh_token },
-    });
-  } else {
-    await prisma.googleCredential.create({
-      data: { accountEmail: data.email || "", refreshToken: tokens.refresh_token },
-    });
-  }
+  if (!data.email) throw new Error("Não foi possível obter o e-mail da conta Google.");
+  return { accountEmail: data.email, refreshToken: tokens.refresh_token };
 }
 
 export async function getDriveStatus(): Promise<{ connected: boolean; accountEmail?: string }> {
-  const cred = await prisma.googleCredential.findFirst();
+  const cred = await prisma.googleCredential.findFirst({ where: { isPrimaryDrive: true } });
   if (!cred) return { connected: false };
   return { connected: true, accountEmail: cred.accountEmail };
 }
 
+export async function listGoogleAccounts() {
+  const creds = await prisma.googleCredential.findMany({
+    orderBy: { createdAt: "asc" },
+    include: { user: { select: { name: true } } },
+  });
+  return creds.map((c) => ({
+    id: c.id,
+    accountEmail: c.accountEmail,
+    isPrimaryDrive: c.isPrimaryDrive,
+    syncJusbrasil: c.syncJusbrasil,
+    userId: c.userId,
+    ownerName: c.user?.name ?? null,
+  }));
+}
+
 async function getDriveClient() {
-  const cred = await prisma.googleCredential.findFirst();
+  const cred = await prisma.googleCredential.findFirst({ where: { isPrimaryDrive: true } });
   if (!cred) throw new Error("Google Drive não conectado. Vá em Configurações e conecte a conta do Google.");
   const client = getOAuthClient();
   client.setCredentials({ refresh_token: cred.refreshToken });

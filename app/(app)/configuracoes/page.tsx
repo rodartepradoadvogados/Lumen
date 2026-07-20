@@ -20,14 +20,15 @@ import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
 
-// Conta que efetivamente recebe os e-mails do Jusbrasil — se a conexão do Google
-// cair para outra conta, a sincronização de publicações para de encontrar e-mails
-// silenciosamente (sem erro). Ver JUSBRASIL_INBOX_EMAIL abaixo.
-const JUSBRASIL_INBOX_EMAIL = "jairodarte@gmail.com";
+// E-mails que devem estar conectados para a captura de publicações do Jusbrasil
+// (um por advogado do escritório). Usado só para exibir o checklist em
+// Configurações — cada pessoa ainda precisa clicar em "Conectar meu e-mail" ela
+// mesma (login do Google não pode ser feito por outra pessoa).
+const JUSBRASIL_TARGET_EMAILS = ["rodartepradoadvogados@gmail.com", "jairodarte@gmail.com", "pradoadvogado@gmail.com"];
 
 type Cat = {
   id: string;
@@ -83,7 +84,7 @@ const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
 
 export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string; secao?: string } }) {
-  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates] = await Promise.all([
+  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts] = await Promise.all([
     getCurrentUser(),
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -96,6 +97,7 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       orderBy: { createdAt: "asc" },
       include: { steps: { orderBy: { order: "asc" } } },
     }),
+    listGoogleAccounts(),
   ]);
   const isAdmin = viewer?.isAdmin ?? false;
 
@@ -197,6 +199,34 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       </Card>
       )}
 
+      {secao === "geral" && viewer && (() => {
+        const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
+        return (
+          <Card>
+            <CardHeader
+              title="Minha sincronização do Jusbrasil"
+              subtitle="Conecte seu próprio e-mail para que as publicações que chegam nele sejam capturadas automaticamente"
+            />
+            <div className="p-5 space-y-3">
+              {minhaConexao ? (
+                <div className="flex items-center gap-2 text-sm text-navy-900">
+                  <CheckCircle2 size={16} className="text-emerald-600" />
+                  Conectado como <strong>{minhaConexao.accountEmail}</strong>
+                </div>
+              ) : (
+                <p className="text-sm text-navy-800/60">Você ainda não conectou nenhum e-mail para o Jusbrasil.</p>
+              )}
+              <a
+                href="/api/google/connect?mode=jusbrasil"
+                className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+              >
+                <HardDrive size={16} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
+              </a>
+            </div>
+          </Card>
+        );
+      })()}
+
       {isAdmin && secao === "modelos" && (
         <Card>
           <CardHeader
@@ -220,12 +250,6 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
             ) : (
               <p className="text-sm text-navy-800/60">Nenhuma conta conectada ainda.</p>
             )}
-            {driveStatus.connected && driveStatus.accountEmail !== JUSBRASIL_INBOX_EMAIL && (
-              <p className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                Essa não é a conta que recebe os e-mails do Jusbrasil ({JUSBRASIL_INBOX_EMAIL}) — a sincronização de publicações não vai encontrar nada. Clique em &ldquo;Reconectar&rdquo; e, na tela do Google, escolha {JUSBRASIL_INBOX_EMAIL}.
-              </p>
-            )}
             <a
               href="/api/google/connect"
               className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
@@ -244,10 +268,51 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
       {isAdmin && secao === "modelos" && (
         <Card>
           <CardHeader
+            title="Contas conectadas para o Jusbrasil"
+            subtitle="Cada advogado conecta o próprio e-mail em Configurações → Geral; publicações de todas as contas abaixo são capturadas"
+          />
+          <div className="p-5 space-y-2">
+            {JUSBRASIL_TARGET_EMAILS.map((email) => {
+              const found = googleAccounts.find((a) => a.accountEmail === email);
+              return (
+                <div key={email} className="flex items-center gap-2 text-sm">
+                  {found ? (
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+                  )}
+                  <span className={found ? "text-navy-900" : "text-navy-800/50"}>
+                    {email}
+                    {found?.ownerName && <span className="text-navy-800/45"> — {found.ownerName}</span>}
+                    {!found && " (ainda não conectado)"}
+                  </span>
+                </div>
+              );
+            })}
+            {googleAccounts.filter((a) => !JUSBRASIL_TARGET_EMAILS.includes(a.accountEmail)).map((a) => (
+              <div key={a.id} className="flex items-center gap-2 text-sm">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span className="text-navy-900">
+                  {a.accountEmail}
+                  {a.ownerName && <span className="text-navy-800/45"> — {a.ownerName}</span>}
+                  {a.isPrimaryDrive && <span className="text-navy-800/45"> (conta principal do Drive)</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
             title="DJEN — Diário de Justiça Eletrônico Nacional (CNJ)"
             subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
           />
-          <div className="p-5">
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-navy-800/60">
+              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
+            </p>
             <TestDjenButton />
           </div>
         </Card>

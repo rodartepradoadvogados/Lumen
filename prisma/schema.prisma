@@ -39,6 +39,7 @@ model User {
   loginSessions      LoginSession[]
   notices            Notice[]
   publicationsAssigned Publication[] @relation("PublicationAssignee")
+  googleCredentials    GoogleCredential[]
 }
 
 // ============ MURAL DE RECADOS ============
@@ -383,13 +384,18 @@ model DeletionRequest {
 
 model GoogleCredential {
   id                String   @id @default(cuid())
-  accountEmail      String
+  accountEmail      String   @unique
   refreshToken      String
+  isPrimaryDrive    Boolean  @default(false) // conta usada para anexos/documentos (uma só, escolhida na primeira conexão)
+  syncJusbrasil     Boolean  @default(true)  // se a caixa desta conta é varrida em busca de e-mails do Jusbrasil
   folderId          String?
   templatesFolderId String?
   generatedFolderId String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id])
 }
 
 // ============ FINANCEIRO ============
@@ -513,4 +519,63 @@ model Publication {
   triageStatus      String    @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
   tasks             Task[]
+}
+
+// ============ TABELAS DO ROBÔ PYTHON (robo-publicacoes/, Railway) ============
+//
+// Estes 4 modelos NÃO são usados pelo código TypeScript — eles existem só para
+// que o Prisma "enxergue" as tabelas que o robô Python (SQLAlchemy) cria no
+// MESMO banco Postgres. Sem isso, `prisma db push` trata essas tabelas como
+// "órfãs" (não descritas no schema) e as APAGA na próxima migração — foi
+// exatamente isso que aconteceu em 2026-07-20. Os tipos/nomes de coluna abaixo
+// espelham robo-publicacoes/src/db.py; se o robô mudar a estrutura lá, replicar
+// a mudança aqui também.
+
+model RoboPublicacao {
+  idComunicacao        String    @id @map("id_comunicacao")
+  oab                  String
+  uf                   String
+  nomeAdvogado         String?   @map("nome_advogado")
+  numeroProcesso       String    @map("numero_processo")
+  tribunal             String?
+  dataDisponibilizacao String?   @map("data_disponibilizacao")
+  tipoComunicacao      String?   @map("tipo_comunicacao")
+  teor                 String?
+  dataCaptura          DateTime  @default(now()) @map("data_captura")
+  statusLido           Boolean   @default(false) @map("status_lido")
+
+  @@map("publicacoes")
+}
+
+model RoboAndamento {
+  id                 Int      @id @default(autoincrement())
+  numeroProcesso     String   @map("numero_processo")
+  tribunal           String?
+  dataMovimentacao   String   @map("data_movimentacao")
+  codigoMovimento    String   @map("codigo_movimento")
+  descricaoMovimento String?  @map("descricao_movimento")
+  dataCaptura        DateTime @default(now()) @map("data_captura")
+  statusLido         Boolean  @default(false) @map("status_lido")
+
+  @@unique([numeroProcesso, dataMovimentacao, codigoMovimento], name: "uq_andamento_processo_data_codigo")
+  @@map("andamentos")
+}
+
+model RoboProcessoMonitorado {
+  numeroProcesso String   @id @map("numero_processo")
+  origem         String
+  dataInclusao   DateTime @default(now()) @map("data_inclusao")
+  oabRelacionada String?  @map("oab_relacionada")
+
+  @@map("processos_monitorados")
+}
+
+model RoboExecucaoLog {
+  id          Int      @id @default(autoincrement())
+  fonte       String
+  sucesso     Boolean
+  detalhe     String?
+  executadoEm DateTime @default(now()) @map("executado_em")
+
+  @@map("execucao_log")
 }

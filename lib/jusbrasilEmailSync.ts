@@ -85,12 +85,13 @@ async function findClientIdByName(content: string): Promise<string | null> {
   return null;
 }
 
-async function getGmailClient(): Promise<{ gmail: ReturnType<typeof google.gmail>; accountEmail: string } | null> {
-  const cred = await prisma.googleCredential.findFirst();
-  if (!cred) return null;
-  const client = getOAuthClient();
-  client.setCredentials({ refresh_token: cred.refreshToken });
-  return { gmail: google.gmail({ version: "v1", auth: client }), accountEmail: cred.accountEmail };
+async function getGmailClients(): Promise<{ gmail: ReturnType<typeof google.gmail>; accountEmail: string }[]> {
+  const creds = await prisma.googleCredential.findMany({ where: { syncJusbrasil: true } });
+  return creds.map((cred) => {
+    const client = getOAuthClient();
+    client.setCredentials({ refresh_token: cred.refreshToken });
+    return { gmail: google.gmail({ version: "v1", auth: client }), accountEmail: cred.accountEmail };
+  });
 }
 
 async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId: string, accountEmail: string, result: SyncResult) {
@@ -165,13 +166,11 @@ async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId:
 export async function syncJusbrasilEmails(): Promise<SyncResult> {
   const result: SyncResult = { accountsScanned: 0, found: 0, created: 0, skipped: 0, errors: [] };
 
-  const client = await getGmailClient();
-  if (!client) {
-    result.errors.push("Google não conectado. Vá em Configurações e conecte a conta do Google (Drive + Gmail).");
+  const clients = await getGmailClients();
+  if (clients.length === 0) {
+    result.errors.push("Nenhuma conta do Google conectada para o Jusbrasil. Vá em Configurações e conecte pelo menos um e-mail.");
     return result;
   }
-  const { gmail, accountEmail } = client;
-  result.accountsScanned = 1;
 
   const priorSync = await prisma.publication.findFirst({ where: { source: "JUSBRASIL_EMAIL" }, orderBy: { publishedAt: "desc" } });
   const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -179,29 +178,32 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
   const senderQuery = RELEVANT_SENDERS.map((s) => `from:${s}`).join(" OR ");
   const query = `(${senderQuery}) after:${afterEpochSeconds}`;
 
-  try {
-    const messageIds: string[] = [];
-    let pageToken: string | undefined;
-    do {
-      const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 100, pageToken });
-      for (const m of list.data.messages ?? []) if (m.id) messageIds.push(m.id);
-      pageToken = list.data.nextPageToken ?? undefined;
-    } while (pageToken);
+  for (const { gmail, accountEmail } of clients) {
+    result.accountsScanned++;
+    try {
+      const messageIds: string[] = [];
+      let pageToken: string | undefined;
+      do {
+        const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 100, pageToken });
+        for (const m of list.data.messages ?? []) if (m.id) messageIds.push(m.id);
+        pageToken = list.data.nextPageToken ?? undefined;
+      } while (pageToken);
 
-    for (const messageId of messageIds) {
-      result.found++;
-      try {
-        await processMessage(gmail, messageId, accountEmail, result);
-      } catch (e) {
-        const message = e instanceof Error ? e.message : "erro desconhecido";
-        result.errors.push(`Mensagem ${messageId}: ${message}`);
+      for (const messageId of messageIds) {
+        result.found++;
+        try {
+          await processMessage(gmail, messageId, accountEmail, result);
+        } catch (e) {
+          const message = e instanceof Error ? e.message : "erro desconhecido";
+          result.errors.push(`[${accountEmail}] Mensagem ${messageId}: ${message}`);
+        }
       }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "erro desconhecido";
+      result.errors.push(
+        `[${accountEmail}] Falha ao consultar o Gmail — ${message}. Reconecte essa conta em Configurações para autorizar o acesso ao Gmail.`
+      );
     }
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "erro desconhecido";
-    result.errors.push(
-      `Falha ao consultar o Gmail — ${message}. Se a conta do Google foi conectada antes desta atualização, reconecte em Configurações para autorizar o acesso ao Gmail.`
-    );
   }
 
   return result;

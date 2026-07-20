@@ -6,6 +6,8 @@
 // conferirmos juntos o formato real da resposta antes de ligar a sincronização
 // automática (que ainda vai gravar em Publication, como o Jusbrasil por e-mail).
 
+import { prisma } from "@/lib/prisma";
+
 const DJEN_PUBLIC_PAGE = "https://comunica.pje.jus.br/consulta";
 const DJEN_API_BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
 
@@ -14,10 +16,30 @@ const BROWSER_HEADERS = {
   "Accept-Language": "pt-BR,pt;q=0.9",
 };
 
-export const DJEN_OAB_TARGETS = [
-  { label: "Jairo Rodarte", numeroOab: "78295", ufOab: "GO" },
-  { label: "Rodrigo Prado", numeroOab: "32943", ufOab: "GO" },
-];
+const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SE", "SP", "TO"];
+
+// Extrai número e UF da OAB a partir do texto livre cadastrado em cada usuário
+// (Configurações → Equipe & Acesso), ex.: "OAB/GO 78.295" ou "78295-GO". Usa uma
+// lista de UFs válidas (em vez de "quaisquer 2 letras") para não confundir com
+// as letras de "OAB".
+function parseOab(raw: string): { numeroOab: string; ufOab: string } | null {
+  const ufMatch = raw.toUpperCase().match(new RegExp(`\\b(${UFS.join("|")})\\b`));
+  const numeroMatch = raw.match(/\d[\d.]{3,}/);
+  if (!ufMatch || !numeroMatch) return null;
+  return { numeroOab: numeroMatch[0].replace(/\D/g, ""), ufOab: ufMatch[1] };
+}
+
+// As OABs monitoradas pelo DJEN vêm dos usuários ativos com OAB cadastrada
+// (Configurações → Equipe & Acesso) — não é mais uma lista fixa no código.
+export async function getDjenTargets(): Promise<{ label: string; numeroOab: string; ufOab: string }[]> {
+  const users = await prisma.user.findMany({ where: { active: true, oab: { not: null } }, select: { name: true, oab: true } });
+  const targets: { label: string; numeroOab: string; ufOab: string }[] = [];
+  for (const u of users) {
+    const parsed = u.oab ? parseOab(u.oab) : null;
+    if (parsed) targets.push({ label: u.name, ...parsed });
+  }
+  return targets;
+}
 
 export type DjenTestResult = {
   label: string;
@@ -63,6 +85,7 @@ async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | n
 
 export async function testDjenConnection(): Promise<DjenTestResult[]> {
   const results: DjenTestResult[] = [];
+  const targets = await getDjenTargets();
 
   let cookie: string | null = null;
   try {
@@ -71,7 +94,7 @@ export async function testDjenConnection(): Promise<DjenTestResult[]> {
     cookie = null;
   }
 
-  for (const target of DJEN_OAB_TARGETS) {
+  for (const target of targets) {
     try {
       const { status, body } = await fetchDjenRaw(target.numeroOab, target.ufOab, cookie);
       results.push({
