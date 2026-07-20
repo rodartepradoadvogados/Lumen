@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
+import { sendEmailReply } from "@/lib/gmailSend";
 
 export async function createAttendance(data: {
   clientName: string;
@@ -115,6 +116,56 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   });
 
   revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
+}
+
+// ===== E-mail: responder ao cliente usando a conta Google do próprio advogado logado =====
+
+export async function updateAttendanceClientEmail(attendanceId: string, clientEmail: string): Promise<{ error?: string }> {
+  const email = clientEmail.trim();
+  await prisma.attendance.update({ where: { id: attendanceId }, data: { clientEmail: email || null } });
+  revalidatePath(`/atendimento/${attendanceId}`);
+  return {};
+}
+
+export async function replyEmail(attendanceId: string, subject: string, body: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+
+  const subjectText = subject.trim();
+  const bodyText = body.trim();
+  if (!subjectText || !bodyText) return { error: "Preencha o assunto e a mensagem antes de enviar." };
+
+  const attendance = await prisma.attendance.findUnique({ where: { id: attendanceId } });
+  if (!attendance) return { error: "Atendimento não encontrado." };
+  if (!attendance.clientEmail) return { error: "Este atendimento não tem e-mail do cliente cadastrado." };
+
+  const result = await sendEmailReply(user.id, attendance.clientEmail, subjectText, bodyText);
+
+  // fromAddress para exibição no histórico: a conta Google conectada do usuário (a que efetivamente envia),
+  // com fallback para o e-mail de login caso ele ainda não tenha conectado nenhuma conta.
+  const cred = await prisma.googleCredential.findFirst({ where: { userId: user.id } });
+  const fromAddress = cred?.accountEmail || user.email;
+
+  await prisma.emailMessage.create({
+    data: {
+      attendanceId,
+      direction: "OUT",
+      toAddress: attendance.clientEmail,
+      fromAddress,
+      subject: subjectText,
+      body: bodyText,
+      sentByUserId: user.id,
+      status: result.ok ? "SENT" : "FAILED",
+      errorMessage: result.ok ? null : result.error || "Falha desconhecida ao enviar e-mail.",
+    },
+  });
+
+  revalidatePath(`/atendimento/${attendanceId}`);
+
+  if (!result.ok) {
+    return { error: result.error || "Não foi possível enviar o e-mail." };
+  }
   return {};
 }
 
