@@ -76,7 +76,8 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
         <Card className="p-5 space-y-3">
           <Field label="Matéria" value={a.area} />
           <Field label="Canal" value={channelLabels[a.channel]} />
-          <Field label="Contato" value={a.contact} />
+          <Field label="Telefone" value={a.contactPhone} />
+          {a.contact && <Field label="Contato (legado)" value={a.contact} />}
           <Field label="Responsável pela triagem" value={a.responsible?.name} />
           <Field label="Data" value={formatDate(a.createdAt)} />
           {a.convertedCase && (

@@ -89,6 +89,7 @@ model Client {
   cases       Case[]
   receivables Receivable[]
   publications Publication[]
+  attendances Attendance[] @relation("AttendanceClient")
 }
 
 model Lawyer {
@@ -283,12 +284,13 @@ model Mention {
 model Attendance {
   id            String   @id @default(cuid())
   clientName    String
-  contact       String?
+  contact       String?  // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
+  contactPhone  String?  // telefone do contato, separado do e-mail (clientEmail abaixo)
   subject       String
   area          String?  // matéria
   description   String?  // descrição detalhada do que precisa
   channel       String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
-  status        String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO
+  status        String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
   notes         String?
   createdAt     DateTime @default(now())
 
@@ -305,7 +307,13 @@ model Attendance {
   waLastMessageAt DateTime? // instante da última mensagem trocada nesta conversa
 
   // Integração E-mail (resposta via Gmail da conta Google do próprio advogado)
+  // Reaproveitado também como e-mail do contato no formulário de criação do atendimento.
   clientEmail     String?   // e-mail do cliente para resposta; preenchido manualmente na tela
+
+  // Vínculo com cadastro de Client — preenchido ao selecionar um cliente já cadastrado
+  // na busca, ou automaticamente após "Cadastrar novo cliente" ser finalizado (não em rascunho).
+  clientId String?
+  client   Client? @relation("AttendanceClient", fields: [clientId], references: [id])
 
   responsibleId String?
   responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])

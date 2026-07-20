@@ -12,6 +12,11 @@ const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
   EM_TRIAGEM: "blue",
   CONVERTIDO: "green",
   ARQUIVADO: "slate",
+  RASCUNHO: "slate",
+};
+
+const statusLabels: Record<string, string> = {
+  RASCUNHO: "Rascunho",
 };
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
@@ -20,7 +25,9 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
   const q = (searchParams.q || "").trim();
   const attendances = await prisma.attendance.findMany({
     where: {
-      status: searchParams.status || undefined,
+      // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
+      // na aba própria "Rascunhos" — não fazem parte da triagem normal.
+      status: searchParams.status || { not: "RASCUNHO" },
       ...(q
         ? {
             OR: [
@@ -61,12 +68,15 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
         }
       />
 
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-1 flex-wrap">
         <FilterLink label="Todos" href={statusHref()} active={!searchParams.status} />
-        {["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"].map((s) => (
-          <FilterLink key={s} label={s.replace("_", " ")} href={statusHref(s)} active={searchParams.status === s} />
+        {["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO", "RASCUNHO"].map((s) => (
+          <FilterLink key={s} label={statusLabels[s] ?? s.replace("_", " ")} href={statusHref(s)} active={searchParams.status === s} />
         ))}
       </div>
+      <p className="text-xs italic text-slate-600 mt-1 mb-3">
+        Rascunhos são atendimentos iniciados mas não finalizados — continue de onde parou a qualquer momento.
+      </p>
 
       <form className="mb-4 flex gap-2">
         {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
@@ -97,7 +107,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-navy-900">{a.clientName}</p>
-                    <Badge color={statusColors[a.status]}>{a.status.replace("_", " ")}</Badge>
+                    <Badge color={statusColors[a.status]}>{statusLabels[a.status] ?? a.status.replace("_", " ")}</Badge>
                     <Badge color="navy">{channelLabels[a.channel]}</Badge>
                     {a.area && <Badge color="gold">{a.area}</Badge>}
                   </div>
