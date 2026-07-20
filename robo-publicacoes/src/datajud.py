@@ -11,12 +11,15 @@ processo:
 
     NNNNNNN-DD.AAAA.J.TR.OOOO
 
-O mapeamento de aliases abaixo cobre os segmentos mais comuns para um
-escritorio de advocacia generalista (estadual, federal, trabalho, eleitoral
-e, de forma parcial, militar estadual e tribunais superiores). ELE E UMA
-HEURISTICA RAZOAVEL, NAO uma tabela oficialmente validada contra a lista
-completa e atualizada de alias do Datajud — ajustes podem ser necessarios
-por tribunal. Veja a secao "LIMITACOES E RISCOS" do README.
+O mapeamento de aliases abaixo foi validado em 2026-07-20 contra a lista
+oficial completa de endpoints publicada pelo CNJ (todos os TJs, TRFs, TRTs,
+TREs, tribunais superiores e TJMs). Dois erros de formatacao foram corrigidos
+nessa validacao: TRE usa hifen (ex.: "tre-sp", nao "tresp") e o Distrito
+Federal usa o sufixo "dft" tanto em TJ quanto em TRE (ex.: "tjdft", nao
+"tjdf"). A ORDEM dos codigos TR por UF (estadual/eleitoral) nao foi
+re-validada nessa passada (a lista oficial fornecida trazia so os nomes,
+sem os digitos TR) — se um TJ/TRE especifico falhar persistentemente,
+confira o codigo TR esperado na documentacao oficial do Datajud.
 """
 
 from __future__ import annotations
@@ -107,7 +110,7 @@ def alias_do_tribunal(numero_cnj: str) -> Optional[str]:
         except (ValueError, IndexError):
             logger.warning("Codigo TR '%s' invalido para segmento estadual (J=8).", tr)
             return None
-        return f"tj{uf.lower()}"
+        return "tjdft" if uf == "DF" else f"tj{uf.lower()}"
 
     if j == "4":  # Justica Federal
         return f"trf{int(tr)}"
@@ -123,7 +126,10 @@ def alias_do_tribunal(numero_cnj: str) -> Optional[str]:
         except (ValueError, IndexError):
             logger.warning("Codigo TR '%s' invalido para segmento eleitoral (J=6).", tr)
             return None
-        return f"tre{uf.lower()}"
+        return "tre-dft" if uf == "DF" else f"tre-{uf.lower()}"
+
+    if j == "7":  # Justica Militar da Uniao
+        return "stm"
 
     if j == "9":  # Justica Militar Estadual
         alias = _ALIASES_MILITAR_ESTADUAL.get(tr)

@@ -26,8 +26,23 @@ def test_alias_tst():
 
 
 def test_alias_eleitoral():
-    # J=6, TR=09 -> TRE-GO
-    assert datajud.alias_do_tribunal("0000000-00.2020.6.09.0001") == "trego"
+    # J=6, TR=09 -> TRE-GO (com hifen, confirmado contra a lista oficial do CNJ)
+    assert datajud.alias_do_tribunal("0000000-00.2020.6.09.0001") == "tre-go"
+
+
+def test_alias_estadual_df():
+    # J=8, TR=07 -> TJDFT (sufixo "dft", nao "df")
+    assert datajud.alias_do_tribunal("0000000-00.2020.8.07.0001") == "tjdft"
+
+
+def test_alias_eleitoral_df():
+    # J=6, TR=07 -> TRE-DFT (sufixo "dft", nao "df")
+    assert datajud.alias_do_tribunal("0000000-00.2020.6.07.0001") == "tre-dft"
+
+
+def test_alias_militar_uniao_stm():
+    # J=7 -> STM (Justica Militar da Uniao)
+    assert datajud.alias_do_tribunal("0000000-00.2020.7.00.0001") == "stm"
 
 
 def test_alias_militar_estadual_sp():
