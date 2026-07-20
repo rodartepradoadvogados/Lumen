@@ -40,6 +40,8 @@ model User {
   notices            Notice[]
   publicationsAssigned Publication[] @relation("PublicationAssignee")
   googleCredentials    GoogleCredential[]
+  blogPostsReviewed    BlogPost[]    @relation("BlogPostReviewer")
+  emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
 }
 
 // ============ MURAL DE RECADOS ============
@@ -302,6 +304,9 @@ model Attendance {
   waPhone         String?   // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
   waLastMessageAt DateTime? // instante da última mensagem trocada nesta conversa
 
+  // Integração E-mail (resposta via Gmail da conta Google do próprio advogado)
+  clientEmail     String?   // e-mail do cliente para resposta; preenchido manualmente na tela
+
   responsibleId String?
   responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
 
@@ -311,6 +316,7 @@ model Attendance {
   tasks            Task[]
   attachments      Attachment[]
   whatsappMessages WhatsappMessage[]
+  emailMessages    EmailMessage[]
 
   @@index([waPhone])
 }
@@ -327,6 +333,26 @@ model WhatsappMessage {
   status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
   fromNumber   String?    // telefone do cliente (E.164)
   createdAt    DateTime   @default(now())
+
+  @@index([attendanceId, createdAt])
+}
+
+// ============ E-MAIL (resposta ao cliente via Gmail da conta Google do próprio advogado) ============
+
+model EmailMessage {
+  id            String     @id @default(cuid())
+  attendanceId  String
+  attendance    Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  direction     String     // "OUT" (por enquanto só enviamos, não há ingestão de e-mail recebido nesse fluxo)
+  toAddress     String
+  fromAddress   String
+  subject       String
+  body          String
+  sentByUserId  String?
+  sentByUser    User?      @relation("EmailMessageSentBy", fields: [sentByUserId], references: [id])
+  status        String     @default("SENT") // SENT | FAILED
+  errorMessage  String?
+  createdAt     DateTime   @default(now())
 
   @@index([attendanceId, createdAt])
 }
@@ -519,6 +545,37 @@ model Publication {
   triageStatus      String    @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
   tasks             Task[]
+}
+
+// ============ BLOG JURÍDICO (público) ============
+//
+// Alimentado por um robô de conteúdo EXTERNO (projeto Claude Code autônomo, fora
+// deste repositório) que pesquisa jurisprudência/legislação/doutrina e envia
+// rascunhos via POST /api/blog/draft (autenticado por BLOG_ROBOT_SECRET). Todo
+// rascunho nasce como AGUARDANDO_REVISAO — só é publicado quando um usuário
+// humano logado confirma em Configurações → Blog Jurídico → Revisão Pendente.
+
+model BlogPost {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  area           String    // ex: Civil, Consumerista, Empresarial, Tributário, Trabalhista, Previdenciário, Administrativo, Licitação, Compliance, Due Diligence, Contratual, Responsabilidade Civil, Execuções
+  type           String    @default("NOTICIA") // NOTICIA | ANALISE
+  summary        String
+  content        String    // corpo da matéria, pode ser markdown simples
+  sources        String?   // URLs das fontes usadas, uma por linha (texto simples)
+  imageUrl       String?   // preenchido manualmente pelo admin antes de publicar
+  status         String    @default("AGUARDANDO_REVISAO") // AGUARDANDO_REVISAO | PUBLICADO | REJEITADO
+  rejectedReason String?
+  reviewedById   String?
+  reviewedBy     User?     @relation("BlogPostReviewer", fields: [reviewedById], references: [id])
+  reviewedAt     DateTime?
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([area])
 }
 
 // ============ TABELAS DO ROBÔ PYTHON (robo-publicacoes/, Railway) ============

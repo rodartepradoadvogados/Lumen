@@ -18,6 +18,8 @@ import ChangePasswordForm from "@/components/ChangePasswordForm";
 import TestDjenButton from "@/components/TestDjenButton";
 import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import WorkflowsManager from "@/components/WorkflowsManager";
+import BlogReviewManager from "@/components/BlogReviewManager";
+import BlogPublishedManager from "@/components/BlogPublishedManager";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -77,28 +79,36 @@ const SECOES = [
   { key: "financeiro", label: "Financeiro", adminOnly: true },
   { key: "produtividade", label: "Produtividade", adminOnly: true },
   { key: "workflows", label: "Workflows", adminOnly: true },
+  { key: "blog", label: "Blog Jurídico", adminOnly: false },
   { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
 ] as const;
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
 
-export default async function ConfiguracoesPage({ searchParams }: { searchParams: { google?: string; msg?: string; secao?: string } }) {
-  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts] = await Promise.all([
-    getCurrentUser(),
-    prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
-    prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
-    prisma.financialCategory.findMany(),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
-    getDriveStatus(),
-    prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
-    prisma.taskTypePoints.findMany(),
-    prisma.workflowTemplate.findMany({
-      orderBy: { createdAt: "asc" },
-      include: { steps: { orderBy: { order: "asc" } } },
-    }),
-    listGoogleAccounts(),
-  ]);
+export default async function ConfiguracoesPage({
+  searchParams,
+}: {
+  searchParams: { google?: string; msg?: string; secao?: string; blogTab?: string };
+}) {
+  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw] =
+    await Promise.all([
+      getCurrentUser(),
+      prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
+      prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
+      prisma.financialCategory.findMany(),
+      prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+      getDriveStatus(),
+      prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
+      prisma.taskTypePoints.findMany(),
+      prisma.workflowTemplate.findMany({
+        orderBy: { createdAt: "asc" },
+        include: { steps: { orderBy: { order: "asc" } } },
+      }),
+      listGoogleAccounts(),
+      prisma.blogPost.findMany({ where: { status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
+      prisma.blogPost.findMany({ where: { status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+    ]);
   const isAdmin = viewer?.isAdmin ?? false;
 
   const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
@@ -224,6 +234,70 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
               </a>
             </div>
           </Card>
+        );
+      })()}
+
+      {secao === "blog" && (() => {
+        const blogTab = searchParams.blogTab === "publicadas" ? "publicadas" : "revisao";
+        return (
+          <>
+            <div className="flex gap-2 flex-wrap">
+              <Link
+                href="/configuracoes?secao=blog&blogTab=revisao"
+                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
+                  blogTab === "revisao" ? "bg-navy-800 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                }`}
+              >
+                Revisão Pendente {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
+              </Link>
+              <Link
+                href="/configuracoes?secao=blog&blogTab=publicadas"
+                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
+                  blogTab === "publicadas" ? "bg-navy-800 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                }`}
+              >
+                Matérias Publicadas ({blogPublishedRaw.length})
+              </Link>
+            </div>
+
+            {blogTab === "revisao" ? (
+              <Card>
+                <CardHeader
+                  title="Revisão de Publicação Definitiva"
+                  subtitle="Rascunhos enviados pelo robô de conteúdo jurídico — revise, edite se necessário, adicione a imagem e confirme para publicar"
+                />
+                <BlogReviewManager
+                  posts={blogPendingRaw.map((p) => ({
+                    id: p.id,
+                    slug: p.slug,
+                    title: p.title,
+                    area: p.area,
+                    type: p.type,
+                    summary: p.summary,
+                    content: p.content,
+                    sources: p.sources,
+                    imageUrl: p.imageUrl,
+                    createdAt: p.createdAt.toISOString(),
+                  }))}
+                />
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader title="Matérias Publicadas" subtitle="Visíveis publicamente em /blog — sem necessidade de login" />
+                <BlogPublishedManager
+                  posts={blogPublishedRaw.map((p) => ({
+                    id: p.id,
+                    slug: p.slug,
+                    title: p.title,
+                    area: p.area,
+                    type: p.type,
+                    imageUrl: p.imageUrl,
+                    publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+                  }))}
+                />
+              </Card>
+            )}
+          </>
         );
       })()}
 

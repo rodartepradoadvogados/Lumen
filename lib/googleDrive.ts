@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 const SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/documents",
+  // drive.readonly: leitura de pastas pré-existentes no Drive (ex: futura pasta de doutrina jurídica)
+  "https://www.googleapis.com/auth/drive.readonly",
   "https://www.googleapis.com/auth/gmail.readonly",
+  // gmail.send: permite responder o cliente por e-mail de dentro do Atendimento, usando a própria conta do advogado
+  "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
