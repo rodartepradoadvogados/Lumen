@@ -10,11 +10,13 @@ export default function DeleteEntityButton({
   entityId,
   entityLabel,
   confirmMessage,
+  onDone,
 }: {
   entityType: "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE";
   entityId: string;
   entityLabel: string;
   confirmMessage: string;
+  onDone?: (result: { error?: string; pending?: boolean }) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -30,6 +32,7 @@ export default function DeleteEntityButton({
       } else if (result.pending) {
         setMsg({ type: "info", text: "Solicitação de exclusão enviada. Aguardando aprovação de Jairo ou Rodrigo." });
       }
+      onDone?.(result);
       router.refresh();
     });
   }

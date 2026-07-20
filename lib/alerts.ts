@@ -8,6 +8,11 @@ export type AlertItem = {
   date: Date;
   href: string;
   severity: "alta" | "media" | "baixa";
+  // Entidade real por trás do alerta — usada para rotear o clique (abrir o card de baixa,
+  // o card do compromisso, ou navegar direto), já que `kind` mistura pagar/receber em PARCELA_SEM_VENCIMENTO.
+  entityKind?: "PAYABLE" | "RECEIVABLE" | "TASK" | "COMMENT" | "ATTENDANCE";
+  entityId?: string;
+  amount?: number;
 };
 
 export type TodayItem = {
@@ -73,6 +78,8 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: t.dueDate,
       href: `/agenda`,
       severity: "alta",
+      entityKind: "TASK",
+      entityId: t.id,
     });
   }
   for (const p of overduePayables) {
@@ -84,6 +91,9 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: p.dueDate,
       href: `/financeiro/contas-a-pagar`,
       severity: "alta",
+      entityKind: "PAYABLE",
+      entityId: p.id,
+      amount: p.amount,
     });
   }
   for (const r of overdueReceivables) {
@@ -95,6 +105,9 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: r.dueDate,
       href: `/financeiro/contas-a-receber`,
       severity: "media",
+      entityKind: "RECEIVABLE",
+      entityId: r.id,
+      amount: r.amount,
     });
   }
   for (const p of undatedPayables) {
@@ -106,6 +119,9 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: p.dueDate,
       href: `/financeiro/contas-a-pagar`,
       severity: "baixa",
+      entityKind: "PAYABLE",
+      entityId: p.id,
+      amount: p.amount,
     });
   }
   for (const r of undatedReceivables) {
@@ -117,6 +133,9 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: r.dueDate,
       href: `/financeiro/contas-a-receber`,
       severity: "baixa",
+      entityKind: "RECEIVABLE",
+      entityId: r.id,
+      amount: r.amount,
     });
   }
   for (const f of overdueFollowups) {
@@ -129,6 +148,8 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       date: f.nextContactAt,
       href: `/atendimento/${f.id}`,
       severity: "media",
+      entityKind: "ATTENDANCE",
+      entityId: f.id,
     });
   }
   for (const m of unreadMentions) {
@@ -138,8 +159,10 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       title: `${m.comment.author.name} mencionou você`,
       subtitle: m.comment.content.slice(0, 60),
       date: m.createdAt,
-      href: m.comment.caseId ? `/processos/${m.comment.caseId}` : "/kanban",
+      href: m.comment.caseId ? `/processos/${m.comment.caseId}?tab=comentarios` : "/kanban",
       severity: "baixa",
+      entityKind: "COMMENT",
+      entityId: m.comment.id,
     });
   }
 

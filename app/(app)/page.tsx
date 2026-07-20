@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/currentUser";
 import {
   Card,
   CardHeader,
-  StatCard,
   Badge,
   EmptyState,
   formatCurrency,
@@ -13,8 +12,12 @@ import {
   taskTypeLabels,
   taskTypeColors,
 } from "@/components/ui";
-import { Wallet, TrendingDown, TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
+import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
 import NoticesPanel from "@/components/NoticesPanel";
+import AlertRow from "@/components/AlertRow";
+import PendingListModal from "@/components/PendingListModal";
+import SettleButton from "@/components/SettleButton";
+import OverdueTaskRow from "@/components/OverdueTaskRow";
 
 export const dynamic = "force-dynamic";
 
@@ -26,17 +29,21 @@ export default async function DashboardPage() {
   const viewer = await getCurrentUser();
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
-  const [
-    payablesPending,
-    receivablesPending,
-    activeCases,
-    upcomingTasks,
-    overdueTasksCount,
-    alerts,
-    recentComments,
-  ] = await Promise.all([
-    hasFinanceAccess ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }) : Promise.resolve([]),
-    hasFinanceAccess ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }) : Promise.resolve([]),
+  const [payablesPending, receivablesPending, activeCases, upcomingTasks, overdueTasksList, alerts, activeUsers] = await Promise.all([
+    hasFinanceAccess
+      ? prisma.payable.findMany({
+          where: { status: { in: ["PENDENTE", "ATRASADO"] } },
+          include: { case: true },
+          orderBy: { dueDate: "asc" },
+        })
+      : Promise.resolve([]),
+    hasFinanceAccess
+      ? prisma.receivable.findMany({
+          where: { status: { in: ["PENDENTE", "ATRASADO"] } },
+          include: { case: true, client: true },
+          orderBy: { dueDate: "asc" },
+        })
+      : Promise.resolve([]),
     prisma.case.count({ where: { status: "ATIVO" } }),
     prisma.task.findMany({
       where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -44,13 +51,13 @@ export default async function DashboardPage() {
       orderBy: { dueDate: "asc" },
       take: 8,
     }),
-    prisma.task.count({ where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } } }),
-    getAlerts(hasFinanceAccess),
-    prisma.comment.findMany({
-      include: { author: true, case: true, task: true },
-      orderBy: { createdAt: "desc" },
-      take: 5,
+    prisma.task.findMany({
+      where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+      include: { case: true, responsible: true },
+      orderBy: { dueDate: "asc" },
     }),
+    getAlerts(hasFinanceAccess),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const notices = await prisma.notice.findMany({
@@ -68,7 +75,6 @@ export default async function DashboardPage() {
 
   const totalPayable = payablesPending.reduce((s, p) => s + p.amount, 0);
   const totalReceivable = receivablesPending.reduce((s, r) => s + r.amount, 0);
-  const saldoProjetado = totalReceivable - totalPayable;
 
   const byArea = await prisma.case.groupBy({
     by: ["area"],
@@ -86,15 +92,101 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasFinanceAccess ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-4 mb-6`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasFinanceAccess ? "lg:grid-cols-3" : "lg:grid-cols-1"} gap-4 mb-6`}>
         {hasFinanceAccess && (
           <>
-            <StatCard label="A Receber (pendente)" value={formatCurrency(totalReceivable)} tone="green" icon={<TrendingUp size={18} />} hint={`${receivablesPending.length} contas em aberto`} />
-            <StatCard label="A Pagar (pendente)" value={formatCurrency(totalPayable)} tone="red" icon={<TrendingDown size={18} />} hint={`${payablesPending.length} contas em aberto`} />
-            <StatCard label="Saldo Projetado" value={formatCurrency(saldoProjetado)} tone={saldoProjetado >= 0 ? "gold" : "red"} icon={<Wallet size={18} />} />
+            <PendingListModal
+              label="A Receber (pendente)"
+              value={formatCurrency(totalReceivable)}
+              tone="green"
+              icon={<TrendingUp size={18} />}
+              hint={`${receivablesPending.length} contas em aberto`}
+              title="Contas a Receber Pendentes"
+            >
+              <div className="divide-y divide-navy-800/5">
+                {receivablesPending.length === 0 && <EmptyState title="Nenhuma conta pendente" />}
+                {receivablesPending.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy-900 truncate">{r.description}</p>
+                      <p className="text-xs text-navy-800/45 mt-0.5">
+                        {r.noDueDate ? "Sem vencimento" : `Vence em ${formatDate(r.dueDate)}`}
+                      </p>
+                      {r.case && (
+                        <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-gold-700 hover:underline">
+                          {r.case.processNumber || r.case.title}
+                        </Link>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</span>
+                      <SettleButton id={r.id} kind="receivable" amount={r.amount} status={r.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PendingListModal>
+
+            <PendingListModal
+              label="A Pagar (pendente)"
+              value={formatCurrency(totalPayable)}
+              tone="red"
+              icon={<TrendingDown size={18} />}
+              hint={`${payablesPending.length} contas em aberto`}
+              title="Contas a Pagar Pendentes"
+            >
+              <div className="divide-y divide-navy-800/5">
+                {payablesPending.length === 0 && <EmptyState title="Nenhuma conta pendente" />}
+                {payablesPending.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy-900 truncate">{p.description}</p>
+                      <p className="text-xs text-navy-800/45 mt-0.5">
+                        {p.noDueDate ? "Sem vencimento" : `Vence em ${formatDate(p.dueDate)}`}
+                      </p>
+                      {p.case && (
+                        <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-gold-700 hover:underline">
+                          {p.case.processNumber || p.case.title}
+                        </Link>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</span>
+                      <SettleButton id={p.id} kind="payable" amount={p.amount} status={p.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </PendingListModal>
           </>
         )}
-        <StatCard label="Prazos Atrasados" value={String(overdueTasksCount)} tone="red" icon={<AlertTriangle size={18} />} hint={`${activeCases} processos ativos`} />
+
+        <PendingListModal
+          label="Prazos Atrasados"
+          value={String(overdueTasksList.length)}
+          tone="red"
+          icon={<AlertTriangle size={18} />}
+          hint={`${activeCases} processos ativos`}
+          title="Prazos Atrasados"
+        >
+          <div className="divide-y divide-navy-800/5">
+            {overdueTasksList.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
+            {overdueTasksList.map((t) => (
+              <OverdueTaskRow
+                key={t.id}
+                task={{
+                  id: t.id,
+                  title: t.title,
+                  type: t.type,
+                  dueDate: t.dueDate.toISOString(),
+                  responsibleName: t.responsible?.name,
+                  caseId: t.case?.id,
+                  caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+                }}
+              />
+            ))}
+          </div>
+        </PendingListModal>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -140,7 +232,7 @@ export default async function DashboardPage() {
           <div className="divide-y divide-navy-800/5 max-h-[420px] overflow-y-auto scrollbar-thin">
             {alerts.length === 0 && <EmptyState title="Sem alertas" />}
             {alerts.slice(0, 8).map((a) => (
-              <Link key={a.id} href={a.href} className="block px-5 py-3 hover:bg-cream-50 transition-colors">
+              <AlertRow key={a.id} alert={a} className="block w-full text-left px-5 py-3 hover:bg-cream-50 transition-colors">
                 <div className="flex items-start gap-2">
                   <span
                     className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
@@ -152,7 +244,7 @@ export default async function DashboardPage() {
                     {a.subtitle && <p className="text-xs text-navy-800/45 truncate">{a.subtitle}</p>}
                   </div>
                 </div>
-              </Link>
+              </AlertRow>
             ))}
           </div>
         </Card>
@@ -161,24 +253,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <Card className="flex flex-col">
           <CardHeader title="Recados do Escritório" subtitle="Mural de comunicação entre a equipe" />
-          <NoticesPanel notices={serializedNotices} currentUserId={viewer?.id ?? null} isAdmin={Boolean(viewer?.isAdmin)} />
-        </Card>
-
-        <Card>
-          <CardHeader title="Atividade Recente" subtitle="Comentários em processos e tarefas" />
-          <div className="divide-y divide-navy-800/5">
-            {recentComments.length === 0 && <EmptyState title="Nenhum comentário ainda" />}
-            {recentComments.map((c) => (
-              <div key={c.id} className="px-5 py-3">
-                <p className="text-sm text-navy-900">
-                  <span className="font-semibold">{c.author.name}</span> comentou{" "}
-                  {c.case && <span className="text-navy-800/60">em {c.case.title}</span>}
-                  {c.task && <span className="text-navy-800/60">na tarefa &quot;{c.task.title}&quot;</span>}
-                </p>
-                <p className="text-xs text-navy-800/50 mt-1 line-clamp-2">{c.content}</p>
-              </div>
-            ))}
-          </div>
+          <NoticesPanel notices={serializedNotices} currentUserId={viewer?.id ?? null} isAdmin={Boolean(viewer?.isAdmin)} users={activeUsers} />
         </Card>
 
         <Card>
