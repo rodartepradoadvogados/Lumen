@@ -210,9 +210,15 @@ ele roda em sessões efêmeras sem estado local persistente entre execuções.
 (`rp-radar-juridico`, em `~/.claude/skills/rp-radar-juridico/SKILL.md` no ambiente
 Claude Code — fora do git, não versionada aqui) acionada por uma **Routine** (gatilho
 agendado, 1x/dia de manhã, horário de Brasília) que sobe uma sessão nova a cada disparo,
-pesquisa Migalhas/Conjur/Jusbrasil-notícias/sites oficiais de tribunais + pasta Drive
-"DOUTRINA", valida contra ≥2 fontes, e envia rascunhos via API. Nunca publica direto — cai
-em Configurações → Blog → Revisão Pendente, igual a qualquer outra matéria.
+pesquisa Migalhas/Conjur/Jusbrasil-notícias/sites oficiais de tribunais, valida contra ≥2
+fontes, e envia rascunhos via API. Nunca publica direto — cai em Configurações → Blog →
+Revisão Pendente, igual a qualquer outra matéria.
+
+**Pasta Drive "DOUTRINA": desligada por ora (decisão do usuário, 2026-07-20).** A Routine
+criada via ferramenta de automação não carrega conectores MCP (limitação da própria
+ferramenta), então o robô não consulta essa pasta nas execuções agendadas — a skill já
+reflete isso. Para reativar no futuro, seria preciso recriar a Routine pela UI de Routines
+em claude.ai a partir de uma sessão com o conector do Google Drive já conectado.
 
 **Pendência:** `BLOG_ROBOT_SECRET` foi gerado nesta sessão e precisa ser colado como
 variável de ambiente (Production) no projeto Vercel `rp-financeiro` — sem isso o GET/POST
