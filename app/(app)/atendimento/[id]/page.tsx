@@ -10,7 +10,9 @@ import AttendanceStatusSelect from "@/components/AttendanceStatusSelect";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
 import AttendanceCommercialForm from "@/components/AttendanceCommercialForm";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
+import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import { getDriveStatus } from "@/lib/googleDrive";
+import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +27,13 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
       tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
       convertedCase: true,
+      whatsappMessages: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!a) notFound();
+
+  const whatsappConfigured = isWhatsappConfigured();
+  const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
 
   const [users, columns, driveStatus] = await Promise.all([
     prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
@@ -98,6 +104,51 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
         <Card className="p-5 mb-5">
           <h4 className="text-sm font-semibold text-navy-900 mb-3">Transformar em Processo/Caso</h4>
           <ConvertAttendanceForm attendanceId={a.id} />
+        </Card>
+      )}
+
+      {showWhatsapp && (
+        <Card className="p-5 mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-navy-900">Conversa do WhatsApp</h4>
+            {a.waPhone && <span className="text-xs text-navy-800/45">{a.waPhone}</span>}
+          </div>
+
+          {a.whatsappMessages.length === 0 ? (
+            <p className="text-sm text-navy-800/45">Nenhuma mensagem ainda.</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {a.whatsappMessages.map((m) => {
+                const out = m.direction === "OUT";
+                return (
+                  <div key={m.id} className={out ? "flex justify-end" : "flex justify-start"}>
+                    <div
+                      className={
+                        out
+                          ? "max-w-[75%] rounded-lg rounded-br-sm bg-navy-700 px-3 py-2 text-white"
+                          : "max-w-[75%] rounded-lg rounded-bl-sm bg-cream-100 px-3 py-2 text-navy-900 border border-navy-800/8"
+                      }
+                    >
+                      <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
+                      <p className={out ? "mt-1 text-[10px] text-white/60 text-right" : "mt-1 text-[10px] text-navy-800/40"}>
+                        {formatDate(m.createdAt)}{" "}
+                        {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {out && m.status === "FAILED" ? " · falhou" : ""}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {a.waPhone && whatsappConfigured ? (
+            <WhatsappReplyBox attendanceId={a.id} />
+          ) : (
+            <p className="mt-3 text-xs text-navy-800/40">
+              {a.waPhone ? "Canal WhatsApp não configurado." : "Este atendimento não tem WhatsApp vinculado."}
+            </p>
+          )}
         </Card>
       )}
 

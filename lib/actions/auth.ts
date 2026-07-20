@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 
-export async function login(username: string, password: string): Promise<{ error?: string }> {
+export async function login(username: string, password: string, next?: string): Promise<{ error?: string }> {
   const user = await prisma.user.findFirst({ where: { username, active: true } });
   if (!user || !user.passwordHash) {
     return { error: "Usuário ou senha inválidos." };
@@ -24,7 +24,7 @@ export async function login(username: string, password: string): Promise<{ error
     maxAge: 60 * 60 * 24 * 30,
   });
   await prisma.loginSession.create({ data: { userId: user.id } });
-  redirect("/");
+  redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
 }
 
 export async function logout() {

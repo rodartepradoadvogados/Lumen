@@ -297,14 +297,37 @@ model Attendance {
   nextContactAt  DateTime? // data do próximo contato/follow-up
   stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
 
+  // Integração WhatsApp (Cloud API oficial da Meta)
+  waPhone         String?   // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
+  waLastMessageAt DateTime? // instante da última mensagem trocada nesta conversa
+
   responsibleId String?
   responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
 
   convertedCaseId String?
   convertedCase   Case?  @relation("AttendanceConvertedCase", fields: [convertedCaseId], references: [id])
 
-  tasks         Task[]
-  attachments   Attachment[]
+  tasks            Task[]
+  attachments      Attachment[]
+  whatsappMessages WhatsappMessage[]
+
+  @@index([waPhone])
+}
+
+// ============ WHATSAPP (mensagens da integração com a Cloud API da Meta) ============
+
+model WhatsappMessage {
+  id           String     @id @default(cuid())
+  attendanceId String
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  direction    String     // "IN" (do cliente) | "OUT" (do escritório)
+  body         String
+  waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
+  status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
+  fromNumber   String?    // telefone do cliente (E.164)
+  createdAt    DateTime   @default(now())
+
+  @@index([attendanceId, createdAt])
 }
 
 // ============ ANEXOS (referência ao Google Drive) ============
