@@ -17,10 +17,11 @@ export default async function ContasAPagarPage({
   const filtered = await getFilteredPayables(searchParams);
   const total = filtered.reduce((s, p) => s + p.amount, 0);
 
-  const [categories, cases, costCenters] = await Promise.all([
+  const [categories, cases, costCenters, suppliers] = await Promise.all([
     getLeafCategoryOptions("DESPESA"),
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const exportHref = (() => {
@@ -45,7 +46,7 @@ export default async function ContasAPagarPage({
       <PageHeader
         title="Contas a Pagar"
         subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
-        action={<NewPayableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} costCenters={costCenters} />}
+        action={<NewPayableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} costCenters={costCenters} suppliers={suppliers} />}
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -115,6 +116,7 @@ export default async function ContasAPagarPage({
             id: p.id,
             description: p.description,
             supplier: p.supplier,
+            supplierId: p.supplierId,
             amount: p.amount,
             dueDate: p.dueDate.toISOString(),
             noDueDate: p.noDueDate,
@@ -122,6 +124,7 @@ export default async function ContasAPagarPage({
             effectiveStatus: p.effectiveStatus,
             paidAmount: p.paidAmount,
             paymentReceiptNumber: p.paymentReceiptNumber,
+            paymentMethod: p.paymentMethod,
             categoryId: p.categoryId,
             costCenterId: p.costCenterId,
             caseId: p.caseId,
@@ -132,6 +135,7 @@ export default async function ContasAPagarPage({
           categories={categories}
           cases={cases.map((c) => ({ id: c.id, name: c.title }))}
           costCenters={costCenters}
+          suppliers={suppliers}
         />
       </Card>
       <style>{`

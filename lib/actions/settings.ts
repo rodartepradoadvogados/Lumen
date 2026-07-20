@@ -190,6 +190,14 @@ export async function createCostCenter(data: { name: string; notes?: string }) {
   revalidatePath("/configuracoes");
 }
 
+export async function createCostCenterQuick(name: string): Promise<{ id: string; name: string }> {
+  const costCenter = await prisma.costCenter.create({ data: { name } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/financeiro/contas-a-pagar");
+  revalidatePath("/financeiro/contas-a-receber");
+  return { id: costCenter.id, name: costCenter.name };
+}
+
 export async function deleteCostCenter(id: string): Promise<{ error?: string }> {
   const [payableCount, receivableCount] = await Promise.all([
     prisma.payable.count({ where: { costCenterId: id } }),

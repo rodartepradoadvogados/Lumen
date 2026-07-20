@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, CheckCheck } from "lucide-react";
 import { formatCurrency } from "@/components/ui";
+import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 
 export default function BulkSettleBar({
   count,
@@ -13,7 +14,7 @@ export default function BulkSettleBar({
 }: {
   count: number;
   total: number;
-  onConfirm: (paidDate: string, receiptNumber: string) => Promise<void>;
+  onConfirm: (paidDate: string, receiptNumber: string, paymentMethod: string) => Promise<void>;
   onClear: () => void;
 }) {
   const router = useRouter();
@@ -56,7 +57,8 @@ export default function BulkSettleBar({
                 setLoading(true);
                 const paidDate = String(formData.get("paidDate"));
                 const receiptNumber = String(formData.get("receiptNumber") || "");
-                await onConfirm(paidDate, receiptNumber);
+                const paymentMethod = String(formData.get("paymentMethod") || "");
+                await onConfirm(paidDate, receiptNumber, paymentMethod);
                 setLoading(false);
                 setOpen(false);
                 router.refresh();
@@ -69,6 +71,17 @@ export default function BulkSettleBar({
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Data do pagamento</label>
                 <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Modalidade de pagamento</label>
+                <select name="paymentMethod" required defaultValue="" className="settle-input">
+                  <option value="" disabled>Selecione...</option>
+                  {PAYMENT_METHOD_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Nº do comprovante (opcional, único para todos)</label>

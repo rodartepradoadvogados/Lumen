@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card } from "@/components/ui";
-import { Users, Scale as ScaleIcon, ArrowRight } from "lucide-react";
+import { Users, Scale as ScaleIcon, ArrowRight, Truck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContatosPage() {
-  const [clients, lawyers] = await Promise.all([
+  const [clients, lawyers, suppliers] = await Promise.all([
     prisma.client.count(),
     prisma.lawyer.count(),
+    prisma.supplier.count(),
   ]);
 
   const modules = [
     { href: "/contatos/clientes", label: "Clientes", icon: Users, count: clients, desc: "Base de clientes do escritório" },
     { href: "/contatos/advogados", label: "Advogados", icon: ScaleIcon, count: lawyers, desc: "Parceiros e adversos" },
+    { href: "/contatos/fornecedores", label: "Fornecedores", icon: Truck, count: suppliers, desc: "Fornecedores usados no Financeiro" },
   ];
 
   return (

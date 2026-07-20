@@ -4,12 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPayable } from "@/lib/actions/financeiro";
 import { createCaseQuick } from "@/lib/actions/cases";
+import { createSupplierQuick } from "@/lib/actions/suppliers";
+import { createCostCenterQuick } from "@/lib/actions/settings";
 import { Plus, X } from "lucide-react";
-import QuickAddSelect from "@/components/QuickAddSelect";
+import EntityPicker from "@/components/EntityPicker";
 
 type Option = { id: string; name: string };
 
-export default function NewPayableModal({ categories, cases, costCenters = [] }: { categories: Option[]; cases: Option[]; costCenters?: Option[] }) {
+export default function NewPayableModal({
+  categories,
+  cases,
+  suppliers,
+  costCenters = [],
+}: {
+  categories: Option[];
+  cases: Option[];
+  suppliers: Option[];
+  costCenters?: Option[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,7 +50,7 @@ export default function NewPayableModal({ categories, cases, costCenters = [] }:
                 setLoading(true);
                 await createPayable({
                   description: String(formData.get("description")),
-                  supplier: String(formData.get("supplier") || ""),
+                  supplierId: String(formData.get("supplierId") || ""),
                   amount: String(formData.get("amount")),
                   dueDate: String(formData.get("dueDate") || ""),
                   categoryId: String(formData.get("categoryId") || ""),
@@ -83,7 +95,7 @@ export default function NewPayableModal({ categories, cases, costCenters = [] }:
               {!semVencimento && (
                 <label className="flex items-center gap-2 text-xs text-navy-800/70">
                   <input type="checkbox" checked={parcelar} onChange={(e) => setParcelar(e.target.checked)} />
-                  Parcelar este lançamento
+                  Pagamento recorrente (parcelado)
                 </label>
               )}
 
@@ -97,43 +109,45 @@ export default function NewPayableModal({ categories, cases, costCenters = [] }:
                     <label className="text-xs font-medium text-navy-800/60">Intervalo entre parcelas (dias)</label>
                     <input name="installmentIntervalDays" type="number" min="1" defaultValue="30" className="fin-input" />
                   </div>
+                  <p className="text-[11px] text-navy-800/45 sm:col-span-2">Cada parcela é lançada em Contas a Pagar e também gera um lembrete de vencimento na Agenda/Kanban.</p>
                 </div>
               )}
 
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Fornecedor</label>
-                <input name="supplier" className="fin-input" />
+                <EntityPicker
+                  name="supplierId"
+                  options={suppliers}
+                  placeholder="Buscar fornecedor..."
+                  emptyLabel="Nenhum"
+                  addLabel="Cadastrar novo fornecedor"
+                  onQuickAdd={createSupplierQuick}
+                />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Categoria</label>
-                  <select name="categoryId" className="fin-input">
-                    <option value="">Sem categoria</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  <EntityPicker name="categoryId" options={categories} placeholder="Buscar categoria..." emptyLabel="Sem categoria" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Centro de Custo</label>
-                  <select name="costCenterId" className="fin-input">
-                    <option value="">Nenhum</option>
-                    {costCenters.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  <EntityPicker
+                    name="costCenterId"
+                    options={costCenters}
+                    placeholder="Buscar centro de custo..."
+                    emptyLabel="Nenhum"
+                    addLabel="Cadastrar novo centro de custo"
+                    onQuickAdd={createCostCenterQuick}
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Processo vinculado (opcional)</label>
-                <QuickAddSelect
+                <EntityPicker
                   name="caseId"
                   options={cases}
-                  placeholder="Título do novo processo/caso"
+                  placeholder="Buscar processo..."
+                  emptyLabel="Nenhum"
                   addLabel="Cadastrar novo processo"
                   onQuickAdd={(name) => createCaseQuick(name)}
                 />

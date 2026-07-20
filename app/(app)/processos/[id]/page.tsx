@@ -68,13 +68,14 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, driveStatus, workflowTemplates, taskCounts] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
     getLeafCategoryOptions("RECEITA"),
     getLeafCategoryOptions("DESPESA"),
     prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     getDriveStatus(),
     prisma.workflowTemplate.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.task.groupBy({
@@ -302,7 +303,7 @@ export default async function CaseDetailPage({
                         payable={{
                           id: p.id,
                           description: p.description,
-                          supplier: p.supplier,
+                          supplierId: p.supplierId,
                           amount: p.amount,
                           dueDate: p.dueDate.toISOString(),
                           noDueDate: p.noDueDate,
@@ -312,6 +313,7 @@ export default async function CaseDetailPage({
                         }}
                         categories={payableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
+                        suppliers={suppliers}
                         costCenters={costCenters}
                       />
                       <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { markPayablePaid, markReceivablePaid, reopenPayable, reopenReceivable } from "@/lib/actions/financeiro";
+import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { Check, RotateCcw, X } from "lucide-react";
 
 export default function SettleButton({
@@ -61,7 +62,10 @@ export default function SettleButton({
                 const paidAmount = parseFloat(String(formData.get("paidAmount")));
                 const paidDate = String(formData.get("paidDate"));
                 const receiptNumber = String(formData.get("receiptNumber") || "");
-                await (kind === "payable" ? markPayablePaid(id, paidAmount, paidDate, receiptNumber) : markReceivablePaid(id, paidAmount, paidDate, receiptNumber));
+                const paymentMethod = String(formData.get("paymentMethod") || "");
+                await (kind === "payable"
+                  ? markPayablePaid(id, paidAmount, paidDate, receiptNumber, paymentMethod)
+                  : markReceivablePaid(id, paidAmount, paidDate, receiptNumber, paymentMethod));
                 setLoading(false);
                 setOpen(false);
                 router.refresh();
@@ -75,6 +79,17 @@ export default function SettleButton({
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Data do pagamento</label>
                 <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Modalidade de pagamento</label>
+                <select name="paymentMethod" required defaultValue="" className="settle-input">
+                  <option value="" disabled>Selecione...</option>
+                  {PAYMENT_METHOD_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Nº do comprovante (opcional)</label>

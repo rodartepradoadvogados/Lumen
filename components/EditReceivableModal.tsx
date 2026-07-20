@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { updateReceivable } from "@/lib/actions/financeiro";
 import { createClientQuick } from "@/lib/actions/contatos";
 import { createCaseQuick } from "@/lib/actions/cases";
+import { createCostCenterQuick } from "@/lib/actions/settings";
 import { Pencil, X } from "lucide-react";
-import QuickAddSelect from "@/components/QuickAddSelect";
+import EntityPicker from "@/components/EntityPicker";
 
 type Option = { id: string; name: string };
 
@@ -103,45 +104,41 @@ export default function EditReceivableModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Categoria</label>
-                  <select name="categoryId" defaultValue={receivable.categoryId ?? ""} className="fin-input">
-                    <option value="">Sem categoria</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  <EntityPicker name="categoryId" options={categories} defaultValue={receivable.categoryId ?? undefined} placeholder="Buscar categoria..." emptyLabel="Sem categoria" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Centro de Custo</label>
-                  <select name="costCenterId" defaultValue={receivable.costCenterId ?? ""} className="fin-input">
-                    <option value="">Nenhum</option>
-                    {costCenters.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  <EntityPicker
+                    name="costCenterId"
+                    options={costCenters}
+                    defaultValue={receivable.costCenterId ?? undefined}
+                    placeholder="Buscar centro de custo..."
+                    emptyLabel="Nenhum"
+                    addLabel="Cadastrar novo centro de custo"
+                    onQuickAdd={createCostCenterQuick}
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Cliente</label>
-                <QuickAddSelect
+                <EntityPicker
                   name="clientId"
                   options={clients}
                   defaultValue={receivable.clientId ?? undefined}
-                  placeholder="Nome do novo cliente"
+                  placeholder="Buscar cliente..."
+                  emptyLabel="Nenhum"
                   addLabel="Cadastrar novo cliente"
                   onQuickAdd={createClientQuick}
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Processo vinculado</label>
-                <QuickAddSelect
+                <EntityPicker
                   name="caseId"
                   options={cases}
                   defaultValue={receivable.caseId ?? undefined}
-                  placeholder="Título do novo processo/caso"
+                  placeholder="Buscar processo..."
+                  emptyLabel="Nenhum"
                   addLabel="Cadastrar novo processo"
                   onQuickAdd={(name) => createCaseQuick(name)}
                 />

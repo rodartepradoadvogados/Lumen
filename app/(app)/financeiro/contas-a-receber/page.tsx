@@ -122,6 +122,7 @@ export default async function ContasAReceberPage({
             effectiveStatus: r.effectiveStatus,
             paidAmount: r.paidAmount,
             paymentReceiptNumber: r.paymentReceiptNumber,
+            paymentMethod: r.paymentMethod,
             kind: r.kind,
             isSuccessPortion: r.isSuccessPortion,
             categoryId: r.categoryId,

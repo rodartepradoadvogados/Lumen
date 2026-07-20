@@ -8,6 +8,7 @@ import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
 import BulkSettleBar from "@/components/BulkSettleBar";
 import { markManyPayablesPaid } from "@/lib/actions/financeiro";
+import { paymentMethodLabels } from "@/lib/paymentMethods";
 
 const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", CANCELADO: "red" };
 
@@ -15,6 +16,7 @@ type Payable = {
   id: string;
   description: string;
   supplier: string | null;
+  supplierId: string | null;
   amount: number;
   dueDate: string;
   noDueDate: boolean;
@@ -22,6 +24,7 @@ type Payable = {
   effectiveStatus: string;
   paidAmount: number | null;
   paymentReceiptNumber: string | null;
+  paymentMethod: string | null;
   categoryId: string | null;
   costCenterId: string | null;
   caseId: string | null;
@@ -36,11 +39,13 @@ export default function PayablesList({
   payables,
   categories,
   cases,
+  suppliers,
   costCenters,
 }: {
   payables: Payable[];
   categories: Option[];
   cases: Option[];
+  suppliers: Option[];
   costCenters: Option[];
 }) {
   const router = useRouter();
@@ -89,6 +94,7 @@ export default function PayablesList({
                   {p.category?.name}
                   {p.costCenter && <span> · {p.costCenter.name}</span>}
                   {p.case && <span> · {p.case.title}</span>}
+                  {p.status === "PAGO" && p.paymentMethod && <span> · {paymentMethodLabels[p.paymentMethod] ?? p.paymentMethod}</span>}
                   {p.status === "PAGO" && p.paymentReceiptNumber && <span> · Comprovante: {p.paymentReceiptNumber}</span>}
                 </p>
               </div>
@@ -107,7 +113,7 @@ export default function PayablesList({
                   payable={{
                     id: p.id,
                     description: p.description,
-                    supplier: p.supplier,
+                    supplierId: p.supplierId,
                     amount: p.amount,
                     dueDate: p.dueDate,
                     noDueDate: p.noDueDate,
@@ -117,6 +123,7 @@ export default function PayablesList({
                   }}
                   categories={categories}
                   cases={cases}
+                  suppliers={suppliers}
                   costCenters={costCenters}
                 />
                 <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
@@ -131,8 +138,8 @@ export default function PayablesList({
           count={selected.size}
           total={total}
           onClear={() => setSelected(new Set())}
-          onConfirm={async (paidDate, receiptNumber) => {
-            await markManyPayablesPaid([...selected], paidDate, receiptNumber);
+          onConfirm={async (paidDate, receiptNumber, paymentMethod) => {
+            await markManyPayablesPaid([...selected], paidDate, receiptNumber, paymentMethod);
             setSelected(new Set());
             router.refresh();
           }}

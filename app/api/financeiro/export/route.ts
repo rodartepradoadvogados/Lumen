@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getFilteredPayables, getFilteredReceivables, FinanceSearchParams } from "@/lib/financeQuery";
 import { formatDate } from "@/components/ui";
+import { paymentMethodLabels } from "@/lib/paymentMethods";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
       Status: p.effectiveStatus,
       "Pago em": p.paidDate ? formatDate(p.paidDate) : "",
       "Valor pago": p.paidAmount ?? "",
+      "Forma de Pagamento": p.paymentMethod ? paymentMethodLabels[p.paymentMethod] ?? p.paymentMethod : "",
       Comprovante: p.paymentReceiptNumber || "",
     }));
   } else {
@@ -57,12 +59,13 @@ export async function GET(request: NextRequest) {
       Status: r.effectiveStatus,
       "Pago em": r.paidDate ? formatDate(r.paidDate) : "",
       "Valor pago": r.paidAmount ?? "",
+      "Forma de Pagamento": r.paymentMethod ? paymentMethodLabels[r.paymentMethod] ?? r.paymentMethod : "",
       Comprovante: r.paymentReceiptNumber || "",
     }));
   }
 
   const worksheet = XLSX.utils.json_to_sheet(rows, {
-    header: ["Descrição", "Fornecedor/Cliente", "Categoria", "Centro de Custo", "Vencimento", "Valor", "Status", "Pago em", "Valor pago", "Comprovante"],
+    header: ["Descrição", "Fornecedor/Cliente", "Categoria", "Centro de Custo", "Vencimento", "Valor", "Status", "Pago em", "Valor pago", "Forma de Pagamento", "Comprovante"],
   });
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, tipo === "pagar" ? "Contas a Pagar" : "Contas a Receber");

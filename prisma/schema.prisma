@@ -100,6 +100,18 @@ model Lawyer {
   createdAt DateTime @default(now())
 }
 
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  document  String?
+  email     String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  payables  Payable[]
+}
+
 // ============ CASOS / CARDS ============
 
 model Case {
@@ -400,6 +412,7 @@ model Payable {
   installmentNumber Int?
   installmentTotal  Int?
   paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
+  paymentMethod    String?   // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
   createdAt        DateTime  @default(now())
 
   categoryId   String?
@@ -410,6 +423,9 @@ model Payable {
 
   caseId       String?
   case         Case?     @relation(fields: [caseId], references: [id])
+
+  supplierId   String?
+  supplierRef  Supplier? @relation(fields: [supplierId], references: [id])
 }
 
 model Receivable {
@@ -428,6 +444,7 @@ model Receivable {
   installmentTotal  Int?
   isSuccessPortion Boolean   @default(false) // parcela "a receber no êxito"
   paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
+  paymentMethod    String?   // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
   createdAt        DateTime  @default(now())
 
   categoryId   String?

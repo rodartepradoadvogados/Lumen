@@ -8,6 +8,7 @@ import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
 import BulkSettleBar from "@/components/BulkSettleBar";
 import { markManyReceivablesPaid } from "@/lib/actions/financeiro";
+import { paymentMethodLabels } from "@/lib/paymentMethods";
 
 const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", CANCELADO: "red" };
 
@@ -28,6 +29,7 @@ type Receivable = {
   effectiveStatus: string;
   paidAmount: number | null;
   paymentReceiptNumber: string | null;
+  paymentMethod: string | null;
   kind: string;
   isSuccessPortion: boolean;
   categoryId: string | null;
@@ -103,6 +105,7 @@ export default function ReceivablesList({
                   {" · "}
                   {kindLabels[r.kind]}
                   {r.isSuccessPortion && <span> · Êxito</span>}
+                  {r.status === "PAGO" && r.paymentMethod && <span> · {paymentMethodLabels[r.paymentMethod] ?? r.paymentMethod}</span>}
                   {r.status === "PAGO" && r.paymentReceiptNumber && <span> · Comprovante: {r.paymentReceiptNumber}</span>}
                 </p>
               </div>
@@ -147,8 +150,8 @@ export default function ReceivablesList({
           count={selected.size}
           total={total}
           onClear={() => setSelected(new Set())}
-          onConfirm={async (paidDate, receiptNumber) => {
-            await markManyReceivablesPaid([...selected], paidDate, receiptNumber);
+          onConfirm={async (paidDate, receiptNumber, paymentMethod) => {
+            await markManyReceivablesPaid([...selected], paidDate, receiptNumber, paymentMethod);
             setSelected(new Set());
             router.refresh();
           }}
