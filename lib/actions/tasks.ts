@@ -77,7 +77,9 @@ export async function createTask(data: {
   revalidatePath("/kanban");
   revalidatePath("/agenda");
   revalidatePath("/");
+  revalidatePath("/m/agenda");
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
+  if (data.caseId) revalidatePath(`/m/processos/${data.caseId}`);
 }
 
 export type TaskDetail = {

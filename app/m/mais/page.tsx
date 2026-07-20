@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
-import { Phone, DollarSign, BarChart, Settings, ExternalLink, LogOut, ChevronRight } from "lucide-react";
+import { Phone, DollarSign, BarChart, Settings, LogOut, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,6 @@ export default async function MobileMais() {
     { href: "/financeiro", label: "Financeiro", Icon: DollarSign, show: showFinance },
     { href: "/relatorios", label: "Relatórios", Icon: BarChart, show: true },
     { href: "/configuracoes", label: "Configurações", Icon: Settings, show: true },
-    { href: "/", label: "Ver versão completa do site", Icon: ExternalLink, show: true },
   ].filter((i) => i.show);
 
   return (

@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileCommentForm from "@/components/mobile/MobileCommentForm";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
+import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
+import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function MobileCaseDetail({ params }: { params: { id: string } }) {
-  const [viewer, c] = await Promise.all([
+  const [viewer, c, publications] = await Promise.all([
     getCurrentUser(),
     prisma.case.findUnique({
       where: { id: params.id },
@@ -24,9 +26,24 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
         comments: { include: { author: true }, orderBy: { createdAt: "desc" }, take: 15 },
       },
     }),
+    prisma.publication.findMany({
+      where: { caseId: params.id },
+      orderBy: { publishedAt: "desc" },
+      take: 15,
+    }),
   ]);
 
   if (!c) notFound();
+
+  const serializedPublications = publications.map((p) => ({
+    id: p.id,
+    kind: p.kind,
+    source: p.source,
+    content: p.content,
+    publishedAt: p.publishedAt.toISOString(),
+    caseId: c.id,
+    caseTitle: c.title,
+  }));
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -77,6 +94,24 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
             ))}
           </div>
         )}
+        <div className="p-3 border-t border-navy-800/8">
+          <MobileNewTaskForm caseId={c.id} />
+        </div>
+      </Card>
+
+      <Card>
+        <div className="px-4 py-3 border-b border-navy-800/8">
+          <h2 className="font-serif font-bold text-navy-900 text-sm">Publicações e Andamentos</h2>
+        </div>
+        {serializedPublications.length === 0 ? (
+          <EmptyState title="Nenhuma publicação ou andamento" />
+        ) : (
+          <div className="divide-y divide-navy-800/5">
+            {serializedPublications.map((p) => (
+              <MobilePublicationCard key={p.id} pub={p} />
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card className="p-4 space-y-4">
@@ -103,13 +138,6 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
         )}
         {viewer && <MobileCommentForm caseId={c.id} authorId={viewer.id} />}
       </Card>
-
-      <Link
-        href={`/processos/${c.id}`}
-        className="flex items-center justify-center gap-1.5 text-xs font-semibold text-navy-800/55 py-2"
-      >
-        Ver processo completo no site <ExternalLink size={13} />
-      </Link>
     </div>
   );
 }
