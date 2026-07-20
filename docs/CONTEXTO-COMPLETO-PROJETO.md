@@ -172,6 +172,7 @@ rp-financeiro/
 | `WHATSAPP_ACCESS_TOKEN/PHONE_NUMBER_ID/VERIFY_TOKEN/APP_SECRET` | Vercel | Webhook do WhatsApp — **token de acesso deve ser regenerado** (ver seção 8) |
 | `DATAJUD_API_KEY` | Railway | Robô Python (chave pública do Datajud, sem custo) |
 | `GEMINI_API_KEY` | Não configurada ainda (opcional) | Robô Python (resumo via IA) |
+| `BLOG_ROBOT_SECRET` | Vercel (a confirmar se já foi colada — ver seção 13) | Robô de conteúdo jurídico externo (`/api/blog/draft`, GET e POST) |
 
 Para acessar: `vercel env ls` / dashboard da Vercel (Settings → Environment Variables do projeto rp-financeiro); `railway variable list --service rp-financeiro-robo-publicacoes` / dashboard da Railway.
 
@@ -196,4 +197,25 @@ Para acessar: `vercel env ls` / dashboard da Vercel (Settings → Environment Va
 
 - Site em produção: https://rp-financeiro-xi.vercel.app
 - Repositório: https://github.com/rodartepradoadvogados/rp-financeiro
+
+## 13. Robô de conteúdo jurídico (blog público) — projeto Claude Code separado
+
+Em 2026-07-20, além do endpoint `POST /api/blog/draft` (commit `7a651e3`), foi adicionado
+um **GET** no mesmo arquivo (`app/api/blog/draft/route.ts`), protegido pelo mesmo
+`BLOG_ROBOT_SECRET`, que devolve as matérias enviadas nos últimos N dias (`?days=`, padrão
+30, qualquer status). Existe só para o robô externo checar duplicata antes de redigir —
+ele roda em sessões efêmeras sem estado local persistente entre execuções.
+
+**O robô em si não mora neste repositório.** É uma skill de conta do Claude Code
+(`rp-radar-juridico`, em `~/.claude/skills/rp-radar-juridico/SKILL.md` no ambiente
+Claude Code — fora do git, não versionada aqui) acionada por uma **Routine** (gatilho
+agendado, 1x/dia de manhã, horário de Brasília) que sobe uma sessão nova a cada disparo,
+pesquisa Migalhas/Conjur/Jusbrasil-notícias/sites oficiais de tribunais + pasta Drive
+"DOUTRINA", valida contra ≥2 fontes, e envia rascunhos via API. Nunca publica direto — cai
+em Configurações → Blog → Revisão Pendente, igual a qualquer outra matéria.
+
+**Pendência:** `BLOG_ROBOT_SECRET` foi gerado nesta sessão e precisa ser colado como
+variável de ambiente (Production) no projeto Vercel `rp-financeiro` — sem isso o GET/POST
+respondem 401 e o robô fica bloqueado. Buscar o valor exato com o usuário (foi entregue a
+ele fora deste documento, por ser segredo) se for preciso reconfigurar.
 - Projeto Railway do robô: `rp-financeiro-robo-publicacoes` (id `8abe7add-585c-468f-82bf-de8bc9266297`)

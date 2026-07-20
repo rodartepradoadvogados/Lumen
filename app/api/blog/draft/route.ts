@@ -28,6 +28,39 @@ function slugify(title: string): string {
 // comparado a BLOG_ROBOT_SECRET — mesmo estilo de checagem usado no cron do
 // Jusbrasil (app/api/cron/jusbrasil-sync/route.ts), mas aqui a ausência da env
 // var também é tratada como não autorizado (não há bypass em produção).
+
+// Permite ao robô externo consultar o que já foi enviado antes de publicar de
+// novo, evitando duplicatas — já que o robô roda em sessões efêmeras e não tem
+// onde guardar estado local entre execuções. Devolve título/área/fontes/status
+// dos últimos N dias (todos os status, inclusive REJEITADO, para não reenviar
+// algo que um advogado já recusou).
+export async function GET(req: NextRequest) {
+  const auth = req.headers.get("authorization");
+  const secret = process.env.BLOG_ROBOT_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const daysParam = Number(req.nextUrl.searchParams.get("days"));
+  const days = Number.isFinite(daysParam) && daysParam > 0 ? Math.min(daysParam, 365) : 30;
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const posts = await prisma.blogPost.findMany({
+    where: { createdAt: { gte: since } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      title: true,
+      area: true,
+      type: true,
+      sources: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  return NextResponse.json({ days, count: posts.length, posts });
+}
+
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.BLOG_ROBOT_SECRET;
