@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
+import AlertRow from "@/components/AlertRow";
 import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,11 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                   const meta = kindMeta[a.kind];
                   const Icon = meta.icon;
                   return (
-                    <Link key={a.id} href={a.href} className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 transition-colors ${severityStyle[a.severity]}`}>
+                    <AlertRow
+                      key={a.id}
+                      alert={a}
+                      className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 transition-colors w-full text-left ${severityStyle[a.severity]}`}
+                    >
                       <div className="p-2 rounded-lg bg-navy-900/5 text-navy-800 shrink-0">
                         <Icon size={16} />
                       </div>
@@ -103,7 +108,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                         {a.subtitle && <p className="text-xs text-navy-800/50 mt-0.5">{a.subtitle}</p>}
                       </div>
                       <span className="text-xs text-navy-800/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
-                    </Link>
+                    </AlertRow>
                   );
                 })}
               </div>

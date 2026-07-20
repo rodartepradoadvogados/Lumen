@@ -80,6 +80,87 @@ export async function createTask(data: {
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
 }
 
+export type TaskDetail = {
+  id: string;
+  title: string;
+  type: string;
+  description: string | null;
+  dueDate: string;
+  dueTime: string | null;
+  priority: string;
+  status: string;
+  meetingType: string | null;
+  location: string | null;
+  meetingUrl: string | null;
+  responsibleId: string | null;
+  case: { id: string; title: string; processNumber: string | null } | null;
+};
+
+// Usado pelo card de compromisso (aberto a partir de um alerta ou da lista de prazos
+// atrasados do painel): traz a tarefa completa + a lista de responsáveis possíveis,
+// já serializada (sem Date) para poder ser chamado direto de um client component.
+export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | null; users: { id: string; name: string }[] }> {
+  const [task, users] = await Promise.all([
+    prisma.task.findUnique({
+      where: { id },
+      include: { case: { select: { id: true, title: true, processNumber: true } } },
+    }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
+  if (!task) return { task: null, users };
+  return {
+    task: {
+      id: task.id,
+      title: task.title,
+      type: task.type,
+      description: task.description,
+      dueDate: task.dueDate.toISOString(),
+      dueTime: task.dueTime,
+      priority: task.priority,
+      status: task.status,
+      meetingType: task.meetingType,
+      location: task.location,
+      meetingUrl: task.meetingUrl,
+      responsibleId: task.responsibleId,
+      case: task.case,
+    },
+    users,
+  };
+}
+
+export async function updateTask(id: string, data: {
+  title: string;
+  type: string;
+  dueDate: string;
+  dueTime?: string;
+  priority: string;
+  responsibleId?: string;
+  description?: string;
+  meetingType?: string;
+  location?: string;
+  meetingUrl?: string;
+}) {
+  await prisma.task.update({
+    where: { id },
+    data: {
+      title: data.title,
+      type: data.type,
+      dueDate: new Date(data.dueDate),
+      dueTime: data.dueTime || null,
+      priority: data.priority,
+      responsibleId: data.responsibleId || null,
+      description: data.description || null,
+      meetingType: data.meetingType || null,
+      location: data.location || null,
+      meetingUrl: data.meetingUrl || null,
+    },
+  });
+  revalidatePath("/kanban");
+  revalidatePath("/agenda");
+  revalidatePath("/");
+  revalidatePath("/alertas");
+}
+
 export async function addComment(data: { content: string; authorId: string; taskId?: string; caseId?: string }) {
   const mentionNames = Array.from(data.content.matchAll(/@([\p{L}\s]+?)(?=(@|$|\n))/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
