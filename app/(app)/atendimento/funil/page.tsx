@@ -31,7 +31,7 @@ function daysBetween(from: Date, to: Date) {
 
 export default async function FunilPage() {
   const attendances = await prisma.attendance.findMany({
-    where: { status: { not: "ARQUIVADO" } },
+    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] } },
     include: { responsible: { select: { name: true } } },
     orderBy: [{ stageChangedAt: "desc" }, { createdAt: "desc" }],
   });

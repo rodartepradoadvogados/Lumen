@@ -7,9 +7,12 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { sendEmailReply } from "@/lib/gmailSend";
 
-export async function createAttendance(data: {
+type CreateAttendanceInput = {
   clientName: string;
-  contact?: string;
+  contactPhone?: string;
+  clientEmail?: string;
+  clientId?: string;
+  isNewClient?: boolean;
   subject: string;
   area?: string;
   description?: string;
@@ -18,11 +21,35 @@ export async function createAttendance(data: {
   estimatedValue?: number | null;
   leadSource?: string;
   nextContactAt?: string;
-}) {
-  await prisma.attendance.create({
+};
+
+export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
+  // Resolve o vínculo com Client conforme o modo escolhido no formulário:
+  // - clientId preenchido: cliente já cadastrado, selecionado via busca — usa direto.
+  // - isNewClient: fluxo "Cadastrar novo cliente" finalizado (não é rascunho) — cria o Client agora.
+  // - nenhum dos dois: atendimento rápido sem cliente formal ainda (comportamento antigo).
+  let clientId = data.clientId || null;
+  let newClientId: string | undefined;
+
+  if (!clientId && data.isNewClient) {
+    const client = await prisma.client.create({
+      data: {
+        name: data.clientName,
+        type: "PF",
+        phone: data.contactPhone || null,
+        email: data.clientEmail || null,
+      },
+    });
+    clientId = client.id;
+    newClientId = client.id;
+  }
+
+  const created = await prisma.attendance.create({
     data: {
       clientName: data.clientName,
-      contact: data.contact || null,
+      contactPhone: data.contactPhone || null,
+      clientEmail: data.clientEmail || null,
+      clientId,
       subject: data.subject,
       area: data.area || null,
       description: data.description || null,
@@ -36,6 +63,80 @@ export async function createAttendance(data: {
   });
   revalidatePath("/atendimento");
   revalidatePath("/atendimento/funil");
+  return { id: created.id, newClientId };
+}
+
+// Rascunho: salva o que já foi preenchido para retomar depois. Nunca cria um Client novo
+// aqui (mesmo que o modo "novo cliente" estivesse selecionado) para não deixar cadastro
+// órfão no caso do rascunho nunca ser finalizado.
+export async function saveAttendanceDraft(
+  data: Omit<CreateAttendanceInput, "isNewClient">
+): Promise<{ id: string }> {
+  const created = await prisma.attendance.create({
+    data: {
+      clientName: data.clientName || "(rascunho sem nome)",
+      contactPhone: data.contactPhone || null,
+      clientEmail: data.clientEmail || null,
+      clientId: data.clientId || null,
+      subject: data.subject || "(rascunho)",
+      area: data.area || null,
+      description: data.description || null,
+      channel: data.channel || "WHATSAPP",
+      responsibleId: data.responsibleId || null,
+      estimatedValue: data.estimatedValue ?? null,
+      leadSource: data.leadSource || null,
+      nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
+      status: "RASCUNHO",
+      stageChangedAt: new Date(),
+    },
+  });
+  revalidatePath("/atendimento");
+  return { id: created.id };
+}
+
+export async function searchClients(query: string): Promise<{ id: string; name: string; phone: string | null; email: string | null }[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const clients = await prisma.client.findMany({
+    where: { name: { contains: q, mode: "insensitive" } },
+    select: { id: true, name: true, phone: true, email: true },
+    orderBy: { name: "asc" },
+    take: 15,
+  });
+  return clients;
+}
+
+export async function updateClientQualification(
+  clientId: string,
+  data: {
+    type?: string;
+    document?: string;
+    rg?: string;
+    nationality?: string;
+    maritalStatus?: string;
+    profession?: string;
+    address?: string;
+    notes?: string;
+  }
+): Promise<{ error?: string }> {
+  await prisma.client.update({
+    where: { id: clientId },
+    data: {
+      type: data.type || undefined,
+      document: data.document || null,
+      rg: data.rg || null,
+      nationality: data.nationality || null,
+      maritalStatus: data.maritalStatus || null,
+      profession: data.profession || null,
+      address: data.address || null,
+      notes: data.notes || null,
+    },
+  });
+  revalidatePath("/atendimento");
+  revalidatePath("/contatos/clientes");
+  revalidatePath(`/contatos/clientes/${clientId}`);
+  revalidatePath("/contatos");
+  return {};
 }
 
 export async function updateAttendanceStatus(id: string, status: string) {
@@ -175,7 +276,12 @@ export async function convertAttendanceToCase(
 ) {
   const attendance = await prisma.attendance.findUniqueOrThrow({ where: { id: attendanceId } });
 
-  let client = await prisma.client.findFirst({ where: { name: { equals: attendance.clientName, mode: "insensitive" } } });
+  // Prioriza o vínculo direto (cliente selecionado na busca ou recém-cadastrado ao criar
+  // o atendimento); só recorre à busca/criação por nome para atendimentos antigos sem clientId.
+  let client = attendance.clientId ? await prisma.client.findUnique({ where: { id: attendance.clientId } }) : null;
+  if (!client) {
+    client = await prisma.client.findFirst({ where: { name: { equals: attendance.clientName, mode: "insensitive" } } });
+  }
   if (!client) {
     client = await prisma.client.create({ data: { name: attendance.clientName, type: "PF" } });
   }
