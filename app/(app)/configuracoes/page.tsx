@@ -18,11 +18,16 @@ import ChangePasswordForm from "@/components/ChangePasswordForm";
 import TestDjenButton from "@/components/TestDjenButton";
 import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import WorkflowsManager from "@/components/WorkflowsManager";
-import { Upload, HardDrive, CheckCircle2 } from "lucide-react";
+import { Upload, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
+
+// Conta que efetivamente recebe os e-mails do Jusbrasil — se a conexão do Google
+// cair para outra conta, a sincronização de publicações para de encontrar e-mails
+// silenciosamente (sem erro). Ver JUSBRASIL_INBOX_EMAIL abaixo.
+const JUSBRASIL_INBOX_EMAIL = "jairodarte@gmail.com";
 
 type Cat = {
   id: string;
@@ -214,6 +219,12 @@ export default async function ConfiguracoesPage({ searchParams }: { searchParams
               </div>
             ) : (
               <p className="text-sm text-navy-800/60">Nenhuma conta conectada ainda.</p>
+            )}
+            {driveStatus.connected && driveStatus.accountEmail !== JUSBRASIL_INBOX_EMAIL && (
+              <p className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                Essa não é a conta que recebe os e-mails do Jusbrasil ({JUSBRASIL_INBOX_EMAIL}) — a sincronização de publicações não vai encontrar nada. Clique em &ldquo;Reconectar&rdquo; e, na tela do Google, escolha {JUSBRASIL_INBOX_EMAIL}.
+              </p>
             )}
             <a
               href="/api/google/connect"
