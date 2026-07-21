@@ -129,6 +129,7 @@ model Case {
   processNumber     String?
   court             String?
   forum             String?
+  tribunal          String?   // Sigla do tribunal (ex: TJGO, TRF1, TST)
   caseValue         Float?
   convictionValue   Float?
   instance          String?   // Instância Original
