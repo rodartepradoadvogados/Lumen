@@ -6,12 +6,13 @@ import {
   markPublicationRead,
   markPublicationUnread,
   generateTaskFromPublication,
-  assignPublication,
   setPublicationTriageStatus,
 } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
 import PeticionarButton from "@/components/PeticionarButton";
-import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2 } from "lucide-react";
+import ProcessNumberChip from "@/components/ProcessNumberChip";
+import DelegateTaskForm from "@/components/DelegateTaskForm";
+import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -25,7 +26,7 @@ type Pub = {
   deadlineGenerated: boolean;
   lawyerTag: string | null;
   processNumberRaw: string | null;
-  case: { id: string; title: string } | null;
+  case: { id: string; title: string; processNumber: string | null } | null;
   client: { id: string; name: string } | null;
   taskCount?: number;
   assignedToId: string | null;
@@ -57,8 +58,10 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
   const [detailOpen, setDetailOpen] = useState(false);
   const [formType, setFormType] = useState<string | null>(null);
   const [agendaOpen, setAgendaOpen] = useState(false);
+  const [delegateOpen, setDelegateOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const assignedToName = users.find((u) => u.id === pub.assignedToId)?.name;
 
   useEffect(() => {
     if (!agendaOpen) return;
@@ -88,14 +91,6 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
   function pickAction(type: string) {
     setAgendaOpen(false);
     setFormType(type);
-  }
-
-  function handleAssign(userId: string) {
-    setLoading(true);
-    assignPublication(pub.id, userId || null).then(() => {
-      router.refresh();
-      setLoading(false);
-    });
   }
 
   function handleTriage(status: string) {
@@ -204,21 +199,22 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           )}
         </div>
 
-        {users.length > 0 && (
-          <select
-            value={pub.assignedToId || ""}
-            disabled={loading}
-            onChange={(e) => handleAssign(e.target.value)}
+        {assignedToName && (
+          <span
             data-tip="Responsável pela triagem"
-            className="text-[11px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-2 py-1 rounded-lg bg-cream-100 dark:bg-navy-800 border border-navy-800/10 dark:border-white/15 cursor-pointer disabled:opacity-50"
+            className="text-[11px] font-medium text-navy-800/50 dark:text-cream-50/50 px-2 py-1 rounded-lg bg-cream-100 dark:bg-white/5"
           >
-            <option value="">Sem responsável</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
+            Responsável: {assignedToName}
+          </span>
+        )}
+        {users.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setDelegateOpen(true)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-gold-800 hover:text-gold-900 dark:text-gold-400 dark:hover:text-gold-300 px-2.5 py-1 rounded-lg bg-gold-500/10 hover:bg-gold-500/20 dark:bg-gold-400/15 dark:hover:bg-gold-400/25"
+          >
+            <UserPlus size={12} /> Delegar
+          </button>
         )}
 
         <select
@@ -298,9 +294,12 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
                 <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(pub.publishedAt)}</span>
               </div>
               {pub.case && (
-                <Link href={`/processos/${pub.case.id}`} className="text-sm font-medium text-gold-700 dark:text-gold-400 hover:underline block">
-                  {pub.case.title}
-                </Link>
+                <div>
+                  <Link href={`/processos/${pub.case.id}`} className="text-sm font-medium text-gold-700 dark:text-gold-400 hover:underline block">
+                    {pub.case.title}
+                  </Link>
+                  {pub.case.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
+                </div>
               )}
               {!pub.case && pub.client && (
                 <Link href={`/contatos/clientes#client-${pub.client.id}`} className="text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline block">
@@ -309,6 +308,28 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
               )}
               <p className={clsx("text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap")}>{pub.content}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {delegateOpen && (
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setDelegateOpen(false)}>
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Delegar publicação</h3>
+              <button onClick={() => setDelegateOpen(false)} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
+                <X size={18} />
+              </button>
+            </div>
+            <DelegateTaskForm
+              users={users}
+              initial={{
+                publicationId: pub.id,
+                title: pub.content.slice(0, 50),
+                referTo: pub.case ? "PROCESSO" : "OUTROS",
+                selectedLink: pub.case ? { id: pub.case.id, label: pub.case.title } : undefined,
+              }}
+            />
           </div>
         </div>
       )}

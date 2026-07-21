@@ -98,6 +98,11 @@ export async function delegateTask(data: {
   description?: string;
   caseId?: string;
   attendanceId?: string;
+  // Preenchido quando a delegação nasce do botão "Delegar" de uma publicação
+  // (components/PublicationRow.tsx) — linka a Task criada à publicação de origem e marca essa
+  // pessoa como responsável pela triagem dela, no lugar do antigo select "Sem responsável"
+  // (que só trocava o campo silenciosamente, sem gerar tarefa nem avisar ninguém).
+  publicationId?: string;
 }): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Usuário não autenticado." };
@@ -117,6 +122,7 @@ export async function delegateTask(data: {
       priority: data.priority,
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,
+      publicationId: data.publicationId || null,
       responsibleId: data.responsibleId,
       delegatedById: viewer.id,
       columnId: firstColumn?.id || null,
@@ -124,6 +130,11 @@ export async function delegateTask(data: {
       points,
     },
   });
+
+  if (data.publicationId) {
+    await prisma.publication.update({ where: { id: data.publicationId }, data: { assignedToId: data.responsibleId } });
+    revalidatePath("/publicacoes");
+  }
 
   revalidatePath("/agenda");
   revalidatePath("/kanban");

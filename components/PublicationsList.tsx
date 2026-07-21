@@ -13,7 +13,7 @@ type Pub = {
   deadlineGenerated: boolean;
   lawyerTag: string | null;
   processNumberRaw: string | null;
-  case: { id: string; title: string } | null;
+  case: { id: string; title: string; processNumber: string | null } | null;
   client: { id: string; name: string } | null;
   taskCount?: number;
   assignedToId: string | null;

@@ -67,7 +67,7 @@ export default async function PublicacoesPage({
     deadlineGenerated: p.deadlineGenerated,
     lawyerTag: p.lawyerTag,
     processNumberRaw: p.processNumberRaw,
-    case: p.case ? { id: p.case.id, title: p.case.title } : null,
+    case: p.case ? { id: p.case.id, title: p.case.title, processNumber: p.case.processNumber } : null,
     client: p.client ? { id: p.client.id, name: p.client.name } : null,
     taskCount: taskCountMap.get(p.id) ?? 0,
     assignedToId: p.assignedToId,

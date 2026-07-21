@@ -27,11 +27,11 @@ export async function markAllPublicationsRead() {
 }
 
 // ===== RIDT — fila de triagem de publicações com atribuição de responsável =====
-
-export async function assignPublication(id: string, userId: string | null) {
-  await prisma.publication.update({ where: { id }, data: { assignedToId: userId || null } });
-  revalidatePath("/publicacoes");
-}
+// A atribuição manual por publicação agora acontece só via "Delegar" (delegateTask,
+// lib/actions/tasks.ts, com publicationId) — que também seta Publication.assignedToId — e
+// via distribuição automática balanceada logo abaixo. O antigo assignPublication (select
+// "Sem responsável" mudando o campo em silêncio, sem gerar tarefa nem avisar ninguém) foi
+// removido para não duplicar esse fluxo.
 
 export async function setPublicationTriageStatus(id: string, status: string) {
   await prisma.publication.update({ where: { id }, data: { triageStatus: status } });

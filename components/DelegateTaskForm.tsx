@@ -37,6 +37,17 @@ const emptyState = {
   description: "",
 };
 
+// Contexto pré-preenchido quando o formulário é aberto a partir de um lugar que já sabe a
+// que processo/caso a delegação se refere (ex.: botão "Delegar" de uma publicação em
+// PublicationRow) — pula a busca do passo 3, que já chega com o vínculo resolvido. `publicationId`
+// é repassado à action pra também linkar a Task criada à publicação de origem.
+export type DelegateTaskInitial = {
+  referTo?: ReferTo;
+  selectedLink?: LinkHit;
+  title?: string;
+  publicationId?: string;
+};
+
 function StepDot({ active, done, label }: { active: boolean; done: boolean; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -55,8 +66,13 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
   );
 }
 
-export default function DelegateTaskForm({ users }: { users: Option[] }) {
-  const [state, setState] = useState(emptyState);
+export default function DelegateTaskForm({ users, initial }: { users: Option[]; initial?: DelegateTaskInitial }) {
+  const [state, setState] = useState(() => ({
+    ...emptyState,
+    referTo: initial?.referTo ?? emptyState.referTo,
+    selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
+    title: initial?.title ?? emptyState.title,
+  }));
   const [linkResults, setLinkResults] = useState<LinkHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -94,7 +110,12 @@ export default function DelegateTaskForm({ users }: { users: Option[] }) {
   }, [state.linkQuery, state.referTo, state.selectedLink, needsLink]);
 
   function resetAll() {
-    setState(emptyState);
+    setState({
+      ...emptyState,
+      referTo: initial?.referTo ?? emptyState.referTo,
+      selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
+      title: initial?.title ?? emptyState.title,
+    });
     setLinkResults([]);
     setSearching(false);
     setError("");
@@ -130,6 +151,7 @@ export default function DelegateTaskForm({ users }: { users: Option[] }) {
       description: state.description || undefined,
       caseId: state.referTo === "PROCESSO" || state.referTo === "CASO" ? state.selectedLink?.id : undefined,
       attendanceId: state.referTo === "ATENDIMENTO" ? state.selectedLink?.id : undefined,
+      publicationId: initial?.publicationId,
     });
     setLoading(false);
     if (result.error) {
