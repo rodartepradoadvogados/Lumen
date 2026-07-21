@@ -5,6 +5,7 @@
 :root {
   --background: #f8fafc;
   --foreground: #14213d;
+  color-scheme: light;
 }
 
 /* Tema "Noite" do site (classe `dark` no <html>, ver lib/theme.ts e components/ThemeToggle.tsx).
@@ -13,7 +14,13 @@
 .dark {
   --background: #080f1c;
   --foreground: #f1ece0;
+  color-scheme: dark;
 }
+
+/* Sem declarar color-scheme, o navegador estiliza campos nativos (select, input, scrollbar)
+   pela preferência do SISTEMA OPERACIONAL, não pelo tema que o usuário escolheu no site —
+   causando texto escuro sobre fundo escuro (ou vice-versa) em <select>/<input> sem estilo
+   próprio, mesmo com o resto da página no tema certo. As duas linhas acima corrigem isso. */
 
 body {
   color: var(--foreground);
