@@ -34,13 +34,13 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       <Card className="p-6">
         <form action={submit} className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-navy-800/60">Título do Caso</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do Caso</label>
             <input name="title" required defaultValue={searchParams.title} className="input" placeholder="Ex: Fulano de Tal x Empresa XYZ" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Tipo</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
               <select name="type" defaultValue={defaultType} className="input">
                 <option value="JUDICIAL">Judicial</option>
                 <option value="EXTRAJUDICIAL">Extrajudicial</option>
@@ -49,29 +49,29 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Área</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
               <input name="area" className="input" placeholder="Cível, Trabalhista, Família..." />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Número do Processo</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do Processo</label>
               <input name="processNumber" defaultValue={searchParams.processNumber} className="input" placeholder="0000000-00.0000.0.00.0000" />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Vara/Comarca</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vara/Comarca</label>
               <input name="court" className="input" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Valor da Causa (R$)</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor da Causa (R$)</label>
               <input name="caseValue" type="number" step="0.01" className="input" />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Advogado Responsável</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Advogado Responsável</label>
               <select name="responsibleId" className="input">
                 <option value="">Não definido</option>
                 {users.map((u) => (
@@ -84,7 +84,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
           </div>
 
           <div>
-            <label className="text-xs font-medium text-navy-800/60">Cliente</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente</label>
             <select name="clientId" className="input">
               <option value="">Selecionar cliente...</option>
               {clients.map((c) => (
@@ -97,11 +97,11 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Parte Adversa (nome)</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Parte Adversa (nome)</label>
               <input name="opposingPartyName" className="input" placeholder="Nome da parte contrária" />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60">Polo da Parte Adversa</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Polo da Parte Adversa</label>
               <select name="opposingPartyRole" className="input">
                 <option value="">Não definido</option>
                 <option value="AUTOR">Autor</option>
@@ -112,7 +112,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
           </div>
 
           <div>
-            <label className="text-xs font-medium text-navy-800/60">Descrição / Observações</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição / Observações</label>
             <textarea name="description" rows={3} className="input" />
           </div>
 
@@ -123,8 +123,9 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       </Card>
 
       <style>{`
-        .input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #14213d; }
+        .input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #14213d; background: #fff; }
         .input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .dark .input { border-color: rgba(255,255,255,0.15); background: #0f1f3d; color: #fbfaf7; }
       `}</style>
     </div>
   );

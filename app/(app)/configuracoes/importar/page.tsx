@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 function TemplateLink({ href }: { href: string }) {
   return (
-    <a href={href} download className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 hover:text-gold-800">
+    <a href={href} download className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-800 dark:hover:text-gold-300">
       <Download size={12} /> Baixar modelo .xlsx
     </a>
   );
@@ -20,7 +20,7 @@ export default async function ImportarPage() {
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
   return (
     <div className="p-6 max-w-[800px] mx-auto animate-fade-in">
-      <Link href="/configuracoes" className="text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+      <Link href="/configuracoes" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
         ← Configurações
       </Link>
       <PageHeader title="Importar Dados" subtitle="Traga contatos, processos, agenda e financeiro de uma planilha (.xlsx ou .csv)" />
@@ -71,9 +71,9 @@ export default async function ImportarPage() {
           <CardHeader title="Contatos (Clientes)" subtitle="Colunas: Nome, Tipo (PF/PJ), Documento, Email, Telefone, Endereço, Observações" />
           <div className="p-5 space-y-3">
             <TemplateLink href="/templates/modelo-contatos.xlsx" />
-            <p className="text-xs text-navy-800/50">
+            <p className="text-xs text-navy-800/50 dark:text-cream-50/50">
               Para importar contatos avulsos, cadastre diretamente em{" "}
-              <Link href="/contatos/clientes" className="text-gold-700 hover:underline">
+              <Link href="/contatos/clientes" className="text-gold-700 dark:text-gold-400 hover:underline">
                 Contatos → Clientes
               </Link>{" "}
               — clientes citados nas planilhas de Processos e Financeiro já são criados automaticamente.

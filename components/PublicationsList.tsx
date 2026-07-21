@@ -58,9 +58,9 @@ export default function PublicationsList({
   }, [publications.map((p) => p.id).join(",")]);
 
   return (
-    <div className="divide-y divide-navy-800/5">
+    <div className="divide-y divide-navy-800/5 dark:divide-white/10">
       {publications.map((p) => (
-        <div key={p.id} className={newIds.has(p.id) ? "bg-gold-500/10" : "bg-white"}>
+        <div key={p.id} className={newIds.has(p.id) ? "bg-gold-500/10 dark:bg-gold-400/15" : "bg-white dark:bg-navy-900"}>
           <PublicationRow pub={p} users={users} />
         </div>
       ))}

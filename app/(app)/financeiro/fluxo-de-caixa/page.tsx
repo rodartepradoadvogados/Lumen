@@ -35,7 +35,7 @@ export default async function FluxoDeCaixaPage() {
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
-      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
         ← Financeiro
       </Link>
       <PageHeader title="Fluxo de Caixa" subtitle="Entradas e saídas projetadas por mês (com base nos vencimentos)" />
@@ -46,40 +46,40 @@ export default async function FluxoDeCaixaPage() {
             <div key={m.key} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
               <div className="flex items-end gap-1 h-full w-full justify-center">
                 <div
-                  className="w-6 rounded-t bg-emerald-500"
+                  className="w-6 rounded-t bg-emerald-500 dark:bg-emerald-400"
                   style={{ height: `${(m.entradas / maxVal) * 100}%` }}
                   title={`Entradas: ${formatCurrency(m.entradas)}`}
                 />
                 <div
-                  className="w-6 rounded-t bg-red-400"
+                  className="w-6 rounded-t bg-red-400 dark:bg-bordo-400"
                   style={{ height: `${(m.saidas / maxVal) * 100}%` }}
                   title={`Saídas: ${formatCurrency(m.saidas)}`}
                 />
               </div>
-              <span className="text-xs font-semibold text-navy-800/60 mt-1">{m.label}</span>
+              <span className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 mt-1">{m.label}</span>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-4 justify-center mt-4 text-xs">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Entradas</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-400" /> Saídas</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> Entradas</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-400 dark:bg-bordo-400" /> Saídas</span>
         </div>
       </Card>
 
       <Card>
         <CardHeader title="Detalhamento mensal" />
-        <div className="divide-y divide-navy-800/5">
+        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {months.map((m) => {
             saldoAcumulado += m.entradas - m.saidas;
             return (
               <div key={m.key} className="grid grid-cols-5 gap-3 px-5 py-3 text-sm">
-                <span className="font-semibold text-navy-900">{m.label}</span>
-                <span className="text-emerald-600 text-right">{formatCurrency(m.entradas)}</span>
-                <span className="text-red-500 text-right">{formatCurrency(m.saidas)}</span>
-                <span className={`text-right font-semibold ${m.entradas - m.saidas >= 0 ? "text-navy-900" : "text-red-600"}`}>
+                <span className="font-semibold text-navy-900 dark:text-cream-50">{m.label}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 text-right">{formatCurrency(m.entradas)}</span>
+                <span className="text-red-500 dark:text-bordo-400 text-right">{formatCurrency(m.saidas)}</span>
+                <span className={`text-right font-semibold ${m.entradas - m.saidas >= 0 ? "text-navy-900 dark:text-cream-50" : "text-red-600 dark:text-bordo-400"}`}>
                   {formatCurrency(m.entradas - m.saidas)}
                 </span>
-                <span className={`text-right font-semibold ${saldoAcumulado >= 0 ? "text-gold-700" : "text-red-600"}`}>
+                <span className={`text-right font-semibold ${saldoAcumulado >= 0 ? "text-gold-700 dark:text-gold-400" : "text-red-600 dark:text-bordo-400"}`}>
                   {formatCurrency(saldoAcumulado)}
                 </span>
               </div>

@@ -38,10 +38,10 @@ export default function NewPayableModal({
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900">Nova Conta a Pagar</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Nova Conta a Pagar</h3>
+              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
                 <X size={18} />
               </button>
             </div>
@@ -67,23 +67,23 @@ export default function NewPayableModal({
               className="p-5 space-y-3"
             >
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Descrição</label>
-                <input name="description" required className="fin-input" placeholder="Ex: Aluguel escritório" />
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição</label>
+                <input name="description" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" placeholder="Ex: Aluguel escritório" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">{parcelar ? "Valor de cada parcela (R$)" : "Valor (R$)"}</label>
-                  <input name="amount" type="number" step="0.01" required className="fin-input" />
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{parcelar ? "Valor de cada parcela (R$)" : "Valor (R$)"}</label>
+                  <input name="amount" type="number" step="0.01" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
                     {parcelar ? "1º Vencimento" : "Vencimento"}
                   </label>
-                  <input name="dueDate" type="date" required={!semVencimento} disabled={semVencimento} className="fin-input disabled:opacity-40" />
+                  <input name="dueDate" type="date" required={!semVencimento} disabled={semVencimento} className="fin-input disabled:opacity-40 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-xs text-navy-800/70">
+              <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                 <input
                   type="checkbox"
                   checked={semVencimento}
@@ -93,28 +93,28 @@ export default function NewPayableModal({
               </label>
 
               {!semVencimento && (
-                <label className="flex items-center gap-2 text-xs text-navy-800/70">
+                <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                   <input type="checkbox" checked={parcelar} onChange={(e) => setParcelar(e.target.checked)} />
                   Pagamento recorrente (parcelado)
                 </label>
               )}
 
               {parcelar && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-cream-50 border border-navy-800/8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10">
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60">Quantidade de parcelas</label>
-                    <input name="installmentCount" type="number" min="2" defaultValue="2" className="fin-input" />
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Quantidade de parcelas</label>
+                    <input name="installmentCount" type="number" min="2" defaultValue="2" className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60">Intervalo entre parcelas (dias)</label>
-                    <input name="installmentIntervalDays" type="number" min="1" defaultValue="30" className="fin-input" />
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Intervalo entre parcelas (dias)</label>
+                    <input name="installmentIntervalDays" type="number" min="1" defaultValue="30" className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
                   </div>
-                  <p className="text-[11px] text-navy-800/45 sm:col-span-2">Cada parcela é lançada em Contas a Pagar e também gera um lembrete de vencimento na Agenda/Kanban.</p>
+                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 sm:col-span-2">Cada parcela é lançada em Contas a Pagar e também gera um lembrete de vencimento na Agenda/Kanban.</p>
                 </div>
               )}
 
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Fornecedor</label>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Fornecedor</label>
                 <EntityPicker
                   name="supplierId"
                   options={suppliers}
@@ -126,11 +126,11 @@ export default function NewPayableModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Categoria</label>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Categoria</label>
                   <EntityPicker name="categoryId" options={categories} placeholder="Buscar categoria..." emptyLabel="Sem categoria" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Centro de Custo</label>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Centro de Custo</label>
                   <EntityPicker
                     name="costCenterId"
                     options={costCenters}
@@ -142,7 +142,7 @@ export default function NewPayableModal({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Processo vinculado (opcional)</label>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Processo vinculado (opcional)</label>
                 <EntityPicker
                   name="caseId"
                   options={cases}

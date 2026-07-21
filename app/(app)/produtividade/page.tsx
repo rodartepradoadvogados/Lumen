@@ -43,7 +43,7 @@ function TabLink({ label, href, active }: { label: string; href: string; active:
       className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
         active
           ? "bg-navy-900 text-white"
-          : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+          : "bg-white dark:bg-navy-800 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
       }`}
     >
       {label}
@@ -75,24 +75,24 @@ export default async function ProdutividadePage({
         {tabs}
 
         <Card>
-          <div className="px-5 py-4 border-b border-navy-800/8">
-            <h3 className="font-serif font-bold text-navy-900 text-base">
+          <div className="px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">
               {viewer ? `Timesheet — ${viewer.name}` : "Meu Timesheet"}
             </h3>
-            <p className="text-xs text-navy-800/50 mt-0.5">Acompanhe seu tempo de uso do sistema nos últimos 30 dias.</p>
+            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Acompanhe seu tempo de uso do sistema nos últimos 30 dias.</p>
           </div>
           {history.length === 0 ? (
             <EmptyState title="Nenhum registro de acesso" subtitle="Assim que você usar o sistema, seu tempo aparecerá aqui." />
           ) : (
-            <div className="divide-y divide-navy-800/5">
+            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
               {history.map((day) => (
                 <div key={day.date} className="flex items-center gap-3 px-5 py-3">
-                  <Clock size={14} className="text-navy-800/30 shrink-0" />
-                  <p className="text-sm text-navy-900 flex-1">{formatDate(new Date(`${day.date}T00:00:00`))}</p>
-                  <p className="text-xs text-navy-800/45 w-32 text-right">
+                  <Clock size={14} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
+                  <p className="text-sm text-navy-900 dark:text-cream-50 flex-1">{formatDate(new Date(`${day.date}T00:00:00`))}</p>
+                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45 w-32 text-right">
                     1º login {new Date(day.firstLogin).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
-                  <p className="text-sm font-semibold text-navy-900 w-24 text-right">{formatHMS(day.seconds)}</p>
+                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 w-24 text-right">{formatHMS(day.seconds)}</p>
                 </div>
               ))}
             </div>
@@ -169,15 +169,15 @@ export default async function ProdutividadePage({
           <div className="flex items-center gap-2">
             <Link
               href={`/produtividade?mes=${prevParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
-              className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-navy-800/10 text-navy-800/60 hover:bg-cream-100"
+              className="h-8 w-8 flex items-center justify-center rounded-lg bg-white dark:bg-navy-800 border border-navy-800/10 dark:border-white/10 text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/5"
               aria-label="Mês anterior"
             >
               <ChevronLeft size={16} />
             </Link>
-            <span className="text-sm font-semibold text-navy-900 min-w-[150px] text-center capitalize">{label}</span>
+            <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 min-w-[150px] text-center capitalize">{label}</span>
             <Link
               href={`/produtividade?mes=${nextParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
-              className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-navy-800/10 text-navy-800/60 hover:bg-cream-100"
+              className="h-8 w-8 flex items-center justify-center rounded-lg bg-white dark:bg-navy-800 border border-navy-800/10 dark:border-white/10 text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/5"
               aria-label="Próximo mês"
             >
               <ChevronRight size={16} />
@@ -192,11 +192,11 @@ export default async function ProdutividadePage({
         <form className="p-4 flex flex-wrap items-end gap-3">
           {searchParams.mes && <input type="hidden" name="mes" value={searchParams.mes} />}
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Responsável</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Responsável</label>
             <select
               name="responsibleId"
               defaultValue={responsibleId ?? ""}
-              className="border border-navy-800/12 rounded-lg px-2.5 py-1.5 text-sm bg-white text-navy-900"
+              className="border border-navy-800/12 dark:border-white/15 rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
             >
               <option value="">Todos</option>
               {users.map((u) => (
@@ -212,7 +212,7 @@ export default async function ProdutividadePage({
           {responsibleId && (
             <Link
               href={`/produtividade${searchParams.mes ? `?mes=${searchParams.mes}` : ""}`}
-              className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2"
+              className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2"
             >
               Limpar filtro
             </Link>
@@ -221,50 +221,50 @@ export default async function ProdutividadePage({
       </Card>
 
       <Card>
-        <div className="px-5 py-4 border-b border-navy-800/8">
-          <h3 className="font-serif font-bold text-navy-900 text-base">Histórico</h3>
-          <p className="text-xs text-navy-800/50 mt-0.5">Clique em um nome para ver as tarefas concluídas no mês</p>
+        <div className="px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Histórico</h3>
+          <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Clique em um nome para ver as tarefas concluídas no mês</p>
         </div>
         {rows.length === 0 ? (
           <EmptyState title="Nenhuma tarefa concluída neste período" subtitle="As tarefas concluídas com responsável definido aparecem aqui." />
         ) : (
-          <div className="divide-y divide-navy-800/5">
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {rows.map((row) => (
               <details key={row.user.id} className="group">
-                <summary className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-cream-50 list-none">
+                <summary className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-cream-50 dark:hover:bg-white/5 list-none">
                   <span
                     className="h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: row.user.color }}
                   >
                     {initials(row.user.name)}
                   </span>
-                  <p className="text-sm font-medium text-navy-900 flex-1">{row.user.name}</p>
-                  <span className="text-xs text-navy-800/45">{row.count} tarefa(s)</span>
-                  <span className="text-xs font-semibold text-navy-900">{row.points} pts</span>
-                  <ChevronRight size={14} className="text-navy-800/30 transition-transform group-open:rotate-90" />
+                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50 flex-1">{row.user.name}</p>
+                  <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{row.count} tarefa(s)</span>
+                  <span className="text-xs font-semibold text-navy-900 dark:text-cream-50">{row.points} pts</span>
+                  <ChevronRight size={14} className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-90" />
                 </summary>
-                <div className="bg-cream-50/60 px-5 pb-3">
+                <div className="bg-cream-50/60 dark:bg-white/5 px-5 pb-3">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/40">
+                      <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/40 dark:text-cream-50/40">
                         <th className="py-1.5 font-semibold">Tarefa</th>
                         <th className="py-1.5 font-semibold">Tipo</th>
                         <th className="py-1.5 font-semibold">Concluída em</th>
                         <th className="py-1.5 font-semibold text-right">Pontos</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-navy-800/5">
+                    <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
                       {row.tasks.map((t) => (
                         <tr key={t.id}>
-                          <td className="py-1.5 pr-2 text-navy-900">
+                          <td className="py-1.5 pr-2 text-navy-900 dark:text-cream-50">
                             {t.title}
-                            {t.caseTitle && <span className="block text-[11px] text-navy-800/40 truncate">{t.caseTitle}</span>}
+                            {t.caseTitle && <span className="block text-[11px] text-navy-800/40 dark:text-cream-50/40 truncate">{t.caseTitle}</span>}
                           </td>
                           <td className="py-1.5 pr-2">
                             <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                           </td>
-                          <td className="py-1.5 pr-2 text-navy-800/60">{t.completedAt ? formatDate(t.completedAt) : "—"}</td>
-                          <td className="py-1.5 text-right font-semibold text-navy-900">{t.points}</td>
+                          <td className="py-1.5 pr-2 text-navy-800/60 dark:text-cream-50/60">{t.completedAt ? formatDate(t.completedAt) : "—"}</td>
+                          <td className="py-1.5 text-right font-semibold text-navy-900 dark:text-cream-50">{t.points}</td>
                         </tr>
                       ))}
                     </tbody>

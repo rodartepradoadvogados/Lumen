@@ -45,10 +45,10 @@ export default function BulkSettleBar({
 
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900 text-sm">Confirmar Baixa em Bloco</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8 dark:border-white/10">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Confirmar Baixa em Bloco</h3>
+              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
                 <X size={16} />
               </button>
             </div>
@@ -65,16 +65,16 @@ export default function BulkSettleBar({
               }}
               className="p-5 space-y-3"
             >
-              <p className="text-xs text-navy-800/60">
+              <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
                 {count} lançamento(s) selecionado(s) · Total <strong>{formatCurrency(total)}</strong>. Cada lançamento será baixado pelo seu próprio valor.
               </p>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Data do pagamento</label>
-                <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input" />
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data do pagamento</label>
+                <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Modalidade de pagamento</label>
-                <select name="paymentMethod" required defaultValue="" className="settle-input">
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Modalidade de pagamento</label>
+                <select name="paymentMethod" required defaultValue="" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
                   <option value="" disabled>Selecione...</option>
                   {PAYMENT_METHOD_OPTIONS.map((m) => (
                     <option key={m.value} value={m.value}>
@@ -84,8 +84,8 @@ export default function BulkSettleBar({
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Nº do comprovante (opcional, único para todos)</label>
-                <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input" />
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional, único para todos)</label>
+                <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
               </div>
               <button
                 type="submit"

@@ -78,7 +78,7 @@ export default function ReceivablesList({
 
   return (
     <div>
-      <div className="divide-y divide-navy-800/5">
+      <div className="divide-y divide-navy-800/5 dark:divide-white/10">
         {receivables.map((r) => {
           const selectable = r.status !== "PAGO";
           return (
@@ -90,15 +90,15 @@ export default function ReceivablesList({
                     checked={selected.has(r.id)}
                     onChange={() => toggle(r.id)}
                     data-tip="Selecionar para baixa em bloco"
-                    className="h-4 w-4 rounded border-navy-800/25 text-emerald-600 focus:ring-emerald-500"
+                    className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-emerald-600 focus:ring-emerald-500"
                   />
                 ) : (
                   <span className="inline-block w-4" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-navy-900">{r.description}</p>
-                <p className="text-xs text-navy-800/45 mt-0.5">
+                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{r.description}</p>
+                <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
                   {r.client?.name}
                   {r.case && <span> · {r.case.title}</span>}
                   {r.costCenter && <span> · {r.costCenter.name}</span>}
@@ -111,8 +111,8 @@ export default function ReceivablesList({
               </div>
               <div className="flex items-center justify-between sm:contents">
                 <div className="text-left sm:text-right shrink-0 sm:w-28">
-                  <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
-                  <p className="text-xs text-navy-800/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(r.amount)}</p>
+                  <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                 </div>
                 <div className="shrink-0 sm:w-24">
                   <Badge color={statusColor[r.effectiveStatus]}>{r.effectiveStatus}</Badge>

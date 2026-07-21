@@ -40,7 +40,7 @@ export default async function ContasAReceberPage({
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
-      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
         ← Financeiro
       </Link>
       <PageHeader
@@ -60,11 +60,11 @@ export default async function ContasAReceberPage({
         <form className="p-4 flex flex-wrap items-end gap-3">
           {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
           <div className="flex-1 min-w-[180px]">
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Buscar</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
             <input type="text" name="q" defaultValue={searchParams.q} placeholder="Descrição ou cliente" className="fp-input w-full" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Categoria</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Categoria</label>
             <select name="categoryId" defaultValue={searchParams.categoryId} className="fp-input">
               <option value="">Todas</option>
               {categories.map((c) => (
@@ -75,15 +75,15 @@ export default async function ContasAReceberPage({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">De</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">De</label>
             <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Até</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Até</label>
             <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Centro de Custo</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Centro de Custo</label>
             <select name="costCenterId" defaultValue={searchParams.costCenterId} className="fp-input">
               <option value="">Todos</option>
               {costCenters.map((c) => (
@@ -103,7 +103,7 @@ export default async function ContasAReceberPage({
             <Download size={15} /> Exportar .xlsx
           </a>
           {(searchParams.from || searchParams.to || searchParams.costCenterId || searchParams.q || searchParams.categoryId) && (
-            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2">
+            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2">
               Limpar filtros
             </Link>
           )}
@@ -153,7 +153,9 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
     <Link
       href={href}
       className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-        active ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+        active
+          ? "bg-navy-900 text-white dark:bg-white/10 dark:text-cream-50"
+          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
       }`}
     >
       {label}
