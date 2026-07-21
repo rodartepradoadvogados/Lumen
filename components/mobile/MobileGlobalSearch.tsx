@@ -5,18 +5,21 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { globalSearch, type SearchResult } from "@/lib/actions/search";
 
-const GROUP_ORDER: SearchResult["type"][] = ["Processos", "Clientes", "Tarefas", "Atendimentos", "Publicações"];
+const GROUP_ORDER: SearchResult["type"][] = ["Processos", "Tarefas", "Atendimentos", "Publicações"];
 
 // Adaptação mobile de components/GlobalSearch.tsx (mesma action/debounce de 300ms), com
 // estilo full-width para telas pequenas e dropdown de resultados abaixo do campo.
 //
-// Alguns tipos de resultado (Processos, Tarefas, Publicações) têm equivalente dentro do
-// app mobile (/m/...); para esses, remapeamos o href retornado pela action (que aponta pro
-// site desktop) para a rota mobile correspondente. Clientes e Atendimentos ainda não têm
-// tela própria em /m, então continuam abrindo a rota desktop como fallback.
+// Todos os tipos de resultado que aparecem aqui (Processos, Tarefas, Atendimentos,
+// Publicações) já têm tela própria em /m, então remapeamos o href retornado pela action
+// (que aponta pro site desktop) para a rota mobile correspondente. "Clientes" é o único tipo
+// sem equivalente mobile ainda (não existe tela de detalhe de cliente em /m) — em vez de
+// linkar pro site desktop, esse grupo é descartado inteiro dos resultados (ver useEffect
+// abaixo), então nem aparece no dropdown.
 function toMobileHref(result: SearchResult): string {
   if (result.type === "Processos") return `/m/processos/${result.id}`;
   if (result.type === "Tarefas") return "/m/agenda";
+  if (result.type === "Atendimentos") return `/m/atendimento/${result.id}`;
   if (result.type === "Publicações") return "/m/publicacoes";
   return result.href;
 }
@@ -43,7 +46,9 @@ export default function MobileGlobalSearch() {
     const timer = setTimeout(async () => {
       const res = await globalSearch(q);
       if (currentReq !== reqId.current) return; // resposta obsoleta
-      setResults(res);
+      // "Clientes" ainda não tem tela própria em /m — descartado para nunca virar link pro
+      // site desktop (ver comentário de toMobileHref acima).
+      setResults(res.filter((r) => r.type !== "Clientes"));
       setLoading(false);
       setActiveIndex(-1);
     }, 300);
