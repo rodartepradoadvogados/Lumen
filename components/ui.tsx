@@ -5,7 +5,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <div
       className={clsx(
-        "bg-white dark:bg-navy-900 rounded-xl border border-navy-800/8 dark:border-white/10 shadow-card",
+        "bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm",
         className
       )}
     >
@@ -63,15 +63,15 @@ export function StatCard({
   const toneMap = {
     navy: "text-navy-900",
     gold: "text-gold-700",
-    red: "text-red-600",
-    green: "text-emerald-600",
+    red: "text-red-700",
+    green: "text-emerald-700",
   };
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-navy-800/55 uppercase tracking-wide">{label}</p>
-          <p className={clsx("text-2xl font-serif font-bold mt-1", toneMap[tone])}>{value}</p>
+          <p className={clsx("text-2xl font-sans font-extrabold mt-1", toneMap[tone])}>{value}</p>
           {hint && <p className="text-xs text-navy-800/45 mt-1">{hint}</p>}
         </div>
         {icon && <div className={clsx("p-2 rounded-lg bg-cream-100", toneMap[tone])}>{icon}</div>}

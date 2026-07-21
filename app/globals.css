@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #f3efe6;
+  --background: #f8fafc;
   --foreground: #14213d;
 }
 
@@ -18,11 +18,13 @@ body {
   }
 }
 
-/* Fundo com leve textura geométrica dourada, inspirado no papel timbrado */
+/* Fundo cinza-frio, com uma textura geométrica dourada quase imperceptível
+   (opacidade bem reduzida em relação à versão anterior) — mantém uma leve
+   referência ao papel timbrado sem gerar sensação de "sujeira" visual. */
 .brand-texture {
-  background-color: #f3efe6;
-  background-image: linear-gradient(135deg, rgba(184, 144, 79, 0.07) 1px, transparent 1px),
-    linear-gradient(45deg, rgba(184, 144, 79, 0.07) 1px, transparent 1px);
+  background-color: #f8fafc;
+  background-image: linear-gradient(135deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px),
+    linear-gradient(45deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px);
   background-size: 42px 42px;
 }
 
