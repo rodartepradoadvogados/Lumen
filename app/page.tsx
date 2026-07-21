@@ -387,10 +387,12 @@ export default async function HomePage() {
                     <span>Goiânia — GO</span>
                   </li>
                   <li>
-                    <span>Telefone — a definir</span>
+                    <a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer">
+                      (62) 98128-3481
+                    </a>
                   </li>
                   <li>
-                    <span>E-mail — a definir</span>
+                    <a href="mailto:contato@rodarteprado.com.br">contato@rodarteprado.com.br</a>
                   </li>
                 </ul>
               </div>

@@ -67,6 +67,87 @@ body {
   background-size: 42px 42px;
 }
 
+/* Cards no modo "Tarde": o fundo da página é claro (acima), mas os cards herdavam o
+   fundo azul marinho sólido do modo Noite (via `dark:bg-navy-900/950/800`, escrito
+   diretamente nas classNames de dezenas de componentes) — o resultado era um card escuro
+   flutuando sobre uma página clara. Aqui a mesma técnica de especificidade acima
+   (`.dark.theme-tarde` bate `.dark` sozinho) troca esse azul marinho por um bordô claro e
+   translúcido só no Tarde, sem tocar em nenhum componente — e escurece o texto que antes
+   era claro (pensado para fundo escuro) para continuar legível sobre o novo fundo claro.
+   Noite continua com o azul marinho original; só o Tarde muda. */
+.dark.theme-tarde .dark\:bg-navy-900,
+.dark.theme-tarde .dark\:bg-navy-950 {
+  background-color: rgba(154, 44, 67, 0.1);
+}
+.dark.theme-tarde .dark\:bg-navy-800 {
+  background-color: rgba(154, 44, 67, 0.16);
+}
+.dark.theme-tarde .dark\:bg-navy-800\/70 {
+  background-color: rgba(154, 44, 67, 0.12);
+}
+.dark.theme-tarde .dark\:border-white\/10 {
+  border-color: rgba(131, 36, 56, 0.25);
+}
+.dark.theme-tarde .dark\:border-white\/15 {
+  border-color: rgba(131, 36, 56, 0.32);
+}
+.dark.theme-tarde .dark\:border-white\/20 {
+  border-color: rgba(131, 36, 56, 0.4);
+}
+.dark.theme-tarde .dark\:border-white\/25 {
+  border-color: rgba(131, 36, 56, 0.46);
+}
+.dark.theme-tarde .dark\:divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(131, 36, 56, 0.22);
+}
+.dark.theme-tarde .dark\:hover\:bg-white\/5:hover {
+  background-color: rgba(154, 44, 67, 0.06);
+}
+.dark.theme-tarde .dark\:hover\:bg-white\/10:hover {
+  background-color: rgba(154, 44, 67, 0.12);
+}
+.dark.theme-tarde .dark\:hover\:bg-white\/15:hover {
+  background-color: rgba(154, 44, 67, 0.18);
+}
+.dark.theme-tarde .dark\:text-cream-50 {
+  color: #3d1119;
+}
+.dark.theme-tarde .dark\:text-cream-50\/85,
+.dark.theme-tarde .dark\:text-cream-50\/80 {
+  color: rgba(61, 17, 25, 0.9);
+}
+.dark.theme-tarde .dark\:text-cream-50\/70,
+.dark.theme-tarde .dark\:text-cream-50\/60,
+.dark.theme-tarde .dark\:text-cream-50\/55 {
+  color: rgba(61, 17, 25, 0.8);
+}
+.dark.theme-tarde .dark\:text-cream-50\/50,
+.dark.theme-tarde .dark\:text-cream-50\/45,
+.dark.theme-tarde .dark\:text-cream-50\/40 {
+  color: rgba(61, 17, 25, 0.68);
+}
+.dark.theme-tarde .dark\:text-cream-50\/35,
+.dark.theme-tarde .dark\:text-cream-50\/30,
+.dark.theme-tarde .dark\:text-cream-50\/20 {
+  color: rgba(61, 17, 25, 0.6);
+}
+.dark.theme-tarde .dark\:hover\:text-cream-50:hover {
+  color: #3d1119;
+}
+.dark.theme-tarde .dark\:hover\:text-cream-50\/80:hover {
+  color: rgba(61, 17, 25, 0.9);
+}
+.dark.theme-tarde .dark\:text-gold-400 {
+  color: #7a5f22;
+}
+.dark.theme-tarde .dark\:hover\:text-gold-300:hover,
+.dark.theme-tarde .dark\:hover\:text-gold-400:hover {
+  color: #6e4a18;
+}
+.dark.theme-tarde .dark\:hover\:text-bordo-400:hover {
+  color: #6f1d2e;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;
