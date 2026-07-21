@@ -21,15 +21,16 @@ export default async function TopBar() {
   const todaySeconds = user ? await getTodayElapsedSeconds(user.id) : 0;
 
   return (
-    <header className="h-16 shrink-0 bg-cream-50/80 dark:bg-navy-950/90 backdrop-blur border-b border-gold-500/20 dark:border-gold-400/10 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
+    <header className="relative z-30 h-16 shrink-0 bg-cream-50/80 dark:bg-navy-950/90 backdrop-blur border-b border-gold-500/20 dark:border-gold-400/10 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
       <GlobalSearch />
 
       <div className="flex items-center gap-3">
         <PeticionarButton />
-        <ThemeToggle />
         <NewEntityMenu />
 
         {user && <TimesheetTimer initialSeconds={todaySeconds} />}
+
+        <ThemeToggle />
 
         <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors">
           <Bell size={20} className="text-navy-800 dark:text-cream-50/80" />
