@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, X, Check, Ban } from "lucide-react";
 import { updateBlogPostDraft, publishBlogPost, rejectBlogPost } from "@/lib/actions/blog";
+import { photoFileUrl } from "@/lib/photos";
 import { Badge, EmptyState } from "@/components/ui";
 
 export type PendingPost = {
@@ -318,19 +319,20 @@ function PhotoPickerGrid({
   return (
     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
       {photos.map((photo) => {
-        const selected = imageUrl === photo.url;
+        const fileUrl = photoFileUrl(photo.id);
+        const selected = imageUrl === fileUrl;
         return (
           <button
             key={photo.id}
             type="button"
-            onClick={() => onSelect(photo.url)}
+            onClick={() => onSelect(fileUrl)}
             data-tip={photo.caption || photo.category}
             className={`rounded-lg overflow-hidden border-2 transition-colors ${
               selected ? "border-gold-600" : "border-transparent hover:border-navy-800/20"
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.url} alt={photo.caption || photo.category} className="h-14 w-full object-cover" />
+            <img src={fileUrl} alt={photo.caption || photo.category} className="h-14 w-full object-cover" />
           </button>
         );
       })}

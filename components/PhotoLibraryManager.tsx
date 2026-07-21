@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud, Trash2 } from "lucide-react";
 import { deletePhoto } from "@/lib/actions/photos";
+import { photoFileUrl } from "@/lib/photos";
 import { Badge, EmptyState } from "@/components/ui";
 
 export type Photo = {
@@ -156,7 +157,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           {photos.map((photo) => (
             <div key={photo.id} className="rounded-xl border border-navy-800/10 dark:border-white/10 overflow-hidden bg-white dark:bg-navy-900">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.url} alt={photo.caption || photo.category} className="w-full h-28 object-cover" />
+              <img src={photoFileUrl(photo.id)} alt={photo.caption || photo.category} className="w-full h-28 object-cover" />
               <div className="p-2 space-y-1">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Badge color="navy">{photo.category}</Badge>

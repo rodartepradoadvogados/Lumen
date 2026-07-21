@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "public" });
+    const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "private" });
 
     const photo = await prisma.photo.create({
       data: { url: blob.url, category, court, caption: caption || null },
