@@ -1,5 +1,32 @@
 import clsx from "clsx";
-import { ReactNode } from "react";
+import { ButtonHTMLAttributes, ReactNode } from "react";
+
+// Botões da marca Lúmen: primário em ouro (ação principal), secundário em bordô (a cor
+// SECUNDÁRIA da marca — não só de urgência/alerta) com texto papel. Novos botões devem
+// consumir estes dois em vez de montar classes soltas; os botões existentes espalhados
+// pelos formulários/modais do portal ainda não foram migrados para cá (ver checklist).
+export function ButtonPrimary({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      className={clsx(
+        "inline-flex items-center justify-center gap-1.5 rounded-lg bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-default",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      className={clsx(
+        "inline-flex items-center justify-center gap-1.5 rounded-lg bg-bordo-700 hover:bg-bordo-600 text-cream-50 font-semibold text-sm px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-default",
+        className
+      )}
+      {...props}
+    />
+  );
+}
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -33,7 +60,12 @@ const badgeColors: Record<string, string> = {
   navy: "bg-navy-900/10 text-navy-900 dark:bg-white/10 dark:text-cream-50",
   gold: "bg-gold-500/15 text-gold-800 dark:bg-gold-400/15 dark:text-gold-400",
   green: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-400",
-  red: "bg-red-100 text-red-700 dark:bg-bordo-400/15 dark:text-bordo-400",
+  // "red" era o vermelho genérico do Tailwind no modo Dia (só virava bordô no modo
+  // escuro) — agora usa bordô nos dois, pra combinar de fato com a marca em qualquer tema.
+  // "bordo" é o mesmo tom, com um nome que deixa clara a intenção quando o uso não é de
+  // urgência (ex.: badge de categoria do blog), sem "pegar emprestado" a cor de alerta.
+  red: "bg-bordo-100 text-bordo-700 dark:bg-bordo-400/15 dark:text-bordo-400",
+  bordo: "bg-bordo-100 text-bordo-700 dark:bg-bordo-400/15 dark:text-bordo-400",
   amber: "bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-400",
   blue: "bg-blue-100 text-blue-700 dark:bg-blue-400/15 dark:text-blue-400",
   slate: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-cream-50/70",

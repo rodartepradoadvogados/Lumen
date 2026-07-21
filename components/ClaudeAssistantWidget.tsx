@@ -87,7 +87,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-navy-800 text-white">
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="text-gold-400" />
-              <span className="font-medium text-sm">Assistente Rodarte Prado</span>
+              <span className="font-medium text-sm">Assistente Lúmen</span>
             </div>
             <button
               type="button"

@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   TOKENS LÚMEN — fonte única de verdade das cores da marca.
+   Qualquer cor nova no produto vem daqui (ou das escalas navy/gold/bordo/cream
+   do tailwind.config.ts, que usam exatamente estes valores) — nunca um hex
+   solto dentro de um componente. Ver o manual de identidade visual "Lúmen".
+   ============================================================================ */
+:root {
+  /* Azul-marinho — base: fundos escuros e texto sobre fundo claro */
+  --lumen-navy: #0a1128;
+  --lumen-navy-2: #111a35; /* superfícies elevadas: cards, sidebar */
+  --lumen-navy-3: #1a2647; /* bordas/hover em fundo escuro */
+  /* Ouro — destaque principal, CTA primário, marca */
+  --lumen-gold: #b8860b;
+  --lumen-gold-lt: #d9a93a; /* hover do ouro, ícones */
+  --lumen-gold-pale: #e7c15a; /* topo do gradiente do ícone da marca */
+  /* Bordô — cor secundária (botões 2º, estado ativo, links, categorias, divisórias) */
+  --lumen-bordo: #6e0d25;
+  --lumen-bordo-lt: #8f1c38; /* hover/links, texto bordô sobre claro */
+  /* Papel — superfícies claras e leitura longa (blog) */
+  --lumen-paper: #f4efe4;
+  --lumen-paper-2: #ece3d2;
+}
+
 :root {
   --background: #f8fafc;
   --foreground: #14213d;
@@ -9,10 +32,9 @@
 }
 
 /* Tema "Noite" do site (classe `dark` no <html>, ver lib/theme.ts e components/ThemeToggle.tsx).
-   Mesmas cores de referência já usadas no app mobile (app/m/layout.tsx: bg-navy-950 etc.),
-   levemente mais escuras para servir de fundo de página cheia em telas grandes. */
+   Fundo = exatamente --lumen-navy, para o modo escuro do portal bater com a marca. */
 .dark {
-  --background: #080f1c;
+  --background: var(--lumen-navy);
   --foreground: #f1ece0;
   color-scheme: dark;
 }

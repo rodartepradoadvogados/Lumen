@@ -5,7 +5,7 @@ import Image from "next/image";
 import styles from "@/app/homepage.module.css";
 
 // Carrossel de 2 slides do banner inicial — um sobre o Blog Jurídico, outro sobre o produto
-// Gestão Jurídica. Troca sozinho a cada alguns segundos e por clique nos indicadores; simples
+// Lúmen. Troca sozinho a cada alguns segundos e por clique nos indicadores; simples
 // de propósito ("por hora, faça — depois vamos melhorando"), sem biblioteca externa.
 const SLIDES = [
   {
@@ -21,7 +21,7 @@ const SLIDES = [
     ),
     sub: "Decisões de tribunais superiores, mudanças de lei e teses vinculantes — resumidas todos os dias, com as fontes originais linkadas para você conferir.",
     primary: { label: "Ler o blog", href: "#leitura" },
-    secondary: { label: "Conhecer o Gestão Jurídica", href: "#funcionalidades" },
+    secondary: { label: "Conhecer o Lúmen", href: "#funcionalidades" },
   },
   {
     key: "produto",
@@ -35,7 +35,7 @@ const SLIDES = [
       </>
     ),
     sub: "Processos, prazos, financeiro e atendimento em um só lugar — com um blog jurídico atualizado todos os dias.",
-    primary: { label: "Conhecer o Gestão Jurídica", href: "#funcionalidades" },
+    primary: { label: "Conhecer o Lúmen", href: "#funcionalidades" },
     secondary: { label: "Ler o blog", href: "#leitura" },
   },
 ];

@@ -16,39 +16,44 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        // Escalas navy/gold/bordo/cream ancoradas nos tokens da marca Lúmen — os valores
+        // marcados "brand" abaixo são EXATAMENTE os hex do manual de identidade visual
+        // (mesmos valores de --lumen-* em app/globals.css); os demais tons da escala são
+        // interpolações para dar gradação a componentes que precisam de mais de 2 tons
+        // (hover, texto sutil, bordas) sem inventar uma cor fora da família da marca.
         navy: {
-          950: "#070f22",
-          900: "#0b1730",
-          800: "#0f1f3d",
-          700: "#152a52",
-          600: "#1d3868",
-          500: "#28477d",
+          950: "#070c1c",
+          900: "#0a1128", // brand: --navy (base)
+          800: "#111a35", // brand: --navy-2 (superfícies elevadas)
+          700: "#1a2647", // brand: --navy-3 (bordas/hover em fundo escuro)
+          600: "#243a63",
+          500: "#304e82",
         },
         gold: {
-          900: "#5c481c",
-          800: "#7a5f22",
-          700: "#96772a",
-          600: "#b8904f",
-          500: "#c6a05c",
-          400: "#d4b374",
-          300: "#e3cd9c",
-          100: "#f2e8d5",
+          900: "#453105",
+          800: "#5e4306",
+          700: "#7a5708",
+          600: "#9c6f0a",
+          500: "#b8860b", // brand: --gold (destaque principal, CTA primário)
+          400: "#d9a93a", // brand: --gold-lt (hover, ícones)
+          300: "#e7c15a", // brand: --gold-pale
+          100: "#f5e9cf",
         },
         cream: {
-          50: "#fbfaf7",
-          100: "#f6f3ec",
-          200: "#efe9dc",
+          50: "#f4efe4", // brand: --paper (superfícies claras, leitura longa)
+          100: "#ece3d2", // brand: --paper-2 (divisórias em fundo claro)
+          200: "#e8ddc9",
           300: "#e5dcc8",
         },
-        // Paleta bordô — segundo acento (reservado p/ o que tem peso jurídico/urgência:
-        // badge de notificação, indicadores de Prazo/Audiência, bordas de itens urgentes).
-        // bordo-400 é uma variante clara adicional (fora dos 5 tons de referência) usada
-        // apenas em modo escuro para manter contraste, no mesmo papel que gold-400 cumpre
+        // Paleta bordô — cor SECUNDÁRIA da marca (não só urgência): botões secundários,
+        // estado ativo/aba ativa, links, badges de categoria do blog, divisórias de seção.
+        // bordo-400 é uma variante clara adicional (fora dos 2 tons de referência da marca)
+        // usada em modo escuro para manter contraste, no mesmo papel que gold-400 cumpre
         // para a paleta dourada.
         bordo: {
           900: "#3d1119",
-          700: "#6f1d2e",
-          600: "#832438",
+          700: "#6e0d25", // brand: --bordo (base)
+          600: "#8f1c38", // brand: --bordo-lt (hover/links, texto bordô sobre claro)
           500: "#9a2c43",
           400: "#c96a80",
           100: "#f4dde1",
@@ -71,6 +76,11 @@ const config: Config = {
         pop: "0 8px 30px rgba(15, 31, 61, 0.16)",
       },
       borderRadius: {
+        // Raio padrão de card da marca Lúmen = 16px. `xl` já é a classe usada pelos cards
+        // do produto (`rounded-xl`), então sobrescrever aqui atualiza todos eles de uma vez
+        // — sem precisar trocar a classe em cada componente. Botões usam `rounded-lg`
+        // (8px), que já bate com o padrão da marca sem precisar de mudança nenhuma.
+        xl: "1rem",
         xl2: "1rem",
       },
     },

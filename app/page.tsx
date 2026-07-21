@@ -2,42 +2,30 @@ import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { Newsreader, Public_Sans } from "next/font/google";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import GJMark from "@/components/GJMark";
+import LumenMark from "@/components/LumenMark";
 import HomepageReveal from "@/components/HomepageReveal";
 import HomepageHeroCarousel from "@/components/HomepageHeroCarousel";
 import HomepageLoginCard from "@/components/HomepageLoginCard";
 import styles from "./homepage.module.css";
 
-// Homepage PÚBLICA (antes do login) do produto de software "Gestão Jurídica" — não é uma
+// Homepage PÚBLICA (antes do login) do produto de software "Lúmen" — não é uma
 // página do escritório Rodarte Prado. Vive em "/" e substitui o Painel interno, que se
 // mudou para "/painel" (ver app/(app)/painel/page.tsx, components/Sidebar.tsx,
 // lib/actions/auth.ts e middleware.ts). Busca matérias reais do blog jurídico a cada
 // request, no mesmo padrão de app/blog/page.tsx.
+//
+// Tipografia: Cormorant Garamond (--font-serif) e Inter (--font-sans), carregadas uma
+// única vez em app/layout.tsx e compartilhadas por toda a marca Lúmen — esta página não
+// carrega fonte própria (antes usava Newsreader/Public Sans à parte).
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Gestão Jurídica — Software de gestão para escritórios de advocacia",
+  title: "Lúmen — Software de gestão para escritórios de advocacia",
   description:
     "Processos, prazos, financeiro, atendimento e um blog jurídico atualizado todos os dias — tudo em um só sistema de gestão para escritórios de advocacia.",
 };
-
-// Fontes exclusivas desta página — deliberadamente diferentes de Playfair Display/Inter
-// (usadas pelo sistema interno em app/layout.tsx). Aplicadas só na <div> que envolve o
-// conteúdo desta rota via `.variable`, nunca no <body> global.
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-gj-serif",
-});
-const publicSans = Public_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-gj-sans",
-});
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia", ANALISE: "Análise" };
 
@@ -52,7 +40,7 @@ const FEATURES = [
   },
   {
     title: "Atendimento (e-mail e WhatsApp)",
-    note: "Atenda aos clientes por dentro do Gestão Jurídica, registrando atendimentos, controlando o status e convertendo leads em processo, caso ou assessoria jurídica — com integração total do WhatsApp ao sistema.",
+    note: "Atenda aos clientes por dentro do Lúmen, registrando atendimentos, controlando o status e convertendo leads em processo, caso ou assessoria jurídica — com integração total do WhatsApp ao sistema.",
   },
   {
     title: "CRM e funil comercial",
@@ -159,12 +147,12 @@ export default async function HomePage() {
   const featuredSources = featured ? parseSources(featured.sources) : [];
 
   return (
-    <div className={`${styles.page} ${newsreader.variable} ${publicSans.variable}`}>
+    <div className={styles.page}>
       <nav className={styles.nav}>
         <div className={`${styles.wrap} ${styles.navInner}`}>
           <div className={styles.brandMark}>
-            <GJMark />
-            <span className={styles.wordmark}>Gestão&nbsp;Jurídica</span>
+            <LumenMark />
+            <span className={styles.wordmark}>Lúmen</span>
           </div>
           <div className={styles.navLinks}>
             <a className={styles.navLinkPlain} href="#leitura">
@@ -271,7 +259,7 @@ export default async function HomePage() {
                 />
               </svg>
             </Link>
-            <p className={styles.validationNote}>Produção: Equipe Gestão Jurídica.</p>
+            <p className={styles.validationNote}>Produção: Equipe Lúmen.</p>
           </HomepageReveal>
         </div>
       </section>
@@ -368,8 +356,8 @@ export default async function HomePage() {
           <div className={styles.footerTop}>
             <HomepageReveal as="div" className={`${styles.footerLede} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
               <div className={styles.footerBrand}>
-                <GJMark size={32} />
-                <span className={styles.wordmark}>Gestão Jurídica</span>
+                <LumenMark size={32} />
+                <span className={styles.wordmark}>Lúmen</span>
               </div>
               <h2>Gestão para escritórios que não têm tempo a perder.</h2>
               <p>Conte o essencial do seu escritório — a equipe responde diretamente, sem triagem automática.</p>
@@ -410,7 +398,7 @@ export default async function HomePage() {
             </HomepageReveal>
           </div>
           <div className={styles.footerBottom}>
-            <span>© 2026 — Gestão Jurídica · software de gestão para escritórios de advocacia</span>
+            <span>© 2026 — Lúmen · software de gestão para escritórios de advocacia</span>
           </div>
         </div>
       </footer>

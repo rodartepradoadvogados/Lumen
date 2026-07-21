@@ -10,9 +10,9 @@ const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const post = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
-  if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Gestão Jurídica" };
+  if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Lúmen" };
   return {
-    title: `${post.title} | Blog Jurídico Gestão Jurídica`,
+    title: `${post.title} | Blog Jurídico Lúmen`,
     description: post.summary,
   };
 }
@@ -30,7 +30,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     .filter(Boolean);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-cream-50">
       <header className="bg-navy-900 px-6 py-8 text-center">
         <Link href="/blog" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-500 hover:text-gold-400">
           <ArrowLeft size={14} /> Voltar ao blog
@@ -45,7 +45,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           )}
           <div className="p-6 sm:p-8 space-y-4">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Badge color="navy">{post.area}</Badge>
+              <Badge color="bordo">{post.area}</Badge>
               <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
             </div>
             <h1 className="font-serif font-bold text-navy-900 text-2xl sm:text-3xl leading-tight">{post.title}</h1>
@@ -55,7 +55,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             )}
-            <p className="text-base text-navy-800/70 italic border-l-2 border-gold-500/50 pl-3 text-justify hyphens-auto">
+            <p className="text-base text-navy-800/70 italic border-l-2 border-bordo-600/60 pl-3 text-justify hyphens-auto">
               {post.summary}
             </p>
 
@@ -74,7 +74,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 <ul className="space-y-1">
                   {sourceLinks.map((url, i) => (
                     <li key={i}>
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-gold-700 hover:underline break-all">
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-bordo-600 hover:underline break-all">
                         {url}
                       </a>
                     </li>
@@ -86,7 +86,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         </article>
 
         <p className="text-center text-[11px] text-navy-800/40 mt-8">
-          Gestão Jurídica — conteúdo informativo, não substitui consulta jurídica.
+          Lúmen — conteúdo informativo, não substitui consulta jurídica.
         </p>
       </main>
     </div>

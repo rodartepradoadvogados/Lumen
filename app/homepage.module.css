@@ -1,50 +1,33 @@
-/* Homepage pública do produto "Gestão Jurídica" (app/page.tsx).
+/* Homepage pública do produto "Lúmen" (app/page.tsx).
  *
- * Tipografia DELIBERADAMENTE separada do sistema interno (Playfair Display/Inter, ver
- * app/layout.tsx) — este é o marketing de um produto de software, não uma página do
- * escritório. Por isso vive num CSS Module próprio, com as custom properties escopadas
- * dentro de `.page`. A PALETA, porém, agora bebe de propósito da mesma identidade do
- * escritório (navy/dourado/bordô — ver tailwind.config.ts): azul marinho nos fundos
- * escuros (nav, hero, rodapé), dourado mais escurecido nos acentos e bordô nas bordas,
- * sublinhados e realces, a pedido explícito do usuário.
+ * Cor e tipografia vêm dos tokens centrais da marca: as variáveis --lumen-* definidas em
+ * app/globals.css (mesmos hex do manual de identidade "Lúmen") e as fontes compartilhadas
+ * --font-serif (Cormorant Garamond) / --font-sans (Inter), carregadas uma única vez em
+ * app/layout.tsx — nada de paleta ou fonte próprias aqui, pra não duplicar a fonte da
+ * verdade. As variáveis abaixo (--ink, --mist, --line...) são só apelidos locais, sempre
+ * apontando pros mesmos --lumen-*, pra manter o resto deste arquivo legível.
  *
- * Tema claro/escuro: segue o MESMO mecanismo já usado no resto do site (lib/theme.ts +
- * app/layout.tsx), isto é, a classe `dark` estampada em <html> pelo script anti-flash —
- * não um mecanismo novo. Por isso o padrão aqui é "claro por default, `:global(.dark)`
- * sobrescreve para escuro", igual à convenção já usada em app/globals.css (:root vs .dark),
- * sem introduzir uma segunda fonte de verdade (nada de media query própria conflitando
- * com a escolha explícita do usuário no ThemeToggle).
- *
- * Texto sobre fotos: hero, footer, card do artigo em destaque e o card de login ficam
- * SEMPRE sobre uma foto ou um fundo escuro fixo, não sobre `--ink`/`--text` (que mudam
- * com o tema). Por isso o texto ali usa cores fixas (--on-photo-*), nunca --brass/--text
- * diretamente — do contrário, no tema claro essas cores ficam escuras e "somem" em cima
- * da foto/gradiente, que é sempre escuro. Esse é o motivo raiz do texto "apagado".
+ * Landing é SEMPRE navy (não segue o Dia/Tarde/Noite do portal, ver lib/theme.ts) — é a
+ * página de marketing do produto, com identidade fixa, igual ao mockup do manual.
  */
 
 .page {
-  /* ---- Paleta "Gestão Jurídica" — claro (default) ---- */
-  --ink: #ece5d6;
-  --ink-2: #e1d8c4;
-  --ink-3: #d6cbb3;
-  --text: #0b1730;
-  --mist: #152a52;
-  --mist-dim: #1d3868;
-  --brass: #7a5f22;
-  --brass-soft: #5c481c;
-  --oxblood: #6f1d2e;
-  --line: rgba(11, 23, 48, 0.14);
-
-  /* ---- Cores fixas para texto/realces sobre foto ou fundo escuro fixo ----
-     Não mudam com o tema — a superfície por baixo (foto + gradiente) é sempre escura. */
-  --on-photo-gold: #e3cd9c;
-  --on-photo-gold-dim: #c6a05c;
+  --ink: var(--lumen-navy);
+  --ink-2: var(--lumen-navy-2);
+  --ink-3: var(--lumen-navy-3);
+  --text: var(--lumen-paper);
+  --mist: rgba(244, 239, 228, 0.72);
+  --mist-dim: rgba(244, 239, 228, 0.5);
+  --brass: var(--lumen-gold);
+  --brass-soft: var(--lumen-gold-lt);
+  --oxblood: var(--lumen-bordo);
+  --oxblood-soft: var(--lumen-bordo-lt);
+  --line: rgba(244, 239, 228, 0.14);
   --on-photo-ink: #1a1410;
-  --on-photo-bordo: #c96a80;
 
   background: var(--ink);
   color: var(--text);
-  font-family: var(--font-gj-sans), "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-sans), "Segoe UI", Arial, sans-serif;
   font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -52,25 +35,11 @@
   min-height: 100vh;
 }
 
-:global(.dark) .page {
-  /* ---- Paleta "Gestão Jurídica" — escuro (azul marinho do escritório) ---- */
-  --ink: #0b1730;
-  --ink-2: #0f1f3d;
-  --ink-3: #152a52;
-  --text: #efe7d8;
-  --mist: #b7ad9c;
-  --mist-dim: #8b8172;
-  --brass: #b8904f;
-  --brass-soft: #d4b374;
-  --oxblood: #832438;
-  --line: rgba(239, 231, 216, 0.14);
-}
-
 .page :global(h1),
 .page :global(h2),
 .page :global(h3) {
-  font-family: var(--font-gj-serif), Georgia, serif;
-  font-weight: 500;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
   text-wrap: balance;
   margin: 0;
 }
@@ -90,7 +59,7 @@
 
 .eyebrow {
   display: inline-block;
-  font-family: var(--font-gj-sans), sans-serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -106,11 +75,8 @@
   top: 0;
   z-index: 40;
   backdrop-filter: blur(10px);
-  background: linear-gradient(to bottom, rgba(7, 13, 26, 0.78), rgba(7, 13, 26, 0.4));
+  background: linear-gradient(to bottom, rgba(10, 17, 40, 0.78), rgba(10, 17, 40, 0.4));
   border-bottom: 1px solid var(--line);
-}
-:global(.dark) .nav {
-  background: linear-gradient(to bottom, rgba(7, 13, 26, 0.78), rgba(7, 13, 26, 0.4));
 }
 .nav .navInner {
   display: flex;
@@ -124,7 +90,7 @@
   gap: 0.7rem;
 }
 .wordmark {
-  font-family: var(--font-gj-serif), serif;
+  font-family: var(--font-serif), serif;
   font-weight: 500;
   font-size: 1.02rem;
   color: var(--text);
@@ -150,17 +116,17 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--on-photo-gold);
+  background: var(--brass);
   color: var(--on-photo-ink);
   font-weight: 600;
   font-size: 0.82rem;
   padding: 0.55rem 1.1rem;
-  border-radius: 3px;
+  border-radius: 8px;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 .navCta:hover,
 .navCta:focus-visible {
-  background: var(--on-photo-gold-dim);
+  background: var(--brass-soft);
   transform: translateY(-1px);
 }
 
@@ -170,7 +136,7 @@
   min-height: 92svh;
   display: flex;
   align-items: flex-end;
-  background: #070f22;
+  background: var(--lumen-navy);
 }
 .heroImageWrap {
   position: absolute;
@@ -188,10 +154,10 @@
   z-index: 2;
   background: linear-gradient(
     to top,
-    rgba(7, 12, 24, 0.95) 4%,
-    rgba(7, 12, 24, 0.62) 42%,
-    rgba(7, 12, 24, 0.3) 68%,
-    rgba(7, 12, 24, 0.5) 100%
+    rgba(10, 17, 40, 0.95) 4%,
+    rgba(10, 17, 40, 0.62) 42%,
+    rgba(10, 17, 40, 0.3) 68%,
+    rgba(10, 17, 40, 0.5) 100%
   );
 }
 
@@ -226,7 +192,7 @@
   background: rgba(243, 236, 221, 0.6);
 }
 .heroDotActive {
-  background: var(--on-photo-gold);
+  background: var(--brass);
 }
 .heroContent {
   position: relative;
@@ -239,8 +205,8 @@
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 .heroContent .eyebrow {
-  color: var(--on-photo-gold);
-  border-bottom-color: var(--on-photo-bordo);
+  color: var(--brass-soft);
+  border-bottom-color: var(--oxblood-soft);
   margin-bottom: 1.1rem;
   display: inline-block;
 }
@@ -251,7 +217,7 @@
   color: #f6f1e4;
 }
 .heroTitle em {
-  color: var(--on-photo-gold);
+  color: var(--brass-soft);
   font-style: italic;
 }
 .heroSub {
@@ -270,22 +236,22 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: var(--font-gj-sans), sans-serif;
+  font-family: var(--font-sans), sans-serif;
   font-weight: 600;
   font-size: 0.92rem;
   padding: 0.85rem 1.55rem;
-  border-radius: 3px;
+  border-radius: 8px;
   border: 1px solid transparent;
   transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
 }
 .btnPrimary {
-  background: var(--on-photo-gold);
+  background: var(--brass);
   color: var(--on-photo-ink);
 }
 .btnPrimary:hover,
 .btnPrimary:focus-visible {
-  background: var(--on-photo-gold-dim);
+  background: var(--brass-soft);
   transform: translateY(-2px);
 }
 .btnGhost {
@@ -339,20 +305,20 @@
   right: clamp(1.25rem, 4vw, 3rem);
   width: min(300px, calc(100vw - 2.5rem));
   padding: 1.25rem;
-  border-radius: 4px;
+  border-radius: 1rem;
   background: rgba(11, 17, 32, 0.78);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(239, 231, 216, 0.16);
-  border-top: 2px solid var(--on-photo-bordo);
+  border-top: 2px solid var(--oxblood-soft);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 .loginEyebrow {
-  font-family: var(--font-gj-sans), sans-serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--on-photo-gold);
+  color: var(--brass-soft);
   display: block;
   margin-bottom: 0.75rem;
 }
@@ -363,10 +329,10 @@
 }
 .loginInput {
   width: 100%;
-  font-family: var(--font-gj-sans), sans-serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.85rem;
   padding: 0.55rem 0.7rem;
-  border-radius: 3px;
+  border-radius: 8px;
   border: 1px solid rgba(239, 231, 216, 0.2);
   background: rgba(0, 0, 0, 0.25);
   color: #f3ecdd;
@@ -376,7 +342,7 @@
 }
 .loginInput:focus {
   outline: none;
-  border-color: var(--on-photo-gold);
+  border-color: var(--brass-soft);
 }
 .loginError {
   font-size: 0.78rem;
@@ -384,18 +350,18 @@
 }
 .loginSubmit {
   margin-top: 0.2rem;
-  font-family: var(--font-gj-sans), sans-serif;
+  font-family: var(--font-sans), sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
   padding: 0.55rem;
-  border-radius: 3px;
-  background: var(--on-photo-gold);
+  border-radius: 8px;
+  background: var(--brass);
   color: var(--on-photo-ink);
   transition: background 0.2s ease;
 }
 .loginSubmit:hover,
 .loginSubmit:focus-visible {
-  background: var(--on-photo-gold-dim);
+  background: var(--brass-soft);
 }
 .loginSubmit:disabled {
   opacity: 0.6;
@@ -470,7 +436,7 @@
 }
 .articleFeatured {
   position: relative;
-  border-radius: 4px;
+  border-radius: 1rem;
   overflow: hidden;
   min-height: 440px;
   display: flex;
@@ -486,7 +452,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(7, 12, 24, 0.95), rgba(7, 12, 24, 0.42) 55%, rgba(7, 12, 24, 0.12) 85%);
+  background: linear-gradient(to top, rgba(10, 17, 40, 0.95), rgba(10, 17, 40, 0.42) 55%, rgba(10, 17, 40, 0.12) 85%);
 }
 .cardBody {
   position: relative;
@@ -518,11 +484,10 @@
   color: var(--brass-soft);
   border-color: rgba(194, 144, 63, 0.45);
 }
-/* Dentro do card em destaque (foto + gradiente sempre escuros), a cor precisa ser fixa —
-   não a mesma var(--brass-soft) que troca com o tema, usada no card do .articleRow (que
-   fica sobre o fundo claro/escuro adaptável da própria página, não sobre foto). */
+/* Dentro do card em destaque (foto + gradiente), usa o dourado de base — mais contraste
+   contra a foto do que o --brass-soft usado no .tagType "solto" (fundo --ink-2 liso). */
 .cardBody .tagType {
-  color: var(--on-photo-gold-dim);
+  color: var(--brass);
 }
 .articleFeaturedTitle {
   font-size: clamp(1.35rem, 2.6vw, 1.7rem);
@@ -563,7 +528,7 @@
 }
 .articleRow {
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 1rem;
   padding: 1.4rem 1.5rem;
   background: var(--ink-2);
   flex: 1;
@@ -594,11 +559,11 @@
   color: var(--mist);
 }
 .articleRow .src {
-  text-decoration-color: rgba(139, 36, 56, 0.45);
+  text-decoration-color: rgba(201, 106, 128, 0.45);
 }
 .emptyReading {
   border: 1px dashed var(--line);
-  border-radius: 4px;
+  border-radius: 1rem;
   padding: 2.5rem 1.5rem;
   text-align: center;
   color: var(--mist-dim);
@@ -617,7 +582,7 @@
 }
 .linkArrow {
   font-weight: 600;
-  color: var(--brass);
+  color: var(--oxblood-soft);
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -659,7 +624,7 @@
   background: var(--ink);
   border: 1px solid var(--line);
   border-left: 3px solid var(--oxblood);
-  border-radius: 4px;
+  border-radius: 1rem;
   padding: clamp(1.3rem, 2.5vw, 1.6rem);
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
@@ -669,7 +634,7 @@
   transform: translateY(-3px);
 }
 .featureCard h3 {
-  font-family: var(--font-gj-serif), serif;
+  font-family: var(--font-serif), serif;
   font-weight: 500;
   font-size: 1.05rem;
   margin-bottom: 0.6rem;
@@ -693,7 +658,7 @@
   }
 }
 .valuePhoto {
-  border-radius: 4px;
+  border-radius: 1rem;
   overflow: hidden;
   border: 1px solid var(--line);
   aspect-ratio: 3 / 4;
@@ -701,7 +666,7 @@
   top: 6rem;
 }
 .valuePhotoCaption {
-  font-family: var(--font-gj-serif), serif;
+  font-family: var(--font-serif), serif;
   font-style: italic;
   font-size: 0.85rem;
   color: var(--mist);
@@ -713,7 +678,7 @@
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 1rem;
   overflow: hidden;
 }
 .valueCard {
@@ -763,7 +728,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(7, 12, 24, 0.9), rgba(7, 12, 24, 0.95));
+  background: linear-gradient(180deg, rgba(10, 17, 40, 0.9), rgba(10, 17, 40, 0.95));
 }
 .footerWrap {
   position: relative;
@@ -779,7 +744,7 @@
   border-bottom: 1px solid rgba(239, 231, 216, 0.16);
 }
 .footerLede {
-  border-left: 2px solid var(--on-photo-bordo);
+  border-left: 2px solid var(--oxblood-soft);
   padding-left: 1.25rem;
 }
 .footerLede h2 {
@@ -799,7 +764,7 @@
   margin-bottom: 1.6rem;
 }
 .footerBrand .wordmark {
-  font-family: var(--font-gj-serif), serif;
+  font-family: var(--font-serif), serif;
   font-size: 0.98rem;
   color: #f3ecdd;
 }
@@ -809,8 +774,8 @@
   flex-wrap: wrap;
 }
 .footerCol .eyebrow {
-  color: var(--on-photo-gold);
-  border-bottom-color: var(--on-photo-bordo);
+  color: var(--brass-soft);
+  border-bottom-color: var(--oxblood-soft);
 }
 .footerCol ul {
   list-style: none;
@@ -826,7 +791,7 @@
   color: rgba(239, 231, 216, 0.78);
 }
 .footerCol a:hover {
-  color: var(--on-photo-gold);
+  color: var(--brass-soft);
 }
 .footerBottom {
   display: flex;

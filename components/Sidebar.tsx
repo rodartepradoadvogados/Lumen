@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { THEME_KEY, THEME_CHANGE_EVENT, isThemeMode, type ThemeMode } from "@/lib/theme";
+import LumenMark from "@/components/LumenMark";
 
 // Sub-aba de um item do menu: aparece expandida logo abaixo do item pai quando
 // a rota atual pertence àquela seção (sem precisar de clique extra pra abrir).
@@ -261,21 +262,17 @@ export default function Sidebar({
           >
             <X size={18} />
           </button>
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="h-px flex-1 bg-gold-500/60" />
-            <span className="h-1 w-1 rounded-full bg-gold-500" />
-            <span className="h-px flex-1 bg-gold-500/60" />
+          <div className="flex justify-center mb-2">
+            <LumenMark size={40} />
           </div>
-          <h1 className="font-serif text-xl font-bold tracking-wide text-center leading-tight">
-            RODARTE PRADO
-          </h1>
+          <h1 className="font-serif text-xl font-bold tracking-wide text-center leading-tight">LÚMEN</h1>
           <p
             className={clsx(
               "text-center text-[11px] tracking-[0.3em] font-medium mt-0.5",
               isLightForced ? "text-gold-700" : "text-gold-500"
             )}
           >
-            ADVOGADOS
+            GESTÃO JURÍDICA
           </p>
         </div>
 
@@ -310,8 +307,8 @@ export default function Sidebar({
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors",
                         active
                           ? isLightForced
-                            ? "bg-gold-600/10 text-navy-900 font-semibold border-gold-600"
-                            : "bg-gold-500/12 text-gold-300 font-semibold border-gold-400"
+                            ? "bg-bordo-600/10 text-navy-900 font-semibold border-bordo-700"
+                            : "bg-bordo-600/15 text-bordo-400 font-semibold border-bordo-600"
                           : isLightForced
                           ? "text-navy-800/70 font-medium border-transparent hover:bg-navy-900/5 hover:text-navy-900"
                           : "text-cream-100/80 font-medium border-transparent hover:bg-white/5 hover:text-cream-50"
@@ -350,8 +347,8 @@ export default function Sidebar({
                                     "block pl-6 pr-3 py-1.5 rounded-md text-[13px] transition-colors",
                                     subActive
                                       ? isLightForced
-                                        ? "bg-gold-600/10 text-navy-900 font-semibold"
-                                        : "bg-navy-700/40 text-gold-300 font-semibold"
+                                        ? "bg-bordo-600/10 text-navy-900 font-semibold"
+                                        : "bg-navy-700/40 text-bordo-400 font-semibold"
                                       : isLightForced
                                       ? "text-navy-800/70 hover:bg-navy-900/5 hover:text-navy-900"
                                       : "text-cream-100/70 hover:bg-navy-700/25 hover:text-cream-50"

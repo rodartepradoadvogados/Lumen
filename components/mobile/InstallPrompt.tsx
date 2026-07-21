@@ -73,7 +73,7 @@ export default function InstallPrompt() {
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold">Instale o app Gestão Jurídica</p>
+              <p className="text-sm font-semibold">Instale o app Lúmen</p>
               <p className="text-xs text-cream-50/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
               <button
                 onClick={install}

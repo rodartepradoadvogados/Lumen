@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui";
+import LumenMark from "@/components/LumenMark";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Blog Jurídico | Gestão Jurídica",
-  description: "Atualidades de jurisprudência, legislação e doutrina, publicadas pelo Gestão Jurídica.",
+  title: "Blog Jurídico | Lúmen",
+  description: "Atualidades de jurisprudência, legislação e doutrina, publicadas pelo Lúmen.",
 };
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
@@ -25,14 +26,12 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
   const areas = Array.from(new Set(allPublished.map((p) => p.area))).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-cream-50">
       <header className="bg-navy-900 px-6 py-10 text-center">
-        <div className="flex items-center gap-1.5 mb-1.5 justify-center">
-          <span className="h-px w-10 bg-gold-500/60" />
-          <span className="h-1 w-1 rounded-full bg-gold-500" />
-          <span className="h-px w-10 bg-gold-500/60" />
+        <div className="flex justify-center mb-2">
+          <LumenMark size={40} />
         </div>
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-wide text-cream-50">GESTÃO JURÍDICA</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-wide text-cream-50">LÚMEN</h1>
         <p className="text-[11px] tracking-[0.3em] text-gold-500 font-medium mt-1">BLOG JURÍDICO</p>
         <p className="text-sm text-cream-50/70 mt-3 max-w-xl mx-auto">
           Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial, tributário, trabalhista, previdenciário e mais.
@@ -45,7 +44,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
             <Link
               href="/blog"
               className={`text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors ${
-                !areaFilter ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                !areaFilter ? "bg-bordo-700 text-cream-50" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
               }`}
             >
               Todas as áreas
@@ -55,7 +54,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
                 key={area}
                 href={`/blog?area=${encodeURIComponent(area)}`}
                 className={`text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors ${
-                  areaFilter === area ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                  areaFilter === area ? "bg-bordo-700 text-cream-50" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
                 }`}
               >
                 {area}
@@ -84,7 +83,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
                 )}
                 <div className="p-5 flex-1 flex flex-col gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge color="navy">{post.area}</Badge>
+                    <Badge color="bordo">{post.area}</Badge>
                     <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
                   </div>
                   <h2 className="font-serif font-bold text-navy-900 text-lg leading-snug">{post.title}</h2>
@@ -94,6 +93,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
                       {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
                     </p>
                   )}
+                  <span className="text-xs font-semibold text-bordo-600 inline-flex items-center gap-1 mt-1">Ler matéria completa →</span>
                 </div>
               </Link>
             ))}
@@ -102,7 +102,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
       </main>
 
       <footer className="text-center text-[11px] text-navy-800/40 py-8">
-        Gestão Jurídica — conteúdo informativo, não substitui consulta jurídica.
+        Lúmen — conteúdo informativo, não substitui consulta jurídica.
       </footer>
     </div>
   );

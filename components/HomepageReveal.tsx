@@ -2,7 +2,7 @@
 
 import { createElement, useEffect, useRef, useState, type ElementType, type ReactNode } from "react";
 
-// Animação sutil de "reveal on scroll" para a homepage pública do Gestão Jurídica
+// Animação sutil de "reveal on scroll" para a homepage pública do Lúmen
 // (app/page.tsx) — mesmo comportamento do mockup aprovado (proposta-homepage.html):
 // os blocos entram com fade + leve translateY quando cruzam a viewport, via
 // IntersectionObserver, e respeitam prefers-reduced-motion (nesse caso aparecem
