@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
+import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
 import { Phone, DollarSign, BarChart, Settings, LogOut, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default async function MobileMais() {
               <ChevronRight size={16} className="text-navy-800/30 dark:text-cream-50/30" />
             </Link>
           ))}
+          <MobileInstallMenuItem />
         </div>
       </Card>
 
