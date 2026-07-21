@@ -24,19 +24,19 @@ export default function OverdueTaskRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="px-5 py-3 hover:bg-cream-50 transition-colors">
+    <div className="px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
       <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge color={taskTypeColors[task.type] ?? "slate"}>{taskTypeLabels[task.type] ?? task.type}</Badge>
-          <p className="text-sm font-medium text-navy-900">{task.title}</p>
+          <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{task.title}</p>
         </div>
-        <p className="text-xs text-navy-800/45 mt-0.5">
+        <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
           {task.responsibleName && <>Responsável: {task.responsibleName} · </>}
           Venceu em {formatDate(task.dueDate)}
         </p>
       </button>
       {task.caseId && (
-        <Link href={`/processos/${task.caseId}`} className="inline-block mt-1 text-xs font-semibold text-gold-700 hover:underline">
+        <Link href={`/processos/${task.caseId}`} className="inline-block mt-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline">
           {task.caseLabel}
         </Link>
       )}

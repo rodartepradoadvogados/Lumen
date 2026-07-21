@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Kanban,
@@ -21,11 +21,27 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
+// Sub-aba de um item do menu: aparece expandida logo abaixo do item pai quando
+// a rota atual pertence àquela seção (sem precisar de clique extra pra abrir).
+// `value` é o valor da querystring (`item.subParam=value`); `undefined` representa
+// a opção "sem filtro" (ex: "Todos"), que não adiciona nada à URL.
+type SubNavItem = {
+  label: string;
+  value?: string;
+  adminOnly?: boolean;
+};
+
 type NavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
   adminOnly?: boolean;
+  subParam?: string;
+  subItems?: SubNavItem[];
+  // Valor considerado "ativo" quando a querystring não traz `subParam` (ex: a
+  // página de Configurações cai em "geral" por padrão). Deixe undefined quando
+  // a ausência do parâmetro já corresponde a uma sub-aba própria (ex: "Todos").
+  subDefaultValue?: string;
 };
 
 // Menu reorganizado em categorias: visão geral do dia a dia primeiro, depois
@@ -45,13 +61,38 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/alertas", label: "Alertas", icon: Bell },
       { href: "/publicacoes", label: "Publicações", icon: Newspaper },
-      { href: "/atendimento", label: "Atendimento", icon: Headset },
+      {
+        href: "/atendimento",
+        label: "Atendimento",
+        icon: Headset,
+        subParam: "status",
+        subItems: [
+          { label: "Todos" },
+          { label: "Novo", value: "NOVO" },
+          { label: "Em Triagem", value: "EM_TRIAGEM" },
+          { label: "Convertido", value: "CONVERTIDO" },
+          { label: "Arquivado", value: "ARQUIVADO" },
+          { label: "Rascunhos", value: "RASCUNHO" },
+        ],
+      },
     ],
   },
   {
     label: "Jurídico",
     items: [
-      { href: "/processos", label: "Processos e Casos", icon: Briefcase },
+      {
+        href: "/processos",
+        label: "Processos e Casos",
+        icon: Briefcase,
+        subParam: "status",
+        subItems: [
+          { label: "Todos" },
+          { label: "Ativo", value: "ATIVO" },
+          { label: "Suspenso", value: "SUSPENSO" },
+          { label: "Encerrado", value: "ENCERRADO" },
+          { label: "Arquivado", value: "ARQUIVADO" },
+        ],
+      },
       { href: "/contatos", label: "Contatos", icon: Users },
       { href: "/financeiro", label: "Financeiro", icon: Wallet, adminOnly: true },
     ],
@@ -60,25 +101,52 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
     label: "Gestão",
     items: [
       { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
-      { href: "/produtividade", label: "Produtividade", icon: Trophy },
-      { href: "/configuracoes", label: "Configurações", icon: Settings },
+      {
+        href: "/produtividade",
+        label: "Produtividade",
+        icon: Trophy,
+        subParam: "aba",
+        subItems: [
+          { label: "Histórico" },
+          { label: "Timesheet", value: "timesheet" },
+        ],
+      },
+      {
+        href: "/configuracoes",
+        label: "Configurações",
+        icon: Settings,
+        subParam: "secao",
+        subDefaultValue: "geral",
+        subItems: [
+          { label: "Geral", value: "geral" },
+          { label: "Equipe & Acesso", value: "equipe", adminOnly: true },
+          { label: "Financeiro", value: "financeiro" },
+          { label: "Produtividade", value: "produtividade" },
+          { label: "Workflows", value: "workflows" },
+          { label: "Modelos & Integrações", value: "modelos" },
+        ],
+      },
     ],
   },
 ];
 
 export default function Sidebar({
   hasFinanceAccess = true,
+  isAdmin = false,
   unreadPublications = 0,
 }: {
   hasFinanceAccess?: boolean;
+  isAdmin?: boolean;
   unreadPublications?: number;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setOpen(false);
-  }, [pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, searchParams.toString()]);
 
   const groups = navGroups
     .map((group) => ({
@@ -139,25 +207,64 @@ export default function Sidebar({
               {group.items.map((item) => {
                 const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
                 const Icon = item.icon;
+                const visibleSubItems = item.subItems?.filter((sub) => !sub.adminOnly || isAdmin) ?? [];
+                // Sub-abas expandem sozinhas quando a rota atual já pertence a essa
+                // seção — sem exigir um clique extra só pra abrir o submenu.
+                const expanded = active && visibleSubItems.length > 0;
+                const currentSubValue = item.subParam ? searchParams.get(item.subParam) ?? item.subDefaultValue : undefined;
+
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={clsx(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors",
-                      active
-                        ? "bg-gold-500/12 text-gold-300 font-semibold border-gold-400"
-                        : "text-cream-100/80 font-medium border-transparent hover:bg-white/5 hover:text-cream-50"
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={clsx(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors",
+                        active
+                          ? "bg-gold-500/12 text-gold-300 font-semibold border-gold-400"
+                          : "text-cream-100/80 font-medium border-transparent hover:bg-white/5 hover:text-cream-50"
+                      )}
+                    >
+                      <Icon size={18} strokeWidth={2} />
+                      <span className="flex-1">{item.label}</span>
+                      {item.href === "/publicacoes" && unreadPublications > 0 && (
+                        <span className="bg-gold-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
+                          {unreadPublications > 99 ? "99+" : unreadPublications}
+                        </span>
+                      )}
+                    </Link>
+
+                    {visibleSubItems.length > 0 && (
+                      <div
+                        className={clsx(
+                          "grid transition-[grid-template-rows,opacity] duration-200 ease-in-out",
+                          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                        )}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="pt-0.5 pb-1 pl-4 space-y-0.5">
+                            {visibleSubItems.map((sub) => {
+                              const subActive = expanded && currentSubValue === (sub.value ?? undefined);
+                              const subHref = `${item.href}${sub.value ? `?${item.subParam}=${sub.value}` : ""}`;
+                              return (
+                                <Link
+                                  key={sub.label}
+                                  href={subHref}
+                                  className={clsx(
+                                    "block pl-6 pr-3 py-1.5 rounded-md text-[13px] transition-colors",
+                                    subActive
+                                      ? "bg-navy-700/40 text-gold-300 font-semibold"
+                                      : "text-cream-100/70 hover:bg-navy-700/25 hover:text-cream-50"
+                                  )}
+                                >
+                                  {sub.label}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  >
-                    <Icon size={18} strokeWidth={2} />
-                    <span className="flex-1">{item.label}</span>
-                    {item.href === "/publicacoes" && unreadPublications > 0 && (
-                      <span className="bg-gold-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
-                        {unreadPublications > 99 ? "99+" : unreadPublications}
-                      </span>
-                    )}
-                  </Link>
+                  </div>
                 );
               })}
             </div>

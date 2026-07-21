@@ -14,6 +14,7 @@ import DeleteButton from "@/components/DeleteButton";
 import UserRow from "@/components/UserRow";
 import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
+import ImportManualModal from "@/components/ImportManualModal";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import TestDjenButton from "@/components/TestDjenButton";
 import TaskTypePointsManager from "@/components/TaskTypePointsManager";
@@ -183,13 +184,14 @@ export default async function ConfiguracoesPage({
       {secao === "geral" && (
       <Card>
         <CardHeader title="Importação de Dados" subtitle="Traga contatos, processos e agenda de uma planilha" />
-        <div className="p-5">
+        <div className="p-5 flex flex-wrap gap-3">
           <Link
             href="/configuracoes/importar"
             className="flex items-center gap-2 justify-center bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
           >
             <Upload size={16} /> Importar Contatos / Processos / Agenda
           </Link>
+          <ImportManualModal />
         </div>
       </Card>
       )}

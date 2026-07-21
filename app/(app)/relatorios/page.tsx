@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
-import { Users, Target, Newspaper, Wallet } from "lucide-react";
+import { Users, Target, Newspaper, Wallet, Scale } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +113,20 @@ const LAWYER_ORDER = ["Jairo", "Rodrigo", "Jairo e Rodrigo", "Sem identificaçã
 const triageLabels: Record<string, string> = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", TRATADA: "Tratada" };
 const triageColor: Record<string, string> = { PENDENTE: "#f59e0b", EM_ANALISE: "#3b82f6", TRATADA: "#10b981" };
 
+const CASE_STATUS_ORDER = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
+const caseStatusLabels: Record<string, string> = {
+  ATIVO: "Ativo",
+  SUSPENSO: "Suspenso",
+  ENCERRADO: "Encerrado",
+  ARQUIVADO: "Arquivado",
+};
+const caseStatusColor: Record<string, string> = {
+  ATIVO: "#10b981",
+  SUSPENSO: "#f59e0b",
+  ENCERRADO: "#64748b",
+  ARQUIVADO: "#ef4444",
+};
+
 const NAVY = "#0f1f3d";
 const GOLD = "#c6a05c";
 
@@ -126,7 +140,17 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
   const viewer = await getCurrentUser();
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
-  const [doneTasks, attendances, publications, paidReceivables, paidPayables, overdueReceivables] = await Promise.all([
+  const [
+    doneTasks,
+    attendances,
+    publications,
+    paidReceivables,
+    paidPayables,
+    overdueReceivables,
+    casesByArea,
+    casesByStatus,
+    closedCasesInPeriod,
+  ] = await Promise.all([
     prisma.task.findMany({
       where: { status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
       include: { responsible: { select: { id: true, name: true, color: true } } },
@@ -147,6 +171,12 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
     hasFinanceAccess
       ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } })
       : Promise.resolve([]),
+    prisma.case.groupBy({ by: ["area"], where: { status: "ATIVO" }, _count: { _all: true } }),
+    prisma.case.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.case.findMany({
+      where: { status: "ENCERRADO", distributedAt: { not: null }, closedAt: { gte: start, lt: end } },
+      select: { area: true, distributedAt: true, closedAt: true },
+    }),
   ]);
 
   // ---------- PRODUTIVIDADE ----------
@@ -232,6 +262,45 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
   const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + r.amount, 0);
   const inadimplenciaCount = overdueReceivables.length;
 
+  // ---------- PROCESSOS ----------
+  const areaRows = casesByArea
+    .map((r) => ({ label: r.area ?? "Sem área", value: r._count._all }))
+    .sort((a, b) => b.value - a.value);
+  const totalActiveCases = areaRows.reduce((s, r) => s + r.value, 0);
+  const maxAreaCount = Math.max(0, ...areaRows.map((r) => r.value));
+
+  const statusCounts: Record<string, number> = {};
+  for (const s of CASE_STATUS_ORDER) statusCounts[s] = 0;
+  for (const r of casesByStatus) {
+    if (CASE_STATUS_ORDER.includes(r.status)) statusCounts[r.status] = r._count._all;
+  }
+  const maxStatusCount = Math.max(0, ...CASE_STATUS_ORDER.map((s) => statusCounts[s]));
+
+  const caseDurations = closedCasesInPeriod
+    .filter((c) => c.distributedAt && c.closedAt)
+    .map((c) => ({
+      area: c.area ?? "Sem área",
+      days: Math.round((c.closedAt!.getTime() - c.distributedAt!.getTime()) / 86400000),
+    }))
+    .filter((d) => d.days >= 0);
+  const avgTramitacaoDays =
+    caseDurations.length > 0 ? Math.round(caseDurations.reduce((s, d) => s + d.days, 0) / caseDurations.length) : null;
+
+  const durByArea = new Map<string, { sum: number; count: number }>();
+  for (const d of caseDurations) {
+    let row = durByArea.get(d.area);
+    if (!row) {
+      row = { sum: 0, count: 0 };
+      durByArea.set(d.area, row);
+    }
+    row.sum += d.days;
+    row.count += 1;
+  }
+  const avgTramitacaoByArea = Array.from(durByArea.entries())
+    .map(([label, { sum, count }]) => ({ label, value: Math.round(sum / count), count }))
+    .sort((a, b) => b.count - a.count);
+  const maxTramitacaoArea = Math.max(0, ...avgTramitacaoByArea.map((r) => r.value));
+
   const periodOptions: { value: 3 | 6 | 12; label: string }[] = [
     { value: 3, label: "3 meses" },
     { value: 6, label: "6 meses" },
@@ -289,6 +358,90 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
           <div>
             <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
             <VBars items={monthlyPoints.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={GOLD} />
+          </div>
+        </div>
+      </Card>
+
+      {/* PROCESSOS */}
+      <Card>
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
+          <Scale size={18} className="text-gold-600" />
+          <h3 className="font-serif font-bold text-navy-900 text-base">Processos</h3>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
+          <div>
+            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">
+              Distribuição por área/matéria (processos ativos)
+            </p>
+            {areaRows.length === 0 ? (
+              <EmptyState title="Nenhum processo ativo" />
+            ) : (
+              <div className="space-y-3">
+                {areaRows.map((r) => (
+                  <HBar
+                    key={r.label}
+                    label={r.label}
+                    display={`${r.value} · ${totalActiveCases > 0 ? ((r.value / totalActiveCases) * 100).toFixed(0) : 0}%`}
+                    value={r.value}
+                    max={maxAreaCount}
+                    color={NAVY}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">
+              Distribuição por status (todos os processos)
+            </p>
+            <div className="space-y-3">
+              {CASE_STATUS_ORDER.map((s) => (
+                <HBar
+                  key={s}
+                  label={caseStatusLabels[s]}
+                  display={String(statusCounts[s])}
+                  value={statusCounts[s]}
+                  max={maxStatusCount}
+                  color={caseStatusColor[s]}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="px-5 pb-5">
+          <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">
+            Tempo médio de tramitação (processos encerrados no período)
+          </p>
+          <div className={avgTramitacaoByArea.length >= 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
+            <div className="rounded-xl border border-navy-800/8 bg-cream-100/70 p-5">
+              {avgTramitacaoDays !== null ? (
+                <>
+                  <p className="font-serif font-bold text-3xl text-navy-900">{avgTramitacaoDays} dias</p>
+                  <p className="text-xs text-navy-800/50 mt-1">
+                    {caseDurations.length} processo(s) encerrado(s) no período com datas completas
+                  </p>
+                </>
+              ) : (
+                <EmptyState title="Sem processos encerrados com datas completas no período" />
+              )}
+            </div>
+            {avgTramitacaoByArea.length >= 2 && (
+              <div>
+                <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Por área</p>
+                <div className="space-y-3">
+                  {avgTramitacaoByArea.map((r) => (
+                    <HBar
+                      key={r.label}
+                      label={r.label}
+                      display={`${r.value} dias (${r.count})`}
+                      value={r.value}
+                      max={maxTramitacaoArea}
+                      color={GOLD}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Card>

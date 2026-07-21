@@ -38,19 +38,54 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
 
   for (const [i, row] of rows.entries()) {
     try {
+      const tipoRaw = col(row, "Tipo");
+      const tipoNorm = norm(tipoRaw);
+
+      // Tipo "Contato": não gera Processo/Caso/Atendimento, só cadastra o contato.
+      if (tipoNorm === "contato") {
+        const contactName = col(row, "Cliente") || col(row, "Autor") || col(row, "Réu", "Reu");
+        if (!contactName) {
+          skipped++;
+          continue;
+        }
+        await findOrCreateClient(contactName, clientCache);
+        created++;
+        continue;
+      }
+
       const title = col(row, "Título", "Titulo");
       if (!title) {
         skipped++;
         continue;
       }
-      const tipoRaw = col(row, "Tipo");
       const type = tipoRaw === "Processo" ? "JUDICIAL" : "ATENDIMENTO";
 
-      const clientName = col(row, "Cliente");
-      const clientId = clientName ? await findOrCreateClient(clientName, clientCache) : null;
+      const clientRole = col(row, "Papel do cliente");
+      const autor = col(row, "Autor");
+      const reu = col(row, "Réu", "Reu");
 
       const othersRaw = col(row, "Outros envolvidos");
-      const opposingPartyName = othersRaw ? othersRaw.split(",")[0].replace(/\(PARTE\)/gi, "").trim() || null : null;
+
+      let clientName: string;
+      let opposingPartyName: string | null;
+
+      if (autor || reu) {
+        const roleNorm = norm(clientRole);
+        if (roleNorm.includes("reu") || roleNorm.includes("réu")) {
+          clientName = reu;
+          opposingPartyName = autor || null;
+        } else {
+          // Padrão (inclui "autor" e qualquer outro papel não identificado): nosso cliente é o Autor.
+          clientName = autor;
+          opposingPartyName = reu || null;
+        }
+      } else {
+        // Compatibilidade com o formato antigo: Cliente + Outros envolvidos.
+        clientName = col(row, "Cliente");
+        opposingPartyName = othersRaw ? othersRaw.split(",")[0].replace(/\(PARTE\)/gi, "").trim() || null : null;
+      }
+
+      const clientId = clientName ? await findOrCreateClient(clientName, clientCache) : null;
 
       const responsibleName = col(row, "Responsável", "Responsavel");
       const responsibleId = await findUserByName(responsibleName, users);
@@ -68,7 +103,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
           title,
           type,
           area: col(row, "Matéria", "Materia") || null,
-          clientRole: col(row, "Papel do cliente") || null,
+          clientRole: clientRole || null,
           folder: col(row, "Pasta") || null,
           actionType: col(row, "Ação", "Acao") || null,
           processNumber: col(row, "Número", "Numero") || null,
@@ -87,6 +122,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
           sourceUrl: col(row, "URL do Processo", "URL do processo") || null,
           court: col(row, "Vara") || null,
           forum: col(row, "Foro") || null,
+          tribunal: col(row, "Tribunal") || null,
           clientId,
           opposingPartyName,
           responsibleId,

@@ -60,21 +60,29 @@ export function StatCard({
   tone?: "navy" | "gold" | "red" | "green";
   icon?: ReactNode;
 }) {
+  // "red" reaproveita a paleta bordô (mesmo papel que cumpre no app mobile: contas a pagar
+  // e prazos atrasados são, por natureza, os itens de maior urgência do painel).
   const toneMap = {
-    navy: "text-navy-900",
-    gold: "text-gold-700",
-    red: "text-red-700",
-    green: "text-emerald-700",
+    navy: "text-navy-900 dark:text-cream-50",
+    gold: "text-gold-700 dark:text-gold-400",
+    red: "text-bordo-600 dark:text-bordo-400",
+    green: "text-emerald-700 dark:text-emerald-400",
+  };
+  const iconToneMap = {
+    navy: "bg-navy-900/10 text-navy-900 dark:bg-white/10 dark:text-cream-50",
+    gold: "bg-gold-500/15 text-gold-700 dark:bg-gold-400/15 dark:text-gold-400",
+    red: "bg-bordo-500/15 text-bordo-600 dark:bg-bordo-400/15 dark:text-bordo-400",
+    green: "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-400",
   };
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium text-navy-800/55 uppercase tracking-wide">{label}</p>
+          <p className="text-xs font-medium text-navy-800/55 dark:text-cream-50/55 uppercase tracking-wide">{label}</p>
           <p className={clsx("text-2xl font-sans font-extrabold mt-1", toneMap[tone])}>{value}</p>
-          {hint && <p className="text-xs text-navy-800/45 mt-1">{hint}</p>}
+          {hint && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1">{hint}</p>}
         </div>
-        {icon && <div className={clsx("p-2 rounded-lg bg-cream-100", toneMap[tone])}>{icon}</div>}
+        {icon && <div className={clsx("h-10 w-10 shrink-0 rounded-full flex items-center justify-center", iconToneMap[tone])}>{icon}</div>}
       </div>
     </Card>
   );

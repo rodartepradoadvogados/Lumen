@@ -79,7 +79,7 @@ export default function GlobalSearch() {
 
   return (
     <div className="flex-1 max-w-md relative" ref={containerRef}>
-      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/40 pointer-events-none" />
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/40 dark:text-cream-50/40 pointer-events-none" />
       <input
         type="text"
         value={query}
@@ -90,20 +90,20 @@ export default function GlobalSearch() {
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder="Pesquisar processo, contato ou tarefa..."
-        className="w-full pl-9 pr-3 py-2 rounded-lg border border-navy-800/10 bg-white text-sm text-navy-900 placeholder:text-navy-800/40 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+        className="w-full pl-9 pr-3 py-2 rounded-lg border border-navy-800/10 dark:border-white/10 bg-white dark:bg-navy-900 text-sm text-navy-900 dark:text-cream-50 placeholder:text-navy-800/40 dark:placeholder:text-cream-50/30 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
       />
 
       {showDropdown && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-lg border border-navy-800/10 shadow-pop z-50 overflow-hidden max-h-[70vh] overflow-y-auto scrollbar-thin">
-          {loading && <p className="px-4 py-3 text-sm text-navy-800/50">Buscando...</p>}
-          {!loading && ordered.length === 0 && <p className="px-4 py-3 text-sm text-navy-800/50">Nada encontrado.</p>}
+        <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-navy-900 rounded-lg border border-navy-800/10 dark:border-white/10 shadow-pop z-50 overflow-hidden max-h-[70vh] overflow-y-auto scrollbar-thin">
+          {loading && <p className="px-4 py-3 text-sm text-navy-800/50 dark:text-cream-50/50">Buscando...</p>}
+          {!loading && ordered.length === 0 && <p className="px-4 py-3 text-sm text-navy-800/50 dark:text-cream-50/50">Nada encontrado.</p>}
           {!loading &&
             GROUP_ORDER.map((group) => {
               const groupItems = results.filter((r) => r.type === group);
               if (groupItems.length === 0) return null;
               return (
-                <div key={group} className="border-b border-navy-800/5 last:border-0">
-                  <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-navy-800/40 uppercase tracking-wide">{group}</p>
+                <div key={group} className="border-b border-navy-800/5 dark:border-white/10 last:border-0">
+                  <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{group}</p>
                   {groupItems.map((item) => {
                     const idx = ordered.indexOf(item);
                     const active = idx === activeIndex;
@@ -113,11 +113,11 @@ export default function GlobalSearch() {
                         onMouseEnter={() => setActiveIndex(idx)}
                         onClick={() => go(item)}
                         className={`flex flex-col items-start w-full px-4 py-2 text-left transition-colors ${
-                          active ? "bg-cream-100" : "hover:bg-cream-50"
+                          active ? "bg-cream-100 dark:bg-white/10" : "hover:bg-cream-50 dark:hover:bg-white/5"
                         }`}
                       >
-                        <span className="text-sm font-medium text-navy-900 truncate w-full">{item.titulo}</span>
-                        {item.subtitulo && <span className="text-xs text-navy-800/50 truncate w-full">{item.subtitulo}</span>}
+                        <span className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate w-full">{item.titulo}</span>
+                        {item.subtitulo && <span className="text-xs text-navy-800/50 dark:text-cream-50/50 truncate w-full">{item.subtitulo}</span>}
                       </button>
                     );
                   })}

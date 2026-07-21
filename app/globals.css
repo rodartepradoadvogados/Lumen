@@ -7,6 +7,14 @@
   --foreground: #14213d;
 }
 
+/* Tema "Noite" do site (classe `dark` no <html>, ver lib/theme.ts e components/ThemeToggle.tsx).
+   Mesmas cores de referência já usadas no app mobile (app/m/layout.tsx: bg-navy-950 etc.),
+   levemente mais escuras para servir de fundo de página cheia em telas grandes. */
+.dark {
+  --background: #080f1c;
+  --foreground: #f1ece0;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -25,6 +33,15 @@ body {
   background-color: #f8fafc;
   background-image: linear-gradient(135deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px),
     linear-gradient(45deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* Versão "Noite": mesmo grid geométrico dourado, agora sobre o fundo escuro do site, um
+   pouco mais visível (opacidade maior) já que contrasta melhor contra navy bem escuro. */
+.dark .brand-texture {
+  background-color: #080f1c;
+  background-image: linear-gradient(135deg, rgba(198, 160, 92, 0.05) 1px, transparent 1px),
+    linear-gradient(45deg, rgba(198, 160, 92, 0.05) 1px, transparent 1px);
   background-size: 42px 42px;
 }
 

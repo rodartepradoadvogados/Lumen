@@ -62,51 +62,51 @@ export default function TeamMonitorPanel({ initials, name, role }: { initials: s
           {initials}
         </div>
         <div className="hidden md:block leading-tight text-left">
-          <p className="text-sm font-medium text-navy-900 flex items-center gap-1">
-            {name} <ChevronDown size={12} className="text-navy-800/40" />
+          <p className="text-sm font-medium text-navy-900 dark:text-cream-50 flex items-center gap-1">
+            {name} <ChevronDown size={12} className="text-navy-800/40 dark:text-cream-50/40" />
           </p>
-          <p className="text-[11px] text-navy-800/50">{role}</p>
+          <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50">{role}</p>
         </div>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-white rounded-xl border border-navy-800/10 shadow-pop z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-navy-800/8">
-            <h4 className="font-serif font-bold text-navy-900 text-sm">Monitoramento da Equipe</h4>
-            <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+        <div className="absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-white dark:bg-navy-900 rounded-xl border border-navy-800/10 dark:border-white/10 shadow-pop z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
+            <h4 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Monitoramento da Equipe</h4>
+            <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
               <X size={16} />
             </button>
           </div>
           <div className="max-h-[420px] overflow-y-auto scrollbar-thin">
-            {error && <p className="text-xs text-red-700 p-4">{error}</p>}
-            {!error && !summaries && <p className="text-xs text-navy-800/50 p-4">Carregando...</p>}
+            {error && <p className="text-xs text-bordo-600 dark:text-bordo-400 p-4">{error}</p>}
+            {!error && !summaries && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 p-4">Carregando...</p>}
             {summaries?.map((s) => (
-              <div key={s.id} className="border-b border-navy-800/5 last:border-0">
+              <div key={s.id} className="border-b border-navy-800/5 dark:border-white/10 last:border-0">
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className="h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ backgroundColor: s.color }}>
                     {s.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-navy-900">{s.name}</p>
-                    <p className="text-[11px] text-navy-800/50">
+                    <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{s.name}</p>
+                    <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50">
                       Último login: {formatDateTime(s.lastLoginAt)} · Timesheet: {formatHMS(s.todaySeconds)}
                     </p>
                   </div>
-                  <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-[11px] font-semibold text-gold-700 hover:text-gold-900 shrink-0">
+                  <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-900 dark:hover:text-gold-300 shrink-0">
                     Histórico
                     <ChevronDown size={12} className={`transition-transform ${expanded === s.id ? "rotate-180" : ""}`} />
                   </button>
                 </div>
                 {expanded === s.id && (
-                  <div className="bg-cream-50 px-4 py-2">
-                    {!history[s.id] && <p className="text-[11px] text-navy-800/40 py-1">Carregando histórico...</p>}
-                    {history[s.id]?.length === 0 && <p className="text-[11px] text-navy-800/40 py-1">Sem registros recentes.</p>}
+                  <div className="bg-cream-50 dark:bg-white/5 px-4 py-2">
+                    {!history[s.id] && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 py-1">Carregando histórico...</p>}
+                    {history[s.id]?.length === 0 && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 py-1">Sem registros recentes.</p>}
                     {history[s.id]?.map((h) => (
-                      <div key={h.date} className="flex justify-between text-[11px] py-1 border-b border-navy-800/5 last:border-0">
-                        <span className="text-navy-800/60">
+                      <div key={h.date} className="flex justify-between text-[11px] py-1 border-b border-navy-800/5 dark:border-white/10 last:border-0">
+                        <span className="text-navy-800/60 dark:text-cream-50/60">
                           {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")} · primeiro login {new Date(h.firstLogin).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
-                        <span className="font-semibold text-navy-900">{formatHMS(h.seconds)}</span>
+                        <span className="font-semibold text-navy-900 dark:text-cream-50">{formatHMS(h.seconds)}</span>
                       </div>
                     ))}
                   </div>

@@ -29,7 +29,7 @@ export default async function ImportarPage() {
         <Card>
           <CardHeader
             title="Processos, Casos e Atendimentos"
-            subtitle="Tipo aceita: Processo, Caso ou Atendimento. Colunas: Papel do cliente, Cliente, Outros envolvidos, Pasta, Ação, Número, Data de distribuição, Objeto, Matéria, Valor da causa, Vara, Foro, Responsável, entre outras."
+            subtitle="Tipo aceita: Processo, Caso, Atendimento ou Contato (cadastra só o contato, sem processo). Colunas: Papel do cliente, Cliente, Autor, Réu, Outros envolvidos, Pasta, Ação, Número, Data de distribuição, Objeto, Matéria, Valor da causa, Tribunal (sigla, ex: TJGO), Vara, Foro, Responsável, entre outras. Veja a aba “Legenda” do modelo .xlsx para o passo a passo."
           />
           <div className="p-5 space-y-3">
             <TemplateLink href="/templates/modelo-processos-casos-atendimentos.xlsx" />

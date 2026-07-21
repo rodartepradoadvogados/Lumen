@@ -17,10 +17,19 @@ export async function getTodayElapsedSeconds(userId: string): Promise<number> {
 }
 
 export async function pingCurrentSession(userId: string): Promise<number> {
+  const today = startOfDay(new Date());
   const latest = await prisma.loginSession.findFirst({ where: { userId }, orderBy: { loginAt: "desc" } });
-  if (latest) {
+
+  // Se a sessão mais recente já é de hoje, só atualizamos o "último ping".
+  // Caso contrário (usuário sem sessão nenhuma, ou a mais recente é de um dia
+  // anterior — ex.: cookie ainda válido de ontem, sem novo login/senha),
+  // abrimos uma sessão nova para que o dia de hoje comece a contar do zero.
+  if (latest && latest.loginAt >= today) {
     await prisma.loginSession.update({ where: { id: latest.id }, data: { lastPingAt: new Date() } });
+  } else {
+    await prisma.loginSession.create({ data: { userId } });
   }
+
   return getTodayElapsedSeconds(userId);
 }
 
