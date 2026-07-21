@@ -34,6 +34,9 @@ type SubNavItem = {
   value?: string;
   href?: string;
   adminOnly?: boolean;
+  // Só aparece quando o usuário tem acesso ao Financeiro (isAdmin OU financeAccess
+  // — mesmo critério de `hasFinanceAccess` usado pros itens de topo do menu).
+  financeOnly?: boolean;
 };
 
 type NavItem = {
@@ -127,7 +130,20 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
   {
     label: "Gestão",
     items: [
-      { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+      {
+        href: "/relatorios",
+        label: "Relatórios",
+        icon: BarChart3,
+        subParam: "secao",
+        subDefaultValue: "produtividade",
+        subItems: [
+          { label: "Produtividade", value: "produtividade" },
+          { label: "Processos", value: "processos" },
+          { label: "Funil Comercial", value: "funil" },
+          { label: "Publicações", value: "publicacoes" },
+          { label: "Financeiro", value: "financeiro", financeOnly: true },
+        ],
+      },
       {
         href: "/produtividade",
         label: "Produtividade",
@@ -234,7 +250,8 @@ export default function Sidebar({
               {group.items.map((item) => {
                 const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
                 const Icon = item.icon;
-                const visibleSubItems = item.subItems?.filter((sub) => !sub.adminOnly || isAdmin) ?? [];
+                const visibleSubItems =
+                  item.subItems?.filter((sub) => (!sub.adminOnly || isAdmin) && (!sub.financeOnly || hasFinanceAccess)) ?? [];
                 // Sub-abas expandem sozinhas quando a rota atual já pertence a essa
                 // seção — sem exigir um clique extra só pra abrir o submenu.
                 const expanded = active && visibleSubItems.length > 0;
