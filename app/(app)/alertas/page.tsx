@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
+import ProcessNumberChip from "@/components/ProcessNumberChip";
 import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -107,6 +108,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                         <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
                         <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{a.title}</p>
                         {a.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{a.subtitle}</p>}
+                        {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
                       </div>
                       <span className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
                     </AlertRow>

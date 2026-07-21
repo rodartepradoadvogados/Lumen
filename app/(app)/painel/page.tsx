@@ -15,6 +15,7 @@ import {
 import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, Newspaper, ExternalLink } from "lucide-react";
 import NoticesPanel from "@/components/NoticesPanel";
 import AlertRow from "@/components/AlertRow";
+import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PendingListModal from "@/components/PendingListModal";
 import SettleButton from "@/components/SettleButton";
 import OverdueTaskRow from "@/components/OverdueTaskRow";
@@ -285,6 +286,7 @@ export default async function DashboardPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{a.title}</p>
                     {a.subtitle && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 truncate">{a.subtitle}</p>}
+                    {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
                   </div>
                 </div>
               </AlertRow>

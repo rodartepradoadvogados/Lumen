@@ -14,7 +14,7 @@ export default async function SiteBackgroundLayer() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.05] dark:opacity-[0.09]"
+      className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.20] dark:opacity-[0.09]"
       style={{ backgroundImage: `url(${photoFileUrl(photo.id)})` }}
     />
   );

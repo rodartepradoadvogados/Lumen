@@ -52,6 +52,21 @@ body {
   background-size: 42px 42px;
 }
 
+/* Versão "Tarde" (lib/theme.ts): a classe `dark` continua presente (todo o resto da
+   interface — sidebar, cards, texto — segue estilizado como no modo Noite via as variantes
+   `dark:` do Tailwind espalhadas pelo app), mas o FUNDO da página volta a ser claro, igual
+   ao modo Dia. Precisa de `.dark.theme-tarde` (as duas classes juntas) para ganhar de
+   `.dark .brand-texture` em especificidade, já que as duas regras miram o mesmo elemento. */
+.dark.theme-tarde {
+  --background: #f8fafc;
+}
+.dark.theme-tarde .brand-texture {
+  background-color: #f8fafc;
+  background-image: linear-gradient(135deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px),
+    linear-gradient(45deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;

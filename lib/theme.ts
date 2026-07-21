@@ -4,8 +4,13 @@
 // que só tem 2 estados (claro/escuro) e persiste em "rp-mobile-theme", o site tem 3 estados:
 // - "light" ("Dia"):  sempre claro, independente do sistema operacional.
 // - "dark"  ("Noite"): sempre escuro, independente do sistema operacional.
-// - "auto"  ("Tarde"): segue window.matchMedia("(prefers-color-scheme: dark)") e reage a
-//   mudanças em tempo real enquanto estiver ativo (ver components/ThemeToggle.tsx).
+// - "auto"  ("Tarde"): visual híbrido fixo (não segue mais o sistema operacional) — o fundo
+//   da página fica claro, igual ao modo Dia, mas o resto (sidebar, cards, texto) permanece
+//   estilizado como no modo Noite. Por baixo dos panos a classe `dark` continua sendo
+//   aplicada ao <html> (para que todo o restante do app, que só conhece a variante Tailwind
+//   `dark:`, continue se comportando como no modo Noite), e uma classe adicional
+//   `theme-tarde` faz o fundo (app/globals.css, `.brand-texture`/`--background`) voltar a
+//   ser claro só nesse modo.
 //
 // A chave de localStorage é separada da do mobile de propósito: são duas experiências
 // diferentes e o dono do escritório pode querer, por exemplo, o site sempre no modo Noite
@@ -35,25 +40,26 @@ export function isThemeMode(value: string | null): value is ThemeMode {
   return value === "light" || value === "dark" || value === "auto";
 }
 
+// "auto" (Tarde) sempre resolve escuro agora — o modo deixou de seguir o sistema
+// operacional; é um terceiro visual fixo (ver comentário acima).
 export function resolveIsDark(mode: ThemeMode): boolean {
-  if (typeof window === "undefined") return false;
-  if (mode === "dark") return true;
-  if (mode === "light") return false;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return mode === "dark" || mode === "auto";
 }
 
 // Script inline injetado no <body> do layout raiz (app/layout.tsx), executado antes da
-// hidratação do React, para decidir se a classe `dark` deve estar no <html> já no primeiro
-// paint (evita o "flash" de tema errado). Mesmo padrão já usado em app/m/layout.tsx, adaptado
-// para os 3 estados: "light" -> nunca escuro, "dark" -> sempre escuro, "auto"/ausente -> segue
-// o sistema operacional/navegador no momento do carregamento.
+// hidratação do React, para decidir se as classes `dark`/`theme-tarde` devem estar no <html>
+// já no primeiro paint (evita o "flash" de tema errado). Mesmo padrão já usado em
+// app/m/layout.tsx, adaptado para os 3 estados: "light" -> nunca escuro; "dark" -> sempre
+// escuro; "auto"/ausente -> sempre escuro também (classe `dark`), mais a classe `theme-tarde`
+// que deixa só o fundo da página claro.
 export const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem(${JSON.stringify(THEME_KEY)});
     var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "auto";
-    var dark = mode === "dark" || (mode === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var dark = mode === "dark" || mode === "auto";
     document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("theme-tarde", mode === "auto");
   } catch (e) {}
 })();
 `;

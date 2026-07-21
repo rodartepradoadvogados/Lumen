@@ -19,11 +19,11 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 };
 
 // Botão único que cicla Dia -> Tarde -> Noite -> Dia... na TopBar do site (ao lado de
-// "Peticionar"). "Tarde" é o modo automático: segue window.matchMedia e reage a mudanças em
-// tempo real enquanto estiver ativo (ex.: o SO muda de claro pra escuro ao anoitecer e o site
-// acompanha sozinho, sem precisar recarregar a página). O script inline em app/layout.tsx já
-// aplica a classe `dark` certa antes deste componente montar (evita flash); aqui assumimos o
-// controle a partir da hidratação: refletimos o estado no ícone e reagimos a mudanças do SO.
+// "Peticionar"). "Tarde" é um visual híbrido fixo: fundo da página claro (como o Dia), resto
+// da interface escuro (como a Noite) — ver lib/theme.ts para o mecanismo das classes
+// `dark`/`theme-tarde`. O script inline em app/layout.tsx já aplica as classes certas antes
+// deste componente montar (evita flash); aqui assumimos o controle a partir da hidratação,
+// só para refletir o estado no ícone e reagir a cliques no próprio botão.
 export default function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>("auto");
   const [mounted, setMounted] = useState(false);
@@ -41,20 +41,14 @@ export default function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  // Aplica o modo atual ao <html> e, quando em "auto", escuta mudanças do SO em tempo real.
-  // Também avisa o resto do app (ex.: components/Sidebar.tsx) do modo EXATO escolhido via
-  // evento customizado — dispara tanto na sincronização inicial pós-montagem quanto em toda
-  // troca de modo pelo cycle() (já que ambas mexem em `mode` e reexecutam este efeito).
+  // Aplica o modo atual ao <html> (classes `dark` e `theme-tarde`) e avisa o resto do app
+  // (ex.: components/Sidebar.tsx) do modo EXATO escolhido via evento customizado — dispara
+  // tanto na sincronização inicial pós-montagem quanto em toda troca de modo pelo cycle().
   useEffect(() => {
     if (!mounted) return;
     document.documentElement.classList.toggle("dark", resolveIsDark(mode));
+    document.documentElement.classList.toggle("theme-tarde", mode === "auto");
     window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: mode }));
-    if (mode !== "auto") return;
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => document.documentElement.classList.toggle("dark", resolveIsDark("auto"));
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
   }, [mode, mounted]);
 
   function cycle() {

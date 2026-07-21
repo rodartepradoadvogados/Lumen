@@ -20,6 +20,9 @@ export type AlertItem = {
   entityKind?: "PAYABLE" | "RECEIVABLE" | "TASK" | "COMMENT" | "ATTENDANCE";
   entityId?: string;
   amount?: number;
+  // Número do processo do Case vinculado (quando o alerta vem de uma tarefa presa a um
+  // processo) — exibido como chip copiável na Central de Alertas.
+  processNumber?: string;
 };
 
 export type TodayItem = {
@@ -104,6 +107,7 @@ export async function getAlerts(includeFinance: boolean = true, viewerId?: strin
       severity: "alta",
       entityKind: "TASK",
       entityId: t.id,
+      processNumber: t.case?.processNumber ?? undefined,
     });
   }
   for (const p of overduePayables) {
@@ -187,6 +191,7 @@ export async function getAlerts(includeFinance: boolean = true, viewerId?: strin
       severity: "media",
       entityKind: "TASK",
       entityId: t.id,
+      processNumber: t.case?.processNumber ?? undefined,
     });
   }
   for (const m of unreadMentions) {
