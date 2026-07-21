@@ -42,15 +42,15 @@ export default function EditReceivableModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900">Editar Conta a Receber</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Editar Conta a Receber</h3>
+              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
                 <X size={18} />
               </button>
             </div>
@@ -75,26 +75,26 @@ export default function EditReceivableModal({
               className="p-5 space-y-3"
             >
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Descrição</label>
-                <input name="description" defaultValue={receivable.description} required className="fin-input" />
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição</label>
+                <input name="description" defaultValue={receivable.description} required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Valor (R$)</label>
-                  <input name="amount" type="number" step="0.01" defaultValue={receivable.amount} required className="fin-input" />
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor (R$)</label>
+                  <input name="amount" type="number" step="0.01" defaultValue={receivable.amount} required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Vencimento</label>
-                  <input name="dueDate" type="date" defaultValue={receivable.dueDate.slice(0, 10)} required={!semVencimento} disabled={semVencimento} className="fin-input disabled:opacity-40" />
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vencimento</label>
+                  <input name="dueDate" type="date" defaultValue={receivable.dueDate.slice(0, 10)} required={!semVencimento} disabled={semVencimento} className="fin-input disabled:opacity-40 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-xs text-navy-800/70">
+              <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                 <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
                 Sem vencimento definido (aparece na Central de Alertas)
               </label>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Tipo de Honorário</label>
-                <select name="kind" defaultValue={receivable.kind} className="fin-input">
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo de Honorário</label>
+                <select name="kind" defaultValue={receivable.kind} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
                   <option value="HONORARIOS_CONTRATUAIS">Honorários Contratuais</option>
                   <option value="HONORARIOS_SUCUMBENCIAIS">Honorários Sucumbenciais</option>
                   <option value="OUTROS">Outros</option>
@@ -103,11 +103,11 @@ export default function EditReceivableModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Categoria</label>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Categoria</label>
                   <EntityPicker name="categoryId" options={categories} defaultValue={receivable.categoryId ?? undefined} placeholder="Buscar categoria..." emptyLabel="Sem categoria" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60">Centro de Custo</label>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Centro de Custo</label>
                   <EntityPicker
                     name="costCenterId"
                     options={costCenters}
@@ -120,7 +120,7 @@ export default function EditReceivableModal({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Cliente</label>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente</label>
                 <EntityPicker
                   name="clientId"
                   options={clients}
@@ -132,7 +132,7 @@ export default function EditReceivableModal({
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60">Processo vinculado</label>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Processo vinculado</label>
                 <EntityPicker
                   name="caseId"
                   options={cases}

@@ -28,14 +28,14 @@ export default async function ContatosPage() {
           <Link key={m.href} href={m.href}>
             <Card className="p-5 h-full hover:shadow-pop transition-shadow">
               <div className="flex items-start justify-between">
-                <div className="p-2.5 rounded-lg bg-navy-900/5 text-navy-800">
+                <div className="p-2.5 rounded-lg bg-navy-900/5 text-navy-800 dark:bg-white/10 dark:text-cream-50">
                   <m.icon size={20} />
                 </div>
-                <ArrowRight size={16} className="text-navy-800/30" />
+                <ArrowRight size={16} className="text-navy-800/30 dark:text-cream-50/30" />
               </div>
-              <h3 className="font-serif font-bold text-navy-900 mt-3">{m.label}</h3>
-              <p className="text-xs text-navy-800/50 mt-1 mb-2">{m.desc}</p>
-              <p className="text-2xl font-serif font-bold text-gold-700">{m.count}</p>
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 mt-3">{m.label}</h3>
+              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1 mb-2">{m.desc}</p>
+              <p className="text-2xl font-serif font-bold text-gold-700 dark:text-gold-400">{m.count}</p>
             </Card>
           </Link>
         ))}

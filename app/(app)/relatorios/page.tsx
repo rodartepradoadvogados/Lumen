@@ -49,10 +49,10 @@ function HBar({ label, display, value, max, color }: { label: string; display: s
   return (
     <div>
       <div className="flex justify-between items-baseline text-sm mb-1 gap-2">
-        <span className="text-navy-800 truncate">{label}</span>
-        <span className="font-semibold text-navy-900 shrink-0">{display}</span>
+        <span className="text-navy-800 dark:text-cream-50/80 truncate">{label}</span>
+        <span className="font-semibold text-navy-900 dark:text-cream-50 shrink-0">{display}</span>
       </div>
-      <div className="h-2.5 rounded-full bg-cream-200 overflow-hidden">
+      <div className="h-2.5 rounded-full bg-cream-200 dark:bg-white/10 overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, minWidth: value > 0 ? 4 : 0, backgroundColor: color }} />
       </div>
     </div>
@@ -65,14 +65,14 @@ function VBars({ items, color }: { items: { label: string; display: string; valu
     <div className="flex items-end gap-2 overflow-x-auto pb-1">
       {items.map((it, i) => (
         <div key={i} className="flex-1 min-w-[38px] flex flex-col items-center">
-          <span className="text-[10px] font-semibold text-navy-800 mb-1">{it.display}</span>
+          <span className="text-[10px] font-semibold text-navy-800 dark:text-cream-50/80 mb-1">{it.display}</span>
           <div className="w-full h-32 flex items-end">
             <div
               className="w-full rounded-t-md"
               style={{ height: `${(it.value / max) * 100}%`, minHeight: it.value > 0 ? 4 : 0, backgroundColor: color }}
             />
           </div>
-          <span className="text-[10px] text-navy-800/50 mt-1.5 whitespace-nowrap">{it.label}</span>
+          <span className="text-[10px] text-navy-800/50 dark:text-cream-50/50 mt-1.5 whitespace-nowrap">{it.label}</span>
         </div>
       ))}
     </div>
@@ -313,13 +313,13 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
         title="Relatórios"
         subtitle={`Painel consolidado (BI) · ${months[0].label} a ${months[months.length - 1].label}`}
         action={
-          <div className="flex items-center gap-1 bg-white border border-navy-800/10 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-white dark:bg-navy-800 border border-navy-800/10 dark:border-white/10 rounded-lg p-1">
             {periodOptions.map((opt) => (
               <Link
                 key={opt.value}
                 href={`/relatorios?meses=${opt.value}`}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${
-                  meses === opt.value ? "bg-navy-900 text-white" : "text-navy-800/60 hover:bg-cream-100"
+                  meses === opt.value ? "bg-navy-900 text-white" : "text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/5"
                 }`}
               >
                 {opt.label}
@@ -331,13 +331,13 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
 
       {/* PRODUTIVIDADE */}
       <Card>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
           <Users size={18} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 text-base">Produtividade</h3>
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Produtividade</h3>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Pontos e tarefas por pessoa</p>
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Pontos e tarefas por pessoa</p>
             {prodRanking.length === 0 ? (
               <EmptyState title="Nenhuma tarefa concluída no período" />
             ) : (
@@ -356,7 +356,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
             )}
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
             <VBars items={monthlyPoints.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={GOLD} />
           </div>
         </div>
@@ -364,13 +364,13 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
 
       {/* PROCESSOS */}
       <Card>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
           <Scale size={18} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 text-base">Processos</h3>
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Processos</h3>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">
               Distribuição por área/matéria (processos ativos)
             </p>
             {areaRows.length === 0 ? (
@@ -391,7 +391,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
             )}
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">
               Distribuição por status (todos os processos)
             </p>
             <div className="space-y-3">
@@ -409,15 +409,15 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
           </div>
         </div>
         <div className="px-5 pb-5">
-          <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">
             Tempo médio de tramitação (processos encerrados no período)
           </p>
           <div className={avgTramitacaoByArea.length >= 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
-            <div className="rounded-xl border border-navy-800/8 bg-cream-100/70 p-5">
+            <div className="rounded-xl border border-navy-800/8 dark:border-white/10 bg-cream-100/70 dark:bg-navy-800/70 p-5">
               {avgTramitacaoDays !== null ? (
                 <>
-                  <p className="font-serif font-bold text-3xl text-navy-900">{avgTramitacaoDays} dias</p>
-                  <p className="text-xs text-navy-800/50 mt-1">
+                  <p className="font-serif font-bold text-3xl text-navy-900 dark:text-cream-50">{avgTramitacaoDays} dias</p>
+                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
                     {caseDurations.length} processo(s) encerrado(s) no período com datas completas
                   </p>
                 </>
@@ -427,7 +427,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
             </div>
             {avgTramitacaoByArea.length >= 2 && (
               <div>
-                <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Por área</p>
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Por área</p>
                 <div className="space-y-3">
                   {avgTramitacaoByArea.map((r) => (
                     <HBar
@@ -448,18 +448,18 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
 
       {/* FUNIL COMERCIAL */}
       <Card>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
           <Target size={18} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 text-base flex-1">Funil Comercial</h3>
-          <span className="text-xs text-navy-800/50">
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base flex-1">Funil Comercial</h3>
+          <span className="text-xs text-navy-800/50 dark:text-cream-50/50">
             Conversão:{" "}
             {conversionRate !== null ? (
-              <span className="font-semibold text-emerald-700">{conversionRate.toFixed(0)}%</span>
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400">{conversionRate.toFixed(0)}%</span>
             ) : (
-              <span className="text-navy-800/40">—</span>
+              <span className="text-navy-800/40 dark:text-cream-50/40">—</span>
             )}
             {conversionRate !== null && (
-              <span className="text-navy-800/40">
+              <span className="text-navy-800/40 dark:text-cream-50/40">
                 {" "}
                 ({closed} de {closed + lost})
               </span>
@@ -473,7 +473,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
             <div>
-              <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Quantidade e valor estimado por estágio</p>
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Quantidade e valor estimado por estágio</p>
               <div className="space-y-3">
                 {stageTotals.map((s) => (
                   <HBar
@@ -488,7 +488,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Leads por origem</p>
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Leads por origem</p>
               {leadRows.length === 0 ? (
                 <EmptyState title="Sem origem registrada" />
               ) : (
@@ -505,18 +505,18 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
 
       {/* PUBLICAÇÕES */}
       <Card>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
           <Newspaper size={18} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 text-base">Publicações</h3>
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Publicações</h3>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Volume por mês</p>
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Volume por mês</p>
             <VBars items={pubMonthly.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={NAVY} />
           </div>
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Distribuição por advogado</p>
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Distribuição por advogado</p>
               {lawyerRows.length === 0 ? (
                 <EmptyState title="Nenhuma publicação no período" />
               ) : (
@@ -528,14 +528,14 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
               )}
             </div>
             <div>
-              <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Pendências de triagem</p>
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Pendências de triagem</p>
               <div className="grid grid-cols-3 gap-3">
                 {triageRows.map((t) => (
-                  <div key={t.status} className="rounded-lg bg-cream-100/70 border border-navy-800/8 p-3 text-center">
-                    <p className="font-serif font-bold text-xl text-navy-900">{t.value}</p>
+                  <div key={t.status} className="rounded-lg bg-cream-100/70 dark:bg-navy-800/70 border border-navy-800/8 dark:border-white/10 p-3 text-center">
+                    <p className="font-serif font-bold text-xl text-navy-900 dark:text-cream-50">{t.value}</p>
                     <div className="flex items-center justify-center gap-1.5 mt-1">
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: triageColor[t.status] }} />
-                      <span className="text-[11px] text-navy-800/55">{triageLabels[t.status]}</span>
+                      <span className="text-[11px] text-navy-800/55 dark:text-cream-50/55">{triageLabels[t.status]}</span>
                     </div>
                   </div>
                 ))}
@@ -548,14 +548,14 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
       {/* FINANCEIRO (condicional) */}
       {hasFinanceAccess && (
         <Card>
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
             <Wallet size={18} className="text-gold-600" />
-            <h3 className="font-serif font-bold text-navy-900 text-base">Financeiro</h3>
+            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Financeiro</h3>
           </div>
           <div className="p-5 space-y-6">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide">Recebido x Pago por mês (regime de caixa)</p>
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Recebido x Pago por mês (regime de caixa)</p>
                 <div className="flex items-center gap-3 text-[11px]">
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" /> Recebido
@@ -569,8 +569,8 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
                 {financeMonthly.map((m) => (
                   <div key={m.label} className="flex-1 min-w-[52px] flex flex-col items-center">
                     <div className="flex flex-col items-center text-[9px] leading-tight mb-1">
-                      <span className="text-emerald-600 font-semibold">{compactBRL(m.receita)}</span>
-                      <span className="text-red-500 font-semibold">{compactBRL(m.despesa)}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{compactBRL(m.receita)}</span>
+                      <span className="text-red-500 dark:text-bordo-400 font-semibold">{compactBRL(m.despesa)}</span>
                     </div>
                     <div className="w-full h-32 flex items-end justify-center gap-1">
                       <div
@@ -584,7 +584,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
                         title={`Pago: ${formatCurrency(m.despesa)}`}
                       />
                     </div>
-                    <span className="text-[10px] text-navy-800/50 mt-1.5 whitespace-nowrap">{m.label}</span>
+                    <span className="text-[10px] text-navy-800/50 dark:text-cream-50/50 mt-1.5 whitespace-nowrap">{m.label}</span>
                   </div>
                 ))}
               </div>
@@ -592,7 +592,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Top 5 categorias de despesa</p>
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Top 5 categorias de despesa</p>
                 {topExpenses.length === 0 ? (
                   <EmptyState title="Nenhuma despesa paga no período" />
                 ) : (
@@ -604,10 +604,10 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
                 )}
               </div>
               <div>
-                <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-3">Inadimplência atual</p>
-                <div className="rounded-xl border border-red-100 bg-red-50 p-5">
-                  <p className="font-serif font-bold text-2xl text-red-600">{formatCurrency(inadimplenciaTotal)}</p>
-                  <p className="text-xs text-navy-800/50 mt-1">
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Inadimplência atual</p>
+                <div className="rounded-xl border border-red-100 dark:border-bordo-400/20 bg-red-50 dark:bg-bordo-400/10 p-5">
+                  <p className="font-serif font-bold text-2xl text-red-600 dark:text-bordo-400">{formatCurrency(inadimplenciaTotal)}</p>
+                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
                     {inadimplenciaCount} conta(s) a receber vencida(s)
                   </p>
                 </div>

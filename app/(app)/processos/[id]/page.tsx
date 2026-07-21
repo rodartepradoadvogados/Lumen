@@ -104,31 +104,33 @@ export default async function CaseDetailPage({
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
-      <Link href="/processos" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 hover:text-navy-900 mb-3">
+      <Link href="/processos" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 mb-3">
         <ArrowLeft size={13} /> Processos e Casos
       </Link>
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
-        <h1 className="font-serif text-2xl font-bold text-navy-900">{c.title}</h1>
+        <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{c.title}</h1>
         <div className="flex items-center gap-2">
           <PeticionarButton compact />
           <CaseStatusSelect caseId={c.id} status={c.status} />
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>
       </div>
-      <p className="text-sm text-navy-800/50 mb-5">
+      <p className="text-sm text-navy-800/50 dark:text-cream-50/50 mb-5">
         {c.processNumber && <span>{c.processNumber} · </span>}
         {c.area && <span>{c.area} · </span>}
         {c.type}
       </p>
 
-      <div className="flex gap-1 border-b border-navy-800/10 mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-6 overflow-x-auto">
         {TABS.filter((t) => t.key !== "financeiro" || hasFinanceAccess).map((t) => (
           <Link
             key={t.key}
             href={`/processos/${c.id}?tab=${t.key}`}
             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              tab === t.key ? "border-gold-600 text-navy-900" : "border-transparent text-navy-800/45 hover:text-navy-800"
+              tab === t.key
+                ? "border-gold-600 text-navy-900 dark:text-cream-50"
+                : "border-transparent text-navy-800/45 dark:text-cream-50/45 hover:text-navy-800 dark:hover:text-cream-50/80"
             }`}
           >
             {t.label}
@@ -147,12 +149,12 @@ export default async function CaseDetailPage({
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
           </Card>
           <Card className="p-5">
-            <h4 className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-2">Descrição</h4>
-            <p className="text-sm text-navy-800 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
+            <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>
+            <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
           </Card>
           {c.type !== "JUDICIAL" && (
             <Card className="p-5 md:col-span-2">
-              <h4 className="text-sm font-semibold text-navy-900 mb-3">Converter em Processo Judicial</h4>
+              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-3">Converter em Processo Judicial</h4>
               <PromoteToJudicialForm caseId={c.id} />
             </Card>
           )}
@@ -173,11 +175,11 @@ export default async function CaseDetailPage({
             {c.tasks.length === 0 ? (
               <EmptyState title="Nenhuma atividade cadastrada" />
             ) : (
-              <div className="divide-y divide-navy-800/5">
+              <div className="divide-y divide-navy-800/5 dark:divide-white/10">
                 {c.tasks.map((t) => (
                   <div key={t.id} className="flex items-center gap-3 px-5 py-3.5">
                     <form action={async () => { "use server"; await toggleTaskDone(t.id); }}>
-                      <button type="submit" className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center ${t.status === "CONCLUIDO" ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 hover:border-emerald-500"}`}>
+                      <button type="submit" className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center ${t.status === "CONCLUIDO" ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 hover:border-emerald-500"}`}>
                         <Check size={12} strokeWidth={3} />
                       </button>
                     </form>
@@ -185,11 +187,11 @@ export default async function CaseDetailPage({
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                         <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
-                        <p className={`text-sm font-medium text-navy-900 ${t.status === "CONCLUIDO" ? "line-through text-navy-800/40" : ""}`}>{t.title}</p>
+                        <p className={`text-sm font-medium text-navy-900 dark:text-cream-50 ${t.status === "CONCLUIDO" ? "line-through text-navy-800/40 dark:text-cream-50/40" : ""}`}>{t.title}</p>
                       </div>
-                      {t.responsible && <p className="text-xs text-navy-800/40 mt-0.5">Responsável: {t.responsible.name}</p>}
+                      {t.responsible && <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">Responsável: {t.responsible.name}</p>}
                     </div>
-                    <p className="text-xs font-semibold text-navy-800/60 shrink-0">{formatDate(t.dueDate)}</p>
+                    <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatDate(t.dueDate)}</p>
                     <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir a atividade "${t.title}"?`} />
                   </div>
                 ))}
@@ -210,10 +212,10 @@ export default async function CaseDetailPage({
                 </div>
                 <div>
                   <p className="text-sm">
-                    <span className="font-semibold text-navy-900">{cm.author.name}</span>{" "}
-                    <span className="text-[11px] text-navy-800/40">{formatDate(cm.createdAt)}</span>
+                    <span className="font-semibold text-navy-900 dark:text-cream-50">{cm.author.name}</span>{" "}
+                    <span className="text-[11px] text-navy-800/40 dark:text-cream-50/40">{formatDate(cm.createdAt)}</span>
                   </p>
-                  <p className="text-sm text-navy-800 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
+                  <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                 </div>
               </div>
             ))}
@@ -237,22 +239,22 @@ export default async function CaseDetailPage({
           </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card>
-            <div className="px-5 py-3 border-b border-navy-800/8">
-              <h4 className="text-sm font-semibold text-navy-900">Contas a Receber</h4>
+            <div className="px-5 py-3 border-b border-navy-800/8 dark:border-white/10">
+              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Contas a Receber</h4>
             </div>
             {c.receivables.length === 0 ? (
               <EmptyState title="Nenhum lançamento" />
             ) : (
-              <div className="divide-y divide-navy-800/5">
+              <div className="divide-y divide-navy-800/5 dark:divide-white/10">
                 {c.receivables.map((r) => (
                   <div key={r.id} className="flex justify-between items-center px-5 py-3">
                     <div>
-                      <p className="text-sm text-navy-900">{r.description}</p>
-                      <p className="text-xs text-navy-800/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                      <p className="text-sm text-navy-900 dark:text-cream-50">{r.description}</p>
+                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-navy-900">{formatCurrency(r.amount)}</p>
+                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(r.amount)}</p>
                         <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : "amber"}>{r.status}</Badge>
                       </div>
                       <EditReceivableModal
@@ -281,22 +283,22 @@ export default async function CaseDetailPage({
             )}
           </Card>
           <Card>
-            <div className="px-5 py-3 border-b border-navy-800/8">
-              <h4 className="text-sm font-semibold text-navy-900">Contas a Pagar (custas etc.)</h4>
+            <div className="px-5 py-3 border-b border-navy-800/8 dark:border-white/10">
+              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Contas a Pagar (custas etc.)</h4>
             </div>
             {c.payables.length === 0 ? (
               <EmptyState title="Nenhum lançamento" />
             ) : (
-              <div className="divide-y divide-navy-800/5">
+              <div className="divide-y divide-navy-800/5 dark:divide-white/10">
                 {c.payables.map((p) => (
                   <div key={p.id} className="flex justify-between items-center px-5 py-3">
                     <div>
-                      <p className="text-sm text-navy-900">{p.description}</p>
-                      <p className="text-xs text-navy-800/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
+                      <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
+                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-navy-900">{formatCurrency(p.amount)}</p>
+                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(p.amount)}</p>
                         <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
                       </div>
                       <EditPayableModal
@@ -353,9 +355,9 @@ export default async function CaseDetailPage({
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between text-sm border-b border-navy-800/5 pb-2">
-      <span className="text-navy-800/50">{label}</span>
-      <span className="font-medium text-navy-900 text-right">{value || "—"}</span>
+    <div className="flex justify-between text-sm border-b border-navy-800/5 dark:border-white/10 pb-2">
+      <span className="text-navy-800/50 dark:text-cream-50/50">{label}</span>
+      <span className="font-medium text-navy-900 dark:text-cream-50 text-right">{value || "—"}</span>
     </div>
   );
 }

@@ -48,7 +48,7 @@ export default async function DrePage({
 
   return (
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
-      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
         ← Financeiro
       </Link>
       <PageHeader
@@ -57,18 +57,18 @@ export default async function DrePage({
         action={
           !usingCustomRange ? (
             <div className="flex items-center gap-1">
-              <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-cream-100 text-navy-800">
+              <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
                 <ChevronLeft size={18} />
               </Link>
-              <span className="text-sm font-semibold text-navy-900 px-2">
+              <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 px-2">
                 {MONTHS[month]} {year}
               </span>
-              <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-cream-100 text-navy-800">
+              <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
                 <ChevronRight size={18} />
               </Link>
             </div>
           ) : (
-            <span className="text-sm font-semibold text-navy-900">
+            <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">
               {start.toLocaleDateString("pt-BR")} — {end.toLocaleDateString("pt-BR")}
             </span>
           )
@@ -78,15 +78,15 @@ export default async function DrePage({
       <Card className="mb-5">
         <form className="p-4 flex flex-wrap items-end gap-3">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">De (opcional, substitui o mês)</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">De (opcional, substitui o mês)</label>
             <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Até</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Até</label>
             <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Centro de Custo</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Centro de Custo</label>
             <select name="costCenterId" defaultValue={searchParams.costCenterId} className="fp-input">
               <option value="">Todos</option>
               {costCenters.map((c) => (
@@ -100,7 +100,7 @@ export default async function DrePage({
             Filtrar
           </button>
           {usingCustomRange && (
-            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2">
+            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2">
               Voltar para visão mensal
             </Link>
           )}
@@ -109,41 +109,41 @@ export default async function DrePage({
 
       <Card className="mb-5">
         <CardHeader title="Receitas" />
-        <div className="divide-y divide-navy-800/5">
+        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {Object.keys(receitasPorCategoria).length === 0 && <EmptyState title="Nenhuma receita no período" />}
           {Object.entries(receitasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-5 py-2.5 text-sm">
-              <span className="text-navy-800">{cat}</span>
-              <span className="font-semibold text-emerald-600">{formatCurrency(val)}</span>
+              <span className="text-navy-800 dark:text-cream-50">{cat}</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</span>
             </div>
           ))}
-          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-cream-50">
+          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-cream-50 dark:bg-navy-800">
             <span>Total de Receitas</span>
-            <span className="text-emerald-700">{formatCurrency(totalReceitas)}</span>
+            <span className="text-emerald-700 dark:text-emerald-400">{formatCurrency(totalReceitas)}</span>
           </div>
         </div>
       </Card>
 
       <Card className="mb-5">
         <CardHeader title="Despesas" />
-        <div className="divide-y divide-navy-800/5">
+        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {Object.keys(despesasPorCategoria).length === 0 && <EmptyState title="Nenhuma despesa no período" />}
           {Object.entries(despesasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-5 py-2.5 text-sm">
-              <span className="text-navy-800">{cat}</span>
-              <span className="font-semibold text-red-500">{formatCurrency(val)}</span>
+              <span className="text-navy-800 dark:text-cream-50">{cat}</span>
+              <span className="font-semibold text-red-500 dark:text-bordo-400">{formatCurrency(val)}</span>
             </div>
           ))}
-          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-cream-50">
+          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-cream-50 dark:bg-navy-800">
             <span>Total de Despesas</span>
-            <span className="text-red-600">{formatCurrency(totalDespesas)}</span>
+            <span className="text-red-600 dark:text-bordo-400">{formatCurrency(totalDespesas)}</span>
           </div>
         </div>
       </Card>
 
-      <Card className={`p-5 flex justify-between items-center ${resultado >= 0 ? "bg-gold-500/10" : "bg-red-50"}`}>
-        <span className="font-serif font-bold text-navy-900">Resultado do Período</span>
-        <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-gold-800" : "text-red-600"}`}>{formatCurrency(resultado)}</span>
+      <Card className={`p-5 flex justify-between items-center ${resultado >= 0 ? "bg-gold-500/10 dark:bg-gold-400/15" : "bg-red-50 dark:bg-bordo-400/15"}`}>
+        <span className="font-serif font-bold text-navy-900 dark:text-cream-50">Resultado do Período</span>
+        <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-gold-800 dark:text-gold-400" : "text-red-600 dark:text-bordo-400"}`}>{formatCurrency(resultado)}</span>
       </Card>
       <style>{`
         .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }

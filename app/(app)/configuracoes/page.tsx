@@ -58,9 +58,9 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
     <>
       {children.map((c) => (
         <div key={c.id}>
-          <div className="flex items-center gap-2 px-5 py-2 hover:bg-cream-50" style={{ paddingLeft: `${20 + depth * 20}px` }}>
-            <span className="text-[11px] text-navy-800/35 w-16 shrink-0 font-mono">{c.code}</span>
-            <span className="text-sm text-navy-800 flex-1">{c.name}</span>
+          <div className="flex items-center gap-2 px-5 py-2 hover:bg-cream-50 dark:hover:bg-white/5" style={{ paddingLeft: `${20 + depth * 20}px` }}>
+            <span className="text-[11px] text-navy-800/35 dark:text-cream-50/35 w-16 shrink-0 font-mono">{c.code}</span>
+            <span className="text-sm text-navy-800 dark:text-cream-50 flex-1">{c.name}</span>
             <DeleteButton
               id={c.id}
               confirmMessage={`Excluir a categoria "${c.name}"? Só é possível se não houver subcategorias ou lançamentos vinculados.`}
@@ -172,7 +172,9 @@ export default async function ConfiguracoesPage({
               key={s.key}
               href={`/configuracoes?secao=${s.key}`}
               className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
-                secao === s.key ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                secao === s.key
+                  ? "bg-navy-900 text-white"
+                  : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
               }`}
             >
               {s.label}
@@ -224,12 +226,12 @@ export default async function ConfiguracoesPage({
             />
             <div className="p-5 space-y-3">
               {minhaConexao ? (
-                <div className="flex items-center gap-2 text-sm text-navy-900">
-                  <CheckCircle2 size={16} className="text-emerald-600" />
+                <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50">
+                  <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
                   Conectado como <strong>{minhaConexao.accountEmail}</strong>
                 </div>
               ) : (
-                <p className="text-sm text-navy-800/60">Você ainda não conectou nenhum e-mail para o Jusbrasil.</p>
+                <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Você ainda não conectou nenhum e-mail para o Jusbrasil.</p>
               )}
               <a
                 href="/api/google/connect?mode=jusbrasil"
@@ -250,7 +252,9 @@ export default async function ConfiguracoesPage({
               <Link
                 href="/configuracoes?secao=blog&blogTab=revisao"
                 className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
-                  blogTab === "revisao" ? "bg-navy-800 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                  blogTab === "revisao"
+                    ? "bg-navy-800 text-white"
+                    : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
                 }`}
               >
                 Revisão Pendente {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
@@ -258,7 +262,9 @@ export default async function ConfiguracoesPage({
               <Link
                 href="/configuracoes?secao=blog&blogTab=publicadas"
                 className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
-                  blogTab === "publicadas" ? "bg-navy-800 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+                  blogTab === "publicadas"
+                    ? "bg-navy-800 text-white"
+                    : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
                 }`}
               >
                 Matérias Publicadas ({blogPublishedRaw.length})
@@ -314,20 +320,20 @@ export default async function ConfiguracoesPage({
           />
           <div className="p-5 space-y-3">
             {searchParams.google === "conectado" && (
-              <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Google conectado com sucesso!</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">Google conectado com sucesso!</p>
             )}
             {searchParams.google === "erro" && (
-              <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-3 py-2">
                 Erro ao conectar: {searchParams.msg || "tente novamente."}
               </p>
             )}
             {driveStatus.connected ? (
-              <div className="flex items-center gap-2 text-sm text-navy-900">
-                <CheckCircle2 size={16} className="text-emerald-600" />
+              <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50">
+                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
                 Conectado como <strong>{driveStatus.accountEmail}</strong>
               </div>
             ) : (
-              <p className="text-sm text-navy-800/60">Nenhuma conta conectada ainda.</p>
+              <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Nenhuma conta conectada ainda.</p>
             )}
             <a
               href="/api/google/connect"
@@ -336,7 +342,7 @@ export default async function ConfiguracoesPage({
               <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google
             </a>
             {driveStatus.connected && (
-              <p className="text-[11px] text-navy-800/45">
+              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
                 Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para o Jusbrasil).
               </p>
             )}
@@ -356,13 +362,13 @@ export default async function ConfiguracoesPage({
               return (
                 <div key={email} className="flex items-center gap-2 text-sm">
                   {found ? (
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
-                    <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+                    <AlertTriangle size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
                   )}
-                  <span className={found ? "text-navy-900" : "text-navy-800/50"}>
+                  <span className={found ? "text-navy-900 dark:text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"}>
                     {email}
-                    {found?.ownerName && <span className="text-navy-800/45"> — {found.ownerName}</span>}
+                    {found?.ownerName && <span className="text-navy-800/45 dark:text-cream-50/45"> — {found.ownerName}</span>}
                     {!found && " (ainda não conectado)"}
                   </span>
                 </div>
@@ -370,11 +376,11 @@ export default async function ConfiguracoesPage({
             })}
             {googleAccounts.filter((a) => !JUSBRASIL_TARGET_EMAILS.includes(a.accountEmail)).map((a) => (
               <div key={a.id} className="flex items-center gap-2 text-sm">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                <span className="text-navy-900">
+                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="text-navy-900 dark:text-cream-50">
                   {a.accountEmail}
-                  {a.ownerName && <span className="text-navy-800/45"> — {a.ownerName}</span>}
-                  {a.isPrimaryDrive && <span className="text-navy-800/45"> (conta principal do Drive)</span>}
+                  {a.ownerName && <span className="text-navy-800/45 dark:text-cream-50/45"> — {a.ownerName}</span>}
+                  {a.isPrimaryDrive && <span className="text-navy-800/45 dark:text-cream-50/45"> (conta principal do Drive)</span>}
                 </span>
               </div>
             ))}
@@ -389,8 +395,8 @@ export default async function ConfiguracoesPage({
             subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
           />
           <div className="p-5 space-y-3">
-            <p className="text-xs text-navy-800/60">
-              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
+            <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 dark:text-gold-400 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
             </p>
             <TestDjenButton />
           </div>
@@ -428,15 +434,15 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "equipe" && (
       <Card>
         <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
-        <div className="divide-y divide-navy-800/5">
+        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />
           ))}
         </div>
-        <form action={submitUser} className="p-5 grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-navy-800/8">
-          <input name="name" required placeholder="Nome" className="cfg-input sm:col-span-2" />
-          <input name="email" type="email" required placeholder="E-mail" className="cfg-input sm:col-span-2" />
-          <select name="role" className="cfg-input">
+        <form action={submitUser} className="p-5 grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-navy-800/8 dark:border-white/10">
+          <input name="name" required placeholder="Nome" className="cfg-input sm:col-span-2 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <input name="email" type="email" required placeholder="E-mail" className="cfg-input sm:col-span-2 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <select name="role" className="cfg-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
             <option value="Advogado">Advogado</option>
             <option value="Sócio">Sócio</option>
             <option value="Estagiário">Estagiário</option>
@@ -445,8 +451,8 @@ export default async function ConfiguracoesPage({
             <option value="Marketing">Marketing</option>
             <option value="Contador">Contador</option>
           </select>
-          <input name="oab" placeholder="OAB (opcional)" className="cfg-input" />
-          <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1" />
+          <input name="oab" placeholder="OAB (opcional)" className="cfg-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1 dark:bg-navy-800 dark:border-white/15" />
           <button type="submit" className="sm:col-span-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-3">
             Adicionar membro
           </button>
@@ -457,13 +463,13 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "modelos" && (
       <Card>
         <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
-        <div className="divide-y divide-navy-800/5">
+        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {columns.map((c) => (
             <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }} />
-              <p className="text-sm text-navy-900 flex-1">{c.name}</p>
+              <p className="text-sm text-navy-900 dark:text-cream-50 flex-1">{c.name}</p>
               {c.isDoneCol && <Badge color="green">Coluna de conclusão</Badge>}
-              <span className="text-xs text-navy-800/35">{c._count.tasks} tarefa(s)</span>
+              <span className="text-xs text-navy-800/35 dark:text-cream-50/35">{c._count.tasks} tarefa(s)</span>
               <DeleteButton
                 id={c.id}
                 confirmMessage={`Excluir a coluna "${c.name}"? Só é possível se não houver tarefas nela.`}
@@ -472,9 +478,9 @@ export default async function ConfiguracoesPage({
             </div>
           ))}
         </div>
-        <form action={submitColumn} className="p-5 flex gap-2 border-t border-navy-800/8">
-          <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1" />
-          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1" />
+        <form action={submitColumn} className="p-5 flex gap-2 border-t border-navy-800/8 dark:border-white/10">
+          <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1 dark:bg-navy-800 dark:border-white/15" />
           <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4">
             Adicionar
           </button>
@@ -486,27 +492,27 @@ export default async function ConfiguracoesPage({
       <>
       <Card>
         <CardHeader title="Plano de Contas" subtitle="Grupos e subgrupos de receitas e despesas" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-navy-800/5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-navy-800/5 dark:divide-white/10">
           <div>
-            <p className="px-5 py-2 text-xs font-semibold text-emerald-700 uppercase">Receitas</p>
+            <p className="px-5 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase">Receitas</p>
             {categories.filter((c) => c.kind === "RECEITA" && !c.parentId).sort(sortByCode).map((root) => (
               <CategoryTree key={root.id} categories={categories} parentId={root.id} depth={0} />
             ))}
           </div>
           <div>
-            <p className="px-5 py-2 text-xs font-semibold text-red-600 uppercase">Despesas</p>
+            <p className="px-5 py-2 text-xs font-semibold text-red-600 dark:text-bordo-400 uppercase">Despesas</p>
             {categories.filter((c) => c.kind === "DESPESA" && !c.parentId).sort(sortByCode).map((root) => (
               <CategoryTree key={root.id} categories={categories} parentId={root.id} depth={0} />
             ))}
           </div>
         </div>
-        <form action={submitCategory} className="p-5 flex gap-2 flex-wrap border-t border-navy-800/8">
-          <input name="name" required placeholder="Nome da nova categoria/conta" className="cfg-input flex-1 min-w-[180px]" />
-          <select name="kind" className="cfg-input">
+        <form action={submitCategory} className="p-5 flex gap-2 flex-wrap border-t border-navy-800/8 dark:border-white/10">
+          <input name="name" required placeholder="Nome da nova categoria/conta" className="cfg-input flex-1 min-w-[180px] dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <select name="kind" className="cfg-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
             <option value="RECEITA">Receita</option>
             <option value="DESPESA">Despesa</option>
           </select>
-          <select name="parentId" className="cfg-input min-w-[200px]">
+          <select name="parentId" className="cfg-input min-w-[200px] dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
             <option value="">Nível raiz (novo grupo)</option>
             {allCategoriesForParentSelect.map((c) => (
               <option key={c.id} value={c.id}>
@@ -522,10 +528,10 @@ export default async function ConfiguracoesPage({
 
       <Card>
         <CardHeader title="Centros de Custo" />
-        <div className="divide-y divide-navy-800/5">
+        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {costCenters.map((c) => (
             <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
-              <p className="text-sm text-navy-900 flex-1">{c.name}</p>
+              <p className="text-sm text-navy-900 dark:text-cream-50 flex-1">{c.name}</p>
               <DeleteButton
                 id={c.id}
                 confirmMessage={`Excluir o centro de custo "${c.name}"? Só é possível se não houver lançamentos vinculados.`}
@@ -534,8 +540,8 @@ export default async function ConfiguracoesPage({
             </div>
           ))}
         </div>
-        <form action={submitCostCenter} className="p-5 flex gap-2 border-t border-navy-800/8">
-          <input name="name" required placeholder="Nome do centro de custo" className="cfg-input flex-1" />
+        <form action={submitCostCenter} className="p-5 flex gap-2 border-t border-navy-800/8 dark:border-white/10">
+          <input name="name" required placeholder="Nome do centro de custo" className="cfg-input flex-1 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
           <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4">
             Adicionar
           </button>
@@ -596,9 +602,9 @@ export default async function ConfiguracoesPage({
 function Swatch({ color, label, border }: { color: string; label: string; border?: boolean }) {
   return (
     <div className="text-center">
-      <div className={`h-14 w-14 rounded-lg ${border ? "border border-navy-800/15" : ""}`} style={{ backgroundColor: color }} />
-      <p className="text-[11px] text-navy-800/50 mt-1">{label}</p>
-      <p className="text-[10px] text-navy-800/35">{color}</p>
+      <div className={`h-14 w-14 rounded-lg ${border ? "border border-navy-800/15 dark:border-white/15" : ""}`} style={{ backgroundColor: color }} />
+      <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">{label}</p>
+      <p className="text-[10px] text-navy-800/35 dark:text-cream-50/35">{color}</p>
     </div>
   );
 }

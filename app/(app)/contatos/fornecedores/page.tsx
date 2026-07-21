@@ -13,7 +13,7 @@ export default async function FornecedoresPage() {
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">
-      <Link href="/contatos" className="text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+      <Link href="/contatos" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
         ← Contatos
       </Link>
       <PageHeader title="Fornecedores" subtitle={`${suppliers.length} registro(s)`} action={<NewSupplierModal />} />
@@ -22,12 +22,12 @@ export default async function FornecedoresPage() {
         {suppliers.length === 0 ? (
           <EmptyState title="Nenhum fornecedor cadastrado" />
         ) : (
-          <div className="divide-y divide-navy-800/5">
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {suppliers.map((s) => (
               <div key={s.id} className="flex items-center gap-4 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-navy-900">{s.name}</p>
-                  <p className="text-xs text-navy-800/45 mt-0.5">
+                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{s.name}</p>
+                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
                     {s.document && <span>{s.document} · </span>}
                     {s.email}
                     {s.phone && <span> · {s.phone}</span>}

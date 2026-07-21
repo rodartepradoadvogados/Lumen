@@ -64,16 +64,16 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
             onDragLeave={() => setDragOverCol(null)}
             onDrop={(e) => handleDrop(e, col.id)}
             className={clsx(
-              "w-80 shrink-0 rounded-xl bg-cream-100/70 border flex flex-col max-h-full",
-              dragOverCol === col.id ? "border-gold-500 bg-gold-500/5" : "border-navy-800/8"
+              "w-80 shrink-0 rounded-xl bg-cream-100/70 dark:bg-navy-900 border flex flex-col max-h-full",
+              dragOverCol === col.id ? "border-gold-500 dark:border-gold-400 bg-gold-500/5 dark:bg-gold-400/10" : "border-navy-800/8 dark:border-white/10"
             )}
           >
-            <div className="px-4 py-3 flex items-center justify-between border-b border-navy-800/8 sticky top-0">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-navy-800/8 dark:border-white/10 sticky top-0">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.color }} />
-                <h3 className="font-semibold text-sm text-navy-900">{col.name}</h3>
+                <h3 className="font-semibold text-sm text-navy-900 dark:text-cream-50">{col.name}</h3>
               </div>
-              <span className="text-xs font-semibold text-navy-800/40 bg-white rounded-full px-2 py-0.5">
+              <span className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 bg-white dark:bg-white/10 rounded-full px-2 py-0.5">
                 {colTasks.length}
               </span>
             </div>
@@ -82,7 +82,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
                 <TaskCard key={task.id} task={task} onToggle={() => startTransition(async () => { await toggleTaskDone(task.id); router.refresh(); })} />
               ))}
               {colTasks.length === 0 && (
-                <p className="text-xs text-center text-navy-800/30 py-6">Arraste um card para cá</p>
+                <p className="text-xs text-center text-navy-800/30 dark:text-cream-50/30 py-6">Arraste um card para cá</p>
               )}
             </div>
           </div>
@@ -101,8 +101,8 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/plain", task.id)}
       className={clsx(
-        "bg-white rounded-lg border p-3 shadow-card cursor-grab active:cursor-grabbing transition-shadow hover:shadow-pop",
-        done ? "border-emerald-200 opacity-60" : overdue ? "border-red-300" : "border-navy-800/8"
+        "bg-white dark:bg-navy-900 rounded-lg border p-3 shadow-card cursor-grab active:cursor-grabbing transition-shadow hover:shadow-pop",
+        done ? "border-emerald-200 dark:border-emerald-400/30 opacity-60" : overdue ? "border-red-300 dark:border-bordo-400/40" : "border-navy-800/8 dark:border-white/10"
       )}
     >
       <div className="flex items-center justify-between mb-1.5">
@@ -113,7 +113,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
             data-tip={done ? "Reabrir" : "Concluir"}
             className={clsx(
               "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
-              done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 text-transparent hover:border-emerald-500"
+              done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 text-transparent hover:border-emerald-500"
             )}
           >
             <Check size={12} strokeWidth={3} />
@@ -121,20 +121,20 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
           <DeleteEntityButton entityType="TASK" entityId={task.id} entityLabel={task.title} confirmMessage={`Excluir "${task.title}"?`} />
         </div>
       </div>
-      <p className={clsx("text-sm font-medium text-navy-900 leading-snug", done && "line-through")}>{task.title}</p>
-      {task.case && <p className="text-xs text-navy-800/45 mt-1 truncate">{task.case.title}</p>}
+      <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 leading-snug", done && "line-through")}>{task.title}</p>
+      {task.case && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">{task.case.title}</p>}
 
       <div className="flex items-center justify-between mt-2.5">
         <div className="flex items-center gap-1.5">
           <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>
           {task._count.comments > 0 && (
-            <span className="flex items-center gap-0.5 text-[11px] text-navy-800/40">
+            <span className="flex items-center gap-0.5 text-[11px] text-navy-800/40 dark:text-cream-50/40">
               <MessageSquare size={11} /> {task._count.comments}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <span className={clsx("text-[11px] font-semibold", overdue ? "text-red-600" : "text-navy-800/50")}>
+          <span className={clsx("text-[11px] font-semibold", overdue ? "text-red-600 dark:text-bordo-400" : "text-navy-800/50 dark:text-cream-50/50")}>
             {formatDate(task.dueDate)}
           </span>
           {task.responsible && (

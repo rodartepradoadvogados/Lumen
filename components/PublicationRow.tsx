@@ -122,7 +122,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
         <ChevronDown
           size={16}
           className={clsx(
-            "absolute right-0 top-0.5 text-navy-800/30 transition-transform",
+            "absolute right-0 top-0.5 text-navy-800/30 dark:text-cream-50/30 transition-transform",
             detailOpen && "rotate-180"
           )}
         />
@@ -135,11 +135,11 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           {!pub.read && <Badge color="gold">Não lida</Badge>}
           {pub.deadlineGenerated && <Badge color="green">Compromisso gerado</Badge>}
           <Badge color={triageColors[pub.triageStatus] || "amber"}>{triageLabels[pub.triageStatus] || pub.triageStatus}</Badge>
-          <span className="text-xs text-navy-800/40">{formatDate(pub.publishedAt)}</span>
+          <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(pub.publishedAt)}</span>
         </div>
-        {pub.case && <p className="text-xs font-medium text-gold-700">{pub.case.title}</p>}
-        {!pub.case && pub.client && <p className="text-xs font-medium text-emerald-700">Cliente compatível: {pub.client.name}</p>}
-        <p className="text-sm text-navy-800 mt-1 line-clamp-2">{pub.content}</p>
+        {pub.case && <p className="text-xs font-medium text-gold-700 dark:text-gold-400">{pub.case.title}</p>}
+        {!pub.case && pub.client && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cliente compatível: {pub.client.name}</p>}
+        <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-1 line-clamp-2">{pub.content}</p>
       </button>
 
       <div className="flex items-center gap-2 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
@@ -147,7 +147,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           <button
             onClick={markRead}
             disabled={loading}
-            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
+            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 dark:text-cream-50/60 dark:hover:text-cream-50 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200 dark:bg-white/10 dark:hover:bg-white/15"
           >
             <Check size={12} /> Marcar como lida
           </button>
@@ -155,26 +155,26 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           <button
             onClick={markUnread}
             disabled={loading}
-            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
+            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 dark:text-cream-50/60 dark:hover:text-cream-50 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200 dark:bg-white/10 dark:hover:bg-white/15"
           >
             <Undo2 size={12} /> Marcar como não lida
           </button>
         )}
 
         {pub.case && (
-          <Link href={`/processos/${pub.case.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200">
+          <Link href={`/processos/${pub.case.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 dark:text-cream-50/60 dark:hover:text-cream-50 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200 dark:bg-white/10 dark:hover:bg-white/15">
             Abrir Processo
           </Link>
         )}
         {!pub.case && pub.client && (
-          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-emerald-800 hover:text-emerald-900 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20">
+          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-emerald-800 hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-300 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 dark:bg-emerald-400/15 dark:hover:bg-emerald-400/25">
             Abrir Cadastro do Cliente
           </Link>
         )}
         {!pub.case && pub.processNumberRaw && (
           <Link
             href={`/processos/novo?type=JUDICIAL&processNumber=${encodeURIComponent(pub.processNumberRaw)}`}
-            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200"
+            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 dark:text-cream-50/60 dark:hover:text-cream-50 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200 dark:bg-white/10 dark:hover:bg-white/15"
           >
             <FilePlus2 size={12} /> Cadastrar Processo
           </Link>
@@ -185,17 +185,17 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setAgendaOpen((o) => !o)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-gold-800 hover:text-gold-900 px-2.5 py-1 rounded-lg bg-gold-500/10 hover:bg-gold-500/20"
+            className="flex items-center gap-1 text-[11px] font-semibold text-gold-800 hover:text-gold-900 dark:text-gold-400 dark:hover:text-gold-300 px-2.5 py-1 rounded-lg bg-gold-500/10 hover:bg-gold-500/20 dark:bg-gold-400/15 dark:hover:bg-gold-400/25"
           >
             <CalendarClock size={12} /> Agenda <ChevronDown size={11} />
           </button>
           {agendaOpen && (
-            <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg border border-navy-800/10 shadow-pop z-20 overflow-hidden">
+            <div className="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-navy-900 rounded-lg border border-navy-800/10 dark:border-white/10 shadow-pop z-20 overflow-hidden">
               {actionButtons.map((a) => (
                 <button
                   key={a.type}
                   onClick={() => pickAction(a.type)}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-navy-900 hover:bg-cream-50 transition-colors"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors"
                 >
                   <a.icon size={13} /> {a.label}
                 </button>
@@ -210,7 +210,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
             disabled={loading}
             onChange={(e) => handleAssign(e.target.value)}
             data-tip="Responsável pela triagem"
-            className="text-[11px] font-semibold text-navy-800/70 px-2 py-1 rounded-lg bg-cream-100 border border-navy-800/10 cursor-pointer disabled:opacity-50"
+            className="text-[11px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-2 py-1 rounded-lg bg-cream-100 dark:bg-navy-800 border border-navy-800/10 dark:border-white/15 cursor-pointer disabled:opacity-50"
           >
             <option value="">Sem responsável</option>
             {users.map((u) => (
@@ -226,7 +226,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           disabled={loading}
           onChange={(e) => handleTriage(e.target.value)}
           data-tip="Status da triagem"
-          className="text-[11px] font-semibold text-navy-800/70 px-2 py-1 rounded-lg bg-cream-100 border border-navy-800/10 cursor-pointer disabled:opacity-50"
+          className="text-[11px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-2 py-1 rounded-lg bg-cream-100 dark:bg-navy-800 border border-navy-800/10 dark:border-white/15 cursor-pointer disabled:opacity-50"
         >
           <option value="PENDENTE">Pendente</option>
           <option value="EM_ANALISE">Em análise</option>
@@ -249,21 +249,21 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
             setLoading(false);
             router.refresh();
           }}
-          className="mt-3 p-3 rounded-lg bg-cream-50 border border-navy-800/8 space-y-2"
+          className="mt-3 p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <input name="title" defaultValue={`${pub.content.slice(0, 50)}`} required className="w-full text-sm border border-navy-800/12 rounded-lg px-2.5 py-1.5" />
+          <input name="title" defaultValue={`${pub.content.slice(0, 50)}`} required className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" />
           <div className="flex gap-2 flex-wrap">
-            <select name="type" defaultValue={formType} className="text-sm border border-navy-800/12 rounded-lg px-2.5 py-1.5">
+            <select name="type" defaultValue={formType} className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5">
               <option value="PRAZO">Prazo</option>
               <option value="TAREFA">Atividade/Tarefa</option>
               <option value="AUDIENCIA">Audiência</option>
               <option value="PERICIA">Perícia</option>
               <option value="EVENTO">Evento</option>
             </select>
-            <input name="dueDate" type="date" required className="text-sm border border-navy-800/12 rounded-lg px-2.5 py-1.5" />
-            <input name="dueTime" type="time" className="text-sm border border-navy-800/12 rounded-lg px-2.5 py-1.5" />
-            <select name="priority" className="text-sm border border-navy-800/12 rounded-lg px-2.5 py-1.5" defaultValue="ALTA">
+            <input name="dueDate" type="date" required className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" />
+            <input name="dueTime" type="time" className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" />
+            <select name="priority" className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" defaultValue="ALTA">
               <option value="BAIXA">Baixa</option>
               <option value="MEDIA">Média</option>
               <option value="ALTA">Alta</option>
@@ -274,7 +274,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
             <button type="submit" disabled={loading} className="flex-1 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50">
               {loading ? "Criando..." : "Criar na Agenda/Kanban"}
             </button>
-            <button type="button" onClick={() => setFormType(null)} className="px-3 text-xs font-semibold text-navy-800/50 hover:text-navy-900">
+            <button type="button" onClick={() => setFormType(null)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
               Cancelar
             </button>
           </div>
@@ -283,31 +283,31 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
 
       {detailOpen && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setDetailOpen(false)}>
-          <div className="bg-white rounded-xl shadow-pop w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900">
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">
                 {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
               </h3>
-              <button onClick={() => setDetailOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+              <button onClick={() => setDetailOpen(false)} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
                 <X size={18} />
               </button>
             </div>
             <div className="p-5 space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge color="navy">{pub.source}</Badge>
-                <span className="text-xs text-navy-800/40">{formatDate(pub.publishedAt)}</span>
+                <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(pub.publishedAt)}</span>
               </div>
               {pub.case && (
-                <Link href={`/processos/${pub.case.id}`} className="text-sm font-medium text-gold-700 hover:underline block">
+                <Link href={`/processos/${pub.case.id}`} className="text-sm font-medium text-gold-700 dark:text-gold-400 hover:underline block">
                   {pub.case.title}
                 </Link>
               )}
               {!pub.case && pub.client && (
-                <Link href={`/contatos/clientes#client-${pub.client.id}`} className="text-sm font-medium text-emerald-700 hover:underline block">
+                <Link href={`/contatos/clientes#client-${pub.client.id}`} className="text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline block">
                   Cliente: {pub.client.name}
                 </Link>
               )}
-              <p className={clsx("text-sm text-navy-800 whitespace-pre-wrap")}>{pub.content}</p>
+              <p className={clsx("text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap")}>{pub.content}</p>
             </div>
           </div>
         </div>
