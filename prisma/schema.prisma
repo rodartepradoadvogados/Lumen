@@ -605,7 +605,8 @@ model BlogPost {
 model Photo {
   id        String   @id @default(cuid())
   url       String   // URL pública do Vercel Blob
-  category  String   // mesma taxonomia livre de BlogPost.area, + "Geral/Escritório" para fotos só decorativas/ambiente
+  category  String   // mesma taxonomia livre de BlogPost.area, + "Todos" para fotos só decorativas/ambiente (curinga)
+  court     String   @default("TODOS") // tribunal retratado na foto: STF, STJ, TRT/TST, TJ, TRF, TODOS (curinga)
   caption   String?  // legenda opcional, ex: para crédito/descrição da imagem
   createdAt DateTime @default(now())
 

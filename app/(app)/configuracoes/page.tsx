@@ -81,7 +81,7 @@ const SECOES = [
   { key: "financeiro", label: "Financeiro", adminOnly: true },
   { key: "produtividade", label: "Produtividade", adminOnly: true },
   { key: "workflows", label: "Workflows", adminOnly: true },
-  { key: "blog", label: "Blog Jurídico", adminOnly: false },
+  { key: "blog", label: "Blog Jurídico", adminOnly: true },
   { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
 ] as const;
 
@@ -117,6 +117,7 @@ export default async function ConfiguracoesPage({
     id: p.id,
     url: p.url,
     category: p.category,
+    court: p.court,
     caption: p.caption,
     createdAt: p.createdAt.toISOString(),
   }));
@@ -254,7 +255,7 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
-      {secao === "blog" && (() => {
+      {isAdmin && secao === "blog" && (() => {
         const blogTab =
           searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
         return (

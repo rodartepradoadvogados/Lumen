@@ -168,6 +168,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
           { label: "Financeiro", value: "financeiro" },
           { label: "Produtividade", value: "produtividade" },
           { label: "Workflows", value: "workflows" },
+          { label: "Blog Jurídico", value: "blog", adminOnly: true },
           { label: "Modelos & Integrações", value: "modelos" },
         ],
       },

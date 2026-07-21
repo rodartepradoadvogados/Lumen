@@ -10,6 +10,7 @@ export type Photo = {
   id: string;
   url: string;
   category: string;
+  court: string;
   caption: string | null;
   createdAt: string;
 };
@@ -26,7 +27,16 @@ export const PHOTO_CATEGORIES = [
   "Compliance",
   "Contratual",
   "Responsabilidade Civil",
-  "Geral/Escritório",
+  "Todos",
+];
+
+export const PHOTO_COURTS = [
+  { value: "STF", label: "STF" },
+  { value: "STJ", label: "STJ" },
+  { value: "TRT/TST", label: "TRT/TST" },
+  { value: "TJ", label: "TJ" },
+  { value: "TRF", label: "TRF" },
+  { value: "TODOS", label: "Todos" },
 ];
 
 export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
@@ -36,6 +46,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState(PHOTO_CATEGORIES[0]);
+  const [court, setCourt] = useState("TODOS");
   const [caption, setCaption] = useState("");
 
   async function handleUpload(e: React.FormEvent) {
@@ -50,6 +61,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
+      formData.append("court", court);
       if (caption.trim()) formData.append("caption", caption.trim());
 
       const res = await fetch("/api/photos/upload", { method: "POST", body: formData });
@@ -60,6 +72,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
       }
       setFile(null);
       setCaption("");
+      setCourt("TODOS");
       const input = document.getElementById("photo-file-input") as HTMLInputElement | null;
       if (input) input.value = "";
       router.refresh();
@@ -105,6 +118,16 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
             ))}
           </select>
         </div>
+        <div className="min-w-[140px]">
+          <label className="text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55">Tribunal</label>
+          <select value={court} onChange={(e) => setCourt(e.target.value)} className="cfg-input w-full">
+            {PHOTO_COURTS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex-1 min-w-[200px]">
           <label className="text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55">Legenda (opcional)</label>
           <input
@@ -135,7 +158,10 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo.url} alt={photo.caption || photo.category} className="w-full h-28 object-cover" />
               <div className="p-2 space-y-1">
-                <Badge color="navy">{photo.category}</Badge>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Badge color="navy">{photo.category}</Badge>
+                  <Badge color="gold">{photo.court}</Badge>
+                </div>
                 {photo.caption && <p className="text-[11px] text-navy-800/55 dark:text-cream-50/55 truncate">{photo.caption}</p>}
                 <button
                   onClick={() => handleDelete(photo.id)}

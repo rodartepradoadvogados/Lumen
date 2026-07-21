@@ -19,7 +19,7 @@ export type PendingPost = {
   createdAt: string;
 };
 
-export type LibraryPhoto = { id: string; url: string; category: string; caption: string | null };
+export type LibraryPhoto = { id: string; url: string; category: string; court: string; caption: string | null };
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
@@ -27,6 +27,59 @@ const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE
 // textos ignorando acentuação/maiúsculas (ex: "Tributario" == "Tributário").
 function norm(s: string) {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
+// Categoria "curinga" de área — foto genérica que serve para qualquer matéria.
+// Aceita tanto o valor novo ("Todos") quanto o antigo ("Geral/Escritório"), já
+// que fotos cadastradas antes da renomeação continuam com o valor antigo salvo.
+function isWildcardCategory(category: string) {
+  const n = norm(category);
+  return n === "todos" || n === "geral/escritorio" || n === "geral/escritório";
+}
+
+// Tenta detectar o tribunal mencionado no TÍTULO da matéria (só o título, para
+// evitar falsos positivos vindos do corpo do texto). Usa regex com fronteira
+// de palavra, case-insensitive, para cada acrônimo. TST/TRT mapeiam para o
+// mesmo valor de tribunal usado nas fotos ("TRT/TST"). Se houver mais de um
+// acrônimo diferente no título, usa o primeiro encontrado — é só uma sugestão,
+// sempre revisável pelo admin antes de publicar.
+const COURT_PATTERNS: { regex: RegExp; court: string }[] = [
+  { regex: /\bSTF\b/i, court: "STF" },
+  { regex: /\bSTJ\b/i, court: "STJ" },
+  { regex: /\bTST\b/i, court: "TRT/TST" },
+  { regex: /\bTRT\b/i, court: "TRT/TST" },
+  { regex: /\bTRF\b/i, court: "TRF" },
+  { regex: /\bTJ\b/i, court: "TJ" },
+];
+
+function detectCourtFromTitle(title: string): string | null {
+  let best: { court: string; index: number } | null = null;
+  for (const { regex, court } of COURT_PATTERNS) {
+    const match = title.match(regex);
+    if (match && match.index !== undefined) {
+      if (best === null || match.index < best.index) {
+        best = { court, index: match.index };
+      }
+    }
+  }
+  return best?.court ?? null;
+}
+
+// Pontuação de relevância de uma foto para a matéria (0 a 4, maior = mais
+// relevante). Usada só para ordenar a grade de sugestões — não é uma fórmula
+// sofisticada, apenas uma prioridade simples:
+//   4: bate área E tribunal detectado (ou foto é curinga de tribunal "TODOS")
+//   2: bate só área, ou bate só tribunal
+//   1: foto é curinga de área ("Todos"/"Geral/Escritório")
+//   0: não bate nada — vai para "Outras fotos"
+function photoScore(photo: LibraryPhoto, normalizedArea: string, detectedCourt: string | null): number {
+  const areaMatch = norm(photo.category) === normalizedArea;
+  const courtMatch = detectedCourt !== null && (photo.court === detectedCourt || photo.court === "TODOS");
+
+  if (areaMatch && courtMatch) return 4;
+  if (areaMatch || courtMatch) return 2;
+  if (isWildcardCategory(photo.category)) return 1;
+  return 0;
 }
 
 export default function BlogReviewManager({ posts, photos = [] }: { posts: PendingPost[]; photos?: LibraryPhoto[] }) {
@@ -102,8 +155,12 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
     .filter(Boolean);
 
   const normalizedArea = norm(area);
-  const suggestedPhotos = photos.filter((p) => norm(p.category) === normalizedArea);
-  const otherPhotos = photos.filter((p) => norm(p.category) !== normalizedArea);
+  const detectedCourt = detectCourtFromTitle(title);
+  const scoredPhotos = photos
+    .map((photo) => ({ photo, score: photoScore(photo, normalizedArea, detectedCourt) }))
+    .sort((a, b) => b.score - a.score);
+  const suggestedPhotos = scoredPhotos.filter((p) => p.score > 0).map((p) => p.photo);
+  const otherPhotos = scoredPhotos.filter((p) => p.score === 0).map((p) => p.photo);
 
   return (
     <div className="p-5 space-y-3">

@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// Valores válidos para o campo `court` (tribunal retratado na foto) — mesma
+// lista usada em components/PhotoLibraryManager.tsx (PHOTO_COURTS).
+const VALID_COURTS = ["STF", "STJ", "TRT/TST", "TJ", "TRF", "TODOS"];
+
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) {
@@ -14,6 +18,8 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
   const category = String(formData.get("category") || "").trim();
+  const courtRaw = String(formData.get("court") || "").trim();
+  const court = courtRaw || "TODOS";
   const caption = String(formData.get("caption") || "").trim();
 
   if (!file) {
@@ -25,12 +31,18 @@ export async function POST(request: NextRequest) {
   if (!category) {
     return NextResponse.json({ error: "Selecione uma categoria/área para a foto." }, { status: 400 });
   }
+  if (!VALID_COURTS.includes(court)) {
+    return NextResponse.json(
+      { error: `Tribunal inválido. Valores aceitos: ${VALID_COURTS.join(", ")}.` },
+      { status: 400 }
+    );
+  }
 
   try {
     const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "public" });
 
     const photo = await prisma.photo.create({
-      data: { url: blob.url, category, caption: caption || null },
+      data: { url: blob.url, category, court, caption: caption || null },
     });
 
     return NextResponse.json({ photo });
