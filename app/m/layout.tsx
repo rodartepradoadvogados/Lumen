@@ -12,12 +12,18 @@ export const dynamic = "force-dynamic";
 // Aplica a classe `dark` no <html> de forma síncrona, antes do resto da árvore renderizar,
 // para evitar o "flash" de tema claro em quem já escolheu o escuro (padrão comum em apps Next.js
 // com next-themes/dark mode manual). Escopo: só o app mobile, então fica só neste layout.
+//
+// Usa toggle (não só add) de propósito: o layout raiz do site (app/layout.tsx) roda seu
+// próprio script de tema antes deste (chave "rp-site-theme", 3 estados) e pode já ter deixado
+// a classe `dark` no <html>. Se este script só adicionasse a classe quando escuro, uma visita
+// direta a uma rota /m com o tema mobile em "light" herdaria (incorretamente) o `dark` deixado
+// pelo script do site. Com toggle, este script sempre decide o estado final para as rotas /m.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem("rp-mobile-theme");
     var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (dark) document.documentElement.classList.add("dark");
+    document.documentElement.classList.toggle("dark", dark);
   } catch (e) {}
 })();
 `;

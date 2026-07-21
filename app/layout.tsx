@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -32,6 +33,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${playfair.variable} ${inter.variable} font-sans antialiased brand-texture`}>
+        {/* Script anti-flash: decide se a classe `dark` entra no <html> antes da hidratação
+            (mesmo padrão de app/m/layout.tsx, adaptado para os 3 estados dia/tarde/noite). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
       </body>
     </html>

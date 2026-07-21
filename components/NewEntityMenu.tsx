@@ -25,14 +25,14 @@ export default function NewEntityMenu() {
         <Plus size={16} /> Novo
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl border border-navy-800/10 shadow-pop z-50 overflow-hidden">
-          <Link href="/processos/novo?type=JUDICIAL" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-900 hover:bg-cream-50 transition-colors">
+        <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-navy-900 rounded-xl border border-navy-800/10 dark:border-white/10 shadow-pop z-50 overflow-hidden">
+          <Link href="/processos/novo?type=JUDICIAL" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
             <Scale size={15} /> Processo
           </Link>
-          <Link href="/processos/novo?type=EXTRAJUDICIAL" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-900 hover:bg-cream-50 transition-colors">
+          <Link href="/processos/novo?type=EXTRAJUDICIAL" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
             <Briefcase size={15} /> Caso
           </Link>
-          <Link href="/atendimento?novo=1" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-900 hover:bg-cream-50 transition-colors">
+          <Link href="/atendimento?novo=1" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
             <Headset size={15} /> Atendimento
           </Link>
         </div>

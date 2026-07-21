@@ -43,14 +43,16 @@ export default function DeleteEntityButton({
         onClick={handleClick}
         disabled={pending}
         data-tip="Excluir"
-        className="p-1.5 rounded-lg text-navy-800/30 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+        className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10 transition-colors disabled:opacity-40"
       >
         <Trash2 size={14} />
       </button>
       {msg && (
         <span
           className={`absolute right-0 top-full mt-1 z-10 w-64 text-[11px] rounded-lg px-2.5 py-1.5 shadow-pop border ${
-            msg.type === "error" ? "bg-red-50 text-red-700 border-red-200" : "bg-blue-50 text-blue-700 border-blue-200"
+            msg.type === "error"
+              ? "bg-bordo-100 dark:bg-bordo-900/40 text-bordo-700 dark:text-bordo-400 border-bordo-100 dark:border-bordo-400/20"
+              : "bg-blue-50 dark:bg-blue-400/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-400/20"
           }`}
         >
           {msg.text}

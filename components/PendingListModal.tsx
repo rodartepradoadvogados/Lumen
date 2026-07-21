@@ -35,12 +35,12 @@ export default function PendingListModal({
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div
-            className="bg-white rounded-xl shadow-pop w-full max-w-2xl max-h-[80vh] flex flex-col animate-fade-in"
+            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-2xl max-h-[80vh] flex flex-col animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 shrink-0">
-              <h3 className="font-serif font-bold text-navy-900">{title}</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">{title}</h3>
+              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
                 <X size={18} />
               </button>
             </div>

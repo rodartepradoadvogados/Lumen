@@ -115,12 +115,12 @@ export default function NoticesPanel({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="divide-y divide-navy-800/5 flex-1 max-h-[420px] overflow-y-auto scrollbar-thin">
-        {notices.length === 0 && <p className="text-center text-sm text-navy-800/35 py-10">Nenhum recado ainda</p>}
+      <div className="divide-y divide-navy-800/5 dark:divide-white/10 flex-1 max-h-[420px] overflow-y-auto scrollbar-thin">
+        {notices.length === 0 && <p className="text-center text-sm text-navy-800/35 dark:text-cream-50/35 py-10">Nenhum recado ainda</p>}
         {notices.map((n) => {
           const canDelete = isAdmin || n.author.id === currentUserId;
           return (
-            <div key={n.id} className={clsx("px-5 py-3 flex gap-3", n.pinned && "bg-gold-500/5")}>
+            <div key={n.id} className={clsx("px-5 py-3 flex gap-3", n.pinned && "bg-gold-500/5 dark:bg-gold-400/5")}>
               <div
                 className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
                 style={{ backgroundColor: n.author.color }}
@@ -129,16 +129,16 @@ export default function NoticesPanel({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-navy-900">{n.author.name}</p>
-                  {n.pinned && <Pin size={12} className="text-gold-600 fill-gold-500" />}
-                  <span className="text-[11px] text-navy-800/40">{relativeTime(n.createdAt)}</span>
+                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{n.author.name}</p>
+                  {n.pinned && <Pin size={12} className="text-gold-600 fill-gold-500 dark:text-gold-400 dark:fill-gold-400" />}
+                  <span className="text-[11px] text-navy-800/40 dark:text-cream-50/40">{relativeTime(n.createdAt)}</span>
                   <span className="ml-auto flex items-center gap-0.5">
                     {isAdmin && (
                       <button
                         onClick={() => pin(n.id)}
                         disabled={pending}
                         data-tip={n.pinned ? "Desafixar" : "Fixar recado"}
-                        className="p-1 rounded text-navy-800/30 hover:text-gold-700 hover:bg-gold-500/10"
+                        className="p-1 rounded text-navy-800/30 dark:text-cream-50/30 hover:text-gold-700 dark:hover:text-gold-400 hover:bg-gold-500/10 dark:hover:bg-gold-400/10"
                       >
                         {n.pinned ? <PinOff size={13} /> : <Pin size={13} />}
                       </button>
@@ -148,21 +148,21 @@ export default function NoticesPanel({
                         onClick={() => remove(n.id)}
                         disabled={pending}
                         data-tip="Excluir recado"
-                        className="p-1 rounded text-navy-800/30 hover:text-red-600 hover:bg-red-50"
+                        className="p-1 rounded text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10"
                       >
                         <Trash2 size={13} />
                       </button>
                     )}
                   </span>
                 </div>
-                <p className="text-sm text-navy-800 mt-0.5 whitespace-pre-wrap break-words">{n.content}</p>
+                <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-0.5 whitespace-pre-wrap break-words">{n.content}</p>
               </div>
             </div>
           );
         })}
       </div>
-      <div className="border-t border-navy-800/8 p-3">
-        {error && <p className="text-[11px] text-red-600 mb-1.5">{error}</p>}
+      <div className="border-t border-navy-800/8 dark:border-white/10 p-3">
+        {error && <p className="text-[11px] text-bordo-600 dark:text-bordo-400 mb-1.5">{error}</p>}
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <textarea
@@ -171,20 +171,20 @@ export default function NoticesPanel({
               onChange={handleTextChange}
               rows={1}
               placeholder="Escreva um recado para o escritório... use @ para mencionar alguém"
-              className="w-full resize-none border border-navy-800/12 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+              className="w-full resize-none border border-navy-800/12 dark:border-white/10 bg-white dark:bg-navy-900 text-navy-900 dark:text-cream-50 placeholder:text-navy-800/40 dark:placeholder:text-cream-50/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) publish();
                 if (e.key === "Escape") setMentionQuery(null);
               }}
             />
             {mentionQuery !== null && mentionCandidates.length > 0 && (
-              <div className="absolute left-0 bottom-full mb-1 w-56 bg-white rounded-lg border border-navy-800/10 shadow-pop z-20 overflow-hidden max-h-48 overflow-y-auto scrollbar-thin">
+              <div className="absolute left-0 bottom-full mb-1 w-56 bg-white dark:bg-navy-900 rounded-lg border border-navy-800/10 dark:border-white/10 shadow-pop z-20 overflow-hidden max-h-48 overflow-y-auto scrollbar-thin">
                 {mentionCandidates.map((u) => (
                   <button
                     key={u.id}
                     type="button"
                     onClick={() => selectMention(u.name)}
-                    className="flex items-center w-full px-3 py-2 text-sm text-navy-900 hover:bg-cream-50 transition-colors text-left"
+                    className="flex items-center w-full px-3 py-2 text-sm text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors text-left"
                   >
                     {u.name}
                   </button>

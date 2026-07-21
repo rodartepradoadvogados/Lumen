@@ -90,9 +90,9 @@ export default async function ProcessosPage({
         <form className="p-4 flex flex-wrap items-end gap-3">
           {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
           <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Buscar</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
             <div className="relative">
-              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30" />
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
               <input
                 type="text"
                 name="q"
@@ -103,7 +103,7 @@ export default async function ProcessosPage({
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Área</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Área</label>
             <select name="area" defaultValue={searchParams.area} className="pr-input">
               <option value="">Todas</option>
               {areas.map((a) => (
@@ -114,7 +114,7 @@ export default async function ProcessosPage({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Responsável</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Responsável</label>
             <select name="responsibleId" defaultValue={searchParams.responsibleId} className="pr-input">
               <option value="">Todos</option>
               {users.map((u) => (
@@ -125,7 +125,7 @@ export default async function ProcessosPage({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 block mb-1">Ordenar por</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Ordenar por</label>
             <select name="sort" defaultValue={sortKey} className="pr-input">
               {Object.entries(sortLabels).map(([k, label]) => (
                 <option key={k} value={k}>
@@ -140,7 +140,7 @@ export default async function ProcessosPage({
           {(q || searchParams.area || searchParams.responsibleId || (searchParams.sort && searchParams.sort !== "nome")) && (
             <Link
               href={qsFor(searchParams, { q: undefined, area: undefined, responsibleId: undefined, sort: undefined })}
-              className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2"
+              className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2"
             >
               Limpar filtros
             </Link>
@@ -152,29 +152,29 @@ export default async function ProcessosPage({
         {cases.length === 0 ? (
           <EmptyState title="Nenhum processo encontrado" />
         ) : (
-          <div className="divide-y divide-navy-800/5">
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {cases.map((c) => (
-              <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-cream-50 transition-colors">
-                <div className="h-10 w-10 rounded-lg bg-navy-900/5 text-navy-800 flex items-center justify-center shrink-0">
+              <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+                <div className="h-10 w-10 rounded-full bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
                   <Scale size={18} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-navy-900 truncate">{c.title}</p>
+                    <p className="font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
                     <Badge color={statusColors[c.status]}>{c.status}</Badge>
                     {c.area && <Badge color="gold">{c.area}</Badge>}
                   </div>
-                  <p className="text-xs text-navy-800/45 mt-1 truncate">
+                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">
                     {c.processNumber ? `${c.processNumber} · ` : ""}
                     {c.client?.name}
                     {c.opposingPartyName ? ` x ${c.opposingPartyName}` : ""}
                   </p>
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">
-                  {c.caseValue != null && <p className="text-sm font-semibold text-navy-900">{formatCurrency(c.caseValue)}</p>}
-                  <p className="text-xs text-navy-800/40 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
+                  {c.caseValue != null && <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(c.caseValue)}</p>}
+                  <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
                 </div>
-                <div className="text-xs text-navy-800/40 shrink-0 w-20 text-right hidden md:block">
+                <div className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0 w-20 text-right hidden md:block">
                   {c._count.tasks} tarefa(s)
                 </div>
                 <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"?`} />
@@ -184,8 +184,9 @@ export default async function ProcessosPage({
         )}
       </Card>
       <style>{`
-        .pr-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }
+        .pr-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background: #fff; color: #14213d; }
         .pr-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .dark .pr-input { border-color: rgba(255,255,255,0.12); background: #0b1730; color: #f6f3ec; }
       `}</style>
     </div>
   );
@@ -204,7 +205,9 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
     <Link
       href={href}
       className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-        active ? "bg-navy-900 text-white" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+        active
+          ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950"
+          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/10"
       }`}
     >
       {label}
