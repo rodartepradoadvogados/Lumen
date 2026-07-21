@@ -71,12 +71,27 @@ dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-fina
    legislativas, teses vinculantes (repetitivos, súmulas, IRDR, ADIs/ADCs relevantes), e
    notícias jurídicas de impacto para as áreas cobertas.
 
-3. **Decidir se há pauta relevante.** Se não houver nada relevante o suficiente, **não
-   publique nada neste ciclo** — isso é esperado e correto, não force conteúdo em dia
-   fraco. Pode ficar dias sem publicar.
+3. **Meta: 3 matérias por dia.** O objetivo de cada ciclo diário é encontrar e publicar
+   cerca de **3 matérias** (somando NOTICIA + ANALISE, em qualquer combinação das áreas
+   cobertas). Para chegar lá, varra várias das fontes/áreas listadas antes de decidir que
+   não há pauta — não pare na primeira notícia encontrada nem se limite a uma área só.
+   Dito isso, a meta NUNCA justifica forçar conteúdo fraco ou inventar fundamentação só
+   para bater o número: se depois de uma varredura razoável houver menos de 3 pautas
+   que passem na validação do passo 4, publique só as que passarem (pode ser 0, 1, 2 —
+   está tudo bem). Nunca sacrifique a validação de fontes em nome da meta numérica.
 
-4. **Validar cada candidato** contra pelo menos duas fontes independentes antes de dar
-   como confirmado:
+4. **Validar cada candidato contra pelo menos duas fontes independentes, sendo
+   OBRIGATORIAMENTE uma delas um portal/notícia jurídica (Migalhas, Conjur ou
+   Jusbrasil-notícias) e a outra o site oficial do tribunal envolvido (STF, STJ, TST,
+   TSE, TJ, TRF, TRT conforme o caso — acórdão publicado, informativo de jurisprudência,
+   súmula, etc.)** antes de dar como confirmado:
+   - Se a matéria não envolver diretamente uma decisão de tribunal (ex.: mudança
+     legislativa, notícia doutrinária), use duas fontes independentes quaisquer da lista
+     de fontes, mas priorize sempre a fonte oficial (texto de lei, portal do
+     Diário Oficial) quando existir.
+   - Se não for possível confirmar a mesma pauta em uma fonte oficial de tribunal (só
+     achou em um portal de notícia, por exemplo), **não publique** — descarte a pauta
+     neste ciclo em vez de compor a matéria com fonte única ou duas fontes do mesmo tipo.
    - Se as fontes se complementam sem conflito, pode compor o texto normalmente.
    - Se houver divergência real entre fontes sobre o mesmo fato/decisão, sinalize a
      divergência explicitamente no corpo da matéria (não descarte a pauta, mas deixe claro
