@@ -13,9 +13,9 @@ export default async function MobileMais() {
 
   const items = [
     { href: "/m/atendimento", label: "Atendimento", Icon: Phone, show: true },
-    { href: "/financeiro", label: "Financeiro", Icon: DollarSign, show: showFinance },
+    { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, show: true },
-    { href: "/configuracoes", label: "Configurações", Icon: Settings, show: true },
+    { href: "/m/configuracoes", label: "Configurações", Icon: Settings, show: true },
   ].filter((i) => i.show);
 
   return (
