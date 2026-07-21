@@ -77,13 +77,13 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
         type="button"
         onClick={() => setOpen((v) => !v)}
         data-tip="Assistente Claude"
-        className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-navy-800 text-gold-400 shadow-pop flex items-center justify-center hover:bg-navy-700 transition-colors"
+        className="fixed bottom-5 right-6 z-40 h-14 w-14 rounded-full bg-navy-800 text-gold-400 shadow-pop flex items-center justify-center hover:bg-navy-700 transition-colors"
       >
         {open ? <X size={22} /> : <Sparkles size={22} />}
       </button>
 
       {open && (
-        <div className="fixed bottom-20 right-5 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-white z-40 flex flex-col overflow-hidden border border-gold-500/20">
+        <div className="fixed bottom-20 right-6 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-white z-40 flex flex-col overflow-hidden border border-gold-500/20">
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-navy-800 text-white">
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="text-gold-400" />
