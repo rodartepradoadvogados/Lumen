@@ -121,4 +121,19 @@ body {
   [data-tip]:focus-visible::before {
     opacity: 1;
   }
+
+  /* Variante opt-in: inverte a dica pra abrir PRA BAIXO em vez de pra cima. Use apenas em
+     elementos perto do topo do viewport (ex.: o botão de tema na TopBar, components/ThemeToggle.tsx),
+     onde a dica padrão (acima) fica cortada/escondida pelo topo da tela. Não afeta os demais
+     usos de [data-tip] no projeto, que continuam abrindo pra cima como sempre. */
+  [data-tip][data-tip-pos="bottom"]::after {
+    bottom: auto;
+    top: calc(100% + 6px);
+  }
+  [data-tip][data-tip-pos="bottom"]::before {
+    bottom: auto;
+    top: calc(100% + 2px);
+    border-top-color: transparent;
+    border-bottom-color: #0b1730; /* navy-900 */
+  }
 }

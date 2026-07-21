@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { Sun, CloudSun, Moon } from "lucide-react";
-import { THEME_KEY, THEME_ORDER, THEME_LABEL, isThemeMode, resolveIsDark, type ThemeMode } from "@/lib/theme";
+import {
+  THEME_KEY,
+  THEME_ORDER,
+  THEME_LABEL,
+  THEME_CHANGE_EVENT,
+  isThemeMode,
+  resolveIsDark,
+  type ThemeMode,
+} from "@/lib/theme";
 
 const ICONS: Record<ThemeMode, typeof Sun> = {
   light: Sun,
@@ -34,9 +42,13 @@ export default function ThemeToggle() {
   }, []);
 
   // Aplica o modo atual ao <html> e, quando em "auto", escuta mudanças do SO em tempo real.
+  // Também avisa o resto do app (ex.: components/Sidebar.tsx) do modo EXATO escolhido via
+  // evento customizado — dispara tanto na sincronização inicial pós-montagem quanto em toda
+  // troca de modo pelo cycle() (já que ambas mexem em `mode` e reexecutam este efeito).
   useEffect(() => {
     if (!mounted) return;
     document.documentElement.classList.toggle("dark", resolveIsDark(mode));
+    window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: mode }));
     if (mode !== "auto") return;
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -68,6 +80,7 @@ export default function ThemeToggle() {
       type="button"
       onClick={cycle}
       data-tip={`Tema: ${THEME_LABEL[mode]} (clique p/ ${nextLabel})`}
+      data-tip-pos="bottom"
       aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
       className="p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors text-navy-800 dark:text-cream-50/80"
     >

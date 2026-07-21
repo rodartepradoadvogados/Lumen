@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import clsx from "clsx";
+import { THEME_KEY, THEME_CHANGE_EVENT, isThemeMode, type ThemeMode } from "@/lib/theme";
 
 // Sub-aba de um item do menu: aparece expandida logo abaixo do item pai quando
 // a rota atual pertence àquela seção (sem precisar de clique extra pra abrir).
@@ -187,6 +188,34 @@ export default function Sidebar({
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
 
+  // Modo de tema exato ("light"/"auto"/"dark"), sincronizado via THEME_CHANGE_EVENT
+  // (disparado por components/ThemeToggle.tsx) — necessário porque a classe `dark` do <html>
+  // só expõe um binário (escuro ou não) e o pedido é: barra lateral clara SÓ no modo "light"
+  // ("Dia"); em "auto" ("Tarde") e "dark" ("Noite") ela continua navy, idêntica a hoje. Começa
+  // em "auto" (o default seguro, igual ao comportamento atual antes desta mudança) e só é
+  // ajustado depois do mount, pra evitar mismatch de hidratação — mesmo padrão da flag
+  // `mounted` em components/ThemeToggle.tsx.
+  const [themeMode, setThemeMode] = useState<ThemeMode>("auto");
+
+  useEffect(() => {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(THEME_KEY);
+    } catch {
+      // localStorage indisponível (modo privado etc.) — segue com "auto".
+    }
+    setThemeMode(isThemeMode(stored) ? stored : "auto");
+
+    function handleThemeChange(event: Event) {
+      const detail = (event as CustomEvent<ThemeMode>).detail;
+      if (isThemeMode(detail)) setThemeMode(detail);
+    }
+    window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+    return () => window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+  }, []);
+
+  const isLightForced = themeMode === "light";
+
   useEffect(() => {
     setOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -215,14 +244,18 @@ export default function Sidebar({
 
       <aside
         className={clsx(
-          "w-64 shrink-0 bg-navy-900 text-cream-100 flex flex-col h-full fixed md:static top-0 left-0 z-50 transition-transform duration-200 md:translate-x-0",
+          "w-64 shrink-0 flex flex-col h-full fixed md:static top-0 left-0 z-50 transition-transform duration-200 md:translate-x-0",
+          isLightForced ? "bg-cream-50 text-navy-900 border-r border-navy-900/10" : "bg-navy-900 text-cream-100",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="px-6 py-6 border-b border-white/10 relative">
+        <div className={clsx("px-6 py-6 border-b relative", isLightForced ? "border-navy-900/10" : "border-white/10")}>
           <button
             onClick={() => setOpen(false)}
-            className="md:hidden absolute top-4 right-4 text-cream-100/60 hover:text-cream-50"
+            className={clsx(
+              "md:hidden absolute top-4 right-4",
+              isLightForced ? "text-navy-800/60 hover:text-navy-900" : "text-cream-100/60 hover:text-cream-50"
+            )}
             aria-label="Fechar menu"
           >
             <X size={18} />
@@ -235,7 +268,12 @@ export default function Sidebar({
           <h1 className="font-serif text-xl font-bold tracking-wide text-center leading-tight">
             RODARTE PRADO
           </h1>
-          <p className="text-center text-[11px] tracking-[0.3em] text-gold-500 font-medium mt-0.5">
+          <p
+            className={clsx(
+              "text-center text-[11px] tracking-[0.3em] font-medium mt-0.5",
+              isLightForced ? "text-gold-700" : "text-gold-500"
+            )}
+          >
             ADVOGADOS
           </p>
         </div>
@@ -244,7 +282,12 @@ export default function Sidebar({
           {groups.map((group, groupIndex) => (
             <div key={group.label ?? "principal"} className={groupIndex === 0 ? "space-y-0.5" : "space-y-0.5 mt-4"}>
               {group.label && (
-                <p className="text-[10px] font-semibold tracking-widest uppercase px-3 mb-1 text-cream-100/40">
+                <p
+                  className={clsx(
+                    "text-[10px] font-semibold tracking-widest uppercase px-3 mb-1",
+                    isLightForced ? "text-navy-800/40" : "text-cream-100/40"
+                  )}
+                >
                   {group.label}
                 </p>
               )}
@@ -265,7 +308,11 @@ export default function Sidebar({
                       className={clsx(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors",
                         active
-                          ? "bg-gold-500/12 text-gold-300 font-semibold border-gold-400"
+                          ? isLightForced
+                            ? "bg-gold-600/10 text-navy-900 font-semibold border-gold-600"
+                            : "bg-gold-500/12 text-gold-300 font-semibold border-gold-400"
+                          : isLightForced
+                          ? "text-navy-800/70 font-medium border-transparent hover:bg-navy-900/5 hover:text-navy-900"
                           : "text-cream-100/80 font-medium border-transparent hover:bg-white/5 hover:text-cream-50"
                       )}
                     >
@@ -301,7 +348,11 @@ export default function Sidebar({
                                   className={clsx(
                                     "block pl-6 pr-3 py-1.5 rounded-md text-[13px] transition-colors",
                                     subActive
-                                      ? "bg-navy-700/40 text-gold-300 font-semibold"
+                                      ? isLightForced
+                                        ? "bg-gold-600/10 text-navy-900 font-semibold"
+                                        : "bg-navy-700/40 text-gold-300 font-semibold"
+                                      : isLightForced
+                                      ? "text-navy-800/70 hover:bg-navy-900/5 hover:text-navy-900"
                                       : "text-cream-100/70 hover:bg-navy-700/25 hover:text-cream-50"
                                   )}
                                 >
@@ -320,7 +371,12 @@ export default function Sidebar({
           ))}
         </nav>
 
-        <div className="px-4 py-4 border-t border-white/10 text-[11px] text-cream-100/50">
+        <div
+          className={clsx(
+            "px-4 py-4 border-t text-[11px]",
+            isLightForced ? "border-navy-900/10 text-navy-800/50" : "border-white/10 text-cream-100/50"
+          )}
+        >
           Sistema Interno · v0.1
         </div>
       </aside>

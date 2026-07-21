@@ -14,6 +14,15 @@ export type ThemeMode = "light" | "dark" | "auto";
 
 export const THEME_KEY = "rp-site-theme";
 
+// Evento customizado disparado (window.dispatchEvent) sempre que o modo de tema muda —
+// seja por clique no ThemeToggle, seja na sincronização inicial pós-montagem — para que
+// outros componentes client (ex.: components/Sidebar.tsx) possam reagir ao modo EXATO
+// escolhido ("light"/"auto"/"dark"), já que a classe `dark` do <html> só expõe um binário
+// (escuro ou não). Mesmo padrão de eventos customizados já usado pelo timesheet
+// (ver "rp-timesheet-pause"/"rp-timesheet-resume" em components/TimesheetTimer.tsx e
+// components/InactivityNotice.tsx).
+export const THEME_CHANGE_EVENT = "rp-site-theme-change";
+
 export const THEME_ORDER: ThemeMode[] = ["light", "auto", "dark"];
 
 export const THEME_LABEL: Record<ThemeMode, string> = {
