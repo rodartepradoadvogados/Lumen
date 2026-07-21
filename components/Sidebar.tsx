@@ -194,19 +194,19 @@ export default function Sidebar({
   // (disparado por components/ThemeToggle.tsx) — necessário porque a classe `dark` do <html>
   // só expõe um binário (escuro ou não) e o pedido é: barra lateral clara SÓ no modo "light"
   // ("Dia"); em "auto" ("Tarde") e "dark" ("Noite") ela continua navy, idêntica a hoje. Começa
-  // em "auto" (o default seguro, igual ao comportamento atual antes desta mudança) e só é
-  // ajustado depois do mount, pra evitar mismatch de hidratação — mesmo padrão da flag
-  // `mounted` em components/ThemeToggle.tsx.
-  const [themeMode, setThemeMode] = useState<ThemeMode>("auto");
+  // em "light" (o mesmo padrão de THEME_INIT_SCRIPT, ver lib/theme.ts) e só é ajustado depois
+  // do mount, pra evitar mismatch de hidratação — mesmo padrão da flag `mounted` em
+  // components/ThemeToggle.tsx.
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
     let stored: string | null = null;
     try {
       stored = localStorage.getItem(THEME_KEY);
     } catch {
-      // localStorage indisponível (modo privado etc.) — segue com "auto".
+      // localStorage indisponível (modo privado etc.) — segue com "light".
     }
-    setThemeMode(isThemeMode(stored) ? stored : "auto");
+    setThemeMode(isThemeMode(stored) ? stored : "light");
 
     function handleThemeChange(event: Event) {
       const detail = (event as CustomEvent<ThemeMode>).detail;

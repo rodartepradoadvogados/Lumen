@@ -1,35 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Moon } from "lucide-react";
+import { Sun, CloudSun, Moon } from "lucide-react";
+import { THEME_ORDER, THEME_LABEL, isThemeMode, type ThemeMode } from "@/lib/theme";
 
-const THEME_KEY = "rp-mobile-theme";
+const MOBILE_THEME_KEY = "rp-mobile-theme";
 
-// Alterna a classe `dark` no <html> e persiste a escolha no localStorage. O script inline
-// em app/m/layout.tsx já aplica a classe certa antes deste componente montar (evita flash);
-// aqui só sincronizamos o estado visual do botão com o que já foi decidido.
+const ICONS: Record<ThemeMode, typeof Sun> = {
+  light: Sun,
+  auto: CloudSun,
+  dark: Moon,
+};
+
+// Mesmos 3 estados do site (Dia/Tarde/Noite, ver lib/theme.ts), com chave de localStorage
+// própria ("rp-mobile-theme") — o app mobile pode ficar num tema diferente do site sem um
+// afetar o outro (ver comentário em app/m/layout.tsx). Alterna as classes `dark`/`theme-tarde`
+// no <html>; o script inline em app/m/layout.tsx já aplica as classes certas antes deste
+// componente montar (evita flash) — aqui só sincronizamos o estado visual do botão.
 export default function MobileThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     let stored: string | null = null;
     try {
-      stored = localStorage.getItem(THEME_KEY);
+      stored = localStorage.getItem(MOBILE_THEME_KEY);
     } catch {
-      // localStorage indisponível (modo privado etc.) — segue com o padrão do sistema.
+      // localStorage indisponível (modo privado etc.) — segue com "light".
     }
-    const isDark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setDark(isDark);
+    setMode(isThemeMode(stored) ? stored : "light");
     setMounted(true);
   }, []);
 
-  function toggle() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
+  function cycle() {
+    const next = THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length];
+    setMode(next);
+    document.documentElement.classList.toggle("dark", next === "dark" || next === "auto");
+    document.documentElement.classList.toggle("theme-tarde", next === "auto");
     try {
-      localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+      localStorage.setItem(MOBILE_THEME_KEY, next);
     } catch {
       // ignora falha ao persistir; o toggle ainda funciona na sessão atual
     }
@@ -40,14 +49,17 @@ export default function MobileThemeToggle() {
     return <span className="h-8 w-8 shrink-0" aria-hidden="true" />;
   }
 
+  const Icon = ICONS[mode];
+  const nextLabel = THEME_LABEL[THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length]];
+
   return (
     <button
       type="button"
-      onClick={toggle}
-      aria-label={dark ? "Ativar tema claro" : "Ativar tema escuro"}
+      onClick={cycle}
+      aria-label={`Tema atual: ${THEME_LABEL[mode]}. Toque para mudar para ${nextLabel}`}
       className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-cream-50/80 hover:text-gold-400 hover:bg-white/10 transition-colors"
     >
-      {dark ? <Sun size={16} /> : <Moon size={16} />}
+      <Icon size={16} />
     </button>
   );
 }

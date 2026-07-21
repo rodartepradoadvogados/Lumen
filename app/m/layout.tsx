@@ -10,21 +10,27 @@ import LumenMark from "@/components/LumenMark";
 
 export const dynamic = "force-dynamic";
 
-// Aplica a classe `dark` no <html> de forma síncrona, antes do resto da árvore renderizar,
-// para evitar o "flash" de tema claro em quem já escolheu o escuro (padrão comum em apps Next.js
-// com next-themes/dark mode manual). Escopo: só o app mobile, então fica só neste layout.
+// Aplica as classes `dark`/`theme-tarde` no <html> de forma síncrona, antes do resto da
+// árvore renderizar, para evitar o "flash" de tema errado (padrão comum em apps Next.js com
+// next-themes/dark mode manual). Escopo: só o app mobile, então fica só neste layout — mesmos
+// 3 estados do site (Dia/Tarde/Noite, ver lib/theme.ts), mas com chave de localStorage própria
+// ("rp-mobile-theme", não "rp-site-theme") de propósito: o dono do escritório pode querer,
+// por exemplo, o site sempre em Noite mas o app mobile em Dia, sem um afetar o outro.
 //
 // Usa toggle (não só add) de propósito: o layout raiz do site (app/layout.tsx) roda seu
-// próprio script de tema antes deste (chave "rp-site-theme", 3 estados) e pode já ter deixado
-// a classe `dark` no <html>. Se este script só adicionasse a classe quando escuro, uma visita
-// direta a uma rota /m com o tema mobile em "light" herdaria (incorretamente) o `dark` deixado
-// pelo script do site. Com toggle, este script sempre decide o estado final para as rotas /m.
+// próprio script de tema antes deste e pode já ter deixado as classes no <html>. Se este
+// script só adicionasse a classe quando escuro, uma visita direta a uma rota /m com o tema
+// mobile em "light" herdaria (incorretamente) o que o script do site deixou. Com toggle, este
+// script sempre decide o estado final para as rotas /m. Sem preferência salva, o padrão é
+// "light" (Dia), igual ao site.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem("rp-mobile-theme");
-    var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "light";
+    var dark = mode === "dark" || mode === "auto";
     document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("theme-tarde", mode === "auto");
   } catch (e) {}
 })();
 `;
@@ -50,7 +56,10 @@ export default async function MobileLayout({ children }: { children: React.React
     <div className="min-h-screen bg-cream-100 dark:bg-navy-950 transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       {user && <InactivityNotice />}
-      <header className="fixed top-0 inset-x-0 h-[52px] bg-navy-900 dark:bg-navy-950 dark:border-b dark:border-white/10 text-cream-50 flex items-center justify-between px-4 z-40">
+      {/* Cabeçalho sempre navy, nos 3 temas (Dia/Tarde/Noite) — de propósito sem classes
+          `dark:`, senão o Tarde tingiria o cabeçalho de bordô junto com os cards (mesmo
+          motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`). */}
+      <header className="fixed top-0 inset-x-0 h-[52px] bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between px-4 z-40">
         <div className="flex items-center gap-1.5">
           <LumenMark size={22} />
           <span className="font-serif text-sm font-bold tracking-wide text-cream-50">LÚMEN</span>

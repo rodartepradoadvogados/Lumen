@@ -25,19 +25,20 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 // deste componente montar (evita flash); aqui assumimos o controle a partir da hidratação,
 // só para refletir o estado no ícone e reagir a cliques no próprio botão.
 export default function ThemeToggle() {
-  const [mode, setMode] = useState<ThemeMode>("auto");
+  const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
   // Lê a preferência salva assim que monta (o valor real já foi aplicado no <html> pelo
-  // script inline; aqui só sincronizamos o estado do React/ícone do botão).
+  // script inline; aqui só sincronizamos o estado do React/ícone do botão). Sem preferência
+  // salva, o padrão é "light" (Dia) — ver THEME_INIT_SCRIPT em lib/theme.ts.
   useEffect(() => {
     let stored: string | null = null;
     try {
       stored = localStorage.getItem(THEME_KEY);
     } catch {
-      // localStorage indisponível (modo privado etc.) — segue com "auto".
+      // localStorage indisponível (modo privado etc.) — segue com "light".
     }
-    setMode(isThemeMode(stored) ? stored : "auto");
+    setMode(isThemeMode(stored) ? stored : "light");
     setMounted(true);
   }, []);
 

@@ -50,13 +50,15 @@ export function resolveIsDark(mode: ThemeMode): boolean {
 // hidratação do React, para decidir se as classes `dark`/`theme-tarde` devem estar no <html>
 // já no primeiro paint (evita o "flash" de tema errado). Mesmo padrão já usado em
 // app/m/layout.tsx, adaptado para os 3 estados: "light" -> nunca escuro; "dark" -> sempre
-// escuro; "auto"/ausente -> sempre escuro também (classe `dark`), mais a classe `theme-tarde`
-// que deixa só o fundo da página claro.
+// escuro; "auto" -> sempre escuro também (classe `dark`), mais a classe `theme-tarde` que
+// deixa só o fundo da página claro. Sem preferência salva (primeira visita), o padrão é
+// "light" (Dia) — "auto" (Tarde) já foi o padrão antes, mas confundia quem via o bordô do
+// Tarde antes de conhecer o Noite (todo em azul-marinho) por trás do botão de tema.
 export const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem(${JSON.stringify(THEME_KEY)});
-    var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "auto";
+    var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "light";
     var dark = mode === "dark" || mode === "auto";
     document.documentElement.classList.toggle("dark", dark);
     document.documentElement.classList.toggle("theme-tarde", mode === "auto");
