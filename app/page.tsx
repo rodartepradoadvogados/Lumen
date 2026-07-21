@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
@@ -6,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import GJMark from "@/components/GJMark";
 import HomepageReveal from "@/components/HomepageReveal";
+import HomepageHeroCarousel from "@/components/HomepageHeroCarousel";
+import HomepageLoginCard from "@/components/HomepageLoginCard";
 import styles from "./homepage.module.css";
 
 // Homepage PÚBLICA (antes do login) do produto de software "Gestão Jurídica" — não é uma
@@ -142,9 +145,9 @@ export default async function HomePage() {
             <a className={styles.navLinkPlain} href="#funcionalidades">
               Funcionalidades
             </a>
-            <Link className={styles.navLinkPlain} href="/login">
+            <a className={styles.navLinkPlain} href="#entrar">
               Entrar
-            </Link>
+            </a>
             <a className={styles.navCta} href="#leitura">
               Ler o blog
             </a>
@@ -153,35 +156,10 @@ export default async function HomePage() {
       </nav>
 
       <header className={styles.hero}>
-        <div className={styles.heroImageWrap}>
-          <Image
-            src="/homepage/hero.webp"
-            alt="Escritório de advocacia com vista da cidade ao entardecer"
-            fill
-            priority
-            sizes="100vw"
-            style={{ objectFit: "cover" }}
-          />
-        </div>
-        <div className={styles.heroContent}>
-          <span className={styles.eyebrow}>Software de gestão jurídica</span>
-          <h1 className={styles.heroTitle}>
-            Gestão de verdade não é planilha.
-            <br />É saber o que <em>mudou hoje</em>.
-          </h1>
-          <p className={styles.heroSub}>
-            Processos, prazos, financeiro e atendimento em um só lugar — com um blog jurídico atualizado todos os
-            dias, sempre com as fontes originais linkadas para você conferir.
-          </p>
-          <div className={styles.heroCtas}>
-            <a className={`${styles.btn} ${styles.btnPrimary}`} href="#leitura">
-              Ler o blog
-            </a>
-            <a className={`${styles.btn} ${styles.btnGhost}`} href="#funcionalidades">
-              Conhecer o Gestão Jurídica
-            </a>
-          </div>
-        </div>
+        <HomepageHeroCarousel />
+        <Suspense fallback={null}>
+          <HomepageLoginCard />
+        </Suspense>
         <div className={styles.scrollCue}>
           <span>Role</span>
           <span className={styles.scrollCueLine} />
@@ -265,9 +243,7 @@ export default async function HomePage() {
                 />
               </svg>
             </Link>
-            <p className={styles.validationNote}>
-              Assinado por quem escreveu — nenhuma matéria vai ao ar sem a leitura de um advogado antes.
-            </p>
+            <p className={styles.validationNote}>Produção: Equipe Gestão Jurídica.</p>
           </HomepageReveal>
         </div>
       </section>

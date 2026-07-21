@@ -167,6 +167,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 2;
   background: linear-gradient(
     to top,
     rgba(10, 8, 6, 0.94) 4%,
@@ -174,6 +175,40 @@
     rgba(10, 8, 6, 0.18) 68%,
     rgba(10, 8, 6, 0.42) 100%
   );
+}
+
+/* ---------- Carrossel do hero (2 slides, crossfade) ---------- */
+.heroSlide {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.9s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .heroSlide {
+    transition: none;
+  }
+}
+.heroDots {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(1.5rem, 3vw, 2rem);
+  display: flex;
+  gap: 0.5rem;
+}
+.heroDot {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(243, 236, 221, 0.35);
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+.heroDot:hover {
+  background: rgba(243, 236, 221, 0.6);
+}
+.heroDotActive {
+  background: var(--brass-soft);
 }
 .heroContent {
   position: relative;
@@ -247,7 +282,7 @@
   bottom: 1.6rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 3;
   color: rgba(243, 236, 221, 0.55);
   font-size: 0.68rem;
   letter-spacing: 0.14em;
@@ -270,6 +305,87 @@
   }
   50% {
     opacity: 0.9;
+  }
+}
+
+/* ---------- Card de login suspenso sobre o banner ---------- */
+/* Fica no canto superior direito do hero, acima do gradiente/carrossel (z-index 4), fixo
+   independente de qual slide está ativo por trás — de propósito longe do texto do carrossel
+   (ancorado embaixo, à esquerda), pra não competir com ele. */
+.loginCard {
+  position: absolute;
+  z-index: 4;
+  top: calc(74px + clamp(1.25rem, 3vw, 2rem));
+  right: clamp(1.25rem, 4vw, 3rem);
+  width: min(300px, calc(100vw - 2.5rem));
+  padding: 1.25rem;
+  border-radius: 4px;
+  background: rgba(28, 23, 18, 0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(239, 231, 216, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.loginEyebrow {
+  font-family: var(--font-gj-sans), sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass-soft);
+  display: block;
+  margin-bottom: 0.75rem;
+}
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.loginInput {
+  width: 100%;
+  font-family: var(--font-gj-sans), sans-serif;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 3px;
+  border: 1px solid rgba(239, 231, 216, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f3ecdd;
+}
+.loginInput::placeholder {
+  color: rgba(243, 236, 221, 0.4);
+}
+.loginInput:focus {
+  outline: none;
+  border-color: var(--brass);
+}
+.loginError {
+  font-size: 0.78rem;
+  color: #f0b9c1;
+}
+.loginSubmit {
+  margin-top: 0.2rem;
+  font-family: var(--font-gj-sans), sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.55rem;
+  border-radius: 3px;
+  background: var(--brass);
+  color: #1a1410;
+  transition: background 0.2s ease;
+}
+.loginSubmit:hover,
+.loginSubmit:focus-visible {
+  background: var(--brass-soft);
+}
+.loginSubmit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-width: 700px) {
+  .loginCard {
+    top: calc(74px + 0.75rem);
+    right: 0.75rem;
+    width: min(240px, calc(100vw - 1.5rem));
+    padding: 1rem;
   }
 }
 

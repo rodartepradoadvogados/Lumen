@@ -31,8 +31,9 @@ export async function middleware(req: NextRequest) {
   const session = token ? await verifySession(token) : null;
 
   if (!session) {
-    const loginUrl = new URL("/login", req.url);
-    // Preserva o destino original para retornar a ele após o login.
+    // O formulário de login mora na homepage pública (app/page.tsx), não numa página própria
+    // — ver HomepageLoginCard. Preserva o destino original para retornar a ele após o login.
+    const loginUrl = new URL("/", req.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }

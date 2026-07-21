@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Aqui confirmamos que o usuário da sessão ainda existe/está ativo antes de liberar o app.
   const user = await getCurrentUser();
   if (!user || !user.active) {
-    redirect("/login");
+    redirect("/");
   }
 
   const unreadPublications = await prisma.publication.count({ where: { read: false } });

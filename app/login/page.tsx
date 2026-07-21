@@ -1,26 +1,10 @@
-import { Suspense } from "react";
-import LoginForm from "@/components/LoginForm";
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-pop border border-navy-800/8 overflow-hidden">
-        <div className="bg-navy-900 px-8 py-8 text-center">
-          <div className="flex items-center gap-1.5 mb-1.5 justify-center">
-            <span className="h-px w-10 bg-gold-500/60" />
-            <span className="h-1 w-1 rounded-full bg-gold-500" />
-            <span className="h-px w-10 bg-gold-500/60" />
-          </div>
-          <h1 className="font-serif text-xl font-bold tracking-wide text-cream-50">RODARTE PRADO</h1>
-          <p className="text-[11px] tracking-[0.3em] text-gold-500 font-medium mt-0.5">ADVOGADOS</p>
-        </div>
-        <div className="p-8">
-          <p className="text-sm text-navy-800/60 mb-5 text-center">Acesso ao sistema interno</p>
-          <Suspense fallback={null}>
-            <LoginForm />
-          </Suspense>
-        </div>
-      </div>
-    </div>
-  );
+// O formulário de login deixou de ser uma página própria — agora mora embutido na homepage
+// pública (app/page.tsx, HomepageLoginCard), suspenso sobre o banner. Esta rota só existe
+// como redirecionamento de compatibilidade para quem ainda tem "/login" salvo/no histórico
+// do navegador, preservando o parâmetro "next" (destino original após o login).
+export default function LoginPage({ searchParams }: { searchParams: { next?: string } }) {
+  const next = searchParams.next && searchParams.next.startsWith("/") && !searchParams.next.startsWith("//") ? searchParams.next : undefined;
+  redirect(next ? `/?next=${encodeURIComponent(next)}` : "/");
 }

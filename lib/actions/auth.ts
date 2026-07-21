@@ -29,5 +29,5 @@ export async function login(username: string, password: string, next?: string): 
 
 export async function logout() {
   cookies().delete(SESSION_COOKIE_NAME);
-  redirect("/login");
+  redirect("/");
 }
