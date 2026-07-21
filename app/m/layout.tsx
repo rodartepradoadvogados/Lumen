@@ -5,7 +5,7 @@ import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import InstallPrompt from "@/components/mobile/InstallPrompt";
 import MobileThemeToggle from "@/components/mobile/MobileThemeToggle";
 import TimesheetTimer from "@/components/TimesheetTimer";
-import InactivityLogout from "@/components/InactivityLogout";
+import InactivityNotice from "@/components/InactivityNotice";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function MobileLayout({ children }: { children: React.React
   return (
     <div className="min-h-screen bg-cream-100 dark:bg-navy-950 transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      {user && <InactivityLogout />}
+      {user && <InactivityNotice />}
       <header className="fixed top-0 inset-x-0 h-[52px] bg-navy-900 dark:bg-navy-950 dark:border-b dark:border-white/10 text-cream-50 flex items-center justify-between px-4 z-40">
         <div className="flex items-center gap-1.5">
           <span className="h-1 w-1 rounded-full bg-gold-500" />

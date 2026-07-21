@@ -33,6 +33,16 @@ export async function pingCurrentSession(userId: string): Promise<number> {
   return getTodayElapsedSeconds(userId);
 }
 
+// Usado quando o usuário confirma que voltou de um período de inatividade (ver
+// components/InactivityNotice.tsx). Ao contrário de pingCurrentSession (que só abre uma
+// sessão nova quando o dia virou), aqui a intenção é sempre "fechar" o segmento anterior e
+// abrir um novo a partir do momento em que a pessoa confirma que voltou — o tempo em que
+// ficou parada (sem interagir) não deve ser contado como tempo de uso.
+export async function startFreshSession(userId: string): Promise<number> {
+  await prisma.loginSession.create({ data: { userId } });
+  return getTodayElapsedSeconds(userId);
+}
+
 export type TeamSummary = { id: string; name: string; color: string; lastLoginAt: string | null; todaySeconds: number };
 
 export async function getTeamSummaries(): Promise<TeamSummary[]> {
