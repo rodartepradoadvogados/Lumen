@@ -42,7 +42,10 @@ export default async function AgendaPage({
   }
 
   const where: Prisma.TaskWhereInput = {
-    dueDate: { gte: rangeStart, lte: rangeEnd },
+    // OR com safetyDueDate: o prazo de segurança (24h antes do prazo fatal) pode cair um dia
+    // antes do início do período visível (ex.: prazo fatal logo no primeiro dia do mês) — sem
+    // isso, esse aviso ficaria de fora da consulta mesmo devendo aparecer na Agenda.
+    OR: [{ dueDate: { gte: rangeStart, lte: rangeEnd } }, { safetyDueDate: { gte: rangeStart, lte: rangeEnd } }],
     responsibleId: searchParams.responsibleId || undefined,
     type: searchParams.tipo || undefined,
   };
@@ -66,6 +69,7 @@ export default async function AgendaPage({
     status: t.status,
     dueDate: t.dueDate.toISOString(),
     dueTime: t.dueTime,
+    safetyDueDate: t.safetyDueDate ? t.safetyDueDate.toISOString() : null,
     case: t.case ? { id: t.case.id, title: t.case.title } : null,
     responsible: t.responsible ? { id: t.responsible.id, name: t.responsible.name, color: t.responsible.color } : null,
     meetingType: t.meetingType,

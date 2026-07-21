@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Hourglass } from "lucide-react";
 import clsx from "clsx";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
@@ -18,11 +18,17 @@ type TaskData = {
   status: string;
   dueDate: string;
   dueTime: string | null;
+  safetyDueDate: string | null;
   case: { id: string; title: string } | null;
   responsible: { id: string; name: string; color: string } | null;
   meetingType: string | null;
   location: string | null;
   meetingUrl: string | null;
+  // Preenchido só depois do agrupamento por dia (tasksByDay, logo abaixo): a mesma tarefa
+  // aparece até duas vezes na Agenda quando tem prazo de segurança — uma entrada no dia do
+  // prazo fatal ("fatal") e outra no dia do prazo de segurança, 24h antes ("seguranca") — cada
+  // uma com estilo visual distinto pra indicar a urgência.
+  entryKind?: "fatal" | "seguranca";
 };
 
 type Option = { id: string; name: string };
@@ -76,8 +82,12 @@ export default function AgendaView({
 
   const tasksByDay: Record<string, TaskData[]> = {};
   for (const t of tasks) {
-    const key = ymd(new Date(t.dueDate));
-    (tasksByDay[key] ||= []).push(t);
+    const fatalKey = ymd(new Date(t.dueDate));
+    (tasksByDay[fatalKey] ||= []).push({ ...t, entryKind: "fatal" });
+    if (t.safetyDueDate) {
+      const safeKey = ymd(new Date(t.safetyDueDate));
+      (tasksByDay[safeKey] ||= []).push({ ...t, entryKind: "seguranca" });
+    }
   }
 
   // Preserva os filtros ativos ao trocar de visão/navegar.
@@ -198,18 +208,25 @@ export default function AgendaView({
   );
 }
 
+// Prazo de segurança usa uma cor de aviso FIXA (âmbar), sempre diferente da cor por tipo —
+// é a mesma tarefa do prazo fatal, mas o objetivo aqui é chamar atenção de urgência, não
+// repetir a cor do tipo (que já aparece no dia do prazo fatal).
+const safetyChip = "bg-amber-500/20 text-amber-800 dark:bg-amber-400/20 dark:text-amber-300 ring-1 ring-inset ring-amber-500/40";
+
 function EventChip({ t }: { t: TaskData }) {
   const done = t.status === "CONCLUIDO";
+  const isSafety = t.entryKind === "seguranca";
   const meta = typeMeta[t.type] || typeMeta.TAREFA;
   return (
     <div
+      data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : undefined}
       className={clsx(
         "text-[10px] px-1 py-0.5 rounded truncate font-medium flex items-center gap-1",
-        meta.chip,
+        isSafety ? safetyChip : meta.chip,
         done && "line-through opacity-60"
       )}
     >
-      <span className={clsx("h-1.5 w-1.5 rounded-full shrink-0", typeMeta[t.type]?.dot)} />
+      {isSafety ? <Hourglass size={9} className="shrink-0" /> : <span className={clsx("h-1.5 w-1.5 rounded-full shrink-0", typeMeta[t.type]?.dot)} />}
       {t.dueTime && <span className="opacity-70">{t.dueTime}</span>}
       <span className="truncate">{t.title}</span>
     </div>
@@ -413,12 +430,18 @@ function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
             <div className="divide-y divide-navy-800/5 dark:divide-white/10">
               {items.map((t) => {
                 const done = t.status === "CONCLUIDO";
+                const isSafety = t.entryKind === "seguranca";
                 return (
-                  <div key={t.id} className="px-5 py-3 flex items-start gap-3">
-                    <span className={clsx("mt-1 h-2.5 w-2.5 rounded-full shrink-0", typeMeta[t.type]?.dot)} />
+                  <div key={`${t.id}-${t.entryKind}`} className="px-5 py-3 flex items-start gap-3">
+                    {isSafety ? (
+                      <Hourglass size={11} className="mt-1 shrink-0 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <span className={clsx("mt-1 h-2.5 w-2.5 rounded-full shrink-0", typeMeta[t.type]?.dot)} />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
+                        {isSafety && <Badge color="gold">Prazo de segurança (24h antes)</Badge>}
                         {t.dueTime && <span className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50">{t.dueTime}</span>}
                       </div>
                       <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 mt-1", done && "line-through text-navy-800/40 dark:text-cream-50/40")}>{t.title}</p>
@@ -472,8 +495,9 @@ function DayPanel({
         {selectedTasks.length === 0 && <p className="text-center text-sm text-navy-800/35 dark:text-cream-50/35 py-10">Nada agendado para este dia</p>}
         {selectedTasks.map((t) => {
           const done = t.status === "CONCLUIDO";
+          const isSafety = t.entryKind === "seguranca";
           return (
-            <div key={t.id} className="px-5 py-3.5 flex gap-3">
+            <div key={`${t.id}-${t.entryKind}`} className="px-5 py-3.5 flex gap-3">
               <button
                 onClick={() => onToggle(t.id)}
                 className={clsx(
@@ -487,6 +511,12 @@ function DayPanel({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                   <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
+                  {isSafety && (
+                    <Badge color="gold">
+                      <Hourglass size={10} className="inline -mt-0.5 mr-1" />
+                      Prazo de segurança (24h antes)
+                    </Badge>
+                  )}
                   {t.dueTime && <span className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50">{t.dueTime}</span>}
                   <span className="ml-auto">
                     <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir "${t.title}" da agenda?`} />

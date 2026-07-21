@@ -279,7 +279,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
 
       {detailOpen && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setDetailOpen(false)}>
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
               <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">
                 {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
@@ -314,7 +314,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
 
       {delegateOpen && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setDelegateOpen(false)}>
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
               <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Delegar publicação</h3>
               <button onClick={() => setDelegateOpen(false)} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">

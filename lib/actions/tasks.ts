@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
+// 24h antes do prazo fatal — como dueDate representa a data-calendário (meia-noite) e dueTime
+// é só um rótulo de exibição separado (sem ser combinado no timestamp), subtrair exatamente
+// 24h do dueDate já dá o dia anterior, mantendo o mesmo dueTime como rótulo do prazo de
+// segurança (24h antes do mesmo horário é o mesmo horário, um dia antes).
+function computeSafetyDueDate(dueDate: Date): Date {
+  return new Date(dueDate.getTime() - 24 * 60 * 60 * 1000);
+}
+
 export async function moveTask(taskId: string, columnId: string, columnOrder: number) {
   await prisma.task.update({
     where: { id: taskId },
@@ -113,12 +121,15 @@ export async function delegateTask(data: {
   const typePoints = await prisma.taskTypePoints.findUnique({ where: { type: data.type } });
   const points = typePoints?.points ?? 10;
 
+  const dueDate = new Date(data.dueDate);
+
   await prisma.task.create({
     data: {
       title: data.title,
       type: data.type,
-      dueDate: new Date(data.dueDate),
+      dueDate,
       dueTime: data.dueTime || null,
+      safetyDueDate: computeSafetyDueDate(dueDate),
       priority: data.priority,
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,

@@ -187,6 +187,10 @@ model Task {
   description    String?
   dueDate        DateTime
   dueTime        String?
+  // Prazo de segurança: calculado automaticamente como 24h antes do dueDate ("prazo fatal") —
+  // hoje só preenchido por delegateTask (lib/actions/tasks.ts). Aparece na Agenda como um
+  // segundo evento, em cor distinta, no dia anterior ao prazo fatal.
+  safetyDueDate  DateTime?
   priority       String    @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
   status         String    @default("PENDENTE") // PENDENTE | EM_ANDAMENTO | CONCLUIDO | CANCELADO
   completedAt    DateTime?

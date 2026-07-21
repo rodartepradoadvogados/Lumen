@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { delegateTask, searchCasesForDelegation, searchAttendancesForDelegation } from "@/lib/actions/tasks";
-import { Check, ChevronLeft, ChevronRight, Search, UserPlus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Search, UserPlus, Hourglass } from "lucide-react";
 
 type Option = { id: string; name: string };
 type LinkHit = { id: string; label: string };
@@ -47,6 +47,18 @@ export type DelegateTaskInitial = {
   title?: string;
   publicationId?: string;
 };
+
+// Prévia do prazo de segurança (24h antes do prazo fatal) exibida no passo 4 — mesma conta
+// que o servidor faz de verdade em delegateTask/computeSafetyDueDate (lib/actions/tasks.ts),
+// só que aqui em cima do texto já digitado, pra o usuário ver antes de confirmar.
+function formatSafetyPreview(dueDateStr: string, dueTimeStr: string): string | null {
+  if (!dueDateStr) return null;
+  const due = new Date(`${dueDateStr}T00:00:00`);
+  if (Number.isNaN(due.getTime())) return null;
+  const safety = new Date(due.getTime() - 24 * 60 * 60 * 1000);
+  const dateLabel = safety.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  return dueTimeStr ? `${dateLabel} às ${dueTimeStr}` : dateLabel;
+}
 
 function StepDot({ active, done, label }: { active: boolean; done: boolean; label: string }) {
   return (
@@ -332,9 +344,17 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
             />
           </div>
+
+          <div className="rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-white/5 px-3 py-2">
+            <p className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Data da solicitação</p>
+            <p className="text-sm text-navy-900 dark:text-cream-50 mt-0.5">
+              {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })} (hoje)
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prazo fatal</label>
               <input
                 type="date"
                 value={state.dueDate}
@@ -343,7 +363,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora (opcional)</label>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora do prazo fatal (opcional)</label>
               <input
                 type="time"
                 value={state.dueTime}
@@ -352,6 +372,22 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               />
             </div>
           </div>
+
+          {state.dueDate && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex items-start gap-2">
+              <Hourglass size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+                  Prazo de segurança (automático)
+                </p>
+                <p className="text-sm text-amber-900 dark:text-amber-200 mt-0.5">{formatSafetyPreview(state.dueDate, state.dueTime)}</p>
+                <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 mt-0.5">
+                  Sempre 24h antes do prazo fatal — vai aparecer na Agenda nos dois dias, em cores diferentes.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prioridade</label>
             <select
@@ -371,7 +407,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               value={state.description}
               onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
               rows={3}
-              className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y max-h-[40vh]"
             />
           </div>
         </div>

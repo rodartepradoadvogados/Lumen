@@ -36,7 +36,7 @@ export default function CommentBox({
         onChange={(e) => setContent(e.target.value)}
         placeholder={`Escreva um comentário... use @${users[0]?.name.split(" ")[0] ?? "Nome"} para mencionar alguém da equipe`}
         rows={2}
-        className="w-full border border-navy-800/12 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+        className="w-full border border-navy-800/12 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40 resize-y max-h-[40vh]"
       />
       <div className="flex items-center justify-between mt-2">
         <div className="flex gap-1 flex-wrap">

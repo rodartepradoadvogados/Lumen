@@ -171,8 +171,8 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-navy-900">{user.name}</p>
-        <p className="text-xs text-navy-800/45 truncate">
+        <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{user.name}</p>
+        <p className="text-xs text-navy-800/45 dark:text-cream-50/45 truncate">
           {user.role} {user.oab && `· ${user.oab}`} · {user.email}
           {user.phone && ` · ${user.phone}`}
           {user.username && ` · login: ${user.username}`}

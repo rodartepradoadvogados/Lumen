@@ -275,7 +275,7 @@ export default function NewAttendanceModal({ users, autoOpen }: { users: { id: s
 
                     <div>
                       <label className="text-xs font-medium text-navy-800/60">Descrição detalhada do que precisa</label>
-                      <textarea name="description" rows={4} className="at-input" />
+                      <textarea name="description" rows={4} className="at-input resize-y max-h-[40vh]" />
                     </div>
                   </div>
 
