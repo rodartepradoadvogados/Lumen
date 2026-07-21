@@ -53,6 +53,18 @@ const config: Config = {
           400: "#c96a80",
           100: "#f4dde1",
         },
+        // Paleta magenta — terceiro acento, opcional e de uso pontual (hoje só no
+        // hub de Contatos, módulo Equipe), pra dar variedade sem competir com o
+        // dourado/bordô que já carregam significado (destaque financeiro / urgência
+        // jurídica). magenta-400 segue o mesmo papel que gold-400/bordo-400: variante
+        // mais clara usada em modo escuro pra manter contraste.
+        magenta: {
+          700: "#9d2467",
+          600: "#b52e79",
+          500: "#c73f8a",
+          400: "#d17fae",
+          100: "#f9dced",
+        },
       },
       boxShadow: {
         card: "0 1px 2px rgba(15, 31, 61, 0.06), 0 1px 8px rgba(15, 31, 61, 0.06)",

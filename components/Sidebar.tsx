@@ -25,9 +25,14 @@ import clsx from "clsx";
 // a rota atual pertence àquela seção (sem precisar de clique extra pra abrir).
 // `value` é o valor da querystring (`item.subParam=value`); `undefined` representa
 // a opção "sem filtro" (ex: "Todos"), que não adiciona nada à URL.
+// `href`: alternativa a `value` para sub-abas que são ROTAS PRÓPRIAS (ex: Contatos
+// e Financeiro, cujos módulos vivem em `/contatos/clientes`, `/financeiro/dre` etc.,
+// e não em querystring do item pai). Quando `href` é definido, ele é usado como link
+// e como critério de "ativo" no lugar de `subParam`/`value`.
 type SubNavItem = {
   label: string;
   value?: string;
+  href?: string;
   adminOnly?: boolean;
 };
 
@@ -93,8 +98,30 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
           { label: "Arquivado", value: "ARQUIVADO" },
         ],
       },
-      { href: "/contatos", label: "Contatos", icon: Users },
-      { href: "/financeiro", label: "Financeiro", icon: Wallet, adminOnly: true },
+      {
+        href: "/contatos",
+        label: "Contatos",
+        icon: Users,
+        subItems: [
+          { label: "Clientes", href: "/contatos/clientes" },
+          { label: "Advogados", href: "/contatos/advogados" },
+          { label: "Fornecedores", href: "/contatos/fornecedores" },
+          { label: "Equipe", href: "/contatos/equipe" },
+        ],
+      },
+      {
+        href: "/financeiro",
+        label: "Financeiro",
+        icon: Wallet,
+        adminOnly: true,
+        subItems: [
+          { label: "Contas a Pagar", href: "/financeiro/contas-a-pagar" },
+          { label: "Contas a Receber", href: "/financeiro/contas-a-receber" },
+          { label: "Fluxo de Caixa", href: "/financeiro/fluxo-de-caixa" },
+          { label: "DRE", href: "/financeiro/dre" },
+          { label: "Livro Caixa", href: "/financeiro/livro-caixa" },
+        ],
+      },
     ],
   },
   {
@@ -243,8 +270,12 @@ export default function Sidebar({
                         <div className="overflow-hidden">
                           <div className="pt-0.5 pb-1 pl-4 space-y-0.5">
                             {visibleSubItems.map((sub) => {
-                              const subActive = expanded && currentSubValue === (sub.value ?? undefined);
-                              const subHref = `${item.href}${sub.value ? `?${item.subParam}=${sub.value}` : ""}`;
+                              // Sub-abas com `href` são rotas próprias (Contatos, Financeiro);
+                              // as demais seguem o padrão de querystring já existente.
+                              const subHref = sub.href ?? `${item.href}${sub.value ? `?${item.subParam}=${sub.value}` : ""}`;
+                              const subActive = sub.href
+                                ? expanded && (pathname === sub.href || pathname?.startsWith(`${sub.href}/`))
+                                : expanded && currentSubValue === (sub.value ?? undefined);
                               return (
                                 <Link
                                   key={sub.label}
