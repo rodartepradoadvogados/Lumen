@@ -25,15 +25,15 @@ export default async function MobilePublicacoes() {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900">Publicações</h1>
-        <p className="text-sm text-navy-800/50">{serialized.length} não lida(s)</p>
+        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Publicações</h1>
+        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">{serialized.length} não lida(s)</p>
       </div>
 
       <Card>
         {serialized.length === 0 ? (
           <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
         ) : (
-          <div className="divide-y divide-navy-800/5">
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {serialized.map((p) => (
               <MobilePublicationCard key={p.id} pub={p} />
             ))}

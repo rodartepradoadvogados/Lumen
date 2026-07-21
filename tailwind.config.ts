@@ -40,6 +40,19 @@ const config: Config = {
           200: "#efe9dc",
           300: "#e5dcc8",
         },
+        // Paleta bordô — segundo acento (reservado p/ o que tem peso jurídico/urgência:
+        // badge de notificação, indicadores de Prazo/Audiência, bordas de itens urgentes).
+        // bordo-400 é uma variante clara adicional (fora dos 5 tons de referência) usada
+        // apenas em modo escuro para manter contraste, no mesmo papel que gold-400 cumpre
+        // para a paleta dourada.
+        bordo: {
+          900: "#3d1119",
+          700: "#6f1d2e",
+          600: "#832438",
+          500: "#9a2c43",
+          400: "#c96a80",
+          100: "#f4dde1",
+        },
       },
       boxShadow: {
         card: "0 1px 2px rgba(15, 31, 61, 0.06), 0 1px 8px rgba(15, 31, 61, 0.06)",

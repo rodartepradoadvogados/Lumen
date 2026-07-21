@@ -1,17 +1,24 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
-import { getTodayItems, type TodayItem } from "@/lib/alerts";
-import { Card, EmptyState } from "@/components/ui";
+import { Card } from "@/components/ui";
+import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
 import {
-  CalendarClock,
   CalendarPlus,
+  ListTodo,
+  CalendarClock,
   Gavel,
   Stethoscope,
-  ListTodo,
+  Phone,
+  Search,
   Bell,
-  ChevronRight,
-  Clock,
+  DollarSign,
+  Wallet,
+  FileBarChart,
+  LineChart,
+  BookOpen,
+  ChevronDown,
+  type LucideIcon,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -23,91 +30,158 @@ function greeting() {
   return "Boa noite";
 }
 
-const kindIcon: Record<TodayItem["kind"], typeof ListTodo> = {
-  TAREFA: ListTodo,
-  EVENTO: CalendarPlus,
-  AUDIENCIA: Gavel,
-  PERICIA: Stethoscope,
-  PRAZO: CalendarClock,
-  CONTA_PAGAR: ListTodo,
-  CONTA_RECEBER: ListTodo,
-};
-
 export default async function MobileHome() {
-  const [user, items, unreadCount] = await Promise.all([
+  const [user, unreadCount] = await Promise.all([
     getCurrentUser(),
-    getTodayItems(false),
     prisma.publication.count({ where: { read: false } }),
   ]);
 
   const firstName = user?.name.split(" ")[0] ?? "";
+  const showFinance = Boolean(user?.isAdmin || user?.financeAccess);
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900">
+        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">
           {greeting()}
           {firstName ? `, ${firstName}` : ""}
         </h1>
-        <p className="text-sm text-navy-800/50">Resumo do seu dia</p>
+        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">O que você quer resolver agora?</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/m/agenda">
-          <Card className="p-4 h-full">
-            <div className="flex items-center gap-2 text-gold-700 mb-1">
-              <CalendarClock size={18} />
-              <span className="text-xs font-semibold text-navy-800/55 uppercase tracking-wide">Hoje</span>
-            </div>
-            <p className="text-2xl font-serif font-bold text-navy-900">{items.length}</p>
-            <p className="text-xs text-navy-800/50 mt-0.5">tarefa(s) do dia</p>
-          </Card>
-        </Link>
-        <Link href="/m/publicacoes">
-          <Card className="p-4 h-full">
-            <div className="flex items-center gap-2 text-gold-700 mb-1">
-              <Bell size={18} />
-              <span className="text-xs font-semibold text-navy-800/55 uppercase tracking-wide">Publicações</span>
-            </div>
-            <p className="text-2xl font-serif font-bold text-navy-900">{unreadCount}</p>
-            <p className="text-xs text-navy-800/50 mt-0.5">não lida(s)</p>
-          </Card>
-        </Link>
-      </div>
+      <MobileGlobalSearch />
 
-      <Card>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-navy-800/8">
-          <h2 className="font-serif font-bold text-navy-900 text-sm">Agenda de hoje</h2>
-          <Link href="/m/agenda" className="text-[11px] font-semibold text-gold-700 flex items-center gap-0.5">
-            Ver tudo <ChevronRight size={13} />
+      <div className="space-y-3">
+        <HubCard
+          title="Novo Compromisso"
+          icon={CalendarPlus}
+          tone="gold"
+          defaultOpen
+          chips={[
+            { href: "/m/agenda?novo=1&tipo=TAREFA", label: "Tarefa", icon: ListTodo, tone: "gold" },
+            { href: "/m/agenda?novo=1&tipo=PRAZO", label: "Prazo", icon: CalendarClock, tone: "bordo" },
+            { href: "/m/agenda?novo=1&tipo=AUDIENCIA", label: "Audiência", icon: Gavel, tone: "bordo" },
+            { href: "/m/agenda?novo=1&tipo=PERICIA", label: "Perícia", icon: Stethoscope, tone: "gold" },
+          ]}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/m/atendimento/novo" className="block h-full">
+            <Card className="p-4 h-full">
+              <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center mb-2.5">
+                <Phone size={17} />
+              </span>
+              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Novo Atendimento</p>
+            </Card>
+          </Link>
+          <Link href="/m/processos" className="block h-full">
+            <Card className="p-4 h-full">
+              <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center mb-2.5">
+                <Search size={17} />
+              </span>
+              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Buscar Processo</p>
+            </Card>
           </Link>
         </div>
-        {items.length === 0 ? (
-          <EmptyState title="Nada para hoje" subtitle="Aproveite o dia" />
-        ) : (
-          <div className="divide-y divide-navy-800/5">
-            {items.map((it) => {
-              const Icon = kindIcon[it.kind] ?? ListTodo;
-              return (
-                <Link key={it.id} href="/m/agenda" className="flex items-center gap-3 px-4 py-3">
-                  <span className="h-9 w-9 rounded-lg bg-navy-900/5 text-navy-800 flex items-center justify-center shrink-0">
-                    <Icon size={17} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-navy-900 truncate">{it.title}</p>
-                    {it.subtitle && <p className="text-xs text-navy-800/45 truncate">{it.subtitle}</p>}
-                  </div>
-                  {it.time && (
-                    <span className="flex items-center gap-1 text-xs font-semibold text-navy-800/55 shrink-0">
-                      <Clock size={12} /> {it.time}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
+
+        <Link href="/m/publicacoes" className="block">
+          <Card className="p-4 flex items-center gap-3">
+            <span className="h-10 w-10 rounded-lg bg-bordo-500/15 dark:bg-bordo-400/10 text-bordo-600 dark:text-bordo-400 flex items-center justify-center shrink-0">
+              <Bell size={18} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Publicações / Andamentos</p>
+              <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{unreadCount} não lida(s)</p>
+            </div>
+            {unreadCount > 0 && (
+              <span className="min-w-[24px] h-6 px-1.5 rounded-full bg-bordo-600 dark:bg-bordo-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Card>
+        </Link>
+
+        {showFinance && (
+          <HubCard
+            title="Financeiro"
+            icon={DollarSign}
+            tone="bordo"
+            chips={[
+              { href: "/m/financeiro/contas-a-pagar", label: "Contas a Pagar", icon: Wallet, tone: "bordo" },
+              { href: "/m/financeiro/contas-a-receber", label: "Contas a Receber", icon: Wallet, tone: "gold" },
+              { href: "/m/financeiro/relatorios", label: "Relatórios Gerenciais", icon: FileBarChart, tone: "gold" },
+              { href: "/m/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: LineChart, tone: "gold" },
+              { href: "/m/financeiro/dre", label: "DRE", icon: FileBarChart, tone: "gold" },
+              { href: "/m/financeiro/livro-caixa", label: "Livro Caixa", icon: BookOpen, tone: "gold" },
+            ]}
+          />
         )}
-      </Card>
+      </div>
     </div>
+  );
+}
+
+type Tone = "gold" | "bordo";
+
+type Chip = { href: string; label: string; icon: LucideIcon; tone: Tone };
+
+// Hub suspenso (<details>/<summary>): expande mostrando chips de atalho, com uma sombra
+// discreta de flutuação quando aberto (open:shadow-pop).
+function HubCard({
+  title,
+  icon: Icon,
+  tone,
+  chips,
+  defaultOpen,
+}: {
+  title: string;
+  icon: LucideIcon;
+  tone: Tone;
+  chips: Chip[];
+  defaultOpen?: boolean;
+}) {
+  const iconToneClasses =
+    tone === "bordo"
+      ? "bg-bordo-500/15 dark:bg-bordo-400/10 text-bordo-600 dark:text-bordo-400"
+      : "bg-gold-500/15 dark:bg-gold-400/10 text-gold-700 dark:text-gold-400";
+
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-xl2 border border-navy-800/8 dark:border-white/10 bg-white dark:bg-navy-900 shadow-card open:shadow-pop transition-shadow"
+    >
+      <summary className="flex items-center gap-3 px-4 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <span className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${iconToneClasses}`}>
+          <Icon size={18} />
+        </span>
+        <span className="flex-1 text-sm font-semibold text-navy-900 dark:text-cream-50">{title}</span>
+        <ChevronDown
+          size={16}
+          className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <div className="px-4 pb-4 grid grid-cols-2 gap-2">
+        {chips.map((chip) => (
+          <HubChip key={chip.href} {...chip} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function HubChip({ href, label, icon: Icon, tone }: Chip) {
+  const toneClasses =
+    tone === "bordo"
+      ? "bg-bordo-500/10 text-bordo-700 border-bordo-500/20 dark:bg-bordo-400/10 dark:text-bordo-400 dark:border-bordo-400/25"
+      : "bg-gold-500/10 text-gold-800 border-gold-500/25 dark:bg-gold-400/10 dark:text-gold-400 dark:border-gold-400/25";
+
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-colors ${toneClasses}`}
+    >
+      <Icon size={15} className="shrink-0" />
+      <span className="truncate">{label}</span>
+    </Link>
   );
 }
