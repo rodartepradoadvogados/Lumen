@@ -143,6 +143,8 @@ export async function updateAttendanceStatus(id: string, status: string) {
   await prisma.attendance.update({ where: { id }, data: { status } });
   revalidatePath("/atendimento");
   revalidatePath(`/atendimento/${id}`);
+  revalidatePath("/m/atendimento");
+  revalidatePath(`/m/atendimento/${id}`);
 }
 
 // ===== Funil comercial (CRM de captação) — eixo independente do status operacional =====
@@ -272,7 +274,11 @@ export async function replyEmail(attendanceId: string, subject: string, body: st
 
 export async function convertAttendanceToCase(
   attendanceId: string,
-  data: { type: string; processNumber?: string; court?: string }
+  data: { type: string; processNumber?: string; court?: string },
+  // Base de redirecionamento pós-conversão. O desktop usa "/processos" (default, mantém
+  // compatibilidade com o ConvertAttendanceForm existente); o app mobile passa "/m/processos"
+  // para nunca navegar o usuário para uma rota do site desktop.
+  redirectBasePath: string = "/processos"
 ) {
   const attendance = await prisma.attendance.findUniqueOrThrow({ where: { id: attendanceId } });
 
@@ -306,5 +312,7 @@ export async function convertAttendanceToCase(
 
   revalidatePath("/atendimento");
   revalidatePath("/processos");
-  redirect(`/processos/${created.id}`);
+  revalidatePath("/m/atendimento");
+  revalidatePath("/m/processos");
+  redirect(`${redirectBasePath}/${created.id}`);
 }

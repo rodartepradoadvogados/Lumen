@@ -12,7 +12,7 @@ export default async function MobileMais() {
   const showFinance = Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
   const items = [
-    { href: "/atendimento", label: "Atendimento", Icon: Phone, show: true },
+    { href: "/m/atendimento", label: "Atendimento", Icon: Phone, show: true },
     { href: "/financeiro", label: "Financeiro", Icon: DollarSign, show: showFinance },
     { href: "/relatorios", label: "Relatórios", Icon: BarChart, show: true },
     { href: "/configuracoes", label: "Configurações", Icon: Settings, show: true },
