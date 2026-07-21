@@ -48,5 +48,6 @@ def test_settings() -> Settings:
         email_to=["rodartepradoadvogados@gmail.com"],
         datajud_api_key="chave-de-teste",
         gemini_api_key=None,
+        djen_proxy_url=None,
         log_level="INFO",
     )

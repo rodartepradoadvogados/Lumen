@@ -310,17 +310,34 @@ completamente diferente (com credenciais/certificado do advogado).
 ### (b) AVISO IMPORTANTE — possivel bloqueio de IP na API Comunica/DJEN (HTTP 403)
 
 A API `comunicaapi.pje.jus.br` **ja foi observada retornando HTTP 403** a
-partir de IPs de datacenter/nuvem (o que inclui provedores como Railway,
-AWS, GCP etc.) em testes anteriores. O robo trata esse cenario de forma
-explicita (`src/http_client.py`): loga um aviso claro e **nao derruba o
-processo** — a captura daquela fonte simplesmente falha naquele ciclo e o
-sistema tenta novamente no proximo (com alerta automatico no e-mail apos 2
-falhas seguidas, ver `src/pipeline.py`).
+partir de IPs de datacenter/nuvem (o que inclui provedores como Vercel,
+Railway, AWS, GCP etc. — confirmado em testes a partir de dois provedores
+diferentes em 2026-07-20/21) em testes anteriores. O robo trata esse
+cenario de forma explicita (`src/http_client.py`): loga um aviso claro e
+**nao derruba o processo** — a captura daquela fonte simplesmente falha
+naquele ciclo e o sistema tenta novamente no proximo (com alerta
+automatico no e-mail apos 2 falhas seguidas, ver `src/pipeline.py`).
 
-Se o bloqueio persistir de forma consistente ao rodar no Railway, planos B
-(fora do escopo gratuito atual, decisao separada):
+**Correcao aplicada em 2026-07-21:** antes, uma falha de rede/403 na
+consulta ao DJEN era silenciosamente registrada em `ExecucaoLog` como "0
+publicacoes recebidas, sucesso" (porque `buscar_publicacoes` engolia o
+erro e retornava lista vazia) — isso significava que o alerta de "2
+falhas seguidas" **nunca disparava**, mesmo com o bloqueio de IP ativo
+todos os dias. Agora `buscar_publicacoes` levanta `DjenRequestFailed`
+quando a 1a pagina falha, e o pipeline registra isso como falha de
+verdade — o alerta por e-mail passa a funcionar como documentado.
 
-1. Usar um **proxy residencial** para as chamadas ao DJEN;
+**Suporte a proxy ja existe no codigo** (`DJEN_PROXY_URL` em
+`.env.example`/`src/config.py`, usado só nas chamadas ao DJEN via
+`src/http_client.py`) — hoje vazio/desativado por padrao. Se/quando for
+contratado um proxy residencial, basta configurar essa variavel na
+Railway, sem mudanca de codigo.
+
+Planos B (fora do escopo gratuito atual, decisao de custo separada):
+
+1. Usar um **proxy residencial** para as chamadas ao DJEN (suporte no
+   codigo ja pronto, so falta contratar o servico e configurar
+   `DJEN_PROXY_URL` — ex.: Webshare, IPRoyal, ~R$25-50/mes);
 2. Rodar a captura a partir de um **IP nao bloqueado** (ex.: uma maquina
    fora de nuvens publicas conhecidas, ou um provedor de hospedagem menos
    associado a scraping);

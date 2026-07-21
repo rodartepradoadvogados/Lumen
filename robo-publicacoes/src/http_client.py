@@ -85,6 +85,7 @@ def request_json(
     json_body: Optional[dict] = None,
     headers: Optional[dict] = None,
     timeout: int = DEFAULT_TIMEOUT,
+    proxy_url: Optional[str] = None,
 ) -> Optional[Any]:
     """Executa uma requisicao HTTP e retorna o corpo JSON decodificado.
 
@@ -97,8 +98,15 @@ def request_json(
     logadas como erro e tambem retornam None, mantendo o chamador
     responsavel por decidir o que fazer (ex.: registrar falha no
     ExecucaoLog).
+
+    proxy_url, se informado, roteia esta requisicao especifica por um proxy
+    (ex.: residencial) — usado para contornar o bloqueio de IP de datacenter
+    do CNJ na API do DJEN (ver DJEN_PROXY_URL em config.py). Formato aceito:
+    "http://usuario:senha@host:porta" (usado tanto para http:// quanto
+    https://, como o proprio requests espera em seu dict de proxies).
     """
     session = get_session()
+    proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
     try:
         response = session.request(
             method,
@@ -107,6 +115,7 @@ def request_json(
             json=json_body,
             headers=headers,
             timeout=timeout,
+            proxies=proxies,
         )
     except requests.exceptions.RequestException as exc:
         logger.error("Falha de rede ao chamar %s: %s", url, exc)

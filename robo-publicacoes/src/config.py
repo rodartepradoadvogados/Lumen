@@ -99,6 +99,8 @@ class Settings:
     datajud_api_key: Optional[str]
     gemini_api_key: Optional[str]
 
+    djen_proxy_url: Optional[str]
+
     log_level: str
 
 
@@ -120,5 +122,6 @@ def load_settings() -> Settings:
         email_to=_parse_email_list(os.getenv("EMAIL_TO")),
         datajud_api_key=os.getenv("DATAJUD_API_KEY") or None,
         gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
+        djen_proxy_url=os.getenv("DJEN_PROXY_URL") or None,
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
     )

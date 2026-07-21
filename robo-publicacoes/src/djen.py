@@ -162,19 +162,37 @@ def _tem_mais_paginas(payload: Any, pagina_atual: int, itens_por_pagina: int, it
     return itens_recebidos >= itens_por_pagina
 
 
+class DjenRequestFailed(Exception):
+    """Levantada quando a 1a pagina de uma busca no DJEN falha (403, rede, etc).
+
+    Distingue "a API respondeu e nao ha publicacoes novas" (lista vazia,
+    resultado legitimo) de "a API nao respondeu nada" (falha real). Sem essa
+    distincao, uma falha de rede/bloqueio de IP era registrada como "0
+    itens recebidos, sucesso" em ExecucaoLog — o que nunca aciona o alerta
+    de "2 falhas seguidas" em notify.py, mascarando bloqueios persistentes.
+    """
+
+
 def buscar_publicacoes(
     numero_oab: str,
     uf_oab: str,
     data_inicio: str,
     data_fim: str,
     itens_por_pagina: int = DEFAULT_ITENS_POR_PAGINA,
+    proxy_url: Optional[str] = None,
 ) -> List[PublicacaoNormalizada]:
     """Busca todas as publicacoes para uma OAB dentro da janela de datas.
 
     data_inicio/data_fim devem estar no formato "YYYY-MM-DD".
     Percorre todas as paginas disponiveis (ate MAX_PAGINAS por seguranca).
-    Nunca levanta excecao por erro de rede/parse — nesses casos loga e
-    retorna o que conseguiu capturar ate o momento (possivelmente vazio).
+    Levanta DjenRequestFailed se a 1a pagina falhar (ver docstring da
+    excecao). Falhas em paginas subsequentes (2+) apenas interrompem a
+    paginacao e retornam o que ja foi coletado, pois ja houve sucesso real
+    nesta busca.
+
+    proxy_url roteia a requisicao por um proxy (ex.: residencial), para
+    contornar o bloqueio de IP de datacenter do CNJ — ver DJEN_PROXY_URL em
+    config.py. Sem ele (default), o comportamento e identico ao anterior.
     """
     resultados: List[PublicacaoNormalizada] = []
     pagina = 1
@@ -188,8 +206,13 @@ def buscar_publicacoes(
             "pagina": pagina,
             "itensPorPagina": itens_por_pagina,
         }
-        payload = request_json("GET", BASE_URL, params=params)
+        payload = request_json("GET", BASE_URL, params=params, proxy_url=proxy_url)
         if payload is None:
+            if pagina == 1:
+                raise DjenRequestFailed(
+                    f"Falha ao consultar DJEN para OAB {numero_oab}/{uf_oab} "
+                    "(ver logs de http_client para o status HTTP)."
+                )
             # Erro ja logado por http_client (403, rede, etc). Interrompe a
             # paginacao desta OAB, mas preserva o que ja foi coletado.
             break

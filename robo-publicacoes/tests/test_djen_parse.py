@@ -3,6 +3,8 @@ nome de campo que a API pode retornar."""
 
 from __future__ import annotations
 
+import pytest
+
 from src import djen
 
 
@@ -86,12 +88,35 @@ def test_resposta_lista_direta(monkeypatch):
     assert len(resultados) == 1
 
 
-def test_resposta_none_retorna_lista_vazia(monkeypatch):
+def test_resposta_none_na_primeira_pagina_levanta_falha(monkeypatch):
+    """Uma falha (403, rede) na 1a pagina deve ser visivel para o pipeline
+    (ver DjenRequestFailed), nao mascarada como "0 publicacoes, sucesso" —
+    caso contrario o alerta de "2 falhas seguidas" nunca dispara."""
     monkeypatch.setattr(djen, "request_json", lambda *a, **k: None)
 
-    resultados = djen.buscar_publicacoes("78295", "GO", "2026-07-01", "2026-07-10")
+    with pytest.raises(djen.DjenRequestFailed):
+        djen.buscar_publicacoes("78295", "GO", "2026-07-01", "2026-07-10")
 
-    assert resultados == []
+
+def test_resposta_none_em_pagina_seguinte_preserva_resultados_parciais(monkeypatch):
+    """Se a 1a pagina teve sucesso mas uma pagina seguinte falha, os itens
+    ja coletados nao devem ser perdidos (a busca ja teve sucesso real)."""
+    chamadas = []
+
+    def fake_request_json(method, url, params=None, **kwargs):
+        chamadas.append(params["pagina"])
+        if params["pagina"] == 1:
+            return {"items": [{"id": str(i), "numeroProcesso": "123"} for i in range(40)]}
+        return None
+
+    monkeypatch.setattr(djen, "request_json", fake_request_json)
+
+    resultados = djen.buscar_publicacoes(
+        "78295", "GO", "2026-07-01", "2026-07-10", itens_por_pagina=40
+    )
+
+    assert len(resultados) == 40
+    assert chamadas == [1, 2]
 
 
 def test_paginacao_para_quando_pagina_incompleta(monkeypatch):
@@ -113,3 +138,19 @@ def test_paginacao_para_quando_pagina_incompleta(monkeypatch):
 
     assert len(resultados) == 5
     assert chamadas == [1]
+
+
+def test_proxy_url_repassado_para_request_json(monkeypatch):
+    recebido = {}
+
+    def fake_request_json(method, url, params=None, proxy_url=None, **kwargs):
+        recebido["proxy_url"] = proxy_url
+        return {"items": []}
+
+    monkeypatch.setattr(djen, "request_json", fake_request_json)
+
+    djen.buscar_publicacoes(
+        "78295", "GO", "2026-07-01", "2026-07-10", proxy_url="http://user:pass@proxy:8080"
+    )
+
+    assert recebido["proxy_url"] == "http://user:pass@proxy:8080"

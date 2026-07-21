@@ -79,7 +79,9 @@ def _capturar_publicacoes_djen(session, settings: Settings) -> List[Publicacao]:
 
     for oab in settings.oabs:
         try:
-            itens = djen.buscar_publicacoes(oab.numero, oab.uf, data_inicio, data_fim)
+            itens = djen.buscar_publicacoes(
+                oab.numero, oab.uf, data_inicio, data_fim, proxy_url=settings.djen_proxy_url
+            )
             detalhes.append(f"OAB {oab.numero}/{oab.uf}: {len(itens)} item(ns) recebido(s).")
         except Exception as exc:  # pragma: no cover - protecao extra
             logger.exception("Falha inesperada ao consultar DJEN para OAB %s", oab.numero)

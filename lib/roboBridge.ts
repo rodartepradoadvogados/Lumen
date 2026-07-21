@@ -9,6 +9,7 @@ export type RoboBridgeResult = {
   publicacoesCriadas: number;
   andamentosCriados: number;
   semCasoVinculado: number;
+  processosMonitoradosCriados: number;
   erros: string[];
 };
 
@@ -54,8 +55,51 @@ function parseDataOuFallback(raw: string | null | undefined, fallback: Date): Da
   return fallback;
 }
 
+// Alimenta o robô Python (tabela processos_monitorados/RoboProcessoMonitorado) com os
+// números de processo já cadastrados nos Casos do site — assim o Datajud (que já
+// funciona, ao contrário do DJEN, hoje bloqueado por IP) passa a acompanhar andamentos
+// de todos os processos do escritório, mesmo enquanto a descoberta automática via DJEN
+// não funcionar. Idempotente (skipDuplicates): não sobrescreve processos já monitorados,
+// sejam eles descobertos via DJEN ou cadastrados manualmente pelo próprio robô.
+async function seedProcessosMonitoradosFromCases(): Promise<number> {
+  const casos = await prisma.case.findMany({
+    where: { processNumber: { not: null } },
+    select: { processNumber: true },
+  });
+
+  const numerosValidos = new Set<string>();
+  for (const c of casos) {
+    if (c.processNumber && normalizarNumeroProcesso(c.processNumber)) {
+      numerosValidos.add(c.processNumber);
+    }
+  }
+  if (numerosValidos.size === 0) return 0;
+
+  const { count } = await prisma.roboProcessoMonitorado.createMany({
+    data: Array.from(numerosValidos).map((numeroProcesso) => ({
+      numeroProcesso,
+      origem: "site",
+    })),
+    skipDuplicates: true,
+  });
+  return count;
+}
+
 export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
-  const result: RoboBridgeResult = { publicacoesCriadas: 0, andamentosCriados: 0, semCasoVinculado: 0, erros: [] };
+  const result: RoboBridgeResult = {
+    publicacoesCriadas: 0,
+    andamentosCriados: 0,
+    semCasoVinculado: 0,
+    processosMonitoradosCriados: 0,
+    erros: [],
+  };
+
+  try {
+    result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "erro desconhecido";
+    result.erros.push(`[seed processos monitorados] ${message}`);
+  }
 
   const publicacoesPendentes = await prisma.roboPublicacao.findMany({ where: { statusLido: false } });
   for (const pub of publicacoesPendentes) {
