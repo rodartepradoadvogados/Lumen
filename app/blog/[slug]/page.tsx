@@ -55,9 +55,11 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             )}
-            <p className="text-base text-navy-800/70 italic border-l-2 border-gold-500/50 pl-3">{post.summary}</p>
+            <p className="text-base text-navy-800/70 italic border-l-2 border-gold-500/50 pl-3 text-justify hyphens-auto">
+              {post.summary}
+            </p>
 
-            <div className="prose-like text-navy-900 text-[15px] leading-relaxed space-y-4">
+            <div className="prose-like text-navy-900 text-[15px] leading-relaxed space-y-4 text-justify hyphens-auto">
               {post.content
                 .split(/\n+/)
                 .filter(Boolean)

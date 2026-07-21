@@ -42,14 +42,42 @@ const publicSans = Public_Sans({
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia", ANALISE: "Análise" };
 
 const FEATURES = [
-  "Processos e prazos",
-  "Financeiro completo",
-  "Atendimento (e-mail e WhatsApp)",
-  "CRM e funil comercial",
-  "Produtividade e tarefas",
-  "Blog jurídico automatizado",
-  "Relatórios e indicadores",
-  "Aplicativo mobile",
+  {
+    title: "Processos e prazos",
+    note: "Acompanhe processos com importação automática de publicações e andamentos processuais no DJEN, com busca pela OAB. Delegue tarefas e controle prazos e a produção do time.",
+  },
+  {
+    title: "Financeiro completo",
+    note: "Contas a pagar, a receber, fluxo de caixa, DRE e controle de honorários.",
+  },
+  {
+    title: "Atendimento (e-mail e WhatsApp)",
+    note: "Atenda aos clientes por dentro do Gestão Jurídica, registrando atendimentos, controlando o status e convertendo leads em processo, caso ou assessoria jurídica — com integração total do WhatsApp ao sistema.",
+  },
+  {
+    title: "CRM e funil comercial",
+    note: "Controle os atendimentos de lead pelo Kanban e configure seu próprio follow-up.",
+  },
+  {
+    title: "Produtividade e tarefas",
+    note: "Acompanhe o timesheet em tempo real pelo tempo de acesso ao software, com controle de acessos e métricas de produtividade e trabalho da equipe.",
+  },
+  {
+    title: "Indicadores de produtividade (TaskScore)",
+    note: "Acompanhe a produtividade do time por indicadores de tempo de trabalho, conclusão de tarefas, prazos e audiências realizadas.",
+  },
+  {
+    title: "Blog Jurídico",
+    note: "Produção diária de conteúdo jurídico atualizado, com referências às fontes oficiais.",
+  },
+  {
+    title: "Relatórios e indicadores",
+    note: "Relatórios de tarefas concluídas, pendentes, gerenciais e financeiros, além de indicadores por área do conhecimento — mais controle sobre a situação produtiva do escritório.",
+  },
+  {
+    title: "Aplicativo mobile",
+    note: "Acompanhe no celular prazos, tarefas, processos, tarefas delegadas e resultados.",
+  },
 ];
 
 // O campo `sources` (prisma/schema.prisma) é texto livre com uma URL por linha. Extrai até
@@ -250,39 +278,22 @@ export default async function HomePage() {
 
       <section id="funcionalidades" className={`${styles.section} ${styles.featuresSection}`}>
         <div className={styles.wrap}>
-          <div className={styles.featuresGrid}>
-            <HomepageReveal as="div" className={styles.reveal} visibleClassName={styles.revealVisible}>
-              <span className={styles.eyebrow}>Funcionalidades</span>
-              <h2 style={{ marginTop: "0.7rem", fontSize: "clamp(1.9rem, 3.6vw, 2.6rem)" }}>
-                Um sistema, não uma pilha de planilhas
-              </h2>
-              <p style={{ marginTop: "1rem", color: "var(--mist)", maxWidth: "46ch" }}>
-                Tudo que o dia a dia de um escritório precisa, em um só lugar — do prazo processual ao fechamento do
-                mês.
-              </p>
-              <ul className={styles.featuresList}>
-                {FEATURES.map((f) => (
-                  <li key={f}>{f}</li>
-                ))}
-              </ul>
-            </HomepageReveal>
-            <HomepageReveal
-              as="figure"
-              className={`${styles.featuresPhoto} ${styles.reveal}`}
-              visibleClassName={styles.revealVisible}
-            >
-              <Image
-                src="/homepage/funcionalidades.webp"
-                alt="Sala de audiência de tribunal"
-                fill
-                sizes="(max-width: 860px) 100vw, 40vw"
-                style={{ objectFit: "cover" }}
-              />
-              <figcaption className={styles.featuresPhotoCaption}>
-                Audiências e prazos, sempre visíveis — nada se perde numa aba esquecida.
-              </figcaption>
-            </HomepageReveal>
-          </div>
+          <HomepageReveal as="div" className={`${styles.sectionHead} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
+            <span className={styles.eyebrow}>Funcionalidades</span>
+            <h2>Um sistema, não uma pilha de planilhas</h2>
+            <p>
+              Tudo que o dia a dia de um escritório precisa, em um só lugar — do prazo processual ao fechamento do
+              mês.
+            </p>
+          </HomepageReveal>
+          <HomepageReveal as="div" className={`${styles.featureCards} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
+            {FEATURES.map((f) => (
+              <div key={f.title} className={styles.featureCard}>
+                <h3>{f.title}</h3>
+                <p>{f.note}</p>
+              </div>
+            ))}
+          </HomepageReveal>
         </div>
       </section>
 
@@ -296,7 +307,7 @@ export default async function HomePage() {
             <figure className={styles.valuePhoto}>
               <Image
                 src="/homepage/como-escrevemos.webp"
-                alt="Biblioteca com mesa de leitura e luminária"
+                alt="Estante de biblioteca com livros jurídicos e plantas"
                 fill
                 sizes="(max-width: 860px) 100vw, 35vw"
                 style={{ objectFit: "cover" }}

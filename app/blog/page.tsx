@@ -88,7 +88,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
                     <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
                   </div>
                   <h2 className="font-serif font-bold text-navy-900 text-lg leading-snug">{post.title}</h2>
-                  <p className="text-sm text-navy-800/60 flex-1">{post.summary}</p>
+                  <p className="text-sm text-navy-800/60 flex-1 text-justify hyphens-auto">{post.summary}</p>
                   {post.publishedAt && (
                     <p className="text-[11px] text-navy-800/40 mt-1">
                       {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}

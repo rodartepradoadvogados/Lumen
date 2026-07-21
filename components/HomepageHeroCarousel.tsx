@@ -11,7 +11,7 @@ const SLIDES = [
   {
     key: "blog",
     image: "/homepage/carousel-blog.webp",
-    alt: "Mesa de trabalho com anotações, destaques e leitura de fontes para uma matéria",
+    alt: "Livros e caderno de anotações sobre a mesa, ao lado de um café — rotina de leitura e escrita",
     eyebrow: "Blog jurídico",
     title: (
       <>

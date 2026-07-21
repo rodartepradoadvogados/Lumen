@@ -1,10 +1,12 @@
 /* Homepage pública do produto "Gestão Jurídica" (app/page.tsx).
  *
- * Paleta e tipografia DELIBERADAMENTE separadas do sistema interno (navy/dourado/bordô
- * do escritório Rodarte Prado, ver tailwind.config.ts) — este é o marketing de um produto
- * de software, não uma página do escritório. Por isso vive num CSS Module próprio, com
- * as custom properties escopadas dentro de `.page`, em vez de entrar no tailwind.config
- * global ou em app/globals.css.
+ * Tipografia DELIBERADAMENTE separada do sistema interno (Playfair Display/Inter, ver
+ * app/layout.tsx) — este é o marketing de um produto de software, não uma página do
+ * escritório. Por isso vive num CSS Module próprio, com as custom properties escopadas
+ * dentro de `.page`. A PALETA, porém, agora bebe de propósito da mesma identidade do
+ * escritório (navy/dourado/bordô — ver tailwind.config.ts): azul marinho nos fundos
+ * escuros (nav, hero, rodapé), dourado mais escurecido nos acentos e bordô nas bordas,
+ * sublinhados e realces, a pedido explícito do usuário.
  *
  * Tema claro/escuro: segue o MESMO mecanismo já usado no resto do site (lib/theme.ts +
  * app/layout.tsx), isto é, a classe `dark` estampada em <html> pelo script anti-flash —
@@ -12,6 +14,12 @@
  * sobrescreve para escuro", igual à convenção já usada em app/globals.css (:root vs .dark),
  * sem introduzir uma segunda fonte de verdade (nada de media query própria conflitando
  * com a escolha explícita do usuário no ThemeToggle).
+ *
+ * Texto sobre fotos: hero, footer, card do artigo em destaque e o card de login ficam
+ * SEMPRE sobre uma foto ou um fundo escuro fixo, não sobre `--ink`/`--text` (que mudam
+ * com o tema). Por isso o texto ali usa cores fixas (--on-photo-*), nunca --brass/--text
+ * diretamente — do contrário, no tema claro essas cores ficam escuras e "somem" em cima
+ * da foto/gradiente, que é sempre escuro. Esse é o motivo raiz do texto "apagado".
  */
 
 .page {
@@ -19,13 +27,20 @@
   --ink: #ece5d6;
   --ink-2: #e1d8c4;
   --ink-3: #d6cbb3;
-  --text: #221b12;
-  --mist: #5b5040;
-  --mist-dim: #7a6f5c;
-  --brass: #8a5d20;
-  --brass-soft: #6e4a18;
-  --oxblood: #7a2430;
-  --line: rgba(34, 27, 18, 0.14);
+  --text: #0b1730;
+  --mist: #152a52;
+  --mist-dim: #1d3868;
+  --brass: #7a5f22;
+  --brass-soft: #5c481c;
+  --oxblood: #6f1d2e;
+  --line: rgba(11, 23, 48, 0.14);
+
+  /* ---- Cores fixas para texto/realces sobre foto ou fundo escuro fixo ----
+     Não mudam com o tema — a superfície por baixo (foto + gradiente) é sempre escura. */
+  --on-photo-gold: #e3cd9c;
+  --on-photo-gold-dim: #c6a05c;
+  --on-photo-ink: #1a1410;
+  --on-photo-bordo: #c96a80;
 
   background: var(--ink);
   color: var(--text);
@@ -38,16 +53,16 @@
 }
 
 :global(.dark) .page {
-  /* ---- Paleta "Gestão Jurídica" — escuro ---- */
-  --ink: #15120f;
-  --ink-2: #1c1712;
-  --ink-3: #241e17;
+  /* ---- Paleta "Gestão Jurídica" — escuro (azul marinho do escritório) ---- */
+  --ink: #0b1730;
+  --ink-2: #0f1f3d;
+  --ink-3: #152a52;
   --text: #efe7d8;
   --mist: #b7ad9c;
   --mist-dim: #8b8172;
-  --brass: #c2903f;
-  --brass-soft: #e7c98b;
-  --oxblood: #8c3140;
+  --brass: #b8904f;
+  --brass-soft: #d4b374;
+  --oxblood: #832438;
   --line: rgba(239, 231, 216, 0.14);
 }
 
@@ -74,12 +89,15 @@
 }
 
 .eyebrow {
+  display: inline-block;
   font-family: var(--font-gj-sans), sans-serif;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--brass);
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--oxblood);
 }
 
 /* ---------- Nav ---------- */
@@ -88,11 +106,11 @@
   top: 0;
   z-index: 40;
   backdrop-filter: blur(10px);
-  background: linear-gradient(to bottom, rgba(21, 18, 15, 0.72), rgba(21, 18, 15, 0.35));
+  background: linear-gradient(to bottom, rgba(7, 13, 26, 0.78), rgba(7, 13, 26, 0.4));
   border-bottom: 1px solid var(--line);
 }
 :global(.dark) .nav {
-  background: linear-gradient(to bottom, rgba(21, 18, 15, 0.72), rgba(21, 18, 15, 0.35));
+  background: linear-gradient(to bottom, rgba(7, 13, 26, 0.78), rgba(7, 13, 26, 0.4));
 }
 .nav .navInner {
   display: flex;
@@ -132,8 +150,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--brass);
-  color: #1a1410;
+  background: var(--on-photo-gold);
+  color: var(--on-photo-ink);
   font-weight: 600;
   font-size: 0.82rem;
   padding: 0.55rem 1.1rem;
@@ -142,7 +160,7 @@
 }
 .navCta:hover,
 .navCta:focus-visible {
-  background: var(--brass-soft);
+  background: var(--on-photo-gold-dim);
   transform: translateY(-1px);
 }
 
@@ -152,7 +170,7 @@
   min-height: 92svh;
   display: flex;
   align-items: flex-end;
-  background: #000;
+  background: #070f22;
 }
 .heroImageWrap {
   position: absolute;
@@ -170,10 +188,10 @@
   z-index: 2;
   background: linear-gradient(
     to top,
-    rgba(10, 8, 6, 0.94) 4%,
-    rgba(10, 8, 6, 0.55) 42%,
-    rgba(10, 8, 6, 0.18) 68%,
-    rgba(10, 8, 6, 0.42) 100%
+    rgba(7, 12, 24, 0.95) 4%,
+    rgba(7, 12, 24, 0.62) 42%,
+    rgba(7, 12, 24, 0.3) 68%,
+    rgba(7, 12, 24, 0.5) 100%
   );
 }
 
@@ -208,7 +226,7 @@
   background: rgba(243, 236, 221, 0.6);
 }
 .heroDotActive {
-  background: var(--brass-soft);
+  background: var(--on-photo-gold);
 }
 .heroContent {
   position: relative;
@@ -218,11 +236,13 @@
   margin: 0 auto;
   width: 100%;
   color: #f3ecdd;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 .heroContent .eyebrow {
-  color: var(--brass-soft);
+  color: var(--on-photo-gold);
+  border-bottom-color: var(--on-photo-bordo);
   margin-bottom: 1.1rem;
-  display: block;
+  display: inline-block;
 }
 .heroTitle {
   font-size: clamp(2.5rem, 5.4vw, 4.3rem);
@@ -231,14 +251,14 @@
   color: #f6f1e4;
 }
 .heroTitle em {
-  color: var(--brass-soft);
+  color: var(--on-photo-gold);
   font-style: italic;
 }
 .heroSub {
   margin-top: 1.4rem;
   max-width: 48ch;
   font-size: 1.08rem;
-  color: rgba(243, 236, 221, 0.82);
+  color: rgba(243, 236, 221, 0.88);
 }
 .heroCtas {
   margin-top: 2.2rem;
@@ -260,12 +280,12 @@
   cursor: pointer;
 }
 .btnPrimary {
-  background: var(--brass);
-  color: #1a1410;
+  background: var(--on-photo-gold);
+  color: var(--on-photo-ink);
 }
 .btnPrimary:hover,
 .btnPrimary:focus-visible {
-  background: var(--brass-soft);
+  background: var(--on-photo-gold-dim);
   transform: translateY(-2px);
 }
 .btnGhost {
@@ -320,10 +340,11 @@
   width: min(300px, calc(100vw - 2.5rem));
   padding: 1.25rem;
   border-radius: 4px;
-  background: rgba(28, 23, 18, 0.72);
+  background: rgba(11, 17, 32, 0.78);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(239, 231, 216, 0.16);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  border-top: 2px solid var(--on-photo-bordo);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 .loginEyebrow {
   font-family: var(--font-gj-sans), sans-serif;
@@ -331,7 +352,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--brass-soft);
+  color: var(--on-photo-gold);
   display: block;
   margin-bottom: 0.75rem;
 }
@@ -355,7 +376,7 @@
 }
 .loginInput:focus {
   outline: none;
-  border-color: var(--brass);
+  border-color: var(--on-photo-gold);
 }
 .loginError {
   font-size: 0.78rem;
@@ -368,13 +389,13 @@
   font-size: 0.85rem;
   padding: 0.55rem;
   border-radius: 3px;
-  background: var(--brass);
-  color: #1a1410;
+  background: var(--on-photo-gold);
+  color: var(--on-photo-ink);
   transition: background 0.2s ease;
 }
 .loginSubmit:hover,
 .loginSubmit:focus-visible {
-  background: var(--brass-soft);
+  background: var(--on-photo-gold-dim);
 }
 .loginSubmit:disabled {
   opacity: 0.6;
@@ -406,6 +427,8 @@
   color: var(--mist);
   font-size: 1rem;
   max-width: 52ch;
+  text-align: justify;
+  hyphens: auto;
 }
 
 .reveal {
@@ -463,13 +486,14 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(10, 8, 6, 0.94), rgba(10, 8, 6, 0.3) 55%, transparent 85%);
+  background: linear-gradient(to top, rgba(7, 12, 24, 0.95), rgba(7, 12, 24, 0.42) 55%, rgba(7, 12, 24, 0.12) 85%);
 }
 .cardBody {
   position: relative;
   z-index: 2;
   padding: 2rem clamp(1.5rem, 3vw, 2.25rem);
   color: #f3ecdd;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .tagRow {
   display: flex;
@@ -494,6 +518,12 @@
   color: var(--brass-soft);
   border-color: rgba(194, 144, 63, 0.45);
 }
+/* Dentro do card em destaque (foto + gradiente sempre escuros), a cor precisa ser fixa —
+   não a mesma var(--brass-soft) que troca com o tema, usada no card do .articleRow (que
+   fica sobre o fundo claro/escuro adaptável da própria página, não sobre foto). */
+.cardBody .tagType {
+  color: var(--on-photo-gold-dim);
+}
 .articleFeaturedTitle {
   font-size: clamp(1.35rem, 2.6vw, 1.7rem);
   max-width: 26ch;
@@ -504,6 +534,8 @@
   max-width: 44ch;
   font-size: 0.95rem;
   color: rgba(243, 236, 221, 0.78);
+  text-align: justify;
+  hyphens: auto;
 }
 .sourcesLine {
   margin-top: 1rem;
@@ -521,7 +553,7 @@
 .src {
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-decoration-color: rgba(243, 236, 221, 0.35);
+  text-decoration-color: rgba(201, 106, 128, 0.55);
 }
 
 .sideCol {
@@ -562,7 +594,7 @@
   color: var(--mist);
 }
 .articleRow .src {
-  text-decoration-color: rgba(183, 173, 156, 0.4);
+  text-decoration-color: rgba(139, 36, 56, 0.45);
 }
 .emptyReading {
   border: 1px dashed var(--line);
@@ -608,55 +640,44 @@
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
-.featuresGrid {
+.featureCards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(2rem, 4vw, 3.5rem);
-  align-items: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1.1rem, 2.5vw, 1.5rem);
 }
 @media (max-width: 860px) {
-  .featuresGrid {
+  .featureCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .featureCards {
     grid-template-columns: 1fr;
   }
 }
-.featuresList {
-  list-style: none;
-  margin: 1.75rem 0 0;
-  padding: 0;
-  columns: 2;
-  column-gap: 2rem;
+.featureCard {
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--oxblood);
+  border-radius: 4px;
+  padding: clamp(1.3rem, 2.5vw, 1.6rem);
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
-.featuresList li {
+.featureCard:hover {
+  border-color: var(--brass);
+  border-left-color: var(--oxblood);
+  transform: translateY(-3px);
+}
+.featureCard h3 {
   font-family: var(--font-gj-serif), serif;
+  font-weight: 500;
   font-size: 1.05rem;
-  font-style: italic;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--line);
-  break-inside: avoid;
+  margin-bottom: 0.6rem;
   color: var(--text);
 }
-.featuresList li::before {
-  content: "— ";
-  color: var(--brass);
-  font-style: normal;
-}
-.featuresPhoto {
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  aspect-ratio: 4 / 5;
-  position: relative;
-}
-.featuresPhotoCaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  padding: 1.2rem 1.3rem;
-  font-size: 0.85rem;
-  color: rgba(243, 236, 221, 0.85);
-  background: linear-gradient(to top, rgba(10, 8, 6, 0.85), transparent);
+.featureCard p {
+  color: var(--mist);
+  font-size: 0.9rem;
 }
 
 /* ---------- Como escrevemos ---------- */
@@ -697,6 +718,7 @@
 }
 .valueCard {
   background: var(--ink);
+  border-left: 3px solid var(--oxblood);
   padding: clamp(1.5rem, 3vw, 2rem) clamp(1.75rem, 3vw, 2.25rem);
   display: flex;
   flex-direction: row;
@@ -741,11 +763,12 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10, 8, 6, 0.88), rgba(10, 8, 6, 0.94));
+  background: linear-gradient(180deg, rgba(7, 12, 24, 0.9), rgba(7, 12, 24, 0.95));
 }
 .footerWrap {
   position: relative;
   z-index: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .footerTop {
   display: flex;
@@ -754,6 +777,10 @@
   flex-wrap: wrap;
   padding-bottom: clamp(2.5rem, 5vw, 3.5rem);
   border-bottom: 1px solid rgba(239, 231, 216, 0.16);
+}
+.footerLede {
+  border-left: 2px solid var(--on-photo-bordo);
+  padding-left: 1.25rem;
 }
 .footerLede h2 {
   font-size: clamp(1.7rem, 3vw, 2.3rem);
@@ -782,7 +809,8 @@
   flex-wrap: wrap;
 }
 .footerCol .eyebrow {
-  color: var(--brass-soft);
+  color: var(--on-photo-gold);
+  border-bottom-color: var(--on-photo-bordo);
 }
 .footerCol ul {
   list-style: none;
@@ -798,7 +826,7 @@
   color: rgba(239, 231, 216, 0.78);
 }
 .footerCol a:hover {
-  color: var(--brass-soft);
+  color: var(--on-photo-gold);
 }
 .footerBottom {
   display: flex;
