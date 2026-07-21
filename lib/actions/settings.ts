@@ -36,17 +36,23 @@ export async function runDjenConnectionTest(): Promise<{ error?: string; results
   return { results };
 }
 
-export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }) {
+export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem cadastrar membros da equipe." };
   await prisma.user.create({
     data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color },
   });
   revalidatePath("/configuracoes");
+  revalidatePath("/contatos/equipe");
+  return {};
 }
 
 export async function updateUser(
   id: string,
   data: { name: string; email: string; role: string; oab?: string; color: string; phone?: string }
 ): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem editar membros da equipe." };
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return { error: "Usuário não encontrado." };
   await prisma.user.update({
@@ -54,6 +60,7 @@ export async function updateUser(
     data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, phone: data.phone || null },
   });
   revalidatePath("/configuracoes");
+  revalidatePath("/contatos/equipe");
   return {};
 }
 
