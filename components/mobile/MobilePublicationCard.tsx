@@ -33,17 +33,17 @@ export default function MobilePublicationCard({ pub }: { pub: Pub }) {
       </div>
 
       {pub.caseId && pub.caseTitle && (
-        <Link href={`/m/processos/${pub.caseId}`} className="text-xs font-medium text-gold-700 block mb-1">
+        <Link href={`/m/processos/${pub.caseId}`} className="text-xs font-medium text-gold-700 dark:text-gold-400 block mb-1">
           {pub.caseTitle}
         </Link>
       )}
 
-      <p className={`text-sm text-navy-800 ${expanded ? "" : "line-clamp-3"}`}>{pub.content}</p>
+      <p className={`text-sm text-navy-800 dark:text-cream-50/85 ${expanded ? "" : "line-clamp-3"}`}>{pub.content}</p>
       {pub.content.length > 140 && (
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="text-[11px] font-semibold text-navy-800/50 mt-1"
+          className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 mt-1"
         >
           {expanded ? "Ver menos" : "Ver mais"}
         </button>
@@ -59,7 +59,7 @@ export default function MobilePublicationCard({ pub }: { pub: Pub }) {
               router.refresh();
             })
           }
-          className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy-800/70 px-3 py-1.5 rounded-lg bg-cream-100 hover:bg-cream-200 disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-3 py-1.5 rounded-lg bg-cream-100 dark:bg-white/5 hover:bg-cream-200 dark:hover:bg-white/10 disabled:opacity-50"
         >
           <Check size={13} /> {pending ? "Marcando..." : "Marcar como lida"}
         </button>
