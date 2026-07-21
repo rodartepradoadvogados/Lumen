@@ -328,6 +328,7 @@ export default async function ConfiguracoesPage({
                     imageUrl: p.imageUrl,
                     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
                   }))}
+                  photos={photos}
                 />
               </Card>
             ) : (

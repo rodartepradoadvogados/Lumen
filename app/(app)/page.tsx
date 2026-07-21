@@ -218,14 +218,16 @@ export default async function DashboardPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gold-500 hover:bg-gold-400 text-navy-950 rounded-lg px-3.5 py-2 transition-colors"
             >
-              Ver blog público <ExternalLink size={13} />
+              Ver blog <ExternalLink size={13} />
             </Link>
-            <Link
-              href="/configuracoes?secao=blog&blogTab=revisao"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/15 text-cream-50 border border-white/15 rounded-lg px-3.5 py-2 transition-colors"
-            >
-              Fila de revisão <ArrowRight size={13} />
-            </Link>
+            {viewer?.isAdmin && (
+              <Link
+                href="/configuracoes?secao=blog&blogTab=revisao"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/15 text-cream-50 border border-white/15 rounded-lg px-3.5 py-2 transition-colors"
+              >
+                Fila de revisão <ArrowRight size={13} />
+              </Link>
+            )}
           </div>
         </div>
       </div>

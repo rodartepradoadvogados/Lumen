@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, X, Check, Ban } from "lucide-react";
 import { updateBlogPostDraft, publishBlogPost, rejectBlogPost } from "@/lib/actions/blog";
-import { photoFileUrl } from "@/lib/photos";
 import { Badge, EmptyState } from "@/components/ui";
+import PhotoPickerGrid, { type LibraryPhoto } from "@/components/PhotoPickerGrid";
 
 export type PendingPost = {
   id: string;
@@ -19,8 +19,6 @@ export type PendingPost = {
   imageUrl: string | null;
   createdAt: string;
 };
-
-export type LibraryPhoto = { id: string; url: string; category: string; court: string; caption: string | null };
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
@@ -303,39 +301,6 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
           <Check size={14} /> Confirmar e publicar
         </button>
       </div>
-    </div>
-  );
-}
-
-function PhotoPickerGrid({
-  photos,
-  imageUrl,
-  onSelect,
-}: {
-  photos: LibraryPhoto[];
-  imageUrl: string;
-  onSelect: (url: string) => void;
-}) {
-  return (
-    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
-      {photos.map((photo) => {
-        const fileUrl = photoFileUrl(photo.id);
-        const selected = imageUrl === fileUrl;
-        return (
-          <button
-            key={photo.id}
-            type="button"
-            onClick={() => onSelect(fileUrl)}
-            data-tip={photo.caption || photo.category}
-            className={`rounded-lg overflow-hidden border-2 transition-colors ${
-              selected ? "border-gold-600" : "border-transparent hover:border-navy-800/20"
-            }`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={fileUrl} alt={photo.caption || photo.category} className="h-14 w-full object-cover" />
-          </button>
-        );
-      })}
     </div>
   );
 }

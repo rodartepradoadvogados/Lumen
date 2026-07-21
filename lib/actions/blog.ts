@@ -101,6 +101,23 @@ export async function rejectBlogPost(id: string, reason?: string): Promise<{ err
   return {};
 }
 
+// Troca a foto de banner de uma matéria já publicada (não passa pelo fluxo de
+// revisão de novo, só atualiza a imagem exibida em /blog e /blog/[slug]).
+// Só admin pode trocar, já que a seção Blog em Configurações é toda restrita a isAdmin.
+export async function updatePublishedPostImage(id: string, imageUrl: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Sem permissão." };
+
+  const post = await prisma.blogPost.findUnique({ where: { id } });
+  if (!post) return { error: "Matéria não encontrada." };
+
+  await prisma.blogPost.update({ where: { id }, data: { imageUrl: imageUrl.trim() || null } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/blog");
+  revalidatePath(`/blog/${post.slug}`);
+  return {};
+}
+
 // Despublica uma matéria já confirmada — volta para a fila de revisão pendente.
 export async function unpublishBlogPost(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
