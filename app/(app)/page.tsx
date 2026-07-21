@@ -12,7 +12,7 @@ import {
   taskTypeLabels,
   taskTypeColors,
 } from "@/components/ui";
-import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
+import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, Newspaper, ExternalLink } from "lucide-react";
 import NoticesPanel from "@/components/NoticesPanel";
 import AlertRow from "@/components/AlertRow";
 import PendingListModal from "@/components/PendingListModal";
@@ -59,6 +59,8 @@ export default async function DashboardPage() {
     getAlerts(hasFinanceAccess),
     prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
+
+  const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO" } });
 
   const notices = await prisma.notice.findMany({
     include: { author: { select: { id: true, name: true, color: true } } },
@@ -187,6 +189,45 @@ export default async function DashboardPage() {
             ))}
           </div>
         </PendingListModal>
+      </div>
+
+      {/* Bloco de destaque do Juris Blog: propositalmente diferente dos StatCards acima
+          (fundo em gradiente navy->bordô, ícone em moldura dourada) para chamar atenção
+          para o blog público do escritório sem se misturar com os cards de KPI. */}
+      <div className="mb-6 relative overflow-hidden rounded-xl border border-gold-500/30 bg-gradient-to-r from-navy-900 via-navy-800 to-bordo-700 shadow-card">
+        <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-5">
+          <div className="h-12 w-12 shrink-0 rounded-full bg-gold-500/15 border border-gold-400/40 flex items-center justify-center text-gold-400">
+            <Newspaper size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-serif text-lg font-bold text-cream-50">Juris Blog</h2>
+              {blogPendingCount > 0 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gold-500/20 text-gold-300 border border-gold-400/30">
+                  {blogPendingCount} aguardando revisão
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-cream-50/70 mt-0.5">Conteúdo jurídico atualizado, publicado pelo escritório para clientes e visitantes.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/blog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gold-500 hover:bg-gold-400 text-navy-950 rounded-lg px-3.5 py-2 transition-colors"
+            >
+              Ver blog público <ExternalLink size={13} />
+            </Link>
+            <Link
+              href="/configuracoes?secao=blog&blogTab=revisao"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/15 text-cream-50 border border-white/15 rounded-lg px-3.5 py-2 transition-colors"
+            >
+              Fila de revisão <ArrowRight size={13} />
+            </Link>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
