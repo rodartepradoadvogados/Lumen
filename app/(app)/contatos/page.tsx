@@ -13,11 +13,41 @@ export default async function ContatosPage() {
     prisma.user.count(),
   ]);
 
+  // Cada módulo tem uma cor de destaque própria (dourado/bordô/navy/magenta), só
+  // pra diferenciar visualmente os 4 cards do hub — sem significado funcional.
   const modules = [
-    { href: "/contatos/clientes", label: "Clientes", icon: Users, count: clients, desc: "Base de clientes do escritório" },
-    { href: "/contatos/advogados", label: "Advogados", icon: ScaleIcon, count: lawyers, desc: "Parceiros e adversos" },
-    { href: "/contatos/fornecedores", label: "Fornecedores", icon: Truck, count: suppliers, desc: "Fornecedores usados no Financeiro" },
-    { href: "/contatos/equipe", label: "Equipe", icon: UserCog, count: team, desc: "Membros do escritório" },
+    {
+      href: "/contatos/clientes",
+      label: "Clientes",
+      icon: Users,
+      count: clients,
+      desc: "Base de clientes do escritório",
+      iconClass: "bg-gold-500/15 text-gold-700 dark:bg-gold-400/15 dark:text-gold-400",
+    },
+    {
+      href: "/contatos/advogados",
+      label: "Advogados",
+      icon: ScaleIcon,
+      count: lawyers,
+      desc: "Parceiros e adversos",
+      iconClass: "bg-bordo-500/15 text-bordo-600 dark:bg-bordo-400/15 dark:text-bordo-400",
+    },
+    {
+      href: "/contatos/fornecedores",
+      label: "Fornecedores",
+      icon: Truck,
+      count: suppliers,
+      desc: "Fornecedores usados no Financeiro",
+      iconClass: "bg-navy-900/10 text-navy-900 dark:bg-white/10 dark:text-cream-50",
+    },
+    {
+      href: "/contatos/equipe",
+      label: "Equipe",
+      icon: UserCog,
+      count: team,
+      desc: "Membros do escritório",
+      iconClass: "bg-magenta-500/15 text-magenta-700 dark:bg-magenta-400/15 dark:text-magenta-400",
+    },
   ];
 
   return (
@@ -28,8 +58,8 @@ export default async function ContatosPage() {
           <Link key={m.href} href={m.href}>
             <Card className="p-5 h-full hover:shadow-pop transition-shadow">
               <div className="flex items-start justify-between">
-                <div className="p-2.5 rounded-lg bg-navy-900/5 text-navy-800 dark:bg-white/10 dark:text-cream-50">
-                  <m.icon size={20} />
+                <div className={`p-3.5 rounded-full ${m.iconClass}`}>
+                  <m.icon size={28} />
                 </div>
                 <ArrowRight size={16} className="text-navy-800/30 dark:text-cream-50/30" />
               </div>
