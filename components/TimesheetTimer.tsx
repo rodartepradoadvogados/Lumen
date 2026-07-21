@@ -13,11 +13,31 @@ function formatHMS(totalSeconds: number) {
 export default function TimesheetTimer({ initialSeconds }: { initialSeconds: number }) {
   const [seconds, setSeconds] = useState(initialSeconds);
   const hasPinged = useRef(false);
+  // Enquanto o aviso de inatividade (components/InactivityNotice.tsx) está na tela, o ping
+  // fica pausado: não queremos que o tempo continue subindo silenciosamente enquanto a
+  // pessoa não confirmou que voltou a prestar atenção.
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    function handlePause() {
+      pausedRef.current = true;
+    }
+    function handleResume() {
+      pausedRef.current = false;
+    }
+    window.addEventListener("rp-timesheet-pause", handlePause);
+    window.addEventListener("rp-timesheet-resume", handleResume);
+    return () => {
+      window.removeEventListener("rp-timesheet-pause", handlePause);
+      window.removeEventListener("rp-timesheet-resume", handleResume);
+    };
+  }, []);
 
   useEffect(() => {
     const tick = setInterval(() => setSeconds((s) => s + 1), 1000);
 
     async function ping() {
+      if (pausedRef.current) return;
       const result = await pingSession();
       if ("todaySeconds" in result) setSeconds(result.todaySeconds);
     }
