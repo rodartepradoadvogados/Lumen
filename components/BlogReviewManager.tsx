@@ -19,22 +19,30 @@ export type PendingPost = {
   createdAt: string;
 };
 
+export type LibraryPhoto = { id: string; url: string; category: string; caption: string | null };
+
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
-export default function BlogReviewManager({ posts }: { posts: PendingPost[] }) {
+// Mesma normalização usada em lib/importers/importCore.ts, para comparar
+// textos ignorando acentuação/maiúsculas (ex: "Tributario" == "Tributário").
+function norm(s: string) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
+export default function BlogReviewManager({ posts, photos = [] }: { posts: PendingPost[]; photos?: LibraryPhoto[] }) {
   if (posts.length === 0) {
     return <EmptyState title="Nenhuma matéria aguardando revisão" subtitle="Os rascunhos enviados pelo robô de conteúdo aparecem aqui." />;
   }
   return (
     <div className="divide-y divide-navy-800/8">
       {posts.map((post) => (
-        <ReviewCard key={post.id} post={post} />
+        <ReviewCard key={post.id} post={post} photos={photos} />
       ))}
     </div>
   );
 }
 
-function ReviewCard({ post }: { post: PendingPost }) {
+function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -92,6 +100,10 @@ function ReviewCard({ post }: { post: PendingPost }) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+
+  const normalizedArea = norm(area);
+  const suggestedPhotos = photos.filter((p) => norm(p.category) === normalizedArea);
+  const otherPhotos = photos.filter((p) => norm(p.category) !== normalizedArea);
 
   return (
     <div className="p-5 space-y-3">
@@ -191,13 +203,30 @@ function ReviewCard({ post }: { post: PendingPost }) {
         </div>
       )}
 
+      {photos.length > 0 && (
+        <div className="pt-2 border-t border-navy-800/8 space-y-2">
+          {suggestedPhotos.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold text-navy-800/55 uppercase mb-1">Sugeridas para &ldquo;{area}&rdquo;</p>
+              <PhotoPickerGrid photos={suggestedPhotos} imageUrl={imageUrl} onSelect={setImageUrl} />
+            </div>
+          )}
+          {otherPhotos.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold text-navy-800/55 uppercase mb-1">Outras fotos</p>
+              <PhotoPickerGrid photos={otherPhotos} imageUrl={imageUrl} onSelect={setImageUrl} />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-end gap-2 flex-wrap pt-2 border-t border-navy-800/8">
         <div className="flex-1 min-w-[220px]">
           <label className="text-[11px] font-medium text-navy-800/55">URL da imagem (opcional, adicione antes de publicar)</label>
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://..."
+            placeholder="https://... (ou escolha da biblioteca acima)"
             className="cfg-input w-full"
           />
         </div>
@@ -216,6 +245,38 @@ function ReviewCard({ post }: { post: PendingPost }) {
           <Check size={14} /> Confirmar e publicar
         </button>
       </div>
+    </div>
+  );
+}
+
+function PhotoPickerGrid({
+  photos,
+  imageUrl,
+  onSelect,
+}: {
+  photos: LibraryPhoto[];
+  imageUrl: string;
+  onSelect: (url: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+      {photos.map((photo) => {
+        const selected = imageUrl === photo.url;
+        return (
+          <button
+            key={photo.id}
+            type="button"
+            onClick={() => onSelect(photo.url)}
+            data-tip={photo.caption || photo.category}
+            className={`rounded-lg overflow-hidden border-2 transition-colors ${
+              selected ? "border-gold-600" : "border-transparent hover:border-navy-800/20"
+            }`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photo.url} alt={photo.caption || photo.category} className="h-14 w-full object-cover" />
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
+import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 
@@ -26,7 +27,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Suspense fallback={null}>
         <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} isAdmin={user.isAdmin} unreadPublications={unreadPublications} />
       </Suspense>
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        <Suspense fallback={null}>
+          <SiteBackgroundLayer />
+        </Suspense>
         <TopBar />
         <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
       </div>

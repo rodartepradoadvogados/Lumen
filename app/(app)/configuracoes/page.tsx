@@ -21,6 +21,7 @@ import TaskTypePointsManager from "@/components/TaskTypePointsManager";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
+import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -92,7 +93,7 @@ export default async function ConfiguracoesPage({
 }: {
   searchParams: { google?: string; msg?: string; secao?: string; blogTab?: string };
 }) {
-  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw] =
+  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw] =
     await Promise.all([
       getCurrentUser(),
       prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
@@ -109,7 +110,16 @@ export default async function ConfiguracoesPage({
       listGoogleAccounts(),
       prisma.blogPost.findMany({ where: { status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
       prisma.blogPost.findMany({ where: { status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+      prisma.photo.findMany({ orderBy: { createdAt: "desc" } }),
     ]);
+
+  const photos = photosRaw.map((p) => ({
+    id: p.id,
+    url: p.url,
+    category: p.category,
+    caption: p.caption,
+    createdAt: p.createdAt.toISOString(),
+  }));
   const isAdmin = viewer?.isAdmin ?? false;
 
   const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
@@ -245,7 +255,8 @@ export default async function ConfiguracoesPage({
       })()}
 
       {secao === "blog" && (() => {
-        const blogTab = searchParams.blogTab === "publicadas" ? "publicadas" : "revisao";
+        const blogTab =
+          searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
         return (
           <>
             <div className="flex gap-2 flex-wrap">
@@ -269,6 +280,16 @@ export default async function ConfiguracoesPage({
               >
                 Matérias Publicadas ({blogPublishedRaw.length})
               </Link>
+              <Link
+                href="/configuracoes?secao=blog&blogTab=fotos"
+                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
+                  blogTab === "fotos"
+                    ? "bg-navy-800 text-white"
+                    : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+                }`}
+              >
+                Fotos ({photos.length})
+              </Link>
             </div>
 
             {blogTab === "revisao" ? (
@@ -290,9 +311,10 @@ export default async function ConfiguracoesPage({
                     imageUrl: p.imageUrl,
                     createdAt: p.createdAt.toISOString(),
                   }))}
+                  photos={photos}
                 />
               </Card>
-            ) : (
+            ) : blogTab === "publicadas" ? (
               <Card>
                 <CardHeader title="Matérias Publicadas" subtitle="Visíveis publicamente em /blog — sem necessidade de login" />
                 <BlogPublishedManager
@@ -306,6 +328,14 @@ export default async function ConfiguracoesPage({
                     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
                   }))}
                 />
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader
+                  title="Biblioteca de Fotos"
+                  subtitle="Envie fotos categorizadas por área jurídica — usadas para ilustrar o blog e como fundo decorativo do sistema"
+                />
+                <PhotoLibraryManager photos={photos} />
               </Card>
             )}
           </>

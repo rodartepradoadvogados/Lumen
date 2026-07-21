@@ -595,6 +595,23 @@ model BlogPost {
   @@index([area])
 }
 
+// ============ BIBLIOTECA DE FOTOS ============
+//
+// Fotos enviadas por um admin (upload real, armazenado no Vercel Blob — ver
+// @vercel/blob e BLOB_READ_WRITE_TOKEN). Usadas tanto para ilustrar matérias do
+// blog jurídico (sugestão automática por área) quanto como camada de fundo
+// decorativa, de baixa opacidade, atrás do conteúdo do sistema.
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String   // URL pública do Vercel Blob
+  category  String   // mesma taxonomia livre de BlogPost.area, + "Geral/Escritório" para fotos só decorativas/ambiente
+  caption   String?  // legenda opcional, ex: para crédito/descrição da imagem
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
 // ============ TABELAS DO ROBÔ PYTHON (robo-publicacoes/, Railway) ============
 //
 // Estes 4 modelos NÃO são usados pelo código TypeScript — eles existem só para
