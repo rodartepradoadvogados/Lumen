@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
+import { getUserHistory } from "@/lib/timesheet";
 import { PageHeader, Card, Badge, EmptyState, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
-import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +26,82 @@ function parseMonth(mes?: string): { year: number; month: number } {
   return { year: now.getFullYear(), month: now.getMonth() };
 }
 
-export default async function ProdutividadePage({ searchParams }: { searchParams: { mes?: string } }) {
+function formatHMS(totalSeconds: number) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  return `${h}h ${String(m).padStart(2, "0")}min`;
+}
+
+function initials(name: string) {
+  return name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+}
+
+function TabLink({ label, href, active }: { label: string; href: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+        active
+          ? "bg-navy-900 text-white"
+          : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+export default async function ProdutividadePage({
+  searchParams,
+}: {
+  searchParams: { mes?: string; aba?: string; responsibleId?: string };
+}) {
+  const aba = searchParams.aba === "timesheet" ? "timesheet" : "historico";
+  const viewer = await getCurrentUser();
+
+  const tabs = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <TabLink label="Histórico" href={`/produtividade${searchParams.mes ? `?mes=${searchParams.mes}` : ""}`} active={aba === "historico"} />
+      <TabLink label="Timesheet" href="/produtividade?aba=timesheet" active={aba === "timesheet"} />
+    </div>
+  );
+
+  if (aba === "timesheet") {
+    const history = viewer ? await getUserHistory(viewer.id, 30) : [];
+
+    return (
+      <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
+        <PageHeader title="Produtividade" subtitle="Acompanhamento de tarefas concluídas e tempo de uso do sistema" />
+        {tabs}
+
+        <Card>
+          <div className="px-5 py-4 border-b border-navy-800/8">
+            <h3 className="font-serif font-bold text-navy-900 text-base">
+              {viewer ? `Timesheet — ${viewer.name}` : "Meu Timesheet"}
+            </h3>
+            <p className="text-xs text-navy-800/50 mt-0.5">Acompanhe seu tempo de uso do sistema nos últimos 30 dias.</p>
+          </div>
+          {history.length === 0 ? (
+            <EmptyState title="Nenhum registro de acesso" subtitle="Assim que você usar o sistema, seu tempo aparecerá aqui." />
+          ) : (
+            <div className="divide-y divide-navy-800/5">
+              {history.map((day) => (
+                <div key={day.date} className="flex items-center gap-3 px-5 py-3">
+                  <Clock size={14} className="text-navy-800/30 shrink-0" />
+                  <p className="text-sm text-navy-900 flex-1">{formatDate(new Date(`${day.date}T00:00:00`))}</p>
+                  <p className="text-xs text-navy-800/45 w-32 text-right">
+                    1º login {new Date(day.firstLogin).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <p className="text-sm font-semibold text-navy-900 w-24 text-right">{formatHMS(day.seconds)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
   const { year, month } = parseMonth(searchParams.mes);
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 1);
@@ -35,18 +112,23 @@ export default async function ProdutividadePage({ searchParams }: { searchParams
   const nextParam = `${next.getFullYear()}-${pad2(next.getMonth() + 1)}`;
   const label = `${MESES[month]} de ${year}`;
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      status: "CONCLUIDO",
-      completedAt: { gte: start, lt: end },
-      responsibleId: { not: null },
-    },
-    include: {
-      responsible: { select: { id: true, name: true, color: true } },
-      case: { select: { id: true, title: true } },
-    },
-    orderBy: { completedAt: "desc" },
-  });
+  const responsibleId = searchParams.responsibleId || undefined;
+
+  const [tasks, users] = await Promise.all([
+    prisma.task.findMany({
+      where: {
+        status: "CONCLUIDO",
+        completedAt: { gte: start, lt: end },
+        responsibleId: responsibleId ?? { not: null },
+      },
+      include: {
+        responsible: { select: { id: true, name: true, color: true } },
+        case: { select: { id: true, title: true } },
+      },
+      orderBy: { completedAt: "desc" },
+    }),
+    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
   type Row = {
     user: { id: string; name: string; color: string };
@@ -76,24 +158,17 @@ export default async function ProdutividadePage({ searchParams }: { searchParams
     });
   }
 
-  const ranking = Array.from(byUser.values()).sort((a, b) => b.points - a.points || b.count - a.count);
-
-  const totalPoints = ranking.reduce((s, r) => s + r.points, 0);
-  const totalTasks = ranking.reduce((s, r) => s + r.count, 0);
-
-  function initials(name: string) {
-    return name.split(" ").map((n) => n[0]).slice(0, 2).join("");
-  }
+  const rows = Array.from(byUser.values()).sort((a, b) => b.points - a.points || b.count - a.count);
 
   return (
     <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
       <PageHeader
         title="Produtividade"
-        subtitle="Ranking de pontos (TaskScore) por tarefas concluídas no mês"
+        subtitle="Histórico de tarefas concluídas por membro da equipe"
         action={
           <div className="flex items-center gap-2">
             <Link
-              href={`/produtividade?mes=${prevParam}`}
+              href={`/produtividade?mes=${prevParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
               className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-navy-800/10 text-navy-800/60 hover:bg-cream-100"
               aria-label="Mês anterior"
             >
@@ -101,7 +176,7 @@ export default async function ProdutividadePage({ searchParams }: { searchParams
             </Link>
             <span className="text-sm font-semibold text-navy-900 min-w-[150px] text-center capitalize">{label}</span>
             <Link
-              href={`/produtividade?mes=${nextParam}`}
+              href={`/produtividade?mes=${nextParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
               className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-navy-800/10 text-navy-800/60 hover:bg-cream-100"
               aria-label="Próximo mês"
             >
@@ -111,54 +186,50 @@ export default async function ProdutividadePage({ searchParams }: { searchParams
         }
       />
 
+      {tabs}
+
       <Card>
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8">
-          <Trophy size={18} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 text-base flex-1">Ranking do Mês</h3>
-          <span className="text-xs text-navy-800/50">
-            {totalTasks} tarefa(s) · {totalPoints} ponto(s)
-          </span>
-        </div>
-        {ranking.length === 0 ? (
-          <EmptyState title="Nenhuma tarefa concluída neste mês" subtitle="As tarefas concluídas com responsável definido aparecem aqui." />
-        ) : (
-          <div className="divide-y divide-navy-800/5">
-            {ranking.map((row, i) => (
-              <div key={row.user.id} className="flex items-center gap-3 px-5 py-3.5">
-                <span className={`w-7 text-center font-serif font-bold ${i === 0 ? "text-gold-700" : "text-navy-800/40"}`}>
-                  {i + 1}º
-                </span>
-                <span
-                  className="h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                  style={{ backgroundColor: row.user.color }}
-                >
-                  {initials(row.user.name)}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-navy-900 truncate">{row.user.name}</p>
-                    {i === 0 && <Badge color="gold">1º lugar</Badge>}
-                  </div>
-                  <p className="text-xs text-navy-800/45">{row.count} tarefa(s) concluída(s)</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-serif font-bold text-lg text-navy-900">{row.points}</p>
-                  <p className="text-[11px] text-navy-800/40 uppercase tracking-wide">pontos</p>
-                </div>
-              </div>
-            ))}
+        <form className="p-4 flex flex-wrap items-end gap-3">
+          {searchParams.mes && <input type="hidden" name="mes" value={searchParams.mes} />}
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 block mb-1">Responsável</label>
+            <select
+              name="responsibleId"
+              defaultValue={responsibleId ?? ""}
+              className="border border-navy-800/12 rounded-lg px-2.5 py-1.5 text-sm bg-white text-navy-900"
+            >
+              <option value="">Todos</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
+          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+            Filtrar
+          </button>
+          {responsibleId && (
+            <Link
+              href={`/produtividade${searchParams.mes ? `?mes=${searchParams.mes}` : ""}`}
+              className="text-xs font-semibold text-navy-800/50 hover:text-navy-900 px-2"
+            >
+              Limpar filtro
+            </Link>
+          )}
+        </form>
       </Card>
 
-      {ranking.length > 0 && (
-        <Card>
-          <div className="px-5 py-4 border-b border-navy-800/8">
-            <h3 className="font-serif font-bold text-navy-900 text-base">Detalhe por pessoa</h3>
-            <p className="text-xs text-navy-800/50 mt-0.5">Clique em um nome para ver as tarefas concluídas no mês</p>
-          </div>
+      <Card>
+        <div className="px-5 py-4 border-b border-navy-800/8">
+          <h3 className="font-serif font-bold text-navy-900 text-base">Histórico</h3>
+          <p className="text-xs text-navy-800/50 mt-0.5">Clique em um nome para ver as tarefas concluídas no mês</p>
+        </div>
+        {rows.length === 0 ? (
+          <EmptyState title="Nenhuma tarefa concluída neste período" subtitle="As tarefas concluídas com responsável definido aparecem aqui." />
+        ) : (
           <div className="divide-y divide-navy-800/5">
-            {ranking.map((row) => (
+            {rows.map((row) => (
               <details key={row.user.id} className="group">
                 <summary className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-cream-50 list-none">
                   <span
@@ -202,8 +273,8 @@ export default async function ProdutividadePage({ searchParams }: { searchParams
               </details>
             ))}
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
     </div>
   );
 }

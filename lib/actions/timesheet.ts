@@ -18,6 +18,7 @@ export async function fetchTeamSummaries(): Promise<TeamSummary[] | { error: str
 
 export async function fetchUserHistory(userId: string): Promise<DayHistory[] | { error: string }> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem ver o histórico." };
+  if (!user) return { error: "Sessão inválida." };
+  if (!user.isAdmin && user.id !== userId) return { error: "Você só pode ver o seu próprio histórico." };
   return getUserHistory(userId);
 }

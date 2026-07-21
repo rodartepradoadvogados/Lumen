@@ -101,7 +101,16 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
     label: "Gestão",
     items: [
       { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
-      { href: "/produtividade", label: "Produtividade", icon: Trophy },
+      {
+        href: "/produtividade",
+        label: "Produtividade",
+        icon: Trophy,
+        subParam: "aba",
+        subItems: [
+          { label: "Histórico" },
+          { label: "Timesheet", value: "timesheet" },
+        ],
+      },
       {
         href: "/configuracoes",
         label: "Configurações",
