@@ -2,7 +2,14 @@ import { prisma } from "@/lib/prisma";
 
 export type AlertItem = {
   id: string;
-  kind: "PRAZO_VENCIDO" | "CONTA_PAGAR_VENCIDA" | "CONTA_RECEBER_VENCIDA" | "MENCAO" | "PARCELA_SEM_VENCIMENTO" | "FOLLOWUP_ATRASADO";
+  kind:
+    | "PRAZO_VENCIDO"
+    | "CONTA_PAGAR_VENCIDA"
+    | "CONTA_RECEBER_VENCIDA"
+    | "MENCAO"
+    | "PARCELA_SEM_VENCIMENTO"
+    | "FOLLOWUP_ATRASADO"
+    | "TAREFA_DELEGADA";
   title: string;
   subtitle?: string;
   date: Date;
@@ -38,11 +45,21 @@ function endOfDay(d: Date) {
 
 // Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
-export async function getAlerts(includeFinance: boolean = true): Promise<AlertItem[]> {
+// `viewerId`: quando informado, também busca tarefas delegadas para esse usuário ainda não
+// vistas (delegationAcknowledgedAt null) — alerta pessoal, visível só pra quem recebeu.
+export async function getAlerts(includeFinance: boolean = true, viewerId?: string): Promise<AlertItem[]> {
   const now = new Date();
 
-  const [overdueTasks, overduePayables, overdueReceivables, unreadMentions, undatedPayables, undatedReceivables, overdueFollowups] =
-    await Promise.all([
+  const [
+    overdueTasks,
+    overduePayables,
+    overdueReceivables,
+    unreadMentions,
+    undatedPayables,
+    undatedReceivables,
+    overdueFollowups,
+    delegatedTasks,
+  ] = await Promise.all([
       prisma.task.findMany({
         where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
         include: { case: true },
@@ -65,6 +82,13 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
         where: { nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
         orderBy: { nextContactAt: "asc" },
       }),
+      viewerId
+        ? prisma.task.findMany({
+            where: { responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
+            include: { case: true, delegatedBy: true },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
   const alerts: AlertItem[] = [];
@@ -150,6 +174,19 @@ export async function getAlerts(includeFinance: boolean = true): Promise<AlertIt
       severity: "media",
       entityKind: "ATTENDANCE",
       entityId: f.id,
+    });
+  }
+  for (const t of delegatedTasks) {
+    alerts.push({
+      id: `task-delegated-${t.id}`,
+      kind: "TAREFA_DELEGADA",
+      title: `${t.delegatedBy?.name} atribuiu: ${t.title}`,
+      subtitle: t.case?.title,
+      date: t.createdAt,
+      href: `/agenda`,
+      severity: "media",
+      entityKind: "TASK",
+      entityId: t.id,
     });
   }
   for (const m of unreadMentions) {

@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
-import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, LucideIcon } from "lucide-react";
+import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   MENCAO: { label: "Menção", icon: AtSign },
   PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
   FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
+  TAREFA_DELEGADA: { label: "Tarefa Delegada", icon: UserPlus },
 };
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
@@ -39,7 +40,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
   const viewer = await getCurrentUser();
   const isAdmin = viewer?.isAdmin ?? false;
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
-  const [alerts, todayItems] = await Promise.all([getAlerts(hasFinanceAccess), getTodayItems(hasFinanceAccess)]);
+  const [alerts, todayItems] = await Promise.all([getAlerts(hasFinanceAccess, viewer?.id), getTodayItems(hasFinanceAccess)]);
 
   const pendingDeletions = isAdmin
     ? await prisma.deletionRequest.findMany({
