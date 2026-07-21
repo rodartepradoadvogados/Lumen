@@ -72,7 +72,7 @@ export async function setFinanceAccess(id: string, financeAccess: boolean): Prom
   if (user.isAdmin) return { error: "Sócios sempre têm acesso ao Financeiro." };
   await prisma.user.update({ where: { id }, data: { financeAccess } });
   revalidatePath("/configuracoes");
-  revalidatePath("/");
+  revalidatePath("/painel");
   revalidatePath("/alertas");
   return {};
 }

@@ -60,7 +60,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: "/", label: "Painel", icon: LayoutDashboard },
+      { href: "/painel", label: "Painel", icon: LayoutDashboard },
       { href: "/kanban", label: "Kanban", icon: Kanban },
       { href: "/agenda", label: "Agenda", icon: CalendarDays },
     ],
@@ -293,7 +293,7 @@ export default function Sidebar({
                 </p>
               )}
               {group.items.map((item) => {
-                const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+                const active = pathname?.startsWith(item.href);
                 const Icon = item.icon;
                 const visibleSubItems =
                   item.subItems?.filter((sub) => (!sub.adminOnly || isAdmin) && (!sub.financeOnly || hasFinanceAccess)) ?? [];

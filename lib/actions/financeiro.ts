@@ -11,7 +11,7 @@ function revalidateFinance() {
   revalidatePath("/financeiro/fluxo-de-caixa");
   revalidatePath("/financeiro/dre");
   revalidatePath("/financeiro/livro-caixa");
-  revalidatePath("/");
+  revalidatePath("/painel");
   revalidatePath("/alertas");
   revalidatePath("/agenda");
   revalidatePath("/kanban");

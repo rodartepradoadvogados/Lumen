@@ -8,21 +8,21 @@ export async function markPublicationRead(id: string) {
   await prisma.publication.update({ where: { id }, data: { read: true } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
-  revalidatePath("/");
+  revalidatePath("/painel");
 }
 
 export async function markPublicationUnread(id: string) {
   await prisma.publication.update({ where: { id }, data: { read: false } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
-  revalidatePath("/");
+  revalidatePath("/painel");
 }
 
 export async function markAllPublicationsRead() {
   const result = await prisma.publication.updateMany({ where: { read: false }, data: { read: true } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
-  revalidatePath("/");
+  revalidatePath("/painel");
   return { count: result.count };
 }
 
@@ -133,6 +133,6 @@ export async function generateTaskFromPublication(
   revalidatePath("/kanban");
   revalidatePath("/agenda");
   revalidatePath("/alertas");
-  revalidatePath("/");
+  revalidatePath("/painel");
   if (pub.caseId) revalidatePath(`/processos/${pub.caseId}`);
 }

@@ -11,7 +11,7 @@ export async function moveTask(taskId: string, columnId: string, columnOrder: nu
   });
   revalidatePath("/kanban");
   revalidatePath("/agenda");
-  revalidatePath("/");
+  revalidatePath("/painel");
 }
 
 export async function toggleTaskDone(taskId: string) {
@@ -28,7 +28,7 @@ export async function toggleTaskDone(taskId: string) {
   });
   revalidatePath("/kanban");
   revalidatePath("/agenda");
-  revalidatePath("/");
+  revalidatePath("/painel");
   revalidatePath("/alertas");
 }
 
@@ -77,7 +77,7 @@ export async function createTask(data: {
   });
   revalidatePath("/kanban");
   revalidatePath("/agenda");
-  revalidatePath("/");
+  revalidatePath("/painel");
   revalidatePath("/m/agenda");
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
   if (data.caseId) revalidatePath(`/m/processos/${data.caseId}`);
@@ -127,7 +127,7 @@ export async function delegateTask(data: {
 
   revalidatePath("/agenda");
   revalidatePath("/kanban");
-  revalidatePath("/");
+  revalidatePath("/painel");
   revalidatePath("/alertas");
   revalidatePath("/produtividade");
 
@@ -139,7 +139,7 @@ export async function delegateTask(data: {
 export async function acknowledgeDelegation(taskId: string): Promise<void> {
   await prisma.task.update({ where: { id: taskId }, data: { delegationAcknowledgedAt: new Date() } });
   revalidatePath("/alertas");
-  revalidatePath("/");
+  revalidatePath("/painel");
 }
 
 // Busca resumida de Processos/Casos para o passo 3 do formulário de delegação —
@@ -251,7 +251,7 @@ export async function updateTask(id: string, data: {
   });
   revalidatePath("/kanban");
   revalidatePath("/agenda");
-  revalidatePath("/");
+  revalidatePath("/painel");
   revalidatePath("/alertas");
 }
 

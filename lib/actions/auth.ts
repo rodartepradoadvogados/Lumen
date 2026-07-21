@@ -24,7 +24,7 @@ export async function login(username: string, password: string, next?: string): 
     maxAge: 60 * 60 * 24 * 30,
   });
   await prisma.loginSession.create({ data: { userId: user.id } });
-  redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
+  redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/painel");
 }
 
 export async function logout() {

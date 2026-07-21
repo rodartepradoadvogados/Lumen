@@ -47,6 +47,6 @@ export async function importAgenda(_prevState: ImportResult, formData: FormData)
 
   revalidatePath("/agenda");
   revalidatePath("/kanban");
-  revalidatePath("/");
+  revalidatePath("/painel");
   return result;
 }

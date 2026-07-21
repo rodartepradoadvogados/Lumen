@@ -10,7 +10,7 @@ export async function createNotice(content: string): Promise<{ error?: string }>
   const trimmed = content.trim();
   if (!trimmed) return { error: "Escreva um recado antes de publicar." };
   await prisma.notice.create({ data: { content: trimmed, authorId: user.id } });
-  revalidatePath("/");
+  revalidatePath("/painel");
   return {};
 }
 
@@ -23,7 +23,7 @@ export async function deleteNotice(id: string): Promise<{ error?: string }> {
     return { error: "Apenas o autor ou um sócio pode excluir este recado." };
   }
   await prisma.notice.delete({ where: { id } });
-  revalidatePath("/");
+  revalidatePath("/painel");
   return {};
 }
 
@@ -34,6 +34,6 @@ export async function togglePinNotice(id: string): Promise<{ error?: string }> {
   const notice = await prisma.notice.findUnique({ where: { id } });
   if (!notice) return { error: "Recado não encontrado." };
   await prisma.notice.update({ where: { id }, data: { pinned: !notice.pinned } });
-  revalidatePath("/");
+  revalidatePath("/painel");
   return {};
 }
