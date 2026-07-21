@@ -126,13 +126,16 @@ export default async function ConfiguracoesPage({
 
   async function submitUser(formData: FormData) {
     "use server";
-    await createUser({
+    const result = await createUser({
       name: String(formData.get("name")),
       email: String(formData.get("email")),
       role: String(formData.get("role")),
       oab: String(formData.get("oab") || ""),
       color: String(formData.get("color") || "#0f1f3d"),
     });
+    if (result?.error) {
+      console.error(result.error);
+    }
   }
 
   async function submitColumn(formData: FormData) {
