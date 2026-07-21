@@ -10,9 +10,9 @@ const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const post = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
-  if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Rodarte Prado Advogados" };
+  if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Gestão Jurídica" };
   return {
-    title: `${post.title} | Blog Jurídico Rodarte Prado Advogados`,
+    title: `${post.title} | Blog Jurídico Gestão Jurídica`,
     description: post.summary,
   };
 }
@@ -84,7 +84,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         </article>
 
         <p className="text-center text-[11px] text-navy-800/40 mt-8">
-          Rodarte Prado Advogados — conteúdo informativo, não substitui consulta jurídica.
+          Gestão Jurídica — conteúdo informativo, não substitui consulta jurídica.
         </p>
       </main>
     </div>

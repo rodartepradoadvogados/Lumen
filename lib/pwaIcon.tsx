@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 
-// Monograma "RP" da Rodarte Prado — usado pelos ícones do PWA gerados via ImageResponse (next/og).
+// Monograma "GJ" do Gestão Jurídica — usado pelos ícones do PWA gerados via ImageResponse (next/og).
 // Dourado (#c6a05c) sobre navy (#0b1730), com a linha decorativa fina do cabeçalho do login.
 // Observação: o ImageResponse renderiza com a fonte sans padrão embutida no next/og
 // (não há fonte serif disponível sem carregar arquivo externo), então usamos peso 700 para dar presença.
@@ -37,7 +37,7 @@ export function monogram(size: number): ReactElement {
           lineHeight: 1,
         }}
       >
-        RP
+        GJ
       </div>
     </div>
   );

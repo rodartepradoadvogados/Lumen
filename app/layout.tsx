@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Rodarte Prado Advogados | Sistema Interno",
   description: "Controle financeiro, processos, agenda e kanban do escritório Rodarte Prado Advogados",
   // Habilita o comportamento de app instalável (tela cheia) no iOS.
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "RP Advogados" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Gestão Jurídica" },
 };
 
 export const viewport: Viewport = {

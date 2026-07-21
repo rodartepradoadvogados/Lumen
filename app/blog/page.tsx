@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Blog Jurídico | Rodarte Prado Advogados",
-  description: "Atualidades de jurisprudência, legislação e doutrina do escritório Rodarte Prado Advogados.",
+  title: "Blog Jurídico | Gestão Jurídica",
+  description: "Atualidades de jurisprudência, legislação e doutrina, publicadas pelo Gestão Jurídica.",
 };
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
@@ -32,7 +32,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
           <span className="h-1 w-1 rounded-full bg-gold-500" />
           <span className="h-px w-10 bg-gold-500/60" />
         </div>
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-wide text-cream-50">RODARTE PRADO ADVOGADOS</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-wide text-cream-50">GESTÃO JURÍDICA</h1>
         <p className="text-[11px] tracking-[0.3em] text-gold-500 font-medium mt-1">BLOG JURÍDICO</p>
         <p className="text-sm text-cream-50/70 mt-3 max-w-xl mx-auto">
           Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial, tributário, trabalhista, previdenciário e mais.
@@ -102,7 +102,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
       </main>
 
       <footer className="text-center text-[11px] text-navy-800/40 py-8">
-        Rodarte Prado Advogados — conteúdo informativo, não substitui consulta jurídica.
+        Gestão Jurídica — conteúdo informativo, não substitui consulta jurídica.
       </footer>
     </div>
   );

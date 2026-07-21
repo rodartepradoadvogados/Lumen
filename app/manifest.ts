@@ -3,9 +3,9 @@ import type { MetadataRoute } from "next";
 // Convenção do Next 14: gera /manifest.webmanifest e injeta a tag no <head> automaticamente.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "RP Financeiro — Rodarte Prado Advogados",
-    short_name: "RP Advogados",
-    description: "Sistema interno — versão mobile",
+    name: "Gestão Jurídica",
+    short_name: "Gestão Jurídica",
+    description: "Software de gestão jurídica — versão mobile",
     start_url: "/m",
     scope: "/",
     display: "standalone",

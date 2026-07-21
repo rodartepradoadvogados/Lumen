@@ -52,7 +52,7 @@ export default async function MobileLayout({ children }: { children: React.React
       <header className="fixed top-0 inset-x-0 h-[52px] bg-navy-900 dark:bg-navy-950 dark:border-b dark:border-white/10 text-cream-50 flex items-center justify-between px-4 z-40">
         <div className="flex items-center gap-1.5">
           <span className="h-1 w-1 rounded-full bg-gold-500" />
-          <span className="font-serif text-sm font-bold tracking-wide text-cream-50">RODARTE PRADO</span>
+          <span className="font-serif text-sm font-bold tracking-wide text-cream-50">GESTÃO JURÍDICA</span>
         </div>
         <div className="flex items-center gap-1.5">
           <MobileThemeToggle />
