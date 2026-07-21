@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export async function moveTask(taskId: string, columnId: string, columnOrder: number) {
   await prisma.task.update({
@@ -80,6 +81,97 @@ export async function createTask(data: {
   revalidatePath("/m/agenda");
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
   if (data.caseId) revalidatePath(`/m/processos/${data.caseId}`);
+}
+
+// Delega um compromisso a outro membro da equipe: reaproveita a mesma lógica de
+// criação de `createTask` (pontuação padrão, coluna inicial do kanban etc.), mas
+// grava `delegatedById` além de `responsibleId` — é esse campo extra que diferencia
+// uma tarefa delegada de uma tarefa comum que alguém cria pra si mesmo, e que faz
+// o alerta "TAREFA_DELEGADA" aparecer só para quem recebeu (ver lib/alerts.ts).
+export async function delegateTask(data: {
+  responsibleId: string;
+  type: string;
+  title: string;
+  dueDate: string;
+  dueTime?: string;
+  priority: string;
+  description?: string;
+  caseId?: string;
+  attendanceId?: string;
+}): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Usuário não autenticado." };
+  if (!data.responsibleId) return { error: "Selecione o membro da equipe que vai receber a delegação." };
+
+  const firstColumn = await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
+
+  const typePoints = await prisma.taskTypePoints.findUnique({ where: { type: data.type } });
+  const points = typePoints?.points ?? 10;
+
+  await prisma.task.create({
+    data: {
+      title: data.title,
+      type: data.type,
+      dueDate: new Date(data.dueDate),
+      dueTime: data.dueTime || null,
+      priority: data.priority,
+      caseId: data.caseId || null,
+      attendanceId: data.attendanceId || null,
+      responsibleId: data.responsibleId,
+      delegatedById: viewer.id,
+      columnId: firstColumn?.id || null,
+      description: data.description || null,
+      points,
+    },
+  });
+
+  revalidatePath("/agenda");
+  revalidatePath("/kanban");
+  revalidatePath("/");
+  revalidatePath("/alertas");
+  revalidatePath("/produtividade");
+
+  return {};
+}
+
+// Marca a delegação como vista: chamado quando o destinatário abre o card da tarefa
+// a partir do alerta na Central de Alertas — some do alerta sem afetar o compromisso.
+export async function acknowledgeDelegation(taskId: string): Promise<void> {
+  await prisma.task.update({ where: { id: taskId }, data: { delegationAcknowledgedAt: new Date() } });
+  revalidatePath("/alertas");
+  revalidatePath("/");
+}
+
+// Busca resumida de Processos/Casos para o passo 3 do formulário de delegação —
+// `judicial` filtra por `type === "JUDICIAL"` (Processo) ou `type !== "JUDICIAL"` (Caso).
+export async function searchCasesForDelegation(query: string, judicial: boolean): Promise<{ id: string; label: string }[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const cases = await prisma.case.findMany({
+    where: {
+      type: judicial ? "JUDICIAL" : { not: "JUDICIAL" },
+      OR: [{ title: { contains: q, mode: "insensitive" } }, { processNumber: { contains: q, mode: "insensitive" } }],
+    },
+    select: { id: true, title: true, processNumber: true },
+    orderBy: { title: "asc" },
+    take: 15,
+  });
+  return cases.map((c) => ({ id: c.id, label: c.processNumber ? `${c.title} — ${c.processNumber}` : c.title }));
+}
+
+// Busca resumida de Atendimentos para o passo 3 do formulário de delegação.
+export async function searchAttendancesForDelegation(query: string): Promise<{ id: string; label: string }[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const attendances = await prisma.attendance.findMany({
+    where: {
+      OR: [{ clientName: { contains: q, mode: "insensitive" } }, { subject: { contains: q, mode: "insensitive" } }],
+    },
+    select: { id: true, clientName: true, subject: true },
+    orderBy: { createdAt: "desc" },
+    take: 15,
+  });
+  return attendances.map((a) => ({ id: a.id, label: `${a.clientName} — ${a.subject}` }));
 }
 
 export type TaskDetail = {

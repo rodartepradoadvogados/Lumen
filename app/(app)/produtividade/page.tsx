@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getUserHistory } from "@/lib/timesheet";
 import { PageHeader, Card, Badge, EmptyState, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import DelegateTaskForm from "@/components/DelegateTaskForm";
 
 export const dynamic = "force-dynamic";
 
@@ -56,15 +57,35 @@ export default async function ProdutividadePage({
 }: {
   searchParams: { mes?: string; aba?: string; responsibleId?: string };
 }) {
-  const aba = searchParams.aba === "timesheet" ? "timesheet" : "historico";
+  const aba = searchParams.aba === "timesheet" ? "timesheet" : searchParams.aba === "delegar" ? "delegar" : "historico";
   const viewer = await getCurrentUser();
 
   const tabs = (
     <div className="flex items-center gap-2 flex-wrap">
       <TabLink label="Histórico" href={`/produtividade${searchParams.mes ? `?mes=${searchParams.mes}` : ""}`} active={aba === "historico"} />
       <TabLink label="Timesheet" href="/produtividade?aba=timesheet" active={aba === "timesheet"} />
+      <TabLink label="Delegar" href="/produtividade?aba=delegar" active={aba === "delegar"} />
     </div>
   );
+
+  if (aba === "delegar") {
+    const delegateUsers = await prisma.user.findMany({
+      where: { active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+
+    return (
+      <div className="p-6 max-w-[700px] mx-auto animate-fade-in space-y-6">
+        <PageHeader title="Produtividade" subtitle="Delegue tarefas e compromissos para outros membros da equipe" />
+        {tabs}
+
+        <Card>
+          <DelegateTaskForm users={delegateUsers} />
+        </Card>
+      </div>
+    );
+  }
 
   if (aba === "timesheet") {
     const history = viewer ? await getUserHistory(viewer.id, 30) : [];

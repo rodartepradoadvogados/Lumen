@@ -152,6 +152,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         subItems: [
           { label: "Histórico" },
           { label: "Timesheet", value: "timesheet" },
+          { label: "Delegar", value: "delegar" },
         ],
       },
       {

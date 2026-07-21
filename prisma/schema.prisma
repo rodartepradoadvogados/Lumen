@@ -28,6 +28,7 @@ model User {
   createdAt    DateTime @default(now())
 
   tasksResponsible   Task[]        @relation("TaskResponsible")
+  tasksDelegated     Task[]        @relation("TaskDelegatedBy")
   casesResponsible   Case[]        @relation("CaseResponsible")
   comments           Comment[]
   mentions           Mention[]
@@ -208,6 +209,13 @@ model Task {
 
   responsibleId  String?
   responsible    User?     @relation("TaskResponsible", fields: [responsibleId], references: [id])
+
+  // Delegação: quando preenchido, indica que a tarefa foi atribuída por outra pessoa
+  // (não criada pelo próprio responsável) — usado para gerar alerta/notificação só
+  // para quem recebeu, até que ela seja aberta (delegationAcknowledgedAt).
+  delegatedById  String?
+  delegatedBy    User?     @relation("TaskDelegatedBy", fields: [delegatedById], references: [id])
+  delegationAcknowledgedAt DateTime?
 
   columnId       String?
   column         KanbanColumn? @relation(fields: [columnId], references: [id])

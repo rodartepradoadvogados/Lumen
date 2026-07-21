@@ -4,6 +4,7 @@ import { useState, ReactNode } from "react";
 import Link from "next/link";
 import SettleModal from "@/components/SettleModal";
 import TaskDetailModal from "@/components/TaskDetailModal";
+import { acknowledgeDelegation } from "@/lib/actions/tasks";
 import type { AlertItem } from "@/lib/alerts";
 
 // Roteamento por tipo ao clicar num alerta, compartilhado entre a Central de Alertas
@@ -41,12 +42,24 @@ export default function AlertRow({
   }
 
   if (alert.entityKind === "TASK" && alert.entityId) {
+    const entityId = alert.entityId;
     return (
       <>
-        <button type="button" onClick={() => setModal("task")} className={className}>
+        <button
+          type="button"
+          onClick={() => {
+            setModal("task");
+            // Marca a delegação como vista assim que o destinatário abre o compromisso —
+            // "fire and forget", não precisa bloquear a abertura do modal esperando a resposta.
+            if (alert.kind === "TAREFA_DELEGADA") {
+              void acknowledgeDelegation(entityId);
+            }
+          }}
+          className={className}
+        >
           {children}
         </button>
-        {modal === "task" && <TaskDetailModal taskId={alert.entityId} onClose={() => setModal(null)} />}
+        {modal === "task" && <TaskDetailModal taskId={entityId} onClose={() => setModal(null)} />}
       </>
     );
   }
