@@ -2,6 +2,7 @@
   "crons": [
     { "path": "/api/cron/daily-agenda", "schedule": "0 8 * * *" },
     { "path": "/api/cron/jusbrasil-sync", "schedule": "0 */3 * * *" },
-    { "path": "/api/cron/robo-bridge", "schedule": "0 */3 * * *" }
+    { "path": "/api/cron/robo-bridge", "schedule": "0 */3 * * *" },
+    { "path": "/api/cron/assessoria-honorarios", "schedule": "0 6 * * *" }
   ]
 }

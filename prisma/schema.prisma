@@ -46,6 +46,8 @@ model User {
   googleCredentials    GoogleCredential[]
   blogPostsReviewed    BlogPost[]    @relation("BlogPostReviewer")
   emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
+  assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
+  assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
 }
 
 // ============ MURAL DE RECADOS ============
@@ -94,6 +96,7 @@ model Client {
   receivables Receivable[]
   publications Publication[]
   attendances Attendance[] @relation("AttendanceClient")
+  assessoria  Assessoria?
 }
 
 model Lawyer {
@@ -169,6 +172,7 @@ model Case {
   publications      Publication[]
   attachments       Attachment[]
   convertedFromAttendances Attendance[] @relation("AttendanceConvertedCase")
+  assessoriaDocumentos AssessoriaDocumento[]
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
@@ -213,6 +217,9 @@ model Task {
 
   publicationId  String?
   publication    Publication? @relation(fields: [publicationId], references: [id])
+
+  licitacaoId    String?
+  licitacao      Licitacao? @relation(fields: [licitacaoId], references: [id])
 
   responsibleId  String?
   responsible    User?     @relation("TaskResponsible", fields: [responsibleId], references: [id])
@@ -537,6 +544,89 @@ model Receivable {
 
   caseId       String?
   case         Case?     @relation(fields: [caseId], references: [id])
+
+  honorario    Honorario?
+}
+
+// ============ ASSESSORIA JURÍDICA ============
+// Contêiner por empresa cliente (Client.type = "PJ") para tudo que é contínuo — documentos,
+// honorário fixo mensal, licitações — sem se misturar com o controle de Processos individuais.
+// Processos e Contas a Receber continuam existindo exatamente como hoje; a Assessoria só os
+// referencia pelo cliente já cadastrado (nunca duplica dado).
+
+model Assessoria {
+  id            String    @id @default(cuid())
+  status        String    @default("ATIVA") // ATIVA | SUSPENSA | ENCERRADA
+  startDate     DateTime  @default(now())
+  monthlyFee    Float
+  dueDay        Int       @default(5) // dia do mês de vencimento do honorário
+  planningNotes String?
+  driveFolderId String?   // pasta raiz da empresa em "RP Financeiro - Assessoria/{empresa}"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  clientId      String    @unique
+  client        Client    @relation(fields: [clientId], references: [id])
+
+  responsibleId String?
+  responsible   User?     @relation("AssessoriaResponsible", fields: [responsibleId], references: [id])
+
+  documents     AssessoriaDocumento[]
+  honorarios    Honorario[]
+  licitacoes    Licitacao[]
+}
+
+model AssessoriaDocumento {
+  id           String     @id @default(cuid())
+  name         String
+  docType      String     // CONTRATO | PARECER | ACAO_VINCULADA | LICITACAO | REGIMENTO_INTERNO | OUTRO
+  driveUrl     String
+  date         DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+
+  assessoriaId String
+  assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
+
+  caseId       String?
+  case         Case?      @relation(fields: [caseId], references: [id])
+
+  uploadedById String?
+  uploadedBy   User?      @relation("AssessoriaDocumentoUploadedBy", fields: [uploadedById], references: [id])
+}
+
+// Deliberadamente sem amount/dueDate/status/paidDate próprios — esses dados vivem só no
+// Receivable vinculado (Contas a Receber já tem toda a lógica de status/pagamento). Duplicar
+// esses campos aqui criaria duas fontes de verdade que poderiam divergir.
+model Honorario {
+  id           String     @id @default(cuid())
+  competencia  String     // "2026-08"
+  createdAt    DateTime   @default(now())
+
+  assessoriaId String
+  assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
+
+  receivableId String     @unique
+  receivable   Receivable @relation(fields: [receivableId], references: [id])
+
+  @@unique([assessoriaId, competencia])
+}
+
+model Licitacao {
+  id            String     @id @default(cuid())
+  objeto        String
+  orgao         String
+  modalidade    String?
+  dataAbertura  DateTime?
+  prazoFinal    DateTime?
+  valorEstimado Float?
+  editalUrl     String?
+  status        String     @default("EM_ANALISE") // EM_ANALISE | PARTICIPANDO | VENCEDORA | PERDIDA | CANCELADA
+  createdAt     DateTime   @default(now())
+
+  assessoriaId  String
+  assessoria    Assessoria @relation(fields: [assessoriaId], references: [id])
+
+  tasks         Task[]
 }
 
 // ============ PUBLICAÇÕES / ANDAMENTOS ============

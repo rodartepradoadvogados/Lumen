@@ -200,3 +200,61 @@ export async function copyAndFillTemplate(
   if (!file.data.webViewLink) throw new Error("Documento gerado, mas o link não pôde ser obtido.");
   return { id: newFileId, webViewLink: file.data.webViewLink };
 }
+
+const ASSESSORIA_ROOT_NAME = "RP Financeiro - Assessoria";
+// Mapeia cada tipo de documento do catálogo da Assessoria (ver prisma/schema.prisma,
+// AssessoriaDocumento.docType) para o nome da subpasta correspondente — ACAO_VINCULADA e
+// OUTRO não têm pasta própria (a primeira já vive em Processos; a segunda cai na raiz da
+// empresa mesmo).
+const ASSESSORIA_DOC_TYPE_FOLDERS: Record<string, string> = {
+  CONTRATO: "Contratos",
+  PARECER: "Pareceres",
+  LICITACAO: "Licitações",
+  REGIMENTO_INTERNO: "Regimentos Internos",
+};
+
+async function findOrCreateChildFolder(drive: ReturnType<typeof google.drive>, parentId: string, name: string): Promise<string> {
+  const safeName = name.replace(/'/g, "\\'");
+  const res = await drive.files.list({
+    q: `name='${safeName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
+    fields: "files(id,name)",
+  });
+  let id = res.data.files?.[0]?.id;
+  if (!id) {
+    const created = await drive.files.create({
+      requestBody: { name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
+      fields: "id",
+    });
+    id = created.data.id ?? undefined;
+  }
+  if (!id) throw new Error(`Não foi possível criar a pasta "${name}" no Google Drive.`);
+  return id;
+}
+
+// Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:
+// "RP Financeiro - Assessoria/{empresa}/{Contratos,Pareceres,Licitações,Regimentos Internos}".
+// Chamado uma única vez, na criação da Assessoria — o id da pasta da empresa fica salvo em
+// Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
+export async function getOrCreateAssessoriaCompanyFolder(companyName: string): Promise<string> {
+  const { drive } = await getDriveClient();
+
+  const rootRes = await drive.files.list({
+    q: `name='${ASSESSORIA_ROOT_NAME}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+    fields: "files(id,name)",
+  });
+  let rootId = rootRes.data.files?.[0]?.id;
+  if (!rootId) {
+    const created = await drive.files.create({
+      requestBody: { name: ASSESSORIA_ROOT_NAME, mimeType: "application/vnd.google-apps.folder" },
+      fields: "id",
+    });
+    rootId = created.data.id ?? undefined;
+  }
+  if (!rootId) throw new Error("Não foi possível criar a pasta raiz de Assessoria no Google Drive.");
+
+  const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
+  for (const subName of Object.values(ASSESSORIA_DOC_TYPE_FOLDERS)) {
+    await findOrCreateChildFolder(drive, companyFolderId, subName);
+  }
+  return companyFolderId;
+}

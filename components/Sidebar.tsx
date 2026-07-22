@@ -18,6 +18,7 @@ import {
   BarChart3,
   Menu,
   X,
+  Building2,
 } from "lucide-react";
 import clsx from "clsx";
 import { THEME_KEY, THEME_CHANGE_EVENT, isThemeMode, type ThemeMode } from "@/lib/theme";
@@ -102,6 +103,11 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
           { label: "Encerrado", value: "ENCERRADO" },
           { label: "Arquivado", value: "ARQUIVADO" },
         ],
+      },
+      {
+        href: "/assessoria",
+        label: "Assessoria Jurídica",
+        icon: Building2,
       },
       {
         href: "/contatos",
