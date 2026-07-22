@@ -32,6 +32,17 @@ export async function markAllPublicationsRead() {
   return { count: result.count };
 }
 
+// Igual a markAllPublicationsRead, mas restrito às publicações/andamentos de um único
+// processo — usado pelo botão na aba Publicações da página do Processo.
+export async function markAllPublicationsReadForCase(caseId: string) {
+  const result = await prisma.publication.updateMany({ where: { caseId, read: false }, data: { read: true } });
+  revalidatePath(`/processos/${caseId}`);
+  revalidatePath("/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/painel");
+  return { count: result.count };
+}
+
 // ===== RIDT — fila de triagem de publicações com atribuição de responsável =====
 // A atribuição manual por publicação agora acontece só via "Delegar" (delegateTask,
 // lib/actions/tasks.ts, com publicationId) — que também seta Publication.assignedToId — e

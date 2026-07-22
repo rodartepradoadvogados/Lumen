@@ -3,16 +3,17 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck } from "lucide-react";
-import { markAllPublicationsRead } from "@/lib/actions/publications";
+import { markAllPublicationsRead, markAllPublicationsReadForCase } from "@/lib/actions/publications";
 
-export default function MarkAllPublicationsReadButton({ count }: { count: number }) {
+export default function MarkAllPublicationsReadButton({ count, caseId }: { count: number; caseId?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function handleClick() {
     if (!window.confirm(`Marcar todas as ${count} publicações não lidas como lidas?`)) return;
     startTransition(async () => {
-      await markAllPublicationsRead();
+      if (caseId) await markAllPublicationsReadForCase(caseId);
+      else await markAllPublicationsRead();
       router.refresh();
     });
   }

@@ -14,6 +14,7 @@ import AttachmentList from "@/components/AttachmentList";
 import PeticionarButton from "@/components/PeticionarButton";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import PublicationsList from "@/components/PublicationsList";
+import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
 import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
@@ -107,6 +108,7 @@ export default async function CaseDetailPage({
     assignedToId: p.assignedToId,
     triageStatus: p.triageStatus,
   }));
+  const unreadPublicationsCount = c.publications.filter((p) => !p.read).length;
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
@@ -337,13 +339,20 @@ export default async function CaseDetailPage({
       )}
 
       {tab === "publicacoes" && (
-        <Card>
-          {serializedPublications.length === 0 ? (
-            <EmptyState title="Nenhuma publicação vinculada" />
-          ) : (
-            <PublicationsList publications={serializedPublications} highlightNew={false} />
+        <div>
+          {unreadPublicationsCount > 0 && (
+            <div className="flex justify-end mb-3">
+              <MarkAllPublicationsReadButton count={unreadPublicationsCount} caseId={c.id} />
+            </div>
           )}
-        </Card>
+          <Card>
+            {serializedPublications.length === 0 ? (
+              <EmptyState title="Nenhuma publicação vinculada" />
+            ) : (
+              <PublicationsList publications={serializedPublications} highlightNew={false} />
+            )}
+          </Card>
+        </div>
       )}
 
       {tab === "anexos" && (
