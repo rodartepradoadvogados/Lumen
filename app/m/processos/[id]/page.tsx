@@ -6,12 +6,14 @@ import { Card, Badge, EmptyState, formatCurrency, formatDate, taskTypeLabels, ta
 import MobileCommentForm from "@/components/mobile/MobileCommentForm";
 import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
+import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
+import MobileTaskResponsibleSelect from "@/components/mobile/MobileTaskResponsibleSelect";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function MobileCaseDetail({ params }: { params: { id: string } }) {
-  const [viewer, c, publications] = await Promise.all([
+  const [viewer, c, publications, users] = await Promise.all([
     getCurrentUser(),
     prisma.case.findUnique({
       where: { id: params.id },
@@ -31,6 +33,7 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
       orderBy: { publishedAt: "desc" },
       take: 15,
     }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   if (!c) notFound();
@@ -88,13 +91,19 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {c.tasks.map((t) => (
-              <div key={t.id} className="px-4 py-3">
-                <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
-                  <span className="text-xs font-semibold text-navy-800/55 dark:text-cream-50/55">{formatDate(t.dueDate)}</span>
-                  {t.dueTime && <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</span>}
+              <div key={t.id} className="flex items-start gap-2.5 px-4 py-3">
+                <div className="pt-0.5">
+                  <MobileTaskToggle taskId={t.id} done={t.status === "CONCLUIDO"} />
                 </div>
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{t.title}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
+                    <span className="text-xs font-semibold text-navy-800/55 dark:text-cream-50/55">{formatDate(t.dueDate)}</span>
+                    {t.dueTime && <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</span>}
+                  </div>
+                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{t.title}</p>
+                  <MobileTaskResponsibleSelect taskId={t.id} responsibleId={t.responsibleId} users={users} />
+                </div>
               </div>
             ))}
           </div>

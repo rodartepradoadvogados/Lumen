@@ -24,7 +24,7 @@ export async function createCase(data: {
 }) {
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
-    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PJ" } });
+    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF" } });
     clientId = client.id;
   }
 
@@ -75,7 +75,7 @@ export async function createCaseMobile(data: {
 }): Promise<{ id: string }> {
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
-    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PJ" } });
+    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF" } });
     clientId = client.id;
   }
 

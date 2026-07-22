@@ -11,6 +11,7 @@ import {
 import { Badge, formatDate } from "@/components/ui";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
 import LinkPublicationMenu from "@/components/LinkPublicationMenu";
+import CopyButton from "@/components/CopyButton";
 import { useUndoToast } from "@/components/UndoToastProvider";
 import {
   Check,
@@ -88,7 +89,15 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
         <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">Cliente compatível: {pub.clientName}</p>
       )}
 
-      <p className={`text-sm text-navy-800 dark:text-cream-50/85 ${expanded ? "" : "line-clamp-3"}`}>{pub.content}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className={`text-sm text-navy-800 dark:text-cream-50/85 ${expanded ? "" : "line-clamp-3"}`}>{pub.content}</p>
+        <CopyButton
+          text={pub.content}
+          label="Copiar conteúdo"
+          showLabel={false}
+          className="shrink-0 p-1.5 rounded-lg text-navy-800/40 dark:text-cream-50/40 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors"
+        />
+      </div>
       {pub.content.length > 140 && (
         <button
           type="button"

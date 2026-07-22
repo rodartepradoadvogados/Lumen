@@ -13,6 +13,7 @@ import PeticionarButton from "@/components/PeticionarButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
 import LinkPublicationMenu from "@/components/LinkPublicationMenu";
+import CopyButton from "@/components/CopyButton";
 import { useUndoToast } from "@/components/UndoToastProvider";
 import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, UserPlus } from "lucide-react";
 import Link from "next/link";
@@ -183,6 +184,8 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           />
         )}
 
+        <CopyButton text={pub.content} label="Copiar conteúdo" />
+
         <PeticionarButton compact caseId={pub.case?.id} />
 
         <div className="relative" ref={menuRef}>
@@ -314,7 +317,15 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
                   Cliente: {pub.client.name}
                 </Link>
               )}
-              <p className={clsx("text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap")}>{pub.content}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className={clsx("text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap")}>{pub.content}</p>
+                <CopyButton
+                  text={pub.content}
+                  label="Copiar conteúdo"
+                  showLabel={false}
+                  className="shrink-0 p-1.5 rounded-lg text-navy-800/40 hover:text-navy-900 hover:bg-cream-100 dark:text-cream-50/40 dark:hover:text-cream-50 dark:hover:bg-white/10 transition-colors"
+                />
+              </div>
             </div>
           </div>
         </div>

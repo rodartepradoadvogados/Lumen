@@ -137,9 +137,11 @@ export async function searchCasesForLinking(query: string): Promise<{ id: string
 export async function linkPublicationToCase(publicationId: string, caseId: string) {
   await prisma.publication.update({ where: { id: publicationId }, data: { caseId } });
   revalidatePath("/publicacoes");
+  revalidatePath("/m/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
   revalidatePath(`/processos/${caseId}`);
+  revalidatePath(`/m/processos/${caseId}`);
 }
 
 export async function generateTaskFromPublication(

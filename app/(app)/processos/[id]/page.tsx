@@ -15,6 +15,7 @@ import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import PublicationsList from "@/components/PublicationsList";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
+import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
 import { ArrowLeft, Check } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
@@ -22,6 +23,8 @@ import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
+
+const opposingPartyRoleLabels: Record<string, string> = { AUTOR: "Autor", REU: "Réu", OUTRO: "Outro" };
 
 const TABS = [
   { key: "visao-geral", label: "Visão Geral" },
@@ -143,7 +146,7 @@ export default async function CaseDetailPage({
           <Card className="p-5 space-y-3">
             <Field label="Cliente" value={c.client?.name} />
             <Field label="Parte Adversa" value={c.opposingPartyName} />
-            <Field label="Polo da Parte Adversa" value={c.opposingPartyRole} />
+            <Field label="Polo da Parte Adversa" value={c.opposingPartyRole ? opposingPartyRoleLabels[c.opposingPartyRole] || c.opposingPartyRole : undefined} />
             <Field label="Advogado Responsável" value={c.responsible?.name} />
             <Field label="Vara/Comarca" value={c.court} />
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
@@ -189,7 +192,7 @@ export default async function CaseDetailPage({
                         <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
                         <p className={`text-sm font-medium text-navy-900 dark:text-cream-50 ${t.status === "CONCLUIDO" ? "line-through text-navy-800/40 dark:text-cream-50/40" : ""}`}>{t.title}</p>
                       </div>
-                      {t.responsible && <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">Responsável: {t.responsible.name}</p>}
+                      <TaskResponsibleSelect taskId={t.id} responsibleId={t.responsibleId} users={users.map((u) => ({ id: u.id, name: u.name }))} />
                     </div>
                     <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatDate(t.dueDate)}</p>
                     <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir a atividade "${t.title}"?`} />

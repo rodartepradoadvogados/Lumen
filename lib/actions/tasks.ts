@@ -244,6 +244,21 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
   };
 }
 
+// Troca só o responsável de uma tarefa já existente, sem precisar reenviar título/tipo/
+// prazo/prioridade (que updateTask exige) — usado pela lista de tarefas do Processo no
+// app mobile, que hoje não tem nenhuma tela de edição completa de tarefa.
+export async function setTaskResponsible(taskId: string, responsibleId: string) {
+  const task = await prisma.task.update({ where: { id: taskId }, data: { responsibleId: responsibleId || null } });
+  revalidatePath("/kanban");
+  revalidatePath("/agenda");
+  revalidatePath("/painel");
+  revalidatePath("/m/agenda");
+  if (task.caseId) {
+    revalidatePath(`/processos/${task.caseId}`);
+    revalidatePath(`/m/processos/${task.caseId}`);
+  }
+}
+
 export async function updateTask(id: string, data: {
   title: string;
   type: string;
