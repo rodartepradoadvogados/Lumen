@@ -8,7 +8,7 @@ import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
 import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import MobileTaskResponsibleSelect from "@/components/mobile/MobileTaskResponsibleSelect";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -113,20 +113,26 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
         </div>
       </Card>
 
-      <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Publicações e Andamentos</h2>
+      <details className="group bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+        <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <h2 className="flex-1 font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Publicações e Andamentos</h2>
+          {serializedPublications.length > 0 && (
+            <span className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40">{serializedPublications.length}</span>
+          )}
+          <ChevronDown size={16} className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-navy-800/8 dark:border-white/10">
+          {serializedPublications.length === 0 ? (
+            <EmptyState title="Nenhuma publicação ou andamento" />
+          ) : (
+            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+              {serializedPublications.map((p) => (
+                <MobilePublicationCard key={p.id} pub={p} />
+              ))}
+            </div>
+          )}
         </div>
-        {serializedPublications.length === 0 ? (
-          <EmptyState title="Nenhuma publicação ou andamento" />
-        ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {serializedPublications.map((p) => (
-              <MobilePublicationCard key={p.id} pub={p} />
-            ))}
-          </div>
-        )}
-      </Card>
+      </details>
 
       <Card className="p-4 space-y-4">
         <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Comentários</h2>

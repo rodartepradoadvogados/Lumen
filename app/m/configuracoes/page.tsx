@@ -3,19 +3,22 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card } from "@/components/ui";
 import MobileChangePasswordForm from "@/components/mobile/MobileChangePasswordForm";
 import NotificationPreferences from "@/components/mobile/NotificationPreferences";
-import { ArrowLeft, User, KeyRound, AlertTriangle, Users, DollarSign, Gauge, Workflow, FileText, Plug, ChevronRight, Newspaper, CheckSquare, Image as ImageIcon, Bell, type LucideIcon } from "lucide-react";
+import { ArrowLeft, User, KeyRound, AlertTriangle, Users, DollarSign, Gauge, Workflow, FileText, Plug, Newspaper, CheckSquare, Image as ImageIcon, Bell, type LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 // Versão mobile ENXUTA de app/(app)/configuracoes/page.tsx (600+ linhas, 7 sub-seções:
 // Geral, Equipe & Acesso, Financeiro, Produtividade, Workflows, Blog Jurídico, Modelos &
 // Integrações). Não faz sentido portar aquilo tudo pro celular. Aqui só ficam os dois itens
-// que fazem sentido pra qualquer usuário no dia a dia (perfil e trocar a própria senha), mais
-// acesso direto (via link pra tela desktop, mesmo padrão já usado em Publicações mobile) às
-// duas sub-seções que administradores realmente precisam operar do celular: Equipe & Acesso
-// e Blog Jurídico. O resto (categorias financeiras, workflows, modelos de documento,
-// integrações Google/DJEN/Jusbrasil) continua só uma lista informativa — não foi pedido.
+// que fazem sentido pra qualquer usuário no dia a dia (perfil e trocar a própria senha). O
+// resto — incluindo Equipe & Acesso e Blog Jurídico — é só uma lista informativa pra
+// administradores saberem que existe; o app NUNCA linka pra rotas do site desktop (regra
+// fixa), então cada item é um resumo sem navegação, com a mesma nota "só no computador".
 const READONLY_ADMIN_ITEMS: { label: string; desc: string; Icon: LucideIcon }[] = [
+  { label: "Equipe & Acesso", desc: "Cadastro de membros, credenciais e acesso ao Financeiro.", Icon: Users },
+  { label: "Blog Jurídico — Fila de revisão", desc: "Matérias pendentes de aprovação.", Icon: CheckSquare },
+  { label: "Blog Jurídico — Matérias publicadas", desc: "Histórico do que já foi publicado.", Icon: Newspaper },
+  { label: "Blog Jurídico — Banco de fotos", desc: "Fotos usadas nas matérias e na página pública.", Icon: ImageIcon },
   { label: "Categorias & Centros de Custo", desc: "Plano de contas do Financeiro (categorias, centros de custo).", Icon: DollarSign },
   { label: "Produtividade", desc: "Pontuação por tipo de tarefa usada no ranking da equipe.", Icon: Gauge },
   { label: "Workflows", desc: "Modelos de fluxo de trabalho (etapas padrão de processos).", Icon: Workflow },
@@ -67,60 +70,6 @@ export default async function MobileConfiguracoes() {
         </div>
         <NotificationPreferences />
       </Card>
-
-      {viewer.isAdmin && (
-        <Card>
-          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-            <Users size={16} className="text-gold-600" />
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Equipe & Acesso</h3>
-          </div>
-          <Link
-            href="/configuracoes?secao=equipe"
-            className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5"
-          >
-            <span className="text-sm text-navy-800 dark:text-cream-50/85">Cadastro de membros, credenciais e acesso ao Financeiro</span>
-            <ChevronRight size={16} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
-          </Link>
-        </Card>
-      )}
-
-      {viewer.isAdmin && (
-        <Card>
-          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-            <Newspaper size={16} className="text-gold-600" />
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Blog Jurídico</h3>
-          </div>
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            <Link
-              href="/configuracoes?secao=blog&blogTab=revisao"
-              className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5"
-            >
-              <span className="flex items-center gap-2.5 text-sm text-navy-800 dark:text-cream-50/85">
-                <CheckSquare size={15} className="text-navy-800/50 dark:text-cream-50/50" /> Fila de revisão (pendências)
-              </span>
-              <ChevronRight size={16} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
-            </Link>
-            <Link
-              href="/configuracoes?secao=blog&blogTab=publicadas"
-              className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5"
-            >
-              <span className="flex items-center gap-2.5 text-sm text-navy-800 dark:text-cream-50/85">
-                <Newspaper size={15} className="text-navy-800/50 dark:text-cream-50/50" /> Matérias publicadas
-              </span>
-              <ChevronRight size={16} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
-            </Link>
-            <Link
-              href="/configuracoes?secao=blog&blogTab=fotos"
-              className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5"
-            >
-              <span className="flex items-center gap-2.5 text-sm text-navy-800 dark:text-cream-50/85">
-                <ImageIcon size={15} className="text-navy-800/50 dark:text-cream-50/50" /> Banco de fotos (ver e adicionar)
-              </span>
-              <ChevronRight size={16} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
-            </Link>
-          </div>
-        </Card>
-      )}
 
       {viewer.isAdmin && (
         <Card>
