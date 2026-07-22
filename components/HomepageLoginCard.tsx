@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useSearchParams } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { login } from "@/lib/actions/auth";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 import styles from "@/app/homepage.module.css";
 
 // Card de login suspenso sobre o banner (canto superior direito), fixo enquanto o carrossel
@@ -27,17 +30,49 @@ export default function HomepageLoginCard() {
   const [state, formAction] = useFormState(action, {});
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "";
+  const [username, setUsername] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   return (
     <div id="entrar" className={styles.loginCard}>
       <span className={styles.loginEyebrow}>Já é cliente?</span>
       <form action={formAction} className={styles.loginForm}>
         <input type="hidden" name="next" value={next} />
-        <input name="username" required autoComplete="username" placeholder="Usuário" className={styles.loginInput} />
-        <input name="password" type="password" required autoComplete="current-password" placeholder="Senha" className={styles.loginInput} />
+        <input
+          name="username"
+          required
+          autoComplete="username"
+          placeholder="Usuário"
+          className={styles.loginInput}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <div className={styles.passwordFieldWrap}>
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            autoComplete="current-password"
+            placeholder="Senha"
+            className={styles.loginInput}
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            className={styles.passwordToggle}
+            onClick={() => setShowPassword((v) => !v)}
+          >
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
+        <button type="button" className={styles.forgotLink} onClick={() => setForgotOpen(true)}>
+          Esqueci minha senha
+        </button>
         {state?.error && <p className={styles.loginError}>{state.error}</p>}
         <SubmitButton />
       </form>
+      {forgotOpen && <ForgotPasswordModal initialUsername={username} onClose={() => setForgotOpen(false)} />}
     </div>
   );
 }

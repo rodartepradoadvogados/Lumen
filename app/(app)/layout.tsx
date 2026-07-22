@@ -5,6 +5,7 @@ import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
 import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
+import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 
@@ -22,19 +23,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const unreadPublications = await prisma.publication.count({ where: { read: false } });
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <InactivityNotice />
-      <Suspense fallback={null}>
-        <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} isAdmin={user.isAdmin} unreadPublications={unreadPublications} />
-      </Suspense>
-      <div className="flex-1 flex flex-col min-w-0 relative">
+    <UndoToastProvider>
+      <div className="flex h-screen overflow-hidden">
+        <InactivityNotice />
         <Suspense fallback={null}>
-          <SiteBackgroundLayer />
+          <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} isAdmin={user.isAdmin} unreadPublications={unreadPublications} />
         </Suspense>
-        <TopBar />
-        <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          <Suspense fallback={null}>
+            <SiteBackgroundLayer />
+          </Suspense>
+          <TopBar />
+          <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
+        </div>
+        <ClaudeAssistantWidget userName={user.name} />
       </div>
-      <ClaudeAssistantWidget userName={user.name} />
-    </div>
+    </UndoToastProvider>
   );
 }

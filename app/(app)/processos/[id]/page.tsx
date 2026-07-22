@@ -111,7 +111,7 @@ export default async function CaseDetailPage({
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{c.title}</h1>
         <div className="flex items-center gap-2">
-          <PeticionarButton compact />
+          <PeticionarButton compact caseId={c.id} />
           <CaseStatusSelect caseId={c.id} status={c.status} />
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>

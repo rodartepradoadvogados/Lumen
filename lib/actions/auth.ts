@@ -1,10 +1,31 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signSession, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { sendPasswordResetEmail } from "@/lib/email";
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
+
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+// Mostra só a 1ª letra e as 2 últimas do que vem antes do "@", o resto com "***" —
+// confirma pro usuário qual e-mail vai receber o link sem expor o endereço completo.
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  if (local.length <= 3) return `${local[0]}***@${domain}`;
+  return `${local[0]}***${local.slice(-2)}@${domain}`;
+}
+
+function getAppUrl(): string {
+  return process.env.APP_URL || "https://rp-financeiro-xi.vercel.app";
+}
 
 export async function login(username: string, password: string, next?: string): Promise<{ error?: string }> {
   const user = await prisma.user.findFirst({ where: { username, active: true } });
@@ -30,4 +51,48 @@ export async function login(username: string, password: string, next?: string): 
 export async function logout() {
   cookies().delete(SESSION_COOKIE_NAME);
   redirect("/");
+}
+
+// Passo 1 do "Esqueci minha senha": confirma se o login existe e devolve o e-mail
+// mascarado, sem revelar mais nada — usado pela janela suspensa antes de perguntar
+// "deseja redefinir a senha por e-mail?".
+export async function checkLoginForReset(username: string): Promise<{ found: boolean; maskedEmail?: string }> {
+  const user = await prisma.user.findFirst({ where: { username, active: true } });
+  if (!user) return { found: false };
+  return { found: true, maskedEmail: maskEmail(user.email) };
+}
+
+// Passo 2: gera um token de uso único (válido por 1h, guardado só como hash) e envia
+// o link de redefinição para o e-mail cadastrado do usuário.
+export async function requestPasswordReset(username: string): Promise<{ error?: string; sent?: boolean }> {
+  const user = await prisma.user.findFirst({ where: { username, active: true } });
+  if (!user) return { error: "Usuário não encontrado." };
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { resetTokenHash: hashToken(rawToken), resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
+  });
+
+  const resetUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
+  const result = await sendPasswordResetEmail(user.email, resetUrl);
+  if (!result.sent) return { error: result.reason || "Não foi possível enviar o e-mail agora." };
+  return { sent: true };
+}
+
+// Passo 3: valida o token (hash + expiração) e define a nova senha.
+export async function resetPasswordWithToken(token: string, newPassword: string): Promise<{ error?: string; success?: boolean }> {
+  if (newPassword.length < 6) return { error: "A nova senha deve ter ao menos 6 caracteres." };
+
+  const user = await prisma.user.findFirst({ where: { resetTokenHash: hashToken(token) } });
+  if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+    return { error: "Link inválido ou expirado. Solicite uma nova redefinição de senha." };
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, resetTokenHash: null, resetTokenExpiry: null },
+  });
+  return { success: true };
 }

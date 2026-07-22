@@ -386,6 +386,128 @@
   opacity: 0.6;
   cursor: default;
 }
+.passwordFieldWrap {
+  position: relative;
+}
+.passwordFieldWrap .loginInput {
+  padding-right: 2.2rem;
+}
+.passwordToggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(243, 236, 221, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+}
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+  color: var(--brass-soft);
+}
+.forgotLink {
+  align-self: flex-end;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.75rem;
+  color: rgba(243, 236, 221, 0.55);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: -0.15rem;
+}
+.forgotLink:hover,
+.forgotLink:focus-visible {
+  color: var(--brass-soft);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+.modalCard {
+  background: #fdfaf3;
+  color: #14213d;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: min(360px, 100%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  font-family: var(--font-sans), sans-serif;
+}
+.modalTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.modalText {
+  font-size: 0.85rem;
+  color: rgba(20, 33, 61, 0.7);
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+.modalInput {
+  width: 100%;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(20, 33, 61, 0.18);
+  background: #fff;
+  color: #14213d;
+  margin-bottom: 0.75rem;
+}
+.modalInput:focus {
+  outline: none;
+  border-color: var(--brass);
+}
+.modalActions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+.modalBtnPrimary {
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: var(--brass);
+  color: var(--on-photo-ink);
+  transition: background 0.2s ease;
+}
+.modalBtnPrimary:hover,
+.modalBtnPrimary:focus-visible {
+  background: var(--brass-soft);
+}
+.modalBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.modalBtnSecondary {
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(20, 33, 61, 0.6);
+  border: 1px solid rgba(20, 33, 61, 0.18);
+}
+.modalBtnSecondary:hover {
+  background: rgba(20, 33, 61, 0.05);
+}
 /* Abaixo de ~860px (tablet/celular): o hero deixa de ser uma área fixa de 92svh com tudo
    sobreposto — vira uma altura de foto fixa (heroPhotoHeight) mais o card de login normal,
    em fluxo, empurrado pra baixo dela via margin-top. Isso GARANTE que os dois nunca se

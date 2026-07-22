@@ -12,6 +12,7 @@ import { Badge, formatDate } from "@/components/ui";
 import PeticionarButton from "@/components/PeticionarButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
+import { useUndoToast } from "@/components/UndoToastProvider";
 import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -62,6 +63,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
   const [loading, setLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const assignedToName = users.find((u) => u.id === pub.assignedToId)?.name;
+  const { showUndo } = useUndoToast();
 
   useEffect(() => {
     if (!agendaOpen) return;
@@ -77,6 +79,13 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
     markPublicationRead(pub.id).then(() => {
       router.refresh();
       setLoading(false);
+      showUndo({
+        message: "Publicação marcada como lida.",
+        onUndo: async () => {
+          await markPublicationUnread(pub.id);
+          router.refresh();
+        },
+      });
     });
   }
 
@@ -175,7 +184,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           </Link>
         )}
 
-        <PeticionarButton compact />
+        <PeticionarButton compact caseId={pub.case?.id} />
 
         <div className="relative" ref={menuRef}>
           <button

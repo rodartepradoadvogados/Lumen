@@ -190,6 +190,11 @@ body {
   animation: fadeIn 0.15s ease-out;
 }
 
+@keyframes undoToastShrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
 /* Tooltip global por CSS puro — aplique data-tip="..." em qualquer elemento.
    IMPORTANTE: fica dentro de `@layer base` (não solto no arquivo) para que utilitários do
    Tailwind (`@tailwind utilities`, camada `utilities`) sempre ganhem dele em caso de conflito.

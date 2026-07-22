@@ -68,6 +68,42 @@ export async function buildDailyAgendaHtml() {
   </div>`;
 }
 
+export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#0b1730;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">RODARTE PRADO ADVOGADOS</h1>
+      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">REDEFINIÇÃO DE SENHA</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#0f1f3d;">Recebemos um pedido para redefinir a senha da sua conta no sistema.</p>
+      <p style="font-size:14px;color:#0f1f3d;">Clique no botão abaixo para escolher uma nova senha. Este link expira em 1 hora.</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${resetUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Redefinir minha senha</a>
+      </p>
+      <p style="font-size:12px;color:#888;">Se você não pediu essa redefinição, pode ignorar este e-mail — sua senha atual continua válida.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: "Redefinição de senha — Sistema Interno",
+      html,
+    });
+    return { sent: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "erro desconhecido ao enviar";
+    return { sent: false, reason: message };
+  }
+}
+
 export async function sendDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   const transporter = getTransporter();
   if (!transporter) {

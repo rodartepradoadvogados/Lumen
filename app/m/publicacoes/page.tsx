@@ -5,12 +5,15 @@ import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
 export const dynamic = "force-dynamic";
 
 export default async function MobilePublicacoes() {
-  const publications = await prisma.publication.findMany({
-    where: { read: false },
-    include: { case: true },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: 100,
-  });
+  const [publications, users] = await Promise.all([
+    prisma.publication.findMany({
+      where: { read: false },
+      include: { case: true, client: true },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
 
   const serialized = publications.map((p) => ({
     id: p.id,
@@ -20,6 +23,10 @@ export default async function MobilePublicacoes() {
     publishedAt: p.publishedAt.toISOString(),
     caseId: p.case?.id ?? null,
     caseTitle: p.case?.title ?? null,
+    clientId: p.client?.id ?? null,
+    clientName: p.client?.name ?? null,
+    processNumberRaw: p.processNumberRaw,
+    assignedToId: p.assignedToId,
   }));
 
   return (
@@ -35,7 +42,7 @@ export default async function MobilePublicacoes() {
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {serialized.map((p) => (
-              <MobilePublicationCard key={p.id} pub={p} />
+              <MobilePublicationCard key={p.id} pub={p} users={users} />
             ))}
           </div>
         )}

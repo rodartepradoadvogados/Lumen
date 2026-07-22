@@ -7,6 +7,7 @@ import MobileThemeToggle from "@/components/mobile/MobileThemeToggle";
 import TimesheetTimer from "@/components/TimesheetTimer";
 import InactivityNotice from "@/components/InactivityNotice";
 import LumenMark from "@/components/LumenMark";
+import { UndoToastProvider } from "@/components/UndoToastProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,7 @@ export default async function MobileLayout({ children }: { children: React.React
   const todaySeconds = user ? await getTodayElapsedSeconds(user.id) : 0;
 
   return (
+    <UndoToastProvider>
     <div className="min-h-screen bg-cream-100 dark:bg-navy-950 transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       {user && <InactivityNotice />}
@@ -86,5 +88,6 @@ export default async function MobileLayout({ children }: { children: React.React
       <MobileBottomNav unreadCount={unreadCount} />
       <InstallPrompt />
     </div>
+    </UndoToastProvider>
   );
 }
