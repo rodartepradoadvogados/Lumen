@@ -18,6 +18,7 @@ import {
   LineChart,
   BookOpen,
   ChevronDown,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,9 +32,10 @@ function greeting() {
 }
 
 export default async function MobileHome() {
-  const [user, unreadCount] = await Promise.all([
+  const [user, unreadCount, assessoriaCount] = await Promise.all([
     getCurrentUser(),
     prisma.publication.count({ where: { read: false } }),
+    prisma.assessoria.count({ where: { status: "ATIVA" } }),
   ]);
 
   const firstName = user?.name.split(" ")[0] ?? "";
@@ -98,6 +100,18 @@ export default async function MobileHome() {
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
+          </Card>
+        </Link>
+
+        <Link href="/m/assessoria" className="block">
+          <Card className="p-4 flex items-center gap-3">
+            <span className="h-10 w-10 rounded-lg bg-gold-500/15 dark:bg-gold-400/10 text-gold-700 dark:text-gold-400 flex items-center justify-center shrink-0">
+              <Building2 size={18} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Assessoria Jurídica</p>
+              <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{assessoriaCount} empresa(s) ativa(s)</p>
+            </div>
           </Card>
         </Link>
 
