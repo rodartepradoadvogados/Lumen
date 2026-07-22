@@ -12,8 +12,9 @@ import { Badge, formatDate } from "@/components/ui";
 import PeticionarButton from "@/components/PeticionarButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
+import LinkPublicationMenu from "@/components/LinkPublicationMenu";
 import { useUndoToast } from "@/components/UndoToastProvider";
-import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, FilePlus2, UserPlus } from "lucide-react";
+import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, UserPlus } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -175,13 +176,11 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
             Abrir Cadastro do Cliente
           </Link>
         )}
-        {!pub.case && pub.processNumberRaw && (
-          <Link
-            href={`/processos/novo?type=JUDICIAL&processNumber=${encodeURIComponent(pub.processNumberRaw)}`}
-            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 dark:text-cream-50/60 dark:hover:text-cream-50 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200 dark:bg-white/10 dark:hover:bg-white/15"
-          >
-            <FilePlus2 size={12} /> Cadastrar Processo
-          </Link>
+        {!pub.case && (
+          <LinkPublicationMenu
+            publicationId={pub.id}
+            newCaseHref={`/processos/novo?type=JUDICIAL${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
+          />
         )}
 
         <PeticionarButton compact caseId={pub.case?.id} />

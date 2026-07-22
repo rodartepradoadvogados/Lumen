@@ -1,15 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import { createCase } from "@/lib/actions/cases";
 import { PageHeader, Card } from "@/components/ui";
+import ClientPicker from "@/components/ClientPicker";
+import OpposingPartyFields from "@/components/OpposingPartyFields";
+import AssessoriaSelect from "@/components/AssessoriaSelect";
+
+const AREA_OPTIONS = [
+  "Cível",
+  "Trabalhista",
+  "Tributário",
+  "Família",
+  "Sucessões",
+  "Criminal",
+  "Previdenciário",
+  "Empresarial",
+  "Consumidor",
+  "Administrativo",
+  "Outra",
+];
 
 export const dynamic = "force-dynamic";
 
 export default async function NewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string; title?: string } }) {
   const defaultType = searchParams.type || "JUDICIAL";
-  const [clients, users] = await Promise.all([
+  const [clients, users, assessoriasRaw] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
   ]);
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
   async function submit(formData: FormData) {
     "use server";
@@ -21,10 +40,15 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       court: String(formData.get("court") || ""),
       caseValue: String(formData.get("caseValue") || ""),
       clientId: String(formData.get("clientId") || ""),
+      newClientName: String(formData.get("newClientName") || ""),
+      clientRole: String(formData.get("clientRole") || ""),
       opposingPartyName: String(formData.get("opposingPartyName") || ""),
       opposingPartyRole: String(formData.get("opposingPartyRole") || ""),
+      opposingPartyDocument: String(formData.get("opposingPartyDocument") || ""),
+      opposingPartyAddress: String(formData.get("opposingPartyAddress") || ""),
       responsibleId: String(formData.get("responsibleId") || ""),
       description: String(formData.get("description") || ""),
+      assessoriaId: String(formData.get("assessoriaId") || ""),
     });
   }
 
@@ -50,7 +74,14 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             </div>
             <div>
               <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
-              <input name="area" className="input" placeholder="Cível, Trabalhista, Família..." />
+              <select name="area" defaultValue="" className="input">
+                <option value="">Não definida</option>
+                {AREA_OPTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -83,33 +114,11 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             </div>
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente</label>
-            <select name="clientId" className="input">
-              <option value="">Selecionar cliente...</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ClientPicker clients={clients} inputClassName="input" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Parte Adversa (nome)</label>
-              <input name="opposingPartyName" className="input" placeholder="Nome da parte contrária" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Polo da Parte Adversa</label>
-              <select name="opposingPartyRole" className="input">
-                <option value="">Não definido</option>
-                <option value="AUTOR">Autor</option>
-                <option value="REU">Réu</option>
-                <option value="OUTRO">Outro</option>
-              </select>
-            </div>
-          </div>
+          <OpposingPartyFields inputClassName="input" />
+
+          <AssessoriaSelect assessorias={assessorias} inputClassName="input" />
 
           <div>
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição / Observações</label>

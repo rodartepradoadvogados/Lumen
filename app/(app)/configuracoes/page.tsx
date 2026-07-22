@@ -77,7 +77,7 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
 
 const SECOES = [
   { key: "geral", label: "Geral", adminOnly: false },
-  { key: "equipe", label: "Equipe & Acesso", adminOnly: true },
+  { key: "equipe", label: "Equipe", adminOnly: true },
   { key: "financeiro", label: "Financeiro", adminOnly: true },
   { key: "produtividade", label: "Produtividade", adminOnly: true },
   { key: "workflows", label: "Workflows", adminOnly: true },
@@ -465,7 +465,7 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "equipe" && (
       <Card>
-        <CardHeader title="Sócios — Equipe e Controle de Acesso" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
+        <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
         <div className="divide-y divide-navy-800/5 dark:divide-white/10">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />

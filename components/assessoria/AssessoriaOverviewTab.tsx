@@ -64,9 +64,7 @@ export default function AssessoriaOverviewTab({ assessoria }: { assessoria: Asse
       </div>
 
       <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">
-          Processos vinculados <span className="normal-case font-medium">(filtro por cliente)</span>
-        </h4>
+        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Processos vinculados</h4>
         {assessoria.linkedCases.length === 0 ? (
           <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum processo vinculado a esta empresa ainda.</p>
         ) : (
@@ -79,6 +77,26 @@ export default function AssessoriaOverviewTab({ assessoria }: { assessoria: Asse
               >
                 <span className="font-medium text-navy-900 dark:text-cream-50 underline decoration-navy-900/20 dark:decoration-cream-50/20">{c.title}</span>
                 <Badge color={caseStatusColors[c.status] || "slate"}>{caseStatusLabels[c.status] || c.status}</Badge>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
+        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Atendimentos vinculados</h4>
+        {assessoria.linkedAttendances.length === 0 ? (
+          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum atendimento vinculado a esta assessoria ainda.</p>
+        ) : (
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            {assessoria.linkedAttendances.map((a) => (
+              <Link
+                key={a.id}
+                href={`/atendimento/${a.id}`}
+                className="flex justify-between gap-3 py-2 text-sm hover:bg-cream-50 dark:hover:bg-white/5 -mx-1 px-1 rounded"
+              >
+                <span className="font-medium text-navy-900 dark:text-cream-50 underline decoration-navy-900/20 dark:decoration-cream-50/20 truncate">{a.subject}</span>
+                <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap">{formatDate(a.createdAt)}</span>
               </Link>
             ))}
           </div>

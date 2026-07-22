@@ -4,22 +4,42 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCaseMobile } from "@/lib/actions/cases";
 import { FilePlus2 } from "lucide-react";
+import ClientPicker from "@/components/ClientPicker";
+import OpposingPartyFields from "@/components/OpposingPartyFields";
+import AssessoriaSelect from "@/components/AssessoriaSelect";
 
 const inputClass =
   "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
 const labelClass = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
 
+const AREA_OPTIONS = [
+  "Cível",
+  "Trabalhista",
+  "Tributário",
+  "Família",
+  "Sucessões",
+  "Criminal",
+  "Previdenciário",
+  "Empresarial",
+  "Consumidor",
+  "Administrativo",
+  "Outra",
+];
+
 type Client = { id: string; name: string };
 type UserOption = { id: string; name: string };
+type AssessoriaOption = { id: string; clientName: string };
 
 export default function MobileNewCaseForm({
   clients,
   users,
+  assessorias,
   defaultType,
   defaultProcessNumber,
 }: {
   clients: Client[];
   users: UserOption[];
+  assessorias: AssessoriaOption[];
   defaultType: string;
   defaultProcessNumber: string;
 }) {
@@ -44,10 +64,15 @@ export default function MobileNewCaseForm({
         court: String(formData.get("court") || "") || undefined,
         caseValue: String(formData.get("caseValue") || "") || undefined,
         clientId: String(formData.get("clientId") || "") || undefined,
+        newClientName: String(formData.get("newClientName") || "") || undefined,
+        clientRole: String(formData.get("clientRole") || "") || undefined,
         opposingPartyName: String(formData.get("opposingPartyName") || "") || undefined,
         opposingPartyRole: String(formData.get("opposingPartyRole") || "") || undefined,
+        opposingPartyDocument: String(formData.get("opposingPartyDocument") || "") || undefined,
+        opposingPartyAddress: String(formData.get("opposingPartyAddress") || "") || undefined,
         responsibleId: String(formData.get("responsibleId") || "") || undefined,
         description: String(formData.get("description") || "") || undefined,
+        assessoriaId: String(formData.get("assessoriaId") || "") || undefined,
       });
       router.push(`/m/processos/${result.id}`);
     } catch {
@@ -75,7 +100,14 @@ export default function MobileNewCaseForm({
         </div>
         <div>
           <label className={labelClass}>Área</label>
-          <input name="area" className={inputClass} placeholder="Cível, Trabalhista..." />
+          <select name="area" defaultValue="" className={inputClass}>
+            <option value="">Não definida</option>
+            {AREA_OPTIONS.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -106,31 +138,11 @@ export default function MobileNewCaseForm({
         </div>
       </div>
 
-      <div>
-        <label className={labelClass}>Cliente</label>
-        <select name="clientId" defaultValue="" className={inputClass}>
-          <option value="">Selecionar cliente...</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+      <ClientPicker clients={clients} inputClassName={inputClass} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>Parte Adversa (nome)</label>
-          <input name="opposingPartyName" className={inputClass} placeholder="Nome da parte contrária" />
-        </div>
-        <div>
-          <label className={labelClass}>Polo da Parte Adversa</label>
-          <select name="opposingPartyRole" defaultValue="" className={inputClass}>
-            <option value="">Não definido</option>
-            <option value="AUTOR">Autor</option>
-            <option value="REU">Réu</option>
-            <option value="OUTRO">Outro</option>
-          </select>
-        </div>
-      </div>
+      <OpposingPartyFields inputClassName={inputClass} />
+
+      <AssessoriaSelect assessorias={assessorias} inputClassName={inputClass} />
 
       <div>
         <label className={labelClass}>Descrição / Observações</label>

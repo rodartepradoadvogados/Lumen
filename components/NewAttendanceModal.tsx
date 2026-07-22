@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { createAttendance, saveAttendanceDraft, searchClients } from "@/lib/actions/attendance";
 import { Plus, X } from "lucide-react";
 import ClientQualificationModal from "@/components/ClientQualificationModal";
+import AssessoriaSelect from "@/components/AssessoriaSelect";
 
 type ClientHit = { id: string; name: string; phone: string | null; email: string | null };
+type AssessoriaOption = { id: string; clientName: string };
 
 const emptyState = {
   clientMode: "novo" as "novo" | "selecionar",
@@ -16,7 +18,15 @@ const emptyState = {
   clientEmail: "",
 };
 
-export default function NewAttendanceModal({ users, autoOpen }: { users: { id: string; name: string }[]; autoOpen?: boolean }) {
+export default function NewAttendanceModal({
+  users,
+  assessorias,
+  autoOpen,
+}: {
+  users: { id: string; name: string }[];
+  assessorias: AssessoriaOption[];
+  autoOpen?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(!!autoOpen);
   const [loading, setLoading] = useState(false);
@@ -110,6 +120,7 @@ export default function NewAttendanceModal({ users, autoOpen }: { users: { id: s
       estimatedValue: rawValue ? Number(rawValue) : null,
       leadSource: String(fd.get("leadSource") || ""),
       nextContactAt: String(fd.get("nextContactAt") || ""),
+      assessoriaId: String(fd.get("assessoriaId") || ""),
     };
   }
 
@@ -320,6 +331,8 @@ export default function NewAttendanceModal({ users, autoOpen }: { users: { id: s
                         ))}
                       </select>
                     </div>
+
+                    <AssessoriaSelect assessorias={assessorias} inputClassName="at-input" />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>

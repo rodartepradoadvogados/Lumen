@@ -323,7 +323,7 @@ export default function Sidebar({
                       <Icon size={18} strokeWidth={2} />
                       <span className="flex-1">{item.label}</span>
                       {item.href === "/publicacoes" && unreadPublications > 0 && (
-                        <span className="bg-gold-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
+                        <span className="bg-bordo-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
                           {unreadPublications > 99 ? "99+" : unreadPublications}
                         </span>
                       )}

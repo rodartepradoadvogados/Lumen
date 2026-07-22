@@ -13,10 +13,14 @@ export async function createCase(data: {
   caseValue?: string;
   clientId?: string;
   newClientName?: string;
+  clientRole?: string;
   opposingPartyName?: string;
   opposingPartyRole?: string;
+  opposingPartyDocument?: string;
+  opposingPartyAddress?: string;
   responsibleId?: string;
   description?: string;
+  assessoriaId?: string;
 }) {
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
@@ -33,10 +37,14 @@ export async function createCase(data: {
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
       clientId,
+      clientRole: data.clientRole || null,
       opposingPartyName: data.opposingPartyName || null,
       opposingPartyRole: data.opposingPartyRole || null,
+      opposingPartyDocument: data.opposingPartyDocument || null,
+      opposingPartyAddress: data.opposingPartyAddress || null,
       responsibleId: data.responsibleId || null,
       description: data.description || null,
+      assessoriaId: data.assessoriaId || null,
     },
   });
   revalidatePath("/processos");
@@ -55,11 +63,22 @@ export async function createCaseMobile(data: {
   court?: string;
   caseValue?: string;
   clientId?: string;
+  newClientName?: string;
+  clientRole?: string;
   opposingPartyName?: string;
   opposingPartyRole?: string;
+  opposingPartyDocument?: string;
+  opposingPartyAddress?: string;
   responsibleId?: string;
   description?: string;
+  assessoriaId?: string;
 }): Promise<{ id: string }> {
+  let clientId = data.clientId || null;
+  if (!clientId && data.newClientName) {
+    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PJ" } });
+    clientId = client.id;
+  }
+
   const created = await prisma.case.create({
     data: {
       title: data.title,
@@ -68,11 +87,15 @@ export async function createCaseMobile(data: {
       processNumber: data.processNumber || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
-      clientId: data.clientId || null,
+      clientId,
+      clientRole: data.clientRole || null,
       opposingPartyName: data.opposingPartyName || null,
       opposingPartyRole: data.opposingPartyRole || null,
+      opposingPartyDocument: data.opposingPartyDocument || null,
+      opposingPartyAddress: data.opposingPartyAddress || null,
       responsibleId: data.responsibleId || null,
       description: data.description || null,
+      assessoriaId: data.assessoriaId || null,
     },
   });
   revalidatePath("/processos");

@@ -41,6 +41,8 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
     orderBy: { createdAt: "desc" },
   });
   const users = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const assessoriasRaw = await prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } });
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
   const statusHref = (status?: string) => {
     const params = new URLSearchParams();
@@ -63,7 +65,7 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
             >
               <Filter size={16} /> Funil Comercial
             </Link>
-            <NewAttendanceModal users={users} autoOpen={searchParams.novo === "1"} />
+            <NewAttendanceModal users={users} assessorias={assessorias} autoOpen={searchParams.novo === "1"} />
           </div>
         }
       />

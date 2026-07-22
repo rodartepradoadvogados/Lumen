@@ -153,8 +153,10 @@ model Case {
   lastHistoryAt     DateTime?
   lastHistoryDesc   String?
 
-  opposingPartyName String?   // nome da parte adversa (sem cadastro próprio, só texto)
-  opposingPartyRole String?   // AUTOR | REU | OUTRO — polo da parte adversa
+  opposingPartyName     String?   // nome da parte adversa (cadastro simplificado, só texto)
+  opposingPartyRole     String?   // AUTOR | REU | OUTRO — polo da parte adversa
+  opposingPartyDocument String?   // CPF/CNPJ da parte adversa (opcional)
+  opposingPartyAddress  String?   // endereço da parte adversa (opcional)
 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -164,6 +166,13 @@ model Case {
 
   responsibleId     String?
   responsible       User?     @relation("CaseResponsible", fields: [responsibleId], references: [id])
+
+  // Vínculo explícito com uma Assessoria (opcional) — escolhido no cadastro do processo,
+  // para importar este caso diretamente para dentro do acompanhamento daquela assessoria.
+  // Independente do clientId: o mesmo cliente pode ter processos que não fazem parte do
+  // contrato de assessoria continuada.
+  assessoriaId      String?
+  assessoria        Assessoria? @relation(fields: [assessoriaId], references: [id])
 
   tasks             Task[]
   comments          Comment[]
@@ -343,6 +352,10 @@ model Attendance {
 
   convertedCaseId String?
   convertedCase   Case?  @relation("AttendanceConvertedCase", fields: [convertedCaseId], references: [id])
+
+  // Mesmo vínculo opcional com Assessoria disponível no cadastro de Processo (ver Case.assessoriaId).
+  assessoriaId String?
+  assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
 
   tasks            Task[]
   attachments      Attachment[]
@@ -574,6 +587,8 @@ model Assessoria {
   documents     AssessoriaDocumento[]
   honorarios    Honorario[]
   licitacoes    Licitacao[]
+  cases         Case[]
+  attendances   Attendance[]
 }
 
 model AssessoriaDocumento {

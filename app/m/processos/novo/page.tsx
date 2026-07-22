@@ -7,10 +7,12 @@ import { ArrowLeft } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function MobileNewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string } }) {
-  const [clients, users] = await Promise.all([
+  const [clients, users, assessoriasRaw] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
   ]);
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -27,6 +29,7 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
         <MobileNewCaseForm
           clients={clients}
           users={users}
+          assessorias={assessorias}
           defaultType={searchParams.type || "JUDICIAL"}
           defaultProcessNumber={searchParams.processNumber || ""}
         />

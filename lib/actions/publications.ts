@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
+// Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
+// número mudou desde a última checagem, sem precisar recarregar a página inteira.
+export async function getUnreadPublicationsCount(): Promise<number> {
+  return prisma.publication.count({ where: { read: false } });
+}
+
 export async function markPublicationRead(id: string) {
   await prisma.publication.update({ where: { id }, data: { read: true } });
   revalidatePath("/publicacoes");
@@ -108,6 +114,32 @@ export async function distributePendingPublications(): Promise<{ assigned?: numb
 
   revalidatePath("/publicacoes");
   return { assigned: updates.length };
+}
+
+// Busca de processos já cadastrados (por título ou número), para o chooser "Vincular a
+// processo já existente" que aparece quando uma publicação não tem processo compatível.
+export async function searchCasesForLinking(query: string): Promise<{ id: string; title: string; processNumber: string | null }[]> {
+  const q = query.trim();
+  if (!q) return [];
+  return prisma.case.findMany({
+    where: {
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { processNumber: { contains: q, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, title: true, processNumber: true },
+    orderBy: { title: "asc" },
+    take: 15,
+  });
+}
+
+export async function linkPublicationToCase(publicationId: string, caseId: string) {
+  await prisma.publication.update({ where: { id: publicationId }, data: { caseId } });
+  revalidatePath("/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/painel");
+  revalidatePath(`/processos/${caseId}`);
 }
 
 export async function generateTaskFromPublication(

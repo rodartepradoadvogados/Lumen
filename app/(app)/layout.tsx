@@ -5,6 +5,7 @@ import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
 import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
+import AppBadgeSync from "@/components/AppBadgeSync";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <UndoToastProvider>
       <div className="flex h-screen overflow-hidden">
         <InactivityNotice />
+        <AppBadgeSync initialCount={unreadPublications} />
         <Suspense fallback={null}>
           <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} isAdmin={user.isAdmin} unreadPublications={unreadPublications} />
         </Suspense>

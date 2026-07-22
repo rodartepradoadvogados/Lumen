@@ -90,12 +90,19 @@ export async function getAssessoriaDetail(id: string) {
   });
   if (!assessoria) return null;
 
+  // "Vinculado" tem duas origens: vínculo explícito (assessoriaId, escolhido no cadastro do
+  // processo) ou o mesmo cliente da assessoria (comportamento legado, filtro por clientId).
   const linkedCases = await prisma.case.findMany({
-    where: { clientId: assessoria.clientId },
+    where: { OR: [{ assessoriaId: id }, { clientId: assessoria.clientId }] },
     orderBy: { updatedAt: "desc" },
   });
 
-  return { ...assessoria, linkedCases };
+  const linkedAttendances = await prisma.attendance.findMany({
+    where: { assessoriaId: id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return { ...assessoria, linkedCases, linkedAttendances };
 }
 
 export async function addDocumento(

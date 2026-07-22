@@ -6,6 +6,7 @@ import InstallPrompt from "@/components/mobile/InstallPrompt";
 import MobileThemeToggle from "@/components/mobile/MobileThemeToggle";
 import TimesheetTimer from "@/components/TimesheetTimer";
 import InactivityNotice from "@/components/InactivityNotice";
+import AppBadgeSync from "@/components/AppBadgeSync";
 import LumenMark from "@/components/LumenMark";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 
@@ -58,6 +59,7 @@ export default async function MobileLayout({ children }: { children: React.React
     <div className="min-h-screen bg-cream-100 dark:bg-navy-950 transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       {user && <InactivityNotice />}
+      <AppBadgeSync initialCount={unreadCount} />
       {/* Cabeçalho sempre navy, nos 3 temas (Dia/Tarde/Noite) — de propósito sem classes
           `dark:`, senão o Tarde tingiria o cabeçalho de bordô junto com os cards (mesmo
           motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`). */}

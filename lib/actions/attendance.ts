@@ -21,6 +21,7 @@ type CreateAttendanceInput = {
   estimatedValue?: number | null;
   leadSource?: string;
   nextContactAt?: string;
+  assessoriaId?: string;
 };
 
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
@@ -59,6 +60,7 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<{ i
       leadSource: data.leadSource || null,
       nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
       stageChangedAt: new Date(),
+      assessoriaId: data.assessoriaId || null,
     },
   });
   revalidatePath("/atendimento");
@@ -88,6 +90,7 @@ export async function saveAttendanceDraft(
       nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
       status: "RASCUNHO",
       stageChangedAt: new Date(),
+      assessoriaId: data.assessoriaId || null,
     },
   });
   revalidatePath("/atendimento");
@@ -302,6 +305,7 @@ export async function convertAttendanceToCase(
       court: data.court || null,
       clientId: client.id,
       responsibleId: attendance.responsibleId,
+      assessoriaId: attendance.assessoriaId,
     },
   });
 

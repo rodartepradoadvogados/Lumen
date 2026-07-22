@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
+import LinkPublicationMenu from "@/components/LinkPublicationMenu";
 import { useUndoToast } from "@/components/UndoToastProvider";
 import {
   Check,
@@ -19,7 +20,6 @@ import {
   CalendarPlus,
   ListTodo,
   ChevronDown,
-  FilePlus2,
   UserPlus,
   X,
 } from "lucide-react";
@@ -120,13 +120,11 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
         {/* "Abrir Cadastro do Cliente" fica de fora do app mobile de propósito — não existe
             tela de detalhe de cliente em /m ainda (mesmo motivo de MobileGlobalSearch
             descartar resultados do tipo "Clientes"). O app nunca deve levar pro site desktop. */}
-        {!pub.caseId && pub.processNumberRaw && (
-          <Link
-            href={`/m/processos/novo?type=JUDICIAL&processNumber=${encodeURIComponent(pub.processNumberRaw)}`}
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-3 py-1.5 rounded-lg bg-cream-100 dark:bg-white/5 hover:bg-cream-200 dark:hover:bg-white/10"
-          >
-            <FilePlus2 size={13} /> Cadastrar Processo
-          </Link>
+        {!pub.caseId && (
+          <LinkPublicationMenu
+            publicationId={pub.id}
+            newCaseHref={`/m/processos/novo?type=JUDICIAL${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
+          />
         )}
 
         <div className="relative">
