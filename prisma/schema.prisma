@@ -30,6 +30,16 @@ model User {
   resetTokenHash   String?   @unique // hash SHA-256 do token de redefinição de senha (nunca o token puro)
   resetTokenExpiry DateTime?
 
+  // Preferências de notificação push (app mobile) — cada uma liga/desliga um tipo de aviso,
+  // configurável pelo próprio usuário em Configurações. Ligadas por padrão (opt-out, não
+  // opt-in) para quem já ativou notificações neste aparelho continuar recebendo tudo até
+  // decidir desligar algo específico.
+  notifyAndamentos       Boolean @default(true)
+  notifyPublicacoes      Boolean @default(true)
+  notifyTarefasDelegadas Boolean @default(true)
+  notifyAgendaDia        Boolean @default(true)
+
+  pushSubscriptions  PushSubscription[]
   tasksResponsible   Task[]        @relation("TaskResponsible")
   tasksDelegated     Task[]        @relation("TaskDelegatedBy")
   casesResponsible   Case[]        @relation("CaseResponsible")
@@ -48,6 +58,21 @@ model User {
   emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
+}
+
+// Uma inscrição de push por aparelho/navegador em que o usuário ativou notificações
+// (ver components/mobile/NotificationPreferences.tsx) — um mesmo usuário pode ter mais de
+// uma (celular + tablet, por exemplo). endpoint é o identificador único que o navegador
+// gera; p256dh/auth são as chaves de criptografia exigidas pelo protocolo Web Push.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============ MURAL DE RECADOS ============

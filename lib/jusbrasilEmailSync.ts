@@ -2,11 +2,14 @@ import { google } from "googleapis";
 import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
 import { getOAuthClient } from "@/lib/googleDrive";
+import { broadcastPushIfEnabled } from "@/lib/push";
 
 export type SyncResult = {
   accountsScanned: number;
   found: number;
   created: number;
+  createdPublicacoes: number;
+  createdAndamentos: number;
   skipped: number;
   errors: string[];
 };
@@ -160,11 +163,13 @@ async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId:
       },
     });
     result.created++;
+    if (entry.kind === "PUBLICACAO") result.createdPublicacoes++;
+    else result.createdAndamentos++;
   }
 }
 
 export async function syncJusbrasilEmails(): Promise<SyncResult> {
-  const result: SyncResult = { accountsScanned: 0, found: 0, created: 0, skipped: 0, errors: [] };
+  const result: SyncResult = { accountsScanned: 0, found: 0, created: 0, createdPublicacoes: 0, createdAndamentos: 0, skipped: 0, errors: [] };
 
   const clients = await getGmailClients();
   if (clients.length === 0) {
@@ -203,6 +208,24 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       result.errors.push(
         `[${accountEmail}] Falha ao consultar o Gmail — ${message}. Reconecte essa conta em Configurações para autorizar o acesso ao Gmail.`
       );
+    }
+  }
+
+  if (result.createdPublicacoes > 0 || result.createdAndamentos > 0) {
+    const activeUserIds = (await prisma.user.findMany({ where: { active: true }, select: { id: true } })).map((u) => u.id);
+    if (result.createdPublicacoes > 0) {
+      broadcastPushIfEnabled(activeUserIds, "publicacoes", {
+        title: "Novas publicações",
+        body: `${result.createdPublicacoes} nova(s) publicação(ões) recebida(s).`,
+        url: "/m/publicacoes",
+      }).catch(() => {});
+    }
+    if (result.createdAndamentos > 0) {
+      broadcastPushIfEnabled(activeUserIds, "andamentos", {
+        title: "Novos andamentos processuais",
+        body: `${result.createdAndamentos} novo(s) andamento(s) recebido(s).`,
+        url: "/m/publicacoes",
+      }).catch(() => {});
     }
   }
 

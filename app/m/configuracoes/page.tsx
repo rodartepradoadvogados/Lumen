@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card } from "@/components/ui";
 import MobileChangePasswordForm from "@/components/mobile/MobileChangePasswordForm";
-import { ArrowLeft, User, KeyRound, AlertTriangle, Users, DollarSign, Gauge, Workflow, FileText, Plug, ChevronRight, Newspaper, CheckSquare, Image as ImageIcon, type LucideIcon } from "lucide-react";
+import NotificationPreferences from "@/components/mobile/NotificationPreferences";
+import { ArrowLeft, User, KeyRound, AlertTriangle, Users, DollarSign, Gauge, Workflow, FileText, Plug, ChevronRight, Newspaper, CheckSquare, Image as ImageIcon, Bell, type LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,14 @@ export default async function MobileConfiguracoes() {
         <div className="p-4">
           <MobileChangePasswordForm />
         </div>
+      </Card>
+
+      <Card>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
+          <Bell size={16} className="text-gold-600" />
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Notificações</h3>
+        </div>
+        <NotificationPreferences />
       </Card>
 
       {viewer.isAdmin && (

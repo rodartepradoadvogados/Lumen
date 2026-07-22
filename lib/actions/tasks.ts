@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
+import { sendPushIfEnabled } from "@/lib/push";
 
 // 24h antes do prazo fatal — como dueDate representa a data-calendário (meia-noite) e dueTime
 // é só um rótulo de exibição separado (sem ser combinado no timestamp), subtrair exatamente
@@ -152,6 +153,12 @@ export async function delegateTask(data: {
   revalidatePath("/painel");
   revalidatePath("/alertas");
   revalidatePath("/produtividade");
+
+  sendPushIfEnabled(data.responsibleId, "tarefasDelegadas", {
+    title: "Nova tarefa delegada",
+    body: `${viewer.name} delegou: ${data.title}`,
+    url: "/m/agenda",
+  }).catch(() => {});
 
   return {};
 }

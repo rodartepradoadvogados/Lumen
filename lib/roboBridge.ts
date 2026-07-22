@@ -4,6 +4,7 @@
 // (Publication/Case). Segue o mesmo padrão de lib/jusbrasilEmailSync.ts.
 
 import { prisma } from "@/lib/prisma";
+import { broadcastPushIfEnabled } from "@/lib/push";
 
 export type RoboBridgeResult = {
   publicacoesCriadas: number;
@@ -166,6 +167,26 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     } catch (e) {
       const message = e instanceof Error ? e.message : "erro desconhecido";
       result.erros.push(`[andamento ${and.id}] ${message}`);
+    }
+  }
+
+  // Um resumo só por tipo (não uma notificação por publicação) — evita inundar quem
+  // ativou notificações caso o robô traga muitas de uma vez num único ciclo.
+  if (result.publicacoesCriadas > 0 || result.andamentosCriados > 0) {
+    const activeUserIds = (await prisma.user.findMany({ where: { active: true }, select: { id: true } })).map((u) => u.id);
+    if (result.publicacoesCriadas > 0) {
+      broadcastPushIfEnabled(activeUserIds, "publicacoes", {
+        title: "Novas publicações",
+        body: `${result.publicacoesCriadas} nova(s) publicação(ões) recebida(s).`,
+        url: "/m/publicacoes",
+      }).catch(() => {});
+    }
+    if (result.andamentosCriados > 0) {
+      broadcastPushIfEnabled(activeUserIds, "andamentos", {
+        title: "Novos andamentos processuais",
+        body: `${result.andamentosCriados} novo(s) andamento(s) recebido(s).`,
+        url: "/m/publicacoes",
+      }).catch(() => {});
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X, Share, SquarePlus, Download } from "lucide-react";
+import LumenMark from "@/components/LumenMark";
 
 const DISMISS_KEY = "rp_install_prompt_dismissed_v1";
 
@@ -59,8 +60,8 @@ export default function InstallPrompt() {
   return (
     <div className="fixed bottom-16 inset-x-0 z-50 px-3 pb-3 animate-fade-in">
       <div className="max-w-sm mx-auto bg-navy-900 text-cream-50 rounded-2xl shadow-pop p-4 flex items-start gap-3">
-        <span className="h-9 w-9 rounded-lg bg-navy-700 text-gold-400 flex items-center justify-center text-xs font-bold shrink-0">
-          RP
+        <span className="h-9 w-9 rounded-lg bg-navy-700 flex items-center justify-center shrink-0">
+          <LumenMark size={22} />
         </span>
         <div className="flex-1 min-w-0">
           {platform === "ios" ? (
