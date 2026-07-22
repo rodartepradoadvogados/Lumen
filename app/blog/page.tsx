@@ -12,18 +12,11 @@ export const metadata = {
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
-export default async function BlogPage({ searchParams }: { searchParams: { area?: string } }) {
-  const areaFilter = searchParams.area?.trim() || "";
-
-  const [posts, allPublished] = await Promise.all([
-    prisma.blogPost.findMany({
-      where: { status: "PUBLICADO", ...(areaFilter ? { area: areaFilter } : {}) },
-      orderBy: { publishedAt: "desc" },
-    }),
-    prisma.blogPost.findMany({ where: { status: "PUBLICADO" }, select: { area: true } }),
-  ]);
-
-  const areas = Array.from(new Set(allPublished.map((p) => p.area))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+export default async function BlogPage() {
+  const posts = await prisma.blogPost.findMany({
+    where: { status: "PUBLICADO" },
+    orderBy: { publishedAt: "desc" },
+  });
 
   return (
     <div className="min-h-screen bg-cream-50">
@@ -39,35 +32,9 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {areas.length > 0 && (
-          <div className="flex gap-2 flex-wrap justify-center">
-            <Link
-              href="/blog"
-              className={`text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors ${
-                !areaFilter ? "bg-bordo-700 text-cream-50" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
-              }`}
-            >
-              Todas as áreas
-            </Link>
-            {areas.map((area) => (
-              <Link
-                key={area}
-                href={`/blog?area=${encodeURIComponent(area)}`}
-                className={`text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors ${
-                  areaFilter === area ? "bg-bordo-700 text-cream-50" : "bg-white text-navy-800/60 border border-navy-800/10 hover:bg-cream-100"
-                }`}
-              >
-                {area}
-              </Link>
-            ))}
-          </div>
-        )}
-
         {posts.length === 0 ? (
           <div className="text-center py-20 text-navy-800/40">
-            <p className="font-medium">
-              {areaFilter ? `Nenhuma matéria publicada em "${areaFilter}" ainda.` : "Nenhuma matéria publicada ainda."}
-            </p>
+            <p className="font-medium">Nenhuma matéria publicada ainda.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -83,7 +50,6 @@ export default async function BlogPage({ searchParams }: { searchParams: { area?
                 )}
                 <div className="p-5 flex-1 flex flex-col gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge color="bordo">{post.area}</Badge>
                     <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
                   </div>
                   <h2 className="font-serif font-bold text-navy-900 text-lg leading-snug">{post.title}</h2>

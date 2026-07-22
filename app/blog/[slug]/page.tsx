@@ -45,7 +45,6 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           )}
           <div className="p-6 sm:p-8 space-y-4">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Badge color="bordo">{post.area}</Badge>
               <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
             </div>
             <h1 className="font-serif font-bold text-navy-900 text-2xl sm:text-3xl leading-tight">{post.title}</h1>

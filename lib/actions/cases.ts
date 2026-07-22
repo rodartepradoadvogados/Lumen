@@ -44,6 +44,42 @@ export async function createCase(data: {
   redirect(`/processos/${created.id}`);
 }
 
+// Mesmo cadastro de createCase, mas sem redirect() — o redirect da versão desktop aponta
+// pra "/processos/{id}" (fora de /m), então o app mobile precisa navegar ele mesmo, pro
+// equivalente "/m/processos/{id}" (ver components/mobile/MobileNewCaseForm.tsx).
+export async function createCaseMobile(data: {
+  title: string;
+  type: string;
+  area?: string;
+  processNumber?: string;
+  court?: string;
+  caseValue?: string;
+  clientId?: string;
+  opposingPartyName?: string;
+  opposingPartyRole?: string;
+  responsibleId?: string;
+  description?: string;
+}): Promise<{ id: string }> {
+  const created = await prisma.case.create({
+    data: {
+      title: data.title,
+      type: data.type,
+      area: data.area || null,
+      processNumber: data.processNumber || null,
+      court: data.court || null,
+      caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
+      clientId: data.clientId || null,
+      opposingPartyName: data.opposingPartyName || null,
+      opposingPartyRole: data.opposingPartyRole || null,
+      responsibleId: data.responsibleId || null,
+      description: data.description || null,
+    },
+  });
+  revalidatePath("/processos");
+  revalidatePath("/contatos/clientes");
+  return { id: created.id };
+}
+
 export async function createCaseQuick(title: string, clientId?: string): Promise<{ id: string; title: string }> {
   const created = await prisma.case.create({
     data: { title, type: "ATENDIMENTO", clientId: clientId || null },

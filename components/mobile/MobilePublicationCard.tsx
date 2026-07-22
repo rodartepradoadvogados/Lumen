@@ -117,21 +117,16 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
             Abrir Processo
           </Link>
         )}
-        {!pub.caseId && pub.clientId && (
-          <a
-            href={`/contatos/clientes#client-${pub.clientId}`}
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-800 dark:text-emerald-400 px-3 py-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-400/15"
-          >
-            Abrir Cadastro do Cliente
-          </a>
-        )}
+        {/* "Abrir Cadastro do Cliente" fica de fora do app mobile de propósito — não existe
+            tela de detalhe de cliente em /m ainda (mesmo motivo de MobileGlobalSearch
+            descartar resultados do tipo "Clientes"). O app nunca deve levar pro site desktop. */}
         {!pub.caseId && pub.processNumberRaw && (
-          <a
-            href={`/processos/novo?type=JUDICIAL&processNumber=${encodeURIComponent(pub.processNumberRaw)}`}
+          <Link
+            href={`/m/processos/novo?type=JUDICIAL&processNumber=${encodeURIComponent(pub.processNumberRaw)}`}
             className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-3 py-1.5 rounded-lg bg-cream-100 dark:bg-white/5 hover:bg-cream-200 dark:hover:bg-white/10"
           >
             <FilePlus2 size={13} /> Cadastrar Processo
-          </a>
+          </Link>
         )}
 
         <div className="relative">
