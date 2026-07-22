@@ -139,6 +139,13 @@ dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-fina
    Se a resposta for 401, o `BLOG_ROBOT_SECRET` está ausente/errado — pare e avise o
    usuário na próxima interação direta (não adivinhe nem tente outro valor).
 
+   Se a resposta for **409** (`{"error": "provável duplicata...", "conflictingPost": {...}}`),
+   o próprio servidor detectou que já existe uma matéria com título normalizado igual ou
+   com alguma fonte em comum nos últimos 60 dias — é uma segunda camada de proteção contra
+   duplicata, além da checagem por GET do passo 1. Não insista tentando reenviar a mesma
+   pauta reescrita; trate como "já coberta" e siga para a próxima pauta (ou encerre o
+   ciclo, se não houver mais nenhuma).
+
 7. Repita o passo 5-6 para cada pauta relevante encontrada no ciclo (pode ser zero, uma,
    ou várias).
 
