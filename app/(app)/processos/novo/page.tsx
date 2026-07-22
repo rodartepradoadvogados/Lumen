@@ -21,7 +21,7 @@ const AREA_OPTIONS = [
 
 export const dynamic = "force-dynamic";
 
-export default async function NewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string; title?: string } }) {
+export default async function NewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string; title?: string; assessoriaId?: string } }) {
   const defaultType = searchParams.type || "JUDICIAL";
   const [clients, users, assessoriasRaw] = await Promise.all([
     prisma.client.findMany({ orderBy: { name: "asc" } }),
@@ -118,7 +118,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
 
           <OpposingPartyFields inputClassName="input" />
 
-          <AssessoriaSelect assessorias={assessorias} inputClassName="input" />
+          <AssessoriaSelect assessorias={assessorias} inputClassName="input" defaultValue={searchParams.assessoriaId} />
 
           <div>
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição / Observações</label>

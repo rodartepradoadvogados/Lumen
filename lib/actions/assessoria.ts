@@ -105,6 +105,25 @@ export async function getAssessoriaDetail(id: string) {
   return { ...assessoria, linkedCases, linkedAttendances };
 }
 
+// Vincula (ou desvincula, se assessoriaId for null) um Processo/Caso já existente a uma
+// Assessoria — usado tanto pelo botão "Vincular processo existente" na aba de Processos e
+// Casos da Assessoria quanto pelo seletor de assessoria na própria página do Processo.
+export async function setCaseAssessoria(caseId: string, assessoriaId: string | null): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const before = await prisma.case.findUnique({ where: { id: caseId }, select: { assessoriaId: true } });
+  if (!before) return { error: "Processo não encontrado." };
+
+  await prisma.case.update({ where: { id: caseId }, data: { assessoriaId: assessoriaId || null } });
+
+  revalidatePath(`/processos/${caseId}`);
+  revalidatePath("/processos");
+  if (before.assessoriaId) revalidatePath(`/assessoria/${before.assessoriaId}`);
+  if (assessoriaId) revalidatePath(`/assessoria/${assessoriaId}`);
+  return {};
+}
+
 export async function addDocumento(
   assessoriaId: string,
   data: { name: string; docType: string; driveUrl: string; date?: string; caseId?: string }

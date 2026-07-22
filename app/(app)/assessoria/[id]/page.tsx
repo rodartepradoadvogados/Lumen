@@ -8,6 +8,7 @@ import AssessoriaDocumentosTab from "@/components/assessoria/AssessoriaDocumento
 import AssessoriaHonorariosTab from "@/components/assessoria/AssessoriaHonorariosTab";
 import AssessoriaLicitacoesTab from "@/components/assessoria/AssessoriaLicitacoesTab";
 import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab";
+import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ const TABS = [
   { key: "documentos", label: "Documentos" },
   { key: "honorarios", label: "Honorários" },
   { key: "licitacoes", label: "Licitações" },
+  { key: "processos-casos", label: "Pareceres, Processos e Casos" },
   { key: "linha-do-tempo", label: "Linha do Tempo" },
 ];
 
@@ -37,7 +39,15 @@ export default async function AssessoriaDetailPage({
   if (!assessoria) notFound();
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
-  const users = await prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } });
+  const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
+  const [users, availableCasesRaw] = await Promise.all([
+    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.case.findMany({
+      where: { id: { notIn: linkedCaseIds } },
+      select: { id: true, title: true, processNumber: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
 
   const licitacoesEmAndamento = assessoria.licitacoes.filter((l) => l.status === "EM_ANALISE" || l.status === "PARTICIPANDO").length;
 
@@ -99,6 +109,7 @@ export default async function AssessoriaDetailPage({
       {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} />}
       {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
+      {tab === "processos-casos" && <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} />}
       {tab === "linha-do-tempo" && <AssessoriaTimelineTab assessoria={assessoria} />}
     </div>
   );

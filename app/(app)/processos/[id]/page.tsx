@@ -8,6 +8,7 @@ import EditReceivableModal from "@/components/EditReceivableModal";
 import EditPayableModal from "@/components/EditPayableModal";
 import CommentBox from "@/components/CommentBox";
 import CaseStatusSelect from "@/components/CaseStatusSelect";
+import CaseAssessoriaSelect from "@/components/CaseAssessoriaSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import AttachmentList from "@/components/AttachmentList";
 import PeticionarButton from "@/components/PeticionarButton";
@@ -71,7 +72,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw] = await Promise.all([
     prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
@@ -86,7 +87,9 @@ export default async function CaseDetailPage({
       where: { publicationId: { in: c.publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
       _count: { _all: true },
     }),
+    prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
   ]);
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
   const serializedPublications = c.publications.map((p) => ({
     id: p.id,
@@ -115,6 +118,7 @@ export default async function CaseDetailPage({
         <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{c.title}</h1>
         <div className="flex items-center gap-2">
           <PeticionarButton compact caseId={c.id} />
+          <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
           <CaseStatusSelect caseId={c.id} status={c.status} />
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>
