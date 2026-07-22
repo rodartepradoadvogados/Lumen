@@ -16,6 +16,7 @@ const TYPE_OPTIONS: { key: keyof NotificationPrefs; label: string }[] = [
   { key: "notifyPublicacoes", label: "Publicações" },
   { key: "notifyTarefasDelegadas", label: "Tarefas delegadas a mim" },
   { key: "notifyAgendaDia", label: "Agenda do dia" },
+  { key: "notifyMencoes", label: "Quando alguém te mencionar em um comentário" },
 ];
 
 // Converte a chave pública VAPID (base64url) pro formato Uint8Array exigido pelo

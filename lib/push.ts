@@ -7,13 +7,17 @@ import { prisma } from "@/lib/prisma";
 // e nunca lança, sempre resolve para { ok, error? }.
 // ============================================================================
 
-export type NotificationType = "andamentos" | "publicacoes" | "tarefasDelegadas" | "agendaDia";
+export type NotificationType = "andamentos" | "publicacoes" | "tarefasDelegadas" | "agendaDia" | "mencao";
 
-const prefFieldByType: Record<NotificationType, "notifyAndamentos" | "notifyPublicacoes" | "notifyTarefasDelegadas" | "notifyAgendaDia"> = {
+const prefFieldByType: Record<
+  NotificationType,
+  "notifyAndamentos" | "notifyPublicacoes" | "notifyTarefasDelegadas" | "notifyAgendaDia" | "notifyMencoes"
+> = {
   andamentos: "notifyAndamentos",
   publicacoes: "notifyPublicacoes",
   tarefasDelegadas: "notifyTarefasDelegadas",
   agendaDia: "notifyAgendaDia",
+  mencao: "notifyMencoes",
 };
 
 export function isPushConfigured(): boolean {
@@ -49,6 +53,7 @@ export async function sendPushIfEnabled(userId: string, type: NotificationType, 
       notifyPublicacoes: true,
       notifyTarefasDelegadas: true,
       notifyAgendaDia: true,
+      notifyMencoes: true,
       pushSubscriptions: true,
     },
   });

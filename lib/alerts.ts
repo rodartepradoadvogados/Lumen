@@ -74,7 +74,12 @@ export async function getAlerts(includeFinance: boolean = true, viewerId?: strin
       includeFinance
         ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
         : Promise.resolve([]),
-      prisma.mention.findMany({ where: { read: false }, include: { comment: { include: { author: true, case: true, task: true } } } }),
+      viewerId
+        ? prisma.mention.findMany({
+            where: { userId: viewerId, read: false },
+            include: { comment: { include: { author: true, case: true, task: true } } },
+          })
+        : Promise.resolve([]),
       includeFinance
         ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
         : Promise.resolve([]),

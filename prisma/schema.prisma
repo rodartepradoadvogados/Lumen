@@ -38,6 +38,7 @@ model User {
   notifyPublicacoes      Boolean @default(true)
   notifyTarefasDelegadas Boolean @default(true)
   notifyAgendaDia        Boolean @default(true)
+  notifyMencoes          Boolean @default(true)
 
   pushSubscriptions  PushSubscription[]
   tasksResponsible   Task[]        @relation("TaskResponsible")

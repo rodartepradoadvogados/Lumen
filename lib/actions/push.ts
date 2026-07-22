@@ -14,6 +14,7 @@ export type NotificationPrefs = {
   notifyPublicacoes: boolean;
   notifyTarefasDelegadas: boolean;
   notifyAgendaDia: boolean;
+  notifyMencoes: boolean;
 };
 
 export async function getNotificationSettings(): Promise<{ prefs: NotificationPrefs | null; hasSubscription: boolean }> {
@@ -26,6 +27,7 @@ export async function getNotificationSettings(): Promise<{ prefs: NotificationPr
       notifyPublicacoes: user.notifyPublicacoes,
       notifyTarefasDelegadas: user.notifyTarefasDelegadas,
       notifyAgendaDia: user.notifyAgendaDia,
+      notifyMencoes: user.notifyMencoes,
     },
     hasSubscription: count > 0,
   };

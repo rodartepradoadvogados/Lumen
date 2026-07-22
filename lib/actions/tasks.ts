@@ -308,14 +308,21 @@ export async function addComment(data: { content: string; authorId: string; task
       taskId: data.taskId || null,
       caseId: data.caseId || null,
     },
+    include: { author: true },
   });
 
   if (mentionNames.length > 0) {
     const users = await prisma.user.findMany();
     for (const name of mentionNames) {
       const user = users.find((u) => name.toLowerCase().includes(u.name.toLowerCase()) || u.name.toLowerCase().includes(name.toLowerCase()));
-      if (user) {
+      if (user && user.id !== data.authorId) {
         await prisma.mention.create({ data: { commentId: comment.id, userId: user.id } });
+        const url = data.caseId ? `/m/processos/${data.caseId}` : "/m";
+        await sendPushIfEnabled(user.id, "mencao", {
+          title: "Você foi mencionado",
+          body: `${comment.author.name}: ${data.content.slice(0, 120)}`,
+          url,
+        }).catch(() => {});
       }
     }
   }
