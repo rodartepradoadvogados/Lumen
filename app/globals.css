@@ -81,6 +81,13 @@ body {
    `.dark .brand-texture` em especificidade, já que as duas regras miram o mesmo elemento. */
 .dark.theme-tarde {
   --background: #f8fafc;
+  /* Faltava re-escurecer --foreground também: `.dark` deixa a cor de texto herdada (`body
+     { color: var(--foreground) }`) em creme claro (pensada pro fundo navy do Noite). Como o
+     Tarde só trocava --background, qualquer texto SEM classe `dark:text-*` própria (ex.:
+     `<span>Total de Despesas</span>` sem nenhuma cor definida, em várias telas do Financeiro)
+     continuava herdando o creme claro do Noite — texto claro sobre o novo fundo claro do
+     Tarde, ou seja, invisível. Esta é a causa mais provável e mais ampla do bug relatado. */
+  --foreground: #3d1119;
 }
 .dark.theme-tarde .brand-texture {
   background-color: #f8fafc;
@@ -168,6 +175,79 @@ body {
 }
 .dark.theme-tarde .dark\:hover\:text-bordo-400:hover {
   color: #6f1d2e;
+}
+
+/* ------------------------------------------------------------------------
+   Cobertura adicional (auditoria de contraste no Tarde) — o bloco acima só
+   remapeava as classes `dark:` que existiam nos componentes até então. Como
+   novos componentes foram escritos direto com `dark:bg-navy-*`/`dark:text-*`
+   sem passar por essa lista, algumas superfícies "escuras" ficavam sem
+   remapear (texto ficava escuro por cima de um fundo que continuava escuro
+   também — ou o oposto: texto claro pensado pra fundo escuro, sobre o novo
+   fundo claro do Tarde). Mesma técnica de especificidade do bloco acima.
+   ------------------------------------------------------------------------ */
+
+/* Fundos "escuros" que faltavam na lista original (mesmo valor das entradas
+   equivalentes acima) — ex.: cabeçalho do TopBar (`dark:bg-navy-950/90`) e o
+   avatar de iniciais do app mobile (`dark:bg-navy-700`) ficavam com o azul
+   marinho original por baixo de texto já remapeado pra bordô escuro, dando
+   texto escuro sobre fundo escuro. */
+.dark.theme-tarde .dark\:bg-navy-700,
+.dark.theme-tarde .dark\:bg-navy-950\/90 {
+  background-color: rgba(154, 44, 67, 0.1);
+}
+/* Mesmo caso das caixas de erro/confirmação (DeleteEntityButton, UserRow):
+   fundo bordô bem escuro (pensado pra combinar com texto claro no Noite)
+   também precisa virar claro no Tarde. */
+.dark.theme-tarde .dark\:bg-bordo-900\/40 {
+  background-color: rgba(154, 44, 67, 0.1);
+}
+/* `dark:bg-white/10` e `dark:bg-white/5` sem `:hover` (as versões com hover já
+   estavam cobertas acima) — usados como fundo de superfícies secundárias. */
+.dark.theme-tarde .dark\:bg-white\/10 {
+  background-color: rgba(154, 44, 67, 0.12);
+}
+.dark.theme-tarde .dark\:bg-white\/5 {
+  background-color: rgba(154, 44, 67, 0.06);
+}
+
+/* Textos claros demais (pensados pra contraste sobre fundo escuro) sobre o
+   fundo claro do Tarde — cada um vira o mesmo tom que a própria versão do
+   modo Dia, ao lado, já usa (ex.: "text-amber-800 dark:text-amber-300" vira
+   #92400e nos dois). `dark:text-bordo-400` é o mais comum: aparece em quase
+   toda cifra negativa/erro do Financeiro e ainda não tinha entrada (só a
+   variante `:hover` acima tinha) — provavelmente a causa mais visível do
+   "letras invisíveis" relatado. */
+.dark.theme-tarde .dark\:text-bordo-400 {
+  color: #8f1c38;
+}
+.dark.theme-tarde .dark\:text-amber-200 {
+  color: #78350f;
+}
+.dark.theme-tarde .dark\:text-amber-300,
+.dark.theme-tarde .dark\:text-amber-400 {
+  color: #92400e;
+}
+.dark.theme-tarde .dark\:text-amber-300\/70 {
+  color: rgba(146, 64, 14, 0.75);
+}
+.dark.theme-tarde .dark\:hover\:text-amber-400:hover {
+  color: #78350f;
+}
+.dark.theme-tarde .dark\:text-blue-400 {
+  color: #1d4ed8;
+}
+.dark.theme-tarde .dark\:text-emerald-400 {
+  color: #047857;
+}
+.dark.theme-tarde .dark\:hover\:text-emerald-300:hover {
+  color: #065f46;
+}
+.dark.theme-tarde .dark\:text-green-400 {
+  color: #15803d;
+}
+.dark.theme-tarde .dark\:text-magenta-400 {
+  color: #9d2467;
 }
 
 .scrollbar-thin::-webkit-scrollbar {

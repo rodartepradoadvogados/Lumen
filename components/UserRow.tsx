@@ -145,7 +145,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <input name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Senha (mín. 6)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
           <input name="confirm" type="password" required minLength={6} autoComplete="new-password" placeholder="Confirmar senha" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
         </div>
-        {credError && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 dark:bg-red-950/40 dark:border-red-800 dark:text-red-300">{credError}</p>}
+        {credError && <p className="text-[11px] text-bordo-700 bg-bordo-100 border border-bordo-100 rounded-lg px-2.5 py-1.5 dark:bg-bordo-900/40 dark:border-bordo-400/20 dark:text-bordo-400">{credError}</p>}
         <div className="flex gap-2">
           <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
             {pending ? "Salvando..." : user.username ? "Redefinir senha" : "Definir acesso"}
@@ -200,7 +200,9 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             disabled={pending}
             data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
             className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
-              user.financeAccess ? "text-emerald-600 hover:text-red-600 hover:bg-red-50" : "text-navy-800/30 dark:text-cream-50/30 hover:text-emerald-600 hover:bg-emerald-50"
+              user.financeAccess
+                ? "text-emerald-600 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10"
+                : "text-navy-800/30 dark:text-cream-50/30 hover:text-emerald-600 hover:bg-emerald-50"
             }`}
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
@@ -216,13 +218,13 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           >
             <Power size={14} />
           </button>
-          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-40">
+          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10 transition-colors disabled:opacity-40">
             <Trash2 size={14} />
           </button>
         </div>
       )}
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-bordo-100 dark:bg-bordo-900/40 text-bordo-700 dark:text-bordo-400 border border-bordo-100 dark:border-bordo-400/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />

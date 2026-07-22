@@ -54,8 +54,8 @@ export function CardHeader({ title, subtitle, action }: { title: string; subtitl
 }
 
 // Nota: as variantes dark: abaixo só têm efeito quando a classe `dark` estiver presente no
-// <html>, o que hoje só acontece dentro do app mobile (app/m/layout.tsx) — não afeta o site
-// desktop, que nunca aplica essa classe.
+// <html> — o que acontece tanto no app mobile quanto no site desktop, nos modos Noite e
+// Tarde (ver lib/theme.ts e app/globals.css para os ajustes específicos do Tarde).
 const badgeColors: Record<string, string> = {
   navy: "bg-navy-900/10 text-navy-900 dark:bg-white/10 dark:text-cream-50",
   gold: "bg-gold-500/15 text-gold-800 dark:bg-gold-400/15 dark:text-gold-400",
