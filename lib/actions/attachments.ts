@@ -4,12 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
-export async function createAttachment(data: { name: string; driveUrl: string; caseId?: string; attendanceId?: string }) {
+export async function createAttachment(data: { name: string; driveUrl: string; docType?: string; caseId?: string; attendanceId?: string }) {
   const user = await getCurrentUser();
   await prisma.attachment.create({
     data: {
       name: data.name,
       driveUrl: data.driveUrl,
+      docType: data.docType || "OUTRO",
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,
       uploadedById: user?.id || null,

@@ -47,6 +47,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
     id: att.id,
     name: att.name,
     driveUrl: att.driveUrl,
+    docType: att.docType,
     createdAt: att.createdAt.toISOString(),
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));

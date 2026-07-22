@@ -8,6 +8,17 @@ import { buildHonorariosClause, type HonorariosInput } from "@/lib/honorarios";
 
 const SEDE = "Goiânia";
 
+// Mapeia DocumentTemplate.category (ver schema) para a taxonomia de Attachment.docType
+// (lib/documentTypes.ts) — assim o documento gerado já sai categorizado corretamente.
+const TEMPLATE_CATEGORY_TO_DOC_TYPE: Record<string, string> = {
+  CONTRATO: "CONTRATO",
+  PETICAO: "PETICAO",
+  PROCURACAO: "PROCURACAO",
+  DECLARACAO_HIPOSSUFICIENCIA: "DECLARACAO_HIPOSSUFICIENCIA",
+  DECLARACAO_MORADIA: "COMPROVANTE_ENDERECO",
+  OUTRO: "OUTRO",
+};
+
 function buildFileName(templateName: string, subject: string) {
   const today = new Date().toLocaleDateString("pt-BR");
   return `${templateName} - ${subject} - ${today}`;
@@ -118,6 +129,7 @@ export async function generateDocumentFromTemplate(
       data: {
         name: buildFileName(template.name, subject),
         driveUrl: webViewLink,
+        docType: TEMPLATE_CATEGORY_TO_DOC_TYPE[template.category] || "OUTRO",
         caseId: target.caseId || null,
         attendanceId: target.attendanceId || null,
         uploadedById: user.id,

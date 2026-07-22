@@ -9,6 +9,7 @@ import AssessoriaHonorariosTab from "@/components/assessoria/AssessoriaHonorario
 import AssessoriaLicitacoesTab from "@/components/assessoria/AssessoriaLicitacoesTab";
 import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab";
 import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
+import { getDriveStatus } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
 
@@ -40,13 +41,14 @@ export default async function AssessoriaDetailPage({
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [users, availableCasesRaw] = await Promise.all([
+  const [users, availableCasesRaw, driveStatus] = await Promise.all([
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
       where: { id: { notIn: linkedCaseIds } },
       select: { id: true, title: true, processNumber: true },
       orderBy: { title: "asc" },
     }),
+    getDriveStatus(),
   ]);
 
   const licitacoesEmAndamento = assessoria.licitacoes.filter((l) => l.status === "EM_ANALISE" || l.status === "PARTICIPANDO").length;
@@ -106,7 +108,7 @@ export default async function AssessoriaDetailPage({
       </div>
 
       {tab === "geral" && <AssessoriaOverviewTab assessoria={assessoria} />}
-      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} />}
+      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={driveStatus.connected} />}
       {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
       {tab === "processos-casos" && <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} />}

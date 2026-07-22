@@ -432,6 +432,7 @@ model Attachment {
   id           String   @id @default(cuid())
   name         String
   driveUrl     String
+  docType      String   @default("OUTRO") // ver lib/documentTypes.ts
   createdAt    DateTime @default(now())
 
   uploadedById String?

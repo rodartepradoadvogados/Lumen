@@ -130,15 +130,13 @@ async function getOrCreateFolderId(kind: keyof typeof FOLDERS): Promise<string> 
   return folderId;
 }
 
-export async function uploadFileToDrive(
+async function uploadBufferToFolder(
+  drive: Awaited<ReturnType<typeof getDriveClient>>["drive"],
   fileName: string,
   mimeType: string,
   buffer: Buffer,
-  folder: keyof typeof FOLDERS = "anexos"
+  folderId: string
 ): Promise<{ id: string; webViewLink: string }> {
-  const { drive } = await getDriveClient();
-  const folderId = await getOrCreateFolderId(folder);
-
   const created = await drive.files.create({
     requestBody: { name: fileName, parents: [folderId] },
     media: { mimeType, body: Readable.from(buffer) },
@@ -155,6 +153,30 @@ export async function uploadFileToDrive(
   const file = await drive.files.get({ fileId, fields: "id, webViewLink" });
   if (!file.data.webViewLink) throw new Error("Arquivo enviado, mas o link não pôde ser obtido.");
   return { id: fileId, webViewLink: file.data.webViewLink };
+}
+
+export async function uploadFileToDrive(
+  fileName: string,
+  mimeType: string,
+  buffer: Buffer,
+  folder: keyof typeof FOLDERS = "anexos"
+): Promise<{ id: string; webViewLink: string }> {
+  const { drive } = await getDriveClient();
+  const folderId = await getOrCreateFolderId(folder);
+  return uploadBufferToFolder(drive, fileName, mimeType, buffer, folderId);
+}
+
+// Igual a uploadFileToDrive, mas envia para uma pasta específica do Drive (por id) em vez de
+// uma das pastas fixas de FOLDERS — usado para subir arquivo direto na pasta de uma empresa em
+// Assessoria (Assessoria.driveFolderId).
+export async function uploadFileToDriveFolder(
+  fileName: string,
+  mimeType: string,
+  buffer: Buffer,
+  folderId: string
+): Promise<{ id: string; webViewLink: string }> {
+  const { drive } = await getDriveClient();
+  return uploadBufferToFolder(drive, fileName, mimeType, buffer, folderId);
 }
 
 export function extractDriveFileId(url: string): string | null {
