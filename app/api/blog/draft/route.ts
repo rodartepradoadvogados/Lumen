@@ -23,6 +23,18 @@ function slugify(title: string): string {
   return `${base || "materia"}-${suffix}`;
 }
 
+// Normaliza um título para comparação de duplicata: mesma lógica de acentos/
+// caixa da slugify, mas sem sufixo aleatório nem limite de tamanho.
+function normalizeTitle(title: string): string {
+  return title
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 // Recebe rascunhos de matérias produzidos pelo robô de conteúdo EXTERNO
 // (outro projeto Claude Code, autônomo). Autenticação simples por Bearer token
 // comparado a BLOG_ROBOT_SECRET — mesmo estilo de checagem usado no cron do
@@ -107,6 +119,47 @@ export async function POST(req: NextRequest) {
   if (Array.isArray(data.sources)) {
     const cleaned = data.sources.filter((s): s is string => typeof s === "string" && s.trim().length > 0).map((s) => s.trim());
     if (cleaned.length > 0) sources = cleaned.join("\n");
+  }
+
+  // Trava de duplicata no servidor: não depende do robô externo lembrar de
+  // checar antes de publicar (ele já faz isso via GET, mas essa é uma segunda
+  // camada, mecânica, que vale pra qualquer chamador). Considera duplicata se
+  // o título normalizado bater com algo dos últimos 60 dias, em qualquer
+  // status (inclusive REJEITADO — não reenviar o que já foi recusado), ou se
+  // alguma fonte citada já foi usada em outra matéria (mesmo fato, título
+  // reescrito de outro jeito).
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+  const recentPosts = await prisma.blogPost.findMany({
+    where: { createdAt: { gte: sixtyDaysAgo } },
+    select: { id: true, slug: true, title: true, sources: true, status: true, createdAt: true },
+  });
+
+  const incomingSources: string[] = Array.isArray(data.sources)
+    ? data.sources.filter((s): s is string => typeof s === "string" && s.trim().length > 0).map((s) => s.trim())
+    : [];
+  const normalizedIncomingTitle = normalizeTitle(title);
+
+  const duplicate = recentPosts.find((p) => {
+    if (normalizeTitle(p.title) === normalizedIncomingTitle) return true;
+    if (incomingSources.length === 0 || !p.sources) return false;
+    const existingSources = p.sources.split("\n");
+    return incomingSources.some((s) => existingSources.includes(s));
+  });
+
+  if (duplicate) {
+    return NextResponse.json(
+      {
+        error: "provável duplicata: já existe uma matéria com título ou fonte iguais nos últimos 60 dias.",
+        conflictingPost: {
+          id: duplicate.id,
+          slug: duplicate.slug,
+          title: duplicate.title,
+          status: duplicate.status,
+          createdAt: duplicate.createdAt,
+        },
+      },
+      { status: 409 }
+    );
   }
 
   const slug = slugify(title);
