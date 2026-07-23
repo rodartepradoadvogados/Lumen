@@ -15,7 +15,7 @@ export type ReorgResult = { moved: number; skipped: number; errors: string[] };
 
 // Ação administrativa avulsa: reorganiza os Anexos de Processo/Atendimento já existentes no
 // Drive, movendo cada arquivo pra pasta do processo/atendimento + subpasta da categoria — a
-// mesma estrutura que uploads novos já usam (ver app/api/attachments/upload/route.ts). Só
+// mesma estrutura que uploads novos já usam (ver lib/actions/attachments.ts:finalizeAttachmentUpload). Só
 // move o que realmente está no nosso Drive (link colado de outro serviço como Dropbox/OneDrive
 // é ignorado — não tem como mover um arquivo que não está lá). Idempotente: pode rodar de novo
 // sem problema, arquivos já na pasta certa só têm o parent reafirmado.

@@ -2,8 +2,9 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search } from "lucide-react";
-import { createAttachment, deleteAttachment } from "@/lib/actions/attachments";
+import { createAttachment, deleteAttachment, finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 
@@ -70,18 +71,30 @@ export default function AttachmentList({
     if (!stagedFile) return;
     setError(null);
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", stagedFile);
-    formData.append("name", stagedName.trim() || stagedFile.name);
-    formData.append("docType", stagedDocType);
-    if (caseId) formData.append("caseId", caseId);
-    if (attendanceId) formData.append("attendanceId", attendanceId);
 
     try {
-      const res = await fetch("/api/attachments/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Erro ao enviar arquivo.");
+      // Etapa 1: sobe o arquivo direto do navegador pro Vercel Blob, sem passar pela nossa
+      // function — uma Serverless Function tem um limite de corpo bem menor que os 25MB que
+      // anexos como "processo completo" em PDF costumam ter (é isso que causava "Erro ao
+      // enviar arquivo. Verifique sua conexão." antes, mesmo com conexão boa).
+      const blob = await upload(stagedFile.name, stagedFile, {
+        access: "public",
+        handleUploadUrl: "/api/attachments/blob-token",
+      });
+
+      // Etapa 2: payload pequeno (só a URL do Blob + metadados) — o servidor baixa o
+      // conteúdo, manda pro Drive e apaga o Blob temporário.
+      const result = await finalizeAttachmentUpload({
+        blobUrl: blob.url,
+        name: stagedName.trim() || stagedFile.name,
+        contentType: stagedFile.type || "application/octet-stream",
+        docType: stagedDocType,
+        caseId,
+        attendanceId,
+      });
+
+      if (result.error) {
+        setError(result.error);
       } else {
         setStagedFile(null);
         router.refresh();

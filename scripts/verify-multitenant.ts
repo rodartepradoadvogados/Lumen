@@ -189,7 +189,7 @@ async function main() {
   // real (Next.js), que não existe neste script standalone. Coberto separadamente por revisão de código.
 
   // --- Verificação 4: lib/officeScope.ts — bloqueia injeção de FK entre escritórios ---
-  // Este é o guard que fecha o achado da auditoria (ex.: app/api/attachments/upload/route.ts,
+  // Este é o guard que fecha o achado da auditoria (ex.: lib/actions/attachments.ts,
   // lib/actions/cases.ts, financeiro.ts etc. usavam caseId/clientId/responsibleId do cliente
   // sem checar se pertenciam ao escritório de quem estava logado).
   console.log("\n=== Testando lib/officeScope.ts (bloqueio de injeção de FK entre escritórios) ===");

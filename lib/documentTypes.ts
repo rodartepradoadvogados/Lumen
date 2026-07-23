@@ -53,6 +53,7 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
   {
     group: "Processual",
     types: [
+      { key: "PROCESSO_COMPLETO", label: "Processo Completo", icon: FileStack },
       { key: "PETICAO", label: "Petição", icon: FileEdit },
       { key: "PETICAO_INICIAL", label: "Petição Inicial", icon: FileEdit },
       { key: "CONTESTACAO", label: "Contestação", icon: Scale },
