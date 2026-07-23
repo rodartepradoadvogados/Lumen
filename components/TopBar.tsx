@@ -14,7 +14,7 @@ import { getTodayElapsedSeconds } from "@/lib/timesheet";
 export default async function TopBar() {
   const user = await getCurrentUser();
   const hasFinanceAccess = Boolean(user?.isAdmin || user?.financeAccess);
-  const todayItems = await getTodayItems(hasFinanceAccess);
+  const todayItems = user ? await getTodayItems(user.officeId, hasFinanceAccess) : [];
   const initials = user
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
     : "??";
