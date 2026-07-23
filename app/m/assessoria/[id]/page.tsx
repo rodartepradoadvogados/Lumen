@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { prisma } from "@/lib/prisma";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +58,13 @@ const caseStatusLabels: Record<string, string> = { ATIVO: "Ativo", SUSPENSO: "Su
 export default async function MobileAssessoriaDetail({ params }: { params: { id: string } }) {
   const assessoria = await getAssessoriaDetail(params.id);
   if (!assessoria) notFound();
+
+  const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
+  const availableCases = await prisma.case.findMany({
+    where: { id: { notIn: linkedCaseIds } },
+    select: { id: true, title: true, processNumber: true },
+    orderBy: { title: "asc" },
+  });
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -158,8 +167,9 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </Card>
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
+        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10 flex items-center justify-between gap-2">
           <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Processos vinculados</h2>
+          <MobileSearchCasesModal assessoriaId={assessoria.id} availableCases={availableCases} />
         </div>
         {assessoria.linkedCases.length === 0 ? (
           <EmptyState title="Nenhum processo vinculado" />
