@@ -27,14 +27,18 @@ function getAppUrl(): string {
   return process.env.APP_URL || "https://rp-financeiro-xi.vercel.app";
 }
 
-export async function login(username: string, password: string, next?: string): Promise<{ error?: string }> {
-  const user = await prisma.user.findFirst({ where: { username, active: true } });
-  if (!user || !user.passwordHash) {
-    return { error: "Usuário ou senha inválidos." };
+// Login por e-mail (não por username): num sistema multi-tenant, e-mail é o único
+// identificador que continua único GLOBALMENTE (username agora é só um apelido por
+// escritório, ver prisma/schema.prisma) — login por e-mail evita qualquer ambiguidade
+// entre escritórios diferentes sem exigir que o usuário informe também qual escritório é o seu.
+export async function login(email: string, password: string, next?: string): Promise<{ error?: string }> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.active || !user.passwordHash) {
+    return { error: "E-mail ou senha inválidos." };
   }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    return { error: "Usuário ou senha inválidos." };
+    return { error: "E-mail ou senha inválidos." };
   }
   const token = await signSession(user.id);
   cookies().set(SESSION_COOKIE_NAME, token, {
@@ -44,7 +48,7 @@ export async function login(username: string, password: string, next?: string): 
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
-  await prisma.loginSession.create({ data: { userId: user.id } });
+  await prisma.loginSession.create({ data: { userId: user.id, officeId: user.officeId } });
   redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/painel");
 }
 
@@ -56,17 +60,17 @@ export async function logout() {
 // Passo 1 do "Esqueci minha senha": confirma se o login existe e devolve o e-mail
 // mascarado, sem revelar mais nada — usado pela janela suspensa antes de perguntar
 // "deseja redefinir a senha por e-mail?".
-export async function checkLoginForReset(username: string): Promise<{ found: boolean; maskedEmail?: string }> {
-  const user = await prisma.user.findFirst({ where: { username, active: true } });
-  if (!user) return { found: false };
+export async function checkLoginForReset(email: string): Promise<{ found: boolean; maskedEmail?: string }> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.active) return { found: false };
   return { found: true, maskedEmail: maskEmail(user.email) };
 }
 
 // Passo 2: gera um token de uso único (válido por 1h, guardado só como hash) e envia
 // o link de redefinição para o e-mail cadastrado do usuário.
-export async function requestPasswordReset(username: string): Promise<{ error?: string; sent?: boolean }> {
-  const user = await prisma.user.findFirst({ where: { username, active: true } });
-  if (!user) return { error: "Usuário não encontrado." };
+export async function requestPasswordReset(email: string): Promise<{ error?: string; sent?: boolean }> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.active) return { error: "E-mail não encontrado." };
 
   const rawToken = crypto.randomBytes(32).toString("hex");
   await prisma.user.update({

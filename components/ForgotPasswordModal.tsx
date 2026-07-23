@@ -6,17 +6,17 @@ import styles from "@/app/homepage.module.css";
 
 type Step = "ask-login" | "confirm" | "not-found" | "sent" | "error";
 
-export default function ForgotPasswordModal({ initialUsername, onClose }: { initialUsername: string; onClose: () => void }) {
-  const [username, setUsername] = useState(initialUsername);
-  const [step, setStep] = useState<Step>(initialUsername ? "confirm" : "ask-login");
+export default function ForgotPasswordModal({ initialEmail, onClose }: { initialEmail: string; onClose: () => void }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [step, setStep] = useState<Step>(initialEmail ? "confirm" : "ask-login");
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function checkLogin() {
-    if (!username.trim()) return;
+    if (!email.trim()) return;
     startTransition(async () => {
-      const result = await checkLoginForReset(username.trim());
+      const result = await checkLoginForReset(email.trim());
       if (result.found) {
         setMaskedEmail(result.maskedEmail ?? null);
         setStep("confirm");
@@ -28,7 +28,7 @@ export default function ForgotPasswordModal({ initialUsername, onClose }: { init
 
   function confirmSend() {
     startTransition(async () => {
-      const result = await requestPasswordReset(username.trim());
+      const result = await requestPasswordReset(email.trim());
       if (result.error) {
         setErrorMsg(result.error);
         setStep("error");
@@ -38,10 +38,10 @@ export default function ForgotPasswordModal({ initialUsername, onClose }: { init
     });
   }
 
-  // Se o usuário já digitou o login no formulário antes de clicar em "Esqueci minha
+  // Se o usuário já digitou o e-mail no formulário antes de clicar em "Esqueci minha
   // senha", verifica direto assim que o modal abre (uma única vez, ao montar).
   useEffect(() => {
-    if (initialUsername) checkLogin();
+    if (initialEmail) checkLogin();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -51,18 +51,19 @@ export default function ForgotPasswordModal({ initialUsername, onClose }: { init
         {step === "ask-login" && (
           <>
             <p className={styles.modalTitle}>Esqueci minha senha</p>
-            <p className={styles.modalText}>Digite seu usuário para localizarmos o e-mail cadastrado.</p>
+            <p className={styles.modalText}>Digite seu e-mail cadastrado para localizarmos sua conta.</p>
             <input
               className={styles.modalInput}
-              placeholder="Usuário"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              placeholder="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && checkLogin()}
               autoFocus
             />
             <div className={styles.modalActions}>
               <button className={styles.modalBtnSecondary} onClick={onClose}>Cancelar</button>
-              <button className={styles.modalBtnPrimary} disabled={pending || !username.trim()} onClick={checkLogin}>
+              <button className={styles.modalBtnPrimary} disabled={pending || !email.trim()} onClick={checkLogin}>
                 {pending ? "Verificando..." : "Continuar"}
               </button>
             </div>
@@ -90,8 +91,8 @@ export default function ForgotPasswordModal({ initialUsername, onClose }: { init
 
         {step === "not-found" && (
           <>
-            <p className={styles.modalTitle}>Usuário não encontrado</p>
-            <p className={styles.modalText}>Não encontramos esse usuário. Confira e tente novamente.</p>
+            <p className={styles.modalTitle}>E-mail não encontrado</p>
+            <p className={styles.modalText}>Não encontramos esse e-mail. Confira e tente novamente.</p>
             <div className={styles.modalActions}>
               <button className={styles.modalBtnSecondary} onClick={onClose}>Fechar</button>
               <button className={styles.modalBtnPrimary} onClick={() => { setMaskedEmail(null); setStep("ask-login"); }}>

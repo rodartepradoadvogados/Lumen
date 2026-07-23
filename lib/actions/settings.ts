@@ -38,9 +38,9 @@ export async function runDjenConnectionTest(): Promise<{ error?: string; results
 
 export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem cadastrar membros da equipe." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem cadastrar membros da equipe." };
   await prisma.user.create({
-    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color },
+    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, officeId: viewer.officeId },
   });
   revalidatePath("/configuracoes");
   revalidatePath("/contatos/equipe");

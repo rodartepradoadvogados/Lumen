@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { login } from "@/lib/actions/auth";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
@@ -14,7 +15,7 @@ import styles from "@/app/homepage.module.css";
 // do carrossel, que fica ancorado embaixo, à esquerda.
 async function action(_prevState: { error?: string }, formData: FormData) {
   const next = String(formData.get("next") || "");
-  return login(String(formData.get("username") || ""), String(formData.get("password") || ""), next || undefined);
+  return login(String(formData.get("email") || ""), String(formData.get("password") || ""), next || undefined);
 }
 
 function SubmitButton() {
@@ -30,7 +31,7 @@ export default function HomepageLoginCard() {
   const [state, formAction] = useFormState(action, {});
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "";
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
 
@@ -40,13 +41,14 @@ export default function HomepageLoginCard() {
       <form action={formAction} className={styles.loginForm}>
         <input type="hidden" name="next" value={next} />
         <input
-          name="username"
+          name="email"
+          type="email"
           required
-          autoComplete="username"
-          placeholder="Usuário"
+          autoComplete="email"
+          placeholder="E-mail"
           className={styles.loginInput}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <div className={styles.passwordFieldWrap}>
           <input
@@ -72,7 +74,10 @@ export default function HomepageLoginCard() {
         {state?.error && <p className={styles.loginError}>{state.error}</p>}
         <SubmitButton />
       </form>
-      {forgotOpen && <ForgotPasswordModal initialUsername={username} onClose={() => setForgotOpen(false)} />}
+      <Link href="/cadastro" className={styles.forgotLink}>
+        Ainda não é cliente? Cadastre seu escritório
+      </Link>
+      {forgotOpen && <ForgotPasswordModal initialEmail={email} onClose={() => setForgotOpen(false)} />}
     </div>
   );
 }
