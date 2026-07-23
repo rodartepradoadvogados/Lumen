@@ -94,24 +94,30 @@ export default async function ConfiguracoesPage({
 }: {
   searchParams: { google?: string; msg?: string; secao?: string; blogTab?: string };
 }) {
-  const [viewer, users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw] =
+  const viewer = await getCurrentUser();
+  if (!viewer) {
+    return null;
+  }
+  const officeId = viewer.officeId;
+
+  const [users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw] =
     await Promise.all([
-      getCurrentUser(),
-      prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
-      prisma.financialCategory.findMany(),
-      prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
-      getDriveStatus(),
-      prisma.documentTemplate.findMany({ orderBy: { name: "asc" } }),
-      prisma.taskTypePoints.findMany(),
+      prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
+      prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
+      prisma.financialCategory.findMany({ where: { officeId } }),
+      prisma.costCenter.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
+      getDriveStatus(officeId),
+      prisma.documentTemplate.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
+      prisma.taskTypePoints.findMany({ where: { officeId } }),
       prisma.workflowTemplate.findMany({
+        where: { officeId },
         orderBy: { createdAt: "asc" },
         include: { steps: { orderBy: { order: "asc" } } },
       }),
-      listGoogleAccounts(),
-      prisma.blogPost.findMany({ where: { status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
-      prisma.blogPost.findMany({ where: { status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
-      prisma.photo.findMany({ orderBy: { createdAt: "desc" } }),
+      listGoogleAccounts(officeId),
+      prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
+      prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+      prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
     ]);
 
   const photos = photosRaw.map((p) => ({

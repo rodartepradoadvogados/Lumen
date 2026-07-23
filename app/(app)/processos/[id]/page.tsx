@@ -47,11 +47,12 @@ export default async function CaseDetailPage({
 }) {
   const requestedTab = searchParams.tab || "visao-geral";
   const viewer = await getCurrentUser();
-  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  if (!viewer) notFound();
+  const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
   const tab = requestedTab === "financeiro" && !hasFinanceAccess ? "visao-geral" : requestedTab;
 
-  const c = await prisma.case.findUnique({
-    where: { id: params.id },
+  const c = await prisma.case.findFirst({
+    where: { id: params.id, officeId: viewer.officeId },
     include: {
       client: true,
       responsible: true,
@@ -76,21 +77,21 @@ export default async function CaseDetailPage({
   }));
 
   const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw] = await Promise.all([
-    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.kanbanColumn.findMany({ orderBy: { order: "asc" } }),
-    getLeafCategoryOptions("RECEITA"),
-    getLeafCategoryOptions("DESPESA"),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
-    prisma.supplier.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    getDriveStatus(),
-    prisma.workflowTemplate.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
+    prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
+    getLeafCategoryOptions("RECEITA", viewer.officeId),
+    getLeafCategoryOptions("DESPESA", viewer.officeId),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    getDriveStatus(viewer.officeId),
+    prisma.workflowTemplate.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.task.groupBy({
       by: ["publicationId"],
-      where: { publicationId: { in: c.publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
+      where: { officeId: viewer.officeId, publicationId: { in: c.publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
       _count: { _all: true },
     }),
-    prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
+    prisma.assessoria.findMany({ where: { officeId: viewer.officeId, status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));

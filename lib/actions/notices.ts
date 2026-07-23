@@ -9,7 +9,7 @@ export async function createNotice(content: string): Promise<{ error?: string }>
   if (!user) return { error: "Sessão inválida." };
   const trimmed = content.trim();
   if (!trimmed) return { error: "Escreva um recado antes de publicar." };
-  await prisma.notice.create({ data: { content: trimmed, authorId: user.id } });
+  await prisma.notice.create({ data: { content: trimmed, authorId: user.id, officeId: user.officeId } });
   revalidatePath("/painel");
   return {};
 }
@@ -17,7 +17,7 @@ export async function createNotice(content: string): Promise<{ error?: string }>
 export async function deleteNotice(id: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
-  const notice = await prisma.notice.findUnique({ where: { id } });
+  const notice = await prisma.notice.findFirst({ where: { id, officeId: user.officeId } });
   if (!notice) return { error: "Recado não encontrado." };
   if (notice.authorId !== user.id && !user.isAdmin) {
     return { error: "Apenas o autor ou um sócio pode excluir este recado." };
@@ -31,7 +31,7 @@ export async function togglePinNotice(id: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
   if (!user.isAdmin) return { error: "Apenas sócios podem fixar recados." };
-  const notice = await prisma.notice.findUnique({ where: { id } });
+  const notice = await prisma.notice.findFirst({ where: { id, officeId: user.officeId } });
   if (!notice) return { error: "Recado não encontrado." };
   await prisma.notice.update({ where: { id }, data: { pinned: !notice.pinned } });
   revalidatePath("/painel");

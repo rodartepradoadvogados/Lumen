@@ -40,7 +40,7 @@ export async function createAssessoria(data: {
   // catálogo de Documentos só usa link colado, não depende da pasta existir).
   let driveFolderId: string | null = null;
   try {
-    driveFolderId = await getOrCreateAssessoriaCompanyFolder(client.name);
+    driveFolderId = await getOrCreateAssessoriaCompanyFolder(client.name, user.officeId);
   } catch {
     driveFolderId = null;
   }

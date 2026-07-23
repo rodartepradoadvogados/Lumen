@@ -13,10 +13,11 @@ function effective(status: string, dueDate: Date, noDueDate: boolean, now: Date)
   return status === "PENDENTE" && dueDate < now && !noDueDate ? "ATRASADO" : status;
 }
 
-export async function getFilteredPayables(sp: FinanceSearchParams) {
+export async function getFilteredPayables(sp: FinanceSearchParams, officeId: string) {
   const now = new Date();
   const all = await prisma.payable.findMany({
     where: {
+      officeId,
       dueDate: {
         gte: sp.from ? new Date(sp.from) : undefined,
         lte: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,
@@ -34,10 +35,11 @@ export async function getFilteredPayables(sp: FinanceSearchParams) {
     .filter((p) => !q || p.description.toLowerCase().includes(q) || (p.supplier || "").toLowerCase().includes(q));
 }
 
-export async function getFilteredReceivables(sp: FinanceSearchParams) {
+export async function getFilteredReceivables(sp: FinanceSearchParams, officeId: string) {
   const now = new Date();
   const all = await prisma.receivable.findMany({
     where: {
+      officeId,
       dueDate: {
         gte: sp.from ? new Date(sp.from) : undefined,
         lte: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,

@@ -53,7 +53,7 @@ export async function updateUser(
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem editar membros da equipe." };
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   await prisma.user.update({
     where: { id },
@@ -67,7 +67,7 @@ export async function updateUser(
 export async function setFinanceAccess(id: string, financeAccess: boolean): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem alterar o acesso ao Financeiro." };
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) return { error: "Sócios sempre têm acesso ao Financeiro." };
   await prisma.user.update({ where: { id }, data: { financeAccess } });
@@ -81,7 +81,7 @@ export async function setUserCredentials(id: string, username: string, password:
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem definir credenciais de acesso." };
 
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
 
   const normalizedUsername = username.trim().toLowerCase();
@@ -90,7 +90,7 @@ export async function setUserCredentials(id: string, username: string, password:
   if (password.length < 6) return { error: "A senha deve ter ao menos 6 caracteres." };
 
   const existing = await prisma.user.findFirst({
-    where: { username: { equals: normalizedUsername, mode: "insensitive" }, id: { not: id } },
+    where: { username: { equals: normalizedUsername, mode: "insensitive" }, id: { not: id }, officeId: viewer.officeId },
   });
   if (existing) return { error: "Já existe outro membro com esse usuário." };
 
@@ -113,7 +113,9 @@ export async function changeOwnPassword(currentPassword: string, newPassword: st
 }
 
 export async function toggleUserActive(id: string): Promise<{ error?: string }> {
-  const user = await prisma.user.findUnique({ where: { id } });
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem inativar membros da equipe." };
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) return { error: "Não é possível inativar um administrador (Jairo/Rodrigo)." };
   await prisma.user.update({ where: { id }, data: { active: !user.active } });
@@ -122,42 +124,51 @@ export async function toggleUserActive(id: string): Promise<{ error?: string }> 
 }
 
 export async function deleteUser(id: string): Promise<{ error?: string }> {
-  const user = await prisma.user.findUnique({ where: { id } });
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem excluir membros da equipe." };
+  const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) {
     return { error: "Não é possível excluir um administrador (Jairo/Rodrigo) por aqui." };
   }
 
   const [commentCount, mentionCount, deletionReqCount] = await Promise.all([
-    prisma.comment.count({ where: { authorId: id } }),
-    prisma.mention.count({ where: { userId: id } }),
-    prisma.deletionRequest.count({ where: { requestedById: id } }),
+    prisma.comment.count({ where: { authorId: id, officeId: viewer.officeId } }),
+    prisma.mention.count({ where: { userId: id, officeId: viewer.officeId } }),
+    prisma.deletionRequest.count({ where: { requestedById: id, officeId: viewer.officeId } }),
   ]);
   if (commentCount + mentionCount + deletionReqCount > 0) {
     return { error: "Não é possível excluir: este usuário já tem histórico no sistema (comentários, menções ou solicitações). Use \"Inativar\" em vez de excluir." };
   }
 
   await prisma.$transaction([
-    prisma.task.updateMany({ where: { responsibleId: id }, data: { responsibleId: null } }),
-    prisma.case.updateMany({ where: { responsibleId: id }, data: { responsibleId: null } }),
-    prisma.attendance.updateMany({ where: { responsibleId: id }, data: { responsibleId: null } }),
-    prisma.attachment.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } }),
-    prisma.deletionRequest.updateMany({ where: { resolvedById: id }, data: { resolvedById: null } }),
+    prisma.task.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
+    prisma.case.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
+    prisma.attendance.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
+    prisma.attachment.updateMany({ where: { uploadedById: id, officeId: viewer.officeId }, data: { uploadedById: null } }),
+    prisma.deletionRequest.updateMany({ where: { resolvedById: id, officeId: viewer.officeId }, data: { resolvedById: null } }),
     prisma.user.delete({ where: { id } }),
   ]);
   revalidatePath("/configuracoes");
   return {};
 }
 
-export async function createKanbanColumn(data: { name: string; color: string }) {
-  const count = await prisma.kanbanColumn.count();
-  await prisma.kanbanColumn.create({ data: { name: data.name, color: data.color, order: count } });
+export async function createKanbanColumn(data: { name: string; color: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const count = await prisma.kanbanColumn.count({ where: { officeId: viewer.officeId } });
+  await prisma.kanbanColumn.create({ data: { officeId: viewer.officeId, name: data.name, color: data.color, order: count } });
   revalidatePath("/configuracoes");
   revalidatePath("/kanban");
+  return {};
 }
 
 export async function deleteKanbanColumn(id: string): Promise<{ error?: string }> {
-  const taskCount = await prisma.task.count({ where: { columnId: id } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const column = await prisma.kanbanColumn.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!column) return { error: "Coluna não encontrada." };
+  const taskCount = await prisma.task.count({ where: { columnId: id, officeId: viewer.officeId } });
   if (taskCount > 0) {
     return { error: `Não é possível excluir: há ${taskCount} tarefa(s) nessa coluna. Mova-as antes de excluir.` };
   }
@@ -167,30 +178,38 @@ export async function deleteKanbanColumn(id: string): Promise<{ error?: string }
   return {};
 }
 
-export async function createFinancialCategory(data: { name: string; kind: string; parentId?: string }) {
+export async function createFinancialCategory(data: { name: string; kind: string; parentId?: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
   let code: string;
   if (data.parentId) {
-    const parent = await prisma.financialCategory.findUniqueOrThrow({ where: { id: data.parentId } });
-    const siblingCount = await prisma.financialCategory.count({ where: { parentId: data.parentId } });
+    const parent = await prisma.financialCategory.findFirst({ where: { id: data.parentId, officeId: viewer.officeId } });
+    if (!parent) return { error: "Categoria pai não encontrada." };
+    const siblingCount = await prisma.financialCategory.count({ where: { parentId: data.parentId, officeId: viewer.officeId } });
     code = `${parent.code}.${siblingCount + 1}`;
   } else {
-    const topCount = await prisma.financialCategory.count({ where: { parentId: null } });
+    const topCount = await prisma.financialCategory.count({ where: { parentId: null, officeId: viewer.officeId } });
     code = `${topCount + 1}`;
   }
   await prisma.financialCategory.create({
-    data: { name: data.name, kind: data.kind, code, parentId: data.parentId || null },
+    data: { officeId: viewer.officeId, name: data.name, kind: data.kind, code, parentId: data.parentId || null },
   });
   revalidatePath("/configuracoes");
+  return {};
 }
 
 export async function deleteFinancialCategory(id: string): Promise<{ error?: string }> {
-  const childCount = await prisma.financialCategory.count({ where: { parentId: id } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const category = await prisma.financialCategory.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!category) return { error: "Categoria não encontrada." };
+  const childCount = await prisma.financialCategory.count({ where: { parentId: id, officeId: viewer.officeId } });
   if (childCount > 0) {
     return { error: `Não é possível excluir: essa categoria tem ${childCount} subcategoria(s). Exclua-as primeiro.` };
   }
   const [payableCount, receivableCount] = await Promise.all([
-    prisma.payable.count({ where: { categoryId: id } }),
-    prisma.receivable.count({ where: { categoryId: id } }),
+    prisma.payable.count({ where: { categoryId: id, officeId: viewer.officeId } }),
+    prisma.receivable.count({ where: { categoryId: id, officeId: viewer.officeId } }),
   ]);
   if (payableCount + receivableCount > 0) {
     return { error: `Não é possível excluir: há ${payableCount + receivableCount} lançamento(s) usando essa categoria.` };
@@ -200,13 +219,18 @@ export async function deleteFinancialCategory(id: string): Promise<{ error?: str
   return {};
 }
 
-export async function createCostCenter(data: { name: string; notes?: string }) {
-  await prisma.costCenter.create({ data: { name: data.name, notes: data.notes || null } });
+export async function createCostCenter(data: { name: string; notes?: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  await prisma.costCenter.create({ data: { officeId: viewer.officeId, name: data.name, notes: data.notes || null } });
   revalidatePath("/configuracoes");
+  return {};
 }
 
-export async function createCostCenterQuick(name: string): Promise<{ id: string; name: string }> {
-  const costCenter = await prisma.costCenter.create({ data: { name } });
+export async function createCostCenterQuick(name: string): Promise<{ id: string; name: string; error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { id: "", name: "", error: "Sessão expirada." };
+  const costCenter = await prisma.costCenter.create({ data: { officeId: viewer.officeId, name } });
   revalidatePath("/configuracoes");
   revalidatePath("/financeiro/contas-a-pagar");
   revalidatePath("/financeiro/contas-a-receber");
@@ -214,9 +238,13 @@ export async function createCostCenterQuick(name: string): Promise<{ id: string;
 }
 
 export async function deleteCostCenter(id: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const costCenter = await prisma.costCenter.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!costCenter) return { error: "Centro de custo não encontrado." };
   const [payableCount, receivableCount] = await Promise.all([
-    prisma.payable.count({ where: { costCenterId: id } }),
-    prisma.receivable.count({ where: { costCenterId: id } }),
+    prisma.payable.count({ where: { costCenterId: id, officeId: viewer.officeId } }),
+    prisma.receivable.count({ where: { costCenterId: id, officeId: viewer.officeId } }),
   ]);
   if (payableCount + receivableCount > 0) {
     return { error: `Não é possível excluir: há ${payableCount + receivableCount} lançamento(s) usando esse centro de custo.` };

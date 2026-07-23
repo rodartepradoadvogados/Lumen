@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   let rows: Record<string, string | number>[];
   if (tipo === "pagar") {
-    const payables = await getFilteredPayables(params);
+    const payables = await getFilteredPayables(params, user.officeId);
     rows = payables.map((p) => ({
       Descrição: p.description,
       "Fornecedor/Cliente": p.supplier || "",
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       Comprovante: p.paymentReceiptNumber || "",
     }));
   } else {
-    const receivables = await getFilteredReceivables(params);
+    const receivables = await getFilteredReceivables(params, user.officeId);
     rows = receivables.map((r) => ({
       Descrição: r.description,
       "Fornecedor/Cliente": r.client?.name || "",

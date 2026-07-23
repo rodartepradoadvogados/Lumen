@@ -16,13 +16,14 @@ export async function createWorkflowTemplate(data: {
   description?: string;
 }): Promise<{ error?: string }> {
   const auth = await requireAdmin();
-  if (auth.error) return auth;
+  if ("error" in auth) return auth;
   if (!data.name.trim()) return { error: "Informe um nome para o workflow." };
   await prisma.workflowTemplate.create({
     data: {
       name: data.name.trim(),
       area: data.area?.trim() || null,
       description: data.description?.trim() || null,
+      officeId: auth.viewer.officeId,
     },
   });
   revalidatePath("/configuracoes");
@@ -34,10 +35,10 @@ export async function updateWorkflowTemplate(
   data: { name: string; area?: string; description?: string; active: boolean }
 ): Promise<{ error?: string }> {
   const auth = await requireAdmin();
-  if (auth.error) return auth;
+  if ("error" in auth) return auth;
   if (!data.name.trim()) return { error: "Informe um nome para o workflow." };
-  await prisma.workflowTemplate.update({
-    where: { id },
+  const result = await prisma.workflowTemplate.updateMany({
+    where: { id, officeId: auth.viewer.officeId },
     data: {
       name: data.name.trim(),
       area: data.area?.trim() || null,
@@ -45,14 +46,15 @@ export async function updateWorkflowTemplate(
       active: data.active,
     },
   });
+  if (result.count === 0) return { error: "Workflow não encontrado." };
   revalidatePath("/configuracoes");
   return {};
 }
 
 export async function toggleWorkflowActive(id: string): Promise<{ error?: string }> {
   const auth = await requireAdmin();
-  if (auth.error) return auth;
-  const template = await prisma.workflowTemplate.findUnique({ where: { id } });
+  if ("error" in auth) return auth;
+  const template = await prisma.workflowTemplate.findFirst({ where: { id, officeId: auth.viewer.officeId } });
   if (!template) return { error: "Workflow não encontrado." };
   await prisma.workflowTemplate.update({ where: { id }, data: { active: !template.active } });
   revalidatePath("/configuracoes");
@@ -61,8 +63,8 @@ export async function toggleWorkflowActive(id: string): Promise<{ error?: string
 
 export async function deleteWorkflowTemplate(id: string): Promise<{ error?: string }> {
   const auth = await requireAdmin();
-  if (auth.error) return auth;
-  await prisma.workflowTemplate.delete({ where: { id } });
+  if ("error" in auth) return auth;
+  await prisma.workflowTemplate.deleteMany({ where: { id, officeId: auth.viewer.officeId } });
   revalidatePath("/configuracoes");
   return {};
 }
@@ -77,11 +79,11 @@ export async function addWorkflowStep(data: {
   points?: number;
 }): Promise<{ error?: string }> {
   const auth = await requireAdmin();
-  if (auth.error) return auth;
+  if ("error" in auth) return auth;
   if (!data.title.trim()) return { error: "Informe um título para o passo." };
-  const template = await prisma.workflowTemplate.findUnique({ where: { id: data.templateId } });
+  const template = await prisma.workflowTemplate.findFirst({ where: { id: data.templateId, officeId: auth.viewer.officeId } });
   if (!template) return { error: "Workflow não encontrado." };
-  const count = await prisma.workflowStep.count({ where: { templateId: data.templateId } });
+  const count = await prisma.workflowStep.count({ where: { templateId: data.templateId, officeId: auth.viewer.officeId } });
   await prisma.workflowStep.create({
     data: {
       templateId: data.templateId,
@@ -92,6 +94,7 @@ export async function addWorkflowStep(data: {
       priority: data.priority || "MEDIA",
       role: data.role?.trim() || null,
       points: data.points != null && Number.isFinite(data.points) ? Math.max(0, Math.round(data.points)) : null,
+      officeId: auth.viewer.officeId,
     },
   });
   revalidatePath("/configuracoes");
@@ -100,8 +103,8 @@ export async function addWorkflowStep(data: {
 
 export async function deleteWorkflowStep(id: string): Promise<{ error?: string }> {
   const auth = await requireAdmin();
-  if (auth.error) return auth;
-  await prisma.workflowStep.delete({ where: { id } });
+  if ("error" in auth) return auth;
+  await prisma.workflowStep.deleteMany({ where: { id, officeId: auth.viewer.officeId } });
   revalidatePath("/configuracoes");
   return {};
 }
@@ -117,9 +120,9 @@ export async function applyWorkflowToCase(
   if (!viewer) return { error: "Sessão inválida." };
 
   const [caseExists, template] = await Promise.all([
-    prisma.case.findUnique({ where: { id: caseId }, select: { id: true } }),
-    prisma.workflowTemplate.findUnique({
-      where: { id: templateId },
+    prisma.case.findFirst({ where: { id: caseId, officeId: viewer.officeId }, select: { id: true } }),
+    prisma.workflowTemplate.findFirst({
+      where: { id: templateId, officeId: viewer.officeId },
       include: { steps: { orderBy: { order: "asc" } } },
     }),
   ]);
@@ -129,12 +132,12 @@ export async function applyWorkflowToCase(
   if (template.steps.length === 0) return { error: "Este workflow não tem passos cadastrados." };
 
   const [firstColumn, typePoints, activeUsers, openTaskCounts] = await Promise.all([
-    prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } }),
-    prisma.taskTypePoints.findMany(),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true, role: true } }),
+    prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
+    prisma.taskTypePoints.findMany({ where: { officeId: viewer.officeId } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true, role: true } }),
     prisma.task.groupBy({
       by: ["responsibleId"],
-      where: { status: { in: ["PENDENTE", "EM_ANDAMENTO"] }, responsibleId: { not: null } },
+      where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "EM_ANDAMENTO"] }, responsibleId: { not: null } },
       _count: { _all: true },
     }),
   ]);
@@ -192,6 +195,7 @@ export async function applyWorkflowToCase(
           responsibleId: stepResponsible,
           columnId: firstColumn?.id ?? null,
           points,
+          officeId: viewer.officeId,
         },
       });
     })

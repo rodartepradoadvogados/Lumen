@@ -16,7 +16,7 @@ const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", 
 
 export default async function MobileContasAPagar() {
   const viewer = await getCurrentUser();
-  if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
+  if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -24,10 +24,10 @@ export default async function MobileContasAPagar() {
   // Mesma query base da página desktop (getFilteredPayables), sem paginação: trazemos
   // todos os pendentes/atrasados + os pagos dos últimos 30 dias, para caber num scroll único.
   const [all, categories, suppliers, costCenters] = await Promise.all([
-    getFilteredPayables({}),
-    getLeafCategoryOptions("DESPESA"),
-    prisma.supplier.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    getFilteredPayables({}, viewer.officeId),
+    getLeafCategoryOptions("DESPESA", viewer.officeId),
+    prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
   const payables = all.filter(

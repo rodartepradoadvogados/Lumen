@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getFilteredPayables } from "@/lib/financeQuery";
+import { getCurrentUser } from "@/lib/currentUser";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +16,17 @@ export default async function ContasAPagarPage({
 }: {
   searchParams: { status?: string; from?: string; to?: string; costCenterId?: string; q?: string; categoryId?: string };
 }) {
-  const filtered = await getFilteredPayables(searchParams);
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
+  const filtered = await getFilteredPayables(searchParams, viewer.officeId);
   const total = filtered.reduce((s, p) => s + p.amount, 0);
 
   const [categories, cases, costCenters, suppliers] = await Promise.all([
-    getLeafCategoryOptions("DESPESA"),
-    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
-    prisma.supplier.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    getLeafCategoryOptions("DESPESA", viewer.officeId),
+    prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const exportHref = (() => {

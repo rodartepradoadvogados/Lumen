@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getFilteredReceivables } from "@/lib/financeQuery";
+import { getCurrentUser } from "@/lib/currentUser";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +16,17 @@ export default async function ContasAReceberPage({
 }: {
   searchParams: { status?: string; from?: string; to?: string; costCenterId?: string; q?: string; categoryId?: string };
 }) {
-  const filtered = await getFilteredReceivables(searchParams);
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
+  const filtered = await getFilteredReceivables(searchParams, viewer.officeId);
   const total = filtered.reduce((s, r) => s + r.amount, 0);
 
   const [categories, cases, clients, costCenters] = await Promise.all([
-    getLeafCategoryOptions("RECEITA"),
-    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.client.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    getLeafCategoryOptions("RECEITA", viewer.officeId),
+    prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
   const exportHref = (() => {

@@ -10,6 +10,7 @@ import AssessoriaLicitacoesTab from "@/components/assessoria/AssessoriaLicitacoe
 import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab";
 import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
 import { getDriveStatus } from "@/lib/googleDrive";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
 
@@ -36,19 +37,22 @@ export default async function AssessoriaDetailPage({
   params: { id: string };
   searchParams: { tab?: string };
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const assessoria = await getAssessoriaDetail(params.id);
   if (!assessoria) notFound();
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
   const [users, availableCasesRaw, driveStatus] = await Promise.all([
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
-      where: { id: { notIn: linkedCaseIds } },
+      where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
       select: { id: true, title: true, processNumber: true },
       orderBy: { title: "asc" },
     }),
-    getDriveStatus(),
+    getDriveStatus(viewer.officeId),
   ]);
 
   const licitacoesEmAndamento = assessoria.licitacoes.filter((l) => l.status === "EM_ANALISE" || l.status === "PARTICIPANDO").length;

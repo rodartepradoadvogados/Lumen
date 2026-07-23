@@ -23,7 +23,7 @@ const kindLabels: Record<string, string> = {
 
 export default async function MobileContasAReceber() {
   const viewer = await getCurrentUser();
-  if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
+  if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -31,10 +31,10 @@ export default async function MobileContasAReceber() {
   // Mesma query base da página desktop (getFilteredReceivables), sem paginação: todos os
   // pendentes/atrasados + os recebidos dos últimos 30 dias.
   const [all, categories, clients, costCenters] = await Promise.all([
-    getFilteredReceivables({}),
-    getLeafCategoryOptions("RECEITA"),
-    prisma.client.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    getFilteredReceivables({}, viewer.officeId),
+    getLeafCategoryOptions("RECEITA", viewer.officeId),
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
   const receivables = all.filter(

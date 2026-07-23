@@ -76,7 +76,7 @@ export async function generateDocumentFromTemplate(
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
-  const template = await prisma.documentTemplate.findUnique({ where: { id: templateId } });
+  const template = await prisma.documentTemplate.findFirst({ where: { id: templateId, officeId: user.officeId } });
   if (!template) return { error: "Modelo não encontrado." };
 
   const fileId = extractDriveFileId(template.driveUrl);
@@ -90,7 +90,7 @@ export async function generateDocumentFromTemplate(
   let subject = "Documento";
 
   if (target.caseId) {
-    const c = await prisma.case.findUnique({ where: { id: target.caseId }, include: { client: true, responsible: true } });
+    const c = await prisma.case.findFirst({ where: { id: target.caseId, officeId: user.officeId }, include: { client: true, responsible: true } });
     if (!c) return { error: "Processo/caso não encontrado." };
     replacements.CLIENTE = c.client?.name ?? "";
     replacements.CLIENTE_QUALIFICACAO = buildClienteQualificacao(c.client);
@@ -107,7 +107,7 @@ export async function generateDocumentFromTemplate(
     replacements.CLAUSULA_OBJETO = buildClausulaObjetoCase(c);
     subject = c.client?.name || c.title;
   } else if (target.attendanceId) {
-    const a = await prisma.attendance.findUnique({ where: { id: target.attendanceId }, include: { responsible: true } });
+    const a = await prisma.attendance.findFirst({ where: { id: target.attendanceId, officeId: user.officeId }, include: { responsible: true } });
     if (!a) return { error: "Atendimento não encontrado." };
     replacements.CLIENTE = a.clientName;
     replacements.CLIENTE_QUALIFICACAO = buildClienteQualificacao(null);
@@ -123,10 +123,11 @@ export async function generateDocumentFromTemplate(
   }
 
   try {
-    const { webViewLink } = await copyAndFillTemplate(fileId, buildFileName(template.name, subject), replacements);
+    const { webViewLink } = await copyAndFillTemplate(fileId, buildFileName(template.name, subject), replacements, user.officeId);
 
     await prisma.attachment.create({
       data: {
+        officeId: user.officeId,
         name: buildFileName(template.name, subject),
         driveUrl: webViewLink,
         docType: TEMPLATE_CATEGORY_TO_DOC_TYPE[template.category] || "OUTRO",

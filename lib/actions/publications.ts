@@ -147,8 +147,11 @@ export async function searchCasesForLinking(query: string): Promise<{ id: string
   const q = query.trim();
   if (!q) return [];
 
+  const user = await getCurrentUser();
+  if (!user) return [];
+
   const byTitle = await prisma.case.findMany({
-    where: { title: { contains: q, mode: "insensitive" } },
+    where: { title: { contains: q, mode: "insensitive" }, officeId: user.officeId },
     select: { id: true, title: true, processNumber: true },
     orderBy: { title: "asc" },
     take: 15,
@@ -158,7 +161,7 @@ export async function searchCasesForLinking(query: string): Promise<{ id: string
   if (!normalizedQuery || byTitle.length >= 15) return byTitle;
 
   const candidates = await prisma.case.findMany({
-    where: { processNumber: { not: null } },
+    where: { processNumber: { not: null }, officeId: user.officeId },
     select: { id: true, title: true, processNumber: true },
     orderBy: { title: "asc" },
   });
@@ -168,7 +171,11 @@ export async function searchCasesForLinking(query: string): Promise<{ id: string
 }
 
 export async function linkPublicationToCase(publicationId: string, caseId: string) {
-  await prisma.publication.update({ where: { id: publicationId }, data: { caseId } });
+  const user = await getCurrentUser();
+  if (!user) return;
+  const targetCase = await prisma.case.findFirst({ where: { id: caseId, officeId: user.officeId }, select: { id: true } });
+  if (!targetCase) return;
+  await prisma.publication.updateMany({ where: { id: publicationId, officeId: user.officeId }, data: { caseId } });
   revalidatePath("/publicacoes");
   revalidatePath("/m/publicacoes");
   revalidatePath("/alertas");
@@ -181,10 +188,13 @@ export async function generateTaskFromPublication(
   id: string,
   data: { title: string; type: string; dueDate: string; dueTime?: string; priority: string }
 ) {
-  const pub = await prisma.publication.findUniqueOrThrow({ where: { id } });
-  const firstColumn = await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Sessão inválida.");
+  const pub = await prisma.publication.findFirstOrThrow({ where: { id, officeId: user.officeId } });
+  const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId: user.officeId }, orderBy: { order: "asc" } });
   await prisma.task.create({
     data: {
+      officeId: user.officeId,
       title: data.title,
       type: data.type,
       dueDate: new Date(data.dueDate),
