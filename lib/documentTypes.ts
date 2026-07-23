@@ -69,6 +69,7 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "IMPUGNACAO_EDITAL", label: "Impugnação ao Edital", icon: FileQuestion },
       { key: "IMPUGNACAO_LAUDO_PERICIAL", label: "Impugnação ao Laudo Pericial", icon: FileQuestion },
       { key: "PARECER", label: "Parecer", icon: ScrollText },
+      { key: "REQUERIMENTO_CLIENTE", label: "Requerimento ao Cliente", icon: Mail },
     ],
   },
   {
