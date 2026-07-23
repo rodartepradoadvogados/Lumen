@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getVerifyToken, verifySignature, parseIncoming, ingestIncomingWhatsapp, isWhatsappConfigured } from "@/lib/whatsapp";
+import { getVerifyToken, verifySignature, parseIncoming, ingestIncomingWhatsapp } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +18,11 @@ export async function GET(req: NextRequest) {
 
 // Recebimento de eventos (mensagens e status). Segurança: assinatura + verify token.
 // Não exige sessão de usuário — é a Meta chamando. O middleware já libera /api.
+// A configuração (phoneNumberId/accessToken) é por escritório, então só dá pra
+// saber se "está configurado" depois de ler o payload e achar o escritório dono
+// do phone_number_id — ingestIncomingWhatsapp() ignora silenciosamente (com log)
+// se nenhum escritório tiver esse número cadastrado.
 export async function POST(req: NextRequest) {
-  // Verdadeiramente dormente quando a integração não está configurada: não
-  // ingere nada (evita criação de atendimentos falsos por POST antes de o
-  // escritório conectar o WhatsApp). Apenas confirma o recebimento.
-  if (!isWhatsappConfigured()) {
-    return Response.json({ received: true, ignored: "not_configured" }, { status: 200 });
-  }
-
   // Lê o corpo bruto para poder validar a assinatura HMAC.
   const rawBody = await req.text();
 

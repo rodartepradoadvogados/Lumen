@@ -38,7 +38,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   });
   if (!a) notFound();
 
-  const whatsappConfigured = isWhatsappConfigured();
+  const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
 
   const [users, columns, driveStatus] = await Promise.all([

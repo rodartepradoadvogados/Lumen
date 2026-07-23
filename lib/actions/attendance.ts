@@ -221,7 +221,7 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
   if (!attendance) return { error: "Atendimento não encontrado." };
   if (!attendance.waPhone) return { error: "Este atendimento não tem WhatsApp vinculado." };
 
-  const result = await sendWhatsappText(attendance.waPhone, text);
+  const result = await sendWhatsappText(user.officeId, attendance.waPhone, text);
   if (!result.ok) {
     return { error: result.error || "Não foi possível enviar a mensagem." };
   }

@@ -5,21 +5,31 @@ import { revalidatePath } from "next/cache";
 // ============================================================================
 // Integração WhatsApp — Cloud API OFICIAL da Meta (Graph API)
 //
-// Tudo aqui é "env-gated": enquanto as variáveis de ambiente não existirem,
-// a integração fica dormente e inofensiva (isWhatsappConfigured() → false).
-// Nada é enviado à Meta sem WHATSAPP_ACCESS_TOKEN + WHATSAPP_PHONE_NUMBER_ID.
+// App Meta / WABA / webhook / app secret / verify token são únicos para toda a
+// plataforma (variáveis de ambiente globais) — é o mesmo App Meta compartilhado
+// por todos os escritórios. O que é por escritório é o NÚMERO de telefone: cada
+// escritório cadastra seu próprio phoneNumberId + accessToken (tabela
+// WhatsappConfig, ver prisma/schema.prisma), e é esse número que identifica a
+// qual escritório uma mensagem recebida pertence.
 // ============================================================================
 
 const GRAPH_API_VERSION = "v21.0";
 
-/** true somente quando token de acesso e phone number id estão presentes. */
-export function isWhatsappConfigured(): boolean {
-  return Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+/** true somente quando o escritório já cadastrou seu número da Cloud API. */
+export async function isWhatsappConfigured(officeId: string): Promise<boolean> {
+  const config = await prisma.whatsappConfig.findUnique({ where: { officeId }, select: { id: true } });
+  return Boolean(config);
 }
 
-/** Token esperado no handshake (GET) do webhook da Meta. */
+/** Token esperado no handshake (GET) do webhook da Meta. Global — um único App Meta pra plataforma. */
 export function getVerifyToken(): string | undefined {
   return process.env.WHATSAPP_VERIFY_TOKEN;
+}
+
+/** Resolve a qual escritório pertence um phone_number_id recebido no webhook da Meta. */
+export async function resolveOfficeIdByPhoneNumberId(phoneNumberId: string): Promise<string | null> {
+  const config = await prisma.whatsappConfig.findUnique({ where: { phoneNumberId }, select: { officeId: true } });
+  return config?.officeId ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,22 +50,24 @@ type GraphResponse = {
 };
 
 /**
- * Envia uma mensagem de texto simples pela Cloud API da Meta.
+ * Envia uma mensagem de texto simples pela Cloud API da Meta, usando o número
+ * (phoneNumberId + accessToken) cadastrado pelo escritório.
  * Nunca lança: sempre resolve para { ok, ... }. Se não configurado, retorna
  * ok:false sem tocar na rede.
  */
-export async function sendWhatsappText(toE164: string, body: string): Promise<SendResult> {
-  if (!isWhatsappConfigured()) {
-    return { ok: false, error: "WhatsApp não configurado" };
+export async function sendWhatsappText(officeId: string, toE164: string, body: string): Promise<SendResult> {
+  const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
+  if (!config) {
+    return { ok: false, error: "WhatsApp não configurado para este escritório." };
   }
 
-  const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${config.phoneNumberId}/messages`;
 
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${config.accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -144,6 +156,7 @@ export type IncomingMessage = {
   waMessageId: string;
   text: string;
   profileName?: string;
+  phoneNumberId: string;
 };
 
 // Forma parcial do payload de webhook da Meta que nos interessa.
@@ -151,6 +164,7 @@ type WebhookPayload = {
   entry?: {
     changes?: {
       value?: {
+        metadata?: { phone_number_id?: string };
         messages?: { type?: string; from?: string; id?: string; text?: { body?: string } }[];
         contacts?: { profile?: { name?: string } }[];
       };
@@ -173,11 +187,12 @@ export function parseIncoming(payload: unknown): IncomingMessage | null {
     const text: string | undefined = message.text?.body;
     const fromNumber: string | undefined = message.from;
     const waMessageId: string | undefined = message.id;
-    if (!text || !fromNumber || !waMessageId) return null;
+    const phoneNumberId: string | undefined = value?.metadata?.phone_number_id;
+    if (!text || !fromNumber || !waMessageId || !phoneNumberId) return null;
 
     const profileName: string | undefined = value?.contacts?.[0]?.profile?.name;
 
-    return { fromNumber, waMessageId, text, profileName };
+    return { fromNumber, waMessageId, text, profileName, phoneNumberId };
   } catch {
     return null;
   }
@@ -192,35 +207,33 @@ export function parseIncoming(payload: unknown): IncomingMessage | null {
  * a um Atendimento (criando um novo Atendimento se não houver conversa aberta).
  * Idempotente por waMessageId. Não faz IA nem distribuição (fases B/C).
  */
-// TODO(multi-tenant / Fase 2): WHATSAPP_PHONE_NUMBER_ID/ACCESS_TOKEN ainda são globais (uma
-// única variável de ambiente pro sistema inteiro) — não há, ainda, como saber a qual escritório
-// um número de WhatsApp recebido pertence. Cada escritório precisa cadastrar seu próprio número
-// da Cloud API, e o webhook precisa resolver o officeId a partir de qual número da Meta recebeu
-// a mensagem (WHATSAPP_PHONE_NUMBER_ID do payload), não mais assumir um único escritório.
-// Por ora, assume-se o primeiro escritório cadastrado — revisitar antes de um segundo existir.
 export async function ingestIncomingWhatsapp({
   fromNumber,
   waMessageId,
   text,
   profileName,
+  phoneNumberId,
 }: IncomingMessage): Promise<void> {
   // Dedupe: reenvio da Meta não deve reprocessar.
   const existing = await prisma.whatsappMessage.findUnique({ where: { waMessageId } });
   if (existing) return;
 
-  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
-  if (!office) return;
+  const officeId = await resolveOfficeIdByPhoneNumberId(phoneNumberId);
+  if (!officeId) {
+    console.error(`[whatsapp] mensagem recebida em phone_number_id ${phoneNumberId} sem escritório cadastrado — ignorada.`);
+    return;
+  }
 
   // Procura conversa aberta (não arquivada) para este telefone; a mais recente.
   let attendance = await prisma.attendance.findFirst({
-    where: { officeId: office.id, waPhone: fromNumber, status: { not: "ARQUIVADO" } },
+    where: { officeId, waPhone: fromNumber, status: { not: "ARQUIVADO" } },
     orderBy: { createdAt: "desc" },
   });
 
   if (!attendance) {
     attendance = await prisma.attendance.create({
       data: {
-        officeId: office.id,
+        officeId,
         clientName: profileName || fromNumber,
         contact: fromNumber,
         subject: "Atendimento via WhatsApp",
@@ -235,7 +248,7 @@ export async function ingestIncomingWhatsapp({
 
   await prisma.whatsappMessage.create({
     data: {
-      officeId: office.id,
+      officeId,
       attendanceId: attendance.id,
       direction: "IN",
       body: text,

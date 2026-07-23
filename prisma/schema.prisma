@@ -73,6 +73,7 @@ model Office {
   publications         Publication[]
   blogPosts            BlogPost[]
   photos               Photo[]
+  whatsappConfig       WhatsappConfig?
 }
 
 // ============ EQUIPE ============
@@ -666,6 +667,24 @@ model GoogleCredential {
   user              User?    @relation(fields: [userId], references: [id])
 
   @@index([officeId])
+}
+
+// ============ INTEGRAÇÃO WHATSAPP (por escritório — Fase 2) ============
+// WHATSAPP_APP_SECRET/WHATSAPP_VERIFY_TOKEN continuam globais (variável de ambiente) — são do
+// único Meta App/WABA da plataforma, compartilhado por todos os escritórios. O que é por
+// escritório é o NÚMERO de telefone (phoneNumberId + accessToken), cadastrado aqui.
+// phoneNumberId é único globalmente (é a Meta quem atribui) — é ele que o webhook usa pra
+// descobrir a qual escritório uma mensagem recebida pertence (ver lib/whatsapp.ts).
+model WhatsappConfig {
+  id            String   @id @default(cuid())
+  phoneNumberId String   @unique
+  accessToken   String
+  displayPhone  String? // só para exibição em Configurações (ex: "+55 62 99999-0000")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  officeId String @unique
+  office   Office @relation(fields: [officeId], references: [id])
 }
 
 // ============ FINANCEIRO ============
