@@ -20,10 +20,14 @@ datasource db {
 // caminhar a cadeia de relações pra montar um filtro seguro, e torna "toda query direta filtra
 // por officeId" uma regra mecânica e fácil de auditar/checar em code review.
 //
-// Ficam de fora, por enquanto (ver Fase 4 do plano): as 4 tabelas do robô Python
-// (RoboPublicacao/RoboAndamento/RoboProcessoMonitorado/RoboExecucaoLog) — hoje o robô é
-// compartilhado e keyado por número de processo/OAB, não por escritório; tornar isso
-// multi-tenant é um projeto à parte (o robô também precisa aprender a operar por tenant).
+// Ficam de fora, por enquanto: as 4 tabelas do robô Python (RoboPublicacao/RoboAndamento/
+// RoboProcessoMonitorado/RoboExecucaoLog) continuam compartilhadas e keyadas por número de
+// processo/OAB, não por officeId — a atribuição a cada escritório acontece depois, na ponte
+// (lib/roboBridge.ts), casando por número de processo dentro de cada Office. O robô já
+// descobre sozinho as OABs de TODOS os escritórios ativos (robo-publicacoes/src/config.py:
+// carregar_oabs_do_banco), então a captura em si já é multi-tenant; o que falta é só o robô
+// também aprender a marcar officeId nas próprias tabelas, caso um dia isso vire necessário
+// (hoje a ponte já resolve sem precisar disso).
 //
 // Decisões de unicidade global x por escritório:
 // - User.email: continua único GLOBALMENTE — é a chave de login/redefinição de senha em toda

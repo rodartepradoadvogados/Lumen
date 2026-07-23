@@ -119,17 +119,25 @@ processo monitorado ou notificacao.
 
 ## OABs monitoradas
 
-Configuradas via `OABS_JSON` (variavel de ambiente), lista JSON de objetos
-`{"nome", "numero", "uf"}`. Se `OABS_JSON` nao for definida, os defaults
-abaixo (do proprio escritorio) sao usados:
+Desde que o site (Lúmen) passou a ser multi-tenant, a lista de OABs a
+monitorar **e descoberta automaticamente consultando a tabela `User`** do
+banco de producao (mesma `DATABASE_URL` do site) — todo usuario ativo, de
+todo escritorio ativo, com OAB cadastrada em Configuracoes -> Equipe &
+Acesso. O robo nao precisa saber a qual escritorio cada OAB pertence: ele
+so busca no DJEN/Datajud; a atribuicao de cada publicacao ao escritorio
+certo acontece depois, na ponte (`lib/roboBridge.ts`, no site), que casa
+por numero de processo dentro de cada escritorio.
+
+`OABS_JSON` (variavel de ambiente, lista JSON de objetos
+`{"nome", "numero", "uf"}`) vira **fallback**: só é usada se `DATABASE_URL`
+não estiver configurada, ou se a consulta ao banco falhar ou não retornar
+nenhuma OAB (ex.: rodando local sem banco). Se `OABS_JSON` também não for
+definida, os defaults abaixo (do escritório original) são usados:
 
 | Nome | OAB | UF |
 |---|---|---|
 | Jairo Alexandre Rodarte e Silva | 78295 | GO |
 | Rodrigo Araujo do Prado | 32943 | GO |
-
-Nenhuma OAB fica hardcoded fora desses defaults documentados — tudo pode
-ser sobrescrito via `OABS_JSON`.
 
 ---
 
@@ -191,8 +199,12 @@ reais do CNJ) e um banco SQLite em memoria. Cobrem:
 
 ## Adicionar/remover uma OAB
 
-Edite a variavel de ambiente `OABS_JSON` (no `.env` local ou nas variaveis
-do Railway) com a lista completa desejada, por exemplo:
+Com `DATABASE_URL` configurada (producao), basta cadastrar/editar a OAB do
+usuario em Configuracoes -> Equipe & Acesso, no proprio site — o robo
+descobre sozinho no proximo ciclo, sem precisar editar nada aqui.
+
+Sem banco (uso local/teste), edite `OABS_JSON` (no `.env` local ou nas
+variaveis do Railway) com a lista completa desejada, por exemplo:
 
 ```json
 [
