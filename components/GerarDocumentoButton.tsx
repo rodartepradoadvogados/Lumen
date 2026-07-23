@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FilePlus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FilePlus, X, Download, FileDown, Paperclip, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { listDocumentTemplates } from "@/lib/actions/documentTemplates";
 import { TEMPLATE_CATEGORIES } from "@/lib/documentCategories";
-import { generateDocumentFromTemplate } from "@/lib/actions/generateDocument";
+import { generateDocumentFromTemplate, type GeneratedDocument } from "@/lib/actions/generateDocument";
+import { createAttachment } from "@/lib/actions/attachments";
 import { FORMA_COBRANCA_OPTIONS, FORMA_PAGAMENTO_OPTIONS, type FormaCobranca, type FormaPagamento } from "@/lib/honorarios";
 
 type Template = { id: string; name: string; category: string };
@@ -13,12 +15,19 @@ const EXITO_FORMAS: FormaCobranca[] = ["PERCENTUAL", "ENTRADA_EXITO", "SO_EXITO"
 const PARCELAVEL_FORMAS: FormaCobranca[] = ["FIXO", "SO_ENTRADA", "ENTRADA_EXITO"];
 
 export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?: string; attendanceId?: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [category, setCategory] = useState<string>(TEMPLATE_CATEGORIES[0].value as string);
   const [templateId, setTemplateId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Preenchido depois de gerar o documento — a partir daqui a janela troca pra mostrar as
+  // opções de baixar/anexar em vez do formulário de geração.
+  const [generated, setGenerated] = useState<GeneratedDocument | null>(null);
+  const [attaching, setAttaching] = useState(false);
+  const [attached, setAttached] = useState(false);
 
   const [formaCobranca, setFormaCobranca] = useState<FormaCobranca>("PERCENTUAL");
   const [percentualExito, setPercentualExito] = useState("");
@@ -63,15 +72,38 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
       : undefined;
     const result = await generateDocumentFromTemplate(templateId, { caseId, attendanceId }, honorarios);
     setLoading(false);
+    if (result.error || !result.document) {
+      setError(result.error || "Erro ao gerar documento.");
+      return;
+    }
+    setGenerated(result.document);
+  }
+
+  async function handleAttach() {
+    if (!generated) return;
+    setAttaching(true);
+    const result = await createAttachment({
+      name: generated.name,
+      driveUrl: generated.driveUrl,
+      docType: generated.docType,
+      caseId: generated.caseId,
+      attendanceId: generated.attendanceId,
+    });
+    setAttaching(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    if (result.driveUrl) {
-      window.open(result.driveUrl, "_blank", "noopener,noreferrer");
-    }
+    setAttached(true);
+    router.refresh();
+  }
+
+  function handleClose() {
     setOpen(false);
     setTemplateId("");
+    setGenerated(null);
+    setAttached(false);
+    setError(null);
   }
 
   return (
@@ -84,14 +116,67 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={handleClose}>
           <div className="bg-white rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900">Gerar Documento</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
+              <h3 className="font-serif font-bold text-navy-900">{generated ? "Documento gerado" : "Gerar Documento"}</h3>
+              <button onClick={handleClose} className="text-navy-800/40 hover:text-navy-900">
                 <X size={18} />
               </button>
             </div>
+            {generated ? (
+              <div className="p-5 space-y-3">
+                {generated.noFieldsMatched && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                    <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-800">
+                      Nenhum campo foi preenchido — o modelo não tem os placeholders <code className="bg-white px-1 rounded">{"{{CLIENTE}}"}</code>,
+                      etc. no texto. O documento saiu igual ao modelo original. Veja em Configurações → Modelos de Documento como escrever
+                      um modelo que preenche os dados.
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-sm text-navy-800/70">O que você quer fazer com <strong>{generated.name}</strong>?</p>
+
+                <a
+                  href={generated.driveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold py-2.5 rounded-lg"
+                >
+                  <Download size={16} /> Abrir / Baixar (Google Docs)
+                </a>
+                <a
+                  href={generated.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-white border border-navy-800/15 hover:bg-cream-50 text-navy-900 text-sm font-semibold py-2.5 rounded-lg"
+                >
+                  <FileDown size={16} /> Baixar como PDF
+                </a>
+
+                {(generated.caseId || generated.attendanceId) &&
+                  (attached ? (
+                    <p className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5">
+                      <CheckCircle2 size={16} /> Inserido nos anexos.
+                    </p>
+                  ) : (
+                    <button
+                      onClick={handleAttach}
+                      disabled={attaching}
+                      className="w-full flex items-center justify-center gap-2 bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                    >
+                      <Paperclip size={16} /> {attaching ? "Inserindo..." : "Inserir nos Anexos"}
+                    </button>
+                  ))}
+
+                {error && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">{error}</p>}
+                <button onClick={handleClose} className="w-full text-xs font-semibold text-navy-800/50 hover:text-navy-900 py-1.5">
+                  Fechar
+                </button>
+              </div>
+            ) : (
             <div className="p-5 space-y-3">
               <div>
                 <label className="text-xs font-medium text-navy-800/60">Categoria</label>
@@ -219,6 +304,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 {loading ? "Gerando..." : "Gerar"}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

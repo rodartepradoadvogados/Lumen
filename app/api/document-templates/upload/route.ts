@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
-import { uploadFileToDrive } from "@/lib/googleDrive";
+import { uploadDocumentTemplateFile } from "@/lib/googleDrive";
 
 const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { webViewLink } = await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer, user.officeId, "modelos");
+    const { webViewLink } = await uploadDocumentTemplateFile(file.name, file.type || "application/octet-stream", buffer, user.officeId);
 
     const template = await prisma.documentTemplate.create({
       data: { officeId: user.officeId, name: name.trim(), category, driveUrl: webViewLink, uploadedById: user.id },

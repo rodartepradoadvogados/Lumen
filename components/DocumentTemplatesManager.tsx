@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, X, UploadCloud, ExternalLink } from "lucide-react";
 import { createDocumentTemplateLink, deleteDocumentTemplate } from "@/lib/actions/documentTemplates";
-import { TEMPLATE_CATEGORIES } from "@/lib/documentCategories";
+import { TEMPLATE_CATEGORIES, MERGE_FIELDS } from "@/lib/documentCategories";
 
 type Template = { id: string; name: string; category: string; driveUrl: string };
 
@@ -110,6 +110,32 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
           )
       )}
       {templates.length === 0 && <p className="text-xs text-navy-800/40">Nenhum modelo cadastrado ainda.</p>}
+
+      <details className="rounded-lg border border-gold-500/25 bg-gold-500/5 px-3 py-2.5">
+        <summary className="text-xs font-semibold text-navy-800 cursor-pointer">
+          Como escrever um modelo que preenche os dados automaticamente
+        </summary>
+        <div className="mt-2 space-y-2 text-xs text-navy-800/70">
+          <p>
+            O modelo precisa ser um arquivo do <strong>Word (.docx)</strong> — convertido automaticamente para Google Docs ao enviar
+            aqui — ou um <strong>Google Docs</strong> já existente (cole o link). <strong>PDF não funciona</strong> como modelo:
+            não há como preencher os dados automaticamente nele.
+          </p>
+          <p>
+            No texto do seu contrato/petição/procuração, escreva os campos que devem ser preenchidos entre chaves duplas, exatamente
+            como na lista abaixo — ex.: <code className="bg-white px-1 rounded">Eu, {"{{CLIENTE}}"}, portador do CPF {"{{CLIENTE_CPF}}"}...</code>.
+            Sem esses tokens no texto, o documento é gerado normalmente, mas nenhum dado é preenchido.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+            {MERGE_FIELDS.map((f) => (
+              <div key={f.token} className="flex items-baseline gap-1.5">
+                <code className="bg-white px-1 rounded shrink-0">{`{{${f.token}}}`}</code>
+                <span className="text-navy-800/50">{f.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </details>
 
       <div className="pt-2 border-t border-navy-800/8 space-y-2.5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

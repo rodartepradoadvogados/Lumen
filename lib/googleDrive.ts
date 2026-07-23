@@ -198,19 +198,78 @@ export async function uploadFileToDriveFolder(
   return uploadBufferToFolder(drive, fileName, mimeType, buffer, folderId);
 }
 
+export const GOOGLE_DOC_MIME = "application/vnd.google-apps.document";
+const WORD_MIME_TYPES = [
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/msword", // .doc
+];
+
+// Upload específico para Modelos de Documento (Configurações → Modelos & Integrações): ao
+// contrário de uploadFileToDrive (que preserva o formato original do arquivo, certo para
+// anexos comuns), um MODELO de documento precisa ser um Google Docs nativo — é o único formato
+// em que a Google Docs API consegue localizar e substituir os placeholders {{CHAVE}} na hora de
+// gerar o documento (ver lib/actions/generateDocument.ts). Por isso: Word (.doc/.docx) é
+// convertido automaticamente para Google Docs no upload; PDF é recusado (não tem como preencher
+// campos automaticamente num PDF por essa via).
+export async function uploadDocumentTemplateFile(
+  fileName: string,
+  mimeType: string,
+  buffer: Buffer,
+  officeId: string
+): Promise<{ id: string; webViewLink: string }> {
+  if (mimeType === "application/pdf") {
+    throw new Error(
+      "Arquivos PDF não podem ser usados como modelo de documento — não há como preencher os dados automaticamente num PDF. Salve o modelo como arquivo do Word (.docx) e envie novamente, ou crie/edite-o direto no Google Docs e cole o link."
+    );
+  }
+
+  const { drive } = await getDriveClient(officeId);
+  const folderId = await getOrCreateFolderId("modelos", officeId);
+  const isWord = WORD_MIME_TYPES.includes(mimeType);
+
+  const created = await drive.files.create({
+    requestBody: {
+      name: fileName,
+      parents: [folderId],
+      // Presente APENAS quando é Word: dispara a conversão automática do Drive pra Google Docs.
+      mimeType: isWord ? GOOGLE_DOC_MIME : undefined,
+    },
+    media: { mimeType, body: Readable.from(buffer) },
+    fields: "id",
+  });
+  const fileId = created.data.id;
+  if (!fileId) throw new Error("Falha ao enviar arquivo para o Google Drive.");
+
+  await drive.permissions.create({ fileId, requestBody: { role: "reader", type: "anyone" } });
+  const file = await drive.files.get({ fileId, fields: "id, webViewLink" });
+  if (!file.data.webViewLink) throw new Error("Arquivo enviado, mas o link não pôde ser obtido.");
+  return { id: fileId, webViewLink: file.data.webViewLink };
+}
+
+// Confere se um link de Drive colado (fluxo "colar link já existente") aponta pra um Google Docs
+// nativo — se não for, a geração de documento vai "funcionar" tecnicamente mas não vai preencher
+// nada (a Docs API só localiza/substitui texto em Google Docs). Usado por createDocumentTemplateLink.
+export async function isGoogleDocFile(fileId: string, officeId: string): Promise<boolean> {
+  const { drive } = await getDriveClient(officeId);
+  const file = await drive.files.get({ fileId, fields: "mimeType" });
+  return file.data.mimeType === GOOGLE_DOC_MIME;
+}
+
 export function extractDriveFileId(url: string): string | null {
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 }
 
 // Copia um Google Docs modelo, substitui placeholders {{CHAVE}} pelos valores informados
-// e devolve o link do novo documento preenchido.
+// e devolve o link do novo documento preenchido (Google Docs + export em PDF), além de quantas
+// substituições realmente aconteceram — `matchedCount === 0` sinaliza que o modelo provavelmente
+// não tem nenhum placeholder {{...}} no texto (documento gerado, mas nada foi preenchido).
 export async function copyAndFillTemplate(
   templateFileId: string,
   newName: string,
   replacements: Record<string, string>,
   officeId: string
-): Promise<{ id: string; webViewLink: string }> {
+): Promise<{ id: string; webViewLink: string; pdfUrl: string; matchedCount: number }> {
   const { drive, docs } = await getDriveClient(officeId);
   const folderId = await getOrCreateFolderId("gerados", officeId);
 
@@ -229,8 +288,10 @@ export async function copyAndFillTemplate(
     },
   }));
 
+  let matchedCount = 0;
   if (requests.length > 0) {
-    await docs.documents.batchUpdate({ documentId: newFileId, requestBody: { requests } });
+    const result = await docs.documents.batchUpdate({ documentId: newFileId, requestBody: { requests } });
+    matchedCount = (result.data.replies || []).reduce((sum, reply) => sum + (reply.replaceAllText?.occurrencesChanged || 0), 0);
   }
 
   await drive.permissions.create({
@@ -240,7 +301,8 @@ export async function copyAndFillTemplate(
 
   const file = await drive.files.get({ fileId: newFileId, fields: "id, webViewLink" });
   if (!file.data.webViewLink) throw new Error("Documento gerado, mas o link não pôde ser obtido.");
-  return { id: newFileId, webViewLink: file.data.webViewLink };
+  const pdfUrl = `https://docs.google.com/document/d/${newFileId}/export?format=pdf`;
+  return { id: newFileId, webViewLink: file.data.webViewLink, pdfUrl, matchedCount };
 }
 
 const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";

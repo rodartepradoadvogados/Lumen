@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { copyAndFillTemplate, extractDriveFileId } from "@/lib/googleDrive";
 import { buildHonorariosClause, type HonorariosInput } from "@/lib/honorarios";
@@ -68,11 +67,22 @@ function buildClausulaObjetoAtendimento(a: { subject: string; area: string | nul
   }, relativos a: ${a.subject}.`;
 }
 
+export type GeneratedDocument = {
+  driveUrl: string;
+  pdfUrl: string;
+  name: string;
+  docType: string;
+  caseId?: string;
+  attendanceId?: string;
+  /** true quando nenhum placeholder {{CHAVE}} foi encontrado no modelo — o documento saiu idêntico ao modelo original. */
+  noFieldsMatched: boolean;
+};
+
 export async function generateDocumentFromTemplate(
   templateId: string,
   target: { caseId?: string; attendanceId?: string },
   honorarios?: HonorariosInput
-): Promise<{ driveUrl?: string; error?: string }> {
+): Promise<{ document?: GeneratedDocument; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
@@ -123,24 +133,27 @@ export async function generateDocumentFromTemplate(
   }
 
   try {
-    const { webViewLink } = await copyAndFillTemplate(fileId, buildFileName(template.name, subject), replacements, user.officeId);
+    const { webViewLink, pdfUrl, matchedCount } = await copyAndFillTemplate(
+      fileId,
+      buildFileName(template.name, subject),
+      replacements,
+      user.officeId
+    );
 
-    await prisma.attachment.create({
-      data: {
-        officeId: user.officeId,
-        name: buildFileName(template.name, subject),
+    // Não cria o Attachment automaticamente aqui — quem decide se o documento gerado deve ser
+    // baixado, inserido nos anexos, ou as duas coisas, é o usuário (GerarDocumentoButton chama
+    // createAttachment, de lib/actions/attachments.ts, só se a pessoa escolher inserir).
+    return {
+      document: {
         driveUrl: webViewLink,
+        pdfUrl,
+        name: buildFileName(template.name, subject),
         docType: TEMPLATE_CATEGORY_TO_DOC_TYPE[template.category] || "OUTRO",
-        caseId: target.caseId || null,
-        attendanceId: target.attendanceId || null,
-        uploadedById: user.id,
+        caseId: target.caseId,
+        attendanceId: target.attendanceId,
+        noFieldsMatched: matchedCount === 0,
       },
-    });
-
-    if (target.caseId) revalidatePath(`/processos/${target.caseId}`);
-    if (target.attendanceId) revalidatePath(`/atendimento/${target.attendanceId}`);
-
-    return { driveUrl: webViewLink };
+    };
   } catch (e) {
     const raw = e instanceof Error ? e.message : "";
     const message = /invalid_request|invalid_grant|File not found|404/i.test(raw)
