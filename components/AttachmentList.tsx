@@ -45,6 +45,9 @@ export default function AttachmentList({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  // "Parecer" só faz sentido como anexo de Processo — Atendimento não tem esse conceito.
+  const excludeParecer = !caseId ? ["PARECER"] : undefined;
+
   const filtered = useMemo(() => {
     return attachments.filter((a) => {
       if (search.trim() && !a.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
@@ -142,6 +145,7 @@ export default function AttachmentList({
             onChange={setTypeFilter}
             allowAll
             includeLegacy
+            excludeKeys={excludeParecer}
             className="text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1.5 max-w-[180px]"
           />
           <input
@@ -249,6 +253,7 @@ export default function AttachmentList({
           <DocumentTypeSelect
             value={stagedDocType}
             onChange={setStagedDocType}
+            excludeKeys={excludeParecer}
             className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
           />
           <div className="flex gap-2">
@@ -297,6 +302,7 @@ export default function AttachmentList({
               <DocumentTypeSelect
                 value={linkDocType}
                 onChange={setLinkDocType}
+                excludeKeys={excludeParecer}
                 className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
               />
             </div>

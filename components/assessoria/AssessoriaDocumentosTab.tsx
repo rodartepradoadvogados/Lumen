@@ -115,6 +115,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
             onChange={setTypeFilter}
             allowAll
             includeLegacy
+            excludeKeys={["PARECER"]}
             className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2 py-1.5 max-w-[220px]"
           />
           <input
@@ -147,7 +148,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="name" required placeholder="Nome do documento" className="doc-input" />
-            <DocumentTypeSelect name="docType" value={linkDocType} onChange={setLinkDocType} className="doc-input" />
+            <DocumentTypeSelect name="docType" value={linkDocType} onChange={setLinkDocType} excludeKeys={["PARECER"]} className="doc-input" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="driveUrl" required type="url" placeholder="Link do Drive, Dropbox, OneDrive..." className="doc-input" />
@@ -208,6 +209,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
           <DocumentTypeSelect
             value={stagedDocType}
             onChange={setStagedDocType}
+            excludeKeys={["PARECER"]}
             className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
           />
           <div className="flex gap-2">

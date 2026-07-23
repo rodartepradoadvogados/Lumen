@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setCaseAssessoria, type getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { setCaseAssessoria, addDocumento, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
 import { Plus, Search, ExternalLink, Link2, X } from "lucide-react";
@@ -34,7 +34,31 @@ export default function AssessoriaProcessosCasosTab({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [parecerFormOpen, setParecerFormOpen] = useState(false);
+  const [parecerError, setParecerError] = useState<string | null>(null);
+  const [parecerPending, startParecerTransition] = useTransition();
+
   const pareceres = assessoria.documents.filter((d) => d.docType === "PARECER");
+
+  // Parecer é um campo próprio da Assessoria: não usa o seletor genérico de tipo de
+  // documento (esse tipo só existe para Anexos de Processo) — aqui o docType "PARECER" é
+  // fixo e o formulário só pede nome, link e data.
+  function handleAddParecer(formData: FormData) {
+    setParecerError(null);
+    startParecerTransition(async () => {
+      const result = await addDocumento(assessoria.id, {
+        name: String(formData.get("name") || ""),
+        docType: "PARECER",
+        driveUrl: String(formData.get("driveUrl") || ""),
+        date: String(formData.get("date") || ""),
+      });
+      if (result.error) setParecerError(result.error);
+      else {
+        setParecerFormOpen(false);
+        router.refresh();
+      }
+    });
+  }
 
   // availableCases já vem sem os processos vinculados (ver app/(app)/assessoria/[id]/page.tsx),
   // mas linkedThisSession cobre o intervalo entre "acabei de vincular" e o próximo refresh do
@@ -70,11 +94,45 @@ export default function AssessoriaProcessosCasosTab({
   return (
     <div className="space-y-5">
       <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Pareceres</h4>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Pareceres</h4>
+          <button
+            onClick={() => setParecerFormOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
+          >
+            <Plus size={13} /> Adicionar parecer
+          </button>
+        </div>
+
+        {parecerFormOpen && (
+          <form
+            action={handleAddParecer}
+            className="mb-3 p-3 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 space-y-2.5"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <input name="name" required placeholder="Nome do parecer" className="doc-input" />
+              <input name="date" type="date" className="doc-input" />
+            </div>
+            <input name="driveUrl" required type="url" placeholder="Link do Drive, Dropbox, OneDrive..." className="doc-input" />
+            {parecerError && <p className="text-xs text-red-600">{parecerError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={parecerPending}
+                className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+              >
+                {parecerPending ? "Salvando..." : "Adicionar"}
+              </button>
+              <button type="button" onClick={() => setParecerFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+                Cancelar
+              </button>
+            </div>
+            <style>{`.doc-input { width:100%; border:1px solid rgba(15,31,61,0.12); border-radius:0.5rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:#fff; } .dark .doc-input { border-color: rgba(255,255,255,0.15); background:#0f1f3d; color:#fbfaf7; }`}</style>
+          </form>
+        )}
+
         {pareceres.length === 0 ? (
-          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">
-            Nenhum parecer cadastrado ainda. Adicione pela aba Documentos (tipo &quot;Parecer&quot;).
-          </p>
+          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum parecer cadastrado ainda.</p>
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {pareceres.map((d) => (

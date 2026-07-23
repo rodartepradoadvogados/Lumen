@@ -22,8 +22,13 @@ export default function TimesheetTimer({ initialSeconds }: { initialSeconds: num
     function handlePause() {
       pausedRef.current = true;
     }
-    function handleResume() {
+    // O aviso de inatividade manda o total correto (já recontado a partir da sessão nova,
+    // sem o período parado) junto com o evento — aplicamos direto, sem esperar o próximo
+    // ping (até 25s depois), senão o número mostrado fica errado por um tempo.
+    function handleResume(e: Event) {
       pausedRef.current = false;
+      const detail = (e as CustomEvent<{ todaySeconds?: number }>).detail;
+      if (detail && typeof detail.todaySeconds === "number") setSeconds(detail.todaySeconds);
     }
     window.addEventListener("rp-timesheet-pause", handlePause);
     window.addEventListener("rp-timesheet-resume", handleResume);
@@ -34,7 +39,12 @@ export default function TimesheetTimer({ initialSeconds }: { initialSeconds: num
   }, []);
 
   useEffect(() => {
-    const tick = setInterval(() => setSeconds((s) => s + 1), 1000);
+    // Enquanto pausado (aviso de inatividade na tela), o relógio visível também para —
+    // senão ele continua subindo durante o bloqueio e mostra um tempo que não é real.
+    const tick = setInterval(() => {
+      if (pausedRef.current) return;
+      setSeconds((s) => s + 1);
+    }, 1000);
 
     async function ping() {
       if (pausedRef.current) return;

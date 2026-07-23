@@ -44,8 +44,12 @@ export default function InactivityNotice() {
 
   function handleResume() {
     startTransition(async () => {
-      await resumeAfterInactivity();
-      window.dispatchEvent(new CustomEvent("rp-timesheet-resume"));
+      const result = await resumeAfterInactivity();
+      window.dispatchEvent(
+        new CustomEvent("rp-timesheet-resume", {
+          detail: "todaySeconds" in result ? { todaySeconds: result.todaySeconds } : {},
+        })
+      );
       // A troca de idle para false reexecuta o efeito acima, que já reinicia a
       // contagem dos 15 minutos a partir de agora (resetTimer roda de novo).
       setIdle(false);

@@ -67,6 +67,7 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "PEDIDO_RECONSIDERACAO", label: "Pedido de Reconsideração", icon: Undo2 },
       { key: "IMPUGNACAO_EDITAL", label: "Impugnação ao Edital", icon: FileQuestion },
       { key: "IMPUGNACAO_LAUDO_PERICIAL", label: "Impugnação ao Laudo Pericial", icon: FileQuestion },
+      { key: "PARECER", label: "Parecer", icon: ScrollText },
     ],
   },
   {
@@ -177,7 +178,6 @@ const DOCUMENT_TYPE_MAP: Record<string, DocumentType> = Object.fromEntries(DOCUM
 // têm mais opção equivalente nesta lista — mantidas só para exibir corretamente documentos já
 // cadastrados antes desta taxonomia existir. Não aparecem como opção ao cadastrar um documento novo.
 export const LEGACY_DOCUMENT_TYPES: DocumentType[] = [
-  { key: "PARECER", label: "Parecer (categoria antiga)", icon: ScrollText },
   { key: "ACAO_VINCULADA", label: "Ação vinculada (categoria antiga)", icon: Link2 },
   { key: "LICITACAO", label: "Licitação (categoria antiga)", icon: FileSearch },
   { key: "REGIMENTO_INTERNO", label: "Regimento Interno (categoria antiga)", icon: BookOpen },
