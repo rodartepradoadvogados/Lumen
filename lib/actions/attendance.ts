@@ -8,6 +8,7 @@ import { sendWhatsappText } from "@/lib/whatsapp";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { renameDriveFolder } from "@/lib/googleDrive";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { getOfficeModules } from "@/lib/officeModules";
 
 async function assertAttendanceRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -38,6 +39,9 @@ type CreateAttendanceInput = {
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!(await getOfficeModules(viewer.officeId)).atendimento) {
+    throw new Error("O módulo Atendimento não está incluído no plano deste escritório.");
+  }
   await assertAttendanceRelationsInOffice(data, viewer.officeId);
 
   // Resolve o vínculo com Client conforme o modo escolhido no formulário:
@@ -93,6 +97,9 @@ export async function saveAttendanceDraft(
 ): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  if (!(await getOfficeModules(viewer.officeId)).atendimento) {
+    throw new Error("O módulo Atendimento não está incluído no plano deste escritório.");
+  }
   await assertAttendanceRelationsInOffice(data, viewer.officeId);
 
   const created = await prisma.attendance.create({

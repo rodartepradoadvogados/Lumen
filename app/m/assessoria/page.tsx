@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { listAssessorias } from "@/lib/actions/assessoria";
+import { getCurrentUser } from "@/lib/currentUser";
+import { getOfficeModules } from "@/lib/officeModules";
 import { Card, Badge, EmptyState, formatCurrency } from "@/components/ui";
+import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +17,13 @@ const statusColors: Record<string, "green" | "slate" | "bordo"> = {
 const statusLabels: Record<string, string> = { ATIVA: "Ativa", SUSPENSA: "Suspensa", ENCERRADA: "Encerrada" };
 
 export default async function MobileAssessoria() {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+  const modules = await getOfficeModules(viewer.officeId);
+  if (!modules.assessoria) {
+    return <ModuleDisabledNotice moduleName="Assessoria Jurídica" />;
+  }
+
   const assessorias = await listAssessorias();
 
   return (

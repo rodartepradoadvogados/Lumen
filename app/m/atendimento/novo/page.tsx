@@ -1,11 +1,22 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Card } from "@/components/ui";
 import MobileNewAttendanceForm from "@/components/mobile/MobileNewAttendanceForm";
+import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
+import { getCurrentUser } from "@/lib/currentUser";
+import { getOfficeModules } from "@/lib/officeModules";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default function MobileNewAttendancePage() {
+export default async function MobileNewAttendancePage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+  const modules = await getOfficeModules(viewer.officeId);
+  if (!modules.atendimento) {
+    return <ModuleDisabledNotice moduleName="Atendimento" />;
+  }
+
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <Link

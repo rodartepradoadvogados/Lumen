@@ -23,6 +23,7 @@ import {
 import clsx from "clsx";
 import { THEME_KEY, THEME_CHANGE_EVENT, isThemeMode, type ThemeMode } from "@/lib/theme";
 import LumenMark from "@/components/LumenMark";
+import type { OfficeModules } from "@/lib/officeModules";
 
 // Sub-aba de um item do menu: aparece expandida logo abaixo do item pai quando
 // a rota atual pertence àquela seção (sem precisar de clique extra pra abrir).
@@ -53,6 +54,9 @@ type NavItem = {
   // página de Configurações cai em "geral" por padrão). Deixe undefined quando
   // a ausência do parâmetro já corresponde a uma sub-aba própria (ex: "Todos").
   subDefaultValue?: string;
+  // Módulo do plano contratado que precisa estar ligado para o item aparecer
+  // (ver lib/officeModules.ts) — independente da permissão do usuário (adminOnly).
+  moduleKey?: keyof OfficeModules;
 };
 
 // Menu reorganizado em categorias: visão geral do dia a dia primeiro, depois
@@ -76,6 +80,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         href: "/atendimento",
         label: "Atendimento",
         icon: Headset,
+        moduleKey: "atendimento",
         subParam: "status",
         subItems: [
           { label: "Todos" },
@@ -108,6 +113,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         href: "/assessoria",
         label: "Assessoria Jurídica",
         icon: Building2,
+        moduleKey: "assessoria",
       },
       {
         href: "/contatos",
@@ -125,6 +131,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         label: "Financeiro",
         icon: Wallet,
         adminOnly: true,
+        moduleKey: "financeiro",
         subItems: [
           { label: "Contas a Pagar", href: "/financeiro/contas-a-pagar" },
           { label: "Contas a Receber", href: "/financeiro/contas-a-receber" },
@@ -183,14 +190,18 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
   },
 ];
 
+const ALL_MODULES_ON: OfficeModules = { financeiro: true, whatsapp: true, atendimento: true, assessoria: true };
+
 export default function Sidebar({
   hasFinanceAccess = true,
   isAdmin = false,
   unreadPublications = 0,
+  modules = ALL_MODULES_ON,
 }: {
   hasFinanceAccess?: boolean;
   isAdmin?: boolean;
   unreadPublications?: number;
+  modules?: OfficeModules;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -232,7 +243,9 @@ export default function Sidebar({
   const groups = navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !item.adminOnly || hasFinanceAccess),
+      items: group.items.filter(
+        (item) => (!item.adminOnly || hasFinanceAccess) && (!item.moduleKey || modules[item.moduleKey])
+      ),
     }))
     .filter((group) => group.items.length > 0);
 

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getOfficeModules } from "@/lib/officeModules";
 import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
+import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
 import { Plus, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +39,11 @@ export default async function MobileAtendimento({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
+
+  const modules = await getOfficeModules(viewer.officeId);
+  if (!modules.atendimento) {
+    return <ModuleDisabledNotice moduleName="Atendimento" />;
+  }
 
   const q = (searchParams.q || "").trim();
 

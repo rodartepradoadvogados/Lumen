@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getOfficeModules } from "@/lib/officeModules";
 import { Card } from "@/components/ui";
 import { ArrowLeft, Wallet, FileBarChart, LineChart, BookOpen, ShieldAlert, type LucideIcon } from "lucide-react";
 
@@ -19,7 +20,8 @@ const FINANCE_ITEMS: { href: string; label: string; desc: string; Icon: LucideIc
 
 export default async function MobileFinanceiroHub() {
   const viewer = await getCurrentUser();
-  const allowed = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  const moduleEnabled = viewer ? (await getOfficeModules(viewer.officeId)).financeiro : false;
+  const allowed = moduleEnabled && Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -38,9 +40,11 @@ export default async function MobileFinanceiroHub() {
             <ShieldAlert size={17} />
           </span>
           <div>
-            <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Acesso restrito</p>
+            <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{moduleEnabled ? "Acesso restrito" : "Módulo não disponível"}</p>
             <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
-              Você não tem acesso ao módulo Financeiro. Fale com um administrador se precisar.
+              {moduleEnabled
+                ? "Você não tem acesso ao módulo Financeiro. Fale com um administrador se precisar."
+                : "O módulo Financeiro não está incluído no plano deste escritório."}
             </p>
           </div>
         </Card>

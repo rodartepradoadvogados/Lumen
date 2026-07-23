@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getOrCreateAssessoriaCompanyFolder } from "@/lib/googleDrive";
 import { markReceivablePaid } from "@/lib/actions/financeiro";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
+import { getOfficeModules } from "@/lib/officeModules";
 
 export async function listAssessorias() {
   const user = await getCurrentUser();
@@ -29,6 +30,9 @@ export async function createAssessoria(data: {
 }): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
+  if (!(await getOfficeModules(user.officeId)).assessoria) {
+    return { error: "O módulo Assessoria Jurídica não está incluído no plano deste escritório." };
+  }
 
   const client = await prisma.client.findFirst({ where: { id: data.clientId, officeId: user.officeId } });
   if (!client) return { error: "Cliente não encontrado." };

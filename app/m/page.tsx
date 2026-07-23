@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
+import { getOfficeModules } from "@/lib/officeModules";
 import { Card } from "@/components/ui";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
 import {
@@ -39,7 +40,8 @@ export default async function MobileHome() {
   ]);
 
   const firstName = user?.name.split(" ")[0] ?? "";
-  const showFinance = Boolean(user?.isAdmin || user?.financeAccess);
+  const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
+  const showFinance = modules.financeiro && Boolean(user?.isAdmin || user?.financeAccess);
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -67,15 +69,17 @@ export default async function MobileHome() {
           ]}
         />
 
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/m/atendimento/novo" className="block h-full">
-            <Card className="p-4 h-full">
-              <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center mb-2.5">
-                <Phone size={17} />
-              </span>
-              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Novo Atendimento</p>
-            </Card>
-          </Link>
+        <div className={modules.atendimento ? "grid grid-cols-2 gap-3" : ""}>
+          {modules.atendimento && (
+            <Link href="/m/atendimento/novo" className="block h-full">
+              <Card className="p-4 h-full">
+                <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center mb-2.5">
+                  <Phone size={17} />
+                </span>
+                <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Novo Atendimento</p>
+              </Card>
+            </Link>
+          )}
           <Link href="/m/processos" className="block h-full">
             <Card className="p-4 h-full">
               <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center mb-2.5">
@@ -103,17 +107,19 @@ export default async function MobileHome() {
           </Card>
         </Link>
 
-        <Link href="/m/assessoria" className="block">
-          <Card className="p-4 flex items-center gap-3">
-            <span className="h-10 w-10 rounded-lg bg-gold-500/15 dark:bg-gold-400/10 text-gold-700 dark:text-gold-400 flex items-center justify-center shrink-0">
-              <Building2 size={18} />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Assessoria Jurídica</p>
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{assessoriaCount} empresa(s) ativa(s)</p>
-            </div>
-          </Card>
-        </Link>
+        {modules.assessoria && (
+          <Link href="/m/assessoria" className="block">
+            <Card className="p-4 flex items-center gap-3">
+              <span className="h-10 w-10 rounded-lg bg-gold-500/15 dark:bg-gold-400/10 text-gold-700 dark:text-gold-400 flex items-center justify-center shrink-0">
+                <Building2 size={18} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Assessoria Jurídica</p>
+                <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{assessoriaCount} empresa(s) ativa(s)</p>
+              </div>
+            </Card>
+          </Link>
+        )}
 
         {showFinance && (
           <HubCard

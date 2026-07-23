@@ -9,6 +9,7 @@ import AppBadgeSync from "@/components/AppBadgeSync";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
+import { getOfficeModules } from "@/lib/officeModules";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
@@ -21,7 +22,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/");
   }
 
-  const unreadPublications = await prisma.publication.count({ where: { read: false, officeId: user.officeId } });
+  const [unreadPublications, modules] = await Promise.all([
+    prisma.publication.count({ where: { read: false, officeId: user.officeId } }),
+    getOfficeModules(user.officeId),
+  ]);
 
   return (
     <UndoToastProvider>
@@ -29,7 +33,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <InactivityNotice />
         <AppBadgeSync initialCount={unreadPublications} />
         <Suspense fallback={null}>
-          <Sidebar hasFinanceAccess={user.isAdmin || user.financeAccess} isAdmin={user.isAdmin} unreadPublications={unreadPublications} />
+          <Sidebar
+            hasFinanceAccess={user.isAdmin || user.financeAccess}
+            isAdmin={user.isAdmin}
+            unreadPublications={unreadPublications}
+            modules={modules}
+          />
         </Suspense>
         <div className="flex-1 flex flex-col min-w-0 relative">
           <Suspense fallback={null}>

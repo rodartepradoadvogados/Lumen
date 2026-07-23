@@ -27,6 +27,8 @@ import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
+import { getOfficeModules } from "@/lib/officeModules";
+import ModulesManager from "@/components/ModulesManager";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +97,7 @@ export default async function ConfiguracoesPage({
   }
   const officeId = viewer.officeId;
 
-  const [users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw, whatsappConfig] =
+  const [users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw, whatsappConfig, modules] =
     await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -114,6 +116,7 @@ export default async function ConfiguracoesPage({
       prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       prisma.whatsappConfig.findUnique({ where: { officeId } }),
+      getOfficeModules(officeId),
     ]);
 
   const photos = photosRaw.map((p) => ({
@@ -385,7 +388,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
+      {isAdmin && secao === "modelos" && modules.whatsapp && (
         <Card>
           <CardHeader
             title="WhatsApp"
@@ -483,6 +486,13 @@ export default async function ConfiguracoesPage({
             />
           </div>
         </Card>
+      )}
+
+      {isAdmin && secao === "geral" && (
+      <Card>
+        <CardHeader title="Módulos Contratados" subtitle="Liga/desliga módulos conforme o plano contratado — desligar não apaga nenhum dado já existente" />
+        <ModulesManager modules={modules} />
+      </Card>
       )}
 
       {isAdmin && secao === "geral" && (

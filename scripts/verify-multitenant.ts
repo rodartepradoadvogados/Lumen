@@ -3,6 +3,7 @@ import { seedDefaultOfficeData } from "../lib/defaultOfficeData";
 import { getFilteredPayables, getFilteredReceivables } from "../lib/financeQuery";
 import { getAlerts, getTodayItems } from "../lib/alerts";
 import { isCaseInOffice, isClientInOffice, isUserInOffice } from "../lib/officeScope";
+import { getOfficeModules } from "../lib/officeModules";
 
 const prisma = new PrismaClient();
 
@@ -199,6 +200,23 @@ async function main() {
   assert(!(await isClientInOffice(clientA.id, officeB.id)), "isClientInOffice: cliente de A é REJEITADO para B");
   assert(await isUserInOffice(userA.id, officeA.id), "isUserInOffice: usuário de A é aceito para A");
   assert(!(await isUserInOffice(userA.id, officeB.id)), "isUserInOffice: usuário de A é REJEITADO para B");
+
+  // --- Verificação 5: módulos por contrato (lib/officeModules.ts) ---
+  console.log("\n=== Testando módulos por contrato (lib/officeModules.ts) ===");
+
+  const modulesA0 = await getOfficeModules(officeA.id);
+  assert(
+    modulesA0.financeiro && modulesA0.whatsapp && modulesA0.atendimento && modulesA0.assessoria,
+    "getOfficeModules: todos os módulos vêm ligados por padrão pra um escritório novo"
+  );
+
+  await prisma.office.update({ where: { id: officeA.id }, data: { moduloAtendimento: false } });
+  const modulesA1 = await getOfficeModules(officeA.id);
+  assert(!modulesA1.atendimento, "getOfficeModules: reflete o módulo Atendimento desligado em A");
+  assert(modulesA1.financeiro && modulesA1.whatsapp && modulesA1.assessoria, "getOfficeModules: os outros módulos de A continuam ligados");
+
+  const modulesB = await getOfficeModules(officeB.id);
+  assert(modulesB.atendimento, "getOfficeModules: desligar o módulo em A não afeta B (isolamento por escritório)");
 
   console.log("\n=== TODAS AS VERIFICAÇÕES PASSARAM ===");
 

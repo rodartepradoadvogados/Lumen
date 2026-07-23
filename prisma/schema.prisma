@@ -41,6 +41,15 @@ model Office {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Módulos habilitados por contrato — controla o que aparece na navegação e o que os Server
+  // Actions de cada módulo aceitam fazer (checado nos dois lugares, não só escondido na tela).
+  // Desligar um módulo NUNCA apaga dados já existentes, só impede a criação de dados novos e
+  // esconde a navegação — permite religar sem perda caso o contrato mude depois.
+  moduloFinanceiro  Boolean @default(true)
+  moduloWhatsapp    Boolean @default(true)
+  moduloAtendimento Boolean @default(true)
+  moduloAssessoria  Boolean @default(true)
+
   users                User[]
   notices              Notice[]
   loginSessions        LoginSession[]

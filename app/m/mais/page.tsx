@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getOfficeModules } from "@/lib/officeModules";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
@@ -9,10 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function MobileMais() {
   const viewer = await getCurrentUser();
-  const showFinance = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  const modules = viewer ? await getOfficeModules(viewer.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
+  const showFinance = modules.financeiro && Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
   const items = [
-    { href: "/m/atendimento", label: "Atendimento", Icon: Phone, show: true },
+    { href: "/m/atendimento", label: "Atendimento", Icon: Phone, show: modules.atendimento },
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, show: true },
     { href: "/m/configuracoes", label: "Configurações", Icon: Settings, show: true },

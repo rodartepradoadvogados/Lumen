@@ -15,10 +15,13 @@ import { revalidatePath } from "next/cache";
 
 const GRAPH_API_VERSION = "v21.0";
 
-/** true somente quando o escritório já cadastrou seu número da Cloud API. */
+/** true somente quando o escritório já cadastrou seu número da Cloud API E o módulo WhatsApp está ligado. */
 export async function isWhatsappConfigured(officeId: string): Promise<boolean> {
-  const config = await prisma.whatsappConfig.findUnique({ where: { officeId }, select: { id: true } });
-  return Boolean(config);
+  const office = await prisma.office.findUnique({
+    where: { id: officeId },
+    select: { moduloWhatsapp: true, whatsappConfig: { select: { id: true } } },
+  });
+  return Boolean(office?.moduloWhatsapp && office.whatsappConfig);
 }
 
 /** Token esperado no handshake (GET) do webhook da Meta. Global — um único App Meta pra plataforma. */
@@ -26,10 +29,18 @@ export function getVerifyToken(): string | undefined {
   return process.env.WHATSAPP_VERIFY_TOKEN;
 }
 
-/** Resolve a qual escritório pertence um phone_number_id recebido no webhook da Meta. */
+/**
+ * Resolve a qual escritório pertence um phone_number_id recebido no webhook da Meta.
+ * Retorna null também quando o módulo WhatsApp foi desligado para esse escritório depois
+ * do número já ter sido configurado — a config fica guardada, mas para de processar mensagens.
+ */
 export async function resolveOfficeIdByPhoneNumberId(phoneNumberId: string): Promise<string | null> {
-  const config = await prisma.whatsappConfig.findUnique({ where: { phoneNumberId }, select: { officeId: true } });
-  return config?.officeId ?? null;
+  const config = await prisma.whatsappConfig.findUnique({
+    where: { phoneNumberId },
+    select: { officeId: true, office: { select: { moduloWhatsapp: true } } },
+  });
+  if (!config || !config.office.moduloWhatsapp) return null;
+  return config.officeId;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +67,10 @@ type GraphResponse = {
  * ok:false sem tocar na rede.
  */
 export async function sendWhatsappText(officeId: string, toE164: string, body: string): Promise<SendResult> {
+  const office = await prisma.office.findUnique({ where: { id: officeId }, select: { moduloWhatsapp: true } });
+  if (!office?.moduloWhatsapp) {
+    return { ok: false, error: "O módulo WhatsApp não está incluído no plano deste escritório." };
+  }
   const config = await prisma.whatsappConfig.findUnique({ where: { officeId } });
   if (!config) {
     return { ok: false, error: "WhatsApp não configurado para este escritório." };

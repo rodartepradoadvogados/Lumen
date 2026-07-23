@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getOfficeModules } from "@/lib/officeModules";
 
 export async function saveWhatsappConfig(data: {
   phoneNumberId: string;
@@ -11,6 +12,9 @@ export async function saveWhatsappConfig(data: {
 }): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem configurar o WhatsApp do escritório." };
+  if (!(await getOfficeModules(viewer.officeId)).whatsapp) {
+    return { error: "O módulo WhatsApp não está incluído no plano deste escritório." };
+  }
 
   const phoneNumberId = data.phoneNumberId.trim();
   const accessToken = data.accessToken.trim();
