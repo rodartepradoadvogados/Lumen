@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getCurrentUser } from "@/lib/currentUser";
+import { prisma } from "@/lib/prisma";
 import { assistantTools, AssistantTool } from "@/lib/assistantTools";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,9 @@ function isAssistantConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-function buildSystemPrompt(userName: string): string {
+function buildSystemPrompt(userName: string, officeName: string): string {
   return [
-    `Você é o assistente interno do escritório Rodarte Prado Advogados, conversando agora com ${userName}.`,
+    `Você é o assistente interno do escritório ${officeName}, conversando agora com ${userName}.`,
     "Você só pode responder com base em dados reais retornados pelas ferramentas disponíveis — NUNCA invente números, nomes de processos, valores financeiros, datas ou qualquer outro dado.",
     "Se uma ferramenta não retornar a informação pedida, ou não existir ferramenta para o que foi perguntado, diga honestamente que não encontrou a informação em vez de supor ou completar com conhecimento geral.",
     "Trate todos os dados de clientes, processos e informações financeiras com confidencialidade: este assistente existe apenas para uso interno do escritório, nunca para fins alheios ao contexto do escritório.",
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
   if (!user || !user.active) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
+  const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } });
+  const officeName = office?.name || "seu escritório";
 
   if (!isAssistantConfigured()) {
     return NextResponse.json(
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
       const response = await client.messages.create({
         model: MODEL,
         max_tokens: 1536,
-        system: buildSystemPrompt(user.name),
+        system: buildSystemPrompt(user.name, officeName),
         tools: ferramentasDisponiveis.map((tool) => tool.spec),
         messages,
       });
@@ -113,7 +116,7 @@ export async function POST(request: NextRequest) {
         const tool = ferramentasPorNome.get(toolUse.name);
         const entrada = toolUse.input && typeof toolUse.input === "object" ? (toolUse.input as Record<string, unknown>) : {};
         const resultado = tool
-          ? await tool.executar(entrada, { userId: user.id })
+          ? await tool.executar(entrada, { userId: user.id, officeId: user.officeId })
           : `Ferramenta "${toolUse.name}" não está disponível para este usuário.`;
 
         toolResults.push({

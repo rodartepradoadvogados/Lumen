@@ -13,10 +13,16 @@ export const metadata = {
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
 export default async function BlogPage() {
-  const posts = await prisma.blogPost.findMany({
-    where: { status: "PUBLICADO" },
-    orderBy: { publishedAt: "desc" },
-  });
+  // TODO(multi-tenant): sem resolução de escritório por subdomínio/URL ainda — mostra as
+  // matérias do primeiro escritório cadastrado. Revisitar quando cada escritório tiver sua
+  // própria URL pública (mesma ressalva de app/page.tsx e app/blog/[slug]/page.tsx).
+  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  const posts = office
+    ? await prisma.blogPost.findMany({
+        where: { officeId: office.id, status: "PUBLICADO" },
+        orderBy: { publishedAt: "desc" },
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-cream-50">

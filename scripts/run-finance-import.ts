@@ -9,9 +9,10 @@ function rowsFrom(path: string) {
 }
 
 async function main() {
+  const office = await prisma.office.findFirstOrThrow();
   const rows = rowsFrom("C:/Users/jairo/Downloads/Financeiro.xlsx");
-  console.log(`Importando ${rows.length} lançamentos financeiros...`);
-  const result = await importFinanceCore(rows);
+  console.log(`Importando ${rows.length} lançamentos financeiros para o escritório "${office.name}"...`);
+  const result = await importFinanceCore(rows, office.id);
   console.log("Resultado:", JSON.stringify(result, null, 2));
 }
 

@@ -136,11 +136,17 @@ export default async function HomePage() {
     redirect("/painel");
   }
 
-  const posts = await prisma.blogPost.findMany({
-    where: { status: "PUBLICADO" },
-    orderBy: { publishedAt: "desc" },
-    take: 3,
-  });
+  // TODO(multi-tenant): esta é a homepage pública compartilhada da plataforma (ainda sem
+  // resolução de escritório por subdomínio/URL) — por ora mostra as matérias do primeiro
+  // escritório cadastrado. Revisitar quando cada escritório tiver sua própria URL pública.
+  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  const posts = office
+    ? await prisma.blogPost.findMany({
+        where: { officeId: office.id, status: "PUBLICADO" },
+        orderBy: { publishedAt: "desc" },
+        take: 3,
+      })
+    : [];
 
   const [featured, ...restPosts] = posts;
   const sideArticles = restPosts.slice(0, 2);

@@ -39,9 +39,9 @@ function detectLawyerTagFromOab(oab: string | null | undefined, nomeAdvogado: st
   return nomeAdvogado ?? null;
 }
 
-async function findCaseIdByProcessNumber(processNumeroNormalizado: string | null): Promise<string | null> {
+async function findCaseIdByProcessNumber(processNumeroNormalizado: string | null, officeId: string): Promise<string | null> {
   if (!processNumeroNormalizado) return null;
-  const allCases = await prisma.case.findMany({ where: { processNumber: { not: null } }, select: { id: true, processNumber: true } });
+  const allCases = await prisma.case.findMany({ where: { officeId, processNumber: { not: null } }, select: { id: true, processNumber: true } });
   const found = allCases.find((c) => c.processNumber && normalizarNumeroProcesso(c.processNumber) === processNumeroNormalizado);
   return found?.id ?? null;
 }
@@ -62,9 +62,9 @@ function parseDataOuFallback(raw: string | null | undefined, fallback: Date): Da
 // de todos os processos do escritório, mesmo enquanto a descoberta automática via DJEN
 // não funcionar. Idempotente (skipDuplicates): não sobrescreve processos já monitorados,
 // sejam eles descobertos via DJEN ou cadastrados manualmente pelo próprio robô.
-async function seedProcessosMonitoradosFromCases(): Promise<number> {
+async function seedProcessosMonitoradosFromCases(officeId: string): Promise<number> {
   const casos = await prisma.case.findMany({
-    where: { processNumber: { not: null } },
+    where: { officeId, processNumber: { not: null } },
     select: { processNumber: true },
   });
 
@@ -86,6 +86,10 @@ async function seedProcessosMonitoradosFromCases(): Promise<number> {
   return count;
 }
 
+// TODO(multi-tenant / Fase 4): o robô Python (robo-publicacoes/) escreve num conjunto único e
+// global de tabelas (RoboPublicacao/RoboAndamento/RoboProcessoMonitorado), sem noção de
+// escritório — ele monitora só as OABs configuradas nele mesmo. Enquanto isso não for resolvido
+// (robô precisa aprender a operar por tenant), esta ponte só pode atender UM escritório por vez.
 export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   const result: RoboBridgeResult = {
     publicacoesCriadas: 0,
@@ -95,8 +99,14 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     erros: [],
   };
 
+  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  if (!office) {
+    result.erros.push("Nenhum escritório cadastrado.");
+    return result;
+  }
+
   try {
-    result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases();
+    result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases(office.id);
   } catch (e) {
     const message = e instanceof Error ? e.message : "erro desconhecido";
     result.erros.push(`[seed processos monitorados] ${message}`);
@@ -110,11 +120,12 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(pub.numeroProcesso);
-        const caseId = await findCaseIdByProcessNumber(numeroNormalizado);
+        const caseId = await findCaseIdByProcessNumber(numeroNormalizado, office.id);
         const lawyerTag = detectLawyerTagFromOab(pub.oab, pub.nomeAdvogado);
 
         await prisma.publication.create({
           data: {
+            officeId: office.id,
             kind: "PUBLICACAO",
             source: "DJEN",
             content: pub.teor ?? pub.tipoComunicacao ?? "(sem teor)",
@@ -146,10 +157,11 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(and.numeroProcesso);
-        const caseId = await findCaseIdByProcessNumber(numeroNormalizado);
+        const caseId = await findCaseIdByProcessNumber(numeroNormalizado, office.id);
 
         await prisma.publication.create({
           data: {
+            officeId: office.id,
             kind: "ANDAMENTO",
             source: "DATAJUD",
             content: and.descricaoMovimento ?? and.codigoMovimento,
@@ -173,7 +185,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   // Um resumo só por tipo (não uma notificação por publicação) — evita inundar quem
   // ativou notificações caso o robô traga muitas de uma vez num único ciclo.
   if (result.publicacoesCriadas > 0 || result.andamentosCriados > 0) {
-    const activeUserIds = (await prisma.user.findMany({ where: { active: true }, select: { id: true } })).map((u) => u.id);
+    const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId: office.id }, select: { id: true } })).map((u) => u.id);
     if (result.publicacoesCriadas > 0) {
       broadcastPushIfEnabled(activeUserIds, "publicacoes", {
         title: "Novas publicações",

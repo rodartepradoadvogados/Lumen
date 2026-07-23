@@ -14,23 +14,23 @@ async function findUserByName(name: string, users: { id: string; name: string }[
   return users.find((u) => norm(u.name) === target || target.includes(norm(u.name)) || norm(u.name).includes(target))?.id ?? null;
 }
 
-async function findOrCreateClient(name: string, cache: Map<string, string>) {
+async function findOrCreateClient(name: string, cache: Map<string, string>, officeId: string) {
   const key = norm(name);
   if (cache.has(key)) return cache.get(key)!;
-  const existing = await prisma.client.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  const existing = await prisma.client.findFirst({ where: { officeId, name: { equals: name, mode: "insensitive" } } });
   if (existing) {
     cache.set(key, existing.id);
     return existing.id;
   }
-  const created = await prisma.client.create({ data: { name, type: "PJ" } });
+  const created = await prisma.client.create({ data: { officeId, name, type: "PJ" } });
   cache.set(key, created.id);
   return created.id;
 }
 
 const instanceLabels: Record<string, string> = { "1": "1º Grau", "2": "2º Grau", "3": "3º Grau" };
 
-export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
-  const users = await prisma.user.findMany({ select: { id: true, name: true } });
+export async function importCasesCore(rows: Row[], officeId: string): Promise<ImportResult> {
+  const users = await prisma.user.findMany({ where: { officeId }, select: { id: true, name: true } });
   const clientCache = new Map<string, string>();
 
   let created = 0;
@@ -49,7 +49,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
           skipped++;
           continue;
         }
-        await findOrCreateClient(contactName, clientCache);
+        await findOrCreateClient(contactName, clientCache, officeId);
         created++;
         continue;
       }
@@ -86,7 +86,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
         opposingPartyName = othersRaw ? othersRaw.split(",")[0].replace(/\(PARTE\)/gi, "").trim() || null : null;
       }
 
-      const clientId = clientName ? await findOrCreateClient(clientName, clientCache) : null;
+      const clientId = clientName ? await findOrCreateClient(clientName, clientCache, officeId) : null;
 
       const responsibleName = col(row, "Responsável", "Responsavel");
       const responsibleId = await findUserByName(responsibleName, users);
@@ -101,6 +101,7 @@ export async function importCasesCore(rows: Row[]): Promise<ImportResult> {
 
       await prisma.case.create({
         data: {
+          officeId,
           title,
           type,
           area: col(row, "Matéria", "Materia") || null,
@@ -153,11 +154,11 @@ const taskTypeMap: Record<string, string> = {
 
 const priorityMap: Record<string, string> = { alta: "ALTA", media: "MEDIA", média: "MEDIA", baixa: "BAIXA", urgente: "URGENTE" };
 
-export async function importAgendaCore(rows: Row[]): Promise<ImportResult> {
-  const users = await prisma.user.findMany({ select: { id: true, name: true } });
-  const cases = await prisma.case.findMany({ select: { id: true, title: true, processNumber: true } });
-  const firstColumn = await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
-  const doneColumn = await prisma.kanbanColumn.findFirst({ where: { isDoneCol: true } });
+export async function importAgendaCore(rows: Row[], officeId: string): Promise<ImportResult> {
+  const users = await prisma.user.findMany({ where: { officeId }, select: { id: true, name: true } });
+  const cases = await prisma.case.findMany({ where: { officeId }, select: { id: true, title: true, processNumber: true } });
+  const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId }, orderBy: { order: "asc" } });
+  const doneColumn = await prisma.kanbanColumn.findFirst({ where: { officeId, isDoneCol: true } });
 
   let created = 0;
   let skipped = 0;
@@ -200,6 +201,7 @@ export async function importAgendaCore(rows: Row[]): Promise<ImportResult> {
 
       await prisma.task.create({
         data: {
+          officeId,
           title,
           type,
           dueDate,

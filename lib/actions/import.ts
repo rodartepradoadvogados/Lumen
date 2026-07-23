@@ -5,15 +5,19 @@ import { parseSpreadsheet } from "@/lib/importers/parse";
 import { importCasesCore, importAgendaCore, type ImportResult } from "@/lib/importers/importCore";
 import { importFinanceCore } from "@/lib/importers/importFinance";
 import { requireFinanceAccess } from "@/lib/permissions";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export type { ImportResult };
 
 export async function importCases(_prevState: ImportResult, formData: FormData): Promise<ImportResult> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { created: 0, skipped: 0, errors: ["Apenas administradores podem importar dados."] };
+
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { created: 0, skipped: 0, errors: ["Nenhum arquivo enviado."] };
 
   const rows = await parseSpreadsheet(file);
-  const result = await importCasesCore(rows);
+  const result = await importCasesCore(rows, viewer.officeId);
 
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
@@ -23,11 +27,14 @@ export async function importCases(_prevState: ImportResult, formData: FormData):
 
 export async function importFinance(_prevState: ImportResult, formData: FormData): Promise<ImportResult> {
   await requireFinanceAccess();
+  const viewer = await getCurrentUser();
+  if (!viewer) return { created: 0, skipped: 0, errors: ["Sessão inválida."] };
+
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { created: 0, skipped: 0, errors: ["Nenhum arquivo enviado."] };
 
   const rows = await parseSpreadsheet(file);
-  const result = await importFinanceCore(rows);
+  const result = await importFinanceCore(rows, viewer.officeId);
 
   revalidatePath("/financeiro");
   revalidatePath("/financeiro/contas-a-pagar");
@@ -39,11 +46,14 @@ export async function importFinance(_prevState: ImportResult, formData: FormData
 }
 
 export async function importAgenda(_prevState: ImportResult, formData: FormData): Promise<ImportResult> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { created: 0, skipped: 0, errors: ["Apenas administradores podem importar dados."] };
+
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { created: 0, skipped: 0, errors: ["Nenhum arquivo enviado."] };
 
   const rows = await parseSpreadsheet(file);
-  const result = await importAgendaCore(rows);
+  const result = await importAgendaCore(rows, viewer.officeId);
 
   revalidatePath("/agenda");
   revalidatePath("/kanban");

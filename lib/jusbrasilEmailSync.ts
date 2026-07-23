@@ -70,16 +70,16 @@ function extractAndamentos(text: string): ExtractedEntry[] {
   return entries;
 }
 
-async function findCaseIdByProcessNumber(processNumberRaw: string | null): Promise<string | null> {
+async function findCaseIdByProcessNumber(processNumberRaw: string | null, officeId: string): Promise<string | null> {
   if (!processNumberRaw) return null;
   const digits = processNumberRaw.replace(/\D/g, "");
-  const allCases = await prisma.case.findMany({ where: { processNumber: { not: null } }, select: { id: true, processNumber: true } });
+  const allCases = await prisma.case.findMany({ where: { officeId, processNumber: { not: null } }, select: { id: true, processNumber: true } });
   const found = allCases.find((c) => c.processNumber && c.processNumber.replace(/\D/g, "") === digits);
   return found?.id ?? null;
 }
 
-async function findClientIdByName(content: string): Promise<string | null> {
-  const clients = await prisma.client.findMany({ select: { id: true, name: true } });
+async function findClientIdByName(content: string, officeId: string): Promise<string | null> {
+  const clients = await prisma.client.findMany({ where: { officeId }, select: { id: true, name: true } });
   const normalized = content.toLowerCase();
   for (const client of clients) {
     const name = client.name.trim().toLowerCase();
@@ -88,16 +88,19 @@ async function findClientIdByName(content: string): Promise<string | null> {
   return null;
 }
 
-async function getGmailClients(): Promise<{ gmail: ReturnType<typeof google.gmail>; accountEmail: string }[]> {
+// Cada escritório conecta sua própria conta Google para o Jusbrasil (GoogleCredential.officeId)
+// — diferente do robô Python (lib/roboBridge.ts), aqui já dá pra saber de verdade a qual
+// escritório cada e-mail encontrado pertence, direto da credencial que o encontrou.
+async function getGmailClients(): Promise<{ gmail: ReturnType<typeof google.gmail>; accountEmail: string; officeId: string }[]> {
   const creds = await prisma.googleCredential.findMany({ where: { syncJusbrasil: true } });
   return creds.map((cred) => {
     const client = getOAuthClient();
     client.setCredentials({ refresh_token: cred.refreshToken });
-    return { gmail: google.gmail({ version: "v1", auth: client }), accountEmail: cred.accountEmail };
+    return { gmail: google.gmail({ version: "v1", auth: client }), accountEmail: cred.accountEmail, officeId: cred.officeId };
   });
 }
 
-async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId: string, accountEmail: string, result: SyncResult) {
+async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId: string, accountEmail: string, officeId: string, result: SyncResult) {
   const raw = await gmail.users.messages.get({ userId: "me", id: messageId, format: "raw" });
   if (!raw.data.raw) return;
   const parsed = await simpleParser(Buffer.from(raw.data.raw, "base64url"));
@@ -134,6 +137,7 @@ async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId:
     const contentPrefix = entry.content.slice(0, 200);
     const duplicate = await prisma.publication.findFirst({
       where: {
+        officeId,
         publishedAt: { gte: dayStart, lt: dayEnd },
         processNumberRaw: entry.processNumber,
         content: { startsWith: contentPrefix },
@@ -144,11 +148,12 @@ async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId:
       continue;
     }
 
-    const caseId = await findCaseIdByProcessNumber(entry.processNumber);
-    const clientId = caseId ? null : await findClientIdByName(entry.content);
+    const caseId = await findCaseIdByProcessNumber(entry.processNumber, officeId);
+    const clientId = caseId ? null : await findClientIdByName(entry.content, officeId);
 
     await prisma.publication.create({
       data: {
+        officeId,
         kind: entry.kind,
         source: "JUSBRASIL_EMAIL",
         content: entry.content,
@@ -177,15 +182,21 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
     return result;
   }
 
-  const priorSync = await prisma.publication.findFirst({ where: { source: "JUSBRASIL_EMAIL" }, orderBy: { publishedAt: "desc" } });
-  const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const afterEpochSeconds = Math.floor(sinceDate.getTime() / 1000);
   const senderQuery = RELEVANT_SENDERS.map((s) => `from:${s}`).join(" OR ");
-  const query = `(${senderQuery}) after:${afterEpochSeconds}`;
 
-  for (const { gmail, accountEmail } of clients) {
+  for (const { gmail, accountEmail, officeId } of clients) {
     result.accountsScanned++;
     try {
+      // "Desde quando" buscar é por escritório — o último e-mail do Jusbrasil já
+      // importado PARA ESTE escritório, não o mais recente da plataforma inteira.
+      const priorSync = await prisma.publication.findFirst({
+        where: { officeId, source: "JUSBRASIL_EMAIL" },
+        orderBy: { publishedAt: "desc" },
+      });
+      const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const afterEpochSeconds = Math.floor(sinceDate.getTime() / 1000);
+      const query = `(${senderQuery}) after:${afterEpochSeconds}`;
+
       const messageIds: string[] = [];
       let pageToken: string | undefined;
       do {
@@ -194,13 +205,35 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
         pageToken = list.data.nextPageToken ?? undefined;
       } while (pageToken);
 
+      const before = { publicacoes: result.createdPublicacoes, andamentos: result.createdAndamentos };
       for (const messageId of messageIds) {
         result.found++;
         try {
-          await processMessage(gmail, messageId, accountEmail, result);
+          await processMessage(gmail, messageId, accountEmail, officeId, result);
         } catch (e) {
           const message = e instanceof Error ? e.message : "erro desconhecido";
           result.errors.push(`[${accountEmail}] Mensagem ${messageId}: ${message}`);
+        }
+      }
+
+      // Notifica só a equipe DESTE escritório sobre o que foi criado a partir desta conta.
+      const createdPublicacoesHere = result.createdPublicacoes - before.publicacoes;
+      const createdAndamentosHere = result.createdAndamentos - before.andamentos;
+      if (createdPublicacoesHere > 0 || createdAndamentosHere > 0) {
+        const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId }, select: { id: true } })).map((u) => u.id);
+        if (createdPublicacoesHere > 0) {
+          broadcastPushIfEnabled(activeUserIds, "publicacoes", {
+            title: "Novas publicações",
+            body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
+            url: "/m/publicacoes",
+          }).catch(() => {});
+        }
+        if (createdAndamentosHere > 0) {
+          broadcastPushIfEnabled(activeUserIds, "andamentos", {
+            title: "Novos andamentos processuais",
+            body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
+            url: "/m/publicacoes",
+          }).catch(() => {});
         }
       }
     } catch (e) {
@@ -208,24 +241,6 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       result.errors.push(
         `[${accountEmail}] Falha ao consultar o Gmail — ${message}. Reconecte essa conta em Configurações para autorizar o acesso ao Gmail.`
       );
-    }
-  }
-
-  if (result.createdPublicacoes > 0 || result.createdAndamentos > 0) {
-    const activeUserIds = (await prisma.user.findMany({ where: { active: true }, select: { id: true } })).map((u) => u.id);
-    if (result.createdPublicacoes > 0) {
-      broadcastPushIfEnabled(activeUserIds, "publicacoes", {
-        title: "Novas publicações",
-        body: `${result.createdPublicacoes} nova(s) publicação(ões) recebida(s).`,
-        url: "/m/publicacoes",
-      }).catch(() => {});
-    }
-    if (result.createdAndamentos > 0) {
-      broadcastPushIfEnabled(activeUserIds, "andamentos", {
-        title: "Novos andamentos processuais",
-        body: `${result.createdAndamentos} novo(s) andamento(s) recebido(s).`,
-        url: "/m/publicacoes",
-      }).catch(() => {});
     }
   }
 

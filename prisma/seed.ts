@@ -28,10 +28,18 @@ async function main() {
   await prisma.client.deleteMany();
   await prisma.lawyer.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.office.deleteMany();
+
+  console.log("Criando escritório de demonstração...");
+  const office = await prisma.office.create({
+    data: { name: "Rodarte Prado Advogados", slug: "rodarte-prado" },
+  });
+  const officeId = office.id;
 
   console.log("Criando equipe...");
   const jairo = await prisma.user.create({
     data: {
+      officeId,
       name: "Jairo Rodarte",
       email: "jairo@rodarteprado.com.br",
       role: "Sócio",
@@ -44,6 +52,7 @@ async function main() {
   });
   const rodrigo = await prisma.user.create({
     data: {
+      officeId,
       name: "Rodrigo Prado",
       email: "rodrigo@rodarteprado.com.br",
       role: "Sócio",
@@ -55,29 +64,30 @@ async function main() {
     },
   });
   const estagiaria = await prisma.user.create({
-    data: { name: "Ana Beatriz", email: "ana@rodarteprado.com.br", role: "Estagiária", color: "#557" },
+    data: { officeId, name: "Ana Beatriz", email: "ana@rodarteprado.com.br", role: "Estagiária", color: "#557" },
   });
 
   console.log("Colunas do kanban...");
-  const colTodo = await prisma.kanbanColumn.create({ data: { name: "A Fazer", order: 0, color: "#94a3b8" } });
-  const colProgress = await prisma.kanbanColumn.create({ data: { name: "Em Andamento", order: 1, color: "#b8904f" } });
-  const colWaiting = await prisma.kanbanColumn.create({ data: { name: "Aguardando", order: 2, color: "#6b7fae" } });
-  const colDone = await prisma.kanbanColumn.create({ data: { name: "Concluído", order: 3, color: "#2f7d4f", isDoneCol: true } });
+  const colTodo = await prisma.kanbanColumn.create({ data: { officeId, name: "A Fazer", order: 0, color: "#94a3b8" } });
+  const colProgress = await prisma.kanbanColumn.create({ data: { officeId, name: "Em Andamento", order: 1, color: "#b8904f" } });
+  const colWaiting = await prisma.kanbanColumn.create({ data: { officeId, name: "Aguardando", order: 2, color: "#6b7fae" } });
+  const colDone = await prisma.kanbanColumn.create({ data: { officeId, name: "Concluído", order: 3, color: "#2f7d4f", isDoneCol: true } });
 
   console.log("Clientes...");
-  const multipedras = await prisma.client.create({ data: { name: "Multipedras Revestimentos Eireli", type: "PJ", document: "12.345.678/0001-90", email: "contato@multipedras.com.br", phone: "(62) 3222-1000" } });
-  const pneulandia = await prisma.client.create({ data: { name: "Pneulândia Comercial Ltda", type: "PJ", document: "22.333.444/0001-11", phone: "(62) 3555-2000" } });
-  const vidaLocadora = await prisma.client.create({ data: { name: "Vida Locadora - Fórmula Locação de Veículos Especiais Ltda", type: "PJ", document: "33.444.555/0001-22" } });
-  const bancoBrasil = await prisma.client.create({ data: { name: "Banco do Brasil S/A", type: "PJ", document: "00.000.000/0001-91" } });
-  const carlosSilva = await prisma.client.create({ data: { name: "Carlos Eduardo da Silva", type: "PF", document: "123.456.789-00", phone: "(62) 99123-4567" } });
-  await prisma.client.create({ data: { name: "Geral", type: "PJ", notes: "Cliente genérico para lançamentos financeiros gerais do escritório." } });
+  const multipedras = await prisma.client.create({ data: { officeId, name: "Multipedras Revestimentos Eireli", type: "PJ", document: "12.345.678/0001-90", email: "contato@multipedras.com.br", phone: "(62) 3222-1000" } });
+  const pneulandia = await prisma.client.create({ data: { officeId, name: "Pneulândia Comercial Ltda", type: "PJ", document: "22.333.444/0001-11", phone: "(62) 3555-2000" } });
+  const vidaLocadora = await prisma.client.create({ data: { officeId, name: "Vida Locadora - Fórmula Locação de Veículos Especiais Ltda", type: "PJ", document: "33.444.555/0001-22" } });
+  const bancoBrasil = await prisma.client.create({ data: { officeId, name: "Banco do Brasil S/A", type: "PJ", document: "00.000.000/0001-91" } });
+  const carlosSilva = await prisma.client.create({ data: { officeId, name: "Carlos Eduardo da Silva", type: "PF", document: "123.456.789-00", phone: "(62) 99123-4567" } });
+  await prisma.client.create({ data: { officeId, name: "Geral", type: "PJ", notes: "Cliente genérico para lançamentos financeiros gerais do escritório." } });
 
   console.log("Advogados parceiros e adversos...");
-  const advParceiro = await prisma.lawyer.create({ data: { name: "Fernanda Lima", oab: "OAB/GO 33.210", side: "PARCEIRO", firm: "Lima & Associados", phone: "(62) 99888-1122" } });
+  const advParceiro = await prisma.lawyer.create({ data: { officeId, name: "Fernanda Lima", oab: "OAB/GO 33.210", side: "PARCEIRO", firm: "Lima & Associados", phone: "(62) 99888-1122" } });
 
   console.log("Casos...");
   const caso1 = await prisma.case.create({
     data: {
+      officeId,
       title: "Multipedras Revestimentos Eireli x Estado de Roraima",
       type: "JUDICIAL", area: "Tributário", status: "ATIVO",
       processNumber: "0801234-56.2024.8.23.0010", court: "1ª Vara da Fazenda Pública - RR",
@@ -89,6 +99,7 @@ async function main() {
   });
   const caso2 = await prisma.case.create({
     data: {
+      officeId,
       title: "Pneulândia Comercial Ltda x Lourival Barbosa Santos | Eliane",
       type: "JUDICIAL", area: "Cível", status: "ATIVO",
       processNumber: "0709876-12.2023.8.09.0051", court: "3ª Vara Cível de Goiânia",
@@ -100,6 +111,7 @@ async function main() {
   });
   const caso3 = await prisma.case.create({
     data: {
+      officeId,
       title: "Banco do Brasil S/A x Village Administração de Serviços Ltda",
       type: "JUDICIAL", area: "Cível", status: "ATIVO",
       processNumber: "0812233-44.2022.8.09.0051", court: "5ª Vara Cível de Goiânia",
@@ -110,6 +122,7 @@ async function main() {
   });
   const caso4 = await prisma.case.create({
     data: {
+      officeId,
       title: "Vida Locadora x Guilherme Ferreira da Silva e Cia Ltda",
       type: "JUDICIAL", area: "Cível", status: "ATIVO",
       processNumber: "0855667-89.2024.8.09.0051", court: "2ª Vara Cível de Goiânia",
@@ -120,6 +133,7 @@ async function main() {
   });
   const caso5 = await prisma.case.create({
     data: {
+      officeId,
       title: "Execução de Sentença - Estado de Goiás x Médicos Legistas",
       type: "JUDICIAL", area: "Administrativo", status: "ATIVO",
       processNumber: "0844556-77.2021.8.09.0051",
@@ -129,6 +143,7 @@ async function main() {
   });
   const caso6 = await prisma.case.create({
     data: {
+      officeId,
       title: "Consultivo - Revisão Contratual Multipedras",
       type: "CONSULTIVO", area: "Empresarial", status: "ATIVO",
       clientId: multipedras.id, responsibleId: rodrigo.id,
@@ -155,22 +170,23 @@ async function main() {
   ];
   const createdTasks = [];
   for (const t of tasks) {
-    createdTasks.push(await prisma.task.create({ data: t as any }));
+    createdTasks.push(await prisma.task.create({ data: { ...t, officeId } as any }));
   }
 
   console.log("Comentários com menções...");
   const c1 = await prisma.comment.create({
     data: {
+      officeId,
       content: "@Rodrigo Prado pode revisar a minuta antes de eu protocolar amanhã?",
       authorId: jairo.id,
       taskId: createdTasks[13].id,
       caseId: caso1.id,
     },
   });
-  await prisma.mention.create({ data: { commentId: c1.id, userId: rodrigo.id } });
+  await prisma.mention.create({ data: { officeId, commentId: c1.id, userId: rodrigo.id } });
 
   const c2 = await prisma.comment.create({
-    data: { content: "Cliente confirmou os novos documentos, já anexei na pasta do caso.", authorId: rodrigo.id, caseId: caso2.id },
+    data: { officeId, content: "Cliente confirmou os novos documentos, já anexei na pasta do caso.", authorId: rodrigo.id, caseId: caso2.id },
   });
 
   console.log("Plano de contas...");
@@ -255,7 +271,7 @@ async function main() {
   async function createTree(nodes: CatNode[], parentId: string | null, order: number) {
     for (const [i, node] of nodes.entries()) {
       const created = await prisma.financialCategory.create({
-        data: { code: node.code, name: node.name, kind: node.kind, parentId: parentId ?? undefined, order: order + i },
+        data: { officeId, code: node.code, name: node.name, kind: node.kind, parentId: parentId ?? undefined, order: order + i },
       });
       catByCode[node.code] = created;
       if (node.children) await createTree(node.children, created.id, 0);
@@ -274,9 +290,9 @@ async function main() {
   console.log("Centros de custo...");
   await prisma.costCenter.createMany({
     data: [
-      { name: "Assessorias Jurídicas" },
-      { name: "Gestão Patrimonial" },
-      { name: "Outros" },
+      { officeId, name: "Assessorias Jurídicas" },
+      { officeId, name: "Gestão Patrimonial" },
+      { officeId, name: "Outros" },
     ],
   });
 
@@ -295,6 +311,7 @@ async function main() {
     await prisma.payable.create({
       data: {
         ...p,
+        officeId,
         status: isPaid ? "PAGO" : (p.dueDate as Date) < new Date() ? "ATRASADO" : "PENDENTE",
         paidDate: isPaid ? new Date() : null,
         paidAmount: isPaid ? p.amount : null,
@@ -316,6 +333,7 @@ async function main() {
     await prisma.receivable.create({
       data: {
         ...r,
+        officeId,
         status: isPaid ? "PAGO" : (r.dueDate as Date) < new Date() ? "ATRASADO" : "PENDENTE",
         paidDate: isPaid ? new Date() : null,
         paidAmount: isPaid ? r.amount : null,
@@ -332,15 +350,15 @@ async function main() {
     { kind: "ANDAMENTO", source: "DJE", content: "Homologado acordo entre as partes.", publishedAt: daysFromNow(-10), caseId: caso5.id, read: true },
   ];
   for (const p of publications) {
-    await prisma.publication.create({ data: p as any });
+    await prisma.publication.create({ data: { ...p, officeId } as any });
   }
 
   console.log("Atendimentos (setor de atendimento)...");
   await prisma.attendance.createMany({
     data: [
-      { clientName: "Marcos Aurélio Pereira", contact: "(62) 99222-3344", subject: "Dúvida sobre rescisão trabalhista", channel: "WHATSAPP", status: "NOVO", responsibleId: estagiaria.id },
-      { clientName: "Construtora Horizonte Ltda", contact: "financeiro@horizonte.com.br", subject: "Cobrança de inadimplente - possível ação de execução", channel: "EMAIL", status: "EM_TRIAGEM", responsibleId: rodrigo.id },
-      { clientName: "Juliana Mendes", contact: "(62) 99876-1122", subject: "Divórcio consensual", channel: "TELEFONE", status: "NOVO", responsibleId: jairo.id },
+      { officeId, clientName: "Marcos Aurélio Pereira", contact: "(62) 99222-3344", subject: "Dúvida sobre rescisão trabalhista", channel: "WHATSAPP", status: "NOVO", responsibleId: estagiaria.id },
+      { officeId, clientName: "Construtora Horizonte Ltda", contact: "financeiro@horizonte.com.br", subject: "Cobrança de inadimplente - possível ação de execução", channel: "EMAIL", status: "EM_TRIAGEM", responsibleId: rodrigo.id },
+      { officeId, clientName: "Juliana Mendes", contact: "(62) 99876-1122", subject: "Divórcio consensual", channel: "TELEFONE", status: "NOVO", responsibleId: jairo.id },
     ],
   });
 

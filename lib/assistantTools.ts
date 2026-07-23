@@ -31,7 +31,7 @@ export type ToolInput = Record<string, unknown>;
 export type AssistantTool = {
   modulo: AssistantToolModule;
   spec: Anthropic.Tool;
-  executar: (input: ToolInput, ctx: { userId: string }) => Promise<string>;
+  executar: (input: ToolInput, ctx: { userId: string; officeId: string }) => Promise<string>;
 };
 
 function truncate(text: string, max: number): string {
@@ -57,7 +57,7 @@ function bool(input: ToolInput, key: string): boolean {
 // consultar_processos
 // ---------------------------------------------------------------------------
 
-async function executarConsultarProcessos(input: ToolInput): Promise<string> {
+async function executarConsultarProcessos(input: ToolInput, officeId: string): Promise<string> {
   try {
     const cliente = str(input, "cliente");
     const area = str(input, "area");
@@ -65,6 +65,7 @@ async function executarConsultarProcessos(input: ToolInput): Promise<string> {
 
     const cases = await prisma.case.findMany({
       where: {
+        officeId,
         client: cliente ? { name: { contains: cliente, mode: "insensitive" } } : undefined,
         area: area ? { contains: area, mode: "insensitive" } : undefined,
         status: status || undefined,
@@ -95,7 +96,7 @@ async function executarConsultarProcessos(input: ToolInput): Promise<string> {
 // consultar_publicacoes
 // ---------------------------------------------------------------------------
 
-async function executarConsultarPublicacoes(input: ToolInput): Promise<string> {
+async function executarConsultarPublicacoes(input: ToolInput, officeId: string): Promise<string> {
   try {
     const diasAtras = num(input, "diasAtras") ?? 7;
     const apenasNaoLidas = bool(input, "apenasNaoLidas");
@@ -106,6 +107,7 @@ async function executarConsultarPublicacoes(input: ToolInput): Promise<string> {
 
     const publicacoes = await prisma.publication.findMany({
       where: {
+        officeId,
         publishedAt: { gte: desde },
         read: apenasNaoLidas ? false : undefined,
         lawyerTag: lawyerTag ? { contains: lawyerTag, mode: "insensitive" } : undefined,
@@ -135,7 +137,7 @@ async function executarConsultarPublicacoes(input: ToolInput): Promise<string> {
 // consultar_agenda
 // ---------------------------------------------------------------------------
 
-async function executarConsultarAgenda(input: ToolInput): Promise<string> {
+async function executarConsultarAgenda(input: ToolInput, officeId: string): Promise<string> {
   try {
     const diasAFrente = num(input, "diasAFrente") ?? 7;
     const responsavel = str(input, "responsavel");
@@ -146,6 +148,7 @@ async function executarConsultarAgenda(input: ToolInput): Promise<string> {
 
     const tarefas = await prisma.task.findMany({
       where: {
+        officeId,
         dueDate: { gte: agora, lte: ate },
         status: { notIn: ["CONCLUIDO", "CANCELADO"] },
         responsible: responsavel ? { name: { contains: responsavel, mode: "insensitive" } } : undefined,
@@ -175,7 +178,7 @@ async function executarConsultarAgenda(input: ToolInput): Promise<string> {
 // consultar_atendimento
 // ---------------------------------------------------------------------------
 
-async function executarConsultarAtendimento(input: ToolInput): Promise<string> {
+async function executarConsultarAtendimento(input: ToolInput, officeId: string): Promise<string> {
   try {
     const status = str(input, "status");
     const estagio = str(input, "estagio");
@@ -183,6 +186,7 @@ async function executarConsultarAtendimento(input: ToolInput): Promise<string> {
     // RASCUNHO só entra na busca se explicitamente pedido via `status`; por padrão fica de fora.
     const atendimentos = await prisma.attendance.findMany({
       where: {
+        officeId,
         status: status ? status : { not: "RASCUNHO" },
         stage: estagio || undefined,
       },
@@ -211,7 +215,7 @@ async function executarConsultarAtendimento(input: ToolInput): Promise<string> {
 // buscar_cliente
 // ---------------------------------------------------------------------------
 
-async function executarBuscarCliente(input: ToolInput): Promise<string> {
+async function executarBuscarCliente(input: ToolInput, officeId: string): Promise<string> {
   try {
     const nome = str(input, "nome");
     if (!nome) {
@@ -219,7 +223,7 @@ async function executarBuscarCliente(input: ToolInput): Promise<string> {
     }
 
     const clientes = await prisma.client.findMany({
-      where: { name: { contains: nome, mode: "insensitive" } },
+      where: { officeId, name: { contains: nome, mode: "insensitive" } },
       include: { _count: { select: { cases: true } } },
       take: 20,
     });
@@ -244,7 +248,7 @@ async function executarBuscarCliente(input: ToolInput): Promise<string> {
 // consultar_financeiro (módulo "financeiro" — só oferecida a quem tem acesso)
 // ---------------------------------------------------------------------------
 
-async function executarConsultarFinanceiro(input: ToolInput): Promise<string> {
+async function executarConsultarFinanceiro(input: ToolInput, officeId: string): Promise<string> {
   try {
     const tipoRecebido = str(input, "tipo");
     const tipo: "pagar" | "receber" | "ambos" =
@@ -255,7 +259,7 @@ async function executarConsultarFinanceiro(input: ToolInput): Promise<string> {
 
     if (tipo === "pagar" || tipo === "ambos") {
       const payables = await prisma.payable.findMany({
-        where: { status: apenasPendente ? "PENDENTE" : undefined },
+        where: { officeId, status: apenasPendente ? "PENDENTE" : undefined },
         include: { category: true },
         orderBy: { dueDate: "asc" },
         take: 20,
@@ -275,7 +279,7 @@ async function executarConsultarFinanceiro(input: ToolInput): Promise<string> {
 
     if (tipo === "receber" || tipo === "ambos") {
       const receivables = await prisma.receivable.findMany({
-        where: { status: apenasPendente ? "PENDENTE" : undefined },
+        where: { officeId, status: apenasPendente ? "PENDENTE" : undefined },
         include: { category: true },
         orderBy: { dueDate: "asc" },
         take: 20,
@@ -321,7 +325,7 @@ export const assistantTools: AssistantTool[] = [
         required: [],
       },
     },
-    executar: (input) => executarConsultarProcessos(input),
+    executar: (input, ctx) => executarConsultarProcessos(input, ctx.officeId),
   },
   {
     modulo: "publicacoes",
@@ -339,7 +343,7 @@ export const assistantTools: AssistantTool[] = [
         required: [],
       },
     },
-    executar: (input) => executarConsultarPublicacoes(input),
+    executar: (input, ctx) => executarConsultarPublicacoes(input, ctx.officeId),
   },
   {
     modulo: "agenda",
@@ -356,7 +360,7 @@ export const assistantTools: AssistantTool[] = [
         required: [],
       },
     },
-    executar: (input) => executarConsultarAgenda(input),
+    executar: (input, ctx) => executarConsultarAgenda(input, ctx.officeId),
   },
   {
     modulo: "atendimento",
@@ -376,7 +380,7 @@ export const assistantTools: AssistantTool[] = [
         required: [],
       },
     },
-    executar: (input) => executarConsultarAtendimento(input),
+    executar: (input, ctx) => executarConsultarAtendimento(input, ctx.officeId),
   },
   {
     modulo: "clientes",
@@ -392,7 +396,7 @@ export const assistantTools: AssistantTool[] = [
         required: ["nome"],
       },
     },
-    executar: (input) => executarBuscarCliente(input),
+    executar: (input, ctx) => executarBuscarCliente(input, ctx.officeId),
   },
   {
     modulo: "financeiro",
@@ -409,6 +413,6 @@ export const assistantTools: AssistantTool[] = [
         required: ["tipo"],
       },
     },
-    executar: (input) => executarConsultarFinanceiro(input),
+    executar: (input, ctx) => executarConsultarFinanceiro(input, ctx.officeId),
   },
 ];

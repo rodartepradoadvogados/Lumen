@@ -2,51 +2,51 @@ import { prisma } from "@/lib/prisma";
 import { col, parseBrDate, parseBrCurrency, norm, Row } from "@/lib/importers/parse";
 import type { ImportResult } from "@/lib/importers/importCore";
 
-async function findOrCreateClient(name: string, cache: Map<string, string>) {
+async function findOrCreateClient(name: string, cache: Map<string, string>, officeId: string) {
   const key = norm(name);
   if (cache.has(key)) return cache.get(key)!;
-  const existing = await prisma.client.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  const existing = await prisma.client.findFirst({ where: { officeId, name: { equals: name, mode: "insensitive" } } });
   if (existing) {
     cache.set(key, existing.id);
     return existing.id;
   }
-  const created = await prisma.client.create({ data: { name, type: "PJ" } });
+  const created = await prisma.client.create({ data: { officeId, name, type: "PJ" } });
   cache.set(key, created.id);
   return created.id;
 }
 
-async function findOrCreateCostCenter(name: string, cache: Map<string, string>) {
+async function findOrCreateCostCenter(name: string, cache: Map<string, string>, officeId: string) {
   const key = norm(name);
   if (cache.has(key)) return cache.get(key)!;
-  const existing = await prisma.costCenter.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  const existing = await prisma.costCenter.findFirst({ where: { officeId, name: { equals: name, mode: "insensitive" } } });
   if (existing) {
     cache.set(key, existing.id);
     return existing.id;
   }
-  const created = await prisma.costCenter.create({ data: { name } });
+  const created = await prisma.costCenter.create({ data: { officeId, name } });
   cache.set(key, created.id);
   return created.id;
 }
 
-async function findOrCreateCategory(name: string, kind: "RECEITA" | "DESPESA", cache: Map<string, string>) {
+async function findOrCreateCategory(name: string, kind: "RECEITA" | "DESPESA", cache: Map<string, string>, officeId: string) {
   const key = `${kind}:${norm(name)}`;
   if (cache.has(key)) return cache.get(key)!;
-  const all = await prisma.financialCategory.findMany({ where: { kind } });
+  const all = await prisma.financialCategory.findMany({ where: { officeId, kind } });
   const found = all.find((c) => norm(c.name) === norm(name));
   if (found) {
     cache.set(key, found.id);
     return found.id;
   }
-  const topCount = await prisma.financialCategory.count({ where: { parentId: null, kind } });
+  const topCount = await prisma.financialCategory.count({ where: { officeId, parentId: null, kind } });
   const created = await prisma.financialCategory.create({
-    data: { name, kind, code: `${kind === "RECEITA" ? "1" : "2"}.${topCount + 1}` },
+    data: { officeId, name, kind, code: `${kind === "RECEITA" ? "1" : "2"}.${topCount + 1}` },
   });
   cache.set(key, created.id);
   return created.id;
 }
 
-export async function importFinanceCore(rows: Row[]): Promise<ImportResult> {
-  const cases = await prisma.case.findMany({ select: { id: true, title: true } });
+export async function importFinanceCore(rows: Row[], officeId: string): Promise<ImportResult> {
+  const cases = await prisma.case.findMany({ where: { officeId }, select: { id: true, title: true } });
   const clientCache = new Map<string, string>();
   const costCenterCache = new Map<string, string>();
   const categoryCache = new Map<string, string>();
@@ -78,20 +78,21 @@ export async function importFinanceCore(rows: Row[]): Promise<ImportResult> {
         caseId = match?.id ?? null;
       }
 
-      const costCenterId = centroCustoName ? await findOrCreateCostCenter(centroCustoName, costCenterCache) : null;
+      const costCenterId = centroCustoName ? await findOrCreateCostCenter(centroCustoName, costCenterCache, officeId) : null;
 
       const isReceita = tipo === "Entrada" || tipo === "Fatura";
       const categoryId = categoriaName
-        ? await findOrCreateCategory(categoriaName, isReceita ? "RECEITA" : "DESPESA", categoryCache)
+        ? await findOrCreateCategory(categoriaName, isReceita ? "RECEITA" : "DESPESA", categoryCache, officeId)
         : null;
 
       const isSettled = /pago|recebid/i.test(status);
 
       if (isReceita) {
         const clientName = col(row, "Cliente") || col(row, "Pago para / Recebido de");
-        const clientId = clientName ? await findOrCreateClient(clientName, clientCache) : null;
+        const clientId = clientName ? await findOrCreateClient(clientName, clientCache, officeId) : null;
         await prisma.receivable.create({
           data: {
+            officeId,
             description,
             amount,
             dueDate,
@@ -108,6 +109,7 @@ export async function importFinanceCore(rows: Row[]): Promise<ImportResult> {
       } else {
         await prisma.payable.create({
           data: {
+            officeId,
             description,
             amount,
             dueDate,

@@ -192,6 +192,12 @@ export function parseIncoming(payload: unknown): IncomingMessage | null {
  * a um Atendimento (criando um novo Atendimento se não houver conversa aberta).
  * Idempotente por waMessageId. Não faz IA nem distribuição (fases B/C).
  */
+// TODO(multi-tenant / Fase 2): WHATSAPP_PHONE_NUMBER_ID/ACCESS_TOKEN ainda são globais (uma
+// única variável de ambiente pro sistema inteiro) — não há, ainda, como saber a qual escritório
+// um número de WhatsApp recebido pertence. Cada escritório precisa cadastrar seu próprio número
+// da Cloud API, e o webhook precisa resolver o officeId a partir de qual número da Meta recebeu
+// a mensagem (WHATSAPP_PHONE_NUMBER_ID do payload), não mais assumir um único escritório.
+// Por ora, assume-se o primeiro escritório cadastrado — revisitar antes de um segundo existir.
 export async function ingestIncomingWhatsapp({
   fromNumber,
   waMessageId,
@@ -202,15 +208,19 @@ export async function ingestIncomingWhatsapp({
   const existing = await prisma.whatsappMessage.findUnique({ where: { waMessageId } });
   if (existing) return;
 
+  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  if (!office) return;
+
   // Procura conversa aberta (não arquivada) para este telefone; a mais recente.
   let attendance = await prisma.attendance.findFirst({
-    where: { waPhone: fromNumber, status: { not: "ARQUIVADO" } },
+    where: { officeId: office.id, waPhone: fromNumber, status: { not: "ARQUIVADO" } },
     orderBy: { createdAt: "desc" },
   });
 
   if (!attendance) {
     attendance = await prisma.attendance.create({
       data: {
+        officeId: office.id,
         clientName: profileName || fromNumber,
         contact: fromNumber,
         subject: "Atendimento via WhatsApp",
@@ -225,6 +235,7 @@ export async function ingestIncomingWhatsapp({
 
   await prisma.whatsappMessage.create({
     data: {
+      officeId: office.id,
       attendanceId: attendance.id,
       direction: "IN",
       body: text,
