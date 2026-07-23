@@ -40,6 +40,7 @@ import {
   Ban,
   Undo2,
   FileQuestion,
+  UserX,
 } from "lucide-react";
 
 // Taxonomia única de tipos de documento, usada tanto pelos Anexos de Processo/Caso/Atendimento
@@ -101,6 +102,7 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "PROCURACAO", label: "Procuração", icon: Signature },
       { key: "SUBSTABELECIMENTO_COM_RESERVA", label: "Substabelecimento com Reserva", icon: Signature },
       { key: "SUBSTABELECIMENTO_SEM_RESERVA", label: "Substabelecimento sem Reserva", icon: Users },
+      { key: "RENUNCIA_MANDATO", label: "Renúncia ao Mandato", icon: UserX },
       { key: "CONTRATO_HONORARIOS", label: "Contrato de Honorários", icon: HandCoins },
       { key: "DECLARACAO_HIPOSSUFICIENCIA", label: "Declaração de Hipossuficiência", icon: FileWarning },
     ],
