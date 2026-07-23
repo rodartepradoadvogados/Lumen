@@ -14,9 +14,9 @@ const SCOPES = [
 ];
 
 const FOLDERS = {
-  anexos: { name: "RP Financeiro - Anexos", field: "folderId" as const },
-  modelos: { name: "RP Financeiro - Modelos de Documento", field: "templatesFolderId" as const },
-  gerados: { name: "RP Financeiro - Documentos Gerados", field: "generatedFolderId" as const },
+  anexos: { name: "Lúmen - Anexos", field: "folderId" as const },
+  modelos: { name: "Lúmen - Modelos de Documento", field: "templatesFolderId" as const },
+  gerados: { name: "Lúmen - Documentos Gerados", field: "generatedFolderId" as const },
 };
 
 export function getOAuthClient() {
@@ -33,33 +33,49 @@ export function getAuthUrl(state?: string) {
   });
 }
 
-// Conecta a conta Google "principal" do escritório (Drive/Docs + opcionalmente
-// Jusbrasil). Continua sendo só uma — é a que guarda as pastas de anexos/modelos.
-export async function saveTokensFromCode(code: string) {
+// Conecta a conta Google "principal" DESTE escritório (Drive/Docs + opcionalmente Jusbrasil).
+// Cada escritório tem a sua própria (isPrimaryDrive é único por officeId, não mais global) —
+// esse é um dos pontos que era hardcoded pra um único escritório no sistema original.
+export async function saveTokensFromCode(code: string, officeId: string) {
   const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
-  const existing = await prisma.googleCredential.findFirst({ where: { isPrimaryDrive: true } });
-  if (existing) {
+
+  // A mesma conta Google não pode virar a conta principal de dois escritórios diferentes —
+  // accountEmail continua único GLOBALMENTE (ver schema). Se já pertence a OUTRO escritório,
+  // recusa em vez de "roubar" a credencial silenciosamente.
+  const existingByEmail = await prisma.googleCredential.findUnique({ where: { accountEmail } });
+  if (existingByEmail && existingByEmail.officeId !== officeId) {
+    throw new Error("Esta conta Google já está conectada a outro escritório na plataforma.");
+  }
+
+  const existingPrimary = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true } });
+  if (existingPrimary) {
     await prisma.googleCredential.update({
-      where: { id: existing.id },
+      where: { id: existingPrimary.id },
       data: { accountEmail, refreshToken },
     });
     return;
   }
   await prisma.googleCredential.upsert({
     where: { accountEmail },
-    update: { refreshToken, isPrimaryDrive: true },
-    create: { accountEmail, refreshToken, isPrimaryDrive: true },
+    update: { refreshToken, isPrimaryDrive: true, officeId },
+    create: { accountEmail, refreshToken, isPrimaryDrive: true, officeId },
   });
 }
 
 // Conecta uma conta Google adicional só para leitura de e-mail (Jusbrasil),
 // vinculada ao usuário logado que clicou em "conectar meu e-mail".
-export async function saveJusbrasilTokensFromCode(code: string, userId: string) {
+export async function saveJusbrasilTokensFromCode(code: string, userId: string, officeId: string) {
   const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
+
+  const existingByEmail = await prisma.googleCredential.findUnique({ where: { accountEmail } });
+  if (existingByEmail && existingByEmail.officeId !== officeId) {
+    throw new Error("Esta conta Google já está conectada a outro escritório na plataforma.");
+  }
+
   await prisma.googleCredential.upsert({
     where: { accountEmail },
-    update: { refreshToken, syncJusbrasil: true, userId },
-    create: { accountEmail, refreshToken, syncJusbrasil: true, userId },
+    update: { refreshToken, syncJusbrasil: true, userId, officeId },
+    create: { accountEmail, refreshToken, syncJusbrasil: true, userId, officeId },
   });
 }
 
@@ -78,14 +94,15 @@ async function exchangeCodeForTokens(code: string): Promise<{ accountEmail: stri
   return { accountEmail: data.email, refreshToken: tokens.refresh_token };
 }
 
-export async function getDriveStatus(): Promise<{ connected: boolean; accountEmail?: string }> {
-  const cred = await prisma.googleCredential.findFirst({ where: { isPrimaryDrive: true } });
+export async function getDriveStatus(officeId: string): Promise<{ connected: boolean; accountEmail?: string }> {
+  const cred = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true } });
   if (!cred) return { connected: false };
   return { connected: true, accountEmail: cred.accountEmail };
 }
 
-export async function listGoogleAccounts() {
+export async function listGoogleAccounts(officeId: string) {
   const creds = await prisma.googleCredential.findMany({
+    where: { officeId },
     orderBy: { createdAt: "asc" },
     include: { user: { select: { name: true } } },
   });
@@ -99,16 +116,16 @@ export async function listGoogleAccounts() {
   }));
 }
 
-async function getDriveClient() {
-  const cred = await prisma.googleCredential.findFirst({ where: { isPrimaryDrive: true } });
-  if (!cred) throw new Error("Google Drive não conectado. Vá em Configurações e conecte a conta do Google.");
+async function getDriveClient(officeId: string) {
+  const cred = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true } });
+  if (!cred) throw new Error("Google Drive não conectado. Vá em Configurações e conecte a conta do Google do seu escritório.");
   const client = getOAuthClient();
   client.setCredentials({ refresh_token: cred.refreshToken });
   return { drive: google.drive({ version: "v3", auth: client }), docs: google.docs({ version: "v1", auth: client }), cred };
 }
 
-async function getOrCreateFolderId(kind: keyof typeof FOLDERS): Promise<string> {
-  const { drive, cred } = await getDriveClient();
+async function getOrCreateFolderId(kind: keyof typeof FOLDERS, officeId: string): Promise<string> {
+  const { drive, cred } = await getDriveClient(officeId);
   const { name, field } = FOLDERS[kind];
   const existingId = cred[field];
   if (existingId) return existingId;
@@ -159,10 +176,11 @@ export async function uploadFileToDrive(
   fileName: string,
   mimeType: string,
   buffer: Buffer,
+  officeId: string,
   folder: keyof typeof FOLDERS = "anexos"
 ): Promise<{ id: string; webViewLink: string }> {
-  const { drive } = await getDriveClient();
-  const folderId = await getOrCreateFolderId(folder);
+  const { drive } = await getDriveClient(officeId);
+  const folderId = await getOrCreateFolderId(folder, officeId);
   return uploadBufferToFolder(drive, fileName, mimeType, buffer, folderId);
 }
 
@@ -173,9 +191,10 @@ export async function uploadFileToDriveFolder(
   fileName: string,
   mimeType: string,
   buffer: Buffer,
-  folderId: string
+  folderId: string,
+  officeId: string
 ): Promise<{ id: string; webViewLink: string }> {
-  const { drive } = await getDriveClient();
+  const { drive } = await getDriveClient(officeId);
   return uploadBufferToFolder(drive, fileName, mimeType, buffer, folderId);
 }
 
@@ -189,10 +208,11 @@ export function extractDriveFileId(url: string): string | null {
 export async function copyAndFillTemplate(
   templateFileId: string,
   newName: string,
-  replacements: Record<string, string>
+  replacements: Record<string, string>,
+  officeId: string
 ): Promise<{ id: string; webViewLink: string }> {
-  const { drive, docs } = await getDriveClient();
-  const folderId = await getOrCreateFolderId("gerados");
+  const { drive, docs } = await getDriveClient(officeId);
+  const folderId = await getOrCreateFolderId("gerados", officeId);
 
   const copied = await drive.files.copy({
     fileId: templateFileId,
@@ -223,7 +243,7 @@ export async function copyAndFillTemplate(
   return { id: newFileId, webViewLink: file.data.webViewLink };
 }
 
-const ASSESSORIA_ROOT_NAME = "RP Financeiro - Assessoria";
+const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
 // Mapeia cada tipo de documento do catálogo da Assessoria (ver prisma/schema.prisma,
 // AssessoriaDocumento.docType) para o nome da subpasta correspondente — ACAO_VINCULADA e
 // OUTRO não têm pasta própria (a primeira já vive em Processos; a segunda cai na raiz da
@@ -271,11 +291,11 @@ async function getOrCreateRootFolder(drive: ReturnType<typeof google.drive>, roo
 }
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:
-// "RP Financeiro - Assessoria/{empresa}/{Contratos,Pareceres,Licitações,Regimentos Internos}".
-// Chamado uma única vez, na criação da Assessoria — o id da pasta da empresa fica salvo em
-// Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
-export async function getOrCreateAssessoriaCompanyFolder(companyName: string): Promise<string> {
-  const { drive } = await getDriveClient();
+// "Lúmen - Assessoria/{empresa}/{Contratos,Pareceres,Licitações,Regimentos Internos}", dentro
+// do Drive DESTE escritório. Chamado uma única vez, na criação da Assessoria — o id da pasta da
+// empresa fica salvo em Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
+export async function getOrCreateAssessoriaCompanyFolder(companyName: string, officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
   const rootId = await getOrCreateRootFolder(drive, ASSESSORIA_ROOT_NAME);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   for (const subName of Object.values(ASSESSORIA_DOC_TYPE_FOLDERS)) {
@@ -284,54 +304,55 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string): P
   return companyFolderId;
 }
 
-const PROCESSOS_ROOT_NAME = "RP Financeiro - Processos";
-const ATENDIMENTOS_ROOT_NAME = "RP Financeiro - Atendimentos";
+const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
+const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 
-// Pasta própria de um processo no Drive ("RP Financeiro - Processos/{título}"), criada sob
-// demanda no primeiro anexo — o id fica salvo em Case.driveFolderId pra nunca precisar
-// refazer essa busca depois (mesmo padrão de Assessoria.driveFolderId).
-export async function getOrCreateCaseFolder(caseId: string, caseTitle: string): Promise<string> {
-  const existing = await prisma.case.findUnique({ where: { id: caseId }, select: { driveFolderId: true } });
+// Pasta própria de um processo no Drive ("Lúmen - Processos/{título}"), criada sob demanda no
+// primeiro anexo — o id fica salvo em Case.driveFolderId pra nunca precisar refazer essa busca
+// depois (mesmo padrão de Assessoria.driveFolderId). officeId garante que só se busca/atualiza
+// um Case do PRÓPRIO escritório (evita que alguém force um caseId de outro tenant).
+export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, officeId: string): Promise<string> {
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const { drive } = await getDriveClient();
+  const { drive } = await getDriveClient(officeId);
   const rootId = await getOrCreateRootFolder(drive, PROCESSOS_ROOT_NAME);
   const folderId = await findOrCreateChildFolder(drive, rootId, caseTitle);
-  await prisma.case.update({ where: { id: caseId }, data: { driveFolderId: folderId } });
+  await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
 }
 
-// Mesma ideia, para um Atendimento ("RP Financeiro - Atendimentos/{assunto}") — se o
-// atendimento virar Processo depois, essa MESMA pasta é renomeada e transferida pro Case
-// (ver convertAttendanceToCase em lib/actions/attendance.ts), nunca duplicada.
-export async function getOrCreateAttendanceFolder(attendanceId: string, subject: string): Promise<string> {
-  const existing = await prisma.attendance.findUnique({ where: { id: attendanceId }, select: { driveFolderId: true } });
+// Mesma ideia, para um Atendimento ("Lúmen - Atendimentos/{assunto}") — se o atendimento virar
+// Processo depois, essa MESMA pasta é renomeada e transferida pro Case (ver
+// convertAttendanceToCase em lib/actions/attendance.ts), nunca duplicada.
+export async function getOrCreateAttendanceFolder(attendanceId: string, subject: string, officeId: string): Promise<string> {
+  const existing = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId }, select: { driveFolderId: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const { drive } = await getDriveClient();
+  const { drive } = await getDriveClient(officeId);
   const rootId = await getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
   const folderId = await findOrCreateChildFolder(drive, rootId, subject);
-  await prisma.attendance.update({ where: { id: attendanceId }, data: { driveFolderId: folderId } });
+  await prisma.attendance.updateMany({ where: { id: attendanceId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
 }
 
 // Subpasta de categoria dentro da pasta de um processo/atendimento (ex: "Petição",
 // "Procuração" — ver lib/documentTypes.ts), criada só quando o primeiro documento daquele
 // tipo é anexado — evita cada processo nascer com dezenas de subpastas vazias.
-export async function getOrCreateCategoryFolder(parentFolderId: string, categoryLabel: string): Promise<string> {
-  const { drive } = await getDriveClient();
+export async function getOrCreateCategoryFolder(parentFolderId: string, categoryLabel: string, officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
   return findOrCreateChildFolder(drive, parentFolderId, categoryLabel);
 }
 
-export async function renameDriveFolder(folderId: string, newName: string): Promise<void> {
-  const { drive } = await getDriveClient();
+export async function renameDriveFolder(folderId: string, newName: string, officeId: string): Promise<void> {
+  const { drive } = await getDriveClient(officeId);
   await drive.files.update({ fileId: folderId, requestBody: { name: newName } });
 }
 
 // "Mover" um arquivo no Drive é trocar os pais (parents) — não existe operação de move direta.
 // Usado pela reorganização de anexos já existentes (lib/actions/driveReorg.ts).
-export async function moveDriveFile(fileId: string, newParentId: string): Promise<void> {
-  const { drive } = await getDriveClient();
+export async function moveDriveFile(fileId: string, newParentId: string, officeId: string): Promise<void> {
+  const { drive } = await getDriveClient(officeId);
   const file = await drive.files.get({ fileId, fields: "parents" });
   const previousParents = (file.data.parents || []).join(",");
   await drive.files.update({

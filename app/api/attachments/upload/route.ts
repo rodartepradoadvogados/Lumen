@@ -42,26 +42,27 @@ export async function POST(request: NextRequest) {
     // pasta única e plana "RP Financeiro - Anexos" pra todo o escritório.
     let targetFolderId: string | null = null;
     if (resolvedCaseId) {
-      const c = await prisma.case.findUnique({ where: { id: resolvedCaseId }, select: { title: true } });
+      const c = await prisma.case.findFirst({ where: { id: resolvedCaseId, officeId: user.officeId }, select: { title: true } });
       if (c) {
-        const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title);
-        targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType));
+        const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title, user.officeId);
+        targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType), user.officeId);
       }
     } else if (resolvedAttendanceId) {
-      const a = await prisma.attendance.findUnique({ where: { id: resolvedAttendanceId }, select: { subject: true } });
+      const a = await prisma.attendance.findFirst({ where: { id: resolvedAttendanceId, officeId: user.officeId }, select: { subject: true } });
       if (a) {
-        const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject);
-        targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType));
+        const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
+        targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType), user.officeId);
       }
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const { webViewLink } = targetFolderId
-      ? await uploadFileToDriveFolder(file.name, file.type || "application/octet-stream", buffer, targetFolderId)
-      : await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer);
+      ? await uploadFileToDriveFolder(file.name, file.type || "application/octet-stream", buffer, targetFolderId, user.officeId)
+      : await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer, user.officeId);
 
     const attachment = await prisma.attachment.create({
       data: {
+        officeId: user.officeId,
         name: typeof name === "string" && name ? name : file.name,
         driveUrl: webViewLink,
         docType: resolvedDocType,

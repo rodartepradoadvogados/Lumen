@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
-async function requireAdmin(): Promise<{ error?: string }> {
+async function requireAdmin() {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem gerenciar workflows." };
-  return {};
+  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem gerenciar workflows." } as const;
+  return { viewer };
 }
 
 export async function createWorkflowTemplate(data: {

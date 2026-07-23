@@ -13,8 +13,8 @@ export async function setTaskTypePoints(type: string, points: number): Promise<{
   if (!(TASK_TYPES as readonly string[]).includes(type)) return { error: "Tipo de tarefa inválido." };
   const value = Number.isFinite(points) && points >= 0 ? Math.round(points) : 0;
   await prisma.taskTypePoints.upsert({
-    where: { type },
-    create: { type, points: value },
+    where: { officeId_type: { officeId: viewer.officeId, type } },
+    create: { type, points: value, officeId: viewer.officeId },
     update: { points: value },
   });
   revalidatePath("/configuracoes");

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "private" });
 
     const photo = await prisma.photo.create({
-      data: { url: blob.url, category, court, caption: caption || null },
+      data: { officeId: user.officeId, url: blob.url, category, court, caption: caption || null },
     });
 
     return NextResponse.json({ photo });

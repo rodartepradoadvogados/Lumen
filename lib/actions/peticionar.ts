@@ -20,12 +20,14 @@ export async function criarPeticao(caseId?: string): Promise<{ driveUrl?: string
   const today = new Date().toLocaleDateString("pt-BR");
   let subject = user.name;
   if (caseId) {
-    const c = await prisma.case.findUnique({ where: { id: caseId }, include: { client: true } });
+    const c = await prisma.case.findFirst({ where: { id: caseId, officeId: user.officeId }, include: { client: true } });
     if (c) subject = c.client?.name || c.title;
   }
 
   try {
-    const { webViewLink } = await copyAndFillTemplate(fileId, `Petição - ${subject} - ${today}`, {});
+    // PETICIONAR_URL ainda é um único timbrado global fixo em lib/constants.ts — cada
+    // escritório precisará do seu próprio (ver Fase 2/4 do plano de multi-tenancy).
+    const { webViewLink } = await copyAndFillTemplate(fileId, `Petição - ${subject} - ${today}`, {}, user.officeId);
     return { driveUrl: webViewLink };
   } catch (e) {
     const raw = e instanceof Error ? e.message : "";

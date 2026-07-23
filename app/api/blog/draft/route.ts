@@ -57,8 +57,13 @@ export async function GET(req: NextRequest) {
   const days = Number.isFinite(daysParam) && daysParam > 0 ? Math.min(daysParam, 365) : 30;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
+  // TODO(multi-tenant): mesmo stopgap de escritório único do POST abaixo —
+  // ver comentário lá para o motivo e o que precisa mudar antes de suportar
+  // mais de um Office.
+  const office = await prisma.office.findFirst();
+
   const posts = await prisma.blogPost.findMany({
-    where: { createdAt: { gte: since } },
+    where: { createdAt: { gte: since }, officeId: office?.id ?? "" },
     orderBy: { createdAt: "desc" },
     select: {
       title: true,
@@ -128,9 +133,24 @@ export async function POST(req: NextRequest) {
   // status (inclusive REJEITADO — não reenviar o que já foi recusado), ou se
   // alguma fonte citada já foi usada em outra matéria (mesmo fato, título
   // reescrito de outro jeito).
+  // TODO(multi-tenant): este endpoint autentica o robô externo via um único
+  // BLOG_ROBOT_SECRET global, sem qualquer sinal de PARA QUAL escritório a
+  // matéria se destina. Antes de este projeto suportar mais de um Office,
+  // isso precisa de um mecanismo real (ex.: um secret/token por escritório).
+  // Como stopgap TEMPORÁRIO e válido apenas enquanto houver um único Office
+  // no banco, buscamos "o" Office existente. Isso QUEBRA/fica ambíguo assim
+  // que houver mais de um escritório — precisa ser revisitado antes disso.
+  const office = await prisma.office.findFirst();
+  if (!office) {
+    return NextResponse.json(
+      { error: "Nenhum escritório (Office) cadastrado; não é possível associar a matéria." },
+      { status: 500 }
+    );
+  }
+
   const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
   const recentPosts = await prisma.blogPost.findMany({
-    where: { createdAt: { gte: sixtyDaysAgo } },
+    where: { createdAt: { gte: sixtyDaysAgo }, officeId: office.id },
     select: { id: true, slug: true, title: true, sources: true, status: true, createdAt: true },
   });
 
@@ -166,6 +186,7 @@ export async function POST(req: NextRequest) {
 
   const post = await prisma.blogPost.create({
     data: {
+      officeId: office.id,
       slug,
       title,
       area,

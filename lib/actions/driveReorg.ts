@@ -24,7 +24,7 @@ export async function reorganizeExistingAttachments(): Promise<ReorgResult> {
   if (!user?.isAdmin) return { moved: 0, skipped: 0, errors: ["Apenas administradores podem rodar esta ação."] };
 
   const attachments = await prisma.attachment.findMany({
-    where: { OR: [{ caseId: { not: null } }, { attendanceId: { not: null } }] },
+    where: { officeId: user.officeId, OR: [{ caseId: { not: null } }, { attendanceId: { not: null } }] },
     include: {
       case: { select: { id: true, title: true } },
       attendance: { select: { id: true, subject: true } },
@@ -44,15 +44,15 @@ export async function reorganizeExistingAttachments(): Promise<ReorgResult> {
     try {
       let containerFolderId: string;
       if (att.case) {
-        containerFolderId = await getOrCreateCaseFolder(att.case.id, att.case.title);
+        containerFolderId = await getOrCreateCaseFolder(att.case.id, att.case.title, user.officeId);
       } else if (att.attendance) {
-        containerFolderId = await getOrCreateAttendanceFolder(att.attendance.id, att.attendance.subject);
+        containerFolderId = await getOrCreateAttendanceFolder(att.attendance.id, att.attendance.subject, user.officeId);
       } else {
         skipped++;
         continue;
       }
-      const categoryFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(att.docType));
-      await moveDriveFile(fileId, categoryFolderId);
+      const categoryFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(att.docType), user.officeId);
+      await moveDriveFile(fileId, categoryFolderId, user.officeId);
       moved++;
     } catch (e) {
       errors.push(`${att.name}: ${e instanceof Error ? e.message : "erro desconhecido"}`);

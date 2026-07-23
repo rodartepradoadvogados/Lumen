@@ -14,8 +14,10 @@ function computeSafetyDueDate(dueDate: Date): Date {
 }
 
 export async function moveTask(taskId: string, columnId: string, columnOrder: number) {
-  await prisma.task.update({
-    where: { id: taskId },
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  await prisma.task.updateMany({
+    where: { id: taskId, officeId: viewer.officeId },
     data: { columnId, columnOrder },
   });
   revalidatePath("/kanban");
@@ -24,9 +26,11 @@ export async function moveTask(taskId: string, columnId: string, columnOrder: nu
 }
 
 export async function toggleTaskDone(taskId: string) {
-  const task = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  const task = await prisma.task.findFirstOrThrow({ where: { id: taskId, officeId: viewer.officeId } });
   const isDone = task.status === "CONCLUIDO";
-  const doneColumn = await prisma.kanbanColumn.findFirst({ where: { isDoneCol: true } });
+  const doneColumn = await prisma.kanbanColumn.findFirst({ where: { isDoneCol: true, officeId: viewer.officeId } });
   await prisma.task.update({
     where: { id: taskId },
     data: {
@@ -57,12 +61,15 @@ export async function createTask(data: {
   meetingUrl?: string;
   points?: number;
 }) {
-  const firstColumn = data.columnId ? null : await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+
+  const firstColumn = data.columnId ? null : await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
 
   // TaskScore: usa o override manual se informado; senão, o padrão do tipo (fallback 10).
   let points = data.points;
   if (points == null || Number.isNaN(points)) {
-    const typePoints = await prisma.taskTypePoints.findUnique({ where: { type: data.type } });
+    const typePoints = await prisma.taskTypePoints.findUnique({ where: { officeId_type: { officeId: viewer.officeId, type: data.type } } });
     points = typePoints?.points ?? 10;
   }
 
@@ -82,6 +89,7 @@ export async function createTask(data: {
       location: data.location || null,
       meetingUrl: data.meetingUrl || null,
       points,
+      officeId: viewer.officeId,
     },
   });
   revalidatePath("/kanban");
@@ -117,9 +125,9 @@ export async function delegateTask(data: {
   if (!viewer) return { error: "Usuário não autenticado." };
   if (!data.responsibleId) return { error: "Selecione o membro da equipe que vai receber a delegação." };
 
-  const firstColumn = await prisma.kanbanColumn.findFirst({ orderBy: { order: "asc" } });
+  const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
 
-  const typePoints = await prisma.taskTypePoints.findUnique({ where: { type: data.type } });
+  const typePoints = await prisma.taskTypePoints.findUnique({ where: { officeId_type: { officeId: viewer.officeId, type: data.type } } });
   const points = typePoints?.points ?? 10;
 
   const dueDate = new Date(data.dueDate);
@@ -140,11 +148,12 @@ export async function delegateTask(data: {
       columnId: firstColumn?.id || null,
       description: data.description || null,
       points,
+      officeId: viewer.officeId,
     },
   });
 
   if (data.publicationId) {
-    await prisma.publication.update({ where: { id: data.publicationId }, data: { assignedToId: data.responsibleId } });
+    await prisma.publication.updateMany({ where: { id: data.publicationId, officeId: viewer.officeId }, data: { assignedToId: data.responsibleId } });
     revalidatePath("/publicacoes");
   }
 
@@ -166,7 +175,9 @@ export async function delegateTask(data: {
 // Marca a delegação como vista: chamado quando o destinatário abre o card da tarefa
 // a partir do alerta na Central de Alertas — some do alerta sem afetar o compromisso.
 export async function acknowledgeDelegation(taskId: string): Promise<void> {
-  await prisma.task.update({ where: { id: taskId }, data: { delegationAcknowledgedAt: new Date() } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  await prisma.task.updateMany({ where: { id: taskId, officeId: viewer.officeId }, data: { delegationAcknowledgedAt: new Date() } });
   revalidatePath("/alertas");
   revalidatePath("/painel");
 }
@@ -174,10 +185,13 @@ export async function acknowledgeDelegation(taskId: string): Promise<void> {
 // Busca resumida de Processos/Casos para o passo 3 do formulário de delegação —
 // `judicial` filtra por `type === "JUDICIAL"` (Processo) ou `type !== "JUDICIAL"` (Caso).
 export async function searchCasesForDelegation(query: string, judicial: boolean): Promise<{ id: string; label: string }[]> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
   const q = query.trim();
   if (!q) return [];
   const cases = await prisma.case.findMany({
     where: {
+      officeId: viewer.officeId,
       type: judicial ? "JUDICIAL" : { not: "JUDICIAL" },
       OR: [{ title: { contains: q, mode: "insensitive" } }, { processNumber: { contains: q, mode: "insensitive" } }],
     },
@@ -190,10 +204,13 @@ export async function searchCasesForDelegation(query: string, judicial: boolean)
 
 // Busca resumida de Atendimentos para o passo 3 do formulário de delegação.
 export async function searchAttendancesForDelegation(query: string): Promise<{ id: string; label: string }[]> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
   const q = query.trim();
   if (!q) return [];
   const attendances = await prisma.attendance.findMany({
     where: {
+      officeId: viewer.officeId,
       OR: [{ clientName: { contains: q, mode: "insensitive" } }, { subject: { contains: q, mode: "insensitive" } }],
     },
     select: { id: true, clientName: true, subject: true },
@@ -223,12 +240,14 @@ export type TaskDetail = {
 // atrasados do painel): traz a tarefa completa + a lista de responsáveis possíveis,
 // já serializada (sem Date) para poder ser chamado direto de um client component.
 export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | null; users: { id: string; name: string }[] }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { task: null, users: [] };
   const [task, users] = await Promise.all([
-    prisma.task.findUnique({
-      where: { id },
+    prisma.task.findFirst({
+      where: { id, officeId: viewer.officeId },
       include: { case: { select: { id: true, title: true, processNumber: true } } },
     }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   if (!task) return { task: null, users };
   return {
@@ -255,6 +274,10 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
 // prazo/prioridade (que updateTask exige) — usado pela lista de tarefas do Processo no
 // app mobile, que hoje não tem nenhuma tela de edição completa de tarefa.
 export async function setTaskResponsible(taskId: string, responsibleId: string) {
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  const existing = await prisma.task.findFirst({ where: { id: taskId, officeId: viewer.officeId } });
+  if (!existing) return;
   const task = await prisma.task.update({ where: { id: taskId }, data: { responsibleId: responsibleId || null } });
   revalidatePath("/kanban");
   revalidatePath("/agenda");
@@ -278,6 +301,10 @@ export async function updateTask(id: string, data: {
   location?: string;
   meetingUrl?: string;
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  const existing = await prisma.task.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!existing) return;
   await prisma.task.update({
     where: { id },
     data: {
@@ -300,6 +327,8 @@ export async function updateTask(id: string, data: {
 }
 
 export async function addComment(data: { content: string; authorId: string; taskId?: string; caseId?: string }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
   const mentionNames = Array.from(data.content.matchAll(/@([\p{L}\s]+?)(?=(@|$|\n))/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
     data: {
@@ -307,16 +336,17 @@ export async function addComment(data: { content: string; authorId: string; task
       authorId: data.authorId,
       taskId: data.taskId || null,
       caseId: data.caseId || null,
+      officeId: viewer.officeId,
     },
     include: { author: true },
   });
 
   if (mentionNames.length > 0) {
-    const users = await prisma.user.findMany();
+    const users = await prisma.user.findMany({ where: { officeId: viewer.officeId } });
     for (const name of mentionNames) {
       const user = users.find((u) => name.toLowerCase().includes(u.name.toLowerCase()) || u.name.toLowerCase().includes(name.toLowerCase()));
       if (user && user.id !== data.authorId) {
-        await prisma.mention.create({ data: { commentId: comment.id, userId: user.id } });
+        await prisma.mention.create({ data: { commentId: comment.id, userId: user.id, officeId: viewer.officeId } });
         const url = data.caseId ? `/m/processos/${data.caseId}` : "/m";
         await sendPushIfEnabled(user.id, "mencao", {
           title: "Você foi mencionado",

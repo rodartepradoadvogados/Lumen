@@ -8,25 +8,33 @@ import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumb
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
 export async function getUnreadPublicationsCount(): Promise<number> {
-  return prisma.publication.count({ where: { read: false } });
+  const user = await getCurrentUser();
+  if (!user) return 0;
+  return prisma.publication.count({ where: { read: false, officeId: user.officeId } });
 }
 
 export async function markPublicationRead(id: string) {
-  await prisma.publication.update({ where: { id }, data: { read: true } });
+  const user = await getCurrentUser();
+  if (!user) return;
+  await prisma.publication.updateMany({ where: { id, officeId: user.officeId }, data: { read: true } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
 }
 
 export async function markPublicationUnread(id: string) {
-  await prisma.publication.update({ where: { id }, data: { read: false } });
+  const user = await getCurrentUser();
+  if (!user) return;
+  await prisma.publication.updateMany({ where: { id, officeId: user.officeId }, data: { read: false } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
 }
 
 export async function markAllPublicationsRead() {
-  const result = await prisma.publication.updateMany({ where: { read: false }, data: { read: true } });
+  const user = await getCurrentUser();
+  if (!user) return { count: 0 };
+  const result = await prisma.publication.updateMany({ where: { read: false, officeId: user.officeId }, data: { read: true } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -36,7 +44,9 @@ export async function markAllPublicationsRead() {
 // Igual a markAllPublicationsRead, mas restrito às publicações/andamentos de um único
 // processo — usado pelo botão na aba Publicações da página do Processo.
 export async function markAllPublicationsReadForCase(caseId: string) {
-  const result = await prisma.publication.updateMany({ where: { caseId, read: false }, data: { read: true } });
+  const user = await getCurrentUser();
+  if (!user) return { count: 0 };
+  const result = await prisma.publication.updateMany({ where: { caseId, read: false, officeId: user.officeId }, data: { read: true } });
   revalidatePath(`/processos/${caseId}`);
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
@@ -52,7 +62,9 @@ export async function markAllPublicationsReadForCase(caseId: string) {
 // removido para não duplicar esse fluxo.
 
 export async function setPublicationTriageStatus(id: string, status: string) {
-  await prisma.publication.update({ where: { id }, data: { triageStatus: status } });
+  const user = await getCurrentUser();
+  if (!user) return;
+  await prisma.publication.updateMany({ where: { id, officeId: user.officeId }, data: { triageStatus: status } });
   revalidatePath("/publicacoes");
 }
 
@@ -63,14 +75,14 @@ export async function distributePendingPublications(): Promise<{ assigned?: numb
   if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem distribuir publicações." };
 
   const eligible = await prisma.user.findMany({
-    where: { active: true, role: { in: ["Advogado", "Sócio"] } },
+    where: { active: true, role: { in: ["Advogado", "Sócio"] }, officeId: viewer.officeId },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
   if (eligible.length === 0) return { error: "Nenhum advogado ou sócio ativo para distribuir." };
 
   const pending = await prisma.publication.findMany({
-    where: { triageStatus: "PENDENTE", assignedToId: null },
+    where: { triageStatus: "PENDENTE", assignedToId: null, officeId: viewer.officeId },
     select: { id: true, lawyerTag: true },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
   });
@@ -80,7 +92,7 @@ export async function distributePendingPublications(): Promise<{ assigned?: numb
   // contada uma vez e incrementada em memória a cada atribuição para manter o balanceamento.
   const currentCounts = await prisma.publication.groupBy({
     by: ["assignedToId"],
-    where: { triageStatus: { in: ["PENDENTE", "EM_ANALISE"] }, assignedToId: { not: null } },
+    where: { triageStatus: { in: ["PENDENTE", "EM_ANALISE"] }, assignedToId: { not: null }, officeId: viewer.officeId },
     _count: { _all: true },
   });
   const loadByUser = new Map<string, number>();

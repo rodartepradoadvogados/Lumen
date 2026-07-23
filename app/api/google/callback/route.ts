@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
   try {
     if (state === "jusbrasil") {
       if (!user?.active) return NextResponse.redirect(new URL("/configuracoes", request.url));
-      await saveJusbrasilTokensFromCode(code, user.id);
+      await saveJusbrasilTokensFromCode(code, user.id, user.officeId);
     } else {
       if (!user?.isAdmin) return NextResponse.redirect(new URL("/configuracoes", request.url));
-      await saveTokensFromCode(code);
+      await saveTokensFromCode(code, user.officeId);
     }
     return NextResponse.redirect(new URL("/configuracoes?google=conectado", request.url));
   } catch (e) {

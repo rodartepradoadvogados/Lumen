@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/currentUser";
 
 type ClientInput = {
   name: string;
@@ -18,6 +19,8 @@ type ClientInput = {
 };
 
 export async function createClient(data: ClientInput) {
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   await prisma.client.create({
     data: {
       name: data.name,
@@ -31,6 +34,7 @@ export async function createClient(data: ClientInput) {
       phone: data.phone || null,
       address: data.address || null,
       notes: data.notes || null,
+      officeId: viewer.officeId,
     },
   });
   revalidatePath("/contatos/clientes");
@@ -38,8 +42,10 @@ export async function createClient(data: ClientInput) {
 }
 
 export async function updateClient(id: string, data: ClientInput) {
-  await prisma.client.update({
-    where: { id },
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  await prisma.client.updateMany({
+    where: { id, officeId: viewer.officeId },
     data: {
       name: data.name,
       type: data.type,
@@ -59,13 +65,17 @@ export async function updateClient(id: string, data: ClientInput) {
 }
 
 export async function createClientQuick(name: string): Promise<{ id: string; name: string }> {
-  const client = await prisma.client.create({ data: { name, type: "PJ" } });
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  const client = await prisma.client.create({ data: { name, type: "PJ", officeId: viewer.officeId } });
   revalidatePath("/contatos/clientes");
   revalidatePath("/contatos");
   return { id: client.id, name: client.name };
 }
 
 export async function createLawyer(data: { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; notes?: string }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   await prisma.lawyer.create({
     data: {
       name: data.name,
@@ -75,6 +85,7 @@ export async function createLawyer(data: { name: string; oab?: string; firm?: st
       email: data.email || null,
       phone: data.phone || null,
       notes: data.notes || null,
+      officeId: viewer.officeId,
     },
   });
   revalidatePath("/contatos/advogados");
@@ -85,8 +96,10 @@ export async function updateLawyer(
   id: string,
   data: { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; notes?: string }
 ) {
-  await prisma.lawyer.update({
-    where: { id },
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  await prisma.lawyer.updateMany({
+    where: { id, officeId: viewer.officeId },
     data: {
       name: data.name,
       oab: data.oab || null,
@@ -102,17 +115,21 @@ export async function updateLawyer(
 }
 
 export async function deleteLawyer(id: string): Promise<{ error?: string }> {
-  await prisma.lawyer.delete({ where: { id } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  await prisma.lawyer.deleteMany({ where: { id, officeId: viewer.officeId } });
   revalidatePath("/contatos/advogados");
   revalidatePath("/contatos");
   return {};
 }
 
 export async function deleteClient(id: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
   const [cases, receivables, publications] = await Promise.all([
-    prisma.case.count({ where: { clientId: id } }),
-    prisma.receivable.count({ where: { clientId: id } }),
-    prisma.publication.count({ where: { clientId: id } }),
+    prisma.case.count({ where: { clientId: id, officeId: viewer.officeId } }),
+    prisma.receivable.count({ where: { clientId: id, officeId: viewer.officeId } }),
+    prisma.publication.count({ where: { clientId: id, officeId: viewer.officeId } }),
   ]);
   if (cases > 0 || receivables > 0 || publications > 0) {
     const parts: string[] = [];
@@ -123,7 +140,7 @@ export async function deleteClient(id: string): Promise<{ error?: string }> {
       error: `Não é possível excluir: há ${parts.join(", ")} vinculado(s) a este cliente. Remova ou reatribua esses itens antes de excluir.`,
     };
   }
-  await prisma.client.delete({ where: { id } });
+  await prisma.client.deleteMany({ where: { id, officeId: viewer.officeId } });
   revalidatePath("/contatos/clientes");
   revalidatePath("/contatos");
   return {};

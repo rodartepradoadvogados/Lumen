@@ -8,8 +8,17 @@ export const dynamic = "force-dynamic";
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
+// NOTA (multi-tenant): esta é uma página PÚBLICA (sem usuário logado), e o
+// slug do BlogPost agora é único apenas por escritório (@@unique([officeId,
+// slug])), não globalmente. Ainda não existe nenhum mecanismo de resolução de
+// escritório por URL (ex.: subdomínio por office) para páginas públicas, então
+// não há como saber com certeza de qual escritório é esta matéria. Como
+// stopgap TEMPORÁRIO, pegamos a primeira matéria que bater com o slug,
+// ignorando officeId — isso pode devolver a matéria errada se dois
+// escritórios tiverem o mesmo slug. Precisa ser revisitado quando houver URLs
+// públicas por escritório.
 export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
+  const post = await prisma.blogPost.findFirst({ where: { slug: params.slug } });
   if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Lúmen" };
   return {
     title: `${post.title} | Blog Jurídico Lúmen`,
@@ -18,7 +27,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
+  // Ver nota acima em generateMetadata sobre este findFirst temporário.
+  const post = await prisma.blogPost.findFirst({ where: { slug: params.slug } });
 
   if (!post || post.status !== "PUBLICADO") {
     notFound();

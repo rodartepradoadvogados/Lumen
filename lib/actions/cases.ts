@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export async function createCase(data: {
   title: string;
@@ -22,9 +23,12 @@ export async function createCase(data: {
   description?: string;
   assessoriaId?: string;
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão inválida.");
+
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
-    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF" } });
+    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF", officeId: viewer.officeId } });
     clientId = client.id;
   }
 
@@ -45,6 +49,7 @@ export async function createCase(data: {
       responsibleId: data.responsibleId || null,
       description: data.description || null,
       assessoriaId: data.assessoriaId || null,
+      officeId: viewer.officeId,
     },
   });
   revalidatePath("/processos");
@@ -73,9 +78,12 @@ export async function createCaseMobile(data: {
   description?: string;
   assessoriaId?: string;
 }): Promise<{ id: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão inválida.");
+
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
-    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF" } });
+    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF", officeId: viewer.officeId } });
     clientId = client.id;
   }
 
@@ -96,6 +104,7 @@ export async function createCaseMobile(data: {
       responsibleId: data.responsibleId || null,
       description: data.description || null,
       assessoriaId: data.assessoriaId || null,
+      officeId: viewer.officeId,
     },
   });
   revalidatePath("/processos");
@@ -104,22 +113,28 @@ export async function createCaseMobile(data: {
 }
 
 export async function createCaseQuick(title: string, clientId?: string): Promise<{ id: string; title: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) throw new Error("Sessão inválida.");
   const created = await prisma.case.create({
-    data: { title, type: "ATENDIMENTO", clientId: clientId || null },
+    data: { title, type: "ATENDIMENTO", clientId: clientId || null, officeId: viewer.officeId },
   });
   revalidatePath("/processos");
   return { id: created.id, title: created.title };
 }
 
 export async function updateCaseStatus(caseId: string, status: string) {
-  await prisma.case.update({ where: { id: caseId }, data: { status } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  await prisma.case.updateMany({ where: { id: caseId, officeId: viewer.officeId }, data: { status } });
   revalidatePath(`/processos/${caseId}`);
   revalidatePath("/processos");
 }
 
 export async function promoteCaseToJudicial(caseId: string, data: { processNumber: string; court?: string }) {
-  await prisma.case.update({
-    where: { id: caseId },
+  const viewer = await getCurrentUser();
+  if (!viewer) return;
+  await prisma.case.updateMany({
+    where: { id: caseId, officeId: viewer.officeId },
     data: { type: "JUDICIAL", processNumber: data.processNumber, court: data.court || null },
   });
   revalidatePath(`/processos/${caseId}`);

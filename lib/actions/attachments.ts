@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 
 export async function createAttachment(data: { name: string; driveUrl: string; docType?: string; caseId?: string; attendanceId?: string }) {
   const user = await getCurrentUser();
+  if (!user) throw new Error("Sessão expirada. Faça login novamente.");
   await prisma.attachment.create({
     data: {
       name: data.name,
@@ -13,7 +14,8 @@ export async function createAttachment(data: { name: string; driveUrl: string; d
       docType: data.docType || "OUTRO",
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,
-      uploadedById: user?.id || null,
+      uploadedById: user.id,
+      officeId: user.officeId,
     },
   });
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
@@ -21,7 +23,9 @@ export async function createAttachment(data: { name: string; driveUrl: string; d
 }
 
 export async function deleteAttachment(id: string): Promise<{ error?: string }> {
-  const att = await prisma.attachment.findUnique({ where: { id } });
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
   if (!att) return { error: "Anexo não encontrado." };
   await prisma.attachment.delete({ where: { id } });
   if (att.caseId) revalidatePath(`/processos/${att.caseId}`);

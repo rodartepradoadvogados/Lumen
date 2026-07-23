@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const { webViewLink } = await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer, "modelos");
 
     const template = await prisma.documentTemplate.create({
-      data: { name: name.trim(), category, driveUrl: webViewLink, uploadedById: user.id },
+      data: { officeId: user.officeId, name: name.trim(), category, driveUrl: webViewLink, uploadedById: user.id },
     });
 
     return NextResponse.json({ id: template.id, name: template.name, category: template.category, driveUrl: template.driveUrl });

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Arquivo muito grande (máximo 25MB)." }, { status: 400 });
   }
 
-  const assessoria = await prisma.assessoria.findUnique({ where: { id: assessoriaId } });
+  const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId } });
   if (!assessoria) {
     return NextResponse.json({ error: "Assessoria não encontrada." }, { status: 404 });
   }
@@ -35,11 +35,12 @@ export async function POST(request: NextRequest) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const { webViewLink } = assessoria.driveFolderId
-      ? await uploadFileToDriveFolder(file.name, file.type || "application/octet-stream", buffer, assessoria.driveFolderId)
-      : await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer);
+      ? await uploadFileToDriveFolder(file.name, file.type || "application/octet-stream", buffer, assessoria.driveFolderId, user.officeId)
+      : await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer, user.officeId);
 
     const doc = await prisma.assessoriaDocumento.create({
       data: {
+        officeId: user.officeId,
         assessoriaId,
         name: typeof name === "string" && name ? name : file.name,
         docType: typeof docType === "string" && docType ? docType : "OUTRO",

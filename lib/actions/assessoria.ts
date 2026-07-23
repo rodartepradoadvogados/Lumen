@@ -8,7 +8,10 @@ import { getOrCreateAssessoriaCompanyFolder } from "@/lib/googleDrive";
 import { markReceivablePaid } from "@/lib/actions/financeiro";
 
 export async function listAssessorias() {
+  const user = await getCurrentUser();
+  if (!user) return [];
   return prisma.assessoria.findMany({
+    where: { officeId: user.officeId },
     include: {
       client: true,
       _count: { select: { licitacoes: true, documents: true } },
@@ -26,10 +29,10 @@ export async function createAssessoria(data: {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
-  const client = await prisma.client.findUnique({ where: { id: data.clientId } });
+  const client = await prisma.client.findFirst({ where: { id: data.clientId, officeId: user.officeId } });
   if (!client) return { error: "Cliente não encontrado." };
 
-  const existing = await prisma.assessoria.findUnique({ where: { clientId: data.clientId } });
+  const existing = await prisma.assessoria.findFirst({ where: { clientId: data.clientId, officeId: user.officeId } });
   if (existing) return { error: "Esta empresa já tem uma assessoria cadastrada." };
 
   // Cria a estrutura de pastas no Drive de forma best-effort — se o Drive não estiver
@@ -44,6 +47,7 @@ export async function createAssessoria(data: {
 
   const created = await prisma.assessoria.create({
     data: {
+      officeId: user.officeId,
       clientId: data.clientId,
       monthlyFee: parseFloat(data.monthlyFee),
       dueDay: Math.min(28, Math.max(1, parseInt(data.dueDay) || 5)),
@@ -62,6 +66,9 @@ export async function updateAssessoria(
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
+  const existing = await prisma.assessoria.findFirst({ where: { id, officeId: user.officeId } });
+  if (!existing) return { error: "Assessoria não encontrada." };
+
   await prisma.assessoria.update({
     where: { id },
     data: {
@@ -78,8 +85,11 @@ export async function updateAssessoria(
 }
 
 export async function getAssessoriaDetail(id: string) {
-  const assessoria = await prisma.assessoria.findUnique({
-    where: { id },
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const assessoria = await prisma.assessoria.findFirst({
+    where: { id, officeId: user.officeId },
     include: {
       client: true,
       responsible: true,
@@ -93,12 +103,12 @@ export async function getAssessoriaDetail(id: string) {
   // "Vinculado" tem duas origens: vínculo explícito (assessoriaId, escolhido no cadastro do
   // processo) ou o mesmo cliente da assessoria (comportamento legado, filtro por clientId).
   const linkedCases = await prisma.case.findMany({
-    where: { OR: [{ assessoriaId: id }, { clientId: assessoria.clientId }] },
+    where: { officeId: user.officeId, OR: [{ assessoriaId: id }, { clientId: assessoria.clientId }] },
     orderBy: { updatedAt: "desc" },
   });
 
   const linkedAttendances = await prisma.attendance.findMany({
-    where: { assessoriaId: id },
+    where: { assessoriaId: id, officeId: user.officeId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -112,8 +122,13 @@ export async function setCaseAssessoria(caseId: string, assessoriaId: string | n
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
-  const before = await prisma.case.findUnique({ where: { id: caseId }, select: { assessoriaId: true } });
+  const before = await prisma.case.findFirst({ where: { id: caseId, officeId: user.officeId }, select: { assessoriaId: true } });
   if (!before) return { error: "Processo não encontrado." };
+
+  if (assessoriaId) {
+    const target = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId } });
+    if (!target) return { error: "Assessoria não encontrada." };
+  }
 
   await prisma.case.update({ where: { id: caseId }, data: { assessoriaId: assessoriaId || null } });
 
@@ -132,8 +147,12 @@ export async function addDocumento(
   if (!user) return { error: "Sessão inválida." };
   if (!data.name.trim() || !data.driveUrl.trim()) return { error: "Preencha o nome e o link do Google Drive." };
 
+  const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId } });
+  if (!assessoria) return { error: "Assessoria não encontrada." };
+
   await prisma.assessoriaDocumento.create({
     data: {
+      officeId: assessoria.officeId,
       assessoriaId,
       name: data.name.trim(),
       docType: data.docType,
@@ -163,8 +182,12 @@ export async function addLicitacao(
   if (!user) return { error: "Sessão inválida." };
   if (!data.objeto.trim() || !data.orgao.trim()) return { error: "Preencha ao menos o objeto e o órgão." };
 
+  const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId } });
+  if (!assessoria) return { error: "Assessoria não encontrada." };
+
   await prisma.licitacao.create({
     data: {
+      officeId: assessoria.officeId,
       assessoriaId,
       objeto: data.objeto.trim(),
       orgao: data.orgao.trim(),
@@ -182,6 +205,8 @@ export async function addLicitacao(
 export async function updateLicitacaoStatus(licitacaoId: string, status: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
+  const existing = await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId: user.officeId } });
+  if (!existing) return { error: "Licitação não encontrada." };
   const licitacao = await prisma.licitacao.update({ where: { id: licitacaoId }, data: { status } });
   revalidatePath(`/assessoria/${licitacao.assessoriaId}`);
   return {};
@@ -195,11 +220,12 @@ export async function addLicitacaoTask(
   if (!user) return { error: "Sessão inválida." };
   if (!data.title.trim() || !data.dueDate) return { error: "Preencha o título e o prazo." };
 
-  const licitacao = await prisma.licitacao.findUnique({ where: { id: licitacaoId } });
+  const licitacao = await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId: user.officeId } });
   if (!licitacao) return { error: "Licitação não encontrada." };
 
   await prisma.task.create({
     data: {
+      officeId: licitacao.officeId,
       title: data.title.trim(),
       type: "PRAZO",
       dueDate: new Date(data.dueDate),
@@ -216,7 +242,9 @@ export async function addLicitacaoTask(
 // Reaproveita a mesma lógica de baixa de Contas a Receber — o Honorario só "marca" qual
 // Receivable é a mensalidade de uma competência específica da assessoria.
 export async function markHonorarioPaid(honorarioId: string, paidAmount: number, paidDate: string): Promise<{ error?: string }> {
-  const honorario = await prisma.honorario.findUnique({ where: { id: honorarioId } });
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+  const honorario = await prisma.honorario.findFirst({ where: { id: honorarioId, officeId: user.officeId } });
   if (!honorario) return { error: "Honorário não encontrado." };
   await markReceivablePaid(honorario.receivableId, paidAmount, paidDate);
   revalidatePath(`/assessoria/${honorario.assessoriaId}`);
@@ -243,6 +271,7 @@ export async function generateAllMonthlyHonorarios(): Promise<{ created: number 
 
     const receivable = await prisma.receivable.create({
       data: {
+        officeId: a.officeId,
         description: `Honorário de assessoria — ${a.client.name} — ${monthLabel}`,
         amount: a.monthlyFee,
         dueDate,
@@ -250,7 +279,7 @@ export async function generateAllMonthlyHonorarios(): Promise<{ created: number 
         clientId: a.clientId,
       },
     });
-    await prisma.honorario.create({ data: { assessoriaId: a.id, competencia, receivableId: receivable.id } });
+    await prisma.honorario.create({ data: { officeId: a.officeId, assessoriaId: a.id, competencia, receivableId: receivable.id } });
     created++;
   }
 

@@ -14,6 +14,7 @@ import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
+import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,11 @@ export const dynamic = "force-dynamic";
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
 export default async function AttendanceDetailPage({ params }: { params: { id: string } }) {
-  const a = await prisma.attendance.findUnique({
-    where: { id: params.id },
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
+  const a = await prisma.attendance.findFirst({
+    where: { id: params.id, officeId: viewer.officeId },
     include: {
       responsible: true,
       tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },
@@ -38,9 +42,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
 
   const [users, columns, driveStatus] = await Promise.all([
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
-    getDriveStatus(),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" }, select: { id: true, name: true } }),
+    getDriveStatus(viewer.officeId),
   ]);
 
   const serializedAttachments = a.attachments.map((att) => ({
