@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card } from "@/components/ui";
 import MobileNewCaseForm from "@/components/mobile/MobileNewCaseForm";
 import { ArrowLeft } from "lucide-react";
@@ -7,10 +9,17 @@ import { ArrowLeft } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function MobileNewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const [clients, users, assessoriasRaw] = await Promise.all([
-    prisma.client.findMany({ orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.assessoria.findMany({
+      where: { status: "ATIVA", officeId: viewer.officeId },
+      include: { client: true },
+      orderBy: { client: { name: "asc" } },
+    }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 

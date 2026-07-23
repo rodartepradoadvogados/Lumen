@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAlerts, getTodayItems } from "@/lib/alerts";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -39,13 +40,17 @@ const severityStyle: Record<string, string> = {
 export default async function AlertasPage({ searchParams }: { searchParams: { tab?: string } }) {
   const tab = searchParams.tab === "hoje" ? "hoje" : "pendentes";
   const viewer = await getCurrentUser();
-  const isAdmin = viewer?.isAdmin ?? false;
-  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
-  const [alerts, todayItems] = await Promise.all([getAlerts(hasFinanceAccess, viewer?.id), getTodayItems(hasFinanceAccess)]);
+  if (!viewer) redirect("/");
+  const isAdmin = viewer.isAdmin;
+  const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
+  const [alerts, todayItems] = await Promise.all([
+    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id),
+    getTodayItems(viewer.officeId, hasFinanceAccess),
+  ]);
 
   const pendingDeletions = isAdmin
     ? await prisma.deletionRequest.findMany({
-        where: { status: "PENDENTE" },
+        where: { status: "PENDENTE", officeId: viewer.officeId },
         include: { requestedBy: true },
         orderBy: { createdAt: "asc" },
       })

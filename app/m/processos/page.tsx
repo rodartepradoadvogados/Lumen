@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { Scale, Search } from "lucide-react";
@@ -8,8 +10,14 @@ import { Scale, Search } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function MobileProcessos({ searchParams }: { searchParams: { q?: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const q = (searchParams.q || "").trim();
-  const baseFilters: Prisma.CaseWhereInput = { status: "ATIVO" };
+  // officeId entra aqui em baseFilters (não só no `where` abaixo) de propósito: baseFilters é
+  // repassado como extraWhere para findCaseIdsByProcessNumber (lib/processNumberSearch.ts), então
+  // o conjunto candidato da busca por nº de processo já sai escopado por escritório também.
+  const baseFilters: Prisma.CaseWhereInput = { status: "ATIVO", officeId: viewer.officeId };
   const matchingProcessNumberIds = q ? await findCaseIdsByProcessNumber(q, baseFilters) : [];
 
   const where: Prisma.CaseWhereInput = {

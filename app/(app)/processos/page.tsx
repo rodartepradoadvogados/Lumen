@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
@@ -35,10 +37,14 @@ export default async function ProcessosPage({
 }: {
   searchParams: { status?: string; area?: string; q?: string; responsibleId?: string; sort?: string };
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const q = (searchParams.q || "").trim();
   const sortKey = searchParams.sort && SORTS[searchParams.sort] ? searchParams.sort : "nome";
 
   const baseFilters: Prisma.CaseWhereInput = {
+    officeId: viewer.officeId,
     status: searchParams.status || undefined,
     area: searchParams.area || undefined,
     responsibleId: searchParams.responsibleId || undefined,
@@ -70,9 +76,9 @@ export default async function ProcessosPage({
       },
       orderBy: SORTS[sortKey],
     }),
-    prisma.case.count(),
-    prisma.case.findMany({ where: { area: { not: null } }, distinct: ["area"], select: { area: true }, orderBy: { area: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.case.count({ where: { officeId: viewer.officeId } }),
+    prisma.case.findMany({ where: { area: { not: null }, officeId: viewer.officeId }, distinct: ["area"], select: { area: true }, orderBy: { area: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const areas = areaRows.map((a) => a.area).filter((a): a is string => Boolean(a));

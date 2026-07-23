@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getUserHistory } from "@/lib/timesheet";
@@ -59,6 +60,7 @@ export default async function ProdutividadePage({
 }) {
   const aba = searchParams.aba === "timesheet" ? "timesheet" : searchParams.aba === "delegar" ? "delegar" : "historico";
   const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
 
   const tabs = (
     <div className="flex items-center gap-2 flex-wrap">
@@ -70,7 +72,7 @@ export default async function ProdutividadePage({
 
   if (aba === "delegar") {
     const delegateUsers = await prisma.user.findMany({
-      where: { active: true },
+      where: { active: true, officeId: viewer.officeId },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     });
@@ -88,7 +90,7 @@ export default async function ProdutividadePage({
   }
 
   if (aba === "timesheet") {
-    const history = viewer ? await getUserHistory(viewer.id, 30) : [];
+    const history = await getUserHistory(viewer.id, 30);
 
     return (
       <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
@@ -98,7 +100,7 @@ export default async function ProdutividadePage({
         <Card>
           <div className="px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
             <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">
-              {viewer ? `Timesheet — ${viewer.name}` : "Meu Timesheet"}
+              {`Timesheet — ${viewer.name}`}
             </h3>
             <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Acompanhe seu tempo de uso do sistema nos últimos 30 dias.</p>
           </div>
@@ -141,6 +143,7 @@ export default async function ProdutividadePage({
         status: "CONCLUIDO",
         completedAt: { gte: start, lt: end },
         responsibleId: responsibleId ?? { not: null },
+        officeId: viewer.officeId,
       },
       include: {
         responsible: { select: { id: true, name: true, color: true } },
@@ -148,7 +151,7 @@ export default async function ProdutividadePage({
       },
       orderBy: { completedAt: "desc" },
     }),
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   type Row = {

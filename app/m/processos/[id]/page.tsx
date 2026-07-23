@@ -14,10 +14,12 @@ import { ArrowLeft, ChevronDown } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function MobileCaseDetail({ params }: { params: { id: string } }) {
-  const [viewer, c, publications, users] = await Promise.all([
-    getCurrentUser(),
-    prisma.case.findUnique({
-      where: { id: params.id },
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
+  const [c, publications, users] = await Promise.all([
+    prisma.case.findFirst({
+      where: { id: params.id, officeId: viewer.officeId },
       include: {
         client: true,
         responsible: true,
@@ -30,11 +32,15 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
       },
     }),
     prisma.publication.findMany({
-      where: { caseId: params.id },
+      where: { caseId: params.id, officeId: viewer.officeId },
       orderBy: { publishedAt: "desc" },
       take: 15,
     }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({
+      where: { active: true, officeId: viewer.officeId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!c) notFound();

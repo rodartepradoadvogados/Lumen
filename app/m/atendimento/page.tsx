@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import { Plus, Search } from "lucide-react";
 
@@ -33,10 +35,14 @@ export default async function MobileAtendimento({
 }: {
   searchParams: { status?: string; q?: string };
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const q = (searchParams.q || "").trim();
 
   const attendances = await prisma.attendance.findMany({
     where: {
+      officeId: viewer.officeId,
       // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
       // na aba própria "Rascunhos" — mesma regra da lista desktop.
       status: searchParams.status || { not: "RASCUNHO" },

@@ -16,7 +16,7 @@ export async function getTodayElapsedSeconds(userId: string): Promise<number> {
   return Math.round(total);
 }
 
-export async function pingCurrentSession(userId: string): Promise<number> {
+export async function pingCurrentSession(userId: string, officeId: string): Promise<number> {
   const today = startOfDay(new Date());
   const latest = await prisma.loginSession.findFirst({ where: { userId }, orderBy: { loginAt: "desc" } });
 
@@ -27,7 +27,7 @@ export async function pingCurrentSession(userId: string): Promise<number> {
   if (latest && latest.loginAt >= today) {
     await prisma.loginSession.update({ where: { id: latest.id }, data: { lastPingAt: new Date() } });
   } else {
-    await prisma.loginSession.create({ data: { userId } });
+    await prisma.loginSession.create({ data: { userId, officeId } });
   }
 
   return getTodayElapsedSeconds(userId);
@@ -38,15 +38,15 @@ export async function pingCurrentSession(userId: string): Promise<number> {
 // sessão nova quando o dia virou), aqui a intenção é sempre "fechar" o segmento anterior e
 // abrir um novo a partir do momento em que a pessoa confirma que voltou — o tempo em que
 // ficou parada (sem interagir) não deve ser contado como tempo de uso.
-export async function startFreshSession(userId: string): Promise<number> {
-  await prisma.loginSession.create({ data: { userId } });
+export async function startFreshSession(userId: string, officeId: string): Promise<number> {
+  await prisma.loginSession.create({ data: { userId, officeId } });
   return getTodayElapsedSeconds(userId);
 }
 
 export type TeamSummary = { id: string; name: string; color: string; lastLoginAt: string | null; todaySeconds: number };
 
-export async function getTeamSummaries(): Promise<TeamSummary[]> {
-  const users = await prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } });
+export async function getTeamSummaries(officeId: string): Promise<TeamSummary[]> {
+  const users = await prisma.user.findMany({ where: { active: true, officeId }, orderBy: { name: "asc" } });
   const result: TeamSummary[] = [];
   for (const u of users) {
     const lastSession = await prisma.loginSession.findFirst({ where: { userId: u.id }, orderBy: { loginAt: "desc" } });

@@ -28,8 +28,8 @@ export default async function MobileDre({
   const end = new Date(year, month + 1, 1);
 
   const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
   ]);
 
   const receitasPorCategoria: Record<string, number> = {};

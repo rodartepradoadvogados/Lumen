@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import UserRow from "@/components/UserRow";
@@ -8,8 +9,10 @@ import { getCurrentUser } from "@/lib/currentUser";
 export const dynamic = "force-dynamic";
 
 export default async function EquipePage() {
-  const [viewer, users] = await Promise.all([getCurrentUser(), prisma.user.findMany({ orderBy: { name: "asc" } })]);
-  const isAdmin = !!viewer?.isAdmin;
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+  const users = await prisma.user.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } });
+  const isAdmin = !!viewer.isAdmin;
 
   async function submitUser(formData: FormData) {
     "use server";

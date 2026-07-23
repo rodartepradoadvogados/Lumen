@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, formatCurrency } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -7,10 +9,13 @@ export const dynamic = "force-dynamic";
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default async function FluxoDeCaixaPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const now = new Date();
   const [payables, receivables] = await Promise.all([
-    prisma.payable.findMany(),
-    prisma.receivable.findMany(),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId } }),
   ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number; year: number; monthIdx: number }[] = [];

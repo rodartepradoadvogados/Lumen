@@ -1,13 +1,18 @@
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card } from "@/components/ui";
 import NewAssessoriaForm from "@/components/assessoria/NewAssessoriaForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewAssessoriaPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const [clientsWithoutAssessoria, users] = await Promise.all([
-    prisma.client.findMany({ where: { type: "PJ", assessoria: null }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.client.findMany({ where: { type: "PJ", assessoria: null, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
   return (

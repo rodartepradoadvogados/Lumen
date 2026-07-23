@@ -19,8 +19,8 @@ export default async function MobileLivroCaixa() {
   if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
 
   const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO" }, include: { client: true } }),
-    prisma.payable.findMany({ where: { status: "PAGO" } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO" }, include: { client: true } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO" } }),
   ]);
 
   type Entry = { date: Date; description: string; value: number; type: "entrada" | "saida" };

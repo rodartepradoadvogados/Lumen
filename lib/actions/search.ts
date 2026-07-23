@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
+import { getCurrentUser } from "@/lib/currentUser";
 
 export type SearchResult = {
   type: "Processos" | "Clientes" | "Tarefas" | "Atendimentos" | "Publicações";
@@ -15,6 +16,10 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const q = query.trim();
   if (q.length < 2) return [];
 
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  const officeId = viewer.officeId;
+
   const contains = { contains: q, mode: "insensitive" as const };
   // A busca por nº de processo ignora qualquer máscara (pontos, hífen, barra) — como isso não dá
   // pra fazer direto no banco, busca-se o conjunto candidato (só id + nº) e compara normalizado
@@ -24,6 +29,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const [cases, clients, tasks, attendances, publications, caseNumberCandidates, publicationNumberCandidates] = await Promise.all([
     prisma.case.findMany({
       where: {
+        officeId,
         OR: [{ title: contains }, { opposingPartyName: contains }],
       },
       select: { id: true, title: true, processNumber: true, type: true },
@@ -31,38 +37,38 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
       orderBy: { updatedAt: "desc" },
     }),
     prisma.client.findMany({
-      where: { OR: [{ name: contains }, { document: contains }] },
+      where: { officeId, OR: [{ name: contains }, { document: contains }] },
       select: { id: true, name: true, document: true, type: true },
       take: 5,
       orderBy: { name: "asc" },
     }),
     prisma.task.findMany({
-      where: { title: contains },
+      where: { officeId, title: contains },
       select: { id: true, title: true, type: true, dueDate: true },
       take: 4,
       orderBy: { dueDate: "desc" },
     }),
     prisma.attendance.findMany({
-      where: { OR: [{ clientName: contains }, { subject: contains }] },
+      where: { officeId, OR: [{ clientName: contains }, { subject: contains }] },
       select: { id: true, clientName: true, subject: true },
       take: 3,
       orderBy: { createdAt: "desc" },
     }),
     prisma.publication.findMany({
-      where: { content: contains },
+      where: { officeId, content: contains },
       select: { id: true, content: true, processNumberRaw: true, source: true },
       take: 3,
       orderBy: { publishedAt: "desc" },
     }),
     normalizedQuery
       ? prisma.case.findMany({
-          where: { processNumber: { not: null } },
+          where: { officeId, processNumber: { not: null } },
           select: { id: true, title: true, processNumber: true, type: true },
         })
       : Promise.resolve([]),
     normalizedQuery
       ? prisma.publication.findMany({
-          where: { processNumberRaw: { not: null } },
+          where: { officeId, processNumberRaw: { not: null } },
           select: { id: true, content: true, processNumberRaw: true, source: true },
           orderBy: { publishedAt: "desc" },
         })

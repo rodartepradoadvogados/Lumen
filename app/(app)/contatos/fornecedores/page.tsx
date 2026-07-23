@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import NewSupplierModal from "@/components/NewSupplierModal";
 import EditSupplierModal from "@/components/EditSupplierModal";
@@ -9,7 +11,10 @@ import { deleteSupplier } from "@/lib/actions/suppliers";
 export const dynamic = "force-dynamic";
 
 export default async function FornecedoresPage() {
-  const suppliers = await prisma.supplier.findMany({ orderBy: { name: "asc" } });
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
+  const suppliers = await prisma.supplier.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } });
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, formatDate } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
@@ -15,8 +16,11 @@ const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-
 // só leitura — responder pelo app mobile fica para uma tarefa futura, não é o foco aqui (o foco é
 // nunca levar o usuário para uma tela do site desktop).
 export default async function MobileAttendanceDetail({ params }: { params: { id: string } }) {
-  const a = await prisma.attendance.findUnique({
-    where: { id: params.id },
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
+  const a = await prisma.attendance.findFirst({
+    where: { id: params.id, officeId: viewer.officeId },
     include: {
       responsible: true,
       convertedCase: true,

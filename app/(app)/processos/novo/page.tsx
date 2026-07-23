@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { createCase } from "@/lib/actions/cases";
 import { PageHeader, Card } from "@/components/ui";
 import ClientPicker from "@/components/ClientPicker";
@@ -22,11 +24,18 @@ const AREA_OPTIONS = [
 export const dynamic = "force-dynamic";
 
 export default async function NewCasePage({ searchParams }: { searchParams: { type?: string; processNumber?: string; title?: string; assessoriaId?: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const defaultType = searchParams.type || "JUDICIAL";
   const [clients, users, assessoriasRaw] = await Promise.all([
-    prisma.client.findMany({ orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.assessoria.findMany({
+      where: { status: "ATIVA", officeId: viewer.officeId },
+      include: { client: true },
+      orderBy: { client: { name: "asc" } },
+    }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 

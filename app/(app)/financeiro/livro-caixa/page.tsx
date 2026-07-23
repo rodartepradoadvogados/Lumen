@@ -1,13 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function LivroCaixaPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO" }, include: { client: true } }),
-    prisma.payable.findMany({ where: { status: "PAGO" } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO" }, include: { client: true } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO" } }),
   ]);
 
   type Entry = { date: Date; description: string; value: number; type: "entrada" | "saida" };

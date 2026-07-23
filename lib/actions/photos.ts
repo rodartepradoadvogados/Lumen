@@ -9,16 +9,18 @@ import { getCurrentUser } from "@/lib/currentUser";
 // aba de gerenciamento (Configurações → Blog Jurídico → Fotos) quanto na
 // sugestão automática do picker de imagem do blog.
 export async function listPhotos() {
-  return prisma.photo.findMany({ orderBy: { createdAt: "desc" } });
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  return prisma.photo.findMany({ where: { officeId: viewer.officeId }, orderBy: { createdAt: "desc" } });
 }
 
 // Exclui uma foto: remove o arquivo do Vercel Blob (se ainda existir lá) e o
 // registro no banco.
 export async function deletePhoto(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem excluir fotos da biblioteca." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem excluir fotos da biblioteca." };
 
-  const photo = await prisma.photo.findUnique({ where: { id } });
+  const photo = await prisma.photo.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!photo) return { error: "Foto não encontrada." };
 
   try {

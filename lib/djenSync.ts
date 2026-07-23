@@ -31,8 +31,8 @@ function parseOab(raw: string): { numeroOab: string; ufOab: string } | null {
 
 // As OABs monitoradas pelo DJEN vêm dos usuários ativos com OAB cadastrada
 // (Configurações → Equipe & Acesso) — não é mais uma lista fixa no código.
-export async function getDjenTargets(): Promise<{ label: string; numeroOab: string; ufOab: string }[]> {
-  const users = await prisma.user.findMany({ where: { active: true, oab: { not: null } }, select: { name: true, oab: true } });
+export async function getDjenTargets(officeId: string): Promise<{ label: string; numeroOab: string; ufOab: string }[]> {
+  const users = await prisma.user.findMany({ where: { officeId, active: true, oab: { not: null } }, select: { name: true, oab: true } });
   const targets: { label: string; numeroOab: string; ufOab: string }[] = [];
   for (const u of users) {
     const parsed = u.oab ? parseOab(u.oab) : null;
@@ -83,9 +83,9 @@ async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | n
   return { status, body };
 }
 
-export async function testDjenConnection(): Promise<DjenTestResult[]> {
+export async function testDjenConnection(officeId: string): Promise<DjenTestResult[]> {
   const results: DjenTestResult[] = [];
-  const targets = await getDjenTargets();
+  const targets = await getDjenTargets(officeId);
 
   let cookie: string | null = null;
   try {

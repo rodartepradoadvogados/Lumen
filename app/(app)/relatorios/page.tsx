@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
@@ -142,9 +143,9 @@ const SECOES = [
 
 type SecaoKey = (typeof SECOES)[number]["key"];
 
-async function ProdutividadeSection({ start, end, months }: { start: Date; end: Date; months: MonthBucket[] }) {
+async function ProdutividadeSection({ start, end, months, officeId }: { start: Date; end: Date; months: MonthBucket[]; officeId: string }) {
   const doneTasks = await prisma.task.findMany({
-    where: { status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
+    where: { officeId, status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
     include: { responsible: { select: { id: true, name: true, color: true } } },
   });
 
@@ -201,12 +202,12 @@ async function ProdutividadeSection({ start, end, months }: { start: Date; end: 
   );
 }
 
-async function ProcessosSection({ start, end }: { start: Date; end: Date }) {
+async function ProcessosSection({ start, end, officeId }: { start: Date; end: Date; officeId: string }) {
   const [casesByArea, casesByStatus, closedCasesInPeriod] = await Promise.all([
-    prisma.case.groupBy({ by: ["area"], where: { status: "ATIVO" }, _count: { _all: true } }),
-    prisma.case.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.case.groupBy({ by: ["area"], where: { officeId, status: "ATIVO" }, _count: { _all: true } }),
+    prisma.case.groupBy({ by: ["status"], where: { officeId }, _count: { _all: true } }),
     prisma.case.findMany({
-      where: { status: "ENCERRADO", distributedAt: { not: null }, closedAt: { gte: start, lt: end } },
+      where: { officeId, status: "ENCERRADO", distributedAt: { not: null }, closedAt: { gte: start, lt: end } },
       select: { area: true, distributedAt: true, closedAt: true },
     }),
   ]);
@@ -335,9 +336,9 @@ async function ProcessosSection({ start, end }: { start: Date; end: Date }) {
   );
 }
 
-async function FunilSection({ start, end }: { start: Date; end: Date }) {
+async function FunilSection({ start, end, officeId }: { start: Date; end: Date; officeId: string }) {
   const attendances = await prisma.attendance.findMany({
-    where: { status: { not: "ARQUIVADO" }, createdAt: { gte: start, lt: end } },
+    where: { officeId, status: { not: "ARQUIVADO" }, createdAt: { gte: start, lt: end } },
   });
 
   const stageTotals = STAGES.map((s) => {
@@ -417,9 +418,9 @@ async function FunilSection({ start, end }: { start: Date; end: Date }) {
   );
 }
 
-async function PublicacoesSection({ start, end, months }: { start: Date; end: Date; months: MonthBucket[] }) {
+async function PublicacoesSection({ start, end, months, officeId }: { start: Date; end: Date; months: MonthBucket[]; officeId: string }) {
   const publications = await prisma.publication.findMany({
-    where: { publishedAt: { gte: start, lt: end } },
+    where: { officeId, publishedAt: { gte: start, lt: end } },
     select: { id: true, publishedAt: true, lawyerTag: true, triageStatus: true },
   });
 
@@ -489,11 +490,11 @@ async function PublicacoesSection({ start, end, months }: { start: Date; end: Da
   );
 }
 
-async function FinanceiroSection({ start, end, months, now }: { start: Date; end: Date; months: MonthBucket[]; now: Date }) {
+async function FinanceiroSection({ start, end, months, now, officeId }: { start: Date; end: Date; months: MonthBucket[]; now: Date; officeId: string }) {
   const [paidReceivables, paidPayables, overdueReceivables] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
+    prisma.receivable.findMany({ where: { officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+    prisma.payable.findMany({ where: { officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+    prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
   ]);
 
   const financeMonthly = months.map((m) => ({
@@ -597,6 +598,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
 
   const availableSecoes = SECOES.filter((s) => !s.financeOnly || hasFinanceAccess);
@@ -651,11 +653,11 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
         })}
       </div>
 
-      {secao === "produtividade" && <ProdutividadeSection start={start} end={end} months={months} />}
-      {secao === "processos" && <ProcessosSection start={start} end={end} />}
-      {secao === "funil" && <FunilSection start={start} end={end} />}
-      {secao === "publicacoes" && <PublicacoesSection start={start} end={end} months={months} />}
-      {secao === "financeiro" && hasFinanceAccess && <FinanceiroSection start={start} end={end} months={months} now={now} />}
+      {secao === "produtividade" && <ProdutividadeSection start={start} end={end} months={months} officeId={viewer.officeId} />}
+      {secao === "processos" && <ProcessosSection start={start} end={end} officeId={viewer.officeId} />}
+      {secao === "funil" && <FunilSection start={start} end={end} officeId={viewer.officeId} />}
+      {secao === "publicacoes" && <PublicacoesSection start={start} end={end} months={months} officeId={viewer.officeId} />}
+      {secao === "financeiro" && hasFinanceAccess && <FinanceiroSection start={start} end={end} months={months} now={now} officeId={viewer.officeId} />}
     </div>
   );
 }

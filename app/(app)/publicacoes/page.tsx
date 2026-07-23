@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -22,9 +23,11 @@ export default async function PublicacoesPage({
   const q = (searchParams.q || "").trim();
   const adv = searchParams.adv === "Jairo" || searchParams.adv === "Rodrigo" ? searchParams.adv : undefined;
   const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
   const resp = (searchParams.resp || "").trim() || undefined;
 
   const baseFilters: Prisma.PublicationWhereInput = {
+    officeId: viewer.officeId,
     read: isLidas,
     kind: searchParams.kind || undefined,
     lawyerTag: adv ? { contains: adv } : undefined,
@@ -53,13 +56,13 @@ export default async function PublicacoesPage({
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: isLidas ? 100 : undefined,
     }),
-    prisma.publication.count({ where: { read: false } }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.publication.count({ where: { read: false, officeId: viewer.officeId } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const taskCounts = await prisma.task.groupBy({
     by: ["publicationId"],
-    where: { publicationId: { in: publications.map((p) => p.id) }, status: { not: "CANCELADO" } },
+    where: { publicationId: { in: publications.map((p) => p.id) }, status: { not: "CANCELADO" }, officeId: viewer.officeId },
     _count: { _all: true },
   });
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));

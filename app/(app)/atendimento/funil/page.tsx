@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Badge, formatCurrency } from "@/components/ui";
 import FunnelStageSelect, { stageLabels } from "@/components/FunnelStageSelect";
 import { List } from "lucide-react";
@@ -30,8 +32,11 @@ function daysBetween(from: Date, to: Date) {
 }
 
 export default async function FunilPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const attendances = await prisma.attendance.findMany({
-    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] } },
+    where: { status: { notIn: ["ARQUIVADO", "RASCUNHO"] }, officeId: viewer.officeId },
     include: { responsible: { select: { name: true } } },
     orderBy: [{ stageChangedAt: "desc" }, { createdAt: "desc" }],
   });

@@ -32,10 +32,10 @@ function greeting() {
 }
 
 export default async function MobileHome() {
-  const [user, unreadCount, assessoriaCount] = await Promise.all([
-    getCurrentUser(),
-    prisma.publication.count({ where: { read: false } }),
-    prisma.assessoria.count({ where: { status: "ATIVA" } }),
+  const user = await getCurrentUser();
+  const [unreadCount, assessoriaCount] = await Promise.all([
+    user ? prisma.publication.count({ where: { read: false, officeId: user.officeId } }) : Promise.resolve(0),
+    user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
   ]);
 
   const firstName = user?.name.split(" ")[0] ?? "";

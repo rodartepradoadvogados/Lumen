@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import { ArrowLeft, ExternalLink } from "lucide-react";
@@ -56,12 +57,17 @@ const caseStatusColors: Record<string, "green" | "slate" | "bordo" | "amber"> = 
 const caseStatusLabels: Record<string, string> = { ATIVO: "Ativo", SUSPENSO: "Suspenso", ENCERRADO: "Encerrado", ARQUIVADO: "Arquivado" };
 
 export default async function MobileAssessoriaDetail({ params }: { params: { id: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
+  // getAssessoriaDetail (lib/actions/assessoria.ts) fica fora do escopo deste arquivo — ver
+  // observação no relatório desta auditoria sobre escopo de officeId nesse helper.
   const assessoria = await getAssessoriaDetail(params.id);
   if (!assessoria) notFound();
 
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
   const availableCases = await prisma.case.findMany({
-    where: { id: { notIn: linkedCaseIds } },
+    where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
     select: { id: true, title: true, processNumber: true },
     orderBy: { title: "asc" },
   });

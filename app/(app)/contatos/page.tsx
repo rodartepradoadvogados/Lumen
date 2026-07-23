@@ -1,16 +1,21 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card } from "@/components/ui";
 import { Users, Scale as ScaleIcon, ArrowRight, Truck, UserCog } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContatosPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const [clients, lawyers, suppliers, team] = await Promise.all([
-    prisma.client.count(),
-    prisma.lawyer.count(),
-    prisma.supplier.count(),
-    prisma.user.count(),
+    prisma.client.count({ where: { officeId: viewer.officeId } }),
+    prisma.lawyer.count({ where: { officeId: viewer.officeId } }),
+    prisma.supplier.count({ where: { officeId: viewer.officeId } }),
+    prisma.user.count({ where: { officeId: viewer.officeId } }),
   ]);
 
   // Cada módulo tem uma cor de destaque própria (dourado/bordô/navy/magenta), só

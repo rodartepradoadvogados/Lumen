@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import MobileAgendaQuickCreate from "@/components/mobile/MobileAgendaQuickCreate";
@@ -34,18 +36,31 @@ export default async function MobileAgenda({
 }: {
   searchParams: { d?: string; view?: string; novo?: string; tipo?: string };
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const view = searchParams.view === "week" ? "week" : "day";
   const day = parseDate(searchParams.d);
 
   if (view === "week") {
-    return <WeekView day={day} />;
+    return <WeekView day={day} officeId={viewer.officeId} />;
   }
 
   const novo = searchParams.novo === "1";
-  return <DayView day={day} novo={novo} tipo={normalizeTipo(searchParams.tipo)} />;
+  return <DayView day={day} novo={novo} tipo={normalizeTipo(searchParams.tipo)} officeId={viewer.officeId} />;
 }
 
-async function DayView({ day, novo, tipo }: { day: Date; novo: boolean; tipo: string }) {
+async function DayView({
+  day,
+  novo,
+  tipo,
+  officeId,
+}: {
+  day: Date;
+  novo: boolean;
+  tipo: string;
+  officeId: string;
+}) {
   const start = new Date(day);
   start.setHours(0, 0, 0, 0);
   const end = new Date(day);
@@ -61,7 +76,7 @@ async function DayView({ day, novo, tipo }: { day: Date; novo: boolean; tipo: st
   const isToday = start.getTime() === today.getTime();
 
   const tasks = await prisma.task.findMany({
-    where: { dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
+    where: { officeId, dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
     include: { case: true, responsible: true },
     orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
   });
@@ -154,7 +169,7 @@ async function DayView({ day, novo, tipo }: { day: Date; novo: boolean; tipo: st
   );
 }
 
-async function WeekView({ day }: { day: Date }) {
+async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
   const start = new Date(day);
   start.setHours(0, 0, 0, 0);
   // Domingo como início da semana (padrão pt-BR usado no restante do app).
@@ -183,7 +198,7 @@ async function WeekView({ day }: { day: Date }) {
   // (SQLite/Prisma não agrupa direto por "dia" de um DateTime, então trazemos só dueDate + status
   // já filtrado pelo intervalo e contamos em memória, evitando 7 queries separadas).
   const tasks = await prisma.task.findMany({
-    where: { dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
+    where: { officeId, dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
     select: { dueDate: true },
   });
 

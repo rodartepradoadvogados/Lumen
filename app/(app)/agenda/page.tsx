@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader } from "@/components/ui";
 import AgendaView from "@/components/AgendaView";
 import NewTaskModal from "@/components/NewTaskModal";
@@ -17,6 +19,9 @@ export default async function AgendaPage({
 }: {
   searchParams: { year?: string; month?: string; visao?: string; week?: string; responsibleId?: string; tipo?: string };
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const now = new Date();
   const visao = searchParams.visao === "semana" || searchParams.visao === "lista" ? searchParams.visao : "mes";
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
@@ -42,6 +47,7 @@ export default async function AgendaPage({
   }
 
   const where: Prisma.TaskWhereInput = {
+    officeId: viewer.officeId,
     // OR com safetyDueDate: o prazo de segurança (24h antes do prazo fatal) pode cair um dia
     // antes do início do período visível (ex.: prazo fatal logo no primeiro dia do mês) — sem
     // isso, esse aviso ficaria de fora da consulta mesmo devendo aparecer na Agenda.
@@ -56,9 +62,9 @@ export default async function AgendaPage({
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
     }),
-    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.kanbanColumn.findMany({ orderBy: { order: "asc" }, select: { id: true, name: true } }),
+    prisma.case.findMany({ where: { status: "ATIVO", officeId: viewer.officeId }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const serialized = tasks.map((t) => ({

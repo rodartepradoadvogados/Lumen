@@ -50,7 +50,7 @@ function endOfDay(d: Date) {
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
 // `viewerId`: quando informado, também busca tarefas delegadas para esse usuário ainda não
 // vistas (delegationAcknowledgedAt null) — alerta pessoal, visível só pra quem recebeu.
-export async function getAlerts(includeFinance: boolean = true, viewerId?: string): Promise<AlertItem[]> {
+export async function getAlerts(officeId: string, includeFinance: boolean = true, viewerId?: string): Promise<AlertItem[]> {
   const now = new Date();
 
   const [
@@ -64,35 +64,35 @@ export async function getAlerts(includeFinance: boolean = true, viewerId?: strin
     delegatedTasks,
   ] = await Promise.all([
       prisma.task.findMany({
-        where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+        where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
         include: { case: true },
         orderBy: { dueDate: "asc" },
       }),
       includeFinance
-        ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+        ? prisma.payable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
         : Promise.resolve([]),
       includeFinance
-        ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+        ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
         : Promise.resolve([]),
       viewerId
         ? prisma.mention.findMany({
-            where: { userId: viewerId, read: false },
+            where: { officeId, userId: viewerId, read: false },
             include: { comment: { include: { author: true, case: true, task: true } } },
           })
         : Promise.resolve([]),
       includeFinance
-        ? prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+        ? prisma.payable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
         : Promise.resolve([]),
       includeFinance
-        ? prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+        ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
         : Promise.resolve([]),
       prisma.attendance.findMany({
-        where: { nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
+        where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
         orderBy: { nextContactAt: "asc" },
       }),
       viewerId
         ? prisma.task.findMany({
-            where: { responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
+            where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
             include: { case: true, delegatedBy: true },
             orderBy: { createdAt: "desc" },
           })
@@ -217,22 +217,22 @@ export async function getAlerts(includeFinance: boolean = true, viewerId?: strin
 }
 
 // Tudo que vence HOJE: tarefas/eventos/audiências/perícias/prazos + contas a pagar/receber — reforço do dia.
-export async function getTodayItems(includeFinance: boolean = true): Promise<TodayItem[]> {
+export async function getTodayItems(officeId: string, includeFinance: boolean = true): Promise<TodayItem[]> {
   const now = new Date();
   const start = startOfDay(now);
   const end = endOfDay(now);
 
   const [tasksToday, payablesToday, receivablesToday] = await Promise.all([
     prisma.task.findMany({
-      where: { dueDate: { gte: start, lte: end }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+      where: { officeId, dueDate: { gte: start, lte: end }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
       include: { case: true },
       orderBy: { dueTime: "asc" },
     }),
     includeFinance
-      ? prisma.payable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
+      ? prisma.payable.findMany({ where: { officeId, dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
       : Promise.resolve([]),
     includeFinance
-      ? prisma.receivable.findMany({ where: { dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
+      ? prisma.receivable.findMany({ where: { officeId, dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
       : Promise.resolve([]),
   ]);
 

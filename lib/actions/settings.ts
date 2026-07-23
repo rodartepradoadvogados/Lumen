@@ -32,7 +32,7 @@ export async function runDjenConnectionTest(): Promise<{ error?: string; results
   if (!viewer?.isAdmin) {
     return { error: "Apenas Jairo ou Rodrigo podem testar essa integração." };
   }
-  const results = await testDjenConnection();
+  const results = await testDjenConnection(viewer.officeId);
   return { results };
 }
 

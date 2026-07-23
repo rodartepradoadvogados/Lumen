@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
 import { ArrowLeft, Users, Scale, Target, Newspaper } from "lucide-react";
 
@@ -64,6 +66,9 @@ const periodOptions: { value: 3 | 6 | 12; label: string }[] = [
 ];
 
 export default async function MobileRelatorios({ searchParams }: { searchParams: { meses?: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const meses = parseMeses(searchParams.meses);
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - (meses - 1), 1);
@@ -71,19 +76,19 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
   const [doneTasks, attendances, publications, casesByArea, casesByStatus] = await Promise.all([
     prisma.task.findMany({
-      where: { status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
+      where: { officeId: viewer.officeId, status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
       include: { responsible: { select: { id: true, name: true, color: true } } },
     }),
     prisma.attendance.findMany({
-      where: { status: { not: "ARQUIVADO" }, createdAt: { gte: start, lt: end } },
+      where: { officeId: viewer.officeId, status: { not: "ARQUIVADO" }, createdAt: { gte: start, lt: end } },
       select: { stage: true },
     }),
     prisma.publication.findMany({
-      where: { publishedAt: { gte: start, lt: end } },
+      where: { officeId: viewer.officeId, publishedAt: { gte: start, lt: end } },
       select: { triageStatus: true },
     }),
-    prisma.case.groupBy({ by: ["area"], where: { status: "ATIVO" }, _count: { _all: true } }),
-    prisma.case.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.case.groupBy({ by: ["area"], where: { officeId: viewer.officeId, status: "ATIVO" }, _count: { _all: true } }),
+    prisma.case.groupBy({ by: ["status"], where: { officeId: viewer.officeId }, _count: { _all: true } }),
   ]);
 
   // ---------- PRODUTIVIDADE ----------

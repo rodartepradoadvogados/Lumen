@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -28,42 +29,44 @@ export default async function DashboardPage() {
   soon.setDate(now.getDate() + 7);
 
   const viewer = await getCurrentUser();
-  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  if (!viewer) redirect("/");
+  const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
   const [payablesPending, receivablesPending, activeCases, upcomingTasks, overdueTasksList, alerts, activeUsers] = await Promise.all([
     hasFinanceAccess
       ? prisma.payable.findMany({
-          where: { status: { in: ["PENDENTE", "ATRASADO"] } },
+          where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
           include: { case: true },
           orderBy: { dueDate: "asc" },
         })
       : Promise.resolve([]),
     hasFinanceAccess
       ? prisma.receivable.findMany({
-          where: { status: { in: ["PENDENTE", "ATRASADO"] } },
+          where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
           include: { case: true, client: true },
           orderBy: { dueDate: "asc" },
         })
       : Promise.resolve([]),
-    prisma.case.count({ where: { status: "ATIVO" } }),
+    prisma.case.count({ where: { status: "ATIVO", officeId: viewer.officeId } }),
     prisma.task.findMany({
-      where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+      where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId },
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
       take: 8,
     }),
     prisma.task.findMany({
-      where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+      where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId },
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
     }),
-    getAlerts(hasFinanceAccess, viewer?.id),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO" } });
+  const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO", officeId: viewer.officeId } });
 
   const notices = await prisma.notice.findMany({
+    where: { officeId: viewer.officeId },
     include: { author: { select: { id: true, name: true, color: true } } },
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     take: 10,
@@ -81,7 +84,7 @@ export default async function DashboardPage() {
 
   const byArea = await prisma.case.groupBy({
     by: ["area"],
-    where: { status: "ATIVO" },
+    where: { status: "ATIVO", officeId: viewer.officeId },
     _count: { _all: true },
   });
   const totalCasesByArea = byArea.reduce((s, a) => s + a._count._all, 0) || 1;

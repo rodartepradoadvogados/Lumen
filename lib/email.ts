@@ -19,10 +19,10 @@ function getTransporter() {
 
 const typeLabels: Record<string, string> = { TAREFA: "Tarefa", EVENTO: "Evento", AUDIENCIA: "Audiência", PERICIA: "Perícia", PRAZO: "Prazo" };
 
-export async function buildDailyAgendaHtml() {
+export async function buildDailyAgendaHtml(officeId: string) {
   const now = new Date();
   const tasks = await prisma.task.findMany({
-    where: { dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { not: "CANCELADO" } },
+    where: { officeId, dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { not: "CANCELADO" } },
     include: { case: true, responsible: true },
     orderBy: [{ dueTime: "asc" }],
   });
@@ -104,13 +104,22 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   }
 }
 
+// TODO(multi-tenant / Fase 2): o destinatário (EMAIL_TO) e o remetente ("Rodarte Prado
+// Advogados") ainda são globais via variável de ambiente — cada escritório precisa do seu
+// próprio e-mail de agenda diária e nome de remetente configuráveis (ver Office no schema).
+// Por ora, assume-se UM único escritório na plataforma (o primeiro cadastrado); revisitar
+// antes de um segundo escritório existir de verdade.
 export async function sendDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   const transporter = getTransporter();
   if (!transporter) {
     return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
   }
+  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  if (!office) {
+    return { sent: false, reason: "Nenhum escritório cadastrado." };
+  }
   const to = process.env.EMAIL_TO || "jairo@rodarteprado.com.br,rodrigo@rodarteprado.com.br";
-  const html = await buildDailyAgendaHtml();
+  const html = await buildDailyAgendaHtml(office.id);
 
   try {
     await transporter.sendMail({

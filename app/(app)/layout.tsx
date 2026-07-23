@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/");
   }
 
-  const unreadPublications = await prisma.publication.count({ where: { read: false } });
+  const unreadPublications = await prisma.publication.count({ where: { read: false, officeId: user.officeId } });
 
   return (
     <UndoToastProvider>

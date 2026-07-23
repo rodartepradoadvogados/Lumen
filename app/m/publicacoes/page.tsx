@@ -1,18 +1,27 @@
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function MobilePublicacoes() {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const [publications, users] = await Promise.all([
     prisma.publication.findMany({
-      where: { read: false },
+      where: { read: false, officeId: viewer.officeId },
       include: { case: true, client: true },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 100,
     }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({
+      where: { active: true, officeId: viewer.officeId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const serialized = publications.map((p) => ({

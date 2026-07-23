@@ -16,7 +16,7 @@ export async function updateBlogPostDraft(
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
 
-  const post = await prisma.blogPost.findUnique({ where: { id } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!post) return { error: "Matéria não encontrada." };
 
   const updateData: Record<string, unknown> = {};
@@ -60,7 +60,7 @@ export async function publishBlogPost(id: string, imageUrl?: string): Promise<{ 
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
 
-  const post = await prisma.blogPost.findUnique({ where: { id } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({
@@ -84,7 +84,7 @@ export async function rejectBlogPost(id: string, reason?: string): Promise<{ err
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
 
-  const post = await prisma.blogPost.findUnique({ where: { id } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({
@@ -108,7 +108,7 @@ export async function updatePublishedPostImage(id: string, imageUrl: string): Pr
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Sem permissão." };
 
-  const post = await prisma.blogPost.findUnique({ where: { id } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({ where: { id }, data: { imageUrl: imageUrl.trim() || null } });
@@ -123,7 +123,7 @@ export async function unpublishBlogPost(id: string): Promise<{ error?: string }>
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
 
-  const post = await prisma.blogPost.findUnique({ where: { id } });
+  const post = await prisma.blogPost.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!post) return { error: "Matéria não encontrada." };
 
   await prisma.blogPost.update({

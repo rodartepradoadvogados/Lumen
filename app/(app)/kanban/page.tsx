@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader } from "@/components/ui";
 import KanbanBoard, { ColumnData } from "@/components/KanbanBoard";
 import NewTaskModal from "@/components/NewTaskModal";
@@ -6,19 +8,23 @@ import NewTaskModal from "@/components/NewTaskModal";
 export const dynamic = "force-dynamic";
 
 export default async function KanbanPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const [columns, cases, users] = await Promise.all([
     prisma.kanbanColumn.findMany({
+      where: { officeId: viewer.officeId },
       orderBy: { order: "asc" },
       include: {
         tasks: {
-          where: { status: { not: "CANCELADO" } },
+          where: { status: { not: "CANCELADO" }, officeId: viewer.officeId },
           orderBy: { columnOrder: "asc" },
           include: { case: true, responsible: true, _count: { select: { comments: true } } },
         },
       },
     }),
-    prisma.case.findMany({ where: { status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
-    prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.case.findMany({ where: { status: "ATIVO", officeId: viewer.officeId }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const columnsForModal = columns.map((c) => ({ id: c.id, name: c.name }));

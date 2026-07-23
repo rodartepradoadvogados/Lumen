@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, formatCurrency, EmptyState } from "@/components/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,6 +14,9 @@ export default async function DrePage({
 }: {
   searchParams: { year?: string; month?: string; from?: string; to?: string; costCenterId?: string };
 }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
   const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth();
@@ -22,9 +27,9 @@ export default async function DrePage({
   const costCenterId = searchParams.costCenterId || undefined;
 
   const [receivables, payables, costCenters] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
-    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
-    prisma.costCenter.findMany({ orderBy: { name: "asc" } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
   const receitasPorCategoria: Record<string, number> = {};

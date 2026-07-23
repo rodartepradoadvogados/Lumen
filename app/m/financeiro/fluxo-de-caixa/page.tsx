@@ -16,7 +16,10 @@ export default async function MobileFluxoDeCaixa() {
   if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
 
   const now = new Date();
-  const [payables, receivables] = await Promise.all([prisma.payable.findMany(), prisma.receivable.findMany()]);
+  const [payables, receivables] = await Promise.all([
+    prisma.payable.findMany({ where: { officeId: viewer.officeId } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId } }),
+  ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number }[] = [];
   for (let i = -3; i <= 3; i++) {

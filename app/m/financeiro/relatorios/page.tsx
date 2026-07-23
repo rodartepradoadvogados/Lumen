@@ -30,10 +30,10 @@ export default async function MobileRelatoriosFinanceiro() {
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   const [paidReceivables, paidPayables, overdueReceivables, allReceivables] = await Promise.all([
-    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } } }),
-    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
-    prisma.receivable.findMany({ where: { status: { not: "CANCELADO" } }, select: { amount: true } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { not: "CANCELADO" } }, select: { amount: true } }),
   ]);
 
   const financeMonthly = months.map((m) => {

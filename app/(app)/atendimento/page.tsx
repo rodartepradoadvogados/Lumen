@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import NewAttendanceModal from "@/components/NewAttendanceModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Filter } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +24,13 @@ const statusLabels: Record<string, string> = {
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
 export default async function AtendimentoPage({ searchParams }: { searchParams: { status?: string; novo?: string; q?: string } }) {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const q = (searchParams.q || "").trim();
   const attendances = await prisma.attendance.findMany({
     where: {
+      officeId: viewer.officeId,
       // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
       // na aba própria "Rascunhos" — não fazem parte da triagem normal.
       status: searchParams.status || { not: "RASCUNHO" },
@@ -40,8 +46,8 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
     include: { responsible: true },
     orderBy: { createdAt: "desc" },
   });
-  const users = await prisma.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
-  const assessoriasRaw = await prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } });
+  const users = await prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const assessoriasRaw = await prisma.assessoria.findMany({ where: { status: "ATIVA", officeId: viewer.officeId }, include: { client: true }, orderBy: { client: { name: "asc" } } });
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
   const statusHref = (status?: string) => {

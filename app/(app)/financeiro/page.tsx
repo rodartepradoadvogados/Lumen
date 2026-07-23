@@ -1,16 +1,21 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, StatCard, Card, formatCurrency } from "@/components/ui";
 import { TrendingDown, TrendingUp, Wallet, BookOpen, PieChart, ArrowRight, ListChecks } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function FinanceiroPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
   const [payablesPending, receivablesPending, payablesPaidMonth, receivablesPaidMonth] = await Promise.all([
-    prisma.payable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }),
-    prisma.receivable.findMany({ where: { status: { in: ["PENDENTE", "ATRASADO"] } } }),
-    prisma.payable.findMany({ where: { status: "PAGO", paidDate: { gte: startOfMonth() } } }),
-    prisma.receivable.findMany({ where: { status: "PAGO", paidDate: { gte: startOfMonth() } } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] } } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: startOfMonth() } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: startOfMonth() } } }),
   ]);
 
   const totalPayable = payablesPending.reduce((s, p) => s + p.amount, 0);
