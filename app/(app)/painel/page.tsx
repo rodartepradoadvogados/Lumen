@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
+import { hasBlogAccess } from "@/lib/officeModules";
 import {
   Card,
   CardHeader,
@@ -64,6 +65,7 @@ export default async function DashboardPage() {
   ]);
 
   const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO", officeId: viewer.officeId } });
+  const blogAccess = await hasBlogAccess(viewer.officeId);
 
   const notices = await prisma.notice.findMany({
     where: { officeId: viewer.officeId },
@@ -224,7 +226,7 @@ export default async function DashboardPage() {
             >
               Ver blog <ExternalLink size={13} />
             </Link>
-            {viewer?.isAdmin && (
+            {viewer?.isAdmin && blogAccess && (
               <Link
                 href="/configuracoes?secao=blog&blogTab=revisao"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/15 text-cream-50 border border-white/15 rounded-lg px-3.5 py-2 transition-colors"

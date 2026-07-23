@@ -50,6 +50,14 @@ model Office {
   moduloAtendimento Boolean @default(true)
   moduloAssessoria  Boolean @default(true)
 
+  // Diferente dos módulos acima (contratáveis, autosserviço do próprio escritório em
+  // Configurações), o Blog Jurídico público é um recurso da PLATAFORMA: só o escritório dono
+  // (Rodarte Prado) produz/edita/aprova matérias, ou quem ele conceder acesso no futuro — não
+  // tem toggle de autosserviço. Default true só beneficia o escritório pré-existente no banco
+  // (Rodarte Prado); todo Office novo criado via /cadastro recebe false explicitamente (ver
+  // lib/actions/signup.ts).
+  blogAccess Boolean @default(true)
+
   users                User[]
   notices              Notice[]
   loginSessions        LoginSession[]

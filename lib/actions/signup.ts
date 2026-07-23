@@ -58,7 +58,9 @@ export async function signupOffice(data: {
   const passwordHash = await bcrypt.hash(data.password, 10);
 
   const user = await prisma.$transaction(async (tx) => {
-    const office = await tx.office.create({ data: { name: officeName, slug } });
+    // blogAccess fica explicitamente false pra todo escritório novo — é um recurso da
+    // plataforma (não contratável em autosserviço), ver comentário no schema.
+    const office = await tx.office.create({ data: { name: officeName, slug, blogAccess: false } });
     await seedDefaultOfficeData(tx, office.id);
     return tx.user.create({
       data: {

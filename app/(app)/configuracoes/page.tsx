@@ -27,7 +27,7 @@ import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
-import { getOfficeModules } from "@/lib/officeModules";
+import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import ModulesManager from "@/components/ModulesManager";
 
 export const dynamic = "force-dynamic";
@@ -97,8 +97,23 @@ export default async function ConfiguracoesPage({
   }
   const officeId = viewer.officeId;
 
-  const [users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw, whatsappConfig, modules] =
-    await Promise.all([
+  const [
+    users,
+    columns,
+    categories,
+    costCenters,
+    driveStatus,
+    documentTemplates,
+    taskTypePoints,
+    workflowTemplates,
+    googleAccounts,
+    blogPendingRaw,
+    blogPublishedRaw,
+    photosRaw,
+    whatsappConfig,
+    modules,
+    blogAccess,
+  ] = await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
       prisma.financialCategory.findMany({ where: { officeId } }),
@@ -117,6 +132,7 @@ export default async function ConfiguracoesPage({
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
       prisma.whatsappConfig.findUnique({ where: { officeId } }),
       getOfficeModules(officeId),
+      hasBlogAccess(officeId),
     ]);
 
   const photos = photosRaw.map((p) => ({
@@ -137,7 +153,7 @@ export default async function ConfiguracoesPage({
   // Se houver retorno da conexão do Google Drive, o card fica na aba "Modelos & Integrações"
   const defaultSecao = searchParams.google ? "modelos" : "geral";
   const requestedSecao = searchParams.secao || defaultSecao;
-  const availableSecoes = SECOES.filter((s) => !s.adminOnly || isAdmin);
+  const availableSecoes = SECOES.filter((s) => (!s.adminOnly || isAdmin) && (s.key !== "blog" || blogAccess));
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
@@ -261,7 +277,7 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
-      {isAdmin && secao === "blog" && (() => {
+      {isAdmin && blogAccess && secao === "blog" && (() => {
         const blogTab =
           searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
         return (

@@ -3,7 +3,7 @@ import { seedDefaultOfficeData } from "../lib/defaultOfficeData";
 import { getFilteredPayables, getFilteredReceivables } from "../lib/financeQuery";
 import { getAlerts, getTodayItems } from "../lib/alerts";
 import { isCaseInOffice, isClientInOffice, isUserInOffice } from "../lib/officeScope";
-import { getOfficeModules } from "../lib/officeModules";
+import { getOfficeModules, hasBlogAccess } from "../lib/officeModules";
 
 const prisma = new PrismaClient();
 
@@ -217,6 +217,17 @@ async function main() {
 
   const modulesB = await getOfficeModules(officeB.id);
   assert(modulesB.atendimento, "getOfficeModules: desligar o módulo em A não afeta B (isolamento por escritório)");
+
+  // --- Verificação 6: Blog Jurídico é recurso da plataforma, não módulo de autosserviço ---
+  // officeA/officeB aqui foram criados direto via prisma.office.create (sem passar por
+  // lib/actions/signup.ts), então caem no default do schema (true) — o mesmo "grandfathering"
+  // que o escritório real pré-existente recebe. /cadastro é quem força blogAccess:false pra
+  // todo escritório novo de verdade (não coberto por este script, é lógica da action de signup).
+  console.log("\n=== Testando hasBlogAccess (lib/officeModules.ts) ===");
+  assert(await hasBlogAccess(officeA.id), "hasBlogAccess: escritório pré-existente (grandfather) vem com acesso por padrão");
+  await prisma.office.update({ where: { id: officeA.id }, data: { blogAccess: false } });
+  assert(!(await hasBlogAccess(officeA.id)), "hasBlogAccess: reflete blogAccess desligado em A");
+  assert(await hasBlogAccess(officeB.id), "hasBlogAccess: desligar em A não afeta B (isolamento por escritório)");
 
   console.log("\n=== TODAS AS VERIFICAÇÕES PASSARAM ===");
 
