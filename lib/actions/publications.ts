@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
+import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
@@ -129,20 +130,29 @@ export async function distributePendingPublications(): Promise<{ assigned?: numb
 
 // Busca de processos já cadastrados (por título ou número), para o chooser "Vincular a
 // processo já existente" que aparece quando uma publicação não tem processo compatível.
+// A busca por número ignora qualquer máscara (pontos, hífen, barra) — ver lib/processNumber.ts.
 export async function searchCasesForLinking(query: string): Promise<{ id: string; title: string; processNumber: string | null }[]> {
   const q = query.trim();
   if (!q) return [];
-  return prisma.case.findMany({
-    where: {
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { processNumber: { contains: q, mode: "insensitive" } },
-      ],
-    },
+
+  const byTitle = await prisma.case.findMany({
+    where: { title: { contains: q, mode: "insensitive" } },
     select: { id: true, title: true, processNumber: true },
     orderBy: { title: "asc" },
     take: 15,
   });
+
+  const normalizedQuery = normalizeProcessNumber(q);
+  if (!normalizedQuery || byTitle.length >= 15) return byTitle;
+
+  const candidates = await prisma.case.findMany({
+    where: { processNumber: { not: null } },
+    select: { id: true, title: true, processNumber: true },
+    orderBy: { title: "asc" },
+  });
+  const byNumber = candidates.filter((c) => processNumberIncludes(c.processNumber, q) && !byTitle.some((existing) => existing.id === c.id));
+
+  return [...byTitle, ...byNumber].slice(0, 15);
 }
 
 export async function linkPublicationToCase(publicationId: string, caseId: string) {

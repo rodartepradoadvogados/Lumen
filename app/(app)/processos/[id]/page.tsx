@@ -12,6 +12,7 @@ import CaseAssessoriaSelect from "@/components/CaseAssessoriaSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import AttachmentList from "@/components/AttachmentList";
 import PeticionarButton from "@/components/PeticionarButton";
+import CopyButton from "@/components/CopyButton";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import PublicationsList from "@/components/PublicationsList";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
@@ -126,8 +127,17 @@ export default async function CaseDetailPage({
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>
       </div>
-      <p className="text-sm text-navy-800/50 dark:text-cream-50/50 mb-5">
-        {c.processNumber && <span>{c.processNumber} · </span>}
+      <p className="flex flex-wrap items-center text-sm text-navy-800/50 dark:text-cream-50/50 mb-5">
+        {c.processNumber && (
+          <>
+            <CopyButton
+              text={c.processNumber}
+              label={c.processNumber}
+              className="inline-flex items-center gap-1 hover:text-navy-900 dark:hover:text-cream-50 transition-colors"
+            />
+            <span className="mx-1">·</span>
+          </>
+        )}
         {c.area && <span>{c.area} · </span>}
         {c.type}
       </p>

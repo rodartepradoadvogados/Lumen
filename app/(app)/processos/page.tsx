@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
+import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { Scale, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -37,17 +38,23 @@ export default async function ProcessosPage({
   const q = (searchParams.q || "").trim();
   const sortKey = searchParams.sort && SORTS[searchParams.sort] ? searchParams.sort : "nome";
 
-  const where: Prisma.CaseWhereInput = {
+  const baseFilters: Prisma.CaseWhereInput = {
     status: searchParams.status || undefined,
     area: searchParams.area || undefined,
     responsibleId: searchParams.responsibleId || undefined,
+  };
+  // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.
+  const matchingProcessNumberIds = q ? await findCaseIdsByProcessNumber(q, baseFilters) : [];
+
+  const where: Prisma.CaseWhereInput = {
+    ...baseFilters,
     ...(q
       ? {
           OR: [
             { title: { contains: q, mode: "insensitive" } },
-            { processNumber: { contains: q, mode: "insensitive" } },
             { opposingPartyName: { contains: q, mode: "insensitive" } },
             { client: { is: { name: { contains: q, mode: "insensitive" } } } },
+            ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
           ],
         }
       : {}),

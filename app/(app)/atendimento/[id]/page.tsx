@@ -254,7 +254,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 <div>
                   <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Anexos</h4>
                   <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mt-1.5">
-                    Documentos armazenados no Google Drive do escritório, vinculados a este atendimento.
+                    Documentos armazenados no Drive do escritório, vinculados a este atendimento.
                   </p>
                 </div>
                 <GerarDocumentoButton attendanceId={a.id} />

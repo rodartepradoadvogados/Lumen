@@ -8,6 +8,7 @@ import PublicationRespFilter from "@/components/PublicationRespFilter";
 import SyncJusbrasilButton from "@/components/SyncJusbrasilButton";
 import DistributePublicationsButton from "@/components/DistributePublicationsButton";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
+import { findPublicationIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -23,17 +24,23 @@ export default async function PublicacoesPage({
   const viewer = await getCurrentUser();
   const resp = (searchParams.resp || "").trim() || undefined;
 
-  const where: Prisma.PublicationWhereInput = {
+  const baseFilters: Prisma.PublicationWhereInput = {
     read: isLidas,
     kind: searchParams.kind || undefined,
     lawyerTag: adv ? { contains: adv } : undefined,
     assignedToId: resp || undefined,
+  };
+  // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.
+  const matchingProcessNumberIds = q ? await findPublicationIdsByProcessNumber(q, baseFilters) : [];
+
+  const where: Prisma.PublicationWhereInput = {
+    ...baseFilters,
     ...(q
       ? {
           OR: [
             { content: { contains: q, mode: "insensitive" } },
-            { processNumberRaw: { contains: q, mode: "insensitive" } },
             { emailSubject: { contains: q, mode: "insensitive" } },
+            ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
           ],
         }
       : {}),

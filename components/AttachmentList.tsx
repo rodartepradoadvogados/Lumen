@@ -113,7 +113,7 @@ export default function AttachmentList({
   }
 
   function handleDelete(id: string) {
-    if (!window.confirm("Remover este anexo? O arquivo continuará no Google Drive, apenas o vínculo com o sistema será removido.")) return;
+    if (!window.confirm("Remover este anexo? O arquivo continuará no Drive, apenas o vínculo com o sistema será removido.")) return;
     startTransition(async () => {
       await deleteAttachment(id);
       router.refresh();
@@ -199,7 +199,7 @@ export default function AttachmentList({
 
       {!driveConnected && (
         <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-1.5 mb-2">
-          Google Drive ainda não conectado. Peça a um administrador para conectar em Configurações, ou cole um link manualmente abaixo.
+          Drive ainda não conectado. Peça a um administrador para conectar em Configurações, ou cole um link manualmente abaixo.
         </p>
       )}
 

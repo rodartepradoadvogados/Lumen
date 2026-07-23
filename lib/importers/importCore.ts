@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { col, parseBrDate, parseBrCurrency, parseBrTime, Row } from "@/lib/importers/parse";
+import { normalizeProcessNumber } from "@/lib/processNumber";
 
 export type ImportResult = { created: number; skipped: number; errors: string[] };
 
@@ -182,7 +183,10 @@ export async function importAgendaCore(rows: Row[]): Promise<ImportResult> {
 
       const caseTitle = col(row, "Título do processo/caso/atendimento", "Titulo do processo/caso/atendimento");
       const processNumber = col(row, "Número do processo", "Numero do processo");
-      let matchedCase = processNumber ? cases.find((c) => c.processNumber === processNumber) : null;
+      const normalizedProcessNumber = processNumber ? normalizeProcessNumber(processNumber) : "";
+      let matchedCase = normalizedProcessNumber
+        ? cases.find((c) => c.processNumber && normalizeProcessNumber(c.processNumber) === normalizedProcessNumber)
+        : null;
       if (!matchedCase && caseTitle) {
         const nt = norm(caseTitle);
         matchedCase = cases.find((c) => norm(c.title) === nt) || cases.find((c) => norm(c.title).includes(nt) || nt.includes(norm(c.title)));

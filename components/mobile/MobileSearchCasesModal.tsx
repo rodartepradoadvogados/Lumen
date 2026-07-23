@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setCaseAssessoria } from "@/lib/actions/assessoria";
+import { processNumberIncludes } from "@/lib/processNumber";
 import { Search, Link2, X } from "lucide-react";
 
 type CaseOption = { id: string; title: string; processNumber: string | null };
@@ -28,10 +29,11 @@ export default function MobileSearchCasesModal({
   const [pending, startTransition] = useTransition();
 
   const filteredCases = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
+    const qLower = q.toLowerCase();
     return availableCases
       .filter((c) => !linkedThisSession.includes(c.id))
-      .filter((c) => !q || c.title.toLowerCase().includes(q) || (c.processNumber || "").toLowerCase().includes(q));
+      .filter((c) => !q || c.title.toLowerCase().includes(qLower) || processNumberIncludes(c.processNumber, q));
   }, [availableCases, query, linkedThisSession]);
 
   function handleLink(caseId: string) {

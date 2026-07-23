@@ -8,6 +8,7 @@ import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
 import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import MobileTaskResponsibleSelect from "@/components/mobile/MobileTaskResponsibleSelect";
+import CopyButton from "@/components/CopyButton";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -59,8 +60,17 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
 
       <div>
         <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50 leading-tight">{c.title}</h1>
-        <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
-          {c.processNumber && <span>{c.processNumber} · </span>}
+        <p className="flex flex-wrap items-center text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
+          {c.processNumber && (
+            <>
+              <CopyButton
+                text={c.processNumber}
+                label={c.processNumber}
+                className="inline-flex items-center gap-1 hover:text-navy-900 dark:hover:text-cream-50 transition-colors"
+              />
+              <span className="mx-1">·</span>
+            </>
+          )}
           {c.area && <span>{c.area} · </span>}
           {c.type}
         </p>

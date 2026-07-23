@@ -2,21 +2,24 @@ import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, EmptyState } from "@/components/ui";
+import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { Scale, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function MobileProcessos({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q || "").trim();
+  const baseFilters: Prisma.CaseWhereInput = { status: "ATIVO" };
+  const matchingProcessNumberIds = q ? await findCaseIdsByProcessNumber(q, baseFilters) : [];
 
   const where: Prisma.CaseWhereInput = {
-    status: "ATIVO",
+    ...baseFilters,
     ...(q
       ? {
           OR: [
             { title: { contains: q, mode: "insensitive" } },
-            { processNumber: { contains: q, mode: "insensitive" } },
             { client: { is: { name: { contains: q, mode: "insensitive" } } } },
+            ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
           ],
         }
       : {}),

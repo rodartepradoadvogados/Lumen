@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setCaseAssessoria, type getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
 import { Plus, Search, ExternalLink, Link2, X } from "lucide-react";
 
@@ -39,10 +40,11 @@ export default function AssessoriaProcessosCasosTab({
   // mas linkedThisSession cobre o intervalo entre "acabei de vincular" e o próximo refresh do
   // server component — sem isso o processo continuaria aparecendo na busca até a página recarregar.
   const filteredCases = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
+    const qLower = q.toLowerCase();
     return availableCases
       .filter((c) => !linkedThisSession.includes(c.id))
-      .filter((c) => !q || c.title.toLowerCase().includes(q) || (c.processNumber || "").toLowerCase().includes(q));
+      .filter((c) => !q || c.title.toLowerCase().includes(qLower) || processNumberIncludes(c.processNumber, q));
   }, [availableCases, query, linkedThisSession]);
 
   function handleLinkFromSearch(caseId: string) {
