@@ -9,11 +9,9 @@ type UserOption = { id: string; name: string };
 
 export default function MobileCommentForm({
   caseId,
-  authorId,
   users = [],
 }: {
   caseId: string;
-  authorId: string;
   users?: UserOption[];
 }) {
   const router = useRouter();
@@ -57,7 +55,7 @@ export default function MobileCommentForm({
   function submit() {
     if (!content.trim()) return;
     startTransition(async () => {
-      await addComment({ content, authorId, caseId });
+      await addComment({ content, caseId });
       setContent("");
       setMentionQuery(null);
       router.refresh();

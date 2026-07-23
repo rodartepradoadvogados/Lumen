@@ -99,13 +99,17 @@ export default function AttachmentList({
 
   function handleAddLink(formData: FormData) {
     startTransition(async () => {
-      await createAttachment({
+      const result = await createAttachment({
         name: String(formData.get("name")),
         driveUrl: String(formData.get("driveUrl")),
         docType: linkDocType,
         caseId,
         attendanceId,
       });
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       setLinkMode(false);
       setLinkDocType("OUTRO");
       router.refresh();

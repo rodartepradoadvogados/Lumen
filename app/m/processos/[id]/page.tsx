@@ -172,7 +172,7 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
             ))}
           </div>
         )}
-        {viewer && <MobileCommentForm caseId={c.id} authorId={viewer.id} users={users} />}
+        {viewer && <MobileCommentForm caseId={c.id} users={users} />}
       </Card>
     </div>
   );

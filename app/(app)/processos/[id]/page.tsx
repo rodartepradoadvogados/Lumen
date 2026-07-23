@@ -241,7 +241,7 @@ export default async function CaseDetailPage({
               </div>
             ))}
           </div>
-          <CommentBox caseId={c.id} currentUserId={users[0]?.id} users={users.map((u) => ({ id: u.id, name: u.name }))} />
+          <CommentBox caseId={c.id} users={users.map((u) => ({ id: u.id, name: u.name }))} />
         </Card>
       )}
 

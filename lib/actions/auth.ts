@@ -24,7 +24,9 @@ function maskEmail(email: string): string {
 }
 
 function getAppUrl(): string {
-  return process.env.APP_URL || "https://rp-financeiro-xi.vercel.app";
+  if (process.env.APP_URL) return process.env.APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
 }
 
 // Login por e-mail (não por username): num sistema multi-tenant, e-mail é o único
@@ -78,8 +80,9 @@ export async function requestPasswordReset(email: string): Promise<{ error?: str
     data: { resetTokenHash: hashToken(rawToken), resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
   });
 
+  const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } });
   const resetUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
-  const result = await sendPasswordResetEmail(user.email, resetUrl);
+  const result = await sendPasswordResetEmail(user.email, resetUrl, office?.name || "Lúmen");
   if (!result.sent) return { error: result.reason || "Não foi possível enviar o e-mail agora." };
   return { sent: true };
 }

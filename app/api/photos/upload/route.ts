@@ -12,7 +12,7 @@ const VALID_COURTS = ["STF", "STJ", "TRT/TST", "TJ", "TRF", "TODOS"];
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) {
-    return NextResponse.json({ error: "Apenas Jairo ou Rodrigo podem enviar fotos para a biblioteca." }, { status: 403 });
+    return NextResponse.json({ error: "Apenas administradores podem enviar fotos para a biblioteca." }, { status: 403 });
   }
 
   const formData = await request.formData();

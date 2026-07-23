@@ -8,7 +8,7 @@ const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user?.isAdmin) {
-    return NextResponse.json({ error: "Apenas Jairo ou Rodrigo podem gerenciar modelos de documento." }, { status: 403 });
+    return NextResponse.json({ error: "Apenas administradores podem gerenciar modelos de documento." }, { status: 403 });
   }
 
   const formData = await request.formData();

@@ -187,14 +187,14 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   if (result.publicacoesCriadas > 0 || result.andamentosCriados > 0) {
     const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId: office.id }, select: { id: true } })).map((u) => u.id);
     if (result.publicacoesCriadas > 0) {
-      broadcastPushIfEnabled(activeUserIds, "publicacoes", {
+      broadcastPushIfEnabled(activeUserIds, office.id, "publicacoes", {
         title: "Novas publicações",
         body: `${result.publicacoesCriadas} nova(s) publicação(ões) recebida(s).`,
         url: "/m/publicacoes",
       }).catch(() => {});
     }
     if (result.andamentosCriados > 0) {
-      broadcastPushIfEnabled(activeUserIds, "andamentos", {
+      broadcastPushIfEnabled(activeUserIds, office.id, "andamentos", {
         title: "Novos andamentos processuais",
         body: `${result.andamentosCriados} novo(s) andamento(s) recebido(s).`,
         url: "/m/publicacoes",

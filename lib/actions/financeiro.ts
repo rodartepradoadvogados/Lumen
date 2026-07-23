@@ -4,6 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
+import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice } from "@/lib/officeScope";
+
+async function assertFinanceRelationsInOffice(
+  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string },
+  officeId: string
+): Promise<void> {
+  if (data.caseId && !(await isCaseInOffice(data.caseId, officeId))) throw new Error("Processo não encontrado.");
+  if (data.clientId && !(await isClientInOffice(data.clientId, officeId))) throw new Error("Cliente não encontrado.");
+  if (data.categoryId && !(await isCategoryInOffice(data.categoryId, officeId))) throw new Error("Categoria não encontrada.");
+  if (data.costCenterId && !(await isCostCenterInOffice(data.costCenterId, officeId))) throw new Error("Centro de custo não encontrado.");
+  if (data.supplierId && !(await isSupplierInOffice(data.supplierId, officeId))) throw new Error("Fornecedor não encontrado.");
+}
 
 function revalidateFinance() {
   revalidatePath("/financeiro");
@@ -144,6 +156,7 @@ export async function updatePayable(id: string, data: {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
   if (!existing) throw new Error("Conta a pagar não encontrada.");
+  await assertFinanceRelationsInOffice(data, officeId);
   const noDueDate = data.noDueDate ?? false;
   const supplierName = await supplierDisplayName(data.supplierId, officeId);
   await prisma.payable.update({
@@ -177,6 +190,7 @@ export async function updateReceivable(id: string, data: {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
   if (!existing) throw new Error("Conta a receber não encontrada.");
+  await assertFinanceRelationsInOffice(data, officeId);
   const noDueDate = data.noDueDate ?? false;
   await prisma.receivable.update({
     where: { id },
@@ -208,6 +222,7 @@ export async function createPayable(data: {
   installmentIntervalDays?: string;
 }) {
   const officeId = await requireFinanceOfficeId();
+  await assertFinanceRelationsInOffice(data, officeId);
   const noDueDate = data.noDueDate ?? false;
   const count = Math.max(1, parseInt(data.installmentCount || "1") || 1);
   const intervalDays = Math.max(1, parseInt(data.installmentIntervalDays || "30") || 30);
@@ -257,6 +272,7 @@ export async function createReceivable(data: {
   installmentIntervalDays?: string;
 }) {
   const officeId = await requireFinanceOfficeId();
+  await assertFinanceRelationsInOffice(data, officeId);
   const hasSuccessPortion = !!data.successAmount && parseFloat(data.successAmount) > 0;
   const count = hasSuccessPortion ? 1 : Math.max(1, parseInt(data.installmentCount || "1") || 1);
   const intervalDays = Math.max(1, parseInt(data.installmentIntervalDays || "30") || 30);

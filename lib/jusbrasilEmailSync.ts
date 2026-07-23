@@ -222,14 +222,14 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       if (createdPublicacoesHere > 0 || createdAndamentosHere > 0) {
         const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId }, select: { id: true } })).map((u) => u.id);
         if (createdPublicacoesHere > 0) {
-          broadcastPushIfEnabled(activeUserIds, "publicacoes", {
+          broadcastPushIfEnabled(activeUserIds, officeId, "publicacoes", {
             title: "Novas publicações",
             body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
             url: "/m/publicacoes",
           }).catch(() => {});
         }
         if (createdAndamentosHere > 0) {
-          broadcastPushIfEnabled(activeUserIds, "andamentos", {
+          broadcastPushIfEnabled(activeUserIds, officeId, "andamentos", {
             title: "Novos andamentos processuais",
             body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
             url: "/m/publicacoes",

@@ -3,10 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
+import { isUserInOffice } from "@/lib/officeScope";
 
 async function requireAdmin() {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem gerenciar workflows." } as const;
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem gerenciar workflows." } as const;
   return { viewer };
 }
 
@@ -130,6 +131,7 @@ export async function applyWorkflowToCase(
   if (!template) return { error: "Workflow não encontrado." };
   if (!template.active) return { error: "Este workflow está inativo." };
   if (template.steps.length === 0) return { error: "Este workflow não tem passos cadastrados." };
+  if (responsibleId && !(await isUserInOffice(responsibleId, viewer.officeId))) return { error: "Responsável não encontrado." };
 
   const [firstColumn, typePoints, activeUsers, openTaskCounts] = await Promise.all([
     prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),

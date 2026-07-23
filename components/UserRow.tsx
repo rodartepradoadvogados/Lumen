@@ -139,7 +139,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             required
             minLength={4}
             autoComplete="off"
-            placeholder="Usuário (login)"
+            placeholder="Apelido de usuário"
             className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
           />
           <input name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Senha (mín. 6)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />

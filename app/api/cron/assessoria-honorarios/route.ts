@@ -8,7 +8,8 @@ export const maxDuration = 60;
 // em Honorario), então não faz mal rodar todo dia em vez de só no dia 1.
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

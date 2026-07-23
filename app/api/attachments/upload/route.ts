@@ -40,19 +40,27 @@ export async function POST(request: NextRequest) {
     // Organiza o upload direto no Drive: uma pasta por processo/atendimento (criada sob
     // demanda), com uma subpasta por categoria de documento dentro dela — em vez da antiga
     // pasta única e plana "RP Financeiro - Anexos" pra todo o escritório.
+    //
+    // IMPORTANTE: caseId/attendanceId vêm do cliente — precisam ser validados contra o
+    // officeId do usuário logado ANTES de virar o vínculo gravado no Attachment. Sem essa
+    // checagem, um usuário de outro escritório poderia anexar um arquivo a um processo/
+    // atendimento de outro escritório (o Attachment.caseId apontaria pra um registro que
+    // não pertence a ele), e o anexo passaria a aparecer na página daquele processo.
     let targetFolderId: string | null = null;
     if (resolvedCaseId) {
       const c = await prisma.case.findFirst({ where: { id: resolvedCaseId, officeId: user.officeId }, select: { title: true } });
-      if (c) {
-        const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title, user.officeId);
-        targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType), user.officeId);
+      if (!c) {
+        return NextResponse.json({ error: "Processo não encontrado." }, { status: 404 });
       }
+      const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title, user.officeId);
+      targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType), user.officeId);
     } else if (resolvedAttendanceId) {
       const a = await prisma.attendance.findFirst({ where: { id: resolvedAttendanceId, officeId: user.officeId }, select: { subject: true } });
-      if (a) {
-        const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
-        targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType), user.officeId);
+      if (!a) {
+        return NextResponse.json({ error: "Atendimento não encontrado." }, { status: 404 });
       }
+      const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
+      targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(resolvedDocType), user.officeId);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

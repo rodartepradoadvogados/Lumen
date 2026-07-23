@@ -17,7 +17,7 @@ export async function listDocumentTemplates(): Promise<{ id: string; name: strin
 
 export async function createDocumentTemplateLink(data: { name: string; category: string; driveUrl: string }): Promise<{ error?: string }> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem gerenciar modelos de documento." };
+  if (!user?.isAdmin) return { error: "Apenas administradores podem gerenciar modelos de documento." };
 
   await prisma.documentTemplate.create({
     data: { name: data.name, category: data.category, driveUrl: data.driveUrl, uploadedById: user.id, officeId: user.officeId },
@@ -28,7 +28,7 @@ export async function createDocumentTemplateLink(data: { name: string; category:
 
 export async function deleteDocumentTemplate(id: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem excluir modelos de documento." };
+  if (!user?.isAdmin) return { error: "Apenas administradores podem excluir modelos de documento." };
 
   await prisma.documentTemplate.deleteMany({ where: { id, officeId: user.officeId } });
   revalidatePath("/configuracoes");

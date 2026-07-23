@@ -41,13 +41,18 @@ export type PushPayload = { title: string; body: string; url?: string };
  * Envia uma notificação push para todas as inscrições (aparelhos) de um usuário,
  * respeitando a preferência dele para o tipo informado. Nunca lança — falhas de
  * rede/subscription expirada são engolidas (e a subscription expirada é removida).
+ *
+ * officeId é obrigatório e vem sempre do chamador (nunca do usuário final): sem essa
+ * checagem, um userId de outro escritório aceitaria e enviaria a notificação normalmente
+ * (o filtro por officeId aqui é a última linha de defesa contra um userId indevido vazar
+ * de algum chamador futuro).
  */
-export async function sendPushIfEnabled(userId: string, type: NotificationType, payload: PushPayload): Promise<{ sent: number }> {
+export async function sendPushIfEnabled(userId: string, officeId: string, type: NotificationType, payload: PushPayload): Promise<{ sent: number }> {
   if (!isPushConfigured()) return { sent: 0 };
   ensureVapidConfigured();
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const user = await prisma.user.findFirst({
+    where: { id: userId, officeId },
     select: {
       notifyAndamentos: true,
       notifyPublicacoes: true,
@@ -80,8 +85,8 @@ export async function sendPushIfEnabled(userId: string, type: NotificationType, 
 }
 
 /** Mesmo envio, mas para vários usuários de uma vez (ex.: nova publicação para toda a equipe). */
-export async function broadcastPushIfEnabled(userIds: string[], type: NotificationType, payload: PushPayload): Promise<void> {
-  await Promise.all(userIds.map((id) => sendPushIfEnabled(id, type, payload)));
+export async function broadcastPushIfEnabled(userIds: string[], officeId: string, type: NotificationType, payload: PushPayload): Promise<void> {
+  await Promise.all(userIds.map((id) => sendPushIfEnabled(id, officeId, type, payload)));
 }
 
 /**
@@ -99,16 +104,16 @@ export async function sendDailyAgendaPushes(): Promise<void> {
 
   const users = await prisma.user.findMany({
     where: { active: true, notifyAgendaDia: true, pushSubscriptions: { some: {} } },
-    select: { id: true },
+    select: { id: true, officeId: true },
   });
 
   await Promise.all(
-    users.map(async ({ id: userId }) => {
+    users.map(async ({ id: userId, officeId }) => {
       const count = await prisma.task.count({
-        where: { responsibleId: userId, dueDate: { gte: start, lt: end }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+        where: { responsibleId: userId, officeId, dueDate: { gte: start, lt: end }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
       });
       if (count === 0) return;
-      await sendPushIfEnabled(userId, "agendaDia", {
+      await sendPushIfEnabled(userId, officeId, "agendaDia", {
         title: "Agenda de hoje",
         body: `Você tem ${count} compromisso(s) para hoje.`,
         url: "/m/agenda",

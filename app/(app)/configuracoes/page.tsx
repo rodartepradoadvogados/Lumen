@@ -30,12 +30,6 @@ import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 
 export const dynamic = "force-dynamic";
 
-// E-mails que devem estar conectados para a captura de publicações do Jusbrasil
-// (um por advogado do escritório). Usado só para exibir o checklist em
-// Configurações — cada pessoa ainda precisa clicar em "Conectar meu e-mail" ela
-// mesma (login do Google não pode ser feito por outra pessoa).
-const JUSBRASIL_TARGET_EMAILS = ["rodartepradoadvogados@gmail.com", "jairodarte@gmail.com", "pradoadvogado@gmail.com"];
-
 type Cat = {
   id: string;
   code: string;
@@ -229,7 +223,7 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "geral" && (
       <Card>
-        <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para jairo@ e rodrigo@rodarteprado.com.br" />
+        <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para os administradores do escritório" />
         <div className="p-5">
           <TestEmailButton />
         </div>
@@ -428,29 +422,31 @@ export default async function ConfiguracoesPage({
             subtitle="Cada advogado conecta o próprio e-mail em Configurações → Geral; publicações de todas as contas abaixo são capturadas"
           />
           <div className="p-5 space-y-2">
-            {JUSBRASIL_TARGET_EMAILS.map((email) => {
-              const found = googleAccounts.find((a) => a.accountEmail === email);
+            {users.filter((u) => u.active).map((u) => {
+              const found = googleAccounts.find((a) => a.userId === u.id);
               return (
-                <div key={email} className="flex items-center gap-2 text-sm">
+                <div key={u.id} className="flex items-center gap-2 text-sm">
                   {found ? (
                     <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
                     <AlertTriangle size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
                   )}
                   <span className={found ? "text-navy-900 dark:text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"}>
-                    {email}
-                    {found?.ownerName && <span className="text-navy-800/45 dark:text-cream-50/45"> — {found.ownerName}</span>}
-                    {!found && " (ainda não conectado)"}
+                    {u.name}
+                    {found ? (
+                      <span className="text-navy-800/45 dark:text-cream-50/45"> — {found.accountEmail}</span>
+                    ) : (
+                      " (ainda não conectou o e-mail)"
+                    )}
                   </span>
                 </div>
               );
             })}
-            {googleAccounts.filter((a) => !JUSBRASIL_TARGET_EMAILS.includes(a.accountEmail)).map((a) => (
+            {googleAccounts.filter((a) => !a.userId).map((a) => (
               <div key={a.id} className="flex items-center gap-2 text-sm">
                 <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="text-navy-900 dark:text-cream-50">
                   {a.accountEmail}
-                  {a.ownerName && <span className="text-navy-800/45 dark:text-cream-50/45"> — {a.ownerName}</span>}
                   {a.isPrimaryDrive && <span className="text-navy-800/45 dark:text-cream-50/45"> (conta principal do Drive)</span>}
                 </span>
               </div>

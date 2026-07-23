@@ -92,7 +92,7 @@ export async function requestDeletion(
 
 export async function approveDeletion(id: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem aprovar exclusões." };
+  if (!user?.isAdmin) return { error: "Apenas administradores podem aprovar exclusões." };
 
   const req = await prisma.deletionRequest.findFirst({ where: { id, officeId: user.officeId } });
   if (!req || req.status !== "PENDENTE") return { error: "Solicitação não encontrada ou já resolvida." };
@@ -112,7 +112,7 @@ export async function approveDeletion(id: string): Promise<{ error?: string }> {
 
 export async function rejectDeletion(id: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem recusar exclusões." };
+  if (!user?.isAdmin) return { error: "Apenas administradores podem recusar exclusões." };
 
   const result = await prisma.deletionRequest.updateMany({
     where: { id, officeId: user.officeId },

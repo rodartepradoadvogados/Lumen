@@ -4,6 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
+import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+
+async function assertCaseRelationsInOffice(
+  data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
+  officeId: string
+): Promise<void> {
+  if (data.clientId && !(await isClientInOffice(data.clientId, officeId))) throw new Error("Cliente não encontrado.");
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, officeId))) throw new Error("Responsável não encontrado.");
+  if (data.assessoriaId && !(await isAssessoriaInOffice(data.assessoriaId, officeId))) throw new Error("Assessoria não encontrada.");
+}
 
 export async function createCase(data: {
   title: string;
@@ -25,6 +35,7 @@ export async function createCase(data: {
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
+  await assertCaseRelationsInOffice(data, viewer.officeId);
 
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
@@ -80,6 +91,7 @@ export async function createCaseMobile(data: {
 }): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
+  await assertCaseRelationsInOffice(data, viewer.officeId);
 
   let clientId = data.clientId || null;
   if (!clientId && data.newClientName) {
@@ -115,6 +127,7 @@ export async function createCaseMobile(data: {
 export async function createCaseQuick(title: string, clientId?: string): Promise<{ id: string; title: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
+  if (clientId && !(await isClientInOffice(clientId, viewer.officeId))) throw new Error("Cliente não encontrado.");
   const created = await prisma.case.create({
     data: { title, type: "ATENDIMENTO", clientId: clientId || null, officeId: viewer.officeId },
   });

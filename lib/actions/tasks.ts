@@ -4,6 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendPushIfEnabled } from "@/lib/push";
+import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice } from "@/lib/officeScope";
+
+async function assertTaskRelationsInOffice(
+  data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
+  officeId: string
+): Promise<void> {
+  if (data.caseId && !(await isCaseInOffice(data.caseId, officeId))) throw new Error("Processo não encontrado.");
+  if (data.attendanceId && !(await isAttendanceInOffice(data.attendanceId, officeId))) throw new Error("Atendimento não encontrado.");
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, officeId))) throw new Error("Responsável não encontrado.");
+  if (data.columnId && !(await isKanbanColumnInOffice(data.columnId, officeId))) throw new Error("Coluna do Kanban não encontrada.");
+}
 
 // 24h antes do prazo fatal — como dueDate representa a data-calendário (meia-noite) e dueTime
 // é só um rótulo de exibição separado (sem ser combinado no timestamp), subtrair exatamente
@@ -63,6 +74,7 @@ export async function createTask(data: {
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) return;
+  await assertTaskRelationsInOffice(data, viewer.officeId);
 
   const firstColumn = data.columnId ? null : await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
 
@@ -124,6 +136,9 @@ export async function delegateTask(data: {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Usuário não autenticado." };
   if (!data.responsibleId) return { error: "Selecione o membro da equipe que vai receber a delegação." };
+  if (!(await isUserInOffice(data.responsibleId, viewer.officeId))) return { error: "Responsável não encontrado." };
+  if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return { error: "Processo não encontrado." };
+  if (data.attendanceId && !(await isAttendanceInOffice(data.attendanceId, viewer.officeId))) return { error: "Atendimento não encontrado." };
 
   const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
 
@@ -163,7 +178,7 @@ export async function delegateTask(data: {
   revalidatePath("/alertas");
   revalidatePath("/produtividade");
 
-  sendPushIfEnabled(data.responsibleId, "tarefasDelegadas", {
+  sendPushIfEnabled(data.responsibleId, viewer.officeId, "tarefasDelegadas", {
     title: "Nova tarefa delegada",
     body: `${viewer.name} delegou: ${data.title}`,
     url: "/m/agenda",
@@ -278,6 +293,7 @@ export async function setTaskResponsible(taskId: string, responsibleId: string) 
   if (!viewer) return;
   const existing = await prisma.task.findFirst({ where: { id: taskId, officeId: viewer.officeId } });
   if (!existing) return;
+  if (responsibleId && !(await isUserInOffice(responsibleId, viewer.officeId))) return;
   const task = await prisma.task.update({ where: { id: taskId }, data: { responsibleId: responsibleId || null } });
   revalidatePath("/kanban");
   revalidatePath("/agenda");
@@ -305,6 +321,7 @@ export async function updateTask(id: string, data: {
   if (!viewer) return;
   const existing = await prisma.task.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!existing) return;
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, viewer.officeId))) return;
   await prisma.task.update({
     where: { id },
     data: {
@@ -326,14 +343,18 @@ export async function updateTask(id: string, data: {
   revalidatePath("/alertas");
 }
 
-export async function addComment(data: { content: string; authorId: string; taskId?: string; caseId?: string }) {
+export async function addComment(data: { content: string; taskId?: string; caseId?: string }) {
   const viewer = await getCurrentUser();
   if (!viewer) return;
+  // O autor é sempre o usuário da sessão — nunca um authorId vindo do cliente, que poderia
+  // ser forjado para atribuir o comentário (e a menção correspondente) a outra pessoa.
+  if (data.taskId && !(await isTaskInOffice(data.taskId, viewer.officeId))) return;
+  if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return;
   const mentionNames = Array.from(data.content.matchAll(/@([\p{L}\s]+?)(?=(@|$|\n))/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
     data: {
       content: data.content,
-      authorId: data.authorId,
+      authorId: viewer.id,
       taskId: data.taskId || null,
       caseId: data.caseId || null,
       officeId: viewer.officeId,
@@ -345,10 +366,10 @@ export async function addComment(data: { content: string; authorId: string; task
     const users = await prisma.user.findMany({ where: { officeId: viewer.officeId } });
     for (const name of mentionNames) {
       const user = users.find((u) => name.toLowerCase().includes(u.name.toLowerCase()) || u.name.toLowerCase().includes(name.toLowerCase()));
-      if (user && user.id !== data.authorId) {
+      if (user && user.id !== viewer.id) {
         await prisma.mention.create({ data: { commentId: comment.id, userId: user.id, officeId: viewer.officeId } });
         const url = data.caseId ? `/m/processos/${data.caseId}` : "/m";
-        await sendPushIfEnabled(user.id, "mencao", {
+        await sendPushIfEnabled(user.id, viewer.officeId, "mencao", {
           title: "Você foi mencionado",
           body: `${comment.author.name}: ${data.content.slice(0, 120)}`,
           url,

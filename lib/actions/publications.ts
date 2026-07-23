@@ -72,7 +72,7 @@ export async function setPublicationTriageStatus(id: string, status: string) {
 // Restrita a administradores (Jairo/Rodrigo). Inspirado no Flowter do ADVBOX.
 export async function distributePendingPublications(): Promise<{ assigned?: number; error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem distribuir publicações." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem distribuir publicações." };
 
   const eligible = await prisma.user.findMany({
     where: { active: true, role: { in: ["Advogado", "Sócio"] }, officeId: viewer.officeId },

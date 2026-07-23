@@ -8,12 +8,10 @@ import { Send } from "lucide-react";
 export default function CommentBox({
   caseId,
   taskId,
-  currentUserId,
   users,
 }: {
   caseId?: string;
   taskId?: string;
-  currentUserId: string;
   users: { id: string; name: string }[];
 }) {
   const router = useRouter();
@@ -23,7 +21,7 @@ export default function CommentBox({
   function submit() {
     if (!content.trim()) return;
     startTransition(async () => {
-      await addComment({ content, authorId: currentUserId, caseId, taskId });
+      await addComment({ content, caseId, taskId });
       setContent("");
       router.refresh();
     });

@@ -7,6 +7,16 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { renameDriveFolder } from "@/lib/googleDrive";
+import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+
+async function assertAttendanceRelationsInOffice(
+  data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
+  officeId: string
+): Promise<void> {
+  if (data.clientId && !(await isClientInOffice(data.clientId, officeId))) throw new Error("Cliente não encontrado.");
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, officeId))) throw new Error("Responsável não encontrado.");
+  if (data.assessoriaId && !(await isAssessoriaInOffice(data.assessoriaId, officeId))) throw new Error("Assessoria não encontrada.");
+}
 
 type CreateAttendanceInput = {
   clientName: string;
@@ -28,6 +38,7 @@ type CreateAttendanceInput = {
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  await assertAttendanceRelationsInOffice(data, viewer.officeId);
 
   // Resolve o vínculo com Client conforme o modo escolhido no formulário:
   // - clientId preenchido: cliente já cadastrado, selecionado via busca — usa direto.
@@ -82,6 +93,7 @@ export async function saveAttendanceDraft(
 ): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+  await assertAttendanceRelationsInOffice(data, viewer.officeId);
 
   const created = await prisma.attendance.create({
     data: {

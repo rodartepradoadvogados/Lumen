@@ -22,7 +22,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Lúmen | Sistema Interno",
-  description: "Controle financeiro, processos, agenda e kanban do escritório Rodarte Prado Advogados",
+  description: "Controle financeiro, processos, agenda e kanban para escritórios de advocacia",
   // Habilita o comportamento de app instalável (tela cheia) no iOS.
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Lúmen" },
 };

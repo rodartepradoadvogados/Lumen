@@ -40,7 +40,7 @@ export default async function MobileFinanceiroHub() {
           <div>
             <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Acesso restrito</p>
             <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
-              Você não tem acesso ao módulo Financeiro. Fale com Jairo ou Rodrigo se precisar.
+              Você não tem acesso ao módulo Financeiro. Fale com um administrador se precisar.
             </p>
           </div>
         </Card>

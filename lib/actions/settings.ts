@@ -10,7 +10,9 @@ import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
-  return sendDailyAgendaEmail();
+  const viewer = await getCurrentUser();
+  if (!viewer) return { sent: false, reason: "Sessão inválida." };
+  return sendDailyAgendaEmail(viewer.officeId);
 }
 
 export async function runJusbrasilSync(): Promise<SyncResult> {
@@ -30,7 +32,7 @@ export async function runRoboBridgeSync(): Promise<RoboBridgeResult> {
 export async function runDjenConnectionTest(): Promise<{ error?: string; results?: DjenTestResult[] }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) {
-    return { error: "Apenas Jairo ou Rodrigo podem testar essa integração." };
+    return { error: "Apenas administradores podem testar essa integração." };
   }
   const results = await testDjenConnection(viewer.officeId);
   return { results };
@@ -52,7 +54,7 @@ export async function updateUser(
   data: { name: string; email: string; role: string; oab?: string; color: string; phone?: string }
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem editar membros da equipe." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem editar membros da equipe." };
   const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   await prisma.user.update({
@@ -66,7 +68,7 @@ export async function updateUser(
 
 export async function setFinanceAccess(id: string, financeAccess: boolean): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem alterar o acesso ao Financeiro." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem alterar o acesso ao Financeiro." };
   const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) return { error: "Sócios sempre têm acesso ao Financeiro." };
@@ -79,7 +81,7 @@ export async function setFinanceAccess(id: string, financeAccess: boolean): Prom
 
 export async function setUserCredentials(id: string, username: string, password: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem definir credenciais de acesso." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem definir credenciais de acesso." };
 
   const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
@@ -104,7 +106,7 @@ export async function changeOwnPassword(currentPassword: string, newPassword: st
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
   if (newPassword.length < 6) return { error: "A nova senha deve ter ao menos 6 caracteres." };
-  if (!user.passwordHash) return { error: "Este usuário ainda não tem senha configurada. Fale com Jairo ou Rodrigo." };
+  if (!user.passwordHash) return { error: "Este usuário ainda não tem senha configurada. Fale com um administrador." };
   const valid = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!valid) return { error: "Senha atual incorreta." };
   const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -114,7 +116,7 @@ export async function changeOwnPassword(currentPassword: string, newPassword: st
 
 export async function toggleUserActive(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem inativar membros da equipe." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem inativar membros da equipe." };
   const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) return { error: "Não é possível inativar um administrador (Jairo/Rodrigo)." };
@@ -125,7 +127,7 @@ export async function toggleUserActive(id: string): Promise<{ error?: string }> 
 
 export async function deleteUser(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas Jairo ou Rodrigo podem excluir membros da equipe." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem excluir membros da equipe." };
   const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
   if (user.isAdmin) {

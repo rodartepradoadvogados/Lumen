@@ -30,7 +30,7 @@ export default function DeleteEntityButton({
       if (result.error) {
         setMsg({ type: "error", text: result.error });
       } else if (result.pending) {
-        setMsg({ type: "info", text: "Solicitação de exclusão enviada. Aguardando aprovação de Jairo ou Rodrigo." });
+        setMsg({ type: "info", text: "Solicitação de exclusão enviada. Aguardando aprovação de um administrador." });
       }
       onDone?.(result);
       router.refresh();

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getOrCreateAssessoriaCompanyFolder } from "@/lib/googleDrive";
 import { markReceivablePaid } from "@/lib/actions/financeiro";
+import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 
 export async function listAssessorias() {
   const user = await getCurrentUser();
@@ -31,6 +32,10 @@ export async function createAssessoria(data: {
 
   const client = await prisma.client.findFirst({ where: { id: data.clientId, officeId: user.officeId } });
   if (!client) return { error: "Cliente não encontrado." };
+
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, user.officeId))) {
+    return { error: "Responsável não encontrado." };
+  }
 
   const existing = await prisma.assessoria.findFirst({ where: { clientId: data.clientId, officeId: user.officeId } });
   if (existing) return { error: "Esta empresa já tem uma assessoria cadastrada." };
@@ -68,6 +73,10 @@ export async function updateAssessoria(
 
   const existing = await prisma.assessoria.findFirst({ where: { id, officeId: user.officeId } });
   if (!existing) return { error: "Assessoria não encontrada." };
+
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, user.officeId))) {
+    return { error: "Responsável não encontrado." };
+  }
 
   await prisma.assessoria.update({
     where: { id },
@@ -150,6 +159,10 @@ export async function addDocumento(
   const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId } });
   if (!assessoria) return { error: "Assessoria não encontrada." };
 
+  if (data.caseId && !(await isCaseInOffice(data.caseId, user.officeId))) {
+    return { error: "Processo não encontrado." };
+  }
+
   await prisma.assessoriaDocumento.create({
     data: {
       officeId: assessoria.officeId,
@@ -222,6 +235,10 @@ export async function addLicitacaoTask(
 
   const licitacao = await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId: user.officeId } });
   if (!licitacao) return { error: "Licitação não encontrada." };
+
+  if (data.responsibleId && !(await isUserInOffice(data.responsibleId, user.officeId))) {
+    return { error: "Responsável não encontrado." };
+  }
 
   await prisma.task.create({
     data: {

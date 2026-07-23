@@ -19,7 +19,7 @@ function getTransporter() {
 
 const typeLabels: Record<string, string> = { TAREFA: "Tarefa", EVENTO: "Evento", AUDIENCIA: "Audiência", PERICIA: "Perícia", PRAZO: "Prazo" };
 
-export async function buildDailyAgendaHtml(officeId: string) {
+export async function buildDailyAgendaHtml(officeId: string, officeName: string) {
   const now = new Date();
   const tasks = await prisma.task.findMany({
     where: { officeId, dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { not: "CANCELADO" } },
@@ -44,7 +44,7 @@ export async function buildDailyAgendaHtml(officeId: string) {
   return `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
     <div style="background:#0b1730;padding:24px;text-align:center;">
-      <h1 style="color:#fff;font-size:20px;margin:0;">RODARTE PRADO ADVOGADOS</h1>
+      <h1 style="color:#fff;font-size:20px;margin:0;">${officeName.toUpperCase()}</h1>
       <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">AGENDA DO DIA</p>
     </div>
     <div style="padding:20px;background:#fff;">
@@ -68,7 +68,7 @@ export async function buildDailyAgendaHtml(officeId: string) {
   </div>`;
 }
 
-export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<{ sent: boolean; reason?: string }> {
+export async function sendPasswordResetEmail(to: string, resetUrl: string, officeName: string): Promise<{ sent: boolean; reason?: string }> {
   const transporter = getTransporter();
   if (!transporter) {
     return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
@@ -77,7 +77,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
     <div style="background:#0b1730;padding:24px;text-align:center;">
-      <h1 style="color:#fff;font-size:20px;margin:0;">RODARTE PRADO ADVOGADOS</h1>
+      <h1 style="color:#fff;font-size:20px;margin:0;">${officeName.toUpperCase()}</h1>
       <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">REDEFINIÇÃO DE SENHA</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
@@ -92,7 +92,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
 
   try {
     await transporter.sendMail({
-      from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`,
+      from: `"${officeName}" <${process.env.EMAIL_USER}>`,
       to,
       subject: "Redefinição de senha — Sistema Interno",
       html,
@@ -104,33 +104,45 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   }
 }
 
-// TODO(multi-tenant / Fase 2): o destinatário (EMAIL_TO) e o remetente ("Rodarte Prado
-// Advogados") ainda são globais via variável de ambiente — cada escritório precisa do seu
-// próprio e-mail de agenda diária e nome de remetente configuráveis (ver Office no schema).
-// Por ora, assume-se UM único escritório na plataforma (o primeiro cadastrado); revisitar
-// antes de um segundo escritório existir de verdade.
-export async function sendDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
+// E-mail diário da agenda: quando chamado sem officeId (uso do cron — ver
+// app/api/cron/daily-agenda/route.ts), envia UM e-mail por escritório, cada um só com os
+// compromissos daquele escritório e só para os administradores dele. Quando chamado com
+// officeId (botão "Testar" em Configurações → Geral), envia só para aquele escritório.
+export async function sendDailyAgendaEmail(officeId?: string): Promise<{ sent: boolean; reason?: string }> {
   const transporter = getTransporter();
   if (!transporter) {
     return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
   }
-  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
-  if (!office) {
+  const offices = officeId ? await prisma.office.findMany({ where: { id: officeId } }) : await prisma.office.findMany();
+  if (offices.length === 0) {
     return { sent: false, reason: "Nenhum escritório cadastrado." };
   }
-  const to = process.env.EMAIL_TO || "jairo@rodarteprado.com.br,rodrigo@rodarteprado.com.br";
-  const html = await buildDailyAgendaHtml(office.id);
 
-  try {
-    await transporter.sendMail({
-      from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: `Agenda do dia — ${new Date().toLocaleDateString("pt-BR")}`,
-      html,
+  let anySent = false;
+  let lastReason: string | undefined;
+  for (const office of offices) {
+    const admins = await prisma.user.findMany({
+      where: { officeId: office.id, isAdmin: true, active: true },
+      select: { email: true },
     });
-    return { sent: true };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "erro desconhecido ao enviar";
-    return { sent: false, reason: message };
+    const to = admins.map((a) => a.email).join(",");
+    if (!to) {
+      lastReason = `Escritório "${office.name}" não tem administrador com e-mail cadastrado.`;
+      continue;
+    }
+    const html = await buildDailyAgendaHtml(office.id, office.name);
+    try {
+      await transporter.sendMail({
+        from: `"${office.name}" <${process.env.EMAIL_USER}>`,
+        to,
+        subject: `Agenda do dia — ${new Date().toLocaleDateString("pt-BR")}`,
+        html,
+      });
+      anySent = true;
+    } catch (e) {
+      lastReason = e instanceof Error ? e.message : "erro desconhecido ao enviar";
+    }
   }
+  if (!anySent) return { sent: false, reason: lastReason };
+  return { sent: true };
 }
