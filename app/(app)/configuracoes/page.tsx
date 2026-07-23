@@ -23,7 +23,8 @@ import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
-import { Upload, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
+import WhatsappConfigForm from "@/components/WhatsappConfigForm";
+import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 
@@ -100,7 +101,7 @@ export default async function ConfiguracoesPage({
   }
   const officeId = viewer.officeId;
 
-  const [users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw] =
+  const [users, columns, categories, costCenters, driveStatus, documentTemplates, taskTypePoints, workflowTemplates, googleAccounts, blogPendingRaw, blogPublishedRaw, photosRaw, whatsappConfig] =
     await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -118,6 +119,7 @@ export default async function ConfiguracoesPage({
       prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
       prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
+      prisma.whatsappConfig.findUnique({ where: { officeId } }),
     ]);
 
   const photos = photosRaw.map((p) => ({
@@ -385,6 +387,24 @@ export default async function ConfiguracoesPage({
                 Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para o Jusbrasil).
               </p>
             )}
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
+            title="WhatsApp"
+            subtitle="Número da Cloud API (Meta) deste escritório — usado para receber e responder mensagens de clientes em Atendimento"
+          />
+          <div className="p-5 flex items-start gap-3">
+            <MessageCircle size={18} className="text-navy-800/40 dark:text-cream-50/40 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />
+              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-3">
+                O Phone Number ID e o Access Token são gerados ao cadastrar um número na Cloud API do WhatsApp (Meta for Developers). O webhook e o token de verificação são compartilhados pela plataforma — só o número precisa ser cadastrado aqui.
+              </p>
+            </div>
           </div>
         </Card>
       )}
