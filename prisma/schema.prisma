@@ -1,5 +1,7 @@
-// Rodarte Prado Advogados - Sistema interno
+// Lúmen - Sistema de gestão jurídica multi-tenant
+// Fork de rp-financeiro (sistema mono-tenant do Rodarte Prado Advogados).
 // Schema completo: casos/atendimentos, agenda/kanban integrados, financeiro, contatos, publicações
+// — agora com isolamento por Office (escritório/tenant) em toda entidade de negócio.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,19 +12,82 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ MULTI-TENANCY (Fase 1) ============
+//
+// Toda entidade de negócio abaixo carrega um officeId obrigatório — o requisito não-negociável
+// do projeto é nunca misturar dado de um escritório com outro. officeId é denormalizado em toda
+// tabela (mesmo em filhas de outra entidade já escopada) de propósito: elimina a necessidade de
+// caminhar a cadeia de relações pra montar um filtro seguro, e torna "toda query direta filtra
+// por officeId" uma regra mecânica e fácil de auditar/checar em code review.
+//
+// Ficam de fora, por enquanto (ver Fase 4 do plano): as 4 tabelas do robô Python
+// (RoboPublicacao/RoboAndamento/RoboProcessoMonitorado/RoboExecucaoLog) — hoje o robô é
+// compartilhado e keyado por número de processo/OAB, não por escritório; tornar isso
+// multi-tenant é um projeto à parte (o robô também precisa aprender a operar por tenant).
+//
+// Decisões de unicidade global x por escritório:
+// - User.email: continua único GLOBALMENTE — é a chave de login/redefinição de senha em toda
+//   a plataforma, um e-mail = uma conta = um escritório.
+// - User.username: passa a ser único POR escritório (@@unique([officeId, username])) — é só um
+//   apelido informal (usado em @menção), plausível de colidir entre escritórios diferentes.
+// - GoogleCredential.accountEmail: continua único GLOBALMENTE — a mesma conta Google não pode
+//   estar conectada como Drive principal de dois escritórios ao mesmo tempo.
+// - TaskTypePoints.type e BlogPost.slug: passam a ser únicos POR escritório.
+model Office {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique // identificador amigável, usado em URL/subdomínio
+  status    String   @default("ATIVA") // ATIVA | SUSPENSA | CANCELADA
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                User[]
+  notices              Notice[]
+  loginSessions        LoginSession[]
+  clients              Client[]
+  lawyers              Lawyer[]
+  suppliers            Supplier[]
+  cases                Case[]
+  kanbanColumns        KanbanColumn[]
+  tasks                Task[]
+  taskTypePoints       TaskTypePoints[]
+  workflowTemplates    WorkflowTemplate[]
+  workflowSteps        WorkflowStep[]
+  comments             Comment[]
+  mentions             Mention[]
+  attendances          Attendance[]
+  whatsappMessages     WhatsappMessage[]
+  emailMessages        EmailMessage[]
+  attachments          Attachment[]
+  documentTemplates    DocumentTemplate[]
+  deletionRequests     DeletionRequest[]
+  googleCredentials    GoogleCredential[]
+  financialCategories  FinancialCategory[]
+  costCenters          CostCenter[]
+  payables             Payable[]
+  receivables          Receivable[]
+  assessorias          Assessoria[]
+  assessoriaDocumentos AssessoriaDocumento[]
+  honorarios           Honorario[]
+  licitacoes           Licitacao[]
+  publications         Publication[]
+  blogPosts            BlogPost[]
+  photos               Photo[]
+}
+
 // ============ EQUIPE ============
 
 model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  username     String?  @unique
+  username     String?
   passwordHash String?
   role         String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
   oab          String?
   phone        String?
   color        String   @default("#0f1f3d") // cor de identificação em cards/agenda
-  isAdmin      Boolean  @default(false) // apenas Jairo/Rodrigo (sócios): aprovam exclusões, gerenciam equipe e acesso ao financeiro
+  isAdmin      Boolean  @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
   financeAccess Boolean @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -39,6 +104,9 @@ model User {
   notifyTarefasDelegadas Boolean @default(true)
   notifyAgendaDia        Boolean @default(true)
   notifyMencoes          Boolean @default(true)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   pushSubscriptions  PushSubscription[]
   tasksResponsible   Task[]        @relation("TaskResponsible")
@@ -59,12 +127,15 @@ model User {
   emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
+
+  @@unique([officeId, username])
 }
 
 // Uma inscrição de push por aparelho/navegador em que o usuário ativou notificações
 // (ver components/mobile/NotificationPreferences.tsx) — um mesmo usuário pode ter mais de
 // uma (celular + tablet, por exemplo). endpoint é o identificador único que o navegador
 // gera; p256dh/auth são as chaves de criptografia exigidas pelo protocolo Web Push.
+// Sem officeId próprio — sempre acessada através do userId (nunca listada direto por escritório).
 model PushSubscription {
   id        String   @id @default(cuid())
   endpoint  String   @unique
@@ -84,6 +155,9 @@ model Notice {
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   authorId  String
   author    User     @relation(fields: [authorId], references: [id])
 }
@@ -98,7 +172,10 @@ model LoginSession {
   lastPingAt DateTime @default(now())
   createdAt  DateTime @default(now())
 
-  @@index([userId, loginAt])
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, userId, loginAt])
 }
 
 // ============ CONTATOS ============
@@ -118,11 +195,16 @@ model Client {
   notes         String?
   createdAt     DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   cases       Case[]
   receivables Receivable[]
   publications Publication[]
   attendances Attendance[] @relation("AttendanceClient")
   assessoria  Assessoria?
+
+  @@index([officeId])
 }
 
 model Lawyer {
@@ -135,6 +217,11 @@ model Lawyer {
   phone     String?
   notes     String?
   createdAt DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId])
 }
 
 model Supplier {
@@ -146,7 +233,12 @@ model Supplier {
   notes     String?
   createdAt DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   payables  Payable[]
+
+  @@index([officeId])
 }
 
 // ============ CASOS / CARDS ============
@@ -187,6 +279,9 @@ model Case {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   clientId          String?
   client            Client?   @relation(fields: [clientId], references: [id])
 
@@ -200,9 +295,9 @@ model Case {
   assessoriaId      String?
   assessoria        Assessoria? @relation(fields: [assessoriaId], references: [id])
 
-  // Pasta própria deste processo no Drive (RP Financeiro - Processos/{title}), criada sob
-  // demanda no primeiro anexo — ver lib/googleDrive.ts, getOrCreateCaseFolder. Ao converter um
-  // Atendimento neste Case, herda a MESMA pasta do atendimento (só renomeada), não cria outra.
+  // Pasta própria deste processo no Drive (Processos/{title}), criada sob demanda no primeiro
+  // anexo — ver lib/googleDrive.ts, getOrCreateCaseFolder. Ao converter um Atendimento neste
+  // Case, herda a MESMA pasta do atendimento (só renomeada), não cria outra.
   driveFolderId     String?
 
   tasks             Task[]
@@ -213,6 +308,9 @@ model Case {
   attachments       Attachment[]
   convertedFromAttendances Attendance[] @relation("AttendanceConvertedCase")
   assessoriaDocumentos AssessoriaDocumento[]
+
+  @@index([officeId])
+  @@index([officeId, processNumber])
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
@@ -224,7 +322,12 @@ model KanbanColumn {
   color     String   @default("#94a3b8")
   isDoneCol Boolean  @default(false)
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   tasks     Task[]
+
+  @@index([officeId])
 }
 
 model Task {
@@ -248,6 +351,9 @@ model Task {
   meetingType    String?   // PRESENCIAL | ONLINE
   location       String?
   meetingUrl     String?
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   caseId         String?
   case           Case?     @relation(fields: [caseId], references: [id])
@@ -278,14 +384,22 @@ model Task {
   points         Int       @default(0) // TaskScore: pontuação de produtividade da tarefa
 
   comments       Comment[]
+
+  @@index([officeId])
+  @@index([officeId, dueDate])
 }
 
 // ============ TASKSCORE (pontuação de produtividade por tipo de tarefa) ============
 
 model TaskTypePoints {
   id     String @id @default(cuid())
-  type   String @unique // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
+  type   String // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
   points Int    @default(10)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([officeId, type])
 }
 
 // ============ WORKFLOWS (cadeias padronizadas de tarefas) ============
@@ -298,7 +412,12 @@ model WorkflowTemplate {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   steps       WorkflowStep[]
+
+  @@index([officeId])
 }
 
 model WorkflowStep {
@@ -311,6 +430,9 @@ model WorkflowStep {
   role       String?  // cargo sugerido do responsável (Advogado, Estagiário, etc.)
   points     Int?     // pontuação opcional; se nula usa o padrão do tipo
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   templateId String
   template   WorkflowTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
@@ -319,6 +441,9 @@ model Comment {
   id        String    @id @default(cuid())
   content   String
   createdAt DateTime  @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   authorId  String
   author    User      @relation(fields: [authorId], references: [id])
@@ -330,6 +455,8 @@ model Comment {
   case      Case?     @relation(fields: [caseId], references: [id])
 
   mentions  Mention[]
+
+  @@index([officeId])
 }
 
 model Mention {
@@ -340,6 +467,11 @@ model Mention {
   user      User     @relation(fields: [userId], references: [id])
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, userId, read])
 }
 
 // ============ ATENDIMENTO (setor de atendimento / triagem) ============
@@ -365,13 +497,16 @@ model Attendance {
   nextContactAt  DateTime? // data do próximo contato/follow-up
   stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
 
-  // Integração WhatsApp (Cloud API oficial da Meta)
+  // Integração WhatsApp (Cloud API oficial da Meta) — número/credenciais por escritório (Fase 2)
   waPhone         String?   // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
   waLastMessageAt DateTime? // instante da última mensagem trocada nesta conversa
 
   // Integração E-mail (resposta via Gmail da conta Google do próprio advogado)
   // Reaproveitado também como e-mail do contato no formulário de criação do atendimento.
   clientEmail     String?   // e-mail do cliente para resposta; preenchido manualmente na tela
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   // Vínculo com cadastro de Client — preenchido ao selecionar um cliente já cadastrado
   // na busca, ou automaticamente após "Cadastrar novo cliente" ser finalizado (não em rascunho).
@@ -388,10 +523,10 @@ model Attendance {
   assessoriaId String?
   assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
 
-  // Pasta própria deste atendimento no Drive (RP Financeiro - Atendimentos/{subject}), criada
-  // sob demanda no primeiro anexo (ver lib/googleDrive.ts, getOrCreateAttendanceFolder). Se o
-  // atendimento virar Processo (convertAttendanceToCase), a pasta é só renomeada e transferida
-  // pro Case — nunca duplicada.
+  // Pasta própria deste atendimento no Drive (Atendimentos/{subject}), criada sob demanda no
+  // primeiro anexo (ver lib/googleDrive.ts, getOrCreateAttendanceFolder). Se o atendimento virar
+  // Processo (convertAttendanceToCase), a pasta é só renomeada e transferida pro Case — nunca
+  // duplicada.
   driveFolderId String?
 
   tasks            Task[]
@@ -399,7 +534,8 @@ model Attendance {
   whatsappMessages WhatsappMessage[]
   emailMessages    EmailMessage[]
 
-  @@index([waPhone])
+  @@index([officeId])
+  @@index([officeId, waPhone])
 }
 
 // ============ WHATSAPP (mensagens da integração com a Cloud API da Meta) ============
@@ -415,7 +551,10 @@ model WhatsappMessage {
   fromNumber   String?    // telefone do cliente (E.164)
   createdAt    DateTime   @default(now())
 
-  @@index([attendanceId, createdAt])
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, attendanceId, createdAt])
 }
 
 // ============ E-MAIL (resposta ao cliente via Gmail da conta Google do próprio advogado) ============
@@ -435,10 +574,13 @@ model EmailMessage {
   errorMessage  String?
   createdAt     DateTime   @default(now())
 
-  @@index([attendanceId, createdAt])
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, attendanceId, createdAt])
 }
 
-// ============ ANEXOS (referência ao Google Drive) ============
+// ============ ANEXOS (referência ao repositório de arquivos conectado — Drive/OneDrive/etc.) ============
 
 model Attachment {
   id           String   @id @default(cuid())
@@ -446,6 +588,9 @@ model Attachment {
   driveUrl     String
   docType      String   @default("OUTRO") // ver lib/documentTypes.ts
   createdAt    DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   uploadedById String?
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
@@ -455,6 +600,8 @@ model Attachment {
 
   attendanceId String?
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
+
+  @@index([officeId])
 }
 
 // ============ MODELOS DE DOCUMENTO (contratos, procurações, declarações...) ============
@@ -466,8 +613,13 @@ model DocumentTemplate {
   driveUrl     String
   createdAt    DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   uploadedById String?
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+
+  @@index([officeId])
 }
 
 // ============ SOLICITAÇÕES DE EXCLUSÃO (aprovação de admin) ============
@@ -480,21 +632,26 @@ model DeletionRequest {
   status         String    @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
   createdAt      DateTime  @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   requestedById  String
   requestedBy    User      @relation("DeletionRequestedBy", fields: [requestedById], references: [id])
 
   resolvedById   String?
   resolvedBy     User?     @relation("DeletionResolvedBy", fields: [resolvedById], references: [id])
   resolvedAt     DateTime?
+
+  @@index([officeId])
 }
 
-// ============ INTEGRAÇÃO GOOGLE DRIVE ============
+// ============ INTEGRAÇÃO GOOGLE DRIVE (por escritório — Fase 2) ============
 
 model GoogleCredential {
   id                String   @id @default(cuid())
   accountEmail      String   @unique
   refreshToken      String
-  isPrimaryDrive    Boolean  @default(false) // conta usada para anexos/documentos (uma só, escolhida na primeira conexão)
+  isPrimaryDrive    Boolean  @default(false) // conta usada para anexos/documentos DESTE escritório (uma só, escolhida na primeira conexão)
   syncJusbrasil     Boolean  @default(true)  // se a caixa desta conta é varrida em busca de e-mails do Jusbrasil
   folderId          String?
   templatesFolderId String?
@@ -502,8 +659,13 @@ model GoogleCredential {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   userId            String?
   user              User?    @relation(fields: [userId], references: [id])
+
+  @@index([officeId])
 }
 
 // ============ FINANCEIRO ============
@@ -516,12 +678,17 @@ model FinancialCategory {
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   parentId  String?
   parent    FinancialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
   children  FinancialCategory[] @relation("CategoryTree")
 
   payables    Payable[]
   receivables Receivable[]
+
+  @@index([officeId])
 }
 
 model CostCenter {
@@ -530,8 +697,13 @@ model CostCenter {
   notes     String?
   createdAt DateTime @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   payables    Payable[]
   receivables Receivable[]
+
+  @@index([officeId])
 }
 
 model Payable {
@@ -552,6 +724,9 @@ model Payable {
   paymentMethod    String?   // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
   createdAt        DateTime  @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   categoryId   String?
   category     FinancialCategory? @relation(fields: [categoryId], references: [id])
 
@@ -563,6 +738,9 @@ model Payable {
 
   supplierId   String?
   supplierRef  Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([officeId])
+  @@index([officeId, dueDate])
 }
 
 model Receivable {
@@ -584,6 +762,9 @@ model Receivable {
   paymentMethod    String?   // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
   createdAt        DateTime  @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   categoryId   String?
   category     FinancialCategory? @relation(fields: [categoryId], references: [id])
 
@@ -597,6 +778,9 @@ model Receivable {
   case         Case?     @relation(fields: [caseId], references: [id])
 
   honorario    Honorario?
+
+  @@index([officeId])
+  @@index([officeId, dueDate])
 }
 
 // ============ ASSESSORIA JURÍDICA ============
@@ -612,9 +796,12 @@ model Assessoria {
   monthlyFee    Float
   dueDay        Int       @default(5) // dia do mês de vencimento do honorário
   planningNotes String?
-  driveFolderId String?   // pasta raiz da empresa em "RP Financeiro - Assessoria/{empresa}"
+  driveFolderId String?   // pasta raiz da empresa em "Assessoria/{empresa}"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   clientId      String    @unique
   client        Client    @relation(fields: [clientId], references: [id])
@@ -627,6 +814,8 @@ model Assessoria {
   licitacoes    Licitacao[]
   cases         Case[]
   attendances   Attendance[]
+
+  @@index([officeId])
 }
 
 model AssessoriaDocumento {
@@ -637,6 +826,9 @@ model AssessoriaDocumento {
   date         DateTime   @default(now())
   createdAt    DateTime   @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   assessoriaId String
   assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
 
@@ -645,6 +837,8 @@ model AssessoriaDocumento {
 
   uploadedById String?
   uploadedBy   User?      @relation("AssessoriaDocumentoUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([officeId])
 }
 
 // Deliberadamente sem amount/dueDate/status/paidDate próprios — esses dados vivem só no
@@ -654,6 +848,9 @@ model Honorario {
   id           String     @id @default(cuid())
   competencia  String     // "2026-08"
   createdAt    DateTime   @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   assessoriaId String
   assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
@@ -676,10 +873,15 @@ model Licitacao {
   status        String     @default("EM_ANALISE") // EM_ANALISE | PARTICIPANDO | VENCEDORA | PERDIDA | CANCELADA
   createdAt     DateTime   @default(now())
 
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
   assessoriaId  String
   assessoria    Assessoria @relation(fields: [assessoriaId], references: [id])
 
   tasks         Task[]
+
+  @@index([officeId])
 }
 
 // ============ PUBLICAÇÕES / ANDAMENTOS ============
@@ -692,13 +894,16 @@ model Publication {
   publishedAt       DateTime
   read              Boolean   @default(false)
   deadlineGenerated Boolean   @default(false)
-  lawyerTag         String?   // Jairo | Rodrigo | Jairo e Rodrigo — identificado pela OAB citada no conteúdo
+  lawyerTag         String?   // nome do advogado identificado pela OAB citada no conteúdo (ver Fase 4 — hoje regex hardcoded por escritório)
   createdAt         DateTime  @default(now())
 
   emailMessageId    String?   @unique
   emailAccount      String?
   emailSubject      String?
   processNumberRaw  String?
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
 
   caseId            String?
   case              Case?     @relation(fields: [caseId], references: [id])
@@ -712,9 +917,12 @@ model Publication {
   triageStatus      String    @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
   tasks             Task[]
+
+  @@index([officeId])
+  @@index([officeId, publishedAt])
 }
 
-// ============ BLOG JURÍDICO (público) ============
+// ============ BLOG JURÍDICO (público, por escritório) ============
 //
 // Alimentado por um robô de conteúdo EXTERNO (projeto Claude Code autônomo, fora
 // deste repositório) que pesquisa jurisprudência/legislação/doutrina e envia
@@ -724,7 +932,7 @@ model Publication {
 
 model BlogPost {
   id             String    @id @default(cuid())
-  slug           String    @unique
+  slug           String
   title          String
   area           String    // ex: Civil, Consumerista, Empresarial, Tributário, Trabalhista, Previdenciário, Administrativo, Licitação, Compliance, Due Diligence, Contratual, Responsabilidade Civil, Execuções
   type           String    @default("NOTICIA") // NOTICIA | ANALISE
@@ -741,8 +949,12 @@ model BlogPost {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  @@index([status, publishedAt])
-  @@index([area])
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([officeId, slug])
+  @@index([officeId, status, publishedAt])
+  @@index([officeId, area])
 }
 
 // ============ BIBLIOTECA DE FOTOS ============
@@ -760,7 +972,10 @@ model Photo {
   caption   String?  // legenda opcional, ex: para crédito/descrição da imagem
   createdAt DateTime @default(now())
 
-  @@index([category])
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, category])
 }
 
 // ============ TABELAS DO ROBÔ PYTHON (robo-publicacoes/, Railway) ============
@@ -768,10 +983,14 @@ model Photo {
 // Estes 4 modelos NÃO são usados pelo código TypeScript — eles existem só para
 // que o Prisma "enxergue" as tabelas que o robô Python (SQLAlchemy) cria no
 // MESMO banco Postgres. Sem isso, `prisma db push` trata essas tabelas como
-// "órfãs" (não descritas no schema) e as APAGA na próxima migração — foi
-// exatamente isso que aconteceu em 2026-07-20. Os tipos/nomes de coluna abaixo
-// espelham robo-publicacoes/src/db.py; se o robô mudar a estrutura lá, replicar
-// a mudança aqui também.
+// "órfãs" (não descritas no schema) e as APAGA na próxima migração.
+// Os tipos/nomes de coluna abaixo espelham robo-publicacoes/src/db.py; se o
+// robô mudar a estrutura lá, replicar a mudança aqui também.
+//
+// AINDA NÃO SÃO MULTI-TENANT (ver Fase 4 do plano) — o robô hoje é compartilhado e
+// keyado por número de processo/OAB, não por officeId. Enquanto isso não for resolvido,
+// este sistema de captura automática de publicações só pode atender UM escritório por vez
+// (o robô continua rodando como hoje, fora deste repositório, pro Rodarte Prado).
 
 model RoboPublicacao {
   idComunicacao        String    @id @map("id_comunicacao")
