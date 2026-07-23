@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, EmptyState } from "@/components/ui";
 import NewContactModal from "@/components/NewContactModal";
 import EditClientModal from "@/components/EditClientModal";
@@ -9,7 +11,11 @@ import { deleteClient } from "@/lib/actions/contatos";
 export const dynamic = "force-dynamic";
 
 export default async function ClientesPage() {
+  const viewer = await getCurrentUser();
+  if (!viewer) notFound();
+
   const clients = await prisma.client.findMany({
+    where: { officeId: viewer.officeId },
     include: { _count: { select: { cases: true } } },
     orderBy: { name: "asc" },
   });

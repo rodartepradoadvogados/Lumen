@@ -29,10 +29,11 @@ function field(label: string, value: string | null | undefined) {
 
 export default async function ClientDetailPage({ params }: { params: { id: string } }) {
   const viewer = await getCurrentUser();
-  const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
+  if (!viewer) notFound();
+  const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
-  const client = await prisma.client.findUnique({
-    where: { id: params.id },
+  const client = await prisma.client.findFirst({
+    where: { id: params.id, officeId: viewer.officeId },
     include: {
       cases: { include: { responsible: true }, orderBy: { title: "asc" } },
       publications: { include: { case: true }, orderBy: { publishedAt: "desc" }, take: 50 },
@@ -43,7 +44,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
   const now = new Date();
   const receivables = hasFinanceAccess
-    ? await prisma.receivable.findMany({ where: { clientId: client.id }, orderBy: { dueDate: "asc" } })
+    ? await prisma.receivable.findMany({ where: { clientId: client.id, officeId: viewer.officeId }, orderBy: { dueDate: "asc" } })
     : [];
   const totalReceivable = receivables.reduce((s, r) => s + r.amount, 0);
 
