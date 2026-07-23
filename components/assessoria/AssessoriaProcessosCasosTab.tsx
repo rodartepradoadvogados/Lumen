@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { setCaseAssessoria, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { Badge, formatDate } from "@/components/ui";
-import { Plus, Link2 } from "lucide-react";
+import { Plus, Search, ExternalLink, Link2, X } from "lucide-react";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type CaseOption = { id: string; title: string; processNumber: string | null };
@@ -24,24 +25,44 @@ export default function AssessoriaProcessosCasosTab({
   assessoria: Assessoria;
   availableCases: CaseOption[];
 }) {
-  const [linkFormOpen, setLinkFormOpen] = useState(false);
+  const router = useRouter();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [linkedThisSession, setLinkedThisSession] = useState<string[]>([]);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const pareceres = assessoria.documents.filter((d) => d.docType === "PARECER");
 
-  function handleLink(formData: FormData) {
+  // availableCases já vem sem os processos vinculados (ver app/(app)/assessoria/[id]/page.tsx),
+  // mas linkedThisSession cobre o intervalo entre "acabei de vincular" e o próximo refresh do
+  // server component — sem isso o processo continuaria aparecendo na busca até a página recarregar.
+  const filteredCases = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return availableCases
+      .filter((c) => !linkedThisSession.includes(c.id))
+      .filter((c) => !q || c.title.toLowerCase().includes(q) || (c.processNumber || "").toLowerCase().includes(q));
+  }, [availableCases, query, linkedThisSession]);
+
+  function handleLinkFromSearch(caseId: string) {
     setError(null);
-    const caseId = String(formData.get("caseId") || "");
-    if (!caseId) {
-      setError("Selecione um processo.");
-      return;
-    }
+    setLinkingId(caseId);
     startTransition(async () => {
       const result = await setCaseAssessoria(caseId, assessoria.id);
+      setLinkingId(null);
       if (result.error) setError(result.error);
-      else setLinkFormOpen(false);
+      else {
+        setLinkedThisSession((ids) => [...ids, caseId]);
+        router.refresh();
+      }
     });
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setQuery("");
+    setError(null);
   }
 
   return (
@@ -75,10 +96,10 @@ export default function AssessoriaProcessosCasosTab({
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Processos vinculados</h4>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setLinkFormOpen((v) => !v)}
+              onClick={() => setSearchOpen(true)}
               className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
             >
-              <Link2 size={13} /> Vincular processo existente
+              <Search size={13} /> Pesquisar processos
             </button>
             <Link
               href={`/processos/novo?assessoriaId=${assessoria.id}`}
@@ -88,33 +109,6 @@ export default function AssessoriaProcessosCasosTab({
             </Link>
           </div>
         </div>
-
-        {linkFormOpen && (
-          <form action={handleLink} className="mb-3 p-3 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 flex flex-wrap gap-2 items-center">
-            {availableCases.length === 0 ? (
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50">Não há processos disponíveis para vincular.</p>
-            ) : (
-              <>
-                <select name="caseId" defaultValue="" className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-3 py-1.5 flex-1 min-w-[220px]">
-                  <option value="">Selecione um processo...</option>
-                  {availableCases.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                      {c.processNumber ? ` — ${c.processNumber}` : ""}
-                    </option>
-                  ))}
-                </select>
-                <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
-                  {pending ? "Vinculando..." : "Vincular"}
-                </button>
-              </>
-            )}
-            <button type="button" onClick={() => setLinkFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
-              Cancelar
-            </button>
-            {error && <p className="text-xs text-red-600 w-full">{error}</p>}
-          </form>
-        )}
 
         {assessoria.linkedCases.length === 0 ? (
           <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum processo vinculado a esta empresa ainda.</p>
@@ -153,6 +147,70 @@ export default function AssessoriaProcessosCasosTab({
           </div>
         )}
       </div>
+
+      {searchOpen && (
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={closeSearch}>
+          <div
+            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Pesquisar processos</h3>
+              <button onClick={closeSearch} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar por título ou número do processo"
+                  className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg pl-8 pr-3 py-2"
+                />
+              </div>
+              {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+            </div>
+
+            <div className="overflow-y-auto scrollbar-thin flex-1 divide-y divide-navy-800/5 dark:divide-white/10">
+              {filteredCases.length === 0 ? (
+                <p className="text-sm text-navy-800/40 dark:text-cream-50/40 text-center py-8 px-5">
+                  {availableCases.length === 0 ? "Não há processos disponíveis para vincular." : "Nenhum processo encontrado."}
+                </p>
+              ) : (
+                filteredCases.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
+                      {c.processNumber && <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{c.processNumber}</p>}
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`/processos/${c.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+                      >
+                        <ExternalLink size={12} /> Abrir
+                      </a>
+                      <button
+                        onClick={() => handleLinkFromSearch(c.id)}
+                        disabled={pending}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        <Link2 size={12} /> {pending && linkingId === c.id ? "Vinculando..." : "Vincular"}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
