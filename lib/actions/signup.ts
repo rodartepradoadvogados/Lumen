@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signSession, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 
 function slugify(name: string): string {
   const base = name
@@ -58,6 +59,7 @@ export async function signupOffice(data: {
 
   const user = await prisma.$transaction(async (tx) => {
     const office = await tx.office.create({ data: { name: officeName, slug } });
+    await seedDefaultOfficeData(tx, office.id);
     return tx.user.create({
       data: {
         name: adminName,

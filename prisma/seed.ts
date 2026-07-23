@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { createDefaultKanbanColumns, createDefaultChartOfAccounts } from "../lib/defaultOfficeData";
 
 const prisma = new PrismaClient();
 
@@ -68,10 +69,7 @@ async function main() {
   });
 
   console.log("Colunas do kanban...");
-  const colTodo = await prisma.kanbanColumn.create({ data: { officeId, name: "A Fazer", order: 0, color: "#94a3b8" } });
-  const colProgress = await prisma.kanbanColumn.create({ data: { officeId, name: "Em Andamento", order: 1, color: "#b8904f" } });
-  const colWaiting = await prisma.kanbanColumn.create({ data: { officeId, name: "Aguardando", order: 2, color: "#6b7fae" } });
-  const colDone = await prisma.kanbanColumn.create({ data: { officeId, name: "Concluído", order: 3, color: "#2f7d4f", isDoneCol: true } });
+  const [colTodo, colProgress, colWaiting, colDone] = await createDefaultKanbanColumns(prisma, officeId);
 
   console.log("Clientes...");
   const multipedras = await prisma.client.create({ data: { officeId, name: "Multipedras Revestimentos Eireli", type: "PJ", document: "12.345.678/0001-90", email: "contato@multipedras.com.br", phone: "(62) 3222-1000" } });
@@ -190,94 +188,7 @@ async function main() {
   });
 
   console.log("Plano de contas...");
-  type CatNode = { code: string; name: string; kind: string; children?: CatNode[] };
-  const chart: CatNode[] = [
-    {
-      code: "1", name: "Receita", kind: "RECEITA", children: [
-        { code: "1.1", name: "Honorários Contratuais", kind: "RECEITA" },
-        { code: "1.2", name: "Honorários Sucumbenciais", kind: "RECEITA" },
-        { code: "1.3", name: "Honorários de Consultoria", kind: "RECEITA" },
-        { code: "1.4", name: "Reembolso", kind: "RECEITA" },
-        { code: "1.5", name: "Rendimentos Financeiros", kind: "RECEITA" },
-        { code: "1.6", name: "Outras Receitas", kind: "RECEITA" },
-      ],
-    },
-    {
-      code: "2", name: "Despesa", kind: "DESPESA", children: [
-        {
-          code: "2.1", name: "Tributos e Contribuições", kind: "DESPESA", children: [
-            {
-              code: "2.1.1", name: "Impostos", kind: "DESPESA", children: [
-                { code: "2.1.1.1", name: "IRPJ", kind: "DESPESA" },
-                { code: "2.1.1.2", name: "IRPF", kind: "DESPESA" },
-                { code: "2.1.1.3", name: "ICMS", kind: "DESPESA" },
-                { code: "2.1.1.4", name: "ISS", kind: "DESPESA" },
-              ],
-            },
-            { code: "2.1.2", name: "Contribuição Social", kind: "DESPESA" },
-            { code: "2.1.3", name: "FGTS", kind: "DESPESA" },
-            { code: "2.1.4", name: "DCTF", kind: "DESPESA" },
-            { code: "2.1.5", name: "Simples Nacional", kind: "DESPESA" },
-            { code: "2.1.6", name: "Taxas", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.2", name: "Folha e Pró-labore", kind: "DESPESA", children: [
-            { code: "2.2.1", name: "Salário", kind: "DESPESA" },
-            { code: "2.2.2", name: "Pró-labore", kind: "DESPESA" },
-            { code: "2.2.3", name: "Pagamento de Advogado Parceiro", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.3", name: "Estrutura e Ocupação", kind: "DESPESA", children: [
-            { code: "2.3.1", name: "Aluguel", kind: "DESPESA" },
-            { code: "2.3.2", name: "Condomínio", kind: "DESPESA" },
-            { code: "2.3.3", name: "IPTU", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.4", name: "Tecnologia", kind: "DESPESA", children: [
-            { code: "2.4.1", name: "Software Jurídico", kind: "DESPESA" },
-            { code: "2.4.2", name: "Ferramentas de IA", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.5", name: "Marketing", kind: "DESPESA", children: [
-            { code: "2.5.1", name: "Marketing", kind: "DESPESA" },
-            { code: "2.5.2", name: "Tráfego Pago", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.6", name: "Serviços Profissionais", kind: "DESPESA", children: [
-            { code: "2.6.1", name: "Contador", kind: "DESPESA" },
-            { code: "2.6.2", name: "Anuidade OAB", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.7", name: "Financeiras e Bancárias", kind: "DESPESA", children: [
-            { code: "2.7.1", name: "Tarifas Bancárias", kind: "DESPESA" },
-          ],
-        },
-        {
-          code: "2.8", name: "Outras Despesas", kind: "DESPESA", children: [
-            { code: "2.8.1", name: "Ajuste", kind: "DESPESA" },
-          ],
-        },
-      ],
-    },
-  ];
-
-  const catByCode: Record<string, { id: string }> = {};
-  async function createTree(nodes: CatNode[], parentId: string | null, order: number) {
-    for (const [i, node] of nodes.entries()) {
-      const created = await prisma.financialCategory.create({
-        data: { officeId, code: node.code, name: node.name, kind: node.kind, parentId: parentId ?? undefined, order: order + i },
-      });
-      catByCode[node.code] = created;
-      if (node.children) await createTree(node.children, created.id, 0);
-    }
-  }
-  await createTree(chart, null, 0);
+  const catByCode = await createDefaultChartOfAccounts(prisma, officeId);
 
   const catHonorarios = catByCode["1.1"];
   const catSucumbencia = catByCode["1.2"];
