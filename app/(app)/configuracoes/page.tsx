@@ -22,6 +22,7 @@ import WorkflowsManager from "@/components/WorkflowsManager";
 import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
+import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -378,6 +379,18 @@ export default async function ConfiguracoesPage({
                 Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para o Jusbrasil).
               </p>
             )}
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && driveStatus.connected && (
+        <Card>
+          <CardHeader
+            title="Organização de anexos no Drive"
+            subtitle="Anexos de Processos e Atendimentos ficam em uma pasta por processo/atendimento, com subpasta por categoria de documento — em vez de uma única pasta plana"
+          />
+          <div className="p-5">
+            <ReorganizeAttachmentsButton />
           </div>
         </Card>
       )}

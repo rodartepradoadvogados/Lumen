@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { sendEmailReply } from "@/lib/gmailSend";
+import { renameDriveFolder } from "@/lib/googleDrive";
 
 type CreateAttendanceInput = {
   clientName: string;
@@ -313,6 +314,23 @@ export async function convertAttendanceToCase(
     where: { id: attendanceId },
     data: { status: "CONVERTIDO", convertedCaseId: created.id },
   });
+
+  // Os anexos já enviados no atendimento passam a pertencer ao processo criado — e a MESMA
+  // pasta do Drive (se já existir) é só renomeada e transferida, em vez de deixar uma pasta
+  // órfã pra trás e criar outra do zero no próximo anexo.
+  await prisma.attachment.updateMany({
+    where: { attendanceId },
+    data: { caseId: created.id, attendanceId: null },
+  });
+  if (attendance.driveFolderId) {
+    try {
+      await renameDriveFolder(attendance.driveFolderId, created.title);
+      await prisma.case.update({ where: { id: created.id }, data: { driveFolderId: attendance.driveFolderId } });
+    } catch {
+      // Best-effort — se o Drive não estiver conectado ou a chamada falhar, o processo segue
+      // criado normalmente; uma pasta nova será criada no próximo anexo, se precisar.
+    }
+  }
 
   revalidatePath("/atendimento");
   revalidatePath("/processos");

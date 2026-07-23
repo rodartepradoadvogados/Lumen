@@ -253,30 +253,91 @@ async function findOrCreateChildFolder(drive: ReturnType<typeof google.drive>, p
   return id;
 }
 
+async function getOrCreateRootFolder(drive: ReturnType<typeof google.drive>, rootName: string): Promise<string> {
+  const res = await drive.files.list({
+    q: `name='${rootName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+    fields: "files(id,name)",
+  });
+  let rootId = res.data.files?.[0]?.id;
+  if (!rootId) {
+    const created = await drive.files.create({
+      requestBody: { name: rootName, mimeType: "application/vnd.google-apps.folder" },
+      fields: "id",
+    });
+    rootId = created.data.id ?? undefined;
+  }
+  if (!rootId) throw new Error(`Não foi possível criar a pasta raiz "${rootName}" no Google Drive.`);
+  return rootId;
+}
+
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:
 // "RP Financeiro - Assessoria/{empresa}/{Contratos,Pareceres,Licitações,Regimentos Internos}".
 // Chamado uma única vez, na criação da Assessoria — o id da pasta da empresa fica salvo em
 // Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
 export async function getOrCreateAssessoriaCompanyFolder(companyName: string): Promise<string> {
   const { drive } = await getDriveClient();
-
-  const rootRes = await drive.files.list({
-    q: `name='${ASSESSORIA_ROOT_NAME}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
-    fields: "files(id,name)",
-  });
-  let rootId = rootRes.data.files?.[0]?.id;
-  if (!rootId) {
-    const created = await drive.files.create({
-      requestBody: { name: ASSESSORIA_ROOT_NAME, mimeType: "application/vnd.google-apps.folder" },
-      fields: "id",
-    });
-    rootId = created.data.id ?? undefined;
-  }
-  if (!rootId) throw new Error("Não foi possível criar a pasta raiz de Assessoria no Google Drive.");
-
+  const rootId = await getOrCreateRootFolder(drive, ASSESSORIA_ROOT_NAME);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   for (const subName of Object.values(ASSESSORIA_DOC_TYPE_FOLDERS)) {
     await findOrCreateChildFolder(drive, companyFolderId, subName);
   }
   return companyFolderId;
+}
+
+const PROCESSOS_ROOT_NAME = "RP Financeiro - Processos";
+const ATENDIMENTOS_ROOT_NAME = "RP Financeiro - Atendimentos";
+
+// Pasta própria de um processo no Drive ("RP Financeiro - Processos/{título}"), criada sob
+// demanda no primeiro anexo — o id fica salvo em Case.driveFolderId pra nunca precisar
+// refazer essa busca depois (mesmo padrão de Assessoria.driveFolderId).
+export async function getOrCreateCaseFolder(caseId: string, caseTitle: string): Promise<string> {
+  const existing = await prisma.case.findUnique({ where: { id: caseId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) return existing.driveFolderId;
+
+  const { drive } = await getDriveClient();
+  const rootId = await getOrCreateRootFolder(drive, PROCESSOS_ROOT_NAME);
+  const folderId = await findOrCreateChildFolder(drive, rootId, caseTitle);
+  await prisma.case.update({ where: { id: caseId }, data: { driveFolderId: folderId } });
+  return folderId;
+}
+
+// Mesma ideia, para um Atendimento ("RP Financeiro - Atendimentos/{assunto}") — se o
+// atendimento virar Processo depois, essa MESMA pasta é renomeada e transferida pro Case
+// (ver convertAttendanceToCase em lib/actions/attendance.ts), nunca duplicada.
+export async function getOrCreateAttendanceFolder(attendanceId: string, subject: string): Promise<string> {
+  const existing = await prisma.attendance.findUnique({ where: { id: attendanceId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) return existing.driveFolderId;
+
+  const { drive } = await getDriveClient();
+  const rootId = await getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
+  const folderId = await findOrCreateChildFolder(drive, rootId, subject);
+  await prisma.attendance.update({ where: { id: attendanceId }, data: { driveFolderId: folderId } });
+  return folderId;
+}
+
+// Subpasta de categoria dentro da pasta de um processo/atendimento (ex: "Petição",
+// "Procuração" — ver lib/documentTypes.ts), criada só quando o primeiro documento daquele
+// tipo é anexado — evita cada processo nascer com dezenas de subpastas vazias.
+export async function getOrCreateCategoryFolder(parentFolderId: string, categoryLabel: string): Promise<string> {
+  const { drive } = await getDriveClient();
+  return findOrCreateChildFolder(drive, parentFolderId, categoryLabel);
+}
+
+export async function renameDriveFolder(folderId: string, newName: string): Promise<void> {
+  const { drive } = await getDriveClient();
+  await drive.files.update({ fileId: folderId, requestBody: { name: newName } });
+}
+
+// "Mover" um arquivo no Drive é trocar os pais (parents) — não existe operação de move direta.
+// Usado pela reorganização de anexos já existentes (lib/actions/driveReorg.ts).
+export async function moveDriveFile(fileId: string, newParentId: string): Promise<void> {
+  const { drive } = await getDriveClient();
+  const file = await drive.files.get({ fileId, fields: "parents" });
+  const previousParents = (file.data.parents || []).join(",");
+  await drive.files.update({
+    fileId,
+    addParents: newParentId,
+    removeParents: previousParents || undefined,
+    fields: "id, parents",
+  });
 }

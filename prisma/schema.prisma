@@ -200,6 +200,11 @@ model Case {
   assessoriaId      String?
   assessoria        Assessoria? @relation(fields: [assessoriaId], references: [id])
 
+  // Pasta própria deste processo no Drive (RP Financeiro - Processos/{title}), criada sob
+  // demanda no primeiro anexo — ver lib/googleDrive.ts, getOrCreateCaseFolder. Ao converter um
+  // Atendimento neste Case, herda a MESMA pasta do atendimento (só renomeada), não cria outra.
+  driveFolderId     String?
+
   tasks             Task[]
   comments          Comment[]
   receivables       Receivable[]
@@ -382,6 +387,12 @@ model Attendance {
   // Mesmo vínculo opcional com Assessoria disponível no cadastro de Processo (ver Case.assessoriaId).
   assessoriaId String?
   assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
+
+  // Pasta própria deste atendimento no Drive (RP Financeiro - Atendimentos/{subject}), criada
+  // sob demanda no primeiro anexo (ver lib/googleDrive.ts, getOrCreateAttendanceFolder). Se o
+  // atendimento virar Processo (convertAttendanceToCase), a pasta é só renomeada e transferida
+  // pro Case — nunca duplicada.
+  driveFolderId String?
 
   tasks            Task[]
   attachments      Attachment[]
