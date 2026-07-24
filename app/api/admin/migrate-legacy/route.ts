@@ -18,7 +18,22 @@ export async function GET(request: NextRequest) {
   const secret = request.nextUrl.searchParams.get("secret");
   const expected = process.env.MIGRATION_SECRET;
   if (!expected || secret !== expected) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // Diagnóstico temporário (nenhum dos dois valores em texto puro) — remover depois que a
+    // migração real rodar. Ajuda a confirmar se o problema é variável não configurada, valor
+    // diferente do esperado, ou espaço/quebra de linha extra colado sem querer.
+    return NextResponse.json(
+      {
+        error: "unauthorized",
+        debug: {
+          migrationSecretConfigurado: !!expected,
+          tamanhoEsperado: expected?.length ?? 0,
+          tamanhoRecebido: secret?.length ?? 0,
+          recebidoTemEspacoNaPonta: secret ? secret !== secret.trim() : null,
+          esperadoTemEspacoNaPonta: expected ? expected !== expected.trim() : null,
+        },
+      },
+      { status: 401 }
+    );
   }
 
   const sourceUrl = process.env.SOURCE_DATABASE_URL;
