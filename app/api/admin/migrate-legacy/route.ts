@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await migrarDadosLegado({ sourceUrl, destDb: prisma, officeSlug, officeName });
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro desconhecido durante a migração." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
