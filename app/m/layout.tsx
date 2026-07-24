@@ -50,7 +50,7 @@ export default async function MobileLayout({ children }: { children: React.React
   // Auth já é garantida pelo middleware global; aqui só lemos o usuário para o cabeçalho.
   const user = await getCurrentUser();
   const [unreadCount, todaySeconds] = await Promise.all([
-    user ? prisma.publication.count({ where: { read: false, officeId: user.officeId } }) : Promise.resolve(0),
+    user ? prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }) : Promise.resolve(0),
     user ? getTodayElapsedSeconds(user.id) : Promise.resolve(0),
   ]);
 

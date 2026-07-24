@@ -10,13 +10,23 @@ import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumb
 export async function getUnreadPublicationsCount(): Promise<number> {
   const user = await getCurrentUser();
   if (!user) return 0;
-  return prisma.publication.count({ where: { read: false, officeId: user.officeId } });
+  return prisma.publication.count({
+    where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
+  });
 }
 
+// Leitura é por usuário — marcar como lida só afeta a visão de quem clicou, nunca a dos
+// colegas (diferente de anexar/agendar/delegar/triagem, que continuam compartilhados).
 export async function markPublicationRead(id: string) {
   const user = await getCurrentUser();
   if (!user) return;
-  await prisma.publication.updateMany({ where: { id, officeId: user.officeId }, data: { read: true } });
+  const pub = await prisma.publication.findFirst({ where: { id, officeId: user.officeId }, select: { id: true } });
+  if (!pub) return;
+  await prisma.publicationRead.upsert({
+    where: { publicationId_userId: { publicationId: id, userId: user.id } },
+    create: { publicationId: id, userId: user.id },
+    update: {},
+  });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -25,7 +35,9 @@ export async function markPublicationRead(id: string) {
 export async function markPublicationUnread(id: string) {
   const user = await getCurrentUser();
   if (!user) return;
-  await prisma.publication.updateMany({ where: { id, officeId: user.officeId }, data: { read: false } });
+  const pub = await prisma.publication.findFirst({ where: { id, officeId: user.officeId }, select: { id: true } });
+  if (!pub) return;
+  await prisma.publicationRead.deleteMany({ where: { publicationId: id, userId: user.id } });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -34,7 +46,15 @@ export async function markPublicationUnread(id: string) {
 export async function markAllPublicationsRead() {
   const user = await getCurrentUser();
   if (!user) return { count: 0 };
-  const result = await prisma.publication.updateMany({ where: { read: false, officeId: user.officeId }, data: { read: true } });
+  const unread = await prisma.publication.findMany({
+    where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
+    select: { id: true },
+  });
+  if (unread.length === 0) return { count: 0 };
+  const result = await prisma.publicationRead.createMany({
+    data: unread.map((p) => ({ publicationId: p.id, userId: user.id })),
+    skipDuplicates: true,
+  });
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
   revalidatePath("/painel");
@@ -46,7 +66,15 @@ export async function markAllPublicationsRead() {
 export async function markAllPublicationsReadForCase(caseId: string) {
   const user = await getCurrentUser();
   if (!user) return { count: 0 };
-  const result = await prisma.publication.updateMany({ where: { caseId, read: false, officeId: user.officeId }, data: { read: true } });
+  const unread = await prisma.publication.findMany({
+    where: { caseId, officeId: user.officeId, reads: { none: { userId: user.id } } },
+    select: { id: true },
+  });
+  if (unread.length === 0) return { count: 0 };
+  const result = await prisma.publicationRead.createMany({
+    data: unread.map((p) => ({ publicationId: p.id, userId: user.id })),
+    skipDuplicates: true,
+  });
   revalidatePath(`/processos/${caseId}`);
   revalidatePath("/publicacoes");
   revalidatePath("/alertas");
@@ -205,7 +233,12 @@ export async function generateTaskFromPublication(
       columnId: firstColumn?.id,
     },
   });
-  await prisma.publication.update({ where: { id }, data: { deadlineGenerated: true, read: true, triageStatus: "TRATADA" } });
+  await prisma.publication.update({ where: { id }, data: { deadlineGenerated: true, triageStatus: "TRATADA" } });
+  await prisma.publicationRead.upsert({
+    where: { publicationId_userId: { publicationId: id, userId: user.id } },
+    create: { publicationId: id, userId: user.id },
+    update: {},
+  });
   revalidatePath("/publicacoes");
   revalidatePath("/kanban");
   revalidatePath("/agenda");

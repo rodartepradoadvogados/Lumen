@@ -136,6 +136,7 @@ model User {
   casesResponsible   Case[]        @relation("CaseResponsible")
   comments           Comment[]
   mentions           Mention[]
+  publicationReads   PublicationRead[]
   attendances        Attendance[]  @relation("AttendanceResponsible")
   attachments        Attachment[]
   documentTemplates  DocumentTemplate[]
@@ -932,6 +933,10 @@ model Publication {
   source            String    @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL | JUSBRASIL_EMAIL
   content           String
   publishedAt       DateTime
+  // Coluna morta: a aplicação não lê nem escreve mais este campo (leitura agora é por usuário,
+  // ver PublicationRead). Mantida no schema de propósito — o deploy roda "prisma db push" sem
+  // --accept-data-loss, e apagar essa coluna com dados de produção existentes falharia o
+  // build. Não usar; não reintroduzir lógica que dependa dela.
   read              Boolean   @default(false)
   deadlineGenerated Boolean   @default(false)
   lawyerTag         String?   // nome do advogado identificado pela OAB citada no conteúdo (ver Fase 4 — hoje regex hardcoded por escritório)
@@ -957,9 +962,25 @@ model Publication {
   triageStatus      String    @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
   tasks             Task[]
+  reads             PublicationRead[]
 
   @@index([officeId])
   @@index([officeId, publishedAt])
+}
+
+// Leitura é por usuário, não compartilhada pelo escritório: cada advogado marca uma
+// publicação como lida só pra si — as outras ações (anexar, agendar, delegar, triagem)
+// continuam no próprio Publication, vistas por todo mundo do escritório.
+model PublicationRead {
+  id            String      @id @default(cuid())
+  publicationId String
+  publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt        DateTime    @default(now())
+
+  @@unique([publicationId, userId])
+  @@index([userId])
 }
 
 // ============ BLOG JURÍDICO (público, por escritório) ============

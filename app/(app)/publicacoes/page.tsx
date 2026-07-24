@@ -28,7 +28,7 @@ export default async function PublicacoesPage({
 
   const baseFilters: Prisma.PublicationWhereInput = {
     officeId: viewer.officeId,
-    read: isLidas,
+    reads: isLidas ? { some: { userId: viewer.id } } : { none: { userId: viewer.id } },
     kind: searchParams.kind || undefined,
     lawyerTag: adv ? { contains: adv } : undefined,
     assignedToId: resp || undefined,
@@ -56,7 +56,7 @@ export default async function PublicacoesPage({
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: isLidas ? 100 : undefined,
     }),
-    prisma.publication.count({ where: { read: false, officeId: viewer.officeId } }),
+    prisma.publication.count({ where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
@@ -73,7 +73,7 @@ export default async function PublicacoesPage({
     source: p.source,
     content: p.content,
     publishedAt: p.publishedAt.toISOString(),
-    read: p.read,
+    read: isLidas,
     deadlineGenerated: p.deadlineGenerated,
     lawyerTag: p.lawyerTag,
     processNumberRaw: p.processNumberRaw,

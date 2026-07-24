@@ -12,7 +12,7 @@ export default async function MobilePublicacoes() {
 
   const [publications, users] = await Promise.all([
     prisma.publication.findMany({
-      where: { read: false, officeId: viewer.officeId },
+      where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } },
       include: { case: true, client: true },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: 100,

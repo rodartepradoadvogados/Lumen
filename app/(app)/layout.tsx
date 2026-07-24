@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const [unreadPublications, modules] = await Promise.all([
-    prisma.publication.count({ where: { read: false, officeId: user.officeId } }),
+    prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }),
     getOfficeModules(user.officeId),
   ]);
 

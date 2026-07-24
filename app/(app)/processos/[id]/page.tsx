@@ -60,7 +60,10 @@ export default async function CaseDetailPage({
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
       receivables: { orderBy: { dueDate: "asc" } },
       payables: { orderBy: { dueDate: "asc" } },
-      publications: { include: { client: true }, orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }] },
+      publications: {
+        include: { client: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
     },
   });
@@ -101,7 +104,7 @@ export default async function CaseDetailPage({
     source: p.source,
     content: p.content,
     publishedAt: p.publishedAt.toISOString(),
-    read: p.read,
+    read: p.reads.length > 0,
     deadlineGenerated: p.deadlineGenerated,
     lawyerTag: p.lawyerTag,
     processNumberRaw: p.processNumberRaw,
@@ -111,7 +114,7 @@ export default async function CaseDetailPage({
     assignedToId: p.assignedToId,
     triageStatus: p.triageStatus,
   }));
-  const unreadPublicationsCount = c.publications.filter((p) => !p.read).length;
+  const unreadPublicationsCount = c.publications.filter((p) => p.reads.length === 0).length;
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">

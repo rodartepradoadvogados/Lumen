@@ -36,7 +36,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     where: { id: params.id, officeId: viewer.officeId },
     include: {
       cases: { include: { responsible: true }, orderBy: { title: "asc" } },
-      publications: { include: { case: true }, orderBy: { publishedAt: "desc" }, take: 50 },
+      publications: {
+        include: { case: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
+        orderBy: { publishedAt: "desc" },
+        take: 50,
+      },
     },
   });
 
@@ -149,7 +153,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge color={p.kind === "PUBLICACAO" ? "blue" : "gold"}>{p.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}</Badge>
-                    {!p.read && <Badge color="gold">Não lida</Badge>}
+                    {p.reads.length === 0 && <Badge color="gold">Não lida</Badge>}
                     <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(p.publishedAt)}</span>
                   </div>
                   {p.case && (

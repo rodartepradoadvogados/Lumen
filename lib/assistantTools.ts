@@ -96,7 +96,7 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
 // consultar_publicacoes
 // ---------------------------------------------------------------------------
 
-async function executarConsultarPublicacoes(input: ToolInput, officeId: string): Promise<string> {
+async function executarConsultarPublicacoes(input: ToolInput, officeId: string, userId: string): Promise<string> {
   try {
     const diasAtras = num(input, "diasAtras") ?? 7;
     const apenasNaoLidas = bool(input, "apenasNaoLidas");
@@ -105,11 +105,13 @@ async function executarConsultarPublicacoes(input: ToolInput, officeId: string):
     const desde = new Date();
     desde.setDate(desde.getDate() - Math.max(1, diasAtras));
 
+    // "Não lida" é por usuário — reflete a visão de quem está perguntando ao assistente, não
+    // um estado único compartilhado pelo escritório inteiro (ver PublicationRead no schema).
     const publicacoes = await prisma.publication.findMany({
       where: {
         officeId,
         publishedAt: { gte: desde },
-        read: apenasNaoLidas ? false : undefined,
+        reads: apenasNaoLidas ? { none: { userId } } : undefined,
         lawyerTag: lawyerTag ? { contains: lawyerTag, mode: "insensitive" } : undefined,
       },
       include: { case: true },
@@ -343,7 +345,7 @@ export const assistantTools: AssistantTool[] = [
         required: [],
       },
     },
-    executar: (input, ctx) => executarConsultarPublicacoes(input, ctx.officeId),
+    executar: (input, ctx) => executarConsultarPublicacoes(input, ctx.officeId, ctx.userId),
   },
   {
     modulo: "agenda",
