@@ -34,31 +34,42 @@ function redirectUri(): string {
   return `${appUrl.replace(/\/$/, "")}/api/btg/callback`;
 }
 
+// Credencial do app na chamada de token: Basic <client_id:client_secret> em Base64, conforme
+// documentado em "Fluxos de Autenticação → Authorization Code" — NÃO vai como client_id/
+// client_secret no corpo do POST (erro que tínhamos antes de confirmar isso na documentação).
+function basicAuthHeader(): string {
+  return `Basic ${Buffer.from(`${process.env.BTG_CLIENT_ID}:${process.env.BTG_CLIENT_SECRET}`).toString("base64")}`;
+}
+
 // Passo 1 do fluxo: URL pra onde mandar o platform owner logar no BTG e autorizar o app.
+// Endpoint e parâmetros confirmados em "Fluxos de Autenticação → Authorization Code":
+// GET /oauth2/authorize?client_id=...&response_type=code&redirect_uri=...&scope=...&prompt=login
 export function getBtgAuthorizeUrl(state: string): string {
   const params = new URLSearchParams({
-    response_type: "code",
     client_id: process.env.BTG_CLIENT_ID || "",
+    response_type: "code",
     redirect_uri: redirectUri(),
-    scope: "openid boletos", // "boletos" é um palpite — ajustar conforme o BTG documentar no app registrado
+    // Escopos exatos concedidos ao app registrado (aba "Escopos utilizados" no BTG) para
+    // identificação (openid) e emissão/consulta de boleto — nada de "collections"/webhooks,
+    // que o código ainda não usa.
+    scope: "openid empresas.btgpactual.com/bank-slips empresas.btgpactual.com/bank-slips.readonly",
+    prompt: "login",
     state,
   });
-  return `${AUTH_BASE}/auth?${params.toString()}`;
+  return `${AUTH_BASE}/oauth2/authorize?${params.toString()}`;
 }
 
 // Passo 2: troca o "code" do callback por access_token + refresh_token, e já persiste.
 export async function exchangeBtgCode(code: string): Promise<{ ok: boolean; error?: string }> {
   if (!isBtgConfigured()) return { ok: false, error: "BTG_CLIENT_ID/BTG_CLIENT_SECRET não configurados." };
   try {
-    const res = await fetch(`${AUTH_BASE}/token`, {
+    const res = await fetch(`${AUTH_BASE}/oauth2/token`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basicAuthHeader() },
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
         redirect_uri: redirectUri(),
-        client_id: process.env.BTG_CLIENT_ID!,
-        client_secret: process.env.BTG_CLIENT_SECRET!,
       }),
     });
     if (!res.ok) return { ok: false, error: `BTG recusou a troca do código (HTTP ${res.status}): ${await res.text().catch(() => "")}` };
@@ -80,14 +91,12 @@ export async function exchangeBtgCode(code: string): Promise<{ ok: boolean; erro
 
 async function refreshBtgToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date } | null> {
   try {
-    const res = await fetch(`${AUTH_BASE}/token`, {
+    const res = await fetch(`${AUTH_BASE}/oauth2/token`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basicAuthHeader() },
       body: new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: refreshToken,
-        client_id: process.env.BTG_CLIENT_ID!,
-        client_secret: process.env.BTG_CLIENT_SECRET!,
       }),
     });
     if (!res.ok) return null;
