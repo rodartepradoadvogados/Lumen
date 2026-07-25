@@ -36,6 +36,7 @@ export default async function TopBar() {
           <Link
             href="/painel-mestre"
             data-tip="Painel Mestre"
+            data-tip-pos="bottom"
             className="p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors text-bordo-700 dark:text-bordo-400"
           >
             <Lock size={18} />
