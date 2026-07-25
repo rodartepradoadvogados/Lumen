@@ -22,7 +22,7 @@ export async function createSupplierQuick(name: string): Promise<{ id: string; n
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   const supplier = await prisma.supplier.create({ data: { name, officeId: viewer.officeId } });
   revalidatePath("/contatos/fornecedores");
-  revalidatePath("/financeiro/contas-a-pagar");
+  revalidatePath("/financeiro/despesas");
   return { id: supplier.id, name: supplier.name };
 }
 
@@ -61,7 +61,7 @@ export async function updateSupplier(
     },
   });
   revalidatePath("/contatos/fornecedores");
-  revalidatePath("/financeiro/contas-a-pagar");
+  revalidatePath("/financeiro/despesas");
 }
 
 export async function deleteSupplier(id: string): Promise<{ error?: string }> {

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const tipo = sp.get("tipo") === "receber" ? "receber" : "pagar";
   const params: FinanceSearchParams = {
-    status: sp.get("status") || undefined,
+    tab: sp.get("tab") || undefined,
     from: sp.get("from") || undefined,
     to: sp.get("to") || undefined,
     costCenterId: sp.get("costCenterId") || undefined,

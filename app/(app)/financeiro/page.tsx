@@ -24,8 +24,8 @@ export default async function FinanceiroPage() {
   const receivedThisMonth = receivablesPaidMonth.reduce((s, r) => s + (r.paidAmount ?? r.amount), 0);
 
   const modules = [
-    { href: "/financeiro/contas-a-receber", label: "Contas a Receber", icon: TrendingUp, desc: "Honorários contratuais, sucumbenciais e reembolsos" },
-    { href: "/financeiro/contas-a-pagar", label: "Contas a Pagar", icon: TrendingDown, desc: "Despesas fixas, custas processuais e fornecedores" },
+    { href: "/financeiro/receitas", label: "Receitas", icon: TrendingUp, desc: "Honorários contratuais, sucumbenciais e reembolsos" },
+    { href: "/financeiro/despesas", label: "Despesas", icon: TrendingDown, desc: "Despesas fixas, custas processuais e fornecedores" },
     { href: "/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Wallet, desc: "Entradas e saídas projetadas por mês" },
     { href: "/financeiro/dre", label: "DRE", icon: PieChart, desc: "Resultado do exercício por categoria" },
     { href: "/financeiro/livro-caixa", label: "Livro Caixa", icon: BookOpen, desc: "Extrato cronológico de todas as movimentações" },

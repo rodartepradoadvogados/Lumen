@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, formatCurrency } from "@/components/ui";
+import { buildCategoryBreakdown } from "@/lib/cashFlowGroups";
+import { CategoryBreakdownSection } from "@/components/CategoryBreakdownTree";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -10,15 +12,19 @@ export const dynamic = "force-dynamic";
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 // Mesma lógica de cálculo da página desktop (`/financeiro/fluxo-de-caixa`): projeção por
-// vencimento, -3 a +3 meses a partir do mês atual — só a apresentação muda para lista.
+// vencimento, -3 a +3 meses a partir do mês atual, excluindo lançamentos cancelados — só a
+// apresentação muda para lista.
 export default async function MobileFluxoDeCaixa() {
   const viewer = await getCurrentUser();
   if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
 
   const now = new Date();
+  const windowStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  const windowEnd = new Date(now.getFullYear(), now.getMonth() + 4, 0, 23, 59, 59);
+
   const [payables, receivables] = await Promise.all([
-    prisma.payable.findMany({ where: { officeId: viewer.officeId } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { not: "CANCELADO" }, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { not: "CANCELADO" }, dueDate: { gte: windowStart, lte: windowEnd } } }),
   ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number }[] = [];
@@ -44,6 +50,19 @@ export default async function MobileFluxoDeCaixa() {
     saldoAcumulado += saldoMes;
     return { ...m, saldoMes, saldoAcumulado };
   });
+
+  const [receitasBreakdown, despesasBreakdown] = await Promise.all([
+    buildCategoryBreakdown(
+      "RECEITA",
+      viewer.officeId,
+      receivables.map((r) => ({ id: r.id, description: r.description, date: r.dueDate, amount: r.amount, categoryId: r.categoryId }))
+    ),
+    buildCategoryBreakdown(
+      "DESPESA",
+      viewer.officeId,
+      payables.map((p) => ({ id: p.id, description: p.description, date: p.dueDate, amount: p.amount, categoryId: p.categoryId }))
+    ),
+  ]);
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -88,6 +107,16 @@ export default async function MobileFluxoDeCaixa() {
             </div>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Receitas por grupo" subtitle="Toque para destrinchar" />
+        <CategoryBreakdownSection title="Receitas" breakdown={receitasBreakdown} tone="green" compact />
+      </Card>
+
+      <Card>
+        <CardHeader title="Despesas por grupo" subtitle="Toque para destrinchar" />
+        <CategoryBreakdownSection title="Despesas" breakdown={despesasBreakdown} tone="red" compact />
       </Card>
     </div>
   );

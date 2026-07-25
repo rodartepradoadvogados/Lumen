@@ -133,8 +133,8 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         adminOnly: true,
         moduleKey: "financeiro",
         subItems: [
-          { label: "Contas a Pagar", href: "/financeiro/contas-a-pagar" },
-          { label: "Contas a Receber", href: "/financeiro/contas-a-receber" },
+          { label: "Despesas", href: "/financeiro/despesas" },
+          { label: "Receitas", href: "/financeiro/receitas" },
           { label: "Fluxo de Caixa", href: "/financeiro/fluxo-de-caixa" },
           { label: "DRE", href: "/financeiro/dre" },
           { label: "Livro Caixa", href: "/financeiro/livro-caixa" },

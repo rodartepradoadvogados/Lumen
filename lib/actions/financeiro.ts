@@ -19,8 +19,8 @@ async function assertFinanceRelationsInOffice(
 
 function revalidateFinance() {
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/contas-a-pagar");
-  revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
   revalidatePath("/financeiro/fluxo-de-caixa");
   revalidatePath("/financeiro/dre");
   revalidatePath("/financeiro/livro-caixa");

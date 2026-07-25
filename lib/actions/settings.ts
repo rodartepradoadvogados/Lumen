@@ -234,8 +234,8 @@ export async function createCostCenterQuick(name: string): Promise<{ id: string;
   if (!viewer) return { id: "", name: "", error: "Sessão expirada." };
   const costCenter = await prisma.costCenter.create({ data: { officeId: viewer.officeId, name } });
   revalidatePath("/configuracoes");
-  revalidatePath("/financeiro/contas-a-pagar");
-  revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
   return { id: costCenter.id, name: costCenter.name };
 }
 

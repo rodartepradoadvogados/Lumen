@@ -45,7 +45,7 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     if (!payable) return;
     await prisma.payable.delete({ where: { id: entityId } });
     revalidatePath("/financeiro");
-    revalidatePath("/financeiro/contas-a-pagar");
+    revalidatePath("/financeiro/despesas");
     revalidatePath("/financeiro/dre");
     revalidatePath("/financeiro/livro-caixa");
     revalidatePath("/alertas");
@@ -56,7 +56,7 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     if (!receivable) return;
     await prisma.receivable.delete({ where: { id: entityId } });
     revalidatePath("/financeiro");
-    revalidatePath("/financeiro/contas-a-receber");
+    revalidatePath("/financeiro/receitas");
     revalidatePath("/financeiro/dre");
     revalidatePath("/financeiro/livro-caixa");
     revalidatePath("/alertas");

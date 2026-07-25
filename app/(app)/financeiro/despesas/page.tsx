@@ -1,0 +1,167 @@
+import { prisma } from "@/lib/prisma";
+import { PageHeader, Card, formatCurrency } from "@/components/ui";
+import NewPayableModal from "@/components/NewPayableModal";
+import PayablesList from "@/components/PayablesList";
+import Link from "next/link";
+import { Download } from "lucide-react";
+import { getLeafCategoryOptions } from "@/lib/categories";
+import { getFilteredPayables } from "@/lib/financeQuery";
+import { getCurrentUser } from "@/lib/currentUser";
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default async function DespesasPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string; from?: string; to?: string; costCenterId?: string; q?: string; categoryId?: string };
+}) {
+  const viewer = await getCurrentUser();
+  if (!viewer) redirect("/");
+
+  const filtered = await getFilteredPayables(searchParams, viewer.officeId);
+  const total = filtered.reduce((s, p) => s + p.amount, 0);
+  const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
+
+  const [categories, cases, costCenters, suppliers] = await Promise.all([
+    getLeafCategoryOptions("DESPESA", viewer.officeId),
+    prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
+
+  const exportHref = (() => {
+    const params = new URLSearchParams();
+    Object.entries({ ...searchParams, tipo: "pagar" }).forEach(([k, v]) => v && params.set(k, v));
+    return `/api/financeiro/export?${params.toString()}`;
+  })();
+
+  const qs = (extra: Record<string, string | undefined>) => {
+    const merged = { ...searchParams, ...extra };
+    const params = new URLSearchParams();
+    Object.entries(merged).forEach(([k, v]) => v && params.set(k, v));
+    const s = params.toString();
+    return `/financeiro/despesas${s ? `?${s}` : ""}`;
+  };
+
+  return (
+    <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
+      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+        ← Financeiro
+      </Link>
+      <PageHeader
+        title="Despesas"
+        subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
+        action={<NewPayableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} costCenters={costCenters} suppliers={suppliers} />}
+      />
+
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <FilterLink label="Contas a Pagar" href={qs({ tab: undefined })} active={tab === "abertas"} />
+        <FilterLink label="Pagas" href={qs({ tab: "pagas" })} active={tab === "pagas"} />
+        <FilterLink label="Todas" href={qs({ tab: "todas" })} active={tab === "todas"} />
+      </div>
+
+      <Card className="mb-4">
+        <form className="p-4 flex flex-wrap items-end gap-3">
+          {searchParams.tab && <input type="hidden" name="tab" value={searchParams.tab} />}
+          <div className="flex-1 min-w-[180px]">
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
+            <input type="text" name="q" defaultValue={searchParams.q} placeholder="Descrição ou fornecedor" className="fp-input w-full" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Categoria</label>
+            <select name="categoryId" defaultValue={searchParams.categoryId} className="fp-input">
+              <option value="">Todas</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">De</label>
+            <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Até</label>
+            <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Centro de Custo</label>
+            <select name="costCenterId" defaultValue={searchParams.costCenterId} className="fp-input">
+              <option value="">Todos</option>
+              {costCenters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+            Filtrar
+          </button>
+          <a
+            href={exportHref}
+            className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5"
+          >
+            <Download size={15} /> Exportar .xlsx
+          </a>
+          {(searchParams.from || searchParams.to || searchParams.costCenterId || searchParams.q || searchParams.categoryId) && (
+            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2">
+              Limpar filtros
+            </Link>
+          )}
+        </form>
+      </Card>
+
+      <Card>
+        <PayablesList
+          payables={filtered.map((p) => ({
+            id: p.id,
+            description: p.description,
+            supplier: p.supplier,
+            supplierId: p.supplierId,
+            amount: p.amount,
+            dueDate: p.dueDate.toISOString(),
+            noDueDate: p.noDueDate,
+            status: p.status,
+            effectiveStatus: p.effectiveStatus,
+            paidAmount: p.paidAmount,
+            paymentReceiptNumber: p.paymentReceiptNumber,
+            paymentMethod: p.paymentMethod,
+            categoryId: p.categoryId,
+            costCenterId: p.costCenterId,
+            caseId: p.caseId,
+            category: p.category ? { name: p.category.name } : null,
+            costCenter: p.costCenter ? { name: p.costCenter.name } : null,
+            case: p.case ? { title: p.case.title } : null,
+          }))}
+          categories={categories}
+          cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+          costCenters={costCenters}
+          suppliers={suppliers}
+        />
+      </Card>
+      <style>{`
+        .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }
+        .fp-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+      `}</style>
+    </div>
+  );
+}
+
+function FilterLink({ label, href, active }: { label: string; href: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+        active
+          ? "bg-navy-900 text-white dark:bg-white/10 dark:text-cream-50"
+          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}

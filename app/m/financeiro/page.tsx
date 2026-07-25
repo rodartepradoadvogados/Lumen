@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 // no hub suspenso "Financeiro" de app/m/page.tsx, só que como página própria (para servir de
 // destino do item "Financeiro" em app/m/mais/page.tsx, que antes apontava pro site desktop).
 const FINANCE_ITEMS: { href: string; label: string; desc: string; Icon: LucideIcon }[] = [
-  { href: "/m/financeiro/contas-a-pagar", label: "Contas a Pagar", desc: "Lançamentos pendentes, atrasados e pagos", Icon: Wallet },
-  { href: "/m/financeiro/contas-a-receber", label: "Contas a Receber", desc: "Recebimentos pendentes, atrasados e pagos", Icon: Wallet },
+  { href: "/m/financeiro/despesas", label: "Despesas", desc: "Contas a pagar, pagas e todas", Icon: Wallet },
+  { href: "/m/financeiro/receitas", label: "Receitas", desc: "Contas a receber, recebidas e todas", Icon: Wallet },
   { href: "/m/financeiro/relatorios", label: "Relatórios Gerenciais", desc: "Visão consolidada do Financeiro", Icon: FileBarChart },
   { href: "/m/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", desc: "Entradas e saídas por período", Icon: LineChart },
   { href: "/m/financeiro/dre", label: "DRE", desc: "Demonstrativo de resultado", Icon: FileBarChart },

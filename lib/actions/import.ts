@@ -37,8 +37,8 @@ export async function importFinance(_prevState: ImportResult, formData: FormData
   const result = await importFinanceCore(rows, viewer.officeId);
 
   revalidatePath("/financeiro");
-  revalidatePath("/financeiro/contas-a-pagar");
-  revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
   revalidatePath("/financeiro/dre");
   revalidatePath("/financeiro/fluxo-de-caixa");
   revalidatePath("/financeiro/livro-caixa");

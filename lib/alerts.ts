@@ -122,7 +122,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       title: p.description,
       subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       date: p.dueDate,
-      href: `/financeiro/contas-a-pagar`,
+      href: `/financeiro/despesas`,
       severity: "alta",
       entityKind: "PAYABLE",
       entityId: p.id,
@@ -136,7 +136,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       title: r.description,
       subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       date: r.dueDate,
-      href: `/financeiro/contas-a-receber`,
+      href: `/financeiro/receitas`,
       severity: "media",
       entityKind: "RECEIVABLE",
       entityId: r.id,
@@ -150,7 +150,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       title: `Definir vencimento: ${p.description}`,
       subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · revisar todo início de mês`,
       date: p.dueDate,
-      href: `/financeiro/contas-a-pagar`,
+      href: `/financeiro/despesas`,
       severity: "baixa",
       entityKind: "PAYABLE",
       entityId: p.id,
@@ -164,7 +164,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       title: `Definir vencimento: ${r.description}`,
       subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · revisar todo início de mês`,
       date: r.dueDate,
-      href: `/financeiro/contas-a-receber`,
+      href: `/financeiro/receitas`,
       severity: "baixa",
       entityKind: "RECEIVABLE",
       entityId: r.id,
@@ -254,7 +254,7 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
       kind: "CONTA_PAGAR",
       title: p.description,
       subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      href: "/financeiro/contas-a-pagar",
+      href: "/financeiro/despesas",
     });
   }
   for (const r of receivablesToday) {
@@ -263,7 +263,7 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
       kind: "CONTA_RECEBER",
       title: r.description,
       subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      href: "/financeiro/contas-a-receber",
+      href: "/financeiro/receitas",
     });
   }
 

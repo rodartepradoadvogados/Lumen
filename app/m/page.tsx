@@ -127,8 +127,8 @@ export default async function MobileHome() {
             icon={DollarSign}
             tone="bordo"
             chips={[
-              { href: "/m/financeiro/contas-a-pagar", label: "Contas a Pagar", icon: Wallet, tone: "bordo" },
-              { href: "/m/financeiro/contas-a-receber", label: "Contas a Receber", icon: Wallet, tone: "gold" },
+              { href: "/m/financeiro/despesas", label: "Despesas", icon: Wallet, tone: "bordo" },
+              { href: "/m/financeiro/receitas", label: "Receitas", icon: Wallet, tone: "gold" },
               { href: "/m/financeiro/relatorios", label: "Relatórios Gerenciais", icon: FileBarChart, tone: "gold" },
               { href: "/m/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: LineChart, tone: "gold" },
               { href: "/m/financeiro/dre", label: "DRE", icon: FileBarChart, tone: "gold" },
