@@ -4,7 +4,8 @@ description: >
   Robô autônomo de conteúdo jurídico do Escritório Rodarte Prado Advogados (Goiânia-GO).
   Varre fontes de jurisprudência, legislação e notícia jurídica, valida contra pelo menos
   duas fontes independentes, e envia rascunhos de matérias para o blog público do site
-  principal (rp-financeiro) via API — nunca publica diretamente. Use SEMPRE que o usuário
+  Lúmen (rodartepradoadvogados/Lumen — mesmo repositório que já foi `rp-financeiro`,
+  renomeado) via API — nunca publica diretamente. Use SEMPRE que o usuário
   disser "/rp-radar-juridico", "roda o robô de conteúdo jurídico", "verifica novidades
   jurídicas para o blog", ou quando este skill for acionado por uma Routine agendada para
   o ciclo diário do robô de conteúdo. Não confundir com a skill "juridico-rodarte-prado"
@@ -15,8 +16,14 @@ description: >
 # Robô de Conteúdo Jurídico — Rodarte Prado Advogados
 
 Mantém os advogados do escritório atualizados sobre jurisprudência, legislação, doutrina
-e teses vinculantes, e funciona como marketing de conteúdo público no blog do site
-(`rp-financeiro`, blog público, não é área restrita).
+e teses vinculantes, e funciona como marketing de conteúdo público no blog do site Lúmen
+(blog público, não é área restrita).
+
+**Migração 2026-07-23:** o site já foi `rp-financeiro-xi.vercel.app`; o repositório
+`rodartepradoadvogados/rp-financeiro` foi renomeado para `rodartepradoadvogados/Lumen` e o
+deploy agora é um projeto Vercel novo, `lumen-flax-chi.vercel.app` — mesmo código, endpoint
+novo. Se algum dia aparecer uma referência solta ao domínio antigo em algum lugar, é
+resquício de antes da migração; o domínio válido é sempre `lumen-flax-chi.vercel.app`.
 
 Este projeto é conceitualmente separado do site principal — só se comunica com ele por
 API. Nunca publica nada diretamente: cada matéria enviada cai na fila "Revisão Pendente"
@@ -29,7 +36,8 @@ Cível, Consumerista, Empresarial, Tributário, Trabalhista, Previdenciário, Ad
 Licitação, Compliance, Due Diligence, Contratual, Responsabilidade Civil, Execuções.
 
 Use exatamente um destes valores no campo `area` do POST (mesma nomenclatura do banco de
-dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-financeiro).
+dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo
+rodartepradoadvogados/Lumen).
 
 ## Fontes de pesquisa
 
@@ -37,9 +45,9 @@ dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-fina
 - **Conjur** (https://www.conjur.com.br/)
 - **Jusbrasil** — só a seção de notícias/artigos (https://www.jusbrasil.com.br/noticias/).
   NUNCA mexer com e-mails de publicação processual do Jusbrasil — isso é um sistema
-  totalmente separado (`robo-publicacoes/` no repo rp-financeiro, robô Python na Railway,
-  monitorando processos específicos) e já está resolvido; este skill não tem relação com
-  ele.
+  totalmente separado (`robo-publicacoes/` no repo rodartepradoadvogados/Lumen, robô
+  Python na Railway, monitorando processos específicos) e já está resolvido; este skill
+  não tem relação com ele.
 - **Sites oficiais dos tribunais**: STF, STJ, TST, TSE, tribunais superiores em geral,
   TJs, TRFs, TRTs — priorizar a fonte oficial (acórdão publicado, informativo de
   jurisprudência) sempre que uma notícia de terceiro mencionar uma decisão.
@@ -57,7 +65,7 @@ dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-fina
    efêmeras, sem estado local persistente entre execuções):
 
    ```
-   curl -s https://rp-financeiro-xi.vercel.app/api/blog/draft?days=30 \
+   curl -s https://lumen-flax-chi.vercel.app/api/blog/draft?days=30 \
      -H "Authorization: Bearer $BLOG_ROBOT_SECRET"
    ```
 
@@ -118,7 +126,7 @@ dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-fina
 6. **Publicar via API** (envia para a fila de revisão, não publica direto):
 
    ```bash
-   curl -X POST https://rp-financeiro-xi.vercel.app/api/blog/draft \
+   curl -X POST https://lumen-flax-chi.vercel.app/api/blog/draft \
      -H "Authorization: Bearer $BLOG_ROBOT_SECRET" \
      -H "Content-Type: application/json" \
      -d '{
@@ -161,6 +169,6 @@ dados do site — ver `prisma/schema.prisma`, modelo `BlogPost`, no repo rp-fina
 - `BLOG_ROBOT_SECRET` deve estar disponível como variável de ambiente na sessão. Se não
   estiver, e o valor não tiver sido embutido no prompt de disparo da Routine, pare e peça
   ao usuário.
-- Este skill não lê nem escreve nada no repositório `rp-financeiro` — comunica-se
+- Este skill não lê nem escreve nada no repositório `rodartepradoadvogados/Lumen` — comunica-se
   exclusivamente pela API pública `/api/blog/draft` (GET para checar duplicatas, POST para
   enviar rascunho).

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -43,6 +44,7 @@ export default function RootLayout({
             (mesmo padrão de app/m/layout.tsx, adaptado para os 3 estados dia/tarde/noite). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
+        <Analytics />
       </body>
     </html>
   );
