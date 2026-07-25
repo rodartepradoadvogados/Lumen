@@ -6,7 +6,10 @@ import { isPushConfigured } from "@/lib/push";
 
 export async function getPushPublicKey(): Promise<string | null> {
   if (!isPushConfigured()) return null;
-  return process.env.VAPID_PUBLIC_KEY!;
+  // .trim() protege contra espaço/quebra de linha coladas junto do valor ao cadastrar a
+  // variável de ambiente — isso sozinho já derruba o subscribe() do navegador com um erro
+  // genérico ("chave inválida"), sem pista nenhuma de que a causa foi um espaço a mais.
+  return process.env.VAPID_PUBLIC_KEY!.trim();
 }
 
 export type NotificationPrefs = {

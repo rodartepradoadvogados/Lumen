@@ -22,8 +22,9 @@ const TYPE_OPTIONS: { key: keyof NotificationPrefs; label: string }[] = [
 // Converte a chave pública VAPID (base64url) pro formato Uint8Array exigido pelo
 // PushManager.subscribe — conversão padrão recomendada pela documentação do Web Push.
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const trimmed = base64String.trim();
+  const padding = "=".repeat((4 - (trimmed.length % 4)) % 4);
+  const base64 = (trimmed + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
@@ -79,8 +80,13 @@ export default function NotificationPreferences() {
       const json = subscription.toJSON();
       await savePushSubscription({ endpoint: json.endpoint!, keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth } });
       setSubscribed(true);
-    } catch {
-      setError("Não foi possível ativar as notificações neste aparelho.");
+    } catch (e) {
+      // Mostra o motivo real (nome do erro do navegador) em vez de um texto genérico — o
+      // caso mais comum é "InvalidAccessError" quando a chave VAPID cadastrada na Vercel
+      // tem espaço/quebra de linha a mais colada junto (já protegido no servidor, mas o
+      // detalhe ajuda a diagnosticar de primeira se acontecer de novo ou por outro motivo).
+      const detail = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+      setError(`Não foi possível ativar as notificações neste aparelho (${detail}).`);
     }
     setBusy(false);
   }

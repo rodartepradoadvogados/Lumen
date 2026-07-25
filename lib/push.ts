@@ -29,8 +29,8 @@ function ensureVapidConfigured() {
   if (vapidConfigured || !isPushConfigured()) return;
   webpush.setVapidDetails(
     "mailto:contato@lumen.adv.br",
-    process.env.VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
+    process.env.VAPID_PUBLIC_KEY!.trim(),
+    process.env.VAPID_PRIVATE_KEY!.trim()
   );
   vapidConfigured = true;
 }
