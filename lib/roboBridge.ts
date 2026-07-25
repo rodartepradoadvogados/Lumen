@@ -39,11 +39,67 @@ function detectLawyerTagFromOab(oab: string | null | undefined, nomeAdvogado: st
   return nomeAdvogado ?? null;
 }
 
-async function findCaseIdByProcessNumber(processNumeroNormalizado: string | null, officeId: string): Promise<string | null> {
-  if (!processNumeroNormalizado) return null;
-  const allCases = await prisma.case.findMany({ where: { officeId, processNumber: { not: null } }, select: { id: true, processNumber: true } });
-  const found = allCases.find((c) => c.processNumber && normalizarNumeroProcesso(c.processNumber) === processNumeroNormalizado);
-  return found?.id ?? null;
+// Mesma lógica de extração de número/UF usada em lib/djenSync.ts:parseOab e no robô
+// Python (config.py:_parse_oab_texto) — os três precisam concordar sobre o mesmo dado
+// de texto livre ("OAB/GO 78.295", "78295-GO", etc.).
+const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SE", "SP", "TO"];
+function parseOabNumero(raw: string): string | null {
+  const ufMatch = raw.toUpperCase().match(new RegExp(`\\b(${UFS.join("|")})\\b`));
+  const numeroMatch = raw.match(/\d[\d.]{3,}/);
+  if (!ufMatch || !numeroMatch) return null;
+  return numeroMatch[0].replace(/\D/g, "");
+}
+
+// Índices carregados uma vez por sincronização (não por item) para resolver, pra cada
+// publicação/andamento capturado pelo robô, a QUAL escritório ele pertence:
+//   1ª tentativa: número de processo bate com um Case existente (de qualquer escritório).
+//   2ª tentativa: OAB do advogado bate com um usuário ativo de algum escritório.
+//   fallback final: escritório interno (Rodarte Prado) — nunca perde o dado, só assume o
+//   dono da plataforma quando não há nenhum sinal de a qual escritório-cliente pertence.
+type RoteamentoIndices = {
+  casoPorProcesso: Map<string, { caseId: string; officeId: string }>;
+  officePorOab: Map<string, string>;
+  officeFallbackId: string | null;
+};
+
+async function carregarIndicesDeRoteamento(): Promise<RoteamentoIndices> {
+  const [casos, usuarios, officeInterno, officeMaisAntigo] = await Promise.all([
+    prisma.case.findMany({ where: { processNumber: { not: null }, office: { status: "ATIVA" } }, select: { id: true, officeId: true, processNumber: true } }),
+    prisma.user.findMany({ where: { active: true, oab: { not: null }, office: { status: "ATIVA" } }, select: { oab: true, officeId: true } }),
+    prisma.office.findFirst({ where: { isInternal: true }, select: { id: true } }),
+    prisma.office.findFirst({ orderBy: { createdAt: "asc" }, select: { id: true } }),
+  ]);
+
+  const casoPorProcesso = new Map<string, { caseId: string; officeId: string }>();
+  for (const c of casos) {
+    const normalizado = normalizarNumeroProcesso(c.processNumber);
+    if (normalizado) casoPorProcesso.set(normalizado, { caseId: c.id, officeId: c.officeId });
+  }
+
+  const officePorOab = new Map<string, string>();
+  for (const u of usuarios) {
+    const numero = u.oab ? parseOabNumero(u.oab) : null;
+    if (numero) officePorOab.set(numero, u.officeId);
+  }
+
+  return { casoPorProcesso, officePorOab, officeFallbackId: officeInterno?.id ?? officeMaisAntigo?.id ?? null };
+}
+
+function resolverOffice(
+  indices: RoteamentoIndices,
+  processNumeroNormalizado: string | null,
+  oab: string | null | undefined
+): { caseId: string | null; officeId: string | null } {
+  if (processNumeroNormalizado) {
+    const match = indices.casoPorProcesso.get(processNumeroNormalizado);
+    if (match) return { caseId: match.caseId, officeId: match.officeId };
+  }
+  const numeroOab = oab ? parseOabNumero(oab) : null;
+  if (numeroOab) {
+    const officeId = indices.officePorOab.get(numeroOab);
+    if (officeId) return { caseId: null, officeId };
+  }
+  return { caseId: null, officeId: indices.officeFallbackId };
 }
 
 // dataDisponibilizacao/dataMovimentacao vêm como string livre do robô — tenta parsear
@@ -62,9 +118,9 @@ function parseDataOuFallback(raw: string | null | undefined, fallback: Date): Da
 // de todos os processos do escritório, mesmo enquanto a descoberta automática via DJEN
 // não funcionar. Idempotente (skipDuplicates): não sobrescreve processos já monitorados,
 // sejam eles descobertos via DJEN ou cadastrados manualmente pelo próprio robô.
-async function seedProcessosMonitoradosFromCases(officeId: string): Promise<number> {
+async function seedProcessosMonitoradosFromCases(): Promise<number> {
   const casos = await prisma.case.findMany({
-    where: { officeId, processNumber: { not: null } },
+    where: { processNumber: { not: null }, office: { status: "ATIVA" } },
     select: { processNumber: true },
   });
 
@@ -86,10 +142,13 @@ async function seedProcessosMonitoradosFromCases(officeId: string): Promise<numb
   return count;
 }
 
-// TODO(multi-tenant / Fase 4): o robô Python (robo-publicacoes/) escreve num conjunto único e
-// global de tabelas (RoboPublicacao/RoboAndamento/RoboProcessoMonitorado), sem noção de
-// escritório — ele monitora só as OABs configuradas nele mesmo. Enquanto isso não for resolvido
-// (robô precisa aprender a operar por tenant), esta ponte só pode atender UM escritório por vez.
+// O robô Python (robo-publicacoes/) escreve num conjunto único e global de tabelas
+// (RoboPublicacao/RoboAndamento/RoboProcessoMonitorado), sem coluna de escritório — ele já
+// monitora as OABs de TODOS os escritórios ativos (config.py:carregar_oabs_do_banco), mas não
+// sabe a qual escritório cada OAB pertence. É aqui, na ponte, que cada item capturado é
+// atribuído ao escritório certo: por número de processo (bate com um Case existente) e, na
+// falta disso, pela OAB do advogado (bate com um usuário ativo); sem nenhum dos dois sinais,
+// cai no escritório interno (dono da plataforma) em vez de se perder.
 export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   const result: RoboBridgeResult = {
     publicacoesCriadas: 0,
@@ -99,17 +158,25 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     erros: [],
   };
 
-  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
-  if (!office) {
+  const indices = await carregarIndicesDeRoteamento();
+  if (!indices.officeFallbackId) {
     result.erros.push("Nenhum escritório cadastrado.");
     return result;
   }
 
   try {
-    result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases(office.id);
+    result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases();
   } catch (e) {
     const message = e instanceof Error ? e.message : "erro desconhecido";
     result.erros.push(`[seed processos monitorados] ${message}`);
+  }
+
+  // Acumula por escritório para notificar cada um só do que é seu, no fim.
+  const porOffice = new Map<string, { publicacoes: number; andamentos: number }>();
+  function contar(officeId: string, campo: "publicacoes" | "andamentos") {
+    const atual = porOffice.get(officeId) ?? { publicacoes: 0, andamentos: 0 };
+    atual[campo]++;
+    porOffice.set(officeId, atual);
   }
 
   const publicacoesPendentes = await prisma.roboPublicacao.findMany({ where: { statusLido: false } });
@@ -120,24 +187,27 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(pub.numeroProcesso);
-        const caseId = await findCaseIdByProcessNumber(numeroNormalizado, office.id);
+        const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, pub.oab);
         const lawyerTag = detectLawyerTagFromOab(pub.oab, pub.nomeAdvogado);
 
-        await prisma.publication.create({
-          data: {
-            officeId: office.id,
-            kind: "PUBLICACAO",
-            source: "DJEN",
-            content: pub.teor ?? pub.tipoComunicacao ?? "(sem teor)",
-            publishedAt: parseDataOuFallback(pub.dataDisponibilizacao, pub.dataCaptura),
-            emailMessageId,
-            processNumberRaw: pub.numeroProcesso,
-            caseId,
-            lawyerTag,
-          },
-        });
-        result.publicacoesCriadas++;
-        if (!caseId) result.semCasoVinculado++;
+        if (officeId) {
+          await prisma.publication.create({
+            data: {
+              officeId,
+              kind: "PUBLICACAO",
+              source: "DJEN",
+              content: pub.teor ?? pub.tipoComunicacao ?? "(sem teor)",
+              publishedAt: parseDataOuFallback(pub.dataDisponibilizacao, pub.dataCaptura),
+              emailMessageId,
+              processNumberRaw: pub.numeroProcesso,
+              caseId,
+              lawyerTag,
+            },
+          });
+          result.publicacoesCriadas++;
+          contar(officeId, "publicacoes");
+          if (!caseId) result.semCasoVinculado++;
+        }
       }
 
       // Só marca como lido depois de garantir que a Publication foi criada ou já
@@ -157,22 +227,25 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(and.numeroProcesso);
-        const caseId = await findCaseIdByProcessNumber(numeroNormalizado, office.id);
+        const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, null);
 
-        await prisma.publication.create({
-          data: {
-            officeId: office.id,
-            kind: "ANDAMENTO",
-            source: "DATAJUD",
-            content: and.descricaoMovimento ?? and.codigoMovimento,
-            publishedAt: parseDataOuFallback(and.dataMovimentacao, and.dataCaptura),
-            emailMessageId,
-            processNumberRaw: and.numeroProcesso,
-            caseId,
-          },
-        });
-        result.andamentosCriados++;
-        if (!caseId) result.semCasoVinculado++;
+        if (officeId) {
+          await prisma.publication.create({
+            data: {
+              officeId,
+              kind: "ANDAMENTO",
+              source: "DATAJUD",
+              content: and.descricaoMovimento ?? and.codigoMovimento,
+              publishedAt: parseDataOuFallback(and.dataMovimentacao, and.dataCaptura),
+              emailMessageId,
+              processNumberRaw: and.numeroProcesso,
+              caseId,
+            },
+          });
+          result.andamentosCriados++;
+          contar(officeId, "andamentos");
+          if (!caseId) result.semCasoVinculado++;
+        }
       }
 
       await prisma.roboAndamento.update({ where: { id: and.id }, data: { statusLido: true } });
@@ -182,21 +255,22 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     }
   }
 
-  // Um resumo só por tipo (não uma notificação por publicação) — evita inundar quem
-  // ativou notificações caso o robô traga muitas de uma vez num único ciclo.
-  if (result.publicacoesCriadas > 0 || result.andamentosCriados > 0) {
-    const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId: office.id }, select: { id: true } })).map((u) => u.id);
-    if (result.publicacoesCriadas > 0) {
-      broadcastPushIfEnabled(activeUserIds, office.id, "publicacoes", {
+  // Um resumo só por tipo e por escritório (não uma notificação por publicação) — evita
+  // inundar quem ativou notificações caso o robô traga muitas de uma vez num único ciclo.
+  for (const [officeId, contagem] of porOffice) {
+    if (contagem.publicacoes === 0 && contagem.andamentos === 0) continue;
+    const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId }, select: { id: true } })).map((u) => u.id);
+    if (contagem.publicacoes > 0) {
+      broadcastPushIfEnabled(activeUserIds, officeId, "publicacoes", {
         title: "Novas publicações",
-        body: `${result.publicacoesCriadas} nova(s) publicação(ões) recebida(s).`,
+        body: `${contagem.publicacoes} nova(s) publicação(ões) recebida(s).`,
         url: "/m/publicacoes",
       }).catch(() => {});
     }
-    if (result.andamentosCriados > 0) {
-      broadcastPushIfEnabled(activeUserIds, office.id, "andamentos", {
+    if (contagem.andamentos > 0) {
+      broadcastPushIfEnabled(activeUserIds, officeId, "andamentos", {
         title: "Novos andamentos processuais",
-        body: `${result.andamentosCriados} novo(s) andamento(s) recebido(s).`,
+        body: `${contagem.andamentos} novo(s) andamento(s) recebido(s).`,
         url: "/m/publicacoes",
       }).catch(() => {});
     }
