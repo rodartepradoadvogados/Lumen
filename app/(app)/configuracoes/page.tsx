@@ -25,7 +25,7 @@ import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
-import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
+import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
@@ -82,6 +82,15 @@ const SECOES = [
   { key: "workflows", label: "Workflows", adminOnly: true },
   { key: "blog", label: "Blog Jurídico", adminOnly: true },
 ] as const;
+
+const SECAO_ICONS = {
+  modelos: Plug,
+  equipe: Users,
+  financeiro: DollarSign,
+  geral: SlidersHorizontal,
+  workflows: Workflow,
+  blog: Newspaper,
+} as const;
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
@@ -155,6 +164,7 @@ export default async function ConfiguracoesPage({
   const requestedSecao = searchParams.secao || defaultSecao;
   const availableSecoes = SECOES.filter((s) => (!s.adminOnly || isAdmin) && (s.key !== "blog" || blogAccess));
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
+  const viewerInitials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
 
@@ -192,14 +202,14 @@ export default async function ConfiguracoesPage({
   }
 
   return (
-    <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
+    <div className="p-6 max-w-[1320px] mx-auto animate-fade-in space-y-6">
       <PageHeader
         title="Configurações"
         subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}
       />
 
       {isAdmin && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex lg:hidden gap-2 flex-wrap">
           {availableSecoes.map((s) => (
             <Link
               key={s.key}
@@ -215,6 +225,43 @@ export default async function ConfiguracoesPage({
           ))}
         </div>
       )}
+
+      <div className="flex gap-6 items-start">
+      {isAdmin && (
+        <aside className="hidden lg:block w-56 shrink-0 bg-navy-900 dark:bg-navy-950 rounded-2xl overflow-hidden sticky top-6">
+          <nav className="p-3 space-y-1">
+            {availableSecoes.map((s) => {
+              const Icon = SECAO_ICONS[s.key];
+              const active = secao === s.key;
+              return (
+                <Link
+                  key={s.key}
+                  href={`/configuracoes?secao=${s.key}`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors ${
+                    active
+                      ? "bg-gold-500/10 text-cream-50 font-semibold border-gold-400"
+                      : "text-cream-100/70 font-medium border-transparent hover:bg-white/5 hover:text-cream-50"
+                  }`}
+                >
+                  <Icon size={16} className={active ? "text-gold-400" : "text-cream-100/45"} />
+                  {s.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="px-4 py-4 border-t border-white/10 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full bg-white/10 text-gold-400 flex items-center justify-center text-xs font-serif font-bold shrink-0">
+              {viewerInitials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-cream-50 truncate">{viewer.name}</p>
+              <p className="text-[10px] text-cream-100/50 truncate">{viewer.role}</p>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      <div className="flex-1 min-w-0 space-y-6">
 
       {isAdmin && secao === "geral" && (
       <Card>
@@ -690,6 +737,9 @@ export default async function ConfiguracoesPage({
         </div>
       </Card>
       )}
+
+      </div>
+      </div>
 
       <style>{`
         .cfg-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }

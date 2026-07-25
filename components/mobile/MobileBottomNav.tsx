@@ -26,9 +26,18 @@ export default function MobileBottomNav({ unreadCount }: { unreadCount: number }
             className="flex-1 flex flex-col items-center justify-center gap-0.5"
           >
             <span className="relative">
-              <Icon size={22} className={active ? "text-gold-600 dark:text-gold-400" : "text-navy-800/40 dark:text-cream-50/40"} />
+              <span
+                className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
+                  active ? "bg-gold-500 dark:bg-gold-400" : ""
+                }`}
+              >
+                <Icon
+                  size={19}
+                  className={active ? "text-white dark:text-navy-950" : "text-navy-800/40 dark:text-cream-50/40"}
+                />
+              </span>
               {badge && unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-bordo-600 dark:bg-bordo-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-bordo-600 dark:bg-bordo-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
