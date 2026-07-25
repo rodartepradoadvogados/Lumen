@@ -13,9 +13,31 @@ function sanitizeVapidKey(raw: string): string {
   return raw.replace(/["'\s]/g, "");
 }
 
-export async function getPushPublicKey(): Promise<string | null> {
-  if (!isPushConfigured()) return null;
-  return sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY!);
+// Uma chave VAPID pública válida é sempre um ponto EC P-256 não comprimido: exatamente 65
+// bytes, começando em 0x04. Decodifica e confere isso AQUI (servidor) pra dar um diagnóstico
+// exato em vez do navegador só recusar com "applicationServerKey is not valid" sem dizer por
+// quê — economiza uma rodada inteira de "tenta de novo, tira print, manda de novo".
+function diagnoseVapidPublicKey(sanitized: string): string | null {
+  try {
+    const buf = Buffer.from(sanitized, "base64url");
+    if (buf.length !== 65) {
+      return `A chave VAPID_PUBLIC_KEY salva na Vercel tem ${buf.length} bytes depois de decodificada — deveria ter exatamente 65. Foi colada incompleta ou com algum caractere trocado (comum: hífen "-" virando travessão "—" ao colar de um app de mensagens). Precisa recadastrar a chave certinha.`;
+    }
+    if (buf[0] !== 0x04) {
+      return `A chave VAPID_PUBLIC_KEY salva na Vercel não começa com o byte esperado (0x04) — está corrompida. Precisa recadastrar.`;
+    }
+    return null;
+  } catch (e) {
+    return `A chave VAPID_PUBLIC_KEY salva na Vercel não é um base64 válido (${e instanceof Error ? e.message : String(e)}). Precisa recadastrar.`;
+  }
+}
+
+export async function getPushPublicKey(): Promise<{ publicKey: string | null; diagnostic?: string }> {
+  if (!isPushConfigured()) return { publicKey: null };
+  const sanitized = sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY!);
+  const diagnostic = diagnoseVapidPublicKey(sanitized);
+  if (diagnostic) return { publicKey: null, diagnostic };
+  return { publicKey: sanitized };
 }
 
 export type NotificationPrefs = {

@@ -68,9 +68,9 @@ export default function NotificationPreferences() {
         setBusy(false);
         return;
       }
-      const publicKey = await getPushPublicKey();
+      const { publicKey, diagnostic } = await getPushPublicKey();
       if (!publicKey) {
-        setError("Notificações push ainda não configuradas no servidor.");
+        setError(diagnostic || "Notificações push ainda não configuradas no servidor.");
         setBusy(false);
         return;
       }
