@@ -77,7 +77,7 @@ export default async function MobileLayout({ children }: { children: React.React
           {user && (
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-cream-50/70 max-w-[120px] truncate">{user.name.split(" ")[0]}</span>
-              <span className="h-8 w-8 rounded-full bg-navy-700 dark:bg-navy-800 text-gold-400 flex items-center justify-center text-[11px] font-bold">
+              <span className="h-8 w-8 rounded-full bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold">
                 {initials(user.name)}
               </span>
             </div>

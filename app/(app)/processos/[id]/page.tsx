@@ -6,6 +6,7 @@ import NewTaskModal from "@/components/NewTaskModal";
 import NewReceivableModal from "@/components/NewReceivableModal";
 import EditReceivableModal from "@/components/EditReceivableModal";
 import EditPayableModal from "@/components/EditPayableModal";
+import SettleButton from "@/components/SettleButton";
 import CommentBox from "@/components/CommentBox";
 import CaseStatusSelect from "@/components/CaseStatusSelect";
 import CaseAssessoriaSelect from "@/components/CaseAssessoriaSelect";
@@ -281,6 +282,7 @@ export default async function CaseDetailPage({
                         <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(r.amount)}</p>
                         <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : "amber"}>{r.status}</Badge>
                       </div>
+                      <SettleButton id={r.id} kind="receivable" amount={r.amount} status={r.status} />
                       <EditReceivableModal
                         receivable={{
                           id: r.id,

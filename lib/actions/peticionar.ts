@@ -14,8 +14,23 @@ export async function criarPeticao(caseId?: string): Promise<{ driveUrl?: string
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
-  const fileId = extractDriveFileId(PETICIONAR_URL);
-  if (!fileId) return { error: "Não foi possível identificar o timbrado no Google Drive." };
+  // Cada escritório pode cadastrar o próprio timbrado em Configurações → Modelos & Integrações
+  // (categoria "Timbrado (Peticionar)"). Sem um cadastrado, cai no timbrado global antigo
+  // (só existe de verdade para o Rodarte Prado, o único escritório que ainda não recadastrou).
+  const officeTimbrado = await prisma.documentTemplate.findFirst({
+    where: { officeId: user.officeId, category: "TIMBRADO" },
+    orderBy: { createdAt: "desc" },
+  });
+  const timbradoUrl = officeTimbrado?.driveUrl ?? PETICIONAR_URL;
+
+  const fileId = extractDriveFileId(timbradoUrl);
+  if (!fileId) {
+    return {
+      error: officeTimbrado
+        ? "Não foi possível identificar o timbrado cadastrado (link do Drive inválido)."
+        : "Não foi possível identificar o timbrado no Google Drive.",
+    };
+  }
 
   const today = new Date().toLocaleDateString("pt-BR");
   let subject = user.name;
@@ -25,14 +40,14 @@ export async function criarPeticao(caseId?: string): Promise<{ driveUrl?: string
   }
 
   try {
-    // PETICIONAR_URL ainda é um único timbrado global fixo em lib/constants.ts — cada
-    // escritório precisará do seu próprio (ver Fase 2/4 do plano de multi-tenancy).
     const { webViewLink } = await copyAndFillTemplate(fileId, `Petição - ${subject} - ${today}`, {}, user.officeId);
     return { driveUrl: webViewLink };
   } catch (e) {
     const raw = e instanceof Error ? e.message : "";
     const message = /invalid_request|invalid_grant|File not found|404/i.test(raw)
-      ? "Não foi possível acessar o timbrado no Google Drive. Verifique se o link em lib/constants.ts ainda é válido e se o Google Drive está conectado em Configurações."
+      ? `Não foi possível acessar o timbrado no Google Drive. Verifique ${
+          officeTimbrado ? "o modelo cadastrado em Configurações → Modelos & Integrações (categoria Timbrado)" : "se o Google Drive está conectado em Configurações"
+        }.`
       : raw || "Erro ao gerar a petição.";
     return { error: message };
   }

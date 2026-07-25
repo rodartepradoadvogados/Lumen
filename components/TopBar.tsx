@@ -53,16 +53,21 @@ export default async function TopBar() {
         </Link>
 
         <div className="flex items-center gap-2 pl-3 border-l border-navy-800/10 dark:border-white/10">
-          {user?.isAdmin ? (
-            <TeamMonitorPanel initials={initials} name={user.name} role={user.role} />
+          {user ? (
+            <TeamMonitorPanel
+              initials={initials}
+              name={user.name}
+              role={user.role}
+              photoUrl={user.photoUrl ? `/api/perfil/foto/${user.id}` : null}
+              isAdmin={user.isAdmin}
+            />
           ) : (
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold">
                 {initials}
               </div>
               <div className="hidden md:block leading-tight">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{user?.name ?? "Não identificado"}</p>
-                <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50">{user?.role ?? ""}</p>
+                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">Não identificado</p>
               </div>
             </div>
           )}

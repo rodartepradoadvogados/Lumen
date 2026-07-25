@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, User, X } from "lucide-react";
 import { fetchTeamSummaries, fetchUserHistory } from "@/lib/actions/timesheet";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
 
@@ -17,7 +18,19 @@ function formatDateTime(iso: string | null) {
   return `${d.toLocaleDateString("pt-BR")}, às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-export default function TeamMonitorPanel({ initials, name, role }: { initials: string; name: string; role: string }) {
+export default function TeamMonitorPanel({
+  initials,
+  name,
+  role,
+  photoUrl,
+  isAdmin,
+}: {
+  initials: string;
+  name: string;
+  role: string;
+  photoUrl?: string | null;
+  isAdmin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [summaries, setSummaries] = useState<TeamSummary[] | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -36,7 +49,7 @@ export default function TeamMonitorPanel({ initials, name, role }: { initials: s
   async function handleOpen() {
     const willOpen = !open;
     setOpen(willOpen);
-    if (willOpen && !summaries) {
+    if (willOpen && isAdmin && !summaries) {
       const result = await fetchTeamSummaries();
       if ("error" in result) setError(result.error);
       else setSummaries(result);
@@ -58,8 +71,13 @@ export default function TeamMonitorPanel({ initials, name, role }: { initials: s
   return (
     <div className="relative" ref={ref}>
       <button onClick={handleOpen} className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold">
-          {initials}
+        <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
         </div>
         <div className="hidden md:block leading-tight text-left">
           <p className="text-sm font-medium text-navy-900 dark:text-cream-50 flex items-center gap-1">
@@ -71,6 +89,23 @@ export default function TeamMonitorPanel({ initials, name, role }: { initials: s
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-white dark:bg-navy-900 rounded-xl border border-navy-800/10 dark:border-white/10 shadow-pop z-50 overflow-hidden">
+          <div className="p-1.5 border-b border-navy-800/8 dark:border-white/10">
+            <Link
+              href="/perfil"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-navy-900 dark:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/5"
+            >
+              <User size={15} className="text-navy-800/50 dark:text-cream-50/50" /> Meu Perfil
+            </Link>
+          </div>
+          {!isAdmin ? (
+            <div className="flex justify-end p-1">
+              <button onClick={() => setOpen(false)} className="p-1.5 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+          <>
           <div className="flex items-center justify-between px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
             <h4 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Monitoramento da Equipe</h4>
             <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
@@ -114,6 +149,8 @@ export default function TeamMonitorPanel({ initials, name, role }: { initials: s
               </div>
             ))}
           </div>
+          </>
+          )}
         </div>
       )}
     </div>

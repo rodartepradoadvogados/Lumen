@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ error: "Apenas administradores podem rodar isso." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
 
-  await prisma.office.update({ where: { id: viewer.officeId }, data: { isInternal: true } });
+  await prisma.office.update({ where: { id: viewer.officeId }, data: { isInternal: true, blogAccess: true } });
   const result = await prisma.user.updateMany({
     where: { officeId: viewer.officeId, isAdmin: true },
     data: { isPlatformOwner: true },

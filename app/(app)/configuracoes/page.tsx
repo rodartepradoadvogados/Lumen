@@ -251,8 +251,13 @@ export default async function ConfiguracoesPage({
       )}
 
       <div className="flex gap-6 items-start">
+      {/* Sempre navy sólido (sem dark:), mesmo em modo Dia/Tarde/Noite — o texto aqui é
+          propositalmente sempre cream (sem dark: também), então NÃO pode usar dark:bg-*: no
+          modo Tarde o CSS de app/globals.css (.dark.theme-tarde) reescreve dark:bg-navy-900/950
+          para um bordô quase transparente, mas não mexe em texto sem o prefixo dark:, deixando
+          texto cream sobre fundo agora claro. Mesmo padrão do menu lateral principal (Sidebar.tsx). */}
       {isAdmin && (
-        <aside className="hidden lg:block w-56 shrink-0 bg-navy-900 dark:bg-navy-950 rounded-2xl overflow-hidden sticky top-6">
+        <aside className="hidden lg:block w-56 shrink-0 bg-navy-900 rounded-2xl overflow-hidden sticky top-6">
           <nav className="p-3 space-y-1">
             {availableSecoes.map((s) => {
               const Icon = SECAO_ICONS[s.key];
@@ -882,8 +887,9 @@ export default async function ConfiguracoesPage({
       </div>
 
       <style>{`
-        .cfg-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+        .cfg-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; color: #14213d; }
         .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .dark .cfg-input { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #f1ece0; }
       `}</style>
     </div>
   );

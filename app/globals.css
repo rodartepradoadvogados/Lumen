@@ -88,6 +88,12 @@ body {
      continuava herdando o creme claro do Noite — texto claro sobre o novo fundo claro do
      Tarde, ou seja, invisível. Esta é a causa mais provável e mais ampla do bug relatado. */
   --foreground: #3d1119;
+  /* `.dark` sozinho declara color-scheme:dark (linha ~39) para os campos nativos (input/select
+     sem estilo próprio) seguirem o tema — mas o Tarde nunca reescrevia isso, então um campo
+     "cru" (sem dark:bg-*/dark:text-* próprios) ficava com fundo nativo ESCURO enquanto herdava
+     o --foreground do Tarde (bordô escuro, pensado pra fundo claro) — texto escuro sobre fundo
+     escuro. Mesma causa do bug acima, mas em campos de formulário em vez de <span>/<p> soltos. */
+  color-scheme: light;
 }
 .dark.theme-tarde .brand-texture {
   background-color: #f8fafc;

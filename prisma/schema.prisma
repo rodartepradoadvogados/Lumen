@@ -155,6 +155,20 @@ model User {
   // lib/gmailSend.ts) — evita mandar e-mail pela conta errada por engano.
   emailSendProvider String?
 
+  // Meu Perfil — dados pessoais autoatendidos (cada pessoa edita os próprios, ver
+  // lib/actions/profile.ts). photoUrl é o link privado do Vercel Blob, servido via
+  // /api/perfil/foto/[userId] (mesmo padrão de lib/photos.ts para o blog).
+  photoUrl      String?
+  birthDate     DateTime?
+  gender        String?
+  maritalStatus String?
+  cpf           String?
+  rg            String?
+  address       String?
+  cep           String?
+  city          String?
+  state         String?
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 

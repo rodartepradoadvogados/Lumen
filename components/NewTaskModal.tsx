@@ -232,10 +232,16 @@ export default function NewTaskModal({
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
           color: #14213d;
+          background: #fff;
         }
         .input:focus {
           outline: none;
           box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
+        }
+        .dark .input {
+          border-color: rgba(255, 255, 255, 0.15);
+          background: #0f1f3d;
+          color: #fbfaf7;
         }
       `}</style>
     </>

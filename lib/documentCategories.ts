@@ -1,4 +1,8 @@
 export const TEMPLATE_CATEGORIES = [
+  // Papel timbrado do próprio escritório — usado pelo botão "Peticionar" (lib/actions/peticionar.ts),
+  // que copia este arquivo em branco (sem merge fields) a cada clique. Cada escritório cadastra o
+  // seu aqui; sem um cadastrado, cai no timbrado global antigo (lib/constants.ts:PETICIONAR_URL).
+  { value: "TIMBRADO", label: "Timbrado (Peticionar)" },
   { value: "CONTRATO", label: "Contrato de Honorários" },
   { value: "PETICAO", label: "Petição" },
   { value: "PROCURACAO", label: "Procuração" },

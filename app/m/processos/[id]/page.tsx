@@ -158,7 +158,7 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
           <div className="space-y-3">
             {c.comments.map((cm) => (
               <div key={cm.id} className="flex gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-navy-800 dark:bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold shrink-0">
+                <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-[11px] font-bold shrink-0">
                   {cm.author.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <div className="min-w-0">
