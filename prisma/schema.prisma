@@ -41,9 +41,22 @@ model Office {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique // identificador amigável, usado em URL/subdomínio
-  status    String   @default("ATIVA") // ATIVA | SUSPENSA | CANCELADA
+  // ATIVA | SUSPENSA | CANCELADA — enforçado em lib/currentUser.ts: usuário comum de um
+  // escritório não-ATIVA não consegue usar o sistema (tela de aviso), exceto platform owners
+  // (ver User.isPlatformOwner), que sempre passam — precisam poder entrar pra resolver o
+  // motivo do bloqueio junto com o dono do escritório bloqueado.
+  status    String   @default("ATIVA")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Escritório dono da plataforma (Rodarte Prado) — não aparece no Painel Mestre como cliente
+  // de cobrança, não tem fatura gerada, nunca é bloqueado por inadimplência.
+  isInternal Boolean @default(false)
+
+  // Cobrança — preenchidos ao cadastrar o escritório no Painel Mestre (isPlatformOwner only).
+  billingEmail  String? // recebe o boleto de cada fatura gerada
+  monthlyFee    Float? // mensalidade combinada em contrato
+  billingDueDay Int? // dia do mês de vencimento (1-28, pra não cair em mês sem o dia)
 
   // Módulos habilitados por contrato — controla o que aparece na navegação e o que os Server
   // Actions de cada módulo aceitam fazer (checado nos dois lugares, não só escondido na tela).
@@ -95,6 +108,7 @@ model Office {
   blogPosts            BlogPost[]
   photos               Photo[]
   whatsappConfig       WhatsappConfig?
+  invoices             TenantInvoice[]
 }
 
 // ============ EQUIPE ============
@@ -113,6 +127,13 @@ model User {
   financeAccess Boolean @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
+
+  // Dono(a) da PLATAFORMA Lúmen (Jairo e Rodrigo) — nada a ver com isAdmin (que é por
+  // escritório). Só quem tem isPlatformOwner=true enxerga e acessa /painel-mestre, e só esse
+  // flag permite "atuar como" outro escritório (ver lib/officeActing.ts) e ignora bloqueio de
+  // Office.status. Setado manualmente no banco / via seed do próprio escritório interno,
+  // nunca por autosserviço.
+  isPlatformOwner Boolean @default(false)
 
   resetTokenHash   String?   @unique // hash SHA-256 do token de redefinição de senha (nunca o token puro)
   resetTokenExpiry DateTime?
@@ -1100,4 +1121,39 @@ model RoboExecucaoLog {
   executadoEm DateTime @default(now()) @map("executado_em")
 
   @@map("execucao_log")
+}
+
+// ============ PAINEL MESTRE (cobrança entre escritórios) ============
+
+// Uma fatura mensal de um escritório-cliente da plataforma. Gerada manualmente pelo platform
+// owner (Painel Mestre → "Gerar boleto e enviar por e-mail") ou, quando o BTG estiver
+// conectado (ver BtgConnection), automaticamente com um boleto de verdade emitido.
+model TenantInvoice {
+  id          String    @id @default(cuid())
+  officeId    String
+  office      Office    @relation(fields: [officeId], references: [id])
+  competencia String // "2026-08" — mês de referência, evita gerar duas faturas pro mesmo mês
+  amount      Float
+  dueDate     DateTime
+  status      String    @default("PENDENTE") // PENDENTE | PAGO | CANCELADO
+  paidAt      DateTime?
+  // "manual" (Dar baixa manual, sem boleto) ou "btg_boleto" (baixa confirmada via boleto BTG)
+  paidVia     String?
+  boletoUrl   String? // link do PDF do boleto, quando emitido via BTG
+  boletoId    String? // ID do boleto na API do BTG, pra consultar status depois
+  createdAt   DateTime  @default(now())
+
+  @@unique([officeId, competencia])
+}
+
+// Conexão OAuth (Authorization Code) com o BTG Empresas — é UMA conta (a do próprio Rodarte
+// Prado no BTG), não por escritório-cliente: é o Rodarte Prado quem emite o boleto e cobra
+// cada escritório. Só deve existir uma linha; token renovado in-place a cada refresh.
+model BtgConnection {
+  id            String   @id @default(cuid())
+  accessToken   String
+  refreshToken  String
+  expiresAt     DateTime
+  connectedAt   DateTime @default(now())
+  connectedById String? // userId de quem autorizou (auditoria)
 }

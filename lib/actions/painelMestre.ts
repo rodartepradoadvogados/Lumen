@@ -1,0 +1,243 @@
+"use server";
+
+import crypto from "crypto";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
+import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
+import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
+import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
+
+async function requirePlatformOwner() {
+  const viewer = await getCurrentUser({ ignoreActing: true });
+  if (!viewer?.isPlatformOwner) return { error: "Apenas administradores da plataforma podem fazer isso." } as const;
+  return { viewer };
+}
+
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function slugify(name: string): string {
+  const base = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 60);
+  return base || "escritorio";
+}
+
+async function uniqueOfficeSlug(base: string): Promise<string> {
+  let slug = base;
+  let suffix = 1;
+  while (await prisma.office.findUnique({ where: { slug } })) {
+    suffix++;
+    slug = `${base}-${suffix}`;
+  }
+  return slug;
+}
+
+function getAppUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+export type TenantOfficeSummary = {
+  id: string;
+  name: string;
+  isInternal: boolean;
+  status: string;
+  billingEmail: string | null;
+  monthlyFee: number | null;
+  billingDueDay: number | null;
+  modules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
+  lastInvoice: { id: string; competencia: string; status: string; dueDate: string; amount: number } | null;
+};
+
+// Lista todos os escritórios (inclusive o interno) com a última fatura de cada um — usado só
+// pela tela de listagem do Painel Mestre.
+export async function listTenantOffices(): Promise<TenantOfficeSummary[]> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return [];
+
+  const offices = await prisma.office.findMany({
+    orderBy: { createdAt: "asc" },
+    include: { invoices: { orderBy: { competencia: "desc" }, take: 1 } },
+  });
+
+  return offices.map((o) => ({
+    id: o.id,
+    name: o.name,
+    isInternal: o.isInternal,
+    status: o.status,
+    billingEmail: o.billingEmail,
+    monthlyFee: o.monthlyFee,
+    billingDueDay: o.billingDueDay,
+    modules: { financeiro: o.moduloFinanceiro, whatsapp: o.moduloWhatsapp, atendimento: o.moduloAtendimento, assessoria: o.moduloAssessoria },
+    lastInvoice: o.invoices[0]
+      ? { id: o.invoices[0].id, competencia: o.invoices[0].competencia, status: o.invoices[0].status, dueDate: o.invoices[0].dueDate.toISOString(), amount: o.invoices[0].amount }
+      : null,
+  }));
+}
+
+export async function createOffice(data: {
+  officeName: string;
+  adminName: string;
+  adminEmail: string;
+  billingEmail: string;
+  monthlyFee: number;
+  billingDueDay: number;
+  modules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
+}): Promise<{ error?: string; officeId?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+
+  const officeName = data.officeName.trim();
+  const adminName = data.adminName.trim();
+  const adminEmail = data.adminEmail.trim().toLowerCase();
+  const billingEmail = data.billingEmail.trim().toLowerCase();
+  if (!officeName || !adminName || !adminEmail || !billingEmail) {
+    return { error: "Preencha nome do escritório, nome e e-mail do administrador, e o e-mail de cobrança." };
+  }
+  if (await prisma.user.findUnique({ where: { email: adminEmail } })) {
+    return { error: "Já existe uma conta cadastrada com esse e-mail de administrador." };
+  }
+
+  const slug = await uniqueOfficeSlug(slugify(officeName));
+  const rawToken = crypto.randomBytes(32).toString("hex");
+
+  const user = await prisma.$transaction(async (tx) => {
+    const office = await tx.office.create({
+      data: {
+        name: officeName,
+        slug,
+        blogAccess: false,
+        billingEmail,
+        monthlyFee: data.monthlyFee,
+        billingDueDay: data.billingDueDay,
+        moduloFinanceiro: data.modules.financeiro,
+        moduloWhatsapp: data.modules.whatsapp,
+        moduloAtendimento: data.modules.atendimento,
+        moduloAssessoria: data.modules.assessoria,
+      },
+    });
+    await seedDefaultOfficeData(tx, office.id);
+    return tx.user.create({
+      data: {
+        name: adminName,
+        email: adminEmail,
+        role: "Admin",
+        isAdmin: true,
+        financeAccess: true,
+        officeId: office.id,
+        resetTokenHash: hashToken(rawToken),
+        resetTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+  });
+
+  const inviteUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
+  const emailResult = await sendOfficeInviteEmail(adminEmail, adminName, inviteUrl, officeName);
+
+  revalidatePath("/painel-mestre");
+  if (!emailResult.sent) {
+    return { officeId: user.officeId, error: `Escritório criado, mas o e-mail de convite não saiu: ${emailResult.reason}. Peça pra essa pessoa usar "Esqueci minha senha" no login.` };
+  }
+  return { officeId: user.officeId };
+}
+
+export async function updateOfficeModules(officeId: string, modules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean }): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await prisma.office.update({
+    where: { id: officeId },
+    data: { moduloFinanceiro: modules.financeiro, moduloWhatsapp: modules.whatsapp, moduloAtendimento: modules.atendimento, moduloAssessoria: modules.assessoria },
+  });
+  revalidatePath("/painel-mestre");
+  return {};
+}
+
+export async function updateOfficeBilling(officeId: string, data: { billingEmail: string; monthlyFee: number; billingDueDay: number }): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await prisma.office.update({ where: { id: officeId }, data });
+  revalidatePath("/painel-mestre");
+  return {};
+}
+
+// "Gerar boleto e enviar por e-mail": cria (ou reaproveita, se já existir) a fatura do mês
+// corrente pro escritório, tenta emitir boleto de verdade se o BTG já estiver conectado, e
+// manda o e-mail de qualquer forma (com ou sem boleto anexado — ver sendInvoiceEmail).
+export async function generateAndSendInvoice(officeId: string): Promise<{ error?: string; btgWarning?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+
+  const office = await prisma.office.findUnique({ where: { id: officeId } });
+  if (!office) return { error: "Escritório não encontrado." };
+  if (!office.billingEmail || !office.monthlyFee || !office.billingDueDay) {
+    return { error: "Cadastre e-mail de cobrança, mensalidade e dia de vencimento antes de gerar a fatura." };
+  }
+
+  const now = new Date();
+  const competencia = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const dueDate = new Date(now.getFullYear(), now.getMonth(), office.billingDueDay);
+
+  let invoice = await prisma.tenantInvoice.findUnique({ where: { officeId_competencia: { officeId, competencia } } });
+  if (!invoice) {
+    invoice = await prisma.tenantInvoice.create({
+      data: { officeId, competencia, amount: office.monthlyFee, dueDate, status: "PENDENTE" },
+    });
+  }
+
+  let btgWarning: string | undefined;
+  let boletoUrl = invoice.boletoUrl;
+  if (!boletoUrl && (await isBtgConnected())) {
+    const boleto = await createBoleto({
+      payerName: office.name,
+      payerDocument: "", // TODO: cadastrar CNPJ do escritório-cliente — necessário pro BTG emitir de verdade
+      amount: invoice.amount,
+      dueDate: invoice.dueDate,
+      description: `Mensalidade Lúmen — ${office.name} — ${competencia}`,
+    });
+    if (boleto.ok) {
+      await prisma.tenantInvoice.update({ where: { id: invoice.id }, data: { boletoId: boleto.boletoId, boletoUrl: boleto.boletoUrl } });
+      boletoUrl = boleto.boletoUrl ?? null;
+    } else {
+      btgWarning = boleto.error;
+    }
+  }
+
+  const emailResult = await sendInvoiceEmail(office.billingEmail, office.name, invoice.amount, invoice.dueDate, boletoUrl);
+  revalidatePath("/painel-mestre");
+  if (!emailResult.sent) return { error: `Fatura registrada, mas o e-mail não saiu: ${emailResult.reason}`, btgWarning };
+  return { btgWarning };
+}
+
+export async function markInvoicePaid(invoiceId: string): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await prisma.tenantInvoice.update({ where: { id: invoiceId }, data: { status: "PAGO", paidAt: new Date(), paidVia: "manual" } });
+  revalidatePath("/painel-mestre");
+  return {};
+}
+
+export async function setOfficeAccess(officeId: string, blocked: boolean): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  const office = await prisma.office.findUnique({ where: { id: officeId }, select: { isInternal: true } });
+  if (office?.isInternal) return { error: "O escritório interno nunca pode ser bloqueado." };
+  await prisma.office.update({ where: { id: officeId }, data: { status: blocked ? "SUSPENSA" : "ATIVA" } });
+  revalidatePath("/painel-mestre");
+  return {};
+}
+
+export async function disconnectBtgAction(): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await btgDisconnect();
+  revalidatePath("/painel-mestre");
+  return {};
+}

@@ -180,3 +180,79 @@ export async function sendDailyAgendaEmail(officeId?: string): Promise<{ sent: b
   if (!anySent) return { sent: false, reason: lastReason };
   return { sent: true };
 }
+
+// Convite de um escritório novo (Painel Mestre → "Criar e enviar 1ª fatura"): igual ao link
+// de redefinição de senha (mesmo token/expiração), só com o texto voltado a "defina sua
+// senha" em vez de "redefina" — a pessoa nunca teve senha antes.
+export async function sendOfficeInviteEmail(to: string, adminName: string, resetUrl: string, officeName: string): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#0b1730;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">BEM-VINDO(A)</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#0f1f3d;">Olá, ${adminName}!</p>
+      <p style="font-size:14px;color:#0f1f3d;">O escritório <strong>${officeName}</strong> já está cadastrado no Lúmen. Clique no botão abaixo para definir sua senha de acesso — o link expira em 1 hora.</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${resetUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Definir minha senha</a>
+      </p>
+      <p style="font-size:12px;color:#888;">Se você não esperava este e-mail, pode ignorá-lo com segurança.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject: `Bem-vindo ao Lúmen — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// Fatura mensal de um escritório-cliente (Painel Mestre) — com boleto anexado quando o BTG
+// já emitiu (boletoUrl), ou só o valor/vencimento quando ainda não (cobrança fica combinada
+// por fora até o BTG estar conectado).
+export async function sendInvoiceEmail(
+  to: string,
+  officeName: string,
+  amount: number,
+  dueDate: Date,
+  boletoUrl?: string | null
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const amountLabel = amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const dueLabel = dueDate.toLocaleDateString("pt-BR");
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#0b1730;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">FATURA MENSAL</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#0f1f3d;">Olá! Segue a fatura referente à mensalidade do Lúmen — ${officeName}.</p>
+      <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
+      ${
+        boletoUrl
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          : `<p style="font-size:13px;color:#888;">O boleto será combinado diretamente com o Rodarte Prado Advogados.</p>`
+      }
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Fatura Lúmen — ${officeName} — vence em ${dueLabel}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}

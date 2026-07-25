@@ -1,4 +1,4 @@
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, Lock } from "lucide-react";
 import Link from "next/link";
 import { getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -31,6 +31,16 @@ export default async function TopBar() {
         {user && <TimesheetTimer initialSeconds={todaySeconds} />}
 
         <ThemeToggle />
+
+        {user?.isPlatformOwner && (
+          <Link
+            href="/painel-mestre"
+            data-tip="Painel Mestre"
+            className="p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors text-bordo-700 dark:text-bordo-400"
+          >
+            <Lock size={18} />
+          </Link>
+        )}
 
         <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors">
           <Bell size={20} className="text-navy-800 dark:text-cream-50/80" />
