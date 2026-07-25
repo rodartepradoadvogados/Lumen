@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncJusbrasilEmails } from "@/lib/jusbrasilEmailSync";
+import { syncOutlookEmails } from "@/lib/outlookEmailSync";
 
 export const maxDuration = 60;
 
@@ -10,6 +11,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const result = await syncJusbrasilEmails();
-  return NextResponse.json(result);
+  const [gmail, outlook] = await Promise.all([syncJusbrasilEmails(), syncOutlookEmails()]);
+  return NextResponse.json({ gmail, outlook });
 }

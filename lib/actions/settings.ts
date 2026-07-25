@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
 import { syncJusbrasilEmails, type SyncResult } from "@/lib/jusbrasilEmailSync";
+import { syncOutlookEmails } from "@/lib/outlookEmailSync";
 import { testDjenConnection, type DjenTestResult } from "@/lib/djenSync";
 import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -15,8 +16,28 @@ export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: 
   return sendDailyAgendaEmail(viewer.officeId);
 }
 
+// Soma os resultados de Gmail e Outlook num só SyncResult — pro botão/cron não precisar saber
+// que existem duas fontes de e-mail por baixo (mesma ideia de runFullPublicationsSync somando
+// e-mail + robô).
+function mergeSyncResults(a: SyncResult, b: SyncResult): SyncResult {
+  return {
+    accountsScanned: a.accountsScanned + b.accountsScanned,
+    found: a.found + b.found,
+    created: a.created + b.created,
+    createdPublicacoes: a.createdPublicacoes + b.createdPublicacoes,
+    createdAndamentos: a.createdAndamentos + b.createdAndamentos,
+    skipped: a.skipped + b.skipped,
+    errors: [...a.errors, ...b.errors],
+  };
+}
+
+async function syncAllEmailAccounts(): Promise<SyncResult> {
+  const [gmail, outlook] = await Promise.all([syncJusbrasilEmails(), syncOutlookEmails()]);
+  return mergeSyncResults(gmail, outlook);
+}
+
 export async function runJusbrasilSync(): Promise<SyncResult> {
-  const result = await syncJusbrasilEmails();
+  const result = await syncAllEmailAccounts();
   revalidatePath("/publicacoes");
   revalidatePath("/configuracoes");
   return result;
@@ -31,12 +52,13 @@ export async function runRoboBridgeSync(): Promise<RoboBridgeResult> {
 
 // Botão único "Sincronizar publicações e andamentos processuais" (Configurações → Modelos &
 // Integrações) — antes eram dois botões separados (um em Publicações, outro implícito no cron
-// do robô); agora dispara os dois de uma vez: varredura dos e-mails conectados (Jusbrasil +
-// captura ampla — ver lib/jusbrasilEmailSync.ts) e a ponte do robô Python (DJEN/Datajud).
+// do robô); agora dispara os dois de uma vez: varredura dos e-mails conectados (Gmail/Outlook +
+// captura ampla — ver lib/jusbrasilEmailSync.ts e lib/outlookEmailSync.ts) e a ponte do robô
+// Python (DJEN/Datajud).
 export type FullSyncResult = { email: SyncResult; robo: RoboBridgeResult };
 
 export async function runFullPublicationsSync(): Promise<FullSyncResult> {
-  const [email, robo] = await Promise.all([syncJusbrasilEmails(), syncRoboParaSite()]);
+  const [email, robo] = await Promise.all([syncAllEmailAccounts(), syncRoboParaSite()]);
   revalidatePath("/publicacoes");
   revalidatePath("/configuracoes");
   return { email, robo };

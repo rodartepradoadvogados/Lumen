@@ -14,7 +14,9 @@ export type SyncResult = {
   errors: string[];
 };
 
-const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andamentos@jusbrasil.com.br"];
+// Exportados para reuso em lib/outlookEmailSync.ts — mesma extração de conteúdo, fonte de
+// mensagens diferente (Microsoft Graph em vez de Gmail).
+export const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andamentos@jusbrasil.com.br"];
 
 // Captura ampla (best-effort): fora dos e-mails do Jusbrasil (formato conhecido, parsing
 // específico acima), muitos tribunais avisam diretamente por e-mail — sem um padrão único de
@@ -23,7 +25,7 @@ const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andamentos@ju
 // processual e extrai o que der pra extrair de forma genérica (ver o branch "captura ampla"
 // dentro de processMessage) — melhor um registro bruto capturado do que a publicação passar
 // batido.
-const BROAD_SUBJECT_KEYWORDS = [
+export const BROAD_SUBJECT_KEYWORDS = [
   "publicação",
   "publicacao",
   "intimação",
@@ -49,12 +51,12 @@ const COURT_SYSTEM_DOMAIN_PATTERNS: { pattern: RegExp; source: string }[] = [
   { pattern: /eproc/i, source: "EPROC" },
 ];
 
-function detectCourtSystemSource(senderAddress: string): string {
+export function detectCourtSystemSource(senderAddress: string): string {
   const found = COURT_SYSTEM_DOMAIN_PATTERNS.find((p) => p.pattern.test(senderAddress));
   return found?.source ?? "DJE";
 }
 
-type ExtractedEntry = { processNumber: string | null; content: string; kind: string };
+export type ExtractedEntry = { processNumber: string | null; content: string; kind: string };
 
 const PROCESS_NUMBER_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
 
@@ -71,7 +73,7 @@ export function detectLawyerTag(text: string): string | null {
 }
 
 // publicacoes-diarios@jusbrasil.com.br: blocos repetidos iniciando em "Processo <numero>", "Processo nº <numero>" ou "Título - <numero> - ..."
-function extractPublicacoes(text: string): ExtractedEntry[] {
+export function extractPublicacoes(text: string): ExtractedEntry[] {
   const entries: ExtractedEntry[] = [];
   const blocks = text
     .split(/(?=Processo\s*n?[ºo]?\.?\s*\d)|(?=Título\s*-\s*\d)/gi)
@@ -86,7 +88,7 @@ function extractPublicacoes(text: string): ExtractedEntry[] {
   return entries;
 }
 
-function extractProcessNumber(block: string): string | null {
+export function extractProcessNumber(block: string): string | null {
   const cnj = block.match(PROCESS_NUMBER_RE);
   if (cnj) return cnj[0];
   const loose = block.match(/(?:Processo|NR\.?\s*PROCESSO|N[ÚU]MERO\s*[ÚU]NICO)\s*:?\s*n?[ºo]?\.?\s*(\d[\d.\-]{5,})/i);
@@ -94,7 +96,7 @@ function extractProcessNumber(block: string): string | null {
 }
 
 // andamentos@jusbrasil.com.br: blocos repetidos iniciando em "TÍTULO Processo"
-function extractAndamentos(text: string): ExtractedEntry[] {
+export function extractAndamentos(text: string): ExtractedEntry[] {
   const entries: ExtractedEntry[] = [];
   const blocks = text.split(/(?=TÍTULO\s*Processo)/g).filter((b) => /^TÍTULO\s*Processo/.test(b.trim()));
   for (const block of blocks) {
@@ -108,7 +110,7 @@ function extractAndamentos(text: string): ExtractedEntry[] {
   return entries;
 }
 
-async function findCaseIdByProcessNumber(processNumberRaw: string | null, officeId: string): Promise<string | null> {
+export async function findCaseIdByProcessNumber(processNumberRaw: string | null, officeId: string): Promise<string | null> {
   if (!processNumberRaw) return null;
   const digits = processNumberRaw.replace(/\D/g, "");
   const allCases = await prisma.case.findMany({ where: { officeId, processNumber: { not: null } }, select: { id: true, processNumber: true } });
@@ -116,7 +118,7 @@ async function findCaseIdByProcessNumber(processNumberRaw: string | null, office
   return found?.id ?? null;
 }
 
-async function findClientIdByName(content: string, officeId: string): Promise<string | null> {
+export async function findClientIdByName(content: string, officeId: string): Promise<string | null> {
   const clients = await prisma.client.findMany({ where: { officeId }, select: { id: true, name: true } });
   const normalized = content.toLowerCase();
   for (const client of clients) {

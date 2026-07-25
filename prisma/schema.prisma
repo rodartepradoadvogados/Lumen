@@ -96,6 +96,7 @@ model Office {
   documentTemplates    DocumentTemplate[]
   deletionRequests     DeletionRequest[]
   googleCredentials    GoogleCredential[]
+  microsoftCredentials MicrosoftCredential[]
   financialCategories  FinancialCategory[]
   costCenters          CostCenter[]
   payables             Payable[]
@@ -167,6 +168,7 @@ model User {
   notices            Notice[]
   publicationsAssigned Publication[] @relation("PublicationAssignee")
   googleCredentials    GoogleCredential[]
+  microsoftCredentials MicrosoftCredential[]
   blogPostsReviewed    BlogPost[]    @relation("BlogPostReviewer")
   emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
@@ -708,6 +710,28 @@ model GoogleCredential {
 
   userId            String?
   user              User?    @relation(fields: [userId], references: [id])
+
+  @@index([officeId])
+}
+
+// Conta Microsoft (Outlook) conectada por uma pessoa do escritório — Fase 1 do pedido "sincronizar
+// com OneDrive/Outlook/Dropbox": cobre recebimento (mesmo pipeline do Jusbrasil por e-mail, ver
+// lib/outlookEmailSync.ts) e envio (Atendimento, ver lib/gmailSend.ts) via Outlook. Segue o mesmo
+// desenho do GoogleCredential "modo jusbrasil" (por pessoa, não por escritório) — cada um conecta a
+// própria caixa. OneDrive como armazenamento e o calendário do Outlook ainda não usam esta credencial
+// (ver README_MICROSOFT.md para o que falta).
+model MicrosoftCredential {
+  id           String   @id @default(cuid())
+  accountEmail String   @unique
+  refreshToken String
+  syncEmail    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
   @@index([officeId])
 }

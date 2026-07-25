@@ -28,6 +28,7 @@ import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
+import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import ModulesManager from "@/components/ModulesManager";
 
@@ -110,7 +111,7 @@ const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepc
 export default async function ConfiguracoesPage({
   searchParams,
 }: {
-  searchParams: { google?: string; msg?: string; secao?: string; blogTab?: string };
+  searchParams: { google?: string; microsoft?: string; msg?: string; secao?: string; blogTab?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) {
@@ -128,6 +129,7 @@ export default async function ConfiguracoesPage({
     taskTypePoints,
     workflowTemplates,
     googleAccounts,
+    microsoftAccounts,
     blogPendingRaw,
     blogPublishedRaw,
     photosRaw,
@@ -150,6 +152,7 @@ export default async function ConfiguracoesPage({
         include: { steps: { orderBy: { order: "asc" } } },
       }),
       listGoogleAccounts(officeId),
+      listMicrosoftAccounts(officeId),
       prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
       prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
       prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
@@ -419,7 +422,7 @@ export default async function ConfiguracoesPage({
         <Card>
           <CardHeader
             title="Integração com Drive e e-mail"
-            subtitle="Necessária para anexar documentos e sincronizar as publicações/andamentos que chegam por e-mail. Hoje disponível via Google (Drive + Gmail); suporte a Outlook/OneDrive ainda não está implementado."
+            subtitle="Necessária para anexar documentos e sincronizar as publicações/andamentos que chegam por e-mail. Anexos/Drive continuam só no Google por enquanto; o e-mail (leitura de publicações e envio no Atendimento) já aceita Outlook também — ver o card abaixo."
           />
           <div className="p-5 space-y-3">
             {searchParams.google === "conectado" && (
@@ -509,6 +512,65 @@ export default async function ConfiguracoesPage({
                 </a>
                 <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-2">
                   Cada pessoa só pode conectar/reconectar o próprio e-mail por aqui — não é possível reconectar o e-mail de outra pessoa.
+                </p>
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+
+      {isAdmin && secao === "modelos" && viewer && (() => {
+        const minhaConexaoMs = microsoftAccounts.find((a) => a.userId === viewer.id);
+        return (
+          <Card>
+            <CardHeader
+              title="Outlook (Microsoft)"
+              subtitle="Alternativa ao Google acima: recebe publicações/andamentos por e-mail e permite enviar e-mail no Atendimento usando a conta Outlook da própria pessoa. OneDrive (armazenamento) e o calendário do Outlook ainda não estão nesta conexão."
+            />
+            <div className="p-5 space-y-4">
+              {!isMicrosoftConfigured() && (
+                <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
+                  Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).
+                </p>
+              )}
+              {searchParams.microsoft === "conectado" && (
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">Microsoft conectado com sucesso!</p>
+              )}
+              {searchParams.microsoft === "erro" && (
+                <p className="text-xs text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-3 py-2">
+                  Erro ao conectar: {searchParams.msg || "tente novamente."}
+                </p>
+              )}
+              <div className="space-y-2">
+                {microsoftAccounts.length === 0 ? (
+                  <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Nenhuma conta Microsoft conectada ainda.</p>
+                ) : (
+                  microsoftAccounts.map((a) => (
+                    <div key={a.id} className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="text-navy-900 dark:text-cream-50">
+                        {a.ownerName ?? a.accountEmail} <span className="text-navy-800/45 dark:text-cream-50/45">— {a.accountEmail}</span>
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
+                <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mb-2">
+                  {minhaConexaoMs ? (
+                    <>Sua conta conectada: <strong>{minhaConexaoMs.accountEmail}</strong></>
+                  ) : (
+                    "Você ainda não conectou sua conta Microsoft."
+                  )}
+                </p>
+                <a
+                  href="/api/microsoft/connect"
+                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+                >
+                  <HardDrive size={16} /> {minhaConexaoMs ? "Reconectar" : "Conectar"} minha conta Microsoft
+                </a>
+                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-2">
+                  Cada pessoa só pode conectar/reconectar a própria conta — não é possível reconectar a conta de outra pessoa.
                 </p>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
 import { getOAuthClient } from "@/lib/googleDrive";
+import { sendMailOutlook } from "@/lib/microsoftGraph";
 
 export type SendEmailResult = { ok: boolean; error?: string };
 
@@ -26,16 +27,19 @@ function buildRawMessage(from: string, to: string, subject: string, body: string
 }
 
 /**
- * Envia um e-mail de resposta ao cliente usando a conta Google do próprio usuário
- * logado (a mesma conta que ele já conectou para o sync do Jusbrasil).
+ * Envia um e-mail de resposta ao cliente usando a conta Google (Gmail) do próprio usuário
+ * logado (a mesma conta que ele já conectou para o sync do Jusbrasil) — ou, se a pessoa
+ * conectou Outlook em vez de Gmail, cai para lib/microsoftGraph.ts:sendMailOutlook.
  * Nunca lança: sempre resolve para { ok, ... }.
  */
 export async function sendEmailReply(userId: string, to: string, subject: string, body: string): Promise<SendEmailResult> {
   const cred = await prisma.googleCredential.findFirst({ where: { userId } });
   if (!cred) {
+    const outlookCred = await prisma.microsoftCredential.findFirst({ where: { userId } });
+    if (outlookCred) return sendMailOutlook(userId, to, subject, body);
     return {
       ok: false,
-      error: "Você ainda não conectou sua conta do Google. Vá em Configurações e conecte seu e-mail para poder responder por aqui.",
+      error: "Você ainda não conectou sua conta de e-mail (Google ou Microsoft). Vá em Configurações e conecte para poder responder por aqui.",
     };
   }
 
