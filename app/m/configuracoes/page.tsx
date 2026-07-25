@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card } from "@/components/ui";
+import { Card, Badge, taskTypeLabels } from "@/components/ui";
 import MobileChangePasswordForm from "@/components/mobile/MobileChangePasswordForm";
 import NotificationPreferences from "@/components/mobile/NotificationPreferences";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
@@ -9,8 +9,9 @@ import TestDjenButton from "@/components/TestDjenButton";
 import TestEmailButton from "@/components/TestEmailButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
+import WorkflowsManager from "@/components/WorkflowsManager";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
-import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
+import { getOfficeModules, hasBlogAccess, type OfficeModules } from "@/lib/officeModules";
 import {
   ArrowLeft,
   User,
@@ -18,7 +19,6 @@ import {
   Bell,
   Plug,
   Users,
-  DollarSign,
   SlidersHorizontal,
   Workflow,
   Newspaper,
@@ -29,10 +29,21 @@ import {
   FolderCog,
   CheckCircle2,
   ChevronRight,
+  Upload,
   type LucideIcon,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
+const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
+
+const MODULE_LABELS: Record<keyof OfficeModules, string> = {
+  financeiro: "Financeiro",
+  whatsapp: "WhatsApp",
+  atendimento: "Atendimento",
+  assessoria: "Assessoria Jurídica",
+};
 
 export default async function MobileConfiguracoes() {
   const viewer = await getCurrentUser();
@@ -40,25 +51,42 @@ export default async function MobileConfiguracoes() {
   const officeId = viewer.officeId;
   const isAdmin = viewer.isAdmin;
 
-  const [modules, blogAccess, driveStatus, googleAccounts, users, whatsappConfig, workflowTemplates, categories, costCenters, blogPending, blogPublished] =
-    isAdmin
-      ? await Promise.all([
-          getOfficeModules(officeId),
-          hasBlogAccess(officeId),
-          getDriveStatus(officeId),
-          listGoogleAccounts(officeId),
-          prisma.user.findMany({ where: { officeId, active: true }, select: { id: true, name: true } }),
-          prisma.whatsappConfig.findUnique({ where: { officeId } }),
-          prisma.workflowTemplate.findMany({ where: { officeId }, select: { name: true, active: true } }),
-          prisma.financialCategory.count({ where: { officeId } }),
-          prisma.costCenter.count({ where: { officeId } }),
-          prisma.blogPost.count({ where: { officeId, status: "AGUARDANDO_REVISAO" } }),
-          prisma.blogPost.count({ where: { officeId, status: "PUBLICADO" } }),
-        ])
-      : [null, false, null, [], [], null, [], 0, 0, 0, 0];
+  const [
+    modules,
+    blogAccess,
+    driveStatus,
+    googleAccounts,
+    users,
+    whatsappConfig,
+    workflowTemplates,
+    taskTypePoints,
+    blogPending,
+    blogPublished,
+  ] = isAdmin
+    ? await Promise.all([
+        getOfficeModules(officeId),
+        hasBlogAccess(officeId),
+        getDriveStatus(officeId),
+        listGoogleAccounts(officeId),
+        prisma.user.findMany({ where: { officeId, active: true }, select: { id: true, name: true, role: true } }),
+        prisma.whatsappConfig.findUnique({ where: { officeId } }),
+        prisma.workflowTemplate.findMany({
+          where: { officeId },
+          orderBy: { createdAt: "asc" },
+          include: { steps: { orderBy: { order: "asc" } } },
+        }),
+        prisma.taskTypePoints.findMany({ where: { officeId } }),
+        prisma.blogPost.count({ where: { officeId, status: "AGUARDANDO_REVISAO" } }),
+        prisma.blogPost.count({ where: { officeId, status: "PUBLICADO" } }),
+      ])
+    : [null, false, null, [], [], null, [], [], 0, 0];
 
   const initials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
+  const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
+    const found = taskTypePoints.find((p) => p.type === type);
+    return { type, points: found?.points ?? 10 };
+  });
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -194,38 +222,103 @@ export default async function MobileConfiguracoes() {
 
           <details className="group">
             <Group icon={Users} title="Equipe" meta={`${users.length} pessoas`}>
-              <SummaryBody text="Cadastro de membros, credenciais e acesso ao Financeiro. Ajustável só no computador." />
-            </Group>
-          </details>
-
-          <details className="group">
-            <Group icon={DollarSign} title="Financeiro" meta={`${categories} categorias`}>
-              <SummaryBody text={`Plano de contas (${categories} categorias) e ${costCenters} centro(s) de custo. Ajustável só no computador.`} />
+              <Card className="!rounded-t-none border-t-0">
+                <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+                  {users.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
+                      <span className="text-sm text-navy-900 dark:text-cream-50">{u.name}</span>
+                      <span className="text-[11px] text-navy-800/45 dark:text-cream-50/45">{u.role}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 p-4 pt-3 border-t border-navy-800/8 dark:border-white/10">
+                  Cadastro de membros, credenciais e acesso ao Financeiro é ajustável só no computador.
+                </p>
+              </Card>
             </Group>
           </details>
 
           <details className="group">
             <Group icon={SlidersHorizontal} title="Geral" meta="3 itens">
-              <SummaryBody text="Módulos contratados, importação de dados e TaskScore (pontuação por tipo de tarefa). Ajustável só no computador." />
+              <Card className="!rounded-t-none border-t-0">
+                <div className="p-4">
+                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">Módulos contratados</p>
+                  <div className="space-y-1.5">
+                    {Object.entries(MODULE_LABELS).map(([key, label]) => (
+                      <div key={key} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-navy-800 dark:text-cream-50/85">{label}</span>
+                        <Badge color={modules?.[key as keyof typeof MODULE_LABELS] ? "green" : "slate"}>
+                          {modules?.[key as keyof typeof MODULE_LABELS] ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-2">Liga/desliga só no computador.</p>
+                </div>
+
+                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
+                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1.5 flex items-center gap-1.5"><Upload size={13} /> Importação de Dados</p>
+                  <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60 leading-relaxed">
+                    Traz Processos/Casos/Atendimentos, Agenda, Financeiro e Contatos de uma planilha (.xlsx ou .csv) — cada tipo
+                    tem um modelo próprio pra baixar, com as colunas esperadas (ex.: cliente, partes, tribunal, valor). Clientes e
+                    partes citados na planilha são cadastrados automaticamente. O envio do arquivo é feito só pelo computador,
+                    em Configurações → Geral → Importação de Dados.
+                  </p>
+                </div>
+
+                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
+                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">TaskScore — como está configurado</p>
+                  <div className="space-y-1.5">
+                    {taskTypePointsRows.map((row) => (
+                      <div key={row.type} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-navy-800 dark:text-cream-50/85">{taskTypeLabels[row.type] ?? row.type}</span>
+                        <span className="font-semibold text-navy-900 dark:text-cream-50">{row.points} pts</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-2">Pontos por tarefa concluída. Ajustável só no computador.</p>
+                </div>
+              </Card>
             </Group>
           </details>
 
           <details className="group">
             <Group icon={Workflow} title="Workflows" meta={`${workflowTemplates.length} modelos`}>
-              <SummaryBody
-                text={
-                  workflowTemplates.length > 0
-                    ? workflowTemplates.map((w) => w.name).join(" · ")
-                    : "Nenhum workflow cadastrado ainda. Cadastrável só no computador."
-                }
-              />
+              <Card className="!rounded-t-none border-t-0">
+                <div className="p-4">
+                  <WorkflowsManager
+                    templates={workflowTemplates.map((t) => ({
+                      id: t.id,
+                      name: t.name,
+                      area: t.area,
+                      description: t.description,
+                      active: t.active,
+                      steps: t.steps.map((s) => ({
+                        id: s.id,
+                        order: s.order,
+                        title: s.title,
+                        taskType: s.taskType,
+                        offsetDays: s.offsetDays,
+                        priority: s.priority,
+                        role: s.role,
+                        points: s.points,
+                      })),
+                    }))}
+                    roles={ROLE_OPTIONS}
+                  />
+                </div>
+              </Card>
             </Group>
           </details>
 
           {blogAccess && (
             <details className="group">
               <Group icon={Newspaper} title="Blog Jurídico" meta={`${blogPending} pendente(s)`}>
-                <SummaryBody text={`${blogPending} matéria(s) aguardando revisão · ${blogPublished} publicada(s). Ajustável só no computador.`} />
+                <Card className="!rounded-t-none border-t-0">
+                  <p className="text-xs text-navy-800/60 dark:text-cream-50/60 leading-relaxed p-4">
+                    {blogPending} matéria(s) aguardando revisão · {blogPublished} publicada(s). Ajustável só no computador.
+                  </p>
+                </Card>
               </Group>
             </details>
           )}
@@ -235,6 +328,11 @@ export default async function MobileConfiguracoes() {
           </p>
         </>
       )}
+
+      <style>{`
+        .cfg-input { border: 1px solid rgba(15,31,61,0.15); border-radius: 0.5rem; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: transparent; color: inherit; }
+        .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+      `}</style>
     </div>
   );
 }
@@ -261,13 +359,5 @@ function Group({ icon: Icon, title, meta, children }: { icon: LucideIcon; title:
       </summary>
       {children}
     </>
-  );
-}
-
-function SummaryBody({ text }: { text: string }) {
-  return (
-    <Card className="!rounded-t-none border-t-0">
-      <p className="text-xs text-navy-800/60 dark:text-cream-50/60 leading-relaxed p-4">{text}</p>
-    </Card>
   );
 }
