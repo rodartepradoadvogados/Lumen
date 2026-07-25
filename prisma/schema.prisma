@@ -149,6 +149,12 @@ model User {
   notifyAgendaDia        Boolean @default(true)
   notifyMencoes          Boolean @default(true)
 
+  // Provedor escolhido explicitamente para o envio de e-mail no Atendimento — "GOOGLE" ou
+  // "MICROSOFT". Sem essa escolha o envio fica desabilitado (erro claro), mesmo que a pessoa
+  // tenha uma das duas contas conectada: conectar não habilita sozinho, é preciso escolher (ver
+  // lib/gmailSend.ts) — evita mandar e-mail pela conta errada por engano.
+  emailSendProvider String?
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 

@@ -16,6 +16,26 @@ export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: 
   return sendDailyAgendaEmail(viewer.officeId);
 }
 
+// Escolha explícita de qual conta usar para enviar e-mail no Atendimento (Google ou Microsoft)
+// — conectar a conta não habilita o envio sozinho, ver lib/gmailSend.ts:sendEmailReply. Só
+// aceita a escolha se a conta correspondente já estiver conectada.
+export async function setEmailSendProvider(provider: "GOOGLE" | "MICROSOFT" | null): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+
+  if (provider === "GOOGLE") {
+    const cred = await prisma.googleCredential.findFirst({ where: { userId: viewer.id } });
+    if (!cred) return { error: "Conecte sua conta Google antes de escolhê-la para envio." };
+  } else if (provider === "MICROSOFT") {
+    const cred = await prisma.microsoftCredential.findFirst({ where: { userId: viewer.id } });
+    if (!cred) return { error: "Conecte sua conta Microsoft antes de escolhê-la para envio." };
+  }
+
+  await prisma.user.update({ where: { id: viewer.id }, data: { emailSendProvider: provider } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 // Soma os resultados de Gmail e Outlook num só SyncResult — pro botão/cron não precisar saber
 // que existem duas fontes de e-mail por baixo (mesma ideia de runFullPublicationsSync somando
 // e-mail + robô).

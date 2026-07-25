@@ -25,6 +25,7 @@ import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
+import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -577,6 +578,22 @@ export default async function ConfiguracoesPage({
           </Card>
         );
       })()}
+
+      {isAdmin && secao === "modelos" && viewer && (
+        <Card>
+          <CardHeader
+            title="Envio de e-mail no Atendimento"
+            subtitle="Conectar Google e/ou Microsoft acima não liga o envio sozinho — escolha qual dos dois usar. Sem escolha, o botão de enviar e-mail no Atendimento dá erro."
+          />
+          <div className="p-5">
+            <EmailSendProviderPicker
+              current={viewer.emailSendProvider ?? null}
+              googleConnected={googleAccounts.some((a) => a.userId === viewer.id)}
+              microsoftConnected={microsoftAccounts.some((a) => a.userId === viewer.id)}
+            />
+          </div>
+        </Card>
+      )}
 
       {isAdmin && secao === "modelos" && (
         <Card>

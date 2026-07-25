@@ -27,19 +27,30 @@ function buildRawMessage(from: string, to: string, subject: string, body: string
 }
 
 /**
- * Envia um e-mail de resposta ao cliente usando a conta Google (Gmail) do próprio usuário
- * logado (a mesma conta que ele já conectou para o sync do Jusbrasil) — ou, se a pessoa
- * conectou Outlook em vez de Gmail, cai para lib/microsoftGraph.ts:sendMailOutlook.
- * Nunca lança: sempre resolve para { ok, ... }.
+ * Envia um e-mail de resposta ao cliente usando o provedor que a própria pessoa ESCOLHEU
+ * explicitamente em Configurações (User.emailSendProvider) — conectar Google e/ou Microsoft não
+ * habilita o envio sozinho; sem uma escolha explícita (ou se a conta escolhida não estiver mais
+ * conectada), o envio fica desabilitado com um erro claro, em vez de cair automaticamente para o
+ * outro provedor. Nunca lança: sempre resolve para { ok, ... }.
  */
 export async function sendEmailReply(userId: string, to: string, subject: string, body: string): Promise<SendEmailResult> {
-  const cred = await prisma.googleCredential.findFirst({ where: { userId } });
-  if (!cred) {
-    const outlookCred = await prisma.microsoftCredential.findFirst({ where: { userId } });
-    if (outlookCred) return sendMailOutlook(userId, to, subject, body);
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { emailSendProvider: true } });
+  if (!user?.emailSendProvider) {
     return {
       ok: false,
-      error: "Você ainda não conectou sua conta de e-mail (Google ou Microsoft). Vá em Configurações e conecte para poder responder por aqui.",
+      error: "Nenhum provedor de e-mail escolhido para envio. Vá em Configurações → Modelos & Integrações e escolha Google ou Microsoft para habilitar o envio pelo Atendimento.",
+    };
+  }
+
+  if (user.emailSendProvider === "MICROSOFT") {
+    return sendMailOutlook(userId, to, subject, body);
+  }
+
+  const cred = await prisma.googleCredential.findFirst({ where: { userId } });
+  if (!cred) {
+    return {
+      ok: false,
+      error: "Você escolheu Google como provedor de envio, mas sua conta Google não está mais conectada. Vá em Configurações e reconecte.",
     };
   }
 
