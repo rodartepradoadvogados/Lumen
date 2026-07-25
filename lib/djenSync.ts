@@ -62,7 +62,7 @@ async function getSessionCookie(): Promise<string | null> {
   return setCookie ? setCookie.split(";")[0] : null;
 }
 
-async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | null): Promise<{ status: number; body: unknown }> {
+async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | null): Promise<{ status: number; body: unknown; parseFailed: boolean }> {
   const url = `${DJEN_API_BASE}?numeroOab=${encodeURIComponent(numeroOab)}&ufOab=${encodeURIComponent(ufOab)}&itensPorPagina=5`;
   const res = await fetch(url, {
     headers: {
@@ -75,12 +75,14 @@ async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | n
   });
   const status = res.status;
   let body: unknown;
+  let parseFailed = false;
   try {
     body = await res.json();
   } catch {
     body = await res.text().catch(() => null);
+    parseFailed = true;
   }
-  return { status, body };
+  return { status, body, parseFailed };
 }
 
 export async function testDjenConnection(officeId: string): Promise<DjenTestResult[]> {
@@ -96,14 +98,26 @@ export async function testDjenConnection(officeId: string): Promise<DjenTestResu
 
   for (const target of targets) {
     try {
-      const { status, body } = await fetchDjenRaw(target.numeroOab, target.ufOab, cookie);
+      const { status, body, parseFailed } = await fetchDjenRaw(target.numeroOab, target.ufOab, cookie);
+      const ok = status >= 200 && status < 300 && !parseFailed;
+      // O CNJ bloqueia por padrão requisições vindas de IPs de datacenter (como o do nosso
+      // servidor) com 403 — não é um bug do site, é um bloqueio de infraestrutura do lado do
+      // DJEN. Sem um proxy residencial pago, não há como contornar isso a partir do servidor.
+      const error = !ok
+        ? status === 403
+          ? "DJEN bloqueou a conexão (403) por vir de um servidor/datacenter, não de um navegador comum. É um bloqueio do próprio CNJ, não um erro do sistema — só seria contornável com um proxy residencial pago."
+          : parseFailed
+          ? `DJEN respondeu (status ${status}) mas em um formato que não conseguimos interpretar.`
+          : `DJEN respondeu com status ${status}.`
+        : undefined;
       results.push({
         label: target.label,
         numeroOab: target.numeroOab,
         ufOab: target.ufOab,
-        ok: status >= 200 && status < 300,
+        ok,
         status,
-        sample: body,
+        sample: ok ? body : undefined,
+        error,
         cookieObtained: Boolean(cookie),
       });
     } catch (e) {

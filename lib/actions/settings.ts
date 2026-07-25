@@ -29,6 +29,19 @@ export async function runRoboBridgeSync(): Promise<RoboBridgeResult> {
   return result;
 }
 
+// Botão único "Sincronizar publicações e andamentos processuais" (Configurações → Modelos &
+// Integrações) — antes eram dois botões separados (um em Publicações, outro implícito no cron
+// do robô); agora dispara os dois de uma vez: varredura dos e-mails conectados (Jusbrasil +
+// captura ampla — ver lib/jusbrasilEmailSync.ts) e a ponte do robô Python (DJEN/Datajud).
+export type FullSyncResult = { email: SyncResult; robo: RoboBridgeResult };
+
+export async function runFullPublicationsSync(): Promise<FullSyncResult> {
+  const [email, robo] = await Promise.all([syncJusbrasilEmails(), syncRoboParaSite()]);
+  revalidatePath("/publicacoes");
+  revalidatePath("/configuracoes");
+  return { email, robo };
+}
+
 export async function runDjenConnectionTest(): Promise<{ error?: string; results?: DjenTestResult[] }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) {

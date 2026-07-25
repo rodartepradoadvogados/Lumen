@@ -24,6 +24,7 @@ import BlogPublishedManager from "@/components/BlogPublishedManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
+import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -74,13 +75,12 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
 }
 
 const SECOES = [
-  { key: "geral", label: "Geral", adminOnly: false },
+  { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
   { key: "equipe", label: "Equipe", adminOnly: true },
   { key: "financeiro", label: "Financeiro", adminOnly: true },
-  { key: "produtividade", label: "Produtividade", adminOnly: true },
+  { key: "geral", label: "Geral", adminOnly: false },
   { key: "workflows", label: "Workflows", adminOnly: true },
   { key: "blog", label: "Blog Jurídico", adminOnly: true },
-  { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
 ] as const;
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
@@ -216,6 +216,13 @@ export default async function ConfiguracoesPage({
         </div>
       )}
 
+      {isAdmin && secao === "geral" && (
+      <Card>
+        <CardHeader title="Módulos Contratados" subtitle="Liga/desliga módulos conforme o plano contratado — desligar não apaga nenhum dado já existente" />
+        <ModulesManager modules={modules} />
+      </Card>
+      )}
+
       {secao === "geral" && (
       <Card>
         <CardHeader title="Importação de Dados" subtitle="Traga contatos, processos e agenda de uma planilha" />
@@ -239,43 +246,6 @@ export default async function ConfiguracoesPage({
         </div>
       </Card>
       )}
-
-      {isAdmin && secao === "geral" && (
-      <Card>
-        <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para os administradores do escritório" />
-        <div className="p-5">
-          <TestEmailButton />
-        </div>
-      </Card>
-      )}
-
-      {secao === "geral" && viewer && (() => {
-        const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
-        return (
-          <Card>
-            <CardHeader
-              title="Minha sincronização do Jusbrasil"
-              subtitle="Conecte seu próprio e-mail para que as publicações que chegam nele sejam capturadas automaticamente"
-            />
-            <div className="p-5 space-y-3">
-              {minhaConexao ? (
-                <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50">
-                  <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
-                  Conectado como <strong>{minhaConexao.accountEmail}</strong>
-                </div>
-              ) : (
-                <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Você ainda não conectou nenhum e-mail para o Jusbrasil.</p>
-              )}
-              <a
-                href="/api/google/connect?mode=jusbrasil"
-                className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-              >
-                <HardDrive size={16} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
-              </a>
-            </div>
-          </Card>
-        );
-      })()}
 
       {isAdmin && blogAccess && secao === "blog" && (() => {
         const blogTab =
@@ -369,8 +339,20 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "modelos" && (
         <Card>
           <CardHeader
-            title="Integração com Google (Drive + Gmail)"
-            subtitle="Necessária para anexar documentos e para sincronizar as publicações/andamentos que chegam por e-mail da Jusbrasil"
+            title="Sincronizar publicações e andamentos processuais"
+            subtitle="Varre agora os e-mails conectados (Jusbrasil e outras fontes) e busca o que o robô de DJEN/Datajud já capturou — sem esperar o próximo ciclo automático"
+          />
+          <div className="p-5">
+            <SyncPublicationsButton />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
+            title="Integração com Drive e e-mail"
+            subtitle="Necessária para anexar documentos e sincronizar as publicações/andamentos que chegam por e-mail. Hoje disponível via Google (Drive + Gmail); suporte a Outlook/OneDrive ainda não está implementado."
           />
           <div className="p-5 space-y-3">
             {searchParams.google === "conectado" && (
@@ -393,13 +375,100 @@ export default async function ConfiguracoesPage({
               href="/api/google/connect"
               className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
             >
-              <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google
+              <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive + Gmail)
             </a>
             {driveStatus.connected && (
               <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
-                Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para o Jusbrasil).
+                Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para as publicações por e-mail).
               </p>
             )}
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && viewer && (() => {
+        const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
+        return (
+          <Card>
+            <CardHeader
+              title="Publicações e andamentos processuais de e-mail"
+              subtitle="Captura publicações, intimações, despachos e andamentos processuais (Projudi, eProc, DJEN, PJE, Datajud, eSaj, entre outros) recebidos por e-mail — cada pessoa só conecta a própria caixa"
+            />
+            <div className="p-5 space-y-4">
+              <div className="space-y-2">
+                {users.filter((u) => u.active).map((u) => {
+                  const found = googleAccounts.find((a) => a.userId === u.id);
+                  return (
+                    <div key={u.id} className="flex items-center gap-2 text-sm">
+                      {found ? (
+                        <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      ) : (
+                        <AlertTriangle size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                      )}
+                      <span className={found ? "text-navy-900 dark:text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"}>
+                        {u.name}
+                        {found ? (
+                          <span className="text-navy-800/45 dark:text-cream-50/45"> — {found.accountEmail}</span>
+                        ) : (
+                          " (ainda não conectou o e-mail)"
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+                {googleAccounts.filter((a) => !a.userId).map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-navy-900 dark:text-cream-50">
+                      {a.accountEmail}
+                      {a.isPrimaryDrive && <span className="text-navy-800/45 dark:text-cream-50/45"> (conta principal do Drive)</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
+                <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mb-2">
+                  {minhaConexao ? (
+                    <>Sua conta conectada: <strong>{minhaConexao.accountEmail}</strong></>
+                  ) : (
+                    "Você ainda não conectou seu e-mail."
+                  )}
+                </p>
+                <a
+                  href="/api/google/connect?mode=jusbrasil"
+                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+                >
+                  <HardDrive size={16} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
+                </a>
+                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-2">
+                  Cada pessoa só pode conectar/reconectar o próprio e-mail por aqui — não é possível reconectar o e-mail de outra pessoa.
+                </p>
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
+            title="DJEN — Diário de Justiça Eletrônico Nacional (CNJ)"
+            subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
+          />
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 dark:text-gold-400 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
+            </p>
+            <TestDjenButton />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para os administradores do escritório — inclui as tarefas do dia e as publicações/andamentos capturados no dia" />
+          <div className="p-5">
+            <TestEmailButton />
           </div>
         </Card>
       )}
@@ -437,61 +506,6 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "modelos" && (
         <Card>
           <CardHeader
-            title="Contas conectadas para o Jusbrasil"
-            subtitle="Cada advogado conecta o próprio e-mail em Configurações → Geral; publicações de todas as contas abaixo são capturadas"
-          />
-          <div className="p-5 space-y-2">
-            {users.filter((u) => u.active).map((u) => {
-              const found = googleAccounts.find((a) => a.userId === u.id);
-              return (
-                <div key={u.id} className="flex items-center gap-2 text-sm">
-                  {found ? (
-                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  ) : (
-                    <AlertTriangle size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
-                  )}
-                  <span className={found ? "text-navy-900 dark:text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"}>
-                    {u.name}
-                    {found ? (
-                      <span className="text-navy-800/45 dark:text-cream-50/45"> — {found.accountEmail}</span>
-                    ) : (
-                      " (ainda não conectou o e-mail)"
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-            {googleAccounts.filter((a) => !a.userId).map((a) => (
-              <div key={a.id} className="flex items-center gap-2 text-sm">
-                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="text-navy-900 dark:text-cream-50">
-                  {a.accountEmail}
-                  {a.isPrimaryDrive && <span className="text-navy-800/45 dark:text-cream-50/45"> (conta principal do Drive)</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {isAdmin && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="DJEN — Diário de Justiça Eletrônico Nacional (CNJ)"
-            subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
-          />
-          <div className="p-5 space-y-3">
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
-              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 dark:text-gold-400 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
-            </p>
-            <TestDjenButton />
-          </div>
-        </Card>
-      )}
-
-      {isAdmin && secao === "modelos" && (
-        <Card>
-          <CardHeader
             title="Modelos de Documento"
             subtitle="Contratos, procurações, declarações e petições — usados no botão “Gerar Documento” de cada processo/atendimento"
           />
@@ -506,8 +520,11 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "geral" && (
       <Card>
-        <CardHeader title="Módulos Contratados" subtitle="Liga/desliga módulos conforme o plano contratado — desligar não apaga nenhum dado já existente" />
-        <ModulesManager modules={modules} />
+        <CardHeader
+          title="TaskScore — Pontuação por Tipo de Tarefa"
+          subtitle="Pontos atribuídos automaticamente a cada tarefa concluída, conforme o tipo. Alimenta o ranking da página Produtividade."
+        />
+        <TaskTypePointsManager items={taskTypePointsRows} />
       </Card>
       )}
 
@@ -641,16 +658,6 @@ export default async function ConfiguracoesPage({
         </form>
       </Card>
       </>
-      )}
-
-      {isAdmin && secao === "produtividade" && (
-      <Card>
-        <CardHeader
-          title="TaskScore — Pontuação por Tipo de Tarefa"
-          subtitle="Pontos atribuídos automaticamente a cada tarefa concluída, conforme o tipo. Alimenta o ranking da página Produtividade."
-        />
-        <TaskTypePointsManager items={taskTypePointsRows} />
-      </Card>
       )}
 
       {isAdmin && secao === "workflows" && (

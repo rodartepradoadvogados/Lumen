@@ -21,11 +21,20 @@ const typeLabels: Record<string, string> = { TAREFA: "Tarefa", EVENTO: "Evento",
 
 export async function buildDailyAgendaHtml(officeId: string, officeName: string) {
   const now = new Date();
-  const tasks = await prisma.task.findMany({
-    where: { officeId, dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { not: "CANCELADO" } },
-    include: { case: true, responsible: true },
-    orderBy: [{ dueTime: "asc" }],
-  });
+  const [tasks, publications] = await Promise.all([
+    prisma.task.findMany({
+      where: { officeId, dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { not: "CANCELADO" } },
+      include: { case: true, responsible: true },
+      orderBy: [{ dueTime: "asc" }],
+    }),
+    // "Capturadas hoje": usa createdAt (quando entrou no site via e-mail/robô), não publishedAt
+    // (que pode ser retroativo à data real da publicação no diário oficial).
+    prisma.publication.findMany({
+      where: { officeId, createdAt: { gte: startOfDay(now), lte: endOfDay(now) } },
+      include: { case: true },
+      orderBy: [{ createdAt: "desc" }],
+    }),
+  ]);
 
   const dateLabel = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
@@ -37,6 +46,17 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${typeLabels[t.type] ?? t.type}</span></td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${t.title}${t.case ? `<br/><span style="color:#888;font-size:12px;">${t.case.title}</span>` : ""}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#555;">${t.responsible?.name ?? "—"}</td>
+      </tr>`
+    )
+    .join("");
+
+  const pubKindLabels: Record<string, string> = { PUBLICACAO: "Publicação", ANDAMENTO: "Andamento" };
+  const pubRows = publications
+    .map(
+      (p) => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${pubKindLabels[p.kind] ?? p.kind}</span> <span style="color:#999;font-size:11px;">${p.source}</span></td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${p.content.slice(0, 220)}${p.content.length > 220 ? "…" : ""}${p.case ? `<br/><span style="color:#888;font-size:12px;">${p.case.title}</span>` : ""}</td>
       </tr>`
     )
     .join("");
@@ -62,6 +82,20 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
                 </tr>
               </thead>
               <tbody>${rows}</tbody>
+            </table>`
+      }
+      <p style="font-family:Arial,sans-serif;font-size:13px;color:#0f1f3d;font-weight:700;margin:24px 0 8px;">Publicações e andamentos capturados hoje</p>
+      ${
+        publications.length === 0
+          ? `<p style="font-family:Arial,sans-serif;color:#888;">Nenhuma publicação ou andamento capturado hoje.</p>`
+          : `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
+              <thead>
+                <tr style="background:#f3efe6;">
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Tipo / fonte</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Conteúdo</th>
+                </tr>
+              </thead>
+              <tbody>${pubRows}</tbody>
             </table>`
       }
     </div>

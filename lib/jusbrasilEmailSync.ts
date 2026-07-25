@@ -16,6 +16,44 @@ export type SyncResult = {
 
 const RELEVANT_SENDERS = ["publicacoes-diarios@jusbrasil.com.br", "andamentos@jusbrasil.com.br"];
 
+// Captura ampla (best-effort): fora dos e-mails do Jusbrasil (formato conhecido, parsing
+// específico acima), muitos tribunais avisam diretamente por e-mail — sem um padrão único de
+// remetente/layout entre eles (cada TJ/TRT/TRF/PJE/eSaj/Projudi/eProc tem o seu). Em vez de
+// tentar reconhecer cada um, filtra por ASSUNTO contendo termos típicos de comunicação
+// processual e extrai o que der pra extrair de forma genérica (ver o branch "captura ampla"
+// dentro de processMessage) — melhor um registro bruto capturado do que a publicação passar
+// batido.
+const BROAD_SUBJECT_KEYWORDS = [
+  "publicação",
+  "publicacao",
+  "intimação",
+  "intimacao",
+  "despacho",
+  "andamento processual",
+  "comunicação processual",
+  "comunicacao processual",
+  "diário de justiça",
+  "diario de justica",
+  "movimentação processual",
+  "movimentacao processual",
+];
+
+// Domínios de sistemas de tribunais conhecidos — só para etiquetar `Publication.source` na
+// captura ampla (o filtro em si é por assunto, acima). Lista não exaustiva; sem um padrão
+// reconhecido, cai no default "DJE" (diário de justiça genérico).
+const COURT_SYSTEM_DOMAIN_PATTERNS: { pattern: RegExp; source: string }[] = [
+  { pattern: /comunicaapi?\.pje/i, source: "DJEN" },
+  { pattern: /pje\.jus\.br/i, source: "PJE" },
+  { pattern: /esaj/i, source: "ESAJ" },
+  { pattern: /projudi/i, source: "PROJUDI" },
+  { pattern: /eproc/i, source: "EPROC" },
+];
+
+function detectCourtSystemSource(senderAddress: string): string {
+  const found = COURT_SYSTEM_DOMAIN_PATTERNS.find((p) => p.pattern.test(senderAddress));
+  return found?.source ?? "DJE";
+}
+
 type ExtractedEntry = { processNumber: string | null; content: string; kind: string };
 
 const PROCESS_NUMBER_RE = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
@@ -100,7 +138,14 @@ async function getGmailClients(): Promise<{ gmail: ReturnType<typeof google.gmai
   });
 }
 
-async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId: string, accountEmail: string, officeId: string, result: SyncResult) {
+async function processMessage(
+  gmail: ReturnType<typeof google.gmail>,
+  messageId: string,
+  accountEmail: string,
+  officeId: string,
+  result: SyncResult,
+  isKnownJusbrasilSender: boolean
+) {
   const raw = await gmail.users.messages.get({ userId: "me", id: messageId, format: "raw" });
   if (!raw.data.raw) return;
   const parsed = await simpleParser(Buffer.from(raw.data.raw, "base64url"));
@@ -109,14 +154,18 @@ async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId:
   const senderAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || "";
   const bodyText = (parsed.text || "").trim();
   const subject = parsed.subject || "";
+  const source = isKnownJusbrasilSender ? "JUSBRASIL_EMAIL" : detectCourtSystemSource(senderAddress);
 
-  const defaultKind = senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
+  const defaultKind = /publica[cç][aã]o/i.test(subject) || senderAddress.includes("publicacoes-diarios") ? "PUBLICACAO" : "ANDAMENTO";
   let entries: ExtractedEntry[] = [];
   if (senderAddress.includes("publicacoes-diarios")) {
     entries = extractPublicacoes(bodyText);
   } else if (senderAddress.includes("andamentos")) {
     entries = extractAndamentos(bodyText);
   }
+  // Captura ampla (fonte fora do Jusbrasil): sem layout conhecido pra quebrar em blocos —
+  // um único registro com o corpo inteiro do e-mail (ou o assunto, se o corpo vier vazio) e
+  // o número de processo que a regex genérica conseguir achar.
   if (entries.length === 0) {
     entries = [{ processNumber: extractProcessNumber(bodyText), content: bodyText.slice(0, 3000) || subject, kind: defaultKind }];
   }
@@ -155,7 +204,7 @@ async function processMessage(gmail: ReturnType<typeof google.gmail>, messageId:
       data: {
         officeId,
         kind: entry.kind,
-        source: "JUSBRASIL_EMAIL",
+        source,
         content: entry.content,
         publishedAt,
         emailMessageId,
@@ -178,38 +227,54 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
 
   const clients = await getGmailClients();
   if (clients.length === 0) {
-    result.errors.push("Nenhuma conta do Google conectada para o Jusbrasil. Vá em Configurações e conecte pelo menos um e-mail.");
+    result.errors.push("Nenhuma conta de e-mail conectada. Vá em Configurações → Modelos & Integrações e conecte pelo menos um e-mail.");
     return result;
   }
 
   const senderQuery = RELEVANT_SENDERS.map((s) => `from:${s}`).join(" OR ");
+  const broadSubjectQuery = BROAD_SUBJECT_KEYWORDS.map((k) => `subject:"${k}"`).join(" OR ");
+  const excludeKnownSenders = RELEVANT_SENDERS.map((s) => `-from:${s}`).join(" ");
 
   for (const { gmail, accountEmail, officeId } of clients) {
     result.accountsScanned++;
     try {
-      // "Desde quando" buscar é por escritório — o último e-mail do Jusbrasil já
-      // importado PARA ESTE escritório, não o mais recente da plataforma inteira.
+      // "Desde quando" buscar é por escritório — o último e-mail já importado PARA ESTE
+      // escritório (de qualquer fonte), não o mais recente da plataforma inteira.
       const priorSync = await prisma.publication.findFirst({
-        where: { officeId, source: "JUSBRASIL_EMAIL" },
+        where: { officeId, source: { in: ["JUSBRASIL_EMAIL", "DJE", "PJE", "ESAJ", "PROJUDI", "EPROC", "DJEN"] } },
         orderBy: { publishedAt: "desc" },
       });
       const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const afterEpochSeconds = Math.floor(sinceDate.getTime() / 1000);
-      const query = `(${senderQuery}) after:${afterEpochSeconds}`;
 
-      const messageIds: string[] = [];
-      let pageToken: string | undefined;
-      do {
-        const list = await gmail.users.messages.list({ userId: "me", q: query, maxResults: 100, pageToken });
-        for (const m of list.data.messages ?? []) if (m.id) messageIds.push(m.id);
-        pageToken = list.data.nextPageToken ?? undefined;
-      } while (pageToken);
+      // Duas buscas: a conhecida (remetentes do Jusbrasil, parsing específico) e a ampla
+      // (assunto com termos de comunicação processual, qualquer remetente — exceto os já
+      // cobertos pela primeira, pra não processar a mesma mensagem duas vezes).
+      const knownQuery = `(${senderQuery}) after:${afterEpochSeconds}`;
+      const broadQuery = `(${broadSubjectQuery}) ${excludeKnownSenders} after:${afterEpochSeconds}`;
+
+      async function listAllIds(q: string): Promise<string[]> {
+        const ids: string[] = [];
+        let pageToken: string | undefined;
+        do {
+          const list = await gmail.users.messages.list({ userId: "me", q, maxResults: 100, pageToken });
+          for (const m of list.data.messages ?? []) if (m.id) ids.push(m.id);
+          pageToken = list.data.nextPageToken ?? undefined;
+        } while (pageToken);
+        return ids;
+      }
+
+      const [knownIds, broadIds] = await Promise.all([listAllIds(knownQuery), listAllIds(broadQuery)]);
+      const messageIds = [
+        ...knownIds.map((id) => ({ id, known: true })),
+        ...broadIds.map((id) => ({ id, known: false })),
+      ];
 
       const before = { publicacoes: result.createdPublicacoes, andamentos: result.createdAndamentos };
-      for (const messageId of messageIds) {
+      for (const { id: messageId, known } of messageIds) {
         result.found++;
         try {
-          await processMessage(gmail, messageId, accountEmail, officeId, result);
+          await processMessage(gmail, messageId, accountEmail, officeId, result, known);
         } catch (e) {
           const message = e instanceof Error ? e.message : "erro desconhecido";
           result.errors.push(`[${accountEmail}] Mensagem ${messageId}: ${message}`);
