@@ -13,6 +13,7 @@ import {
   formatDate,
   taskTypeLabels,
   taskTypeColors,
+  dueStatusClassName,
 } from "@/components/ui";
 import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, Newspaper, ExternalLink } from "lucide-react";
 import NoticesPanel from "@/components/NoticesPanel";
@@ -281,7 +282,11 @@ export default async function DashboardPage() {
           <div className="divide-y divide-navy-800/5 dark:divide-white/10 max-h-[420px] overflow-y-auto scrollbar-thin">
             {alerts.length === 0 && <EmptyState title="Sem alertas" />}
             {alerts.slice(0, 8).map((a) => (
-              <AlertRow key={a.id} alert={a} className="block w-full text-left px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+              <AlertRow
+                key={a.id}
+                alert={a}
+                className={`block w-full text-left px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors ${dueStatusClassName(a.dueStatus)}`}
+              >
                 <div className="flex items-start gap-2">
                   <span
                     className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${

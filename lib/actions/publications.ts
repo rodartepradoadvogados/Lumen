@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
+import { delegateTask, acknowledgeDelegation } from "@/lib/actions/tasks";
 
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
@@ -83,11 +84,13 @@ export async function markAllPublicationsReadForCase(caseId: string) {
 }
 
 // ===== RIDT — fila de triagem de publicações com atribuição de responsável =====
-// A atribuição manual por publicação agora acontece só via "Delegar" (delegateTask,
-// lib/actions/tasks.ts, com publicationId) — que também seta Publication.assignedToId — e
-// via distribuição automática balanceada logo abaixo. O antigo assignPublication (select
-// "Sem responsável" mudando o campo em silêncio, sem gerar tarefa nem avisar ninguém) foi
-// removido para não duplicar esse fluxo.
+// A atribuição por publicação acontece via "Delegar" (delegateTask, lib/actions/tasks.ts, com
+// publicationId — botão individual em PublicationRow) ou via a janela suspensa "Distribuir
+// pendentes" (getPendingPublicationsForDistribution + submitPublicationDistribution, logo
+// abaixo — em lote, com sugestão de advogado balanceada por carga atual). As duas chamam
+// delegateTask por baixo, então sempre geram Task + setam Publication.assignedToId. O antigo
+// assignPublication (select "Sem responsável" mudando o campo em silêncio, sem gerar tarefa nem
+// avisar ninguém) foi removido para não duplicar esse fluxo.
 
 export async function setPublicationTriageStatus(id: string, status: string) {
   const user = await getCurrentUser();
@@ -96,9 +99,23 @@ export async function setPublicationTriageStatus(id: string, status: string) {
   revalidatePath("/publicacoes");
 }
 
-// Distribuição automática balanceada das publicações pendentes entre advogados/sócios.
-// Restrita a administradores (Jairo/Rodrigo). Inspirado no Flowter do ADVBOX.
-export async function distributePendingPublications(): Promise<{ assigned?: number; error?: string }> {
+export type DistributionRow = {
+  id: string;
+  processNumber: string | null;
+  title: string;
+  content: string;
+  suggestedUserId: string | null;
+};
+
+// Alimenta a janela suspensa de "Distribuir pendentes" (DistributePublicationsButton): lista as
+// publicações pendentes sem responsável e, pra cada uma, uma SUGESTÃO de advogado (mesmo
+// balanceamento por carga atual + regra de tag "Jairo"/"Rodrigo" que a distribuição automática
+// antiga usava) — o admin ainda revisa/ajusta cada linha antes de confirmar, nada é gravado aqui.
+export async function getPendingPublicationsForDistribution(): Promise<{
+  error?: string;
+  rows?: DistributionRow[];
+  users?: { id: string; name: string }[];
+}> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem distribuir publicações." };
 
@@ -107,31 +124,28 @@ export async function distributePendingPublications(): Promise<{ assigned?: numb
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
-  if (eligible.length === 0) return { error: "Nenhum advogado ou sócio ativo para distribuir." };
 
   const pending = await prisma.publication.findMany({
     where: { triageStatus: "PENDENTE", assignedToId: null, officeId: viewer.officeId },
-    select: { id: true, lawyerTag: true },
+    include: { case: true, client: true },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
   });
-  if (pending.length === 0) return { assigned: 0 };
 
-  // Carga atual por usuário: publicações já atribuídas em triagem (PENDENTE/EM_ANALISE),
-  // contada uma vez e incrementada em memória a cada atribuição para manter o balanceamento.
-  const currentCounts = await prisma.publication.groupBy({
-    by: ["assignedToId"],
-    where: { triageStatus: { in: ["PENDENTE", "EM_ANALISE"] }, assignedToId: { not: null }, officeId: viewer.officeId },
-    _count: { _all: true },
-  });
+  const currentCounts = eligible.length
+    ? await prisma.publication.groupBy({
+        by: ["assignedToId"],
+        where: { triageStatus: { in: ["PENDENTE", "EM_ANALISE"] }, assignedToId: { not: null }, officeId: viewer.officeId },
+        _count: { _all: true },
+      })
+    : [];
   const loadByUser = new Map<string, number>();
   for (const u of eligible) loadByUser.set(u.id, 0);
   for (const c of currentCounts) {
-    if (c.assignedToId && loadByUser.has(c.assignedToId)) {
-      loadByUser.set(c.assignedToId, c._count._all);
-    }
+    if (c.assignedToId && loadByUser.has(c.assignedToId)) loadByUser.set(c.assignedToId, c._count._all);
   }
 
-  function pickBalanced(): { id: string; name: string } {
+  function pickBalanced(): string | null {
+    if (eligible.length === 0) return null;
     return eligible
       .slice()
       .sort((a, b) => {
@@ -139,33 +153,82 @@ export async function distributePendingPublications(): Promise<{ assigned?: numb
         const lb = loadByUser.get(b.id) ?? 0;
         if (la !== lb) return la - lb;
         return a.name.localeCompare(b.name, "pt-BR");
-      })[0];
+      })[0].id;
   }
 
-  const updates: { id: string; userId: string }[] = [];
-  for (const pub of pending) {
-    let target: { id: string; name: string } | undefined;
-
-    // Regra de prioridade: tag "Jairo" ou "Rodrigo" força o usuário cujo nome contém esse primeiro nome.
+  const rows: DistributionRow[] = pending.map((pub) => {
     const tag = pub.lawyerTag?.trim();
+    let suggestedUserId: string | null = null;
     if (tag === "Jairo" || tag === "Rodrigo") {
-      target = eligible.find((u) => u.name.toLowerCase().includes(tag.toLowerCase()));
+      suggestedUserId = eligible.find((u) => u.name.toLowerCase().includes(tag.toLowerCase()))?.id ?? null;
     }
-    // "Jairo e Rodrigo", nulo, ou nome não elegível → balanceamento normal.
-    if (!target) target = pickBalanced();
+    if (!suggestedUserId) suggestedUserId = pickBalanced();
+    if (suggestedUserId) loadByUser.set(suggestedUserId, (loadByUser.get(suggestedUserId) ?? 0) + 1);
 
-    updates.push({ id: pub.id, userId: target.id });
-    loadByUser.set(target.id, (loadByUser.get(target.id) ?? 0) + 1);
+    return {
+      id: pub.id,
+      processNumber: pub.case?.processNumber ?? null,
+      title: pub.case?.title ?? (pub.client ? `Cliente compatível: ${pub.client.name}` : "Sem processo vinculado"),
+      content: pub.content,
+      suggestedUserId,
+    };
+  });
+
+  return { rows, users: eligible };
+}
+
+// Confirma a distribuição em lote (um item por linha da janela suspensa). Para cada
+// publicação com pelo menos um advogado selecionado e prazo preenchido, cria uma Task
+// delegada (mesma lógica de "Delegar" — delegateTask, com publicationId) por advogado
+// escolhido; se "pedir confirmação" não estiver marcado, a delegação já nasce reconhecida
+// (não fica bloqueando a Central de Alertas de ninguém).
+export async function submitPublicationDistribution(
+  items: { publicationId: string; userIds: string[]; dueDate: string; requireConfirmation: boolean }[]
+): Promise<{ error?: string; created?: number }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem distribuir publicações." };
+
+  const toProcess = items.filter((i) => i.userIds.length > 0 && i.dueDate);
+  if (toProcess.length === 0) return { created: 0 };
+
+  const pubs = await prisma.publication.findMany({
+    where: { id: { in: toProcess.map((i) => i.publicationId) }, officeId: viewer.officeId },
+    include: { case: true },
+  });
+  const pubById = new Map(pubs.map((p) => [p.id, p]));
+
+  let created = 0;
+  for (const item of toProcess) {
+    const pub = pubById.get(item.publicationId);
+    if (!pub) continue;
+    const title = pub.case?.title
+      ? `Publicação — ${pub.case.title}`
+      : pub.processNumberRaw
+        ? `Publicação — ${pub.processNumberRaw}`
+        : "Publicação sem processo vinculado";
+
+    for (const userId of item.userIds) {
+      const result = await delegateTask({
+        responsibleId: userId,
+        type: "PRAZO",
+        title,
+        dueDate: item.dueDate,
+        priority: "MEDIA",
+        caseId: pub.caseId || undefined,
+        publicationId: pub.id,
+      });
+      if (result.error || !result.taskId) continue;
+      if (!item.requireConfirmation) await acknowledgeDelegation(result.taskId);
+      created++;
+    }
   }
-
-  await prisma.$transaction(
-    updates.map((u) =>
-      prisma.publication.update({ where: { id: u.id }, data: { assignedToId: u.userId } })
-    )
-  );
 
   revalidatePath("/publicacoes");
-  return { assigned: updates.length };
+  revalidatePath("/alertas");
+  revalidatePath("/agenda");
+  revalidatePath("/kanban");
+  revalidatePath("/painel");
+  return { created };
 }
 
 // Busca de processos já cadastrados (por título ou número), para o chooser "Vincular a

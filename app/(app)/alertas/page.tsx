@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getAlerts, getTodayItems } from "@/lib/alerts";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, CardHeader, EmptyState } from "@/components/ui";
+import { PageHeader, Card, CardHeader, EmptyState, dueStatusClassName } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
@@ -104,7 +104,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                     <AlertRow
                       key={a.id}
                       alert={a}
-                      className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors w-full text-left ${severityStyle[a.severity]}`}
+                      className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors w-full text-left ${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
                     >
                       <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
                         <Icon size={16} />
@@ -135,7 +135,11 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                 const meta = todayMeta[item.kind];
                 const Icon = meta.icon;
                 return (
-                  <Link key={item.id} href={item.href} className="flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors ${dueStatusClassName(item.dueStatus)}`}
+                  >
                     <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
                       <Icon size={16} />
                     </div>

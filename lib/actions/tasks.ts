@@ -132,7 +132,7 @@ export async function delegateTask(data: {
   // pessoa como responsável pela triagem dela, no lugar do antigo select "Sem responsável"
   // (que só trocava o campo silenciosamente, sem gerar tarefa nem avisar ninguém).
   publicationId?: string;
-}): Promise<{ error?: string }> {
+}): Promise<{ error?: string; taskId?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Usuário não autenticado." };
   if (!data.responsibleId) return { error: "Selecione o membro da equipe que vai receber a delegação." };
@@ -147,7 +147,7 @@ export async function delegateTask(data: {
 
   const dueDate = new Date(data.dueDate);
 
-  await prisma.task.create({
+  const task = await prisma.task.create({
     data: {
       title: data.title,
       type: data.type,
@@ -184,7 +184,7 @@ export async function delegateTask(data: {
     url: "/m/agenda",
   }).catch(() => {});
 
-  return {};
+  return { taskId: task.id };
 }
 
 // Marca a delegação como vista: chamado quando o destinatário abre o card da tarefa

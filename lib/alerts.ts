@@ -23,6 +23,10 @@ export type AlertItem = {
   // Número do processo do Case vinculado (quando o alerta vem de uma tarefa presa a um
   // processo) — exibido como chip copiável na Central de Alertas.
   processNumber?: string;
+  // Urgência por data (compromissos/atividades/audiências/prazos/perícias/tarefas delegadas/
+  // pendências distribuídas apenas — contas e menções não usam isso): "atrasado" pinta o card
+  // de bordô, "hoje" de ouro, ambos com transparência; sem data especial (vincendo) não muda.
+  dueStatus?: "atrasado" | "hoje";
 };
 
 export type TodayItem = {
@@ -32,6 +36,7 @@ export type TodayItem = {
   subtitle?: string;
   time?: string | null;
   href: string;
+  dueStatus?: "atrasado" | "hoje";
 };
 
 function startOfDay(d: Date) {
@@ -44,6 +49,14 @@ function endOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
   return x;
+}
+
+// "atrasado" (antes de hoje) pinta bordô, "hoje" pinta ouro, qualquer outra data (vincendo,
+// futuro) não muda nada — ver AlertItem.dueStatus/TodayItem.dueStatus.
+function computeDueStatus(dueDate: Date, now: Date): "atrasado" | "hoje" | undefined {
+  if (dueDate < startOfDay(now)) return "atrasado";
+  if (dueDate <= endOfDay(now)) return "hoje";
+  return undefined;
 }
 
 // Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
@@ -113,6 +126,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       entityKind: "TASK",
       entityId: t.id,
       processNumber: t.case?.processNumber ?? undefined,
+      dueStatus: "atrasado",
     });
   }
   for (const p of overduePayables) {
@@ -197,6 +211,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       entityKind: "TASK",
       entityId: t.id,
       processNumber: t.case?.processNumber ?? undefined,
+      dueStatus: computeDueStatus(t.dueDate, now),
     });
   }
   for (const m of unreadMentions) {
@@ -246,6 +261,7 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
       subtitle: t.case?.title,
       time: t.dueTime,
       href: "/agenda",
+      dueStatus: "hoje",
     });
   }
   for (const p of payablesToday) {

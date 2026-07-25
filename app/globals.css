@@ -202,6 +202,13 @@ body {
 .dark.theme-tarde .dark\:bg-bordo-900\/40 {
   background-color: rgba(154, 44, 67, 0.1);
 }
+/* Fundo "atrasado" da Central de Alertas (dueStatusClassName em components/ui.tsx) — mesma
+   lógica: tom bordô pensado pro Noite fica sutil demais/estranho sobre o fundo claro do
+   Tarde, então recebe um lavado bordô mais claro (mais fraco que o /40 acima, que é usado
+   em caixas de erro/confirmação — aqui é só uma tinta de fundo de linha). */
+.dark.theme-tarde .dark\:bg-bordo-900\/20 {
+  background-color: rgba(154, 44, 67, 0.06);
+}
 /* `dark:bg-white/10` e `dark:bg-white/5` sem `:hover` (as versões com hover já
    estavam cobertas acima) — usados como fundo de superfícies secundárias. */
 .dark.theme-tarde .dark\:bg-white\/10 {

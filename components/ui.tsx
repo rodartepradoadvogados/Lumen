@@ -172,3 +172,16 @@ export const priorityColors: Record<string, keyof typeof badgeColors> = {
   ALTA: "amber",
   URGENTE: "red",
 };
+
+// Fundo por urgência de data na Central de Alertas (compromissos/atividades/audiências/
+// prazos/perícias/tarefas delegadas/pendências distribuídas — ver AlertItem/TodayItem.dueStatus
+// em lib/alerts.ts): atrasado vira bordô, hoje vira ouro, ambos com transparência; sem
+// dueStatus (vincendo) não aplica nada, a linha continua como já era.
+const dueStatusBg: Record<"atrasado" | "hoje", string> = {
+  atrasado: "bg-bordo-50 dark:bg-bordo-900/20",
+  hoje: "bg-gold-50 dark:bg-gold-500/10",
+};
+
+export function dueStatusClassName(dueStatus?: "atrasado" | "hoje"): string {
+  return dueStatus ? dueStatusBg[dueStatus] : "";
+}
