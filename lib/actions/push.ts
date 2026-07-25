@@ -4,12 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isPushConfigured } from "@/lib/push";
 
+// Remove QUALQUER espaço/quebra de linha (não só nas pontas) e aspas que tenham colado
+// junto do valor ao cadastrar a variável de ambiente — um simples .trim() não pega espaço/
+// quebra de linha NO MEIO do valor (ex.: colado de um texto que quebrou linha no meio da
+// chave), e isso é exatamente o que faz o atob() do navegador recusar a chave com
+// "InvalidCharacterError: string not correctly encoded".
+function sanitizeVapidKey(raw: string): string {
+  return raw.replace(/["'\s]/g, "");
+}
+
 export async function getPushPublicKey(): Promise<string | null> {
   if (!isPushConfigured()) return null;
-  // .trim() protege contra espaço/quebra de linha coladas junto do valor ao cadastrar a
-  // variável de ambiente — isso sozinho já derruba o subscribe() do navegador com um erro
-  // genérico ("chave inválida"), sem pista nenhuma de que a causa foi um espaço a mais.
-  return process.env.VAPID_PUBLIC_KEY!.trim();
+  return sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY!);
 }
 
 export type NotificationPrefs = {

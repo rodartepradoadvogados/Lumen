@@ -22,9 +22,12 @@ const TYPE_OPTIONS: { key: keyof NotificationPrefs; label: string }[] = [
 // Converte a chave pública VAPID (base64url) pro formato Uint8Array exigido pelo
 // PushManager.subscribe — conversão padrão recomendada pela documentação do Web Push.
 function urlBase64ToUint8Array(base64String: string) {
-  const trimmed = base64String.trim();
-  const padding = "=".repeat((4 - (trimmed.length % 4)) % 4);
-  const base64 = (trimmed + padding).replace(/-/g, "+").replace(/_/g, "/");
+  // Remove QUALQUER espaço/quebra de linha (não só nas pontas) e aspas — não só o valor
+  // salvo na Vercel já vem saneado pelo servidor (ver lib/actions/push.ts), como fica essa
+  // segunda camada aqui, já que é literalmente onde o atob() joga o erro se sobrar lixo.
+  const sanitized = base64String.replace(/["'\s]/g, "");
+  const padding = "=".repeat((4 - (sanitized.length % 4)) % 4);
+  const base64 = (sanitized + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }

@@ -24,13 +24,20 @@ export function isPushConfigured(): boolean {
   return Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 }
 
+// Mesma sanitização de lib/actions/push.ts (não dá pra importar dali — esse arquivo roda em
+// contexto de servidor "puro", e o outro é "use server"): remove espaço/quebra de linha e
+// aspas coladas junto do valor ao cadastrar a variável de ambiente.
+function sanitizeVapidKey(raw: string): string {
+  return raw.replace(/["'\s]/g, "");
+}
+
 let vapidConfigured = false;
 function ensureVapidConfigured() {
   if (vapidConfigured || !isPushConfigured()) return;
   webpush.setVapidDetails(
     "mailto:contato@lumen.adv.br",
-    process.env.VAPID_PUBLIC_KEY!.trim(),
-    process.env.VAPID_PRIVATE_KEY!.trim()
+    sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY!),
+    sanitizeVapidKey(process.env.VAPID_PRIVATE_KEY!)
   );
   vapidConfigured = true;
 }
