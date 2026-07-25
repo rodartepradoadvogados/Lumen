@@ -1,17 +1,19 @@
-// Integração com a Microsoft (Outlook) via Microsoft Graph — "env-gated" como o BTG/WhatsApp/Push:
-// dormente e inofensivo enquanto MICROSOFT_CLIENT_ID/MICROSOFT_CLIENT_SECRET não estiverem
-// cadastrados. Cobre, por ora, e-mail (leitura para o pipeline de publicações, envio no
-// Atendimento) — mesma lógica de "cada pessoa conecta a própria caixa" do GoogleCredential
-// modo Jusbrasil (lib/googleDrive.ts:saveJusbrasilTokensFromCode). OneDrive (armazenamento) e o
-// calendário do Outlook ainda não usam esta conexão — ver README_MICROSOFT.md.
+// Integração com a Microsoft (Outlook/OneDrive) via Microsoft Graph — "env-gated" como o
+// BTG/WhatsApp/Push: dormente e inofensivo enquanto MICROSOFT_CLIENT_ID/MICROSOFT_CLIENT_SECRET
+// não estiverem cadastrados. Cobre e-mail (leitura para o pipeline de publicações, envio no
+// Atendimento) — mesma lógica de "cada pessoa conecta a própria caixa" do GoogleCredential modo
+// Jusbrasil (lib/googleDrive.ts:saveJusbrasilTokensFromCode). O escopo Files.ReadWrite já é
+// pedido no consentimento (mesmo app/registro do Azure AD) para o OneDrive não exigir uma
+// segunda rodada de autorização quando a Fase 2 (armazenamento) ligar — mas ainda não é
+// USADO por nenhuma função aqui, ver README_MICROSOFT.md. O calendário do Outlook segue de fora.
 import { prisma } from "@/lib/prisma";
 
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 
 // offline_access: necessário pra ganhar refresh_token. Mail.Read/Mail.Send: espelham
-// gmail.readonly/gmail.send do lado Google.
-const SCOPES = ["offline_access", "Mail.Read", "Mail.Send", "User.Read"].join(" ");
+// gmail.readonly/gmail.send do lado Google. Files.ReadWrite: OneDrive (Fase 2, ainda não usado).
+const SCOPES = ["offline_access", "Mail.Read", "Mail.Send", "Files.ReadWrite", "User.Read"].join(" ");
 
 export function isMicrosoftConfigured(): boolean {
   return Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
