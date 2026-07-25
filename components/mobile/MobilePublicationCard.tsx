@@ -77,7 +77,7 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
           {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}
         </Badge>
         <Badge color="navy">{pub.source}</Badge>
-        <span className="text-xs text-navy-800/40">{formatDate(pub.publishedAt)}</span>
+        <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
       </div>
 
       {pub.caseId && pub.caseTitle && (

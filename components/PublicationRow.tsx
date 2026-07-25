@@ -137,11 +137,11 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
             {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
           </Badge>
           <Badge color="navy">{pub.source}</Badge>
+          <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
           {pub.lawyerTag && <Badge color="gold">{pub.lawyerTag}</Badge>}
           {!pub.read && <Badge color="gold">Não lida</Badge>}
           {pub.deadlineGenerated && <Badge color="green">Compromisso gerado</Badge>}
           <Badge color={triageColors[pub.triageStatus] || "amber"}>{triageLabels[pub.triageStatus] || pub.triageStatus}</Badge>
-          <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(pub.publishedAt)}</span>
         </div>
         {pub.case && <p className="text-xs font-medium text-gold-700 dark:text-gold-400">{pub.case.title}</p>}
         {!pub.case && pub.client && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cliente compatível: {pub.client.name}</p>}
@@ -302,7 +302,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
             <div className="p-5 space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge color="navy">{pub.source}</Badge>
-                <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(pub.publishedAt)}</span>
+                <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
               </div>
               {pub.case && (
                 <div>
