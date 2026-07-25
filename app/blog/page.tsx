@@ -8,6 +8,12 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Blog Jurídico | Lúmen",
   description: "Atualidades de jurisprudência, legislação e doutrina, publicadas pelo Lúmen.",
+  openGraph: {
+    title: "Blog Jurídico | Lúmen",
+    description: "Atualidades de jurisprudência, legislação e doutrina, publicadas pelo Lúmen.",
+    type: "website",
+    locale: "pt_BR",
+  },
 };
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };

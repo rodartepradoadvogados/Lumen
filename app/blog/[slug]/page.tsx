@@ -20,9 +20,18 @@ const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const post = await prisma.blogPost.findFirst({ where: { slug: params.slug } });
   if (!post || post.status !== "PUBLICADO") return { title: "Matéria não encontrada | Lúmen" };
+  const title = `${post.title} | Blog Jurídico Lúmen`;
   return {
-    title: `${post.title} | Blog Jurídico Lúmen`,
+    title,
     description: post.summary,
+    openGraph: {
+      title,
+      description: post.summary,
+      type: "article",
+      locale: "pt_BR",
+      publishedTime: post.publishedAt?.toISOString(),
+      images: post.imageUrl ? [{ url: post.imageUrl }] : undefined,
+    },
   };
 }
 
