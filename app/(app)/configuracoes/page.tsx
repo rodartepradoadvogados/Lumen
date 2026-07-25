@@ -41,6 +41,18 @@ type Cat = {
   parentId: string | null;
 };
 
+// Formata "há Xh"/"há X dia(s)" a partir de um timestamp — usado nos cards de status do
+// robô (DJEN/Datajud), pra mostrar quando foi a última execução sem precisar de libs extra.
+function formatRelativeTime(date: Date): string {
+  const minutos = Math.round((Date.now() - date.getTime()) / 60000);
+  if (minutos < 1) return "agora mesmo";
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return `há ${horas}h`;
+  const dias = Math.round(horas / 24);
+  return `há ${dias} dia(s)`;
+}
+
 function sortByCode(a: { code: string }, b: { code: string }) {
   const pa = a.code.split(".").map(Number);
   const pb = b.code.split(".").map(Number);
@@ -122,6 +134,8 @@ export default async function ConfiguracoesPage({
     whatsappConfig,
     modules,
     blogAccess,
+    roboExecucaoLogs,
+    processosMonitoradosCount,
   ] = await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -142,6 +156,10 @@ export default async function ConfiguracoesPage({
       prisma.whatsappConfig.findUnique({ where: { officeId } }),
       getOfficeModules(officeId),
       hasBlogAccess(officeId),
+      // Tabelas globais espelhadas do robô Python (não têm officeId — ver TODO em
+      // lib/roboBridge.ts). Usadas só pra mostrar o status real das últimas execuções.
+      prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
+      prisma.roboProcessoMonitorado.count(),
     ]);
 
   const photos = photosRaw.map((p) => ({
@@ -165,6 +183,8 @@ export default async function ConfiguracoesPage({
   const availableSecoes = SECOES.filter((s) => (!s.adminOnly || isAdmin) && (s.key !== "blog" || blogAccess));
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
   const viewerInitials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+  const ultimoLogDatajud = roboExecucaoLogs.find((l) => l.fonte === "DATAJUD");
+  const ultimoLogDjen = roboExecucaoLogs.find((l) => l.fonte === "DJEN");
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
 
@@ -506,7 +526,48 @@ export default async function ConfiguracoesPage({
             <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
               As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 dark:text-gold-400 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
             </p>
+            {ultimoLogDjen && (
+              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                Última execução do robô: {formatRelativeTime(ultimoLogDjen.executadoEm)} —{" "}
+                {ultimoLogDjen.sucesso ? "sem falha registrada" : "falhou (provável bloqueio de IP, ver abaixo)"}.
+              </p>
+            )}
             <TestDjenButton />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
+            title="Datajud — Andamentos Processuais (CNJ)"
+            subtitle="API oficial do CNJ, autenticada por chave — não sofre o bloqueio de IP que o DJEN sofre"
+          />
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+              Consulta os andamentos de todo processo já cadastrado no site com número de processo preenchido — não depende do
+              DJEN para descobrir o que monitorar. Hoje: <strong>{processosMonitoradosCount} processo(s) monitorado(s)</strong>.
+            </p>
+            {ultimoLogDatajud ? (
+              <div className={`text-xs rounded-lg px-3 py-2 ${ultimoLogDatajud.sucesso ? "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-300" : "bg-red-50 dark:bg-bordo-400/10 text-red-700 dark:text-bordo-400"}`}>
+                Última execução {formatRelativeTime(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
+                {ultimoLogDatajud.detalhe && <> — {ultimoLogDatajud.detalhe}</>}
+              </div>
+            ) : (
+              <p className="text-xs text-amber-700 dark:text-amber-400">Nenhuma execução registrada ainda.</p>
+            )}
+            {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").length > 1 && (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-navy-800/50 dark:text-cream-50/50 font-semibold">Histórico recente</summary>
+                <ul className="mt-2 space-y-1">
+                  {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").slice(0, 5).map((l) => (
+                    <li key={l.id} className="text-navy-800/60 dark:text-cream-50/60">
+                      {formatRelativeTime(l.executadoEm)} — {l.sucesso ? "sucesso" : "falha"}{l.detalhe ? ` — ${l.detalhe}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         </Card>
       )}

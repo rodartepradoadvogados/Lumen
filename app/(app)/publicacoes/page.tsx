@@ -19,6 +19,7 @@ export default async function PublicacoesPage({
   searchParams: { aba?: string; kind?: string; q?: string; adv?: string; resp?: string };
 }) {
   const isLidas = searchParams.aba === "lidas";
+  const isTodos = searchParams.aba === "todos";
   const q = (searchParams.q || "").trim();
   const adv = searchParams.adv === "Jairo" || searchParams.adv === "Rodrigo" ? searchParams.adv : undefined;
   const viewer = await getCurrentUser();
@@ -27,7 +28,7 @@ export default async function PublicacoesPage({
 
   const baseFilters: Prisma.PublicationWhereInput = {
     officeId: viewer.officeId,
-    reads: isLidas ? { some: { userId: viewer.id } } : { none: { userId: viewer.id } },
+    reads: isTodos ? undefined : isLidas ? { some: { userId: viewer.id } } : { none: { userId: viewer.id } },
     kind: searchParams.kind || undefined,
     lawyerTag: adv ? { contains: adv } : undefined,
     assignedToId: resp || undefined,
@@ -42,6 +43,10 @@ export default async function PublicacoesPage({
           OR: [
             { content: { contains: q, mode: "insensitive" } },
             { emailSubject: { contains: q, mode: "insensitive" } },
+            // Fonte (Datajud, DJEN, Jusbrasil_email, PJE...) também entra na busca — sem isso,
+            // digitar "datajud" no campo não achava nada, já que a fonte não é texto livre do
+            // conteúdo/assunto.
+            { source: { contains: q, mode: "insensitive" } },
             ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
           ],
         }
@@ -51,9 +56,9 @@ export default async function PublicacoesPage({
   const [publications, unreadCount, users] = await Promise.all([
     prisma.publication.findMany({
       where,
-      include: { case: true, client: true },
+      include: { case: true, client: true, reads: { where: { userId: viewer.id }, select: { userId: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      take: isLidas ? 100 : undefined,
+      take: isLidas || isTodos ? 100 : undefined,
     }),
     prisma.publication.count({ where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
@@ -72,7 +77,7 @@ export default async function PublicacoesPage({
     source: p.source,
     content: p.content,
     publishedAt: p.publishedAt.toISOString(),
-    read: isLidas,
+    read: p.reads.length > 0,
     deadlineGenerated: p.deadlineGenerated,
     lawyerTag: p.lawyerTag,
     processNumberRaw: p.processNumberRaw,
@@ -96,7 +101,9 @@ export default async function PublicacoesPage({
       <PageHeader
         title="Publicações e Andamentos Processuais"
         subtitle={
-          isLidas
+          isTodos
+            ? `Todas (100 mais recentes) — lidas e não lidas`
+            : isLidas
             ? `Histórico de lidas (100 mais recentes)`
             : `${unreadCount} não lida(s) — some daqui assim que marcada como lida`
         }
@@ -104,8 +111,9 @@ export default async function PublicacoesPage({
       />
 
       <div className="flex gap-2 mb-4">
-        <TabLink label={`Não lidas${unreadCount ? ` (${unreadCount})` : ""}`} href={qs({ aba: undefined })} active={!isLidas} />
+        <TabLink label={`Não lidas${unreadCount ? ` (${unreadCount})` : ""}`} href={qs({ aba: undefined })} active={!isLidas && !isTodos} />
         <TabLink label="Lidas" href={qs({ aba: "lidas" })} active={isLidas} />
+        <TabLink label="Todos" href={qs({ aba: "todos" })} active={isTodos} />
       </div>
 
       <div className="flex gap-2 mb-3 flex-wrap items-center">
@@ -148,7 +156,7 @@ export default async function PublicacoesPage({
         )}
       </form>
 
-      {!isLidas && unreadCount > 0 && (
+      {!isLidas && !isTodos && unreadCount > 0 && (
         <div className="flex justify-end mb-3">
           <MarkAllPublicationsReadButton count={unreadCount} />
         </div>
@@ -156,13 +164,15 @@ export default async function PublicacoesPage({
 
       <Card>
         {serialized.length === 0 ? (
-          isLidas ? (
+          isTodos ? (
+            <EmptyState title="Nenhuma publicação" subtitle="Publicações e andamentos aparecem aqui assim que forem capturados" />
+          ) : isLidas ? (
             <EmptyState title="Nenhuma publicação lida" subtitle="As publicações marcadas como lidas aparecem aqui" />
           ) : (
             <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
           )
         ) : (
-          <PublicationsList publications={serialized} highlightNew={!isLidas} users={users} />
+          <PublicationsList publications={serialized} highlightNew={!isLidas && !isTodos} users={users} />
         )}
       </Card>
     </div>

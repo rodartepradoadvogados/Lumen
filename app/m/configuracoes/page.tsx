@@ -62,6 +62,8 @@ export default async function MobileConfiguracoes() {
     taskTypePoints,
     blogPending,
     blogPublished,
+    roboExecucaoLogs,
+    processosMonitoradosCount,
   ] = isAdmin
     ? await Promise.all([
         getOfficeModules(officeId),
@@ -78,11 +80,16 @@ export default async function MobileConfiguracoes() {
         prisma.taskTypePoints.findMany({ where: { officeId } }),
         prisma.blogPost.count({ where: { officeId, status: "AGUARDANDO_REVISAO" } }),
         prisma.blogPost.count({ where: { officeId, status: "PUBLICADO" } }),
+        // Tabelas globais espelhadas do robô Python (sem officeId) — só pra mostrar o status
+        // real das últimas execuções, igual ao card equivalente no computador.
+        prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
+        prisma.roboProcessoMonitorado.count(),
       ])
-    : [null, false, null, [], [], null, [], [], 0, 0];
+    : [null, false, null, [], [], null, [], [], 0, 0, [], 0];
 
   const initials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
+  const ultimoLogDatajud = roboExecucaoLogs.find((l) => l.fonte === "DATAJUD");
   const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
     const found = taskTypePoints.find((p) => p.type === type);
     return { type, points: found?.points ?? 10 };
@@ -196,6 +203,20 @@ export default async function MobileConfiguracoes() {
                   <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1 flex items-center gap-1.5"><Gavel size={13} /> DJEN (CNJ)</p>
                   <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mb-2">OABs cadastradas em Equipe, no computador.</p>
                   <TestDjenButton />
+                </div>
+
+                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
+                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1">Datajud — Andamentos (CNJ)</p>
+                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mb-2">
+                    {processosMonitoradosCount} processo(s) monitorado(s) — API oficial, não sofre o bloqueio do DJEN.
+                  </p>
+                  {ultimoLogDatajud ? (
+                    <p className={`text-[11px] rounded-lg px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-300" : "bg-red-50 dark:bg-bordo-400/10 text-red-700 dark:text-bordo-400"}`}>
+                      Última execução {formatRelativeTimeMobile(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">Nenhuma execução registrada ainda.</p>
+                  )}
                 </div>
 
                 <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
@@ -335,6 +356,16 @@ export default async function MobileConfiguracoes() {
       `}</style>
     </div>
   );
+}
+
+function formatRelativeTimeMobile(date: Date): string {
+  const minutos = Math.round((Date.now() - date.getTime()) / 60000);
+  if (minutos < 1) return "agora mesmo";
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return `há ${horas}h`;
+  const dias = Math.round(horas / 24);
+  return `há ${dias} dia(s)`;
 }
 
 function Field({ label, value }: { label: string; value: string | null }) {
