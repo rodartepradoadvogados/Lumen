@@ -46,6 +46,7 @@ export default function MobileNewCaseForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [type, setType] = useState(defaultType);
 
   async function handleSubmit(formData: FormData) {
     const title = String(formData.get("title") || "").trim();
@@ -91,7 +92,7 @@ export default function MobileNewCaseForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Tipo</label>
-          <select name="type" defaultValue={defaultType} className={inputClass}>
+          <select name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
             <option value="JUDICIAL">Judicial</option>
             <option value="EXTRAJUDICIAL">Extrajudicial</option>
             <option value="ATENDIMENTO">Atendimento</option>
@@ -156,7 +157,7 @@ export default function MobileNewCaseForm({
         disabled={loading}
         className="w-full flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
       >
-        <FilePlus2 size={15} /> {loading ? "Salvando..." : "Criar Caso"}
+        <FilePlus2 size={15} /> {loading ? "Salvando..." : type === "JUDICIAL" ? "Salvar Processo" : "Salvar Caso"}
       </button>
     </form>
   );

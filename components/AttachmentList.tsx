@@ -3,8 +3,8 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search } from "lucide-react";
-import { createAttachment, deleteAttachment, finalizeAttachmentUpload } from "@/lib/actions/attachments";
+import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil } from "lucide-react";
+import { createAttachment, deleteAttachment, finalizeAttachmentUpload, updateAttachmentDocType } from "@/lib/actions/attachments";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 
@@ -40,6 +40,8 @@ export default function AttachmentList({
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [stagedName, setStagedName] = useState("");
   const [stagedDocType, setStagedDocType] = useState("OUTRO");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("TODOS");
@@ -133,9 +135,17 @@ export default function AttachmentList({
   }
 
   function handleDelete(id: string) {
-    if (!window.confirm("Remover este anexo? O arquivo continuará no Drive, apenas o vínculo com o sistema será removido.")) return;
+    if (!window.confirm("Excluir este anexo? O arquivo também será apagado do Drive.")) return;
     startTransition(async () => {
       await deleteAttachment(id);
+      router.refresh();
+    });
+  }
+
+  function handleUpdateDocType(id: string, docType: string) {
+    startTransition(async () => {
+      await updateAttachmentDocType(id, docType);
+      setEditingId(null);
       router.refresh();
     });
   }
@@ -186,28 +196,55 @@ export default function AttachmentList({
               key={a.id}
               className="group relative bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 rounded-lg p-3 hover:border-gold-500/40 transition-colors"
             >
-              <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-1.5">
-                <div className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center">
-                  <Icon size={18} />
+              {editingId === a.id ? (
+                <div className="flex flex-col items-center text-center gap-1.5">
+                  <div className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center">
+                    <Icon size={18} />
+                  </div>
+                  <p className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate w-full" title={a.name}>
+                    {a.name}
+                  </p>
+                  <DocumentTypeSelect
+                    value={a.docType}
+                    onChange={(v) => handleUpdateDocType(a.id, v)}
+                    excludeKeys={excludeParecer}
+                    className="w-full text-[10px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1 py-1"
+                  />
                 </div>
-                <p className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate w-full" title={a.name}>
-                  {a.name}
-                </p>
-                <p className="text-[10px] text-navy-800/45 dark:text-cream-50/45 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
-                  {getDocumentTypeLabel(a.docType)}
-                </p>
-                <span className="flex items-center gap-0.5 text-[10px] text-gold-700 dark:text-gold-400">
-                  <ExternalLink size={10} /> {getLinkSourceLabel(a.driveUrl)}
-                </span>
-              </a>
-              <button
-                onClick={() => handleDelete(a.id)}
-                disabled={pending}
-                data-tip="Remover anexo"
-                className="absolute top-1 right-1 p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
-              >
-                <X size={12} />
-              </button>
+              ) : (
+                <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-1.5">
+                  <div className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center">
+                    <Icon size={18} />
+                  </div>
+                  <p className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate w-full" title={a.name}>
+                    {a.name}
+                  </p>
+                  <p className="text-[10px] text-navy-800/45 dark:text-cream-50/45 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
+                    {getDocumentTypeLabel(a.docType)}
+                  </p>
+                  <span className="flex items-center gap-0.5 text-[10px] text-gold-700 dark:text-gold-400">
+                    <ExternalLink size={10} /> {getLinkSourceLabel(a.driveUrl)}
+                  </span>
+                </a>
+              )}
+              <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                <button
+                  onClick={() => setEditingId(editingId === a.id ? null : a.id)}
+                  disabled={pending}
+                  data-tip="Editar tipo de documento"
+                  className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-gold-700 hover:bg-gold-50 dark:hover:bg-gold-950/30 transition-colors"
+                >
+                  <Pencil size={11} />
+                </button>
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  disabled={pending}
+                  data-tip="Excluir anexo"
+                  className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             </div>
           );
         })}
@@ -307,7 +344,7 @@ export default function AttachmentList({
               name="driveUrl"
               type="url"
               required
-              placeholder="Link do Drive, Dropbox, OneDrive..."
+              placeholder="Link do Google Drive, Dropbox, OneDrive..."
               className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
             />
             <div>
@@ -344,7 +381,7 @@ export default function AttachmentList({
             onClick={() => setLinkMode(true)}
             className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2.5 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
           >
-            <LinkIcon size={13} /> ou colar um link (Drive, Dropbox, OneDrive...)
+            <LinkIcon size={13} /> ou colar um link (Google Drive, Dropbox, OneDrive...)
           </button>
         )}
       </div>

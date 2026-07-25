@@ -10,6 +10,8 @@ import {
   getOrCreateCaseFolder,
   getOrCreateAttendanceFolder,
   getOrCreateCategoryFolder,
+  deleteDriveFile,
+  extractDriveFileId,
 } from "@/lib/googleDrive";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 
@@ -125,7 +127,27 @@ export async function deleteAttachment(id: string): Promise<{ error?: string }> 
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
   const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
   if (!att) return { error: "Anexo não encontrado." };
+
+  // Apaga o arquivo de verdade no Drive (não só o vínculo) — se o link não for do Drive
+  // (Dropbox/OneDrive colado manualmente) ou a exclusão falhar lá, segue removendo o vínculo
+  // mesmo assim, pra não travar o usuário por um arquivo já apagado manualmente.
+  const fileId = extractDriveFileId(att.driveUrl);
+  if (fileId) {
+    await deleteDriveFile(fileId, user.officeId).catch(() => {});
+  }
+
   await prisma.attachment.delete({ where: { id } });
+  if (att.caseId) revalidatePath(`/processos/${att.caseId}`);
+  if (att.attendanceId) revalidatePath(`/atendimento/${att.attendanceId}`);
+  return {};
+}
+
+export async function updateAttachmentDocType(id: string, docType: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão expirada. Faça login novamente." };
+  const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
+  if (!att) return { error: "Anexo não encontrado." };
+  await prisma.attachment.update({ where: { id }, data: { docType } });
   if (att.caseId) revalidatePath(`/processos/${att.caseId}`);
   if (att.attendanceId) revalidatePath(`/atendimento/${att.attendanceId}`);
   return {};

@@ -6,6 +6,7 @@ import { PageHeader, Card } from "@/components/ui";
 import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
+import SaveCaseButton from "@/components/SaveCaseButton";
 
 const AREA_OPTIONS = [
   "Cível",
@@ -134,9 +135,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             <textarea name="description" rows={3} className="input" />
           </div>
 
-          <button type="submit" className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors">
-            Criar Caso
-          </button>
+          <SaveCaseButton defaultType={defaultType} />
         </form>
       </Card>
 

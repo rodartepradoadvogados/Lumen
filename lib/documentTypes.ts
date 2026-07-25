@@ -204,7 +204,7 @@ export function getDocumentTypeIcon(key: string): LucideIcon {
 export function getLinkSourceLabel(url: string): string {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
-    if (host.includes("drive.google.com") || host.includes("docs.google.com")) return "Google Drive";
+    if (host.includes("drive.google.com") || host.includes("docs.google.com")) return "Drive";
     if (host.includes("dropbox.com")) return "Dropbox";
     if (host.includes("onedrive.live.com") || host.includes("1drv.ms") || host.includes("sharepoint.com")) return "OneDrive";
     return host || "Link";

@@ -411,6 +411,11 @@ export async function renameDriveFolder(folderId: string, newName: string, offic
   await drive.files.update({ fileId: folderId, requestBody: { name: newName } });
 }
 
+export async function deleteDriveFile(fileId: string, officeId: string): Promise<void> {
+  const { drive } = await getDriveClient(officeId);
+  await drive.files.delete({ fileId });
+}
+
 // "Mover" um arquivo no Drive é trocar os pais (parents) — não existe operação de move direta.
 // Usado pela reorganização de anexos já existentes (lib/actions/driveReorg.ts).
 export async function moveDriveFile(fileId: string, newParentId: string, officeId: string): Promise<void> {
