@@ -9,10 +9,9 @@ import LumenMark from "@/components/LumenMark";
 type NavItem = { label: string; href: string; icon: LucideIcon; comingSoon?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
 
-// Financeiro Lúmen e Equipe Lúmen (Administração) ganharam página na Fase 2. Os itens de
-// Operação continuam apontando para rotas sem page.tsx (Fase 3) — clicar neles hoje resulta
-// num 404 honesto, de propósito (ver spec: preferível a uma tela fingindo estar pronta). O
-// rótulo "em breve" é só um aviso visual, não bloqueia o clique.
+// Financeiro Lúmen e Equipe Lúmen (Administração) ganharam página na Fase 2; os três itens de
+// Operação ganharam a deles na Fase 3 (Produto e robôs, Cofre de acesso, Confiança e LGPD).
+// Nenhum item deste rail tem mais comingSoon: true.
 const GROUPS: NavGroup[] = [
   {
     label: "Negócio",
@@ -32,9 +31,9 @@ const GROUPS: NavGroup[] = [
   {
     label: "Operação",
     items: [
-      { label: "Produto e robôs", href: "/painel-mestre/produto", icon: Activity, comingSoon: true },
-      { label: "Cofre de acesso", href: "/painel-mestre/cofre", icon: ShieldCheck, comingSoon: true },
-      { label: "Confiança e LGPD", href: "/painel-mestre/confianca", icon: Scale, comingSoon: true },
+      { label: "Produto e robôs", href: "/painel-mestre/produto", icon: Activity },
+      { label: "Cofre de acesso", href: "/painel-mestre/cofre", icon: ShieldCheck },
+      { label: "Confiança e LGPD", href: "/painel-mestre/confianca", icon: Scale },
     ],
   },
 ];
