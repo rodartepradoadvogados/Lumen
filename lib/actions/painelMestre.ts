@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
+import { createPixQrCodeCharge, isAsaasConfigured } from "@/lib/asaas";
 
 async function requirePlatformOwner() {
   const viewer = await getCurrentUser({ ignoreActing: true });
@@ -169,17 +170,28 @@ export async function updateOfficeBilling(officeId: string, data: { billingEmail
 }
 
 // "Gerar boleto e enviar por e-mail": cria (ou reaproveita, se já existir) a fatura do mês
-// corrente pro escritório, tenta emitir boleto de verdade se o BTG já estiver conectado, e
-// manda o e-mail de qualquer forma (com ou sem boleto anexado — ver sendInvoiceEmail).
-export async function generateAndSendInvoice(officeId: string): Promise<{ error?: string; btgWarning?: string }> {
+// corrente pro escritório, tenta emitir a cobrança de verdade (Asaas, se a Subscription deste
+// escritório escolheu PIX_QRCODE, ou BTG, se já estiver conectado — caminho antigo, intocado),
+// e manda o e-mail de qualquer forma (com ou sem boleto/Pix anexado — ver sendInvoiceEmail).
+//
+// Decisão de design (Fase 1 — sem tela nova pra escolher isso ainda, ver README_ASAAS.md):
+// Subscription.paymentMethod decide o caminho. "PIX_QRCODE" cria a cobrança na Asaas aqui
+// mesmo. "PIX_AUTOMATICO" NÃO cria nada aqui — o débito recorrente já é disparado pela própria
+// Asaas a partir da autorização existente (subscription.pixAuthorizationId); só marcamos
+// paymentMethod na fatura pra a tela futura (Fase 3) saber o que exibir. Sem Subscription, ou
+// com paymentMethod null/"BOLETO", cai no caminho BTG de sempre, sem nenhuma mudança de
+// comportamento pra quem já usa isso hoje (nenhum escritório existente tem
+// Subscription.paymentMethod preenchido ainda — o campo nasce nulo).
+export async function generateAndSendInvoice(officeId: string): Promise<{ error?: string; btgWarning?: string; asaasWarning?: string }> {
   const auth = await requirePlatformOwner();
   if ("error" in auth) return auth;
 
-  const office = await prisma.office.findUnique({ where: { id: officeId } });
+  const office = await prisma.office.findUnique({ where: { id: officeId }, include: { subscription: true } });
   if (!office) return { error: "Escritório não encontrado." };
   if (!office.billingEmail || !office.monthlyFee || !office.billingDueDay) {
     return { error: "Cadastre e-mail de cobrança, mensalidade e dia de vencimento antes de gerar a fatura." };
   }
+  const billingEmail = office.billingEmail;
 
   const now = new Date();
   const competencia = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -193,8 +205,36 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
   }
 
   let btgWarning: string | undefined;
+  let asaasWarning: string | undefined;
   let boletoUrl = invoice.boletoUrl;
-  if (!boletoUrl && (await isBtgConnected())) {
+  const subscription = office.subscription;
+
+  if (subscription?.paymentMethod === "PIX_QRCODE" && isAsaasConfigured()) {
+    if (!invoice.asaasPaymentId) {
+      try {
+        const charge = await createPixQrCodeCharge(
+          { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
+          { id: office.id, name: office.name, billingEmail },
+          { value: invoice.amount, dueDate: invoice.dueDate, description: `Mensalidade Lúmen — ${office.name} — ${competencia}` }
+        );
+        invoice = await prisma.tenantInvoice.update({
+          where: { id: invoice.id },
+          data: {
+            paymentMethod: "PIX_QRCODE",
+            asaasPaymentId: charge.asaasPaymentId,
+            pixQrCodePayload: charge.qrCodePayload,
+            pixQrCodeImage: charge.qrCodeImage,
+          },
+        });
+      } catch (e) {
+        asaasWarning = e instanceof Error ? e.message : "erro desconhecido ao criar cobrança Pix na Asaas";
+      }
+    }
+  } else if (subscription?.paymentMethod === "PIX_AUTOMATICO") {
+    if (!invoice.paymentMethod) {
+      invoice = await prisma.tenantInvoice.update({ where: { id: invoice.id }, data: { paymentMethod: "PIX_AUTOMATICO" } });
+    }
+  } else if (!boletoUrl && (await isBtgConnected())) {
     const boleto = await createBoleto({
       payerName: office.name,
       payerDocument: "", // TODO: cadastrar CNPJ do escritório-cliente — necessário pro BTG emitir de verdade
@@ -210,10 +250,10 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
     }
   }
 
-  const emailResult = await sendInvoiceEmail(office.billingEmail, office.name, invoice.amount, invoice.dueDate, boletoUrl);
+  const emailResult = await sendInvoiceEmail(billingEmail, office.name, invoice.amount, invoice.dueDate, boletoUrl);
   revalidatePath("/painel-mestre");
-  if (!emailResult.sent) return { error: `Fatura registrada, mas o e-mail não saiu: ${emailResult.reason}`, btgWarning };
-  return { btgWarning };
+  if (!emailResult.sent) return { error: `Fatura registrada, mas o e-mail não saiu: ${emailResult.reason}`, btgWarning, asaasWarning };
+  return { btgWarning, asaasWarning };
 }
 
 export async function markInvoicePaid(invoiceId: string): Promise<{ error?: string }> {

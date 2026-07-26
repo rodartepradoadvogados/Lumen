@@ -58,6 +58,11 @@ model Office {
   monthlyFee    Float? // mensalidade combinada em contrato
   billingDueDay Int? // dia do mês de vencimento (1-28, pra não cair em mês sem o dia)
 
+  // Dias corridos de tolerância após o vencimento antes do bloqueio automático (Fase 2, ainda
+  // não implementada) — nasce com um padrão razoável, mas por escritório, pra dar flexibilidade
+  // caso algum cliente específico precise de mais prazo no futuro.
+  paymentGraceDays Int @default(5)
+
   // Módulos habilitados por contrato — controla o que aparece na navegação e o que os Server
   // Actions de cada módulo aceitam fazer (checado nos dois lugares, não só escondido na tela).
   // Desligar um módulo NUNCA apaga dados já existentes, só impede a criação de dados novos e
@@ -1279,13 +1284,55 @@ model TenantInvoice {
   dueDate     DateTime
   status      String    @default("PENDENTE") // PENDENTE | PAGO | CANCELADO
   paidAt      DateTime?
-  // "manual" (Dar baixa manual, sem boleto) ou "btg_boleto" (baixa confirmada via boleto BTG)
+  // "manual" (Dar baixa manual, sem boleto), "btg_boleto" (baixa confirmada via boleto BTG) ou
+  // "asaas" (baixa confirmada via webhook/reconciliação Asaas — ver lib/asaas.ts)
   paidVia     String?
   boletoUrl   String? // link do PDF do boleto, quando emitido via BTG
   boletoId    String? // ID do boleto na API do BTG, pra consultar status depois
   createdAt   DateTime  @default(now())
 
+  // Forma de pagamento efetivamente usada nesta fatura — preenchido quando a cobrança é
+  // criada (não só quando é paga), pra sabermos de antemão que tipo de dado exibir (QR Code
+  // vs. link de boleto) mesmo antes da confirmação de pagamento.
+  paymentMethod String? // PIX_AUTOMATICO | PIX_QRCODE | BOLETO
+
+  // Referência da cobrança no Asaas (o "payment" — id tipo "pay_..."). Chave usada tanto pelo
+  // webhook (encontrar a fatura a partir do evento recebido) quanto pela reconciliação
+  // (consultar o status atual direto na API).
+  asaasPaymentId String? @unique
+
+  // Dados do Pix QR Code dinâmico desta cobrança especificamente (só preenchidos quando
+  // paymentMethod for PIX_QRCODE) — o "copia e cola" (payload EMV) e a imagem do QR Code em
+  // base64, exatamente como a Asaas devolve (docs.asaas.com/reference/obter-qr-code-para-pagamentos-via-pix).
+  pixQrCodePayload String?
+  pixQrCodeImage   String? // base64, pode ser grande — @db.Text se o provider exigir (Postgres não exige)
+
+  // Status bruto devolvido pela Asaas (ex.: "RECEIVED", "CONFIRMED", "OVERDUE") — guardado
+  // por auditoria/depuração, sem substituir o campo `status` local (PENDENTE|PAGO|CANCELADO)
+  // que o resto do sistema já lê.
+  externalStatus String?
+
   @@unique([officeId, competencia])
+}
+
+// Log de todo evento de webhook de pagamento recebido — existe por dois motivos: (1)
+// idempotência (o Asaas pode reenviar o mesmo evento mais de uma vez; @unique em
+// [provider, externalId, eventType] garante que só processamos uma vez), (2) auditoria (nunca
+// apagar; é o registro de que um pagamento foi de fato confirmado pelo provedor, não por
+// alguém chamando nosso backend direto — ver o limite de segurança inegociável descrito em
+// lib/asaas.ts e app/api/asaas/webhook/route.ts).
+model PaymentWebhookEvent {
+  id             String    @id @default(cuid())
+  provider       String    @default("ASAAS")
+  eventType      String    // ex.: PAYMENT_RECEIVED, PAYMENT_CONFIRMED, PAYMENT_OVERDUE
+  externalId     String    // id do evento OU do payment/authorization — o que a Asaas mandar como identificador único
+  signatureValid Boolean
+  rawPayload     Json
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([provider, externalId, eventType])
+  @@index([createdAt])
 }
 
 // Conexão OAuth (Authorization Code) com o BTG Empresas — é UMA conta (a do próprio Rodarte
@@ -1370,6 +1417,32 @@ model Subscription {
   // Assinatura interna (Rodarte Prado) — cobrada a preço interno, não entra no MRR comercial.
   // Substitui Office.isInternal quando a leitura for migrada, no Passo 4.
   internal    Boolean @default(false)
+
+  // Ciclo de cobrança escolhido pelo escritório — "MENSAL" (padrão) ou "SEMESTRAL" (paga de
+  // uma vez a cada 6 meses, com desconto). Nomeado em português por consistência com o resto
+  // do schema (STATUS, planKey etc. usam texto livre em maiúsculas); o valor equivalente do
+  // lado Asaas (MONTHLY/SEMIANNUALLY) é traduzido em lib/asaas.ts, não aqui.
+  billingCycle String @default("MENSAL") // MENSAL | SEMESTRAL
+
+  // Forma de cobrança ativa desta assinatura — PIX_AUTOMATICO é o caminho preferencial (débito
+  // recorrente autorizado uma vez), PIX_QRCODE é o QR Code dinâmico gerado a cada cobrança
+  // (usado sobretudo no ciclo SEMESTRAL, mas disponível pro MENSAL também), BOLETO continua
+  // existindo via BTG (ver lib/btg.ts) para quem preferir. Nasce nulo (ainda não configurado)
+  // até o escritório escolher/conectar.
+  paymentMethod String? // PIX_AUTOMATICO | PIX_QRCODE | BOLETO
+
+  // Percentual de desconto aplicado (ex.: 20 para 20%) — hoje só faz sentido combinado com
+  // billingCycle SEMESTRAL, mas fica genérico pra não prender a regra de desconto ao ciclo no
+  // nível de schema (a regra de negócio "só semestral tem desconto" fica no código, não aqui).
+  discountPercent Float?
+
+  // Referências do lado Asaas — preenchidas quando a integração é conectada pela primeira vez
+  // para este escritório. asaasCustomerId é sempre necessário (toda cobrança precisa de um
+  // "customer" no Asaas); os outros dois só existem se o método ativo for PIX_AUTOMATICO.
+  asaasCustomerId        String?
+  asaasSubscriptionId    String? // id da "assinatura" Asaas (usado no fluxo PIX_QRCODE/BOLETO recorrente)
+  pixAuthorizationId     String? // id da autorização de Pix Automático (docs.asaas.com/reference/criar-uma-autorizacao-pix-automatico)
+  pixAuthorizationStatus String? // PENDENTE | ATIVA | CANCELADA | REJEITADA
 
   startedAt DateTime  @default(now())
   trialEndsAt DateTime?
