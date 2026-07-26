@@ -41,13 +41,23 @@ function detectLawyerTagFromOab(oab: string | null | undefined, nomeAdvogado: st
 
 // Mesma lógica de extração de número/UF usada em lib/djenSync.ts:parseOab e no robô
 // Python (config.py:_parse_oab_texto) — os três precisam concordar sobre o mesmo dado
-// de texto livre ("OAB/GO 78.295", "78295-GO", etc.).
+// de texto livre ("OAB/GO 78.295", "78295-GO", etc.). Usada só para o OAB em texto livre
+// de User.oab (cadastro manual, Configurações → Equipe & Acesso) — RoboPublicacao já traz
+// número e UF em colunas separadas (oab/uf), não precisa (e não pode) passar por aqui: um
+// número puro como "78295" nunca bate o \b(UF)\b exigido abaixo.
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SE", "SP", "TO"];
-function parseOabNumero(raw: string): string | null {
+function parseOabLivre(raw: string): { numero: string; uf: string } | null {
   const ufMatch = raw.toUpperCase().match(new RegExp(`\\b(${UFS.join("|")})\\b`));
   const numeroMatch = raw.match(/\d[\d.]{3,}/);
   if (!ufMatch || !numeroMatch) return null;
-  return numeroMatch[0].replace(/\D/g, "");
+  return { numero: numeroMatch[0].replace(/\D/g, ""), uf: ufMatch[1] };
+}
+
+// Número de OAB só é único DENTRO de um estado (OAB 12345/GO e 12345/SP são pessoas
+// diferentes) — a chave do índice precisa das duas partes, nunca só o número (mesmo
+// princípio já usado no lado Python, config.py:carregar_oabs_do_banco, chave (numero, uf)).
+function oabKey(numero: string, uf: string): string {
+  return `${numero}|${uf.toUpperCase()}`;
 }
 
 // Índices carregados uma vez por sincronização (não por item) para resolver, pra cada
@@ -78,25 +88,29 @@ async function carregarIndicesDeRoteamento(): Promise<RoteamentoIndices> {
 
   const officePorOab = new Map<string, string>();
   for (const u of usuarios) {
-    const numero = u.oab ? parseOabNumero(u.oab) : null;
-    if (numero) officePorOab.set(numero, u.officeId);
+    const parsed = u.oab ? parseOabLivre(u.oab) : null;
+    if (parsed) officePorOab.set(oabKey(parsed.numero, parsed.uf), u.officeId);
   }
 
   return { casoPorProcesso, officePorOab, officeFallbackId: officeInterno?.id ?? officeMaisAntigo?.id ?? null };
 }
 
+// oabNumero/oabUf chegam JÁ separados (colunas próprias de RoboPublicacao) — nunca texto
+// livre precisando de parseOabLivre aqui, é exatamente esse descompasso (número puro sem
+// UF embutida) que fazia o roteamento por OAB nunca disparar para nenhuma publicação
+// capturada pelo robô.
 function resolverOffice(
   indices: RoteamentoIndices,
   processNumeroNormalizado: string | null,
-  oab: string | null | undefined
+  oabNumero: string | null,
+  oabUf: string | null
 ): { caseId: string | null; officeId: string | null } {
   if (processNumeroNormalizado) {
     const match = indices.casoPorProcesso.get(processNumeroNormalizado);
     if (match) return { caseId: match.caseId, officeId: match.officeId };
   }
-  const numeroOab = oab ? parseOabNumero(oab) : null;
-  if (numeroOab) {
-    const officeId = indices.officePorOab.get(numeroOab);
+  if (oabNumero && oabUf) {
+    const officeId = indices.officePorOab.get(oabKey(oabNumero, oabUf));
     if (officeId) return { caseId: null, officeId };
   }
   return { caseId: null, officeId: indices.officeFallbackId };
@@ -187,7 +201,8 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(pub.numeroProcesso);
-        const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, pub.oab);
+        const oabNumero = pub.oab ? pub.oab.replace(/\D/g, "") : null;
+        const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, oabNumero || null, pub.uf || null);
         const lawyerTag = detectLawyerTagFromOab(pub.oab, pub.nomeAdvogado);
 
         if (officeId) {
@@ -227,7 +242,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(and.numeroProcesso);
-        const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, null);
+        const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, null, null);
 
         if (officeId) {
           await prisma.publication.create({

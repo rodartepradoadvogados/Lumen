@@ -1150,17 +1150,19 @@ model Photo {
 
 // ============ TABELAS DO ROBÔ PYTHON (robo-publicacoes/, Railway) ============
 //
-// Estes 4 modelos NÃO são usados pelo código TypeScript — eles existem só para
-// que o Prisma "enxergue" as tabelas que o robô Python (SQLAlchemy) cria no
-// MESMO banco Postgres. Sem isso, `prisma db push` trata essas tabelas como
-// "órfãs" (não descritas no schema) e as APAGA na próxima migração.
-// Os tipos/nomes de coluna abaixo espelham robo-publicacoes/src/db.py; se o
-// robô mudar a estrutura lá, replicar a mudança aqui também.
+// O robô Python (SQLAlchemy) grava direto nestas 4 tabelas, sem coluna de
+// escritório — ele já monitora as OABs de TODOS os escritórios ativos
+// (config.py:carregar_oabs_do_banco), mas não sabe a qual escritório cada OAB
+// pertence. Os tipos/nomes de coluna abaixo espelham robo-publicacoes/src/db.py;
+// se o robô mudar a estrutura lá, replicar a mudança aqui também (sem isso,
+// `prisma db push` trata essas tabelas como "órfãs" e as apaga na próxima migração).
 //
-// AINDA NÃO SÃO MULTI-TENANT (ver Fase 4 do plano) — o robô hoje é compartilhado e
-// keyado por número de processo/OAB, não por officeId. Enquanto isso não for resolvido,
-// este sistema de captura automática de publicações só pode atender UM escritório por vez
-// (o robô continua rodando como hoje, fora deste repositório, pro Rodarte Prado).
+// Estes 4 modelos não são a fonte de verdade multi-tenant — lib/roboBridge.ts é quem
+// lê estas tabelas e ATRIBUI cada item capturado ao escritório certo (por número de
+// processo batendo com um Case existente e, na falta disso, por OAB batendo com um
+// usuário ativo de algum escritório), gravando o resultado já com officeId em
+// Publication. Ou seja, o roteamento multi-escritório já acontece nesta ponte —
+// não é mais uma limitação de arquitetura pendente.
 
 model RoboPublicacao {
   idComunicacao        String    @id @map("id_comunicacao")
