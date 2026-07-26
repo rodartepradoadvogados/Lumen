@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getTodayElapsedSeconds } from "@/lib/timesheet";
@@ -75,12 +76,17 @@ export default async function MobileLayout({ children }: { children: React.React
               rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
           {user && <TimesheetTimer initialSeconds={todaySeconds} />}
           {user && (
-            <div className="flex items-center gap-2">
+            <Link href="/m/perfil" className="flex items-center gap-2">
               <span className="text-[11px] text-cream-50/70 max-w-[120px] truncate">{user.name.split(" ")[0]}</span>
-              <span className="h-8 w-8 rounded-full bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold">
-                {initials(user.name)}
+              <span className="h-8 w-8 rounded-full bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold overflow-hidden shrink-0">
+                {user.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={`/api/perfil/foto/${user.id}`} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials(user.name)
+                )}
               </span>
-            </div>
+            </Link>
           )}
         </div>
       </header>
