@@ -4,6 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 import { updateMyProfile, type MyProfile } from "@/lib/actions/profile";
+import MaskedInput from "@/components/MaskedInput";
+import { maskCPF, maskCEP } from "@/lib/masks";
 
 const GENDER_OPTIONS = ["Feminino", "Masculino", "Não-binário", "Prefiro não informar"];
 const MARITAL_OPTIONS = ["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"];
@@ -136,7 +138,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF</label>
-          <input name="cpf" defaultValue={profile.cpf ?? ""} placeholder="000.000.000-00" className="profile-input w-full" />
+          <MaskedInput name="cpf" mask={maskCPF} defaultValue={profile.cpf ?? ""} placeholder="000.000.000-00" className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">RG</label>
@@ -148,7 +150,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CEP</label>
-          <input name="cep" defaultValue={profile.cep ?? ""} placeholder="00000-000" className="profile-input w-full" />
+          <MaskedInput name="cep" mask={maskCEP} defaultValue={profile.cep ?? ""} placeholder="00000-000" className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cidade</label>

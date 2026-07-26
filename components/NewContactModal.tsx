@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient, createLawyer } from "@/lib/actions/contatos";
+import MaskedInput from "@/components/MaskedInput";
+import { maskCpfCnpj, maskPhone } from "@/lib/masks";
 import { Plus, X } from "lucide-react";
 
 export default function NewContactModal({ kind }: { kind: "client" | "lawyer" }) {
@@ -78,7 +80,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                   </div>
                   <div>
                     <label className="text-xs font-medium text-navy-800/60">CPF/CNPJ</label>
-                    <input name="document" className="ct-input" />
+                    <MaskedInput name="document" mask={maskCpfCnpj} className="ct-input" />
                   </div>
                 </div>
               )}
@@ -113,7 +115,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Telefone</label>
-                  <input name="phone" className="ct-input" />
+                  <MaskedInput name="phone" mask={maskPhone} className="ct-input" />
                 </div>
               </div>
 

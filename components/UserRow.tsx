@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound } from "lucide-react";
 import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, setUserCredentials } from "@/lib/actions/settings";
 import { Badge } from "@/components/ui";
+import MaskedInput from "@/components/MaskedInput";
+import { maskPhone } from "@/lib/masks";
 
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
 
@@ -111,7 +113,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             ))}
           </select>
           <input name="oab" defaultValue={user.oab ?? ""} placeholder="OAB (opcional)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="phone" defaultValue={user.phone ?? ""} placeholder="Telefone (opcional)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <MaskedInput name="phone" mask={maskPhone} defaultValue={user.phone ?? ""} placeholder="Telefone (opcional)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
           <input name="color" type="color" defaultValue={user.color} className="cfg-input dark:bg-navy-900 dark:border-white/15 h-9 p-1" />
         </div>
         <div className="flex gap-2">

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateLawyer } from "@/lib/actions/contatos";
+import MaskedInput from "@/components/MaskedInput";
+import { maskPhone } from "@/lib/masks";
 import { Pencil, X } from "lucide-react";
 
 type LawyerData = {
@@ -81,7 +83,7 @@ export default function EditLawyerModal({ lawyer }: { lawyer: LawyerData }) {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Telefone</label>
-                  <input name="phone" defaultValue={lawyer.phone || ""} className="cl-input" />
+                  <MaskedInput name="phone" mask={maskPhone} defaultValue={lawyer.phone || ""} className="cl-input" />
                 </div>
               </div>
               <div>

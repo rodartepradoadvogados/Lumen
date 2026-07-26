@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { updateClientQualification } from "@/lib/actions/attendance";
 import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
+import MaskedInput from "@/components/MaskedInput";
+import { maskCpfCnpj } from "@/lib/masks";
 import { X } from "lucide-react";
 
 export default function ClientQualificationModal({
@@ -61,7 +63,7 @@ export default function ClientQualificationModal({
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60">CPF/CNPJ</label>
-                <input name="document" className="cqm-input" />
+                <MaskedInput name="document" mask={maskCpfCnpj} className="cqm-input" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

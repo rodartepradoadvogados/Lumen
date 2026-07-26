@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateSupplier } from "@/lib/actions/suppliers";
+import MaskedInput from "@/components/MaskedInput";
+import { maskCpfCnpj, maskPhone } from "@/lib/masks";
 import { Pencil, X } from "lucide-react";
 
 type SupplierData = {
@@ -56,11 +58,11 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">CPF/CNPJ</label>
-                  <input name="document" defaultValue={supplier.document || ""} className="cl-input" />
+                  <MaskedInput name="document" mask={maskCpfCnpj} defaultValue={supplier.document || ""} className="cl-input" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Telefone</label>
-                  <input name="phone" defaultValue={supplier.phone || ""} className="cl-input" />
+                  <MaskedInput name="phone" mask={maskPhone} defaultValue={supplier.phone || ""} className="cl-input" />
                 </div>
               </div>
               <div>

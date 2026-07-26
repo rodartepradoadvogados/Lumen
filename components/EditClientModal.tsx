@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateClient } from "@/lib/actions/contatos";
+import MaskedInput from "@/components/MaskedInput";
+import { maskCpfCnpj, maskPhone } from "@/lib/masks";
 import { Pencil, X } from "lucide-react";
 
 type ClientData = {
@@ -75,7 +77,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">CPF/CNPJ</label>
-                  <input name="document" defaultValue={client.document || ""} className="ct-input" />
+                  <MaskedInput name="document" mask={maskCpfCnpj} defaultValue={client.document || ""} className="ct-input" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -85,7 +87,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-navy-800/60">Telefone</label>
-                  <input name="phone" defaultValue={client.phone || ""} className="ct-input" />
+                  <MaskedInput name="phone" mask={maskPhone} defaultValue={client.phone || ""} className="ct-input" />
                 </div>
               </div>
               <div>
