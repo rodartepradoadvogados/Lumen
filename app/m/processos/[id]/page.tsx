@@ -9,7 +9,8 @@ import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
 import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import MobileTaskResponsibleSelect from "@/components/mobile/MobileTaskResponsibleSelect";
 import CopyButton from "@/components/CopyButton";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import EditCaseModal from "@/components/EditCaseModal";
+import { ArrowLeft, ChevronDown, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,11 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
 
-  const [c, publications, users] = await Promise.all([
+  // clients e tribunais são novos aqui: a página mobile ainda não buscava clientes (necessário
+  // para o <select> de Cliente do EditCaseModal) nem o catálogo de tribunais (para TribunalFields
+  // dentro do mesmo modal) — mesmas consultas já feitas na versão desktop
+  // (app/(app)/processos/[id]/page.tsx).
+  const [c, publications, users, clients, tribunais] = await Promise.all([
     prisma.case.findFirst({
       where: { id: params.id, officeId: viewer.officeId },
       include: {
@@ -41,6 +46,8 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
   ]);
 
   if (!c) notFound();
@@ -83,11 +90,46 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
       </div>
 
       <Card className="p-4 space-y-2.5">
+        {/* Mesma estrutura do Card "Dados do Processo" no desktop (app/(app)/processos/[id]/page.tsx):
+            cabeçalho com o ícone de lápis do EditCaseModal no canto, abrindo a edição completa. */}
+        <div className="flex items-center justify-between -mt-1 -mr-1">
+          <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Dados do Processo</h4>
+          <EditCaseModal
+            caseData={{
+              id: c.id,
+              clientId: c.clientId,
+              opposingPartyName: c.opposingPartyName,
+              opposingPartyRole: c.opposingPartyRole,
+              responsibleId: c.responsibleId,
+              court: c.court,
+              caseValue: c.caseValue,
+              tribunalSigla: c.tribunalSigla,
+              tribunalNome: c.tribunalNome,
+              tribunalSistema: c.tribunalSistema,
+              tribunalLink: c.tribunalLink,
+            }}
+            clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
+            users={users}
+            tribunais={tribunais}
+          />
+        </div>
         <Field label="Cliente" value={c.client?.name} />
         <Field label="Parte Adversa" value={c.opposingPartyName} />
         <Field label="Vara/Comarca" value={c.court} />
         <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
         <Field label="Responsável" value={c.responsible?.name} />
+        <Field label="Tribunal" value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
+        <Field label="Sistema" value={c.tribunalSistema} />
+        {c.tribunalLink && (
+          <a
+            href={c.tribunalLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+          >
+            <ExternalLink size={12} /> Acessar sistema do tribunal
+          </a>
+        )}
         {c.description && (
           <div className="pt-1">
             <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1">

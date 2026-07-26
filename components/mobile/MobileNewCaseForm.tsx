@@ -7,6 +7,8 @@ import { FilePlus2 } from "lucide-react";
 import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
+import TribunalFields from "@/components/TribunalFields";
+import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 
 const inputClass =
   "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
@@ -34,12 +36,14 @@ export default function MobileNewCaseForm({
   clients,
   users,
   assessorias,
+  tribunais,
   defaultType,
   defaultProcessNumber,
 }: {
   clients: Client[];
   users: UserOption[];
   assessorias: AssessoriaOption[];
+  tribunais: TribunalCatalogEntry[];
   defaultType: string;
   defaultProcessNumber: string;
 }) {
@@ -74,6 +78,10 @@ export default function MobileNewCaseForm({
         responsibleId: String(formData.get("responsibleId") || "") || undefined,
         description: String(formData.get("description") || "") || undefined,
         assessoriaId: String(formData.get("assessoriaId") || "") || undefined,
+        tribunalSigla: String(formData.get("tribunalSigla") || "") || undefined,
+        tribunalNome: String(formData.get("tribunalNome") || "") || undefined,
+        tribunalSistema: String(formData.get("tribunalSistema") || "") || undefined,
+        tribunalLink: String(formData.get("tribunalLink") || "") || undefined,
       });
       router.push(`/m/processos/${result.id}`);
     } catch {
@@ -122,6 +130,9 @@ export default function MobileNewCaseForm({
           <input name="court" className={inputClass} />
         </div>
       </div>
+
+      {/* Mesma posição relativa do formulário desktop: logo após Vara/Comarca */}
+      <TribunalFields tribunais={tribunais} inputClassName={inputClass} />
 
       <div className="grid grid-cols-2 gap-3">
         <div>

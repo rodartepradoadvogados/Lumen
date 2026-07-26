@@ -12,7 +12,9 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
 
-  const [clients, users, assessoriasRaw] = await Promise.all([
+  // tribunais: catálogo global (não tem officeId), buscado junto para alimentar o
+  // TribunalFields do formulário — mesma consulta usada na versão desktop de Novo Processo.
+  const [clients, users, assessoriasRaw, tribunais] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.assessoria.findMany({
@@ -20,6 +22,7 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
       include: { client: true },
       orderBy: { client: { name: "asc" } },
     }),
+    prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
@@ -39,6 +42,7 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
           clients={clients}
           users={users}
           assessorias={assessorias}
+          tribunais={tribunais}
           defaultType={searchParams.type || "JUDICIAL"}
           defaultProcessNumber={searchParams.processNumber || ""}
         />

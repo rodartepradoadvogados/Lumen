@@ -147,6 +147,10 @@ export async function createCaseMobile(data: {
   responsibleId?: string;
   description?: string;
   assessoriaId?: string;
+  tribunalSigla?: string;
+  tribunalNome?: string;
+  tribunalSistema?: string;
+  tribunalLink?: string;
 }): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
@@ -175,6 +179,10 @@ export async function createCaseMobile(data: {
       responsibleId: data.responsibleId || null,
       description: data.description || null,
       assessoriaId: data.assessoriaId || null,
+      tribunalSigla: data.tribunalSigla || null,
+      tribunalNome: data.tribunalNome || null,
+      tribunalSistema: data.tribunalSistema || null,
+      tribunalLink: data.tribunalLink || null,
       officeId: viewer.officeId,
     },
   });
