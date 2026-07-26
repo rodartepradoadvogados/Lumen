@@ -41,7 +41,7 @@ export async function setEmailSendProvider(provider: "GOOGLE" | "MICROSOFT" | nu
 // isAdmin, já que troca o comportamento de upload/exclusão pra todo mundo. Ao contrário do picker
 // de e-mail, aqui a escolha é permitida mesmo ANTES de conectar a conta (ver
 // components/StorageProviderPicker.tsx) — o fluxo natural é escolher primeiro, conectar depois.
-export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE"): Promise<{ error?: string }> {
+export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE" | "DROPBOX"): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
   if (!viewer.isAdmin) return { error: "Apenas administradores podem alterar o provedor de armazenamento." };

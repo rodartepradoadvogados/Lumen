@@ -1,11 +1,12 @@
-# Integração com Outlook/OneDrive (Microsoft) e Dropbox — o que falta pra funcionar
+# Integração com Outlook/OneDrive (Microsoft) e Dropbox — falta só cadastrar as credenciais
 
-Fase 1 (**e-mail**: recebimento de publicações + envio no Atendimento) e Fase 2 (**OneDrive**
-como armazenamento de anexos) do pedido de sincronização com OneDrive/Outlook/Dropbox já estão
-prontas e no ar, mas ficam **dormentes** até você registrar o app da Microsoft — isso eu não
-consigo fazer por vocês, precisa login de administrador no portal. Dropbox é um registro
-separado (plataforma diferente) e ainda não tem nenhum código construído — ver "O que ainda
-falta" ao final.
+Fase 1 (**e-mail**: recebimento de publicações + envio no Atendimento), Fase 2 (**OneDrive**
+como armazenamento de anexos) e Fase 3 (**Dropbox**, também como armazenamento de anexos) do
+pedido de sincronização com OneDrive/Outlook/Dropbox já estão prontas e no código, mas ficam
+**dormentes** até você registrar os apps correspondentes — isso eu não consigo fazer por vocês,
+precisa login de administrador em cada portal. São dois registros SEPARADOS (Microsoft e
+Dropbox são plataformas diferentes, com portais e credenciais próprios) — ver os passos 1 e 2
+abaixo.
 
 ## 1. Microsoft (Outlook + OneDrive) — Azure AD
 
@@ -51,11 +52,11 @@ falta" ao final.
   junto com o Gmail (mesmo botão de sincronizar). Envio de e-mail no Atendimento continua
   exigindo escolha explícita do provedor (card "Envio de e-mail no Atendimento", já no ar) —
   conectar não liga o envio sozinho.
-- **OneDrive como armazenamento**: o escritório escolhe o provedor (Google Drive ou OneDrive) no
-  card "Armazenamento de anexos" em Configurações → Modelos & Integrações, e um admin conecta a
-  conta Microsoft que vai guardar os arquivos (conexão separada da conexão de e-mail acima — é do
-  escritório, não da pessoa). **Dropbox** ainda não tem nenhuma infraestrutura construída (ver
-  abaixo).
+- **OneDrive/Dropbox como armazenamento**: o escritório escolhe o provedor (Google Drive, OneDrive
+  ou Dropbox) no card "Armazenamento de anexos" em Configurações → Modelos & Integrações, e um
+  admin conecta a conta correspondente que vai guardar os arquivos (conexão separada da conexão de
+  e-mail acima — é do escritório, não da pessoa; Dropbox não tem conexão de e-mail nenhuma, só
+  armazenamento).
 
 ## O que já existe
 
@@ -65,12 +66,14 @@ falta" ao final.
   usa, agora replicada para o Microsoft Graph (ver `lib/oneDriveStorage.ts` e
   `lib/storageProvider.ts`). Limitação conhecida: upload simples do Graph só aceita arquivos até
   4MB — arquivos maiores exigiriam "upload session" (resumable upload), ainda não implementado.
+- **Dropbox como opção de armazenamento** (mesmo card, terceira opção) — mesma estrutura de pastas,
+  agora sobre a API v2 do Dropbox (ver `lib/dropbox.ts`, `lib/dropboxStorage.ts` e
+  `lib/storageProvider.ts`). Upload simples aceita até 150MB — bem mais folgado que o limite de
+  4MB do OneDrive — e autorenomeia sozinho em caso de nome de arquivo duplicado (soma um sufixo
+  automático), diferente de Google/OneDrive.
 
 ## O que ainda falta
 
-- **Dropbox** como opção de armazenamento — hoje não existe NENHUMA infraestrutura OAuth pra
-  Dropbox no projeto (nem app registrado, nem model, nem env var, nem rota). Fica pra uma rodada
-  futura e separada.
 - **Upload de arquivo grande no OneDrive** (>4MB) — precisaria de upload session do Microsoft
   Graph; hoje o upload simples recusa e mostra um erro claro em vez de falhar silencioso.
 - **Calendário** — sincronizar a Agenda do sistema com Google Calendar e com o calendário do

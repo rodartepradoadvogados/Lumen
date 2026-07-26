@@ -11,6 +11,7 @@ import {
   getOrCreateAttendanceFolder,
   getOrCreateCategoryFolder,
   deleteDriveFile,
+  type StorageProvider,
 } from "@/lib/storageProvider";
 import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
@@ -136,7 +137,9 @@ export async function deleteAttachment(id: string): Promise<{ error?: string }> 
   // explícitos; anexos antigos (pré-migração, storageFileId nulo) só podem ser do Google — mesmo
   // caminho de sempre, adivinhando o id pela URL.
   if (att.storageFileId) {
-    await deleteDriveFile(att.storageFileId, user.officeId, att.storageProvider === "ONEDRIVE" ? "ONEDRIVE" : "GOOGLE_DRIVE").catch(() => {});
+    const provider: StorageProvider =
+      att.storageProvider === "ONEDRIVE" ? "ONEDRIVE" : att.storageProvider === "DROPBOX" ? "DROPBOX" : "GOOGLE_DRIVE";
+    await deleteDriveFile(att.storageFileId, user.officeId, provider).catch(() => {});
   } else {
     const fileId = extractDriveFileId(att.driveUrl);
     if (fileId) {

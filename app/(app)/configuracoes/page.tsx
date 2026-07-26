@@ -32,6 +32,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
 import { getOneDriveStatus } from "@/lib/oneDriveStorage";
+import { isDropboxConfigured } from "@/lib/dropbox";
+import { getDropboxStatus } from "@/lib/dropboxStorage";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import ModulesManager from "@/components/ModulesManager";
 
@@ -114,7 +116,7 @@ const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepc
 export default async function ConfiguracoesPage({
   searchParams,
 }: {
-  searchParams: { google?: string; microsoft?: string; msg?: string; secao?: string; blogTab?: string };
+  searchParams: { google?: string; microsoft?: string; dropbox?: string; msg?: string; secao?: string; blogTab?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) {
@@ -143,6 +145,7 @@ export default async function ConfiguracoesPage({
     processosMonitoradosCount,
     office,
     oneDriveStatus,
+    dropboxStatus,
   ] = await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -170,6 +173,7 @@ export default async function ConfiguracoesPage({
       prisma.roboProcessoMonitorado.count(),
       prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true } }),
       getOneDriveStatus(officeId),
+      getDropboxStatus(officeId),
     ]);
   const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
 
@@ -612,18 +616,36 @@ export default async function ConfiguracoesPage({
         <Card>
           <CardHeader
             title="Armazenamento de anexos"
-            subtitle="Por padrão, anexos de Processos/Atendimentos/Assessoria ficam no Google Drive. Cada escritório pode trocar para OneDrive."
+            subtitle="Por padrão, anexos de Processos/Atendimentos/Assessoria ficam no Google Drive. Cada escritório pode trocar para OneDrive ou Dropbox."
           />
           <div className="p-5 space-y-4">
             {!isMicrosoftConfigured() && (
               <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
-                Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).
+                OneDrive ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).
+              </p>
+            )}
+            {!isDropboxConfigured() && (
+              <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
+                Dropbox ainda não configurado na plataforma — falta registrar o app no Dropbox App Console (ver README_MICROSOFT.md).
               </p>
             )}
             {searchParams.microsoft === "onedrive-conectado" && (
               <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">OneDrive conectado com sucesso!</p>
             )}
-            <StorageProviderPicker current={storageProvider} isAdmin={isAdmin} oneDriveConnected={oneDriveStatus.connected} />
+            {searchParams.dropbox === "conectado" && (
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">Dropbox conectado com sucesso!</p>
+            )}
+            {searchParams.dropbox === "erro" && (
+              <p className="text-xs text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-3 py-2">
+                Erro ao conectar: {searchParams.msg || "tente novamente."}
+              </p>
+            )}
+            <StorageProviderPicker
+              current={storageProvider}
+              isAdmin={isAdmin}
+              oneDriveConnected={oneDriveStatus.connected}
+              dropboxConnected={dropboxStatus.connected}
+            />
             {storageProvider === "ONEDRIVE" && (
               <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
                 {oneDriveStatus.connected ? (
@@ -639,6 +661,24 @@ export default async function ConfiguracoesPage({
                   className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
                 >
                   <HardDrive size={16} /> {oneDriveStatus.connected ? "Reconectar" : "Conectar"} OneDrive
+                </a>
+              </div>
+            )}
+            {storageProvider === "DROPBOX" && (
+              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
+                {dropboxStatus.connected ? (
+                  <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50 mb-2">
+                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                    Conectado como <strong>{dropboxStatus.accountEmail}</strong>
+                  </div>
+                ) : (
+                  <p className="text-sm text-navy-800/60 dark:text-cream-50/60 mb-2">Nenhuma conta Dropbox conectada ainda.</p>
+                )}
+                <a
+                  href="/api/dropbox/connect"
+                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+                >
+                  <HardDrive size={16} /> {dropboxStatus.connected ? "Reconectar" : "Conectar"} Dropbox
                 </a>
               </div>
             )}

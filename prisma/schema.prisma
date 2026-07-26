@@ -68,11 +68,12 @@ model Office {
   moduloAssessoria  Boolean @default(true)
 
   // Provedor de armazenamento de anexos (Processos/Atendimentos/Assessoria) escolhido por este
-  // escritório — "GOOGLE_DRIVE" | "ONEDRIVE" (texto livre, mesmo padrão do resto do schema, sem
-  // enum do Prisma). Default GOOGLE_DRIVE preserva o comportamento de todo escritório já
-  // existente sem nenhuma ação da parte deles — só passa a valer ONEDRIVE se o escritório
-  // escolher isso explicitamente em Configurações (ver lib/actions/settings.ts:setStorageProvider)
-  // e conectar uma conta Microsoft como Drive principal (ver lib/oneDriveStorage.ts).
+  // escritório — "GOOGLE_DRIVE" | "ONEDRIVE" | "DROPBOX" (texto livre, mesmo padrão do resto do
+  // schema, sem enum do Prisma). Default GOOGLE_DRIVE preserva o comportamento de todo
+  // escritório já existente sem nenhuma ação da parte deles — só passa a valer ONEDRIVE/DROPBOX
+  // se o escritório escolher isso explicitamente em Configurações (ver
+  // lib/actions/settings.ts:setStorageProvider) e conectar a conta correspondente como
+  // armazenamento (ver lib/oneDriveStorage.ts / lib/dropboxStorage.ts).
   storageProvider String @default("GOOGLE_DRIVE")
 
   // Diferente dos módulos acima (contratáveis, autosserviço do próprio escritório em
@@ -123,6 +124,7 @@ model Office {
   blogPosts            BlogPost[]
   photos               Photo[]
   whatsappConfig       WhatsappConfig?
+  dropboxCredential    DropboxCredential?
   invoices             TenantInvoice[]
 
   // ---- Lúmen (Passo 1 — fundação de dados, ainda não lida por nenhuma tela) ----
@@ -822,6 +824,24 @@ model MicrosoftCredential {
   user   User?   @relation(fields: [userId], references: [id])
 
   @@index([officeId])
+}
+
+// Conta Dropbox conectada como armazenamento DESTE escritório — ao contrário de
+// MicrosoftCredential (por pessoa, com isPrimaryDrive para achar a "principal"), aqui é
+// sempre uma linha por escritório: Dropbox não tem uso de e-mail neste projeto, só
+// armazenamento, então não existe cenário de "várias contas conectadas, uma é a principal".
+// rootFolderId cacheia o id (já no formato "id:XXXXX" retornado pela API) da pasta raiz "Lúmen"
+// nesta conta — ver lib/dropboxStorage.ts, getOrCreateRootFolder.
+model DropboxCredential {
+  id           String   @id @default(cuid())
+  accountEmail String
+  refreshToken String
+  rootFolderId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  officeId String @unique
+  office   Office @relation(fields: [officeId], references: [id])
 }
 
 // ============ INTEGRAÇÃO WHATSAPP (por escritório — Fase 2) ============
