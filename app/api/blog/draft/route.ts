@@ -201,29 +201,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id: post.id, slug: post.slug, status: post.status }, { status: 201 });
 }
-
-// Correção pontual, TEMPORÁRIA: antes do fix acima, o findFirst() sem filtro associou
-// matérias do robô a um Office que não é o dono da plataforma (isInternal), ficando
-// invisíveis na tela de revisão do Rodarte Prado. Reatribui qualquer BlogPost dos
-// últimos 7 dias que não esteja no Office correto. Idempotente (não-op se já corrigido).
-// Remover este handler depois de confirmar a correção em produção.
-export async function PATCH(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const secret = process.env.BLOG_ROBOT_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  const office = await prisma.office.findFirst({ where: { isInternal: true } });
-  if (!office) {
-    return NextResponse.json({ error: "Nenhum escritório interno cadastrado." }, { status: 500 });
-  }
-
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const result = await prisma.blogPost.updateMany({
-    where: { createdAt: { gte: sevenDaysAgo }, officeId: { not: office.id } },
-    data: { officeId: office.id },
-  });
-
-  return NextResponse.json({ fixedOfficeId: office.id, reassigned: result.count });
-}
