@@ -9,9 +9,9 @@ import {
   markInvoicePaid,
   setOfficeAccess,
 } from "@/lib/actions/painelMestre";
-import { startActingAsOffice } from "@/lib/officeActing";
+import StartActingModal from "@/components/painelMestre/StartActingModal";
 import { formatCurrency } from "@/components/ui";
-import { Send, CheckCircle2, Lock, Unlock, Building2 } from "lucide-react";
+import { Send, CheckCircle2, Lock, Unlock } from "lucide-react";
 
 type Invoice = { id: string; competencia: string; amount: number; dueDate: string; status: string; boletoUrl: string | null };
 
@@ -62,29 +62,7 @@ export default function OfficeDetailPanel({
       {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
       {message && <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 rounded-lg px-3 py-2">{message}</p>}
 
-      <div>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              const result = await startActingAsOffice(officeId);
-              if (result?.error) {
-                setError(result.error);
-                return;
-              }
-              router.push("/painel");
-              router.refresh();
-            })
-          }
-          className="inline-flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white text-xs font-semibold rounded-lg px-3 py-2"
-        >
-          <Building2 size={13} /> Entrar como este escritório
-        </button>
-        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1.5">
-          Pra ajudar a configurar Drive, DJEN ou e-mail junto com o dono. Sessão de trabalho de até 4h, sai a qualquer momento pelo aviso no topo.
-        </p>
-      </div>
+      <StartActingModal officeId={officeId} />
 
       <div>
         <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">Módulos contratados</p>

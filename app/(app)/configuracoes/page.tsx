@@ -26,7 +26,7 @@ import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButto
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
-import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper } from "lucide-react";
+import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
@@ -319,6 +319,23 @@ export default async function ConfiguracoesPage({
         <CardHeader title="Alterar Senha" subtitle="Sua senha de acesso ao sistema" />
         <div className="p-5">
           <ChangePasswordForm />
+        </div>
+      </Card>
+      )}
+
+      {/* Visível a QUALQUER pessoa do escritório, não só admin — é o ponto da transparência
+          (ver especificação do Passo 2). Por isso fica na seção "geral" (sem adminOnly), e não
+          na navegação lateral (que só aparece para admin — ver `isAdmin &&` no <aside> acima). */}
+      {secao === "geral" && (
+      <Card>
+        <CardHeader title="Acessos da Lúmen" subtitle="Veja quando e por quê o suporte da Lúmen acessou os dados do seu escritório" />
+        <div className="p-5">
+          <Link
+            href="/configuracoes/acessos"
+            className="inline-flex items-center gap-2 justify-center bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+          >
+            <ShieldCheck size={16} /> Ver histórico de acessos
+          </Link>
         </div>
       </Card>
       )}

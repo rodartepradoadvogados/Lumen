@@ -9,6 +9,7 @@ import TimesheetTimer from "@/components/TimesheetTimer";
 import InactivityNotice from "@/components/InactivityNotice";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import LumenMark from "@/components/LumenMark";
+import SupportAccessBanner from "@/components/SupportAccessBanner";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 
 export const dynamic = "force-dynamic";
@@ -61,37 +62,46 @@ export default async function MobileLayout({ children }: { children: React.React
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       {user && <InactivityNotice />}
       <AppBadgeSync initialCount={unreadCount} />
-      {/* Cabeçalho sempre navy, nos 3 temas (Dia/Tarde/Noite) — de propósito sem classes
-          `dark:`, senão o Tarde tingiria o cabeçalho de bordô junto com os cards (mesmo
-          motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`). */}
-      <header className="fixed top-0 inset-x-0 h-[52px] bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between px-4 z-40">
-        <div className="flex items-center gap-1.5">
-          <LumenMark size={22} />
-          <span className="font-serif text-sm font-bold tracking-wide text-cream-50">LÚMEN</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <MobileThemeToggle />
-          {/* Ping silencioso de timesheet: o componente fica "hidden lg:flex" (nunca visível
-              na largura do app mobile), mas mantém o mecanismo de contagem de sessão do dia
-              rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
-          {user && <TimesheetTimer initialSeconds={todaySeconds} />}
-          {user && (
-            <Link href="/m/perfil" className="flex items-center gap-2">
-              <span className="text-[11px] text-cream-50/70 max-w-[120px] truncate">{user.name.split(" ")[0]}</span>
-              <span className="h-8 w-8 rounded-full bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold overflow-hidden shrink-0">
-                {user.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/api/perfil/foto/${user.id}`} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  initials(user.name)
-                )}
-              </span>
-            </Link>
-          )}
-        </div>
-      </header>
+      {/* `sticky` (não `fixed`) de propósito: empilhado num flex-col junto com a faixa de
+          suporte abaixo, este bloco fica colado no topo ao rolar sem precisar saber de
+          antemão se a faixa vai aparecer ou não — quando ela existe, empurra o cabeçalho pra
+          baixo sozinha (ocupa espaço no fluxo normal); quando não existe, o cabeçalho fica
+          exatamente onde ficava antes. Isso também elimina o precisar compensar a altura no
+          `<main>` com um pt-[52px] fixo (o antigo cabeçalho `fixed` exigia isso). */}
+      <div className="sticky top-0 inset-x-0 z-40 flex flex-col">
+        <SupportAccessBanner />
+        {/* Cabeçalho sempre navy, nos 3 temas (Dia/Tarde/Noite) — de propósito sem classes
+            `dark:`, senão o Tarde tingiria o cabeçalho de bordô junto com os cards (mesmo
+            motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`). */}
+        <header className="h-[52px] shrink-0 bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between px-4">
+          <div className="flex items-center gap-1.5">
+            <LumenMark size={22} />
+            <span className="font-serif text-sm font-bold tracking-wide text-cream-50">LÚMEN</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <MobileThemeToggle />
+            {/* Ping silencioso de timesheet: o componente fica "hidden lg:flex" (nunca visível
+                na largura do app mobile), mas mantém o mecanismo de contagem de sessão do dia
+                rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
+            {user && <TimesheetTimer initialSeconds={todaySeconds} />}
+            {user && (
+              <Link href="/m/perfil" className="flex items-center gap-2">
+                <span className="text-[11px] text-cream-50/70 max-w-[120px] truncate">{user.name.split(" ")[0]}</span>
+                <span className="h-8 w-8 rounded-full bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold overflow-hidden shrink-0">
+                  {user.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`/api/perfil/foto/${user.id}`} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initials(user.name)
+                  )}
+                </span>
+              </Link>
+            )}
+          </div>
+        </header>
+      </div>
 
-      <main className="pt-[52px] pb-20 min-h-screen">{children}</main>
+      <main className="pb-20 min-h-screen">{children}</main>
 
       <MobileBottomNav unreadCount={unreadCount} />
       <InstallPrompt />

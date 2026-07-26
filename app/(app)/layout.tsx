@@ -7,6 +7,7 @@ import InactivityNotice from "@/components/InactivityNotice";
 import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import ActingOfficeBanner from "@/components/ActingOfficeBanner";
+import SupportAccessBanner from "@/components/SupportAccessBanner";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
@@ -53,26 +54,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <UndoToastProvider>
-      <div className="flex h-screen overflow-hidden">
-        <InactivityNotice />
-        <AppBadgeSync initialCount={unreadPublications} />
-        <Suspense fallback={null}>
-          <Sidebar
-            hasFinanceAccess={user.isAdmin || user.financeAccess}
-            isAdmin={user.isAdmin}
-            unreadPublications={unreadPublications}
-            modules={modules}
-          />
-        </Suspense>
-        <div className="flex-1 flex flex-col min-w-0 relative">
+      {/* Coluna vertical: faixa de suporte (se houver sessão ativa) acima de tudo, inclusive
+          acima da sidebar — depois o corpo do app (sidebar + conteúdo) ocupando o resto da
+          altura. Fica fora do "flex h-screen" original de propósito, pra faixa nunca competir
+          por altura fixa com sidebar/conteúdo (ela só aparece quando existe sessão). */}
+      <div className="flex flex-col h-screen overflow-hidden">
+        <SupportAccessBanner />
+        <div className="flex flex-1 overflow-hidden">
+          <InactivityNotice />
+          <AppBadgeSync initialCount={unreadPublications} />
           <Suspense fallback={null}>
-            <SiteBackgroundLayer />
+            <Sidebar
+              hasFinanceAccess={user.isAdmin || user.financeAccess}
+              isAdmin={user.isAdmin}
+              unreadPublications={unreadPublications}
+              modules={modules}
+            />
           </Suspense>
-          {user.actingAsOffice && <ActingOfficeBanner officeName={user.actingAsOffice.name} />}
-          <TopBar />
-          <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
+          <div className="flex-1 flex flex-col min-w-0 relative">
+            <Suspense fallback={null}>
+              <SiteBackgroundLayer />
+            </Suspense>
+            {user.actingAsOffice && <ActingOfficeBanner officeName={user.actingAsOffice.name} />}
+            <TopBar />
+            <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
+          </div>
+          <ClaudeAssistantWidget userName={user.name} />
         </div>
-        <ClaudeAssistantWidget userName={user.name} />
       </div>
     </UndoToastProvider>
   );

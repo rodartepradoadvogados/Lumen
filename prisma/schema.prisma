@@ -75,6 +75,12 @@ model Office {
   // lib/actions/signup.ts).
   blogAccess Boolean @default(true)
 
+  // Como o escritório quer que funcione o acesso do suporte da Lúmen. AUTO = liberado na hora,
+  // mas sempre com registro, prazo e faixa visível. APROVACAO = exige que um sócio do
+  // escritório libere antes (tela do lado do cliente entra no Passo 3). Nasce AUTO para não
+  // travar o suporte antes de existir onde aprovar.
+  supportAccessPolicy String @default("AUTO") // AUTO | APROVACAO
+
   users                User[]
   notices              Notice[]
   loginSessions        LoginSession[]
