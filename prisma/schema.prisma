@@ -110,6 +110,13 @@ model Office {
   photos               Photo[]
   whatsappConfig       WhatsappConfig?
   invoices             TenantInvoice[]
+
+  // ---- Lúmen (Passo 1 — fundação de dados, ainda não lida por nenhuma tela) ----
+  subscription   Subscription?
+  usage          TenantUsage[]
+  supportTickets SupportTicket[]
+  accessRequests AccessRequest[]
+  accessAudit    AccessAuditLog[]
 }
 
 // ============ EQUIPE ============
@@ -193,6 +200,9 @@ model User {
   emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
+
+  // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
+  platformMember PlatformMember?
 
   @@unique([officeId, username])
 }
@@ -1200,4 +1210,228 @@ model BtgConnection {
   expiresAt     DateTime
   connectedAt   DateTime @default(now())
   connectedById String? // userId de quem autorizou (auditoria)
+}
+
+// ============ LÚMEN — FUNDAÇÃO DE DADOS (Passo 1) ============
+//
+// Tudo daqui pra baixo é estrutura nova da plataforma Lúmen (a empresa por trás do produto,
+// distinta de cada escritório-cliente). Passo 1 é só schema + endpoint de preenchimento manual:
+// nenhuma tela lê estes modelos ainda, nenhum comportamento em execução muda. Os campos que já
+// existem em Office/User (isInternal, monthlyFee, billingEmail, billingDueDay, isPlatformOwner)
+// continuam sendo a fonte de verdade até a leitura ser migrada num passo futuro.
+
+// ---- Identidade da empresa ----
+
+model PlatformMember {
+  id     String  @id @default(cuid())
+  // Vínculo com um User de escritório. Hoje Jairo e Rodrigo entram por aqui: autenticam com a
+  // conta que já têm e a capacidade "Lúmen" é esta linha, separada. Fica opcional porque um
+  // funcionário contratado só pela Lúmen no futuro terá userId nulo e credencial própria,
+  // sem pertencer a escritório nenhum.
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  // Preenchidos só quando userId for nulo (funcionário exclusivo da Lúmen).
+  name         String?
+  email        String? @unique
+  passwordHash String?
+
+  roleId String
+  role   PlatformRole @relation(fields: [roleId], references: [id])
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accessRequests  AccessRequest[] @relation("AccessRequestRequester")
+  accessApprovals AccessRequest[] @relation("AccessRequestApprover")
+  accessSessions  AccessSession[]
+  auditEntries    AccessAuditLog[]
+}
+
+model PlatformRole {
+  id   String @id @default(cuid())
+  key  String @unique // SOCIO | FINANCEIRO | SUPORTE_N1 | ENGENHARIA | COMERCIAL | MARKETING
+  name String
+
+  // Teto de acesso na escada de visibilidade: ABERTO | VIDRO_FOSCO | QUEBRA_VIDRO.
+  // Ninguém alcança COFRE — nem sócio. Guardado como texto pelo mesmo motivo dos demais
+  // enums do schema (db push sem migration).
+  maxVisibility String @default("ABERTO")
+
+  canManageBilling  Boolean @default(false)
+  canManageMembers  Boolean @default(false)
+  canApproveAccess  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  members   PlatformMember[]
+}
+
+// ---- Receita e custo ----
+
+model Subscription {
+  id       String @id @default(cuid())
+  officeId String @unique
+  office   Office @relation(fields: [officeId], references: [id])
+
+  planKey     String  @default("PADRAO")
+  monthlyFee  Float
+  dueDay      Int     @default(10)
+  billingEmail String?
+  status      String  @default("ATIVA") // ATIVA | TESTE | SUSPENSA | CANCELADA
+  // Assinatura interna (Rodarte Prado) — cobrada a preço interno, não entra no MRR comercial.
+  // Substitui Office.isInternal quando a leitura for migrada, no Passo 4.
+  internal    Boolean @default(false)
+
+  startedAt DateTime  @default(now())
+  trialEndsAt DateTime?
+  canceledAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlatformAccount {
+  id       String  @id @default(cuid())
+  code     String  @unique
+  name     String
+  kind     String  // RECEITA | DESPESA
+  group    String? // Infraestrutura, Pessoal, Marketing, Impostos...
+  active   Boolean @default(true)
+  createdAt DateTime @default(now())
+  expenses PlatformExpense[]
+}
+
+model PlatformExpense {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     PlatformAccount @relation(fields: [accountId], references: [id])
+  description String
+  amount      Float
+  competencia String   // "2026-08"
+  paidAt      DateTime?
+  supplier    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([competencia])
+}
+
+model TenantUsage {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  competencia String // "2026-08" — agregado mensal, não evento a evento
+  kind        String // IA_TOKENS | DATAJUD_CONSULTA | DJEN_CONSULTA | BLOB_BYTES | EMAIL_ENVIADO
+  quantity    Float  @default(0)
+  // Custo estimado em reais, calculado no momento do registro. Guardado junto porque preço de
+  // fornecedor muda e recalcular no futuro daria número errado para o passado.
+  estimatedCost Float @default(0)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([officeId, competencia, kind])
+  @@index([competencia])
+}
+
+// ---- Camada de confiança (dormente até o Passo 2) ----
+
+model SupportTicket {
+  id       String  @id @default(cuid())
+  officeId String
+  office   Office  @relation(fields: [officeId], references: [id])
+
+  subject   String
+  body      String?
+  status    String   @default("ABERTO") // ABERTO | EM_ANDAMENTO | RESOLVIDO | FECHADO
+  openedBy  String?  // userId de quem abriu, do lado do escritório
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accessRequests AccessRequest[]
+}
+
+model AccessRequest {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  requesterId String
+  requester   PlatformMember @relation("AccessRequestRequester", fields: [requesterId], references: [id])
+
+  // Chamado obrigatório e verificável: precisa existir, estar aberto e ser DAQUELE escritório.
+  // É onde PIM da Microsoft e PAM do Google falham (campo livre, sem validação) e onde temos
+  // vantagem, porque controlamos os dois lados.
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id])
+
+  // Lista fechada, nunca texto livre: CONFIG_INTEGRACAO | CORRECAO_DADO | DIAGNOSTICO_ERRO |
+  // MIGRACAO | INCIDENTE_SEGURANCA | ORDEM_JUDICIAL
+  reasonCode String
+  reasonNote String?
+
+  // Escopo mínimo: um registro específico. scopeType: CASE | PAYABLE | RECEIVABLE | ATTENDANCE
+  scopeType String
+  scopeId   String
+
+  status String @default("PENDENTE") // PENDENTE | APROVADO | NEGADO | EXPIRADO | REVOGADO
+
+  approverId String?
+  approver   PlatformMember? @relation("AccessRequestApprover", fields: [approverId], references: [id])
+  // Sócio do escritório que aprovou. Guardado como id solto, sem relation, porque o aprovador
+  // é do lado do cliente e não deve criar dependência do modelo de plataforma sobre User.
+  approvedByUserId String?
+  decidedAt        DateTime?
+
+  requestedAt DateTime @default(now())
+  expiresAt   DateTime
+
+  sessions AccessSession[]
+
+  @@index([officeId, status])
+}
+
+model AccessSession {
+  id        String        @id @default(cuid())
+  requestId String
+  request   AccessRequest @relation(fields: [requestId], references: [id])
+
+  memberId String
+  member   PlatformMember @relation(fields: [memberId], references: [id])
+
+  startedAt DateTime  @default(now())
+  // Prazo curto com contagem regressiva visível, na linha do que o Discourse faz (15 min).
+  expiresAt DateTime
+  endedAt   DateTime?
+  endedBy   String? // MEMBRO | ESCRITORIO | EXPIRACAO
+
+  @@index([expiresAt])
+}
+
+model AccessAuditLog {
+  id       String  @id @default(cuid())
+  officeId String
+  office   Office  @relation(fields: [officeId], references: [id])
+
+  memberId String?
+  member   PlatformMember? @relation(fields: [memberId], references: [id])
+
+  // ENTRADA | LEITURA | SAIDA | PEDIDO | APROVACAO | NEGACAO | REVOGACAO | SELAGEM
+  action String
+  // Categoria própria para acesso que NÃO passou pelo fluxo normal — emergência, exposição
+  // incidental, ordem judicial. É fácil registrar o que seguiu o processo; o valor está em
+  // registrar o que não seguiu.
+  outOfBand Boolean @default(false)
+
+  reasonCode String?
+  scopeType  String?
+  scopeId    String?
+  sessionId  String?
+  ip         String?
+  detail     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([officeId, createdAt])
 }
