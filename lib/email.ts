@@ -214,15 +214,34 @@ export async function sendOfficeInviteEmail(to: string, adminName: string, reset
   }
 }
 
+// Shape comum do Pix (QR Code dinâmico) usado pelos e-mails de cobrança — mesmo formato de
+// TenantInvoice.pixQrCodePayload/pixQrCodeImage.
+type PixEmailOpts = { pixPayload?: string | null; pixImage?: string | null };
+
+// Bloco HTML do Pix (copia-e-cola selecionável + QR Code inline), reaproveitado pelos três
+// e-mails de cobrança abaixo que podem carregar Pix (fatura, lembrete antes do vencimento e
+// lembrete de vencida). Ausente quando não há pixPayload.
+function pixHtmlBlock(opts?: PixEmailOpts | null): string {
+  if (!opts?.pixPayload) return "";
+  return `
+      <div style="margin:20px 0;padding:16px;background:#f3efe6;border-radius:8px;text-align:center;">
+        <p style="font-size:13px;color:#0f1f3d;font-weight:700;margin:0 0 8px;">Pagar com Pix</p>
+        ${opts.pixImage ? `<img src="data:image/png;base64,${opts.pixImage}" alt="QR Code Pix" style="width:180px;height:180px;margin:0 auto 8px;display:block;" />` : ""}
+        <p style="font-size:12px;color:#555;margin:0 0 4px;">Pix Copia e Cola:</p>
+        <p style="font-size:11px;color:#0f1f3d;word-break:break-all;background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px;margin:0;user-select:all;">${opts.pixPayload}</p>
+      </div>`;
+}
+
 // Fatura mensal de um escritório-cliente (Painel Mestre) — com boleto anexado quando o BTG
-// já emitiu (boletoUrl), ou só o valor/vencimento quando ainda não (cobrança fica combinada
-// por fora até o BTG estar conectado).
+// já emitiu (boletoUrl), com Pix (QR Code + copia-e-cola) quando a Asaas já gerou (opts), ou só
+// o valor/vencimento quando nenhum dos dois (cobrança fica combinada por fora).
 export async function sendInvoiceEmail(
   to: string,
   officeName: string,
   amount: number,
   dueDate: Date,
-  boletoUrl?: string | null
+  boletoUrl?: string | null,
+  opts?: PixEmailOpts
 ): Promise<{ sent: boolean; reason?: string }> {
   const transporter = getTransporter();
   if (!transporter) {
@@ -241,16 +260,142 @@ export async function sendInvoiceEmail(
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
       <p style="font-size:14px;color:#0f1f3d;">Olá! Segue a fatura referente à mensalidade do Lúmen — ${officeName}.</p>
       <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
+      ${pixHtmlBlock(opts)}
       ${
         boletoUrl
           ? `<p style="text-align:center;margin:24px 0;"><a href="${boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
-          : `<p style="font-size:13px;color:#888;">O boleto será combinado diretamente com o Rodarte Prado Advogados.</p>`
+          : opts?.pixPayload
+            ? ""
+            : `<p style="font-size:13px;color:#888;">O boleto será combinado diretamente com o Rodarte Prado Advogados.</p>`
       }
     </div>
   </div>`;
 
   try {
     await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Fatura Lúmen — ${officeName} — vence em ${dueLabel}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// Lembrete enviado 3 dias antes do vencimento (Fase 2 — cron de cobrança, ver
+// lib/actions/billing.ts:runBillingCycle). Mesmo estilo/tom de sendInvoiceEmail, focado em
+// avisar que a fatura vence em breve.
+export async function sendPaymentReminderEmail(
+  to: string,
+  officeName: string,
+  amount: number,
+  dueDate: Date,
+  opts?: PixEmailOpts & { boletoUrl?: string | null }
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const amountLabel = amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const dueLabel = dueDate.toLocaleDateString("pt-BR");
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#0b1730;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">LEMBRETE DE FATURA</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#0f1f3d;">Olá! A fatura da mensalidade do Lúmen — ${officeName} vence em breve.</p>
+      <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
+      ${pixHtmlBlock(opts)}
+      ${
+        opts?.boletoUrl
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          : ""
+      }
+      <p style="font-size:13px;color:#888;">Se o pagamento já foi feito, pode ignorar este lembrete.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Lembrete — fatura Lúmen vence em ${dueLabel}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// Enviado no dia do vencimento (ou logo depois) se a fatura ainda estiver PENDENTE, avisando
+// quantos dias faltam até o bloqueio automático por inadimplência (Fase 2 — cron de cobrança).
+export async function sendOverdueReminderEmail(
+  to: string,
+  officeName: string,
+  amount: number,
+  dueDate: Date,
+  graceDaysLeft: number,
+  opts?: PixEmailOpts & { boletoUrl?: string | null }
+): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const amountLabel = amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const dueLabel = dueDate.toLocaleDateString("pt-BR");
+  const prazoLabel =
+    graceDaysLeft <= 0
+      ? "hoje é o último dia antes do bloqueio automático do acesso"
+      : `faltam ${graceDaysLeft} dia${graceDaysLeft === 1 ? "" : "s"} até o bloqueio automático do acesso`;
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#0b1730;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">FATURA VENCIDA</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#0f1f3d;">A fatura da mensalidade do Lúmen — ${officeName} venceu em <strong>${dueLabel}</strong> e ainda não identificamos o pagamento.</p>
+      <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong></p>
+      <p style="font-size:14px;color:#0f1f3d;font-weight:700;">${prazoLabel}.</p>
+      ${pixHtmlBlock(opts)}
+      ${
+        opts?.boletoUrl
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          : ""
+      }
+      <p style="font-size:13px;color:#888;">Se o pagamento já foi feito, pode ignorar este lembrete — a confirmação pode levar algumas horas para refletir aqui.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Fatura Lúmen vencida — ${officeName}`, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
+// Enviado no momento em que o escritório é efetivamente bloqueado por inadimplência (Fase 2 —
+// cron de cobrança). Mesmo tom do texto já usado na tela de bloqueio em app/(app)/layout.tsx.
+export async function sendOfficeSuspendedEmail(to: string, officeName: string): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  }
+
+  const html = `
+  <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
+    <div style="background:#0b1730;padding:24px;text-align:center;">
+      <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
+      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">ACESSO SUSPENSO</p>
+    </div>
+    <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
+      <p style="font-size:14px;color:#0f1f3d;">O acesso do escritório <strong>${officeName}</strong> ao Lúmen foi suspenso por falta de pagamento da mensalidade.</p>
+      <p style="font-size:14px;color:#0f1f3d;">Entre em contato com o Rodarte Prado Advogados para regularizar a situação e liberar o acesso novamente.</p>
+    </div>
+  </div>`;
+
+  try {
+    await transporter.sendMail({ from: `"Rodarte Prado Advogados" <${process.env.EMAIL_USER}>`, to, subject: `Acesso suspenso — Lúmen — ${officeName}`, html });
     return { sent: true };
   } catch (e) {
     return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };

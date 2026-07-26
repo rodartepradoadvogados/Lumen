@@ -143,19 +143,19 @@ model Office {
 // ============ EQUIPE ============
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  username     String?
-  passwordHash String?
-  role         String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
-  oab          String?
-  phone        String?
-  color        String   @default("#0f1f3d") // cor de identificação em cards/agenda
-  isAdmin      Boolean  @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
-  financeAccess Boolean @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  username      String?
+  passwordHash  String?
+  role          String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
+  oab           String?
+  phone         String?
+  color         String   @default("#0f1f3d") // cor de identificação em cards/agenda
+  isAdmin       Boolean  @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
+  financeAccess Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
 
   // Dono(a) da PLATAFORMA Lúmen (Jairo e Rodrigo) — nada a ver com isAdmin (que é por
   // escritório). Só quem tem isPlatformOwner=true enxerga e acessa /painel-mestre, e só esse
@@ -200,25 +200,25 @@ model User {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  pushSubscriptions  PushSubscription[]
-  tasksResponsible   Task[]        @relation("TaskResponsible")
-  tasksDelegated     Task[]        @relation("TaskDelegatedBy")
-  casesResponsible   Case[]        @relation("CaseResponsible")
-  comments           Comment[]
-  mentions           Mention[]
-  publicationReads   PublicationRead[]
-  attendances        Attendance[]  @relation("AttendanceResponsible")
-  attachments        Attachment[]
-  documentTemplates  DocumentTemplate[]
-  deletionRequested  DeletionRequest[] @relation("DeletionRequestedBy")
-  deletionResolved   DeletionRequest[] @relation("DeletionResolvedBy")
-  loginSessions      LoginSession[]
-  notices            Notice[]
-  publicationsAssigned Publication[] @relation("PublicationAssignee")
-  googleCredentials    GoogleCredential[]
-  microsoftCredentials MicrosoftCredential[]
-  blogPostsReviewed    BlogPost[]    @relation("BlogPostReviewer")
-  emailsSent           EmailMessage[] @relation("EmailMessageSentBy")
+  pushSubscriptions           PushSubscription[]
+  tasksResponsible            Task[]                @relation("TaskResponsible")
+  tasksDelegated              Task[]                @relation("TaskDelegatedBy")
+  casesResponsible            Case[]                @relation("CaseResponsible")
+  comments                    Comment[]
+  mentions                    Mention[]
+  publicationReads            PublicationRead[]
+  attendances                 Attendance[]          @relation("AttendanceResponsible")
+  attachments                 Attachment[]
+  documentTemplates           DocumentTemplate[]
+  deletionRequested           DeletionRequest[]     @relation("DeletionRequestedBy")
+  deletionResolved            DeletionRequest[]     @relation("DeletionResolvedBy")
+  loginSessions               LoginSession[]
+  notices                     Notice[]
+  publicationsAssigned        Publication[]         @relation("PublicationAssignee")
+  googleCredentials           GoogleCredential[]
+  microsoftCredentials        MicrosoftCredential[]
+  blogPostsReviewed           BlogPost[]            @relation("BlogPostReviewer")
+  emailsSent                  EmailMessage[]        @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
 
@@ -255,8 +255,8 @@ model Notice {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 }
 
 // ============ TIMESHEET (sessões de login) ============
@@ -295,11 +295,11 @@ model Client {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  cases       Case[]
-  receivables Receivable[]
+  cases        Case[]
+  receivables  Receivable[]
   publications Publication[]
-  attendances Attendance[] @relation("AttendanceClient")
-  assessoria  Assessoria?
+  attendances  Attendance[]  @relation("AttendanceClient")
+  assessoria   Assessoria?
 
   @@index([officeId])
 }
@@ -333,7 +333,7 @@ model Supplier {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  payables  Payable[]
+  payables Payable[]
 
   @@index([officeId])
 }
@@ -341,81 +341,81 @@ model Supplier {
 // ============ CASOS / CARDS ============
 
 model Case {
-  id                String    @id @default(cuid())
-  title             String
-  type              String    @default("JUDICIAL") // JUDICIAL | EXTRAJUDICIAL | ATENDIMENTO | CONSULTIVO
-  area              String?
-  secondaryArea     String?
-  status            String    @default("ATIVO") // ATIVO | SUSPENSO | ENCERRADO | ARQUIVADO
-  folder            String?
-  processNumber     String?
-  court             String?
-  forum             String?
-  tribunal          String?   // Sigla do tribunal (ex: TJGO, TRF1, TST) — órfão, sem uso em nenhuma
-                              // tela (confirmado por grep); mantido como está, não usar nem remover.
+  id            String  @id @default(cuid())
+  title         String
+  type          String  @default("JUDICIAL") // JUDICIAL | EXTRAJUDICIAL | ATENDIMENTO | CONSULTIVO
+  area          String?
+  secondaryArea String?
+  status        String  @default("ATIVO") // ATIVO | SUSPENSO | ENCERRADO | ARQUIVADO
+  folder        String?
+  processNumber String?
+  court         String?
+  forum         String?
+  tribunal      String? // Sigla do tribunal (ex: TJGO, TRF1, TST) — órfão, sem uso em nenhuma
+  // tela (confirmado por grep); mantido como está, não usar nem remover.
 
   // Selecionados via lib/tribunaisCatalog.ts (components/TribunalPickerModal.tsx) no cadastro,
   // mas 100% independentes do catálogo depois disso — livremente editáveis no Processo, sem
   // nenhuma referência de volta a um Tribunal.id. É por isso que não há relation aqui: mudar o
   // catálogo no futuro nunca deve alterar um Processo já cadastrado.
-  tribunalSigla     String?
-  tribunalNome      String?
-  tribunalSistema   String?
-  tribunalLink      String?
+  tribunalSigla   String?
+  tribunalNome    String?
+  tribunalSistema String?
+  tribunalLink    String?
 
-  caseValue         Float?
-  convictionValue   Float?
-  instance          String?   // Instância Original
-  currentInstance   String?   // Instância Atual
-  distributedAt     DateTime?
-  closedAt          DateTime?
-  description       String?
-  clientRole        String?   // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
-  actionType        String?   // Ação (ex: Execução Fiscal)
-  decision          String?
-  outcome           String?
-  tags              String?
-  sourceUrl         String?
-  lastHistoryAt     DateTime?
-  lastHistoryDesc   String?
+  caseValue       Float?
+  convictionValue Float?
+  instance        String? // Instância Original
+  currentInstance String? // Instância Atual
+  distributedAt   DateTime?
+  closedAt        DateTime?
+  description     String?
+  clientRole      String? // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
+  actionType      String? // Ação (ex: Execução Fiscal)
+  decision        String?
+  outcome         String?
+  tags            String?
+  sourceUrl       String?
+  lastHistoryAt   DateTime?
+  lastHistoryDesc String?
 
-  opposingPartyName     String?   // nome da parte adversa (cadastro simplificado, só texto)
-  opposingPartyRole     String?   // AUTOR | REU | OUTRO — polo da parte adversa
-  opposingPartyDocument String?   // CPF/CNPJ da parte adversa (opcional)
-  opposingPartyAddress  String?   // endereço da parte adversa (opcional)
+  opposingPartyName     String? // nome da parte adversa (cadastro simplificado, só texto)
+  opposingPartyRole     String? // AUTOR | REU | OUTRO — polo da parte adversa
+  opposingPartyDocument String? // CPF/CNPJ da parte adversa (opcional)
+  opposingPartyAddress  String? // endereço da parte adversa (opcional)
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  clientId          String?
-  client            Client?   @relation(fields: [clientId], references: [id])
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
 
-  responsibleId     String?
-  responsible       User?     @relation("CaseResponsible", fields: [responsibleId], references: [id])
+  responsibleId String?
+  responsible   User?   @relation("CaseResponsible", fields: [responsibleId], references: [id])
 
   // Vínculo explícito com uma Assessoria (opcional) — escolhido no cadastro do processo,
   // para importar este caso diretamente para dentro do acompanhamento daquela assessoria.
   // Independente do clientId: o mesmo cliente pode ter processos que não fazem parte do
   // contrato de assessoria continuada.
-  assessoriaId      String?
-  assessoria        Assessoria? @relation(fields: [assessoriaId], references: [id])
+  assessoriaId String?
+  assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
 
   // Pasta própria deste processo no Drive (Processos/{title}), criada sob demanda no primeiro
   // anexo — ver lib/googleDrive.ts, getOrCreateCaseFolder. Ao converter um Atendimento neste
   // Case, herda a MESMA pasta do atendimento (só renomeada), não cria outra.
-  driveFolderId     String?
+  driveFolderId String?
 
-  tasks             Task[]
-  comments          Comment[]
-  receivables       Receivable[]
-  payables          Payable[]
-  publications      Publication[]
-  attachments       Attachment[]
-  convertedFromAttendances Attendance[] @relation("AttendanceConvertedCase")
-  assessoriaDocumentos AssessoriaDocumento[]
+  tasks                    Task[]
+  comments                 Comment[]
+  receivables              Receivable[]
+  payables                 Payable[]
+  publications             Publication[]
+  attachments              Attachment[]
+  convertedFromAttendances Attendance[]          @relation("AttendanceConvertedCase")
+  assessoriaDocumentos     AssessoriaDocumento[]
 
   @@index([officeId])
   @@index([officeId, processNumber])
@@ -431,9 +431,9 @@ model Tribunal {
   id        String   @id @default(cuid())
   sigla     String   @unique
   nome      String
-  categoria String   // agrupamento de exibição no seletor — ver CATEGORIA_ORDER em lib/tribunaisCatalog.ts
-  sistemas  String   // texto descritivo do(s) sistema(s) processual(is)
-  portalUrl String   // link de acesso ao sistema (login/consulta de processos)
+  categoria String // agrupamento de exibição no seletor — ver CATEGORIA_ORDER em lib/tribunaisCatalog.ts
+  sistemas  String // texto descritivo do(s) sistema(s) processual(is)
+  portalUrl String // link de acesso ao sistema (login/consulta de processos)
   ordem     Int      @default(0)
   createdAt DateTime @default(now())
 }
@@ -441,74 +441,74 @@ model Tribunal {
 // ============ AGENDA + KANBAN (fonte única: Task) ============
 
 model KanbanColumn {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   name      String
-  order     Int      @default(0)
-  color     String   @default("#94a3b8")
-  isDoneCol Boolean  @default(false)
+  order     Int     @default(0)
+  color     String  @default("#94a3b8")
+  isDoneCol Boolean @default(false)
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  tasks     Task[]
+  tasks Task[]
 
   @@index([officeId])
 }
 
 model Task {
-  id             String    @id @default(cuid())
-  title          String
-  type           String    @default("TAREFA") // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
-  description    String?
-  dueDate        DateTime
-  dueTime        String?
+  id            String    @id @default(cuid())
+  title         String
+  type          String    @default("TAREFA") // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
+  description   String?
+  dueDate       DateTime
+  dueTime       String?
   // Prazo de segurança: calculado automaticamente como 24h antes do dueDate ("prazo fatal") —
   // hoje só preenchido por delegateTask (lib/actions/tasks.ts). Aparece na Agenda como um
   // segundo evento, em cor distinta, no dia anterior ao prazo fatal.
-  safetyDueDate  DateTime?
-  priority       String    @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
-  status         String    @default("PENDENTE") // PENDENTE | EM_ANDAMENTO | CONCLUIDO | CANCELADO
-  completedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  safetyDueDate DateTime?
+  priority      String    @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
+  status        String    @default("PENDENTE") // PENDENTE | EM_ANDAMENTO | CONCLUIDO | CANCELADO
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Reunião (quando type = EVENTO)
-  meetingType    String?   // PRESENCIAL | ONLINE
-  location       String?
-  meetingUrl     String?
+  meetingType String? // PRESENCIAL | ONLINE
+  location    String?
+  meetingUrl  String?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  caseId         String?
-  case           Case?     @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
-  attendanceId   String?
-  attendance     Attendance? @relation(fields: [attendanceId], references: [id])
+  attendanceId String?
+  attendance   Attendance? @relation(fields: [attendanceId], references: [id])
 
-  publicationId  String?
-  publication    Publication? @relation(fields: [publicationId], references: [id])
+  publicationId String?
+  publication   Publication? @relation(fields: [publicationId], references: [id])
 
-  licitacaoId    String?
-  licitacao      Licitacao? @relation(fields: [licitacaoId], references: [id])
+  licitacaoId String?
+  licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
 
-  responsibleId  String?
-  responsible    User?     @relation("TaskResponsible", fields: [responsibleId], references: [id])
+  responsibleId String?
+  responsible   User?   @relation("TaskResponsible", fields: [responsibleId], references: [id])
 
   // Delegação: quando preenchido, indica que a tarefa foi atribuída por outra pessoa
   // (não criada pelo próprio responsável) — usado para gerar alerta/notificação só
   // para quem recebeu, até que ela seja aberta (delegationAcknowledgedAt).
-  delegatedById  String?
-  delegatedBy    User?     @relation("TaskDelegatedBy", fields: [delegatedById], references: [id])
+  delegatedById            String?
+  delegatedBy              User?     @relation("TaskDelegatedBy", fields: [delegatedById], references: [id])
   delegationAcknowledgedAt DateTime?
 
-  columnId       String?
-  column         KanbanColumn? @relation(fields: [columnId], references: [id])
-  columnOrder    Int       @default(0)
+  columnId    String?
+  column      KanbanColumn? @relation(fields: [columnId], references: [id])
+  columnOrder Int           @default(0)
 
-  points         Int       @default(0) // TaskScore: pontuação de produtividade da tarefa
+  points Int @default(0) // TaskScore: pontuação de produtividade da tarefa
 
-  comments       Comment[]
+  comments Comment[]
 
   @@index([officeId])
   @@index([officeId, dueDate])
@@ -540,20 +540,20 @@ model WorkflowTemplate {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  steps       WorkflowStep[]
+  steps WorkflowStep[]
 
   @@index([officeId])
 }
 
 model WorkflowStep {
-  id         String   @id @default(cuid())
-  order      Int      @default(0)
+  id         String  @id @default(cuid())
+  order      Int     @default(0)
   title      String
-  taskType   String   @default("TAREFA") // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
-  offsetDays Int      @default(0) // dias após a aplicação do workflow
-  priority   String   @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
-  role       String?  // cargo sugerido do responsável (Advogado, Estagiário, etc.)
-  points     Int?     // pontuação opcional; se nula usa o padrão do tipo
+  taskType   String  @default("TAREFA") // TAREFA | EVENTO | AUDIENCIA | PERICIA | PRAZO
+  offsetDays Int     @default(0) // dias após a aplicação do workflow
+  priority   String  @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
+  role       String? // cargo sugerido do responsável (Advogado, Estagiário, etc.)
+  points     Int? // pontuação opcional; se nula usa o padrão do tipo
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -563,23 +563,23 @@ model WorkflowStep {
 }
 
 model Comment {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   content   String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  authorId  String
-  author    User      @relation(fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 
-  taskId    String?
-  task      Task?     @relation(fields: [taskId], references: [id])
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id])
 
-  caseId    String?
-  case      Case?     @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
-  mentions  Mention[]
+  mentions Mention[]
 
   @@index([officeId])
 }
@@ -602,33 +602,33 @@ model Mention {
 // ============ ATENDIMENTO (setor de atendimento / triagem) ============
 
 model Attendance {
-  id            String   @id @default(cuid())
-  clientName    String
-  contact       String?  // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
-  contactPhone  String?  // telefone do contato, separado do e-mail (clientEmail abaixo)
-  subject       String
-  area          String?  // matéria
-  description   String?  // descrição detalhada do que precisa
-  channel       String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
-  status        String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
-  notes         String?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  clientName   String
+  contact      String? // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
+  contactPhone String? // telefone do contato, separado do e-mail (clientEmail abaixo)
+  subject      String
+  area         String? // matéria
+  description  String? // descrição detalhada do que precisa
+  channel      String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
+  status       String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
+  notes        String?
+  createdAt    DateTime @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
-  estimatedValue Float?    // valor estimado do contrato
-  leadSource     String?   // INDICACAO | INSTAGRAM | GOOGLE | SITE | WHATSAPP | OUTRO
-  lostReason     String?   // preenchido ao mover para PERDIDO
+  estimatedValue Float? // valor estimado do contrato
+  leadSource     String? // INDICACAO | INSTAGRAM | GOOGLE | SITE | WHATSAPP | OUTRO
+  lostReason     String? // preenchido ao mover para PERDIDO
   nextContactAt  DateTime? // data do próximo contato/follow-up
   stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
 
   // Integração WhatsApp (Cloud API oficial da Meta) — número/credenciais por escritório (Fase 2)
-  waPhone         String?   // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
+  waPhone         String? // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
   waLastMessageAt DateTime? // instante da última mensagem trocada nesta conversa
 
   // Integração E-mail (resposta via Gmail da conta Google do próprio advogado)
   // Reaproveitado também como e-mail do contato no formulário de criação do atendimento.
-  clientEmail     String?   // e-mail do cliente para resposta; preenchido manualmente na tela
+  clientEmail String? // e-mail do cliente para resposta; preenchido manualmente na tela
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -639,10 +639,10 @@ model Attendance {
   client   Client? @relation("AttendanceClient", fields: [clientId], references: [id])
 
   responsibleId String?
-  responsible   User?    @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
+  responsible   User?   @relation("AttendanceResponsible", fields: [responsibleId], references: [id])
 
   convertedCaseId String?
-  convertedCase   Case?  @relation("AttendanceConvertedCase", fields: [convertedCaseId], references: [id])
+  convertedCase   Case?   @relation("AttendanceConvertedCase", fields: [convertedCaseId], references: [id])
 
   // Mesmo vínculo opcional com Assessoria disponível no cadastro de Processo (ver Case.assessoriaId).
   assessoriaId String?
@@ -669,11 +669,11 @@ model WhatsappMessage {
   id           String     @id @default(cuid())
   attendanceId String
   attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  direction    String     // "IN" (do cliente) | "OUT" (do escritório)
+  direction    String // "IN" (do cliente) | "OUT" (do escritório)
   body         String
   waMessageId  String?    @unique // id da mensagem na Meta (dedupe)
   status       String     @default("RECEIVED") // RECEIVED | SENT | FAILED
-  fromNumber   String?    // telefone do cliente (E.164)
+  fromNumber   String? // telefone do cliente (E.164)
   createdAt    DateTime   @default(now())
 
   officeId String
@@ -685,19 +685,19 @@ model WhatsappMessage {
 // ============ E-MAIL (resposta ao cliente via Gmail da conta Google do próprio advogado) ============
 
 model EmailMessage {
-  id            String     @id @default(cuid())
-  attendanceId  String
-  attendance    Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  direction     String     // "OUT" (por enquanto só enviamos, não há ingestão de e-mail recebido nesse fluxo)
-  toAddress     String
-  fromAddress   String
-  subject       String
-  body          String
-  sentByUserId  String?
-  sentByUser    User?      @relation("EmailMessageSentBy", fields: [sentByUserId], references: [id])
-  status        String     @default("SENT") // SENT | FAILED
-  errorMessage  String?
-  createdAt     DateTime   @default(now())
+  id           String     @id @default(cuid())
+  attendanceId String
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  direction    String // "OUT" (por enquanto só enviamos, não há ingestão de e-mail recebido nesse fluxo)
+  toAddress    String
+  fromAddress  String
+  subject      String
+  body         String
+  sentByUserId String?
+  sentByUser   User?      @relation("EmailMessageSentBy", fields: [sentByUserId], references: [id])
+  status       String     @default("SENT") // SENT | FAILED
+  errorMessage String?
+  createdAt    DateTime   @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -708,11 +708,11 @@ model EmailMessage {
 // ============ ANEXOS (referência ao repositório de arquivos conectado — Drive/OneDrive/etc.) ============
 
 model Attachment {
-  id           String   @id @default(cuid())
-  name         String
-  driveUrl     String
-  docType      String   @default("OUTRO") // ver lib/documentTypes.ts
-  createdAt    DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  driveUrl  String
+  docType   String   @default("OUTRO") // ver lib/documentTypes.ts
+  createdAt DateTime @default(now())
 
   // Provedor e id do arquivo usados no upload — "GOOGLE_DRIVE" | "ONEDRIVE" (default preserva o
   // comportamento de todo anexo já existente, sempre Google). Gravado explicitamente desde esta
@@ -728,10 +728,10 @@ model Attachment {
   office   Office @relation(fields: [officeId], references: [id])
 
   uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
 
-  caseId       String?
-  case         Case?    @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
   attendanceId String?
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
@@ -742,17 +742,17 @@ model Attachment {
 // ============ MODELOS DE DOCUMENTO (contratos, procurações, declarações...) ============
 
 model DocumentTemplate {
-  id           String   @id @default(cuid())
-  name         String   // ex: "Contrato de honorários com pagamento de entrada + êxito"
-  category     String   // CONTRATO | PETICAO | PROCURACAO | DECLARACAO_HIPOSSUFICIENCIA | DECLARACAO_MORADIA | OUTRO
-  driveUrl     String
-  createdAt    DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String // ex: "Contrato de honorários com pagamento de entrada + êxito"
+  category  String // CONTRATO | PETICAO | PROCURACAO | DECLARACAO_HIPOSSUFICIENCIA | DECLARACAO_MORADIA | OUTRO
+  driveUrl  String
+  createdAt DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
   uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
 
   @@index([officeId])
 }
@@ -760,22 +760,22 @@ model DocumentTemplate {
 // ============ SOLICITAÇÕES DE EXCLUSÃO (aprovação de admin) ============
 
 model DeletionRequest {
-  id             String    @id @default(cuid())
-  entityType     String    // TASK | CASE | ATTENDANCE
-  entityId       String
-  entityLabel    String    // snapshot legível (título/nome) para exibir mesmo após excluir
-  status         String    @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
-  createdAt      DateTime  @default(now())
+  id          String   @id @default(cuid())
+  entityType  String // TASK | CASE | ATTENDANCE
+  entityId    String
+  entityLabel String // snapshot legível (título/nome) para exibir mesmo após excluir
+  status      String   @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
+  createdAt   DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  requestedById  String
-  requestedBy    User      @relation("DeletionRequestedBy", fields: [requestedById], references: [id])
+  requestedById String
+  requestedBy   User   @relation("DeletionRequestedBy", fields: [requestedById], references: [id])
 
-  resolvedById   String?
-  resolvedBy     User?     @relation("DeletionResolvedBy", fields: [resolvedById], references: [id])
-  resolvedAt     DateTime?
+  resolvedById String?
+  resolvedBy   User?     @relation("DeletionResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt   DateTime?
 
   @@index([officeId])
 }
@@ -787,7 +787,7 @@ model GoogleCredential {
   accountEmail      String   @unique
   refreshToken      String
   isPrimaryDrive    Boolean  @default(false) // conta usada para anexos/documentos DESTE escritório (uma só, escolhida na primeira conexão)
-  syncJusbrasil     Boolean  @default(true)  // se a caixa desta conta é varrida em busca de e-mails do Jusbrasil
+  syncJusbrasil     Boolean  @default(true) // se a caixa desta conta é varrida em busca de e-mails do Jusbrasil
   folderId          String?
   templatesFolderId String?
   generatedFolderId String?
@@ -797,8 +797,8 @@ model GoogleCredential {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  userId            String?
-  user              User?    @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
   @@index([officeId])
 }
@@ -819,7 +819,7 @@ model MicrosoftCredential {
   refreshToken   String
   syncEmail      Boolean  @default(true)
   isPrimaryDrive Boolean  @default(false) // conta usada para anexos (OneDrive) DESTE escritório (uma só)
-  rootFolderId   String?  // id da pasta raiz "Lúmen" no OneDrive desta conta, cacheado (ver getOrCreateRootFolder)
+  rootFolderId   String? // id da pasta raiz "Lúmen" no OneDrive desta conta, cacheado (ver getOrCreateRootFolder)
   createdAt      DateTime @default(now())
 
   officeId String
@@ -871,18 +871,18 @@ model WhatsappConfig {
 
 model FinancialCategory {
   id        String   @id @default(cuid())
-  code      String   // ex: "1.1", "2.1.1.1" - ordena e mostra a hierarquia (plano de contas)
+  code      String // ex: "1.1", "2.1.1.1" - ordena e mostra a hierarquia (plano de contas)
   name      String
-  kind      String   // RECEITA | DESPESA
+  kind      String // RECEITA | DESPESA
   order     Int      @default(0)
   createdAt DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  parentId  String?
-  parent    FinancialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children  FinancialCategory[] @relation("CategoryTree")
+  parentId String?
+  parent   FinancialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children FinancialCategory[] @relation("CategoryTree")
 
   payables    Payable[]
   receivables Receivable[]
@@ -906,77 +906,77 @@ model CostCenter {
 }
 
 model Payable {
-  id               String    @id @default(cuid())
-  description      String
-  supplier         String?
-  amount           Float
-  dueDate          DateTime
-  paidDate         DateTime?
-  paidAmount       Float?
-  status           String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
-  notes            String?
-  noDueDate        Boolean   @default(false) // parcela sem vencimento definido — aparece na Central de Alertas
-  groupId          String?   // agrupa parcelas geradas juntas
-  installmentNumber Int?
-  installmentTotal  Int?
+  id                   String    @id @default(cuid())
+  description          String
+  supplier             String?
+  amount               Float
+  dueDate              DateTime
+  paidDate             DateTime?
+  paidAmount           Float?
+  status               String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  notes                String?
+  noDueDate            Boolean   @default(false) // parcela sem vencimento definido — aparece na Central de Alertas
+  groupId              String? // agrupa parcelas geradas juntas
+  installmentNumber    Int?
+  installmentTotal     Int?
   paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
-  paymentMethod    String?   // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
-  createdAt        DateTime  @default(now())
+  paymentMethod        String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
+  createdAt            DateTime  @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  categoryId   String?
-  category     FinancialCategory? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  category   FinancialCategory? @relation(fields: [categoryId], references: [id])
 
   costCenterId String?
   costCenter   CostCenter? @relation(fields: [costCenterId], references: [id])
 
-  caseId       String?
-  case         Case?     @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
-  supplierId   String?
-  supplierRef  Supplier? @relation(fields: [supplierId], references: [id])
+  supplierId  String?
+  supplierRef Supplier? @relation(fields: [supplierId], references: [id])
 
   @@index([officeId])
   @@index([officeId, dueDate])
 }
 
 model Receivable {
-  id               String    @id @default(cuid())
-  description      String
-  amount           Float
-  dueDate          DateTime
-  paidDate         DateTime?
-  paidAmount       Float?
-  status           String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
-  kind             String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
-  notes            String?
-  noDueDate        Boolean   @default(false)
-  groupId          String?
-  installmentNumber Int?
-  installmentTotal  Int?
-  isSuccessPortion Boolean   @default(false) // parcela "a receber no êxito"
+  id                   String    @id @default(cuid())
+  description          String
+  amount               Float
+  dueDate              DateTime
+  paidDate             DateTime?
+  paidAmount           Float?
+  status               String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  kind                 String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
+  notes                String?
+  noDueDate            Boolean   @default(false)
+  groupId              String?
+  installmentNumber    Int?
+  installmentTotal     Int?
+  isSuccessPortion     Boolean   @default(false) // parcela "a receber no êxito"
   paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
-  paymentMethod    String?   // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
-  createdAt        DateTime  @default(now())
+  paymentMethod        String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
+  createdAt            DateTime  @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  categoryId   String?
-  category     FinancialCategory? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  category   FinancialCategory? @relation(fields: [categoryId], references: [id])
 
   costCenterId String?
   costCenter   CostCenter? @relation(fields: [costCenterId], references: [id])
 
-  clientId     String?
-  client       Client?   @relation(fields: [clientId], references: [id])
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
 
-  caseId       String?
-  case         Case?     @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
-  honorario    Honorario?
+  honorario Honorario?
 
   @@index([officeId])
   @@index([officeId, dueDate])
@@ -989,41 +989,41 @@ model Receivable {
 // referencia pelo cliente já cadastrado (nunca duplica dado).
 
 model Assessoria {
-  id            String    @id @default(cuid())
-  status        String    @default("ATIVA") // ATIVA | SUSPENSA | ENCERRADA
-  startDate     DateTime  @default(now())
+  id            String   @id @default(cuid())
+  status        String   @default("ATIVA") // ATIVA | SUSPENSA | ENCERRADA
+  startDate     DateTime @default(now())
   monthlyFee    Float
-  dueDay        Int       @default(5) // dia do mês de vencimento do honorário
+  dueDay        Int      @default(5) // dia do mês de vencimento do honorário
   planningNotes String?
-  driveFolderId String?   // pasta raiz da empresa em "Assessoria/{empresa}"
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  driveFolderId String? // pasta raiz da empresa em "Assessoria/{empresa}"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  clientId      String    @unique
-  client        Client    @relation(fields: [clientId], references: [id])
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id])
 
   responsibleId String?
-  responsible   User?     @relation("AssessoriaResponsible", fields: [responsibleId], references: [id])
+  responsible   User?   @relation("AssessoriaResponsible", fields: [responsibleId], references: [id])
 
-  documents     AssessoriaDocumento[]
-  honorarios    Honorario[]
-  licitacoes    Licitacao[]
-  cases         Case[]
-  attendances   Attendance[]
+  documents   AssessoriaDocumento[]
+  honorarios  Honorario[]
+  licitacoes  Licitacao[]
+  cases       Case[]
+  attendances Attendance[]
 
   @@index([officeId])
 }
 
 model AssessoriaDocumento {
-  id           String     @id @default(cuid())
-  name         String
-  docType      String     // CONTRATO | PARECER | ACAO_VINCULADA | LICITACAO | REGIMENTO_INTERNO | OUTRO
-  driveUrl     String
-  date         DateTime   @default(now())
-  createdAt    DateTime   @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  docType   String // CONTRATO | PARECER | ACAO_VINCULADA | LICITACAO | REGIMENTO_INTERNO | OUTRO
+  driveUrl  String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   // Mesmo par de campos de Attachment.storageProvider/storageFileId, e pelo mesmo motivo: este
   // registro também referencia um arquivo de upload real (ver
@@ -1039,11 +1039,11 @@ model AssessoriaDocumento {
   assessoriaId String
   assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
 
-  caseId       String?
-  case         Case?      @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
   uploadedById String?
-  uploadedBy   User?      @relation("AssessoriaDocumentoUploadedBy", fields: [uploadedById], references: [id])
+  uploadedBy   User?   @relation("AssessoriaDocumentoUploadedBy", fields: [uploadedById], references: [id])
 
   @@index([officeId])
 }
@@ -1052,9 +1052,9 @@ model AssessoriaDocumento {
 // Receivable vinculado (Contas a Receber já tem toda a lógica de status/pagamento). Duplicar
 // esses campos aqui criaria duas fontes de verdade que poderiam divergir.
 model Honorario {
-  id           String     @id @default(cuid())
-  competencia  String     // "2026-08"
-  createdAt    DateTime   @default(now())
+  id          String   @id @default(cuid())
+  competencia String // "2026-08"
+  createdAt   DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1069,7 +1069,7 @@ model Honorario {
 }
 
 model Licitacao {
-  id            String     @id @default(cuid())
+  id            String    @id @default(cuid())
   objeto        String
   orgao         String
   modalidade    String?
@@ -1077,16 +1077,16 @@ model Licitacao {
   prazoFinal    DateTime?
   valorEstimado Float?
   editalUrl     String?
-  status        String     @default("EM_ANALISE") // EM_ANALISE | PARTICIPANDO | VENCEDORA | PERDIDA | CANCELADA
-  createdAt     DateTime   @default(now())
+  status        String    @default("EM_ANALISE") // EM_ANALISE | PARTICIPANDO | VENCEDORA | PERDIDA | CANCELADA
+  createdAt     DateTime  @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  assessoriaId  String
-  assessoria    Assessoria @relation(fields: [assessoriaId], references: [id])
+  assessoriaId String
+  assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
 
-  tasks         Task[]
+  tasks Task[]
 
   @@index([officeId])
 }
@@ -1094,41 +1094,41 @@ model Licitacao {
 // ============ PUBLICAÇÕES / ANDAMENTOS ============
 
 model Publication {
-  id                String    @id @default(cuid())
-  kind              String    @default("PUBLICACAO") // PUBLICACAO | ANDAMENTO
-  source            String    @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL | JUSBRASIL_EMAIL
+  id                String   @id @default(cuid())
+  kind              String   @default("PUBLICACAO") // PUBLICACAO | ANDAMENTO
+  source            String   @default("DJE") // DJE | PJE | ESAJ | PROJUDI | MANUAL | JUSBRASIL_EMAIL
   content           String
   publishedAt       DateTime
   // Coluna morta: a aplicação não lê nem escreve mais este campo (leitura agora é por usuário,
   // ver PublicationRead). Mantida no schema de propósito — o deploy roda "prisma db push" sem
   // --accept-data-loss, e apagar essa coluna com dados de produção existentes falharia o
   // build. Não usar; não reintroduzir lógica que dependa dela.
-  read              Boolean   @default(false)
-  deadlineGenerated Boolean   @default(false)
-  lawyerTag         String?   // nome do advogado identificado pela OAB citada no conteúdo (ver Fase 4 — hoje regex hardcoded por escritório)
-  createdAt         DateTime  @default(now())
+  read              Boolean  @default(false)
+  deadlineGenerated Boolean  @default(false)
+  lawyerTag         String? // nome do advogado identificado pela OAB citada no conteúdo (ver Fase 4 — hoje regex hardcoded por escritório)
+  createdAt         DateTime @default(now())
 
-  emailMessageId    String?   @unique
-  emailAccount      String?
-  emailSubject      String?
-  processNumberRaw  String?
+  emailMessageId   String? @unique
+  emailAccount     String?
+  emailSubject     String?
+  processNumberRaw String?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  caseId            String?
-  case              Case?     @relation(fields: [caseId], references: [id])
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
 
-  clientId          String?   // preenchido quando não há processo compatível mas o nome de um cliente cadastrado aparece no conteúdo
-  client            Client?   @relation(fields: [clientId], references: [id])
+  clientId String? // preenchido quando não há processo compatível mas o nome de um cliente cadastrado aparece no conteúdo
+  client   Client? @relation(fields: [clientId], references: [id])
 
   // RIDT — fila de triagem com atribuição de responsável
-  assignedToId      String?
-  assignedTo        User?     @relation("PublicationAssignee", fields: [assignedToId], references: [id])
-  triageStatus      String    @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
+  assignedToId String?
+  assignedTo   User?   @relation("PublicationAssignee", fields: [assignedToId], references: [id])
+  triageStatus String  @default("PENDENTE") // PENDENTE | EM_ANALISE | TRATADA
 
-  tasks             Task[]
-  reads             PublicationRead[]
+  tasks Task[]
+  reads PublicationRead[]
 
   @@index([officeId])
   @@index([officeId, publishedAt])
@@ -1161,12 +1161,12 @@ model BlogPost {
   id             String    @id @default(cuid())
   slug           String
   title          String
-  area           String    // ex: Civil, Consumerista, Empresarial, Tributário, Trabalhista, Previdenciário, Administrativo, Licitação, Compliance, Due Diligence, Contratual, Responsabilidade Civil, Execuções
+  area           String // ex: Civil, Consumerista, Empresarial, Tributário, Trabalhista, Previdenciário, Administrativo, Licitação, Compliance, Due Diligence, Contratual, Responsabilidade Civil, Execuções
   type           String    @default("NOTICIA") // NOTICIA | ANALISE
   summary        String
-  content        String    // corpo da matéria, pode ser markdown simples
-  sources        String?   // URLs das fontes usadas, uma por linha (texto simples)
-  imageUrl       String?   // preenchido manualmente pelo admin antes de publicar
+  content        String // corpo da matéria, pode ser markdown simples
+  sources        String? // URLs das fontes usadas, uma por linha (texto simples)
+  imageUrl       String? // preenchido manualmente pelo admin antes de publicar
   status         String    @default("AGUARDANDO_REVISAO") // AGUARDANDO_REVISAO | PUBLICADO | REJEITADO
   rejectedReason String?
   reviewedById   String?
@@ -1193,10 +1193,10 @@ model BlogPost {
 
 model Photo {
   id        String   @id @default(cuid())
-  url       String   // URL pública do Vercel Blob
-  category  String   // mesma taxonomia livre de BlogPost.area, + "Todos" para fotos só decorativas/ambiente (curinga)
+  url       String // URL pública do Vercel Blob
+  category  String // mesma taxonomia livre de BlogPost.area, + "Todos" para fotos só decorativas/ambiente (curinga)
   court     String   @default("TODOS") // tribunal retratado na foto: STF, STJ, TRT/TST, TJ, TRF, TODOS (curinga)
-  caption   String?  // legenda opcional, ex: para crédito/descrição da imagem
+  caption   String? // legenda opcional, ex: para crédito/descrição da imagem
   createdAt DateTime @default(now())
 
   officeId String
@@ -1222,17 +1222,17 @@ model Photo {
 // não é mais uma limitação de arquitetura pendente.
 
 model RoboPublicacao {
-  idComunicacao        String    @id @map("id_comunicacao")
+  idComunicacao        String   @id @map("id_comunicacao")
   oab                  String
   uf                   String
-  nomeAdvogado         String?   @map("nome_advogado")
-  numeroProcesso       String    @map("numero_processo")
+  nomeAdvogado         String?  @map("nome_advogado")
+  numeroProcesso       String   @map("numero_processo")
   tribunal             String?
-  dataDisponibilizacao String?   @map("data_disponibilizacao")
-  tipoComunicacao      String?   @map("tipo_comunicacao")
+  dataDisponibilizacao String?  @map("data_disponibilizacao")
+  tipoComunicacao      String?  @map("tipo_comunicacao")
   teor                 String?
-  dataCaptura          DateTime  @default(now()) @map("data_captura")
-  statusLido           Boolean   @default(false) @map("status_lido")
+  dataCaptura          DateTime @default(now()) @map("data_captura")
+  statusLido           Boolean  @default(false) @map("status_lido")
 
   @@map("publicacoes")
 }
@@ -1312,6 +1312,10 @@ model TenantInvoice {
   // que o resto do sistema já lê.
   externalStatus String?
 
+  // Lembretes já enviados por esta fatura (Fase 2 — cron de cobrança) — evita reenviar o
+  // mesmo e-mail toda vez que o cron roda. Valores: "ANTES_VENCIMENTO" | "VENCIDA" | "SUSPENSAO".
+  remindersSent String[] @default([])
+
   @@unique([officeId, competencia])
 }
 
@@ -1324,8 +1328,8 @@ model TenantInvoice {
 model PaymentWebhookEvent {
   id             String    @id @default(cuid())
   provider       String    @default("ASAAS")
-  eventType      String    // ex.: PAYMENT_RECEIVED, PAYMENT_CONFIRMED, PAYMENT_OVERDUE
-  externalId     String    // id do evento OU do payment/authorization — o que a Asaas mandar como identificador único
+  eventType      String // ex.: PAYMENT_RECEIVED, PAYMENT_CONFIRMED, PAYMENT_OVERDUE
+  externalId     String // id do evento OU do payment/authorization — o que a Asaas mandar como identificador único
   signatureValid Boolean
   rawPayload     Json
   processedAt    DateTime?
@@ -1378,8 +1382,8 @@ model PlatformMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accessRequests  AccessRequest[] @relation("AccessRequestRequester")
-  accessApprovals AccessRequest[] @relation("AccessRequestApprover")
+  accessRequests  AccessRequest[]  @relation("AccessRequestRequester")
+  accessApprovals AccessRequest[]  @relation("AccessRequestApprover")
   accessSessions  AccessSession[]
   auditEntries    AccessAuditLog[]
 }
@@ -1394,11 +1398,11 @@ model PlatformRole {
   // enums do schema (db push sem migration).
   maxVisibility String @default("ABERTO")
 
-  canManageBilling  Boolean @default(false)
-  canManageMembers  Boolean @default(false)
-  canApproveAccess  Boolean @default(false)
+  canManageBilling Boolean @default(false)
+  canManageMembers Boolean @default(false)
+  canApproveAccess Boolean @default(false)
 
-  createdAt DateTime @default(now())
+  createdAt DateTime         @default(now())
   members   PlatformMember[]
 }
 
@@ -1409,14 +1413,14 @@ model Subscription {
   officeId String @unique
   office   Office @relation(fields: [officeId], references: [id])
 
-  planKey     String  @default("PADRAO")
-  monthlyFee  Float
-  dueDay      Int     @default(10)
+  planKey      String  @default("PADRAO")
+  monthlyFee   Float
+  dueDay       Int     @default(10)
   billingEmail String?
-  status      String  @default("ATIVA") // ATIVA | TESTE | SUSPENSA | CANCELADA
+  status       String  @default("ATIVA") // ATIVA | TESTE | SUSPENSA | CANCELADA
   // Assinatura interna (Rodarte Prado) — cobrada a preço interno, não entra no MRR comercial.
   // Substitui Office.isInternal quando a leitura for migrada, no Passo 4.
-  internal    Boolean @default(false)
+  internal     Boolean @default(false)
 
   // Ciclo de cobrança escolhido pelo escritório — "MENSAL" (padrão) ou "SEMESTRAL" (paga de
   // uma vez a cada 6 meses, com desconto). Nomeado em português por consistência com o resto
@@ -1444,35 +1448,35 @@ model Subscription {
   pixAuthorizationId     String? // id da autorização de Pix Automático (docs.asaas.com/reference/criar-uma-autorizacao-pix-automatico)
   pixAuthorizationStatus String? // PENDENTE | ATIVA | CANCELADA | REJEITADA
 
-  startedAt DateTime  @default(now())
+  startedAt   DateTime  @default(now())
   trialEndsAt DateTime?
   canceledAt  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model PlatformAccount {
-  id       String  @id @default(cuid())
-  code     String  @unique
-  name     String
-  kind     String  // RECEITA | DESPESA
-  group    String? // Infraestrutura, Pessoal, Marketing, Impostos...
-  active   Boolean @default(true)
-  createdAt DateTime @default(now())
-  expenses PlatformExpense[]
+  id        String            @id @default(cuid())
+  code      String            @unique
+  name      String
+  kind      String // RECEITA | DESPESA
+  group     String? // Infraestrutura, Pessoal, Marketing, Impostos...
+  active    Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  expenses  PlatformExpense[]
 }
 
 model PlatformExpense {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   accountId   String
   account     PlatformAccount @relation(fields: [accountId], references: [id])
   description String
   amount      Float
-  competencia String   // "2026-08"
+  competencia String // "2026-08"
   paidAt      DateTime?
   supplier    String?
   notes       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime        @default(now())
 
   @@index([competencia])
 }
@@ -1482,12 +1486,12 @@ model TenantUsage {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  competencia String // "2026-08" — agregado mensal, não evento a evento
-  kind        String // IA_TOKENS | DATAJUD_CONSULTA | DJEN_CONSULTA | BLOB_BYTES | EMAIL_ENVIADO
-  quantity    Float  @default(0)
+  competencia   String // "2026-08" — agregado mensal, não evento a evento
+  kind          String // IA_TOKENS | DATAJUD_CONSULTA | DJEN_CONSULTA | BLOB_BYTES | EMAIL_ENVIADO
+  quantity      Float  @default(0)
   // Custo estimado em reais, calculado no momento do registro. Guardado junto porque preço de
   // fornecedor muda e recalcular no futuro daria número errado para o passado.
-  estimatedCost Float @default(0)
+  estimatedCost Float  @default(0)
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -1499,14 +1503,14 @@ model TenantUsage {
 // ---- Camada de confiança (dormente até o Passo 2) ----
 
 model SupportTicket {
-  id       String  @id @default(cuid())
+  id       String @id @default(cuid())
   officeId String
-  office   Office  @relation(fields: [officeId], references: [id])
+  office   Office @relation(fields: [officeId], references: [id])
 
   subject   String
   body      String?
   status    String   @default("ABERTO") // ABERTO | EM_ANDAMENTO | RESOLVIDO | FECHADO
-  openedBy  String?  // userId de quem abriu, do lado do escritório
+  openedBy  String? // userId de quem abriu, do lado do escritório
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1538,8 +1542,8 @@ model AccessRequest {
 
   status String @default("PENDENTE") // PENDENTE | APROVADO | NEGADO | EXPIRADO | REVOGADO
 
-  approverId String?
-  approver   PlatformMember? @relation("AccessRequestApprover", fields: [approverId], references: [id])
+  approverId       String?
+  approver         PlatformMember? @relation("AccessRequestApprover", fields: [approverId], references: [id])
   // Sócio do escritório que aprovou. Guardado como id solto, sem relation, porque o aprovador
   // é do lado do cliente e não deve criar dependência do modelo de plataforma sobre User.
   approvedByUserId String?
@@ -1571,15 +1575,15 @@ model AccessSession {
 }
 
 model AccessAuditLog {
-  id       String  @id @default(cuid())
+  id       String @id @default(cuid())
   officeId String
-  office   Office  @relation(fields: [officeId], references: [id])
+  office   Office @relation(fields: [officeId], references: [id])
 
   memberId String?
   member   PlatformMember? @relation(fields: [memberId], references: [id])
 
   // ENTRADA | LEITURA | SAIDA | PEDIDO | APROVACAO | NEGACAO | REVOGACAO | SELAGEM
-  action String
+  action    String
   // Categoria própria para acesso que NÃO passou pelo fluxo normal — emergência, exposição
   // incidental, ordem judicial. É fácil registrar o que seguiu o processo; o valor está em
   // registrar o que não seguiu.

@@ -250,7 +250,10 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
     }
   }
 
-  const emailResult = await sendInvoiceEmail(billingEmail, office.name, invoice.amount, invoice.dueDate, boletoUrl);
+  const emailResult = await sendInvoiceEmail(billingEmail, office.name, invoice.amount, invoice.dueDate, boletoUrl, {
+    pixPayload: invoice.pixQrCodePayload,
+    pixImage: invoice.pixQrCodeImage,
+  });
   revalidatePath("/painel-mestre");
   if (!emailResult.sent) return { error: `Fatura registrada, mas o e-mail não saiu: ${emailResult.reason}`, btgWarning, asaasWarning };
   return { btgWarning, asaasWarning };
