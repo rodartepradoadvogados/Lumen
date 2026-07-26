@@ -1,8 +1,28 @@
 # Cobrança via Asaas (Pix Automático, Pix QR Code, boleto) — o que falta pra funcionar
 
-O código (`lib/asaas.ts`, `app/api/asaas/webhook/route.ts`, `lib/actions/billing.ts`) já está
-pronto e no ar, mas fica **dormente** até você completar o cadastro do lado da Asaas. Nada
-disso eu consigo fazer por você — precisa da sua conta Asaas.
+O código está todo pronto e no ar — cliente da API (`lib/asaas.ts`), webhook seguro
+(`app/api/asaas/webhook/route.ts`), reconciliação e cron diário de cobrança
+(`lib/actions/billing.ts` + `app/api/cron/billing`), e as telas de configuração (Painel Mestre →
+Assinaturas, e Configurações → Cobrança de cada escritório) — mas tudo fica **dormente** até
+você completar o cadastro do lado da Asaas. Nada disso eu consigo fazer por você — precisa da
+sua conta Asaas.
+
+## O que já está funcionando, mesmo sem a Asaas configurada
+
+- **Painel Mestre → Assinaturas**: dá pra definir, para cada escritório, o ciclo (Mensal/
+  Semestral), a forma de pagamento (Pix Automático, Pix QR Code ou Boleto) e o desconto do
+  ciclo Semestral — isso já funciona hoje, independente da Asaas.
+- **Configurações → Cobrança** (de cada escritório): mostra o ciclo/forma de pagamento
+  escolhidos, o histórico de faturas e, quando a Asaas já tiver gerado uma cobrança Pix pendente,
+  o QR Code e o copia-e-cola.
+- **Cron diário de cobrança** (`/api/cron/billing`, 9h UTC): manda lembrete 3 dias antes do
+  vencimento, avisa no vencimento quantos dias faltam até o bloqueio, e suspende automaticamente
+  o escritório que passar do prazo de carência (`Office.paymentGraceDays`, 5 dias por padrão)
+  ainda inadimplente — vale pra boleto BTG e manual também, não só Asaas.
+- O que ainda depende da Asaas: gerar de fato a cobrança Pix (QR Code ou autorização de Pix
+  Automático) e confirmar pagamento automaticamente. Enquanto a chave não estiver cadastrada, os
+  botões de "Gerar autorização"/"Testar QR Code" na tela de Assinaturas ficam desativados com um
+  aviso apontando pra este arquivo.
 
 ## 1. Criar a conta (sandbox primeiro, depois produção)
 
@@ -44,6 +64,13 @@ Sem `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` cadastradas, o webhook responde **40
 chamada** (fail-closed, de propósito — ver comentário no topo de `lib/asaas.ts`), então não tem
 risco de ficar "meio configurado" aceitando coisa indevida.
 
+## 4. `CRON_SECRET` (se ainda não estiver cadastrado)
+
+O cron diário de cobrança usa a mesma variável `CRON_SECRET` que os outros crons do sistema
+(agenda do dia, sincronização Jusbrasil etc.) já usam — se ela já está cadastrada na Vercel, não
+precisa fazer nada além disso; o cron novo (`/api/cron/billing`) já está registrado em
+`vercel.json` e vai começar a rodar sozinho, 9h UTC (6h em Brasília), todo dia.
+
 ## Um ponto técnico que vamos precisar ajustar juntos
 
 A rota de criação de autorização de Pix Automático (`POST /pixAutomaticoAuthorizations`, usada
@@ -67,5 +94,6 @@ também só serão validadas de verdade no primeiro teste real no Sandbox.
 Nada muda no que já funciona: o Painel Mestre continua gerando fatura, mandando e-mail de
 cobrança, dando baixa manual e emitindo boleto via BTG exatamente como antes. A opção Asaas
 (Pix QR Code / Pix Automático) só entra em ação quando uma `Subscription` do escritório tiver
-`paymentMethod` explicitamente configurado — hoje nenhuma tem (essa escolha ainda não tem tela;
-é trabalho de uma fase futura), então este pedaço fica 100% dormente até lá.
+`paymentMethod` explicitamente configurado em Assinaturas — hoje nenhum escritório-cliente real
+tem isso configurado ainda (é uma escolha que você faz quando quiser migrar um escritório pro
+Pix), então esse pedaço fica 100% dormente até lá.
