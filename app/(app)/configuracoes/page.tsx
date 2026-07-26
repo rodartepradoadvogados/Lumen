@@ -889,7 +889,7 @@ export default async function ConfiguracoesPage({
       <style>{`
         .cfg-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; color: #14213d; }
         .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-        .dark .cfg-input { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #f1ece0; }
+        .dark .cfg-input { background: #111a35; border-color: rgba(255,255,255,0.15); color: #f1ece0; }
       `}</style>
     </div>
   );

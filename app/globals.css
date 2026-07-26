@@ -263,6 +263,50 @@ body {
   color: #9d2467;
 }
 
+/* Escape-hatch do remap acima: os overrides de Tarde valem para CARDS embutidos no fluxo da
+   página (faz sentido clarear um card ali) — mas um painel FLUTUANTE (dropdown/popover, como o
+   menu do usuário em components/TeamMonitorPanel.tsx) precisa continuar OPACO e legível por
+   cima de qualquer conteúdo atrás dele. Sem isso, o dark:bg-navy-900 do painel virava um bordô
+   quase transparente (10% de opacidade) no Tarde, e o conteúdo da página ficava visível
+   "through" o menu. Aplique a classe `solid-popover` no elemento com as classes dark: abaixo
+   para elas voltarem a valer como no Noite puro, também no Tarde. */
+.dark.theme-tarde .solid-popover.dark\:bg-navy-900 {
+  background-color: #0a1128;
+}
+.dark.theme-tarde .solid-popover .dark\:bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.dark.theme-tarde .solid-popover .dark\:border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark.theme-tarde .solid-popover .dark\:hover\:bg-white\/5:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.dark.theme-tarde .solid-popover .dark\:hover\:text-cream-50:hover {
+  color: #f4efe4;
+}
+.dark.theme-tarde .solid-popover .dark\:hover\:text-gold-300:hover {
+  color: #e7c15a;
+}
+.dark.theme-tarde .solid-popover .dark\:text-bordo-400 {
+  color: #c96a80;
+}
+.dark.theme-tarde .solid-popover .dark\:text-cream-50 {
+  color: #f4efe4;
+}
+.dark.theme-tarde .solid-popover .dark\:text-cream-50\/40 {
+  color: rgba(244, 239, 228, 0.4);
+}
+.dark.theme-tarde .solid-popover .dark\:text-cream-50\/50 {
+  color: rgba(244, 239, 228, 0.5);
+}
+.dark.theme-tarde .solid-popover .dark\:text-cream-50\/60 {
+  color: rgba(244, 239, 228, 0.6);
+}
+.dark.theme-tarde .solid-popover .dark\:text-gold-400 {
+  color: #d9a93a;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;

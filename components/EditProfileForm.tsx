@@ -110,15 +110,15 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="sm:col-span-2">
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nome</label>
-          <input name="name" defaultValue={profile.name} required className="cfg-input w-full" />
+          <input name="name" defaultValue={profile.name} required className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data de nascimento</label>
-          <input name="birthDate" type="date" defaultValue={profile.birthDate ?? ""} className="cfg-input w-full" />
+          <input name="birthDate" type="date" defaultValue={profile.birthDate ?? ""} className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Gênero</label>
-          <select name="gender" defaultValue={profile.gender ?? ""} className="cfg-input w-full">
+          <select name="gender" defaultValue={profile.gender ?? ""} className="profile-input w-full">
             <option value="">Não informado</option>
             {GENDER_OPTIONS.map((g) => (
               <option key={g} value={g}>{g}</option>
@@ -127,7 +127,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estado civil</label>
-          <select name="maritalStatus" defaultValue={profile.maritalStatus ?? ""} className="cfg-input w-full">
+          <select name="maritalStatus" defaultValue={profile.maritalStatus ?? ""} className="profile-input w-full">
             <option value="">Não informado</option>
             {MARITAL_OPTIONS.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -136,27 +136,27 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF</label>
-          <input name="cpf" defaultValue={profile.cpf ?? ""} placeholder="000.000.000-00" className="cfg-input w-full" />
+          <input name="cpf" defaultValue={profile.cpf ?? ""} placeholder="000.000.000-00" className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">RG</label>
-          <input name="rg" defaultValue={profile.rg ?? ""} className="cfg-input w-full" />
+          <input name="rg" defaultValue={profile.rg ?? ""} className="profile-input w-full" />
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço completo</label>
-          <input name="address" defaultValue={profile.address ?? ""} placeholder="Rua, número, complemento, bairro" className="cfg-input w-full" />
+          <input name="address" defaultValue={profile.address ?? ""} placeholder="Rua, número, complemento, bairro" className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CEP</label>
-          <input name="cep" defaultValue={profile.cep ?? ""} placeholder="00000-000" className="cfg-input w-full" />
+          <input name="cep" defaultValue={profile.cep ?? ""} placeholder="00000-000" className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cidade</label>
-          <input name="city" defaultValue={profile.city ?? ""} className="cfg-input w-full" />
+          <input name="city" defaultValue={profile.city ?? ""} className="profile-input w-full" />
         </div>
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estado</label>
-          <select name="state" defaultValue={profile.state ?? ""} className="cfg-input w-full">
+          <select name="state" defaultValue={profile.state ?? ""} className="profile-input w-full">
             <option value="">Selecione</option>
             {UFS.map((uf) => (
               <option key={uf} value={uf}>{uf}</option>
@@ -171,6 +171,12 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
       <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50">
         {pending ? "Salvando..." : "Salvar alterações"}
       </button>
+
+      <style jsx>{`
+        .profile-input { border: 1px solid rgba(15, 31, 61, 0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; color: #14213d; }
+        .profile-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4); }
+        :global(.dark) .profile-input { background: #111a35; border-color: rgba(255, 255, 255, 0.15); color: #f1ece0; }
+      `}</style>
     </form>
   );
 }
