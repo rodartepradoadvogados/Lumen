@@ -29,9 +29,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Erro ao enviar foto de perfil para o Vercel Blob:", err);
-    return NextResponse.json(
-      { error: "Armazenamento de fotos ainda não configurado. Peça para o administrador criar um Blob Store em Storage → Create Database → Blob no painel do Vercel." },
-      { status: 503 }
-    );
+    // Mostra o erro real do Vercel Blob em vez de assumir "não configurado" — o Blob Store já
+    // existe neste projeto (usado pelas fotos do blog), então uma falha aqui é outra causa
+    // (ex.: token sem permissão, limite de tamanho, etc.) e o texto do erro ajuda a identificar.
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Erro ao enviar a foto: ${detail}` }, { status: 502 });
   }
 }
