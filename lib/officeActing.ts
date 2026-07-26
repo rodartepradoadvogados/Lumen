@@ -24,7 +24,7 @@ import { SESSION_MINUTES, type AccessReasonCode } from "@/lib/supportAccessConst
 export async function startActingAsOffice(
   officeId: string,
   input: { reasonCode: AccessReasonCode; reasonNote?: string; ticketSubject: string }
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; pending?: boolean }> {
   const realUser = await getCurrentUser({ ignoreActing: true });
   if (!realUser?.isPlatformOwner) return { error: "Só administradores da plataforma podem fazer isso." };
 
@@ -41,7 +41,10 @@ export async function startActingAsOffice(
     reasonNote: input.reasonNote,
     ticketSubject: input.ticketSubject,
   });
-  if (!result.sessionId) return { error: result.error ?? "Não foi possível abrir o acesso." };
+  // Passo 3a: só repassa o booleano `pending` que já vem de openSupportAccess — a mecânica de
+  // override (cookie + validação em lib/currentUser.ts) não muda em nada, só o contrato de
+  // retorno ganha esse campo pro modal (StartActingModal) não precisar comparar texto de erro.
+  if (!result.sessionId) return { error: result.error ?? "Não foi possível abrir o acesso.", pending: result.pending };
 
   cookies().set(ACTING_OFFICE_COOKIE, `${officeId}:${result.sessionId}`, {
     httpOnly: true,

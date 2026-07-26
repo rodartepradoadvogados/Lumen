@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getActiveSupportSession, listOfficeAccessLog } from "@/lib/supportAccess";
+import { getActiveSupportSession, listOfficeAccessLog, listPendingAccessRequests } from "@/lib/supportAccess";
 import { ACCESS_REASONS, type AccessReasonCode } from "@/lib/supportAccessConstants";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import EndSupportAccessButton from "@/components/EndSupportAccessButton";
+import SupportAccessPolicyPicker from "@/components/SupportAccessPolicyPicker";
+import AccessRequestQueue from "@/components/AccessRequestQueue";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +29,13 @@ export default async function AcessosPage() {
   const viewer = await getCurrentUser();
   if (!viewer) return null;
 
-  const [activeSession, log] = await Promise.all([
+  // office e pendingRequests são buscados sempre (custo baixo), mas só aparecem na tela pra
+  // isAdmin (ver JSX abaixo) — usuário comum do escritório continua vendo só o que já existia.
+  const [activeSession, log, office, pendingRequests] = await Promise.all([
     getActiveSupportSession(viewer.officeId),
     listOfficeAccessLog(viewer.officeId, 90),
+    prisma.office.findUnique({ where: { id: viewer.officeId }, select: { supportAccessPolicy: true } }),
+    listPendingAccessRequests(viewer.officeId),
   ]);
 
   const totalEntradas = log.filter((l) => l.action === "ENTRADA").length;
@@ -66,6 +73,28 @@ export default async function AcessosPage() {
           )}
         </div>
       </Card>
+
+      {viewer.isAdmin && office && (
+        <Card>
+          <CardHeader
+            title="Política de acesso de suporte"
+            subtitle="Escolha como o suporte da Lúmen pode entrar no seu escritório"
+          />
+          <div className="p-5">
+            <SupportAccessPolicyPicker current={office.supportAccessPolicy as "AUTO" | "APROVACAO"} />
+          </div>
+        </Card>
+      )}
+
+      {viewer.isAdmin && office?.supportAccessPolicy === "APROVACAO" && pendingRequests.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Pedidos aguardando aprovação"
+            subtitle="Um sócio precisa liberar cada acesso antes dele acontecer"
+          />
+          <AccessRequestQueue requests={pendingRequests} />
+        </Card>
+      )}
 
       {activeSession && (
         <Card>

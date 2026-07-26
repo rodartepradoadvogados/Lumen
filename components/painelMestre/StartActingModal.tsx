@@ -15,6 +15,13 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Passo 3a: quando o escritório exige aprovação, startActingAsOffice devolve pending=true em
+  // vez de um erro genérico — detectado por esse booleano, não por comparação do texto de
+  // `error` (frágil, quebra se o texto do backend mudar). Enquanto aguardaAprovacao for true, o
+  // modal troca o botão "Confirmar e entrar" por "Tentar novamente", que reenvia os mesmos
+  // dados: se enquanto isso um sócio aprovou o pedido, openSupportAccess acha o AccessRequest
+  // APROVADO sem sessão e abre a sessão de verdade (caso "a" da máquina de estado).
+  const [aguardaAprovacao, setAguardaAprovacao] = useState(false);
   const [reasonCode, setReasonCode] = useState<AccessReasonCode>("CONFIG_INTEGRACAO");
   const [ticketSubject, setTicketSubject] = useState("");
   const [reasonNote, setReasonNote] = useState("");
@@ -33,8 +40,10 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
       });
       if (result?.error) {
         setError(result.error);
+        setAguardaAprovacao(Boolean(result.pending));
         return;
       }
+      setAguardaAprovacao(false);
       setOpen(false);
       router.push("/painel");
       router.refresh();
@@ -78,8 +87,16 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
 
             <div className="p-6 space-y-4">
               {error && (
-                <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">
-                  {error}
+                <p
+                  className={`text-xs rounded-lg px-3 py-2 ${
+                    aguardaAprovacao
+                      ? "text-gold-700 dark:text-gold-400 bg-gold-500/15 dark:bg-gold-400/15"
+                      : "text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15"
+                  }`}
+                >
+                  {aguardaAprovacao
+                    ? "Pedido enviado. Assim que for aprovado, clique em Tentar novamente."
+                    : error}
                 </p>
               )}
 
@@ -129,7 +146,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                 onClick={submit}
                 className="w-full inline-flex items-center justify-center gap-1.5 bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
               >
-                {pending ? "Abrindo…" : "Confirmar e entrar"}
+                {pending ? "Abrindo…" : aguardaAprovacao ? "Tentar novamente" : "Confirmar e entrar"}
               </button>
             </div>
           </div>

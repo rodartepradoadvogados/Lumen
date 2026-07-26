@@ -75,13 +75,18 @@ async function resolveCallingMember(): Promise<CallingMember | null> {
 // Abre a sessão: valida, grava AccessRequest + AccessSession + AccessAuditLog numa única
 // transação e só então devolve sessionId. Se a transação falhar, devolve erro e NADA de
 // cookie é gravado por quem chama (lib/officeActing.ts) — falha fecha, nunca abre.
+//
+// `pending: true` (Passo 3a) sinaliza que a política do escritório é APROVACAO e ainda não há
+// aprovação consumível — quem chama (lib/officeActing.ts → startActingAsOffice → o modal do
+// Painel Mestre) usa esse booleano pra decidir a UI de "aguardando aprovação", em vez de
+// comparar o texto de `error` (frágil, quebra se o texto mudar).
 export async function openSupportAccess(input: {
   officeId: string;
   reasonCode: AccessReasonCode;
   reasonNote?: string;
   ticketSubject: string; // cria o SupportTicket daquele escritório se não vier ticketId
   ticketId?: string;
-}): Promise<{ error?: string; sessionId?: string }> {
+}): Promise<{ error?: string; sessionId?: string; pending?: boolean }> {
   const member = await resolveCallingMember();
   if (!member) return { error: "Sem permissão de suporte da Lúmen para abrir este acesso." };
 
@@ -113,12 +118,64 @@ export async function openSupportAccess(input: {
     }
 
     if (office.supportAccessPolicy === "APROVACAO") {
-      // Escritório optou por exigir liberação de um sócio antes do acesso — registra o pedido
-      // como PENDENTE e para por aqui, sem abrir sessão nenhuma. Fora da transação abaixo de
-      // propósito: este registro PENDENTE precisa sobreviver mesmo sem sessão sendo aberta (não
-      // é "tudo ou nada" com AccessSession/AccessAuditLog, é um caminho totalmente separado). A
-      // tela de aprovação do lado do escritório é o Passo 3; até lá, o caminho certo é negar a
-      // elevação automática e deixar o pedido registrado para consulta.
+      // Passo 3a: três casos possíveis, nesta ordem.
+      //
+      // (a) Já existe um AccessRequest APROVADO deste membro, ainda dentro do prazo, que AINDA
+      // NÃO gerou uma AccessSession (relation "sessions" vazia) — é o membro retomando a
+      // entrada depois que o sócio aprovou. Abre a sessão AGORA, não no momento da aprovação:
+      // a janela de SESSION_MINUTES começa a contar do trabalho de verdade, não da decisão do
+      // sócio. Uma aprovação só gera UMA sessão — depois de consumida aqui, `sessions: none`
+      // deixa de bater e uma nova tentativa cai no caso (b) ou (c) abaixo, nunca reabre esta.
+      const approvedRequest = await prisma.accessRequest.findFirst({
+        where: {
+          officeId: input.officeId,
+          requesterId: member.id,
+          status: "APROVADO",
+          expiresAt: { gt: now },
+          sessions: { none: {} },
+        },
+        orderBy: { decidedAt: "desc" },
+      });
+
+      if (approvedRequest) {
+        const session = await prisma.$transaction(async (tx) => {
+          const createdSession = await tx.accessSession.create({
+            data: { requestId: approvedRequest.id, memberId: member.id, startedAt: now, expiresAt },
+          });
+          await tx.accessAuditLog.create({
+            data: {
+              officeId: input.officeId,
+              memberId: member.id,
+              action: "ENTRADA",
+              reasonCode: approvedRequest.reasonCode,
+              scopeType: approvedRequest.scopeType,
+              scopeId: approvedRequest.scopeId,
+              sessionId: createdSession.id,
+            },
+          });
+          return createdSession;
+        });
+        return { sessionId: session.id };
+      }
+
+      // (b) Já existe um pedido PENDENTE deste membro, ainda dentro do prazo — não duplica o
+      // registro a cada clique, só avisa que a decisão ainda não saiu.
+      const pendingRequest = await prisma.accessRequest.findFirst({
+        where: {
+          officeId: input.officeId,
+          requesterId: member.id,
+          status: "PENDENTE",
+          expiresAt: { gt: now },
+        },
+      });
+      if (pendingRequest) {
+        return { pending: true, error: "Pedido já enviado, aguardando aprovação do escritório." };
+      }
+
+      // (c) Nenhum pedido em aberto: cria um novo PENDENTE (comportamento original, preservado).
+      // Fora da transação de AccessSession/AccessAuditLog de propósito: este registro PENDENTE
+      // precisa sobreviver mesmo sem sessão sendo aberta — não é "tudo ou nada" com as outras
+      // duas tabelas, é um caminho totalmente separado até um sócio decidir.
       await prisma.accessRequest.create({
         data: {
           officeId: input.officeId,
@@ -132,10 +189,7 @@ export async function openSupportAccess(input: {
           expiresAt,
         },
       });
-      return {
-        error:
-          "Este escritório exige aprovação de um sócio antes do acesso de suporte. O pedido foi registrado, mas ainda não existe tela de liberação (chega no Passo 3) — combine diretamente com o escritório.",
-      };
+      return { pending: true, error: "Pedido enviado; aguardando aprovação do escritório." };
     }
 
     // Caminho AUTO: AccessRequest (já aprovado, sem aprovador humano — é a política do próprio
@@ -183,6 +237,116 @@ export async function openSupportAccess(input: {
     console.error("openSupportAccess: falha ao registrar o acesso — nenhuma sessão foi liberada", err);
     return { error: "Não foi possível registrar o acesso; por segurança, o acesso não foi liberado." };
   }
+}
+
+export type PendingAccessRequest = {
+  id: string;
+  requesterName: string;
+  reasonLabel: string;
+  ticketSubject: string;
+  reasonNote: string | null;
+  requestedAt: Date;
+  expiresAt: Date;
+};
+
+// Pedidos PENDENTE e ainda não expirados daquele escritório — alimenta a fila de aprovação da
+// tela de transparência (components/AccessRequestQueue.tsx). Só leitura.
+export async function listPendingAccessRequests(officeId: string): Promise<PendingAccessRequest[]> {
+  const requests = await prisma.accessRequest.findMany({
+    where: { officeId, status: "PENDENTE", expiresAt: { gt: new Date() } },
+    orderBy: { requestedAt: "asc" },
+    include: {
+      requester: { select: { name: true, user: { select: { name: true } } } },
+      ticket: { select: { subject: true } },
+    },
+  });
+
+  return requests.map((r) => ({
+    id: r.id,
+    requesterName: r.requester.user?.name ?? r.requester.name ?? "Suporte Lúmen",
+    reasonLabel: (r.reasonCode && ACCESS_REASONS[r.reasonCode as AccessReasonCode]) || r.reasonCode || "—",
+    ticketSubject: r.ticket.subject,
+    reasonNote: r.reasonNote,
+    requestedAt: r.requestedAt,
+    expiresAt: r.expiresAt,
+  }));
+}
+
+// approveAccessRequest e denyAccessRequest são o mesmo fluxo de validação (pedido existe, é
+// deste escritório, ainda está PENDENTE e ainda não venceu) mudando só o status final e a
+// action gravada no log — helper privado evita duplicar essa validação duas vezes.
+async function decideAccessRequest(
+  requestId: string,
+  officeId: string,
+  decidedByUserId: string,
+  approve: boolean
+): Promise<{ error?: string }> {
+  const request = await prisma.accessRequest.findUnique({ where: { id: requestId } });
+  // Não existe, ou é de outro escritório: ninguém aprova pedido alheio, nem adivinhando um id.
+  if (!request || request.officeId !== officeId) {
+    return { error: "Pedido não encontrado." };
+  }
+  if (request.status !== "PENDENTE") {
+    return { error: "Este pedido já foi decidido ou expirou." };
+  }
+
+  const now = new Date();
+  if (request.expiresAt <= now) {
+    // Pedido vencido nunca mais deveria virar aprovável — marca NEGADO já neste passe, pra não
+    // ficar "PENDENTE" fantasma esperando decisão sobre um prazo que já passou.
+    await prisma.accessRequest.update({ where: { id: requestId }, data: { status: "NEGADO", decidedAt: now } });
+    return { error: "Este pedido já venceu." };
+  }
+
+  // AccessRequest.approvedByUserId não tem relation com User de propósito (ver schema): o
+  // aprovador é do lado do cliente e o modelo de plataforma não deve depender dele. Por isso o
+  // nome de quem decidiu vai gravado em texto no AccessAuditLog.detail, não numa relação nova.
+  const decidingUser = await prisma.user.findUnique({ where: { id: decidedByUserId }, select: { name: true } });
+
+  await prisma.$transaction([
+    prisma.accessRequest.update({
+      where: { id: requestId },
+      data: {
+        status: approve ? "APROVADO" : "NEGADO",
+        approvedByUserId: decidedByUserId,
+        decidedAt: now,
+      },
+    }),
+    // AccessAuditLog é só inclusão — este INSERT é o registro da decisão do sócio.
+    prisma.accessAuditLog.create({
+      data: {
+        officeId,
+        memberId: request.requesterId,
+        action: approve ? "APROVACAO" : "NEGACAO",
+        reasonCode: request.reasonCode,
+        scopeType: request.scopeType,
+        scopeId: request.scopeId,
+        detail: decidingUser?.name ?? "Sócio do escritório",
+      },
+    }),
+  ]);
+
+  return {};
+}
+
+// Chamado pelo escritório (isAdmin). Não cria AccessSession aqui — só muda o status pra
+// APROVADO. A sessão nasce quando o membro da Lúmen efetivamente retomar a entrada (ver
+// openSupportAccess acima), pra não gastar os 30 minutos com ninguém ainda conectado.
+export async function approveAccessRequest(
+  requestId: string,
+  approvingOfficeId: string,
+  approvedByUserId: string
+): Promise<{ error?: string }> {
+  return decideAccessRequest(requestId, approvingOfficeId, approvedByUserId, true);
+}
+
+// Idem, nega. Loga NEGACAO.
+export async function denyAccessRequest(
+  requestId: string,
+  denyingOfficeId: string,
+  deniedByUserId: string
+): Promise<{ error?: string }> {
+  return decideAccessRequest(requestId, denyingOfficeId, deniedByUserId, false);
 }
 
 // Sessão ativa e não expirada daquele escritório, ou null. Usada tanto para autorizar o
