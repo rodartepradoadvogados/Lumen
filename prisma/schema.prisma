@@ -67,6 +67,14 @@ model Office {
   moduloAtendimento Boolean @default(true)
   moduloAssessoria  Boolean @default(true)
 
+  // Provedor de armazenamento de anexos (Processos/Atendimentos/Assessoria) escolhido por este
+  // escritório — "GOOGLE_DRIVE" | "ONEDRIVE" (texto livre, mesmo padrão do resto do schema, sem
+  // enum do Prisma). Default GOOGLE_DRIVE preserva o comportamento de todo escritório já
+  // existente sem nenhuma ação da parte deles — só passa a valer ONEDRIVE se o escritório
+  // escolher isso explicitamente em Configurações (ver lib/actions/settings.ts:setStorageProvider)
+  // e conectar uma conta Microsoft como Drive principal (ver lib/oneDriveStorage.ts).
+  storageProvider String @default("GOOGLE_DRIVE")
+
   // Diferente dos módulos acima (contratáveis, autosserviço do próprio escritório em
   // Configurações), o Blog Jurídico público é um recurso da PLATAFORMA: só o escritório dono
   // (Rodarte Prado) produz/edita/aprova matérias, ou quem ele conceder acesso no futuro — não
@@ -699,6 +707,16 @@ model Attachment {
   docType      String   @default("OUTRO") // ver lib/documentTypes.ts
   createdAt    DateTime @default(now())
 
+  // Provedor e id do arquivo usados no upload — "GOOGLE_DRIVE" | "ONEDRIVE" (default preserva o
+  // comportamento de todo anexo já existente, sempre Google). Gravado explicitamente desde esta
+  // entrega para a exclusão (lib/actions/attachments.ts:deleteAttachment) não precisar mais
+  // adivinhar o id do arquivo por regex na URL (extractDriveFileId) — isso não escala para um
+  // segundo provedor com formato de URL diferente. Registros anteriores a esta entrega ficam com
+  // storageFileId nulo e continuam sendo apagados pelo caminho antigo (regex + sempre Google, já
+  // que não existiam outros provedores quando foram criados).
+  storageProvider String  @default("GOOGLE_DRIVE")
+  storageFileId   String?
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
@@ -782,14 +800,20 @@ model GoogleCredential {
 // com OneDrive/Outlook/Dropbox": cobre recebimento (mesmo pipeline do Jusbrasil por e-mail, ver
 // lib/outlookEmailSync.ts) e envio (Atendimento, ver lib/gmailSend.ts) via Outlook. Segue o mesmo
 // desenho do GoogleCredential "modo jusbrasil" (por pessoa, não por escritório) — cada um conecta a
-// própria caixa. OneDrive como armazenamento e o calendário do Outlook ainda não usam esta credencial
-// (ver README_MICROSOFT.md para o que falta).
+// própria caixa. O calendário do Outlook ainda não usa esta credencial (ver README_MICROSOFT.md
+// para o que falta). isPrimaryDrive/rootFolderId (Fase 2 — armazenamento) espelham
+// GoogleCredential.isPrimaryDrive/folderId, mas só uma pasta raiz aqui (não três: não há
+// equivalente de Modelos/Gerados no Microsoft Graph nesta entrega, ver lib/oneDriveStorage.ts) —
+// uma mesma conta pode ter uma linha só de e-mail (isPrimaryDrive: false) e depois virar também a
+// conta de armazenamento do escritório (isPrimaryDrive: true), sem duplicar linha.
 model MicrosoftCredential {
-  id           String   @id @default(cuid())
-  accountEmail String   @unique
-  refreshToken String
-  syncEmail    Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id             String   @id @default(cuid())
+  accountEmail   String   @unique
+  refreshToken   String
+  syncEmail      Boolean  @default(true)
+  isPrimaryDrive Boolean  @default(false) // conta usada para anexos (OneDrive) DESTE escritório (uma só)
+  rootFolderId   String?  // id da pasta raiz "Lúmen" no OneDrive desta conta, cacheado (ver getOrCreateRootFolder)
+  createdAt      DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -975,6 +999,14 @@ model AssessoriaDocumento {
   driveUrl     String
   date         DateTime   @default(now())
   createdAt    DateTime   @default(now())
+
+  // Mesmo par de campos de Attachment.storageProvider/storageFileId, e pelo mesmo motivo: este
+  // registro também referencia um arquivo de upload real (ver
+  // app/api/assessoria/documentos/upload/route.ts), não só link colado manualmente (ver
+  // addDocumento em lib/actions/assessoria.ts, que não preenche estes dois campos). Default
+  // GOOGLE_DRIVE preserva o comportamento de todo documento já existente.
+  storageProvider String  @default("GOOGLE_DRIVE")
+  storageFileId   String?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])

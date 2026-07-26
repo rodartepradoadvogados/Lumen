@@ -1,9 +1,11 @@
 # Integração com Outlook/OneDrive (Microsoft) e Dropbox — o que falta pra funcionar
 
-Fase 1 do pedido de sincronização com OneDrive/Outlook/Dropbox (**e-mail**: recebimento de
-publicações + envio no Atendimento) já está pronta e no ar, mas fica **dormente** até você
-registrar os apps — isso eu não consigo fazer por vocês, precisa login de administrador em
-cada portal. São **dois registros separados** (Microsoft e Dropbox são plataformas diferentes).
+Fase 1 (**e-mail**: recebimento de publicações + envio no Atendimento) e Fase 2 (**OneDrive**
+como armazenamento de anexos) do pedido de sincronização com OneDrive/Outlook/Dropbox já estão
+prontas e no ar, mas ficam **dormentes** até você registrar o app da Microsoft — isso eu não
+consigo fazer por vocês, precisa login de administrador no portal. Dropbox é um registro
+separado (plataforma diferente) e ainda não tem nenhum código construído — ver "O que ainda
+falta" ao final.
 
 ## 1. Microsoft (Outlook + OneDrive) — Azure AD
 
@@ -20,9 +22,7 @@ cada portal. São **dois registros separados** (Microsoft e Dropbox são platafo
    aparece uma vez — se perder, gera outro).
 6. Vá em **Permissões de API** → **Adicionar uma permissão** → **Microsoft Graph** →
    **Permissões delegadas** → adicione estas 5: `Mail.Read`, `Mail.Send`, `Files.ReadWrite`,
-   `offline_access`, `User.Read`. (`Files.ReadWrite` já é pedida agora, mesmo o OneDrive ainda
-   não estando ligado — assim quem conectar não precisa autorizar de novo quando eu terminar
-   essa parte.)
+   `offline_access`, `User.Read`. (`Files.ReadWrite` é usada pelo armazenamento em OneDrive.)
 7. Me envie o **Client ID** e o **Client Secret** por um canal seguro (não aqui no chat) que eu
    cadastro na Vercel como `MICROSOFT_CLIENT_ID` e `MICROSOFT_CLIENT_SECRET`.
 
@@ -51,14 +51,28 @@ cada portal. São **dois registros separados** (Microsoft e Dropbox são platafo
   junto com o Gmail (mesmo botão de sincronizar). Envio de e-mail no Atendimento continua
   exigindo escolha explícita do provedor (card "Envio de e-mail no Atendimento", já no ar) —
   conectar não liga o envio sozinho.
-- **OneDrive/Dropbox como armazenamento**: cada escritório vai escolher o provedor
-  (Google Drive, OneDrive ou Dropbox) em Configurações — ainda estou construindo essa parte.
+- **OneDrive como armazenamento**: o escritório escolhe o provedor (Google Drive ou OneDrive) no
+  card "Armazenamento de anexos" em Configurações → Modelos & Integrações, e um admin conecta a
+  conta Microsoft que vai guardar os arquivos (conexão separada da conexão de e-mail acima — é do
+  escritório, não da pessoa). **Dropbox** ainda não tem nenhuma infraestrutura construída (ver
+  abaixo).
 
-## O que ainda falta (em construção agora)
+## O que já existe
 
-- **OneDrive** e **Dropbox** como opção de armazenamento (anexos de Processos/Atendimentos/
-  Assessoria) — hoje só Google Drive. Cada escritório escolhe o provedor; recriar a lógica de
-  pasta-por-processo/categoria para os dois provedores novos.
+- **OneDrive como opção de armazenamento** (anexos de Processos/Atendimentos/Assessoria) — cada
+  escritório escolhe entre Google Drive (padrão, sem nenhuma ação necessária) e OneDrive em
+  Configurações. Mesma estrutura de pasta-por-processo/atendimento/empresa que o Google Drive já
+  usa, agora replicada para o Microsoft Graph (ver `lib/oneDriveStorage.ts` e
+  `lib/storageProvider.ts`). Limitação conhecida: upload simples do Graph só aceita arquivos até
+  4MB — arquivos maiores exigiriam "upload session" (resumable upload), ainda não implementado.
+
+## O que ainda falta
+
+- **Dropbox** como opção de armazenamento — hoje não existe NENHUMA infraestrutura OAuth pra
+  Dropbox no projeto (nem app registrado, nem model, nem env var, nem rota). Fica pra uma rodada
+  futura e separada.
+- **Upload de arquivo grande no OneDrive** (>4MB) — precisaria de upload session do Microsoft
+  Graph; hoje o upload simples recusa e mostra um erro claro em vez de falhar silencioso.
 - **Calendário** — sincronizar a Agenda do sistema com Google Calendar e com o calendário do
   Outlook (a conexão de e-mail de hoje não dá acesso a calendário — precisaria do escopo
   `Calendars.ReadWrite` a mais no Azure AD). Outros calendários (ex.: Apple/iCloud) ficam pra

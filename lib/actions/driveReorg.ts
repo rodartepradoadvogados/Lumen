@@ -2,13 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { extractDriveFileId } from "@/lib/googleDrive";
 import {
-  extractDriveFileId,
   getOrCreateCaseFolder,
   getOrCreateAttendanceFolder,
   getOrCreateCategoryFolder,
   moveDriveFile,
-} from "@/lib/googleDrive";
+} from "@/lib/storageProvider";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 
 export type ReorgResult = { moved: number; skipped: number; errors: string[] };

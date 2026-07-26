@@ -11,8 +11,8 @@ import {
   getOrCreateAttendanceFolder,
   getOrCreateCategoryFolder,
   deleteDriveFile,
-  extractDriveFileId,
-} from "@/lib/googleDrive";
+} from "@/lib/storageProvider";
+import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 
 export async function createAttachment(data: {
@@ -95,7 +95,7 @@ export async function finalizeAttachmentUpload(data: {
 
   try {
     const contentType = data.contentType || "application/octet-stream";
-    const { webViewLink } = targetFolderId
+    const result = targetFolderId
       ? await uploadFileToDriveFolder(data.name, contentType, buffer, targetFolderId, user.officeId)
       : await uploadFileToDrive(data.name, contentType, buffer, user.officeId);
 
@@ -103,11 +103,13 @@ export async function finalizeAttachmentUpload(data: {
       data: {
         officeId: user.officeId,
         name: data.name,
-        driveUrl: webViewLink,
+        driveUrl: result.webViewLink,
         docType: data.docType,
         caseId: resolvedCaseId,
         attendanceId: resolvedAttendanceId,
         uploadedById: user.id,
+        storageProvider: result.storageProvider,
+        storageFileId: result.id,
       },
     });
 
@@ -128,12 +130,18 @@ export async function deleteAttachment(id: string): Promise<{ error?: string }> 
   const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
   if (!att) return { error: "Anexo não encontrado." };
 
-  // Apaga o arquivo de verdade no Drive (não só o vínculo) — se o link não for do Drive
-  // (Dropbox/OneDrive colado manualmente) ou a exclusão falhar lá, segue removendo o vínculo
-  // mesmo assim, pra não travar o usuário por um arquivo já apagado manualmente.
-  const fileId = extractDriveFileId(att.driveUrl);
-  if (fileId) {
-    await deleteDriveFile(fileId, user.officeId).catch(() => {});
+  // Apaga o arquivo de verdade no provedor certo (não só o vínculo) — se a exclusão falhar lá,
+  // segue removendo o vínculo mesmo assim, pra não travar o usuário por um arquivo já apagado
+  // manualmente. Anexos com storageFileId gravado (pós esta entrega) usam o id + provedor
+  // explícitos; anexos antigos (pré-migração, storageFileId nulo) só podem ser do Google — mesmo
+  // caminho de sempre, adivinhando o id pela URL.
+  if (att.storageFileId) {
+    await deleteDriveFile(att.storageFileId, user.officeId, att.storageProvider === "ONEDRIVE" ? "ONEDRIVE" : "GOOGLE_DRIVE").catch(() => {});
+  } else {
+    const fileId = extractDriveFileId(att.driveUrl);
+    if (fileId) {
+      await deleteGoogleDriveFile(fileId, user.officeId).catch(() => {});
+    }
   }
 
   await prisma.attachment.delete({ where: { id } });

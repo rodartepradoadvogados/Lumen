@@ -26,10 +26,12 @@ import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButto
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
+import StorageProviderPicker from "@/components/StorageProviderPicker";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
+import { getOneDriveStatus } from "@/lib/oneDriveStorage";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import ModulesManager from "@/components/ModulesManager";
 
@@ -139,6 +141,8 @@ export default async function ConfiguracoesPage({
     blogAccess,
     roboExecucaoLogs,
     processosMonitoradosCount,
+    office,
+    oneDriveStatus,
   ] = await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -164,7 +168,10 @@ export default async function ConfiguracoesPage({
       // lib/roboBridge.ts). Usadas só pra mostrar o status real das últimas execuções.
       prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
       prisma.roboProcessoMonitorado.count(),
+      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true } }),
+      getOneDriveStatus(officeId),
     ]);
+  const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
 
   const photos = photosRaw.map((p) => ({
     id: p.id,
@@ -445,7 +452,7 @@ export default async function ConfiguracoesPage({
         <Card>
           <CardHeader
             title="Integração com Drive e e-mail"
-            subtitle="Necessária para anexar documentos e sincronizar as publicações/andamentos que chegam por e-mail. Anexos/Drive continuam só no Google por enquanto; o e-mail (leitura de publicações e envio no Atendimento) já aceita Outlook também — ver o card abaixo."
+            subtitle="Necessária para anexar documentos (quando o armazenamento escolhido for Google Drive, ver o card “Armazenamento de anexos” abaixo) e sincronizar as publicações/andamentos que chegam por e-mail. O e-mail (leitura de publicações e envio no Atendimento) já aceita Outlook também — ver o card abaixo."
           />
           <div className="p-5 space-y-3">
             {searchParams.google === "conectado" && (
@@ -548,7 +555,7 @@ export default async function ConfiguracoesPage({
           <Card>
             <CardHeader
               title="Outlook (Microsoft)"
-              subtitle="Alternativa ao Google acima: recebe publicações/andamentos por e-mail e permite enviar e-mail no Atendimento usando a conta Outlook da própria pessoa. OneDrive (armazenamento) e o calendário do Outlook ainda não estão nesta conexão."
+              subtitle="Alternativa ao Google acima: recebe publicações/andamentos por e-mail e permite enviar e-mail no Atendimento usando a conta Outlook da própria pessoa. Para armazenamento (OneDrive), veja o card “Armazenamento de anexos” abaixo — é uma conexão separada, do escritório. O calendário do Outlook ainda não está integrado."
             />
             <div className="p-5 space-y-4">
               {!isMicrosoftConfigured() && (
@@ -600,6 +607,44 @@ export default async function ConfiguracoesPage({
           </Card>
         );
       })()}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
+            title="Armazenamento de anexos"
+            subtitle="Por padrão, anexos de Processos/Atendimentos/Assessoria ficam no Google Drive. Cada escritório pode trocar para OneDrive."
+          />
+          <div className="p-5 space-y-4">
+            {!isMicrosoftConfigured() && (
+              <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
+                Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).
+              </p>
+            )}
+            {searchParams.microsoft === "onedrive-conectado" && (
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">OneDrive conectado com sucesso!</p>
+            )}
+            <StorageProviderPicker current={storageProvider} isAdmin={isAdmin} oneDriveConnected={oneDriveStatus.connected} />
+            {storageProvider === "ONEDRIVE" && (
+              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
+                {oneDriveStatus.connected ? (
+                  <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50 mb-2">
+                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                    Conectado como <strong>{oneDriveStatus.accountEmail}</strong>
+                  </div>
+                ) : (
+                  <p className="text-sm text-navy-800/60 dark:text-cream-50/60 mb-2">Nenhuma conta OneDrive conectada ainda.</p>
+                )}
+                <a
+                  href="/api/microsoft/connect?mode=onedrive"
+                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+                >
+                  <HardDrive size={16} /> {oneDriveStatus.connected ? "Reconectar" : "Conectar"} OneDrive
+                </a>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {isAdmin && secao === "modelos" && viewer && (
         <Card>

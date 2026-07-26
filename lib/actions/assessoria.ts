@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getOrCreateAssessoriaCompanyFolder } from "@/lib/googleDrive";
+import { getOrCreateAssessoriaCompanyFolder } from "@/lib/storageProvider";
 import { markReceivablePaid } from "@/lib/actions/financeiro";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";

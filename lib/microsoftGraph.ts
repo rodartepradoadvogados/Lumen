@@ -3,16 +3,18 @@
 // não estiverem cadastrados. Cobre e-mail (leitura para o pipeline de publicações, envio no
 // Atendimento) — mesma lógica de "cada pessoa conecta a própria caixa" do GoogleCredential modo
 // Jusbrasil (lib/googleDrive.ts:saveJusbrasilTokensFromCode). O escopo Files.ReadWrite já é
-// pedido no consentimento (mesmo app/registro do Azure AD) para o OneDrive não exigir uma
-// segunda rodada de autorização quando a Fase 2 (armazenamento) ligar — mas ainda não é
-// USADO por nenhuma função aqui, ver README_MICROSOFT.md. O calendário do Outlook segue de fora.
+// pedido no consentimento (mesmo app/registro do Azure AD) desde a Fase 1, de propósito, para o
+// OneDrive não exigir uma segunda rodada de autorização — agora USADO por lib/oneDriveStorage.ts
+// (Fase 2, armazenamento), que reaproveita exchangeMicrosoftCodeForTokens/getMicrosoftAccessToken
+// abaixo (exportados daqui pra não duplicar o fluxo OAuth). O calendário do Outlook segue de fora.
 import { prisma } from "@/lib/prisma";
 
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 
 // offline_access: necessário pra ganhar refresh_token. Mail.Read/Mail.Send: espelham
-// gmail.readonly/gmail.send do lado Google. Files.ReadWrite: OneDrive (Fase 2, ainda não usado).
+// gmail.readonly/gmail.send do lado Google. Files.ReadWrite: OneDrive (Fase 2 — armazenamento,
+// ver lib/oneDriveStorage.ts).
 const SCOPES = ["offline_access", "Mail.Read", "Mail.Send", "Files.ReadWrite", "User.Read"].join(" ");
 
 export function isMicrosoftConfigured(): boolean {
@@ -38,7 +40,10 @@ export function getMicrosoftAuthUrl(state?: string): string {
 
 type TokenResponse = { access_token: string; refresh_token?: string; expires_in: number };
 
-async function exchangeCodeForTokens(code: string): Promise<{ accountEmail: string; refreshToken: string }> {
+// Compartilhado com lib/oneDriveStorage.ts (Fase 2 — armazenamento): troca o code OAuth por
+// tokens e descobre o e-mail da conta. Exportada (e renomeada, de "exchangeCodeForTokens") para
+// deixar claro no ponto de import que é um utilitário Microsoft genérico, não específico de e-mail.
+export async function exchangeMicrosoftCodeForTokens(code: string): Promise<{ accountEmail: string; refreshToken: string }> {
   const res = await fetch(`${AUTHORITY}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -71,7 +76,7 @@ async function exchangeCodeForTokens(code: string): Promise<{ accountEmail: stri
 // Conecta a caixa de e-mail Outlook da pessoa logada — usada tanto para o pipeline de
 // publicações (lib/outlookEmailSync.ts) quanto para envio no Atendimento (lib/gmailSend.ts).
 export async function saveMicrosoftTokensFromCode(code: string, userId: string, officeId: string): Promise<void> {
-  const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
+  const { accountEmail, refreshToken } = await exchangeMicrosoftCodeForTokens(code);
 
   const existingByEmail = await prisma.microsoftCredential.findUnique({ where: { accountEmail } });
   if (existingByEmail && existingByEmail.officeId !== officeId) {
@@ -85,7 +90,10 @@ export async function saveMicrosoftTokensFromCode(code: string, userId: string, 
   });
 }
 
-async function getAccessToken(refreshToken: string): Promise<string> {
+// Compartilhado com lib/oneDriveStorage.ts — renova o access token via refresh_token (mesmo
+// mecanismo do e-mail, sem nenhuma diferença por escopo: um único token da conta serve tanto
+// para Mail.* quanto para Files.ReadWrite, já que os dois foram pedidos juntos no consentimento).
+export async function getMicrosoftAccessToken(refreshToken: string): Promise<string> {
   const res = await fetch(`${AUTHORITY}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -156,7 +164,7 @@ async function listMessagesSince(accessToken: string, sinceDate: Date): Promise<
 }
 
 export async function getOutlookMessagesForOffice(cred: { refreshToken: string }, sinceDate: Date): Promise<OutlookMessage[]> {
-  const accessToken = await getAccessToken(cred.refreshToken);
+  const accessToken = await getMicrosoftAccessToken(cred.refreshToken);
   return listMessagesSince(accessToken, sinceDate);
 }
 
@@ -169,7 +177,7 @@ export async function sendMailOutlook(userId: string, to: string, subject: strin
   if (!cred) return { ok: false, error: "Você ainda não conectou sua conta Microsoft (Outlook)." };
 
   try {
-    const accessToken = await getAccessToken(cred.refreshToken);
+    const accessToken = await getMicrosoftAccessToken(cred.refreshToken);
     const res = await fetch(`${GRAPH_BASE}/me/sendMail`, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },

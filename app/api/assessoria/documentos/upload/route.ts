@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
-import { uploadFileToDrive, uploadFileToDriveFolder } from "@/lib/googleDrive";
+import { uploadFileToDrive, uploadFileToDriveFolder } from "@/lib/storageProvider";
 
 const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { webViewLink } = assessoria.driveFolderId
+    const result = assessoria.driveFolderId
       ? await uploadFileToDriveFolder(file.name, file.type || "application/octet-stream", buffer, assessoria.driveFolderId, user.officeId)
       : await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer, user.officeId);
 
@@ -44,8 +44,10 @@ export async function POST(request: NextRequest) {
         assessoriaId,
         name: typeof name === "string" && name ? name : file.name,
         docType: typeof docType === "string" && docType ? docType : "OUTRO",
-        driveUrl: webViewLink,
+        driveUrl: result.webViewLink,
         uploadedById: user.id,
+        storageProvider: result.storageProvider,
+        storageFileId: result.id,
       },
     });
 

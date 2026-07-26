@@ -36,6 +36,21 @@ export async function setEmailSendProvider(provider: "GOOGLE" | "MICROSOFT" | nu
   return {};
 }
 
+// Escolha de qual provedor guarda os anexos (Processos/Atendimentos/Assessoria) DESTE escritório
+// — mesmo padrão de setEmailSendProvider acima, mas por escritório (não por pessoa) e exigindo
+// isAdmin, já que troca o comportamento de upload/exclusão pra todo mundo. Ao contrário do picker
+// de e-mail, aqui a escolha é permitida mesmo ANTES de conectar a conta (ver
+// components/StorageProviderPicker.tsx) — o fluxo natural é escolher primeiro, conectar depois.
+export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE"): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  if (!viewer.isAdmin) return { error: "Apenas administradores podem alterar o provedor de armazenamento." };
+
+  await prisma.office.update({ where: { id: viewer.officeId }, data: { storageProvider: provider } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 // Soma os resultados de Gmail e Outlook num só SyncResult — pro botão/cron não precisar saber
 // que existem duas fontes de e-mail por baixo (mesma ideia de runFullPublicationsSync somando
 // e-mail + robô).

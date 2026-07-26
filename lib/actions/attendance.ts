@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { sendEmailReply } from "@/lib/gmailSend";
-import { renameDriveFolder } from "@/lib/googleDrive";
+import { renameDriveFolder } from "@/lib/storageProvider";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
 
