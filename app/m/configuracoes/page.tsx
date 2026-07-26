@@ -10,8 +10,10 @@ import TestEmailButton from "@/components/TestEmailButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import WorkflowsManager from "@/components/WorkflowsManager";
+import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess, type OfficeModules } from "@/lib/officeModules";
+import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import {
   ArrowLeft,
   User,
@@ -30,6 +32,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Upload,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -64,6 +67,7 @@ export default async function MobileConfiguracoes() {
     blogPublished,
     roboExecucaoLogs,
     processosMonitoradosCount,
+    ownBilling,
   ] = isAdmin
     ? await Promise.all([
         getOfficeModules(officeId),
@@ -84,8 +88,9 @@ export default async function MobileConfiguracoes() {
         // real das últimas execuções, igual ao card equivalente no computador.
         prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
         prisma.roboProcessoMonitorado.count(),
+        getOwnOfficeBilling(),
       ])
-    : [null, false, null, [], [], null, [], [], 0, 0, [], 0];
+    : [null, false, null, [], [], null, [], [], 0, 0, [], 0, { subscription: null, invoices: [] }];
 
   const initials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
@@ -343,6 +348,20 @@ export default async function MobileConfiguracoes() {
               </Group>
             </details>
           )}
+
+          <details className="group">
+            <Group
+              icon={CreditCard}
+              title="Cobrança"
+              meta={ownBilling.subscription ? "configurada" : "não configurada"}
+            >
+              <Card className="!rounded-t-none border-t-0">
+                <div className="p-4">
+                  <OfficeBillingSummary billing={ownBilling} />
+                </div>
+              </Card>
+            </Group>
+          </details>
 
           <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 px-1">
             Só administradores veem este bloco.

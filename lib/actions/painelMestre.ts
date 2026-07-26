@@ -9,7 +9,9 @@ import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
 import { createPixQrCodeCharge, isAsaasConfigured } from "@/lib/asaas";
 
-async function requirePlatformOwner() {
+// Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate,
+// em vez de duplicar a checagem de isPlatformOwner num segundo lugar.
+export async function requirePlatformOwner() {
   const viewer = await getCurrentUser({ ignoreActing: true });
   if (!viewer?.isPlatformOwner) return { error: "Apenas administradores da plataforma podem fazer isso." } as const;
   return { viewer };

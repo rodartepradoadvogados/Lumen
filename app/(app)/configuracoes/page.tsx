@@ -27,7 +27,7 @@ import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
-import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck } from "lucide-react";
+import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
@@ -36,6 +36,8 @@ import { isDropboxConfigured } from "@/lib/dropbox";
 import { getDropboxStatus } from "@/lib/dropboxStorage";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import ModulesManager from "@/components/ModulesManager";
+import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
+import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +101,10 @@ const SECOES = [
   { key: "geral", label: "Geral", adminOnly: false },
   { key: "workflows", label: "Workflows", adminOnly: true },
   { key: "blog", label: "Blog Jurídico", adminOnly: true },
+  // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
+  // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
+  // exige ser platform owner — quem configura isso é o Painel Mestre (/painel-mestre/assinaturas).
+  { key: "cobranca", label: "Cobrança", adminOnly: true },
 ] as const;
 
 const SECAO_ICONS = {
@@ -108,6 +114,7 @@ const SECAO_ICONS = {
   geral: SlidersHorizontal,
   workflows: Workflow,
   blog: Newspaper,
+  cobranca: CreditCard,
 } as const;
 
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
@@ -146,6 +153,7 @@ export default async function ConfiguracoesPage({
     office,
     oneDriveStatus,
     dropboxStatus,
+    ownBilling,
   ] = await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -174,6 +182,7 @@ export default async function ConfiguracoesPage({
       prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true } }),
       getOneDriveStatus(officeId),
       getDropboxStatus(officeId),
+      getOwnOfficeBilling(),
     ]);
   const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
 
@@ -981,6 +990,18 @@ export default async function ConfiguracoesPage({
             }))}
             roles={ROLE_OPTIONS}
           />
+        </div>
+      </Card>
+      )}
+
+      {isAdmin && secao === "cobranca" && (
+      <Card>
+        <CardHeader
+          title="Cobrança"
+          subtitle="Ciclo, forma de pagamento e faturas da mensalidade do Lúmen deste escritório"
+        />
+        <div className="p-5">
+          <OfficeBillingSummary billing={ownBilling} />
         </div>
       </Card>
       )}
