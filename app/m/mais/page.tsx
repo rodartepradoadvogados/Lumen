@@ -4,7 +4,7 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
-import { Phone, DollarSign, BarChart, Settings, LogOut } from "lucide-react";
+import { Phone, DollarSign, BarChart, Settings, LogOut, Lock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,10 @@ export default async function MobileMais() {
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, color: "gold" as const, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, color: "navy" as const, show: true },
     { href: "/m/configuracoes", label: "Configurações", Icon: Settings, color: "navy" as const, show: true },
+    // Só Jairo e Rodrigo (donos da plataforma) veem este item — mesma condição do cadeado na
+    // TopBar do desktop (components/TopBar.tsx). Leva para /painel-mestre, a área da empresa
+    // Lúmen, fora do escritório Rodarte Prado Advogados.
+    { href: "/painel-mestre", label: "Painel Mestre", Icon: Lock, color: "bordo" as const, show: viewer?.isPlatformOwner ?? false },
   ].filter((i) => i.show);
 
   return (

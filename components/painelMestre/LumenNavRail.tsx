@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, CreditCard, Building2, Wallet, Users, Activity, ShieldCheck, Scale } from "lucide-react";
+import { LayoutDashboard, CreditCard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Menu, X } from "lucide-react";
 import LumenMark from "@/components/LumenMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon; comingSoon?: boolean };
@@ -40,53 +41,83 @@ const GROUPS: NavGroup[] = [
 
 export default function LumenNavRail() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  // Fecha a gaveta ao navegar — mesmo padrão de components/Sidebar.tsx (o rail do lado
+  // escritório), que já resolve isso do mesmo jeito para a versão estreita de tela.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
-    <nav className="w-56 shrink-0 bg-navy-900 dark:bg-navy-900 border-r border-white/10 flex flex-col overflow-y-auto scrollbar-thin">
-      <div className="px-4 py-5 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <LumenMark size={28} />
-          <span className="font-serif text-lg font-semibold text-navy-900 dark:text-cream-50">LÚMEN</span>
-        </div>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-navy-800/40 dark:text-cream-50/40 mt-1.5">
-          Painel da Empresa
-        </p>
-      </div>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center rounded-lg bg-navy-900 text-cream-50 border border-white/10"
+        aria-label="Abrir menu do Painel da Empresa"
+      >
+        <Menu size={18} />
+      </button>
 
-      <div className="flex-1 py-4 space-y-6">
-        {GROUPS.map((group) => (
-          <div key={group.label}>
-            <p className="px-4 text-[10px] font-semibold uppercase tracking-wide text-navy-800/35 dark:text-cream-50/35 mb-1.5">
-              {group.label}
-            </p>
-            <div className="space-y-0.5 px-2">
-              {group.items.map((item) => {
-                const active = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm border-l-2 transition-colors ${
-                      active
-                        ? "border-gold-400 bg-white/5 text-navy-900 dark:text-cream-50 font-semibold"
-                        : "border-transparent text-navy-800/60 dark:text-cream-50/60 hover:bg-white/5 hover:text-navy-900 dark:hover:text-cream-50"
-                    }`}
-                  >
-                    <Icon size={16} />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {item.comingSoon && (
-                      <span className="text-[9px] font-semibold uppercase tracking-wide text-navy-800/30 dark:text-cream-50/30">
-                        em breve
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+      {open && <div className="md:hidden fixed inset-0 z-40 bg-navy-950/60" onClick={() => setOpen(false)} />}
+
+      <nav
+        className={`w-56 shrink-0 bg-navy-900 dark:bg-navy-900 border-r border-white/10 flex flex-col h-full fixed md:static top-0 left-0 z-50 overflow-y-auto scrollbar-thin transition-transform duration-200 md:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="px-4 py-5 border-b border-white/10 relative">
+          <button
+            onClick={() => setOpen(false)}
+            className="md:hidden absolute top-4 right-4 text-cream-50/60 hover:text-cream-50"
+            aria-label="Fechar menu"
+          >
+            <X size={18} />
+          </button>
+          <div className="flex items-center gap-2">
+            <LumenMark size={28} />
+            <span className="font-serif text-lg font-semibold text-navy-900 dark:text-cream-50">LÚMEN</span>
           </div>
-        ))}
-      </div>
-    </nav>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-navy-800/40 dark:text-cream-50/40 mt-1.5">
+            Painel da Empresa
+          </p>
+        </div>
+
+        <div className="flex-1 py-4 space-y-6">
+          {GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="px-4 text-[10px] font-semibold uppercase tracking-wide text-navy-800/35 dark:text-cream-50/35 mb-1.5">
+                {group.label}
+              </p>
+              <div className="space-y-0.5 px-2">
+                {group.items.map((item) => {
+                  const active = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm border-l-2 transition-colors ${
+                        active
+                          ? "border-gold-400 bg-white/5 text-navy-900 dark:text-cream-50 font-semibold"
+                          : "border-transparent text-navy-800/60 dark:text-cream-50/60 hover:bg-white/5 hover:text-navy-900 dark:hover:text-cream-50"
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.comingSoon && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-navy-800/30 dark:text-cream-50/30">
+                          em breve
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </nav>
+    </>
   );
 }
