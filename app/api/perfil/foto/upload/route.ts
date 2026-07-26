@@ -6,8 +6,10 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 // Cada pessoa só envia a PRÓPRIA foto de perfil — sem officeId/admin, autosserviço puro (mesmo
-// padrão de lib/actions/profile.ts). Blob privado, servido via /api/perfil/foto/[userId] (mesma
-// técnica de app/api/photos/upload+file/[id] para as fotos do blog).
+// padrão de lib/actions/profile.ts). O Blob Store do projeto (lumen-attachments) está
+// provisionado como PÚBLICO — access:"private" é rejeitado com "Cannot use private access on a
+// public store" — então o blob já nasce com URL pública; /api/perfil/foto/[userId] só
+// redireciona para ela, mantendo o mesmo caminho estável de sempre nas outras telas.
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await put(`perfil/${user.id}-${Date.now()}-${file.name}`, file, { access: "private" });
+    const blob = await put(`perfil/${user.id}-${Date.now()}-${file.name}`, file, { access: "public" });
     await prisma.user.update({ where: { id: user.id }, data: { photoUrl: blob.url } });
     return NextResponse.json({ ok: true });
   } catch (err) {

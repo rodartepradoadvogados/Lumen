@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "private" });
+    // O Blob Store do projeto (lumen-attachments) está provisionado como PÚBLICO —
+    // access:"private" é rejeitado com "Cannot use private access on a public store".
+    const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "public" });
 
     const photo = await prisma.photo.create({
       data: { officeId: user.officeId, url: blob.url, category, court, caption: caption || null },
@@ -48,12 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ photo });
   } catch (err) {
     console.error("Erro ao enviar foto para o Vercel Blob:", err);
-    return NextResponse.json(
-      {
-        error:
-          "Armazenamento de fotos ainda não configurado. Peça para o administrador criar um Blob Store em Storage → Create Database → Blob no painel do Vercel.",
-      },
-      { status: 503 }
-    );
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Erro ao enviar a foto: ${detail}` }, { status: 502 });
   }
 }
