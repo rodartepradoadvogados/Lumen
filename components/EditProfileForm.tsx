@@ -6,6 +6,7 @@ import { UploadCloud } from "lucide-react";
 import { updateMyProfile, type MyProfile } from "@/lib/actions/profile";
 import MaskedInput from "@/components/MaskedInput";
 import { maskCPF, maskCEP } from "@/lib/masks";
+import ImageCropperModal from "@/components/ImageCropperModal";
 
 const GENDER_OPTIONS = ["Feminino", "Masculino", "Não-binário", "Prefiro não informar"];
 const MARITAL_OPTIONS = ["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"];
@@ -20,13 +21,14 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
   // profile.photoUrl é o link PRIVADO do Vercel Blob (não acessível pelo navegador) — a URL
   // exibível é sempre a rota de proxy, ver app/api/perfil/foto/[userId]/route.ts.
   const [photoUrl, setPhotoUrl] = useState(profile.photoUrl ? `/api/perfil/foto/${userId}` : null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function uploadPhoto(file: File) {
+  async function uploadPhoto(file: Blob) {
     setError(null);
     setUploading(true);
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file, "foto-perfil.jpg");
     try {
       const res = await fetch("/api/perfil/foto/upload", { method: "POST", body: formData });
       const data = await res.json();
@@ -103,11 +105,22 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) uploadPhoto(file);
+            if (file) setPendingFile(file);
             e.target.value = "";
           }}
         />
       </div>
+
+      {pendingFile && (
+        <ImageCropperModal
+          file={pendingFile}
+          onCancel={() => setPendingFile(null)}
+          onConfirm={(blob) => {
+            setPendingFile(null);
+            uploadPhoto(blob);
+          }}
+        />
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="sm:col-span-2">
