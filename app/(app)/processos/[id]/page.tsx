@@ -20,7 +20,8 @@ import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadB
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
 import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
-import { ArrowLeft, Check } from "lucide-react";
+import EditCaseModal from "@/components/EditCaseModal";
+import { ArrowLeft, Check, ExternalLink } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -80,7 +81,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -96,6 +97,10 @@ export default async function CaseDetailPage({
       _count: { _all: true },
     }),
     prisma.assessoria.findMany({ where: { officeId: viewer.officeId, status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
+    // Novos para o EditCaseModal (edição do Card da Visão Geral): lista de clientes do
+    // escritório (para o <select> de Cliente) e o catálogo global de tribunais (para o seletor).
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
@@ -166,12 +171,45 @@ export default async function CaseDetailPage({
       {tab === "visao-geral" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card className="p-5 space-y-3">
+            <div className="flex items-center justify-between -mt-1 -mr-1">
+              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Dados do Processo</h4>
+              <EditCaseModal
+                caseData={{
+                  id: c.id,
+                  clientId: c.clientId,
+                  opposingPartyName: c.opposingPartyName,
+                  opposingPartyRole: c.opposingPartyRole,
+                  responsibleId: c.responsibleId,
+                  court: c.court,
+                  caseValue: c.caseValue,
+                  tribunalSigla: c.tribunalSigla,
+                  tribunalNome: c.tribunalNome,
+                  tribunalSistema: c.tribunalSistema,
+                  tribunalLink: c.tribunalLink,
+                }}
+                clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
+                users={users.map((u) => ({ id: u.id, name: u.name }))}
+                tribunais={tribunais}
+              />
+            </div>
             <Field label="Cliente" value={c.client?.name} />
             <Field label="Parte Adversa" value={c.opposingPartyName} />
             <Field label="Polo da Parte Adversa" value={c.opposingPartyRole ? opposingPartyRoleLabels[c.opposingPartyRole] || c.opposingPartyRole : undefined} />
             <Field label="Advogado Responsável" value={c.responsible?.name} />
             <Field label="Vara/Comarca" value={c.court} />
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
+            <Field label="Tribunal" value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
+            <Field label="Sistema" value={c.tribunalSistema} />
+            {c.tribunalLink && (
+              <a
+                href={c.tribunalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+              >
+                <ExternalLink size={12} /> Acessar sistema do tribunal
+              </a>
+            )}
           </Card>
           <Card className="p-5">
             <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>

@@ -32,6 +32,10 @@ export async function createCase(data: {
   responsibleId?: string;
   description?: string;
   assessoriaId?: string;
+  tribunalSigla?: string;
+  tribunalNome?: string;
+  tribunalSistema?: string;
+  tribunalLink?: string;
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
@@ -60,12 +64,67 @@ export async function createCase(data: {
       responsibleId: data.responsibleId || null,
       description: data.description || null,
       assessoriaId: data.assessoriaId || null,
+      tribunalSigla: data.tribunalSigla || null,
+      tribunalNome: data.tribunalNome || null,
+      tribunalSistema: data.tribunalSistema || null,
+      tribunalLink: data.tribunalLink || null,
       officeId: viewer.officeId,
     },
   });
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
   redirect(`/processos/${created.id}`);
+}
+
+// Edição completa do card de Processo (aba Visão Geral) — cobre os mesmos campos hoje
+// read-only ali, mais os 4 campos de tribunal (ver EditCaseModal.tsx). Reaproveita
+// assertCaseRelationsInOffice (mesma checagem de segurança de createCase) para clientId e
+// responsibleId; não valida assessoriaId porque esse vínculo não faz parte deste modal.
+export async function updateCase(
+  caseId: string,
+  data: {
+    clientId?: string;
+    opposingPartyName?: string;
+    opposingPartyRole?: string;
+    responsibleId?: string;
+    court?: string;
+    caseValue?: string;
+    tribunalSigla?: string;
+    tribunalNome?: string;
+    tribunalSistema?: string;
+    tribunalLink?: string;
+  }
+): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId: viewer.officeId }, select: { id: true } });
+  if (!existing) return { error: "Processo não encontrado." };
+
+  try {
+    await assertCaseRelationsInOffice({ clientId: data.clientId, responsibleId: data.responsibleId }, viewer.officeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+
+  await prisma.case.update({
+    where: { id: caseId },
+    data: {
+      clientId: data.clientId || null,
+      opposingPartyName: data.opposingPartyName || null,
+      opposingPartyRole: data.opposingPartyRole || null,
+      responsibleId: data.responsibleId || null,
+      court: data.court || null,
+      caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
+      tribunalSigla: data.tribunalSigla || null,
+      tribunalNome: data.tribunalNome || null,
+      tribunalSistema: data.tribunalSistema || null,
+      tribunalLink: data.tribunalLink || null,
+    },
+  });
+
+  revalidatePath(`/processos/${caseId}`);
+  return {};
 }
 
 // Mesmo cadastro de createCase, mas sem redirect() — o redirect da versão desktop aponta

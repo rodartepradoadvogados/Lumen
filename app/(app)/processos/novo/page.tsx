@@ -7,6 +7,7 @@ import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
 import SaveCaseButton from "@/components/SaveCaseButton";
+import TribunalFields from "@/components/TribunalFields";
 
 const AREA_OPTIONS = [
   "Cível",
@@ -29,7 +30,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
   if (!viewer) notFound();
 
   const defaultType = searchParams.type || "JUDICIAL";
-  const [clients, users, assessoriasRaw] = await Promise.all([
+  const [clients, users, assessoriasRaw, tribunais] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.assessoria.findMany({
@@ -37,6 +38,9 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       include: { client: true },
       orderBy: { client: { name: "asc" } },
     }),
+    // Tribunal é catálogo global (sem officeId) — a ordenação real por CATEGORIA_ORDER acontece
+    // no componente cliente (TribunalPickerModal), aqui só traz os dados.
+    prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
@@ -59,6 +63,10 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       responsibleId: String(formData.get("responsibleId") || ""),
       description: String(formData.get("description") || ""),
       assessoriaId: String(formData.get("assessoriaId") || ""),
+      tribunalSigla: String(formData.get("tribunalSigla") || ""),
+      tribunalNome: String(formData.get("tribunalNome") || ""),
+      tribunalSistema: String(formData.get("tribunalSistema") || ""),
+      tribunalLink: String(formData.get("tribunalLink") || ""),
     });
   }
 
@@ -123,6 +131,8 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
               </select>
             </div>
           </div>
+
+          <TribunalFields tribunais={tribunais} inputClassName="input" />
 
           <ClientPicker clients={clients} inputClassName="input" />
 

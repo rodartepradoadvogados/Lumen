@@ -336,7 +336,18 @@ model Case {
   processNumber     String?
   court             String?
   forum             String?
-  tribunal          String?   // Sigla do tribunal (ex: TJGO, TRF1, TST)
+  tribunal          String?   // Sigla do tribunal (ex: TJGO, TRF1, TST) — órfão, sem uso em nenhuma
+                              // tela (confirmado por grep); mantido como está, não usar nem remover.
+
+  // Selecionados via lib/tribunaisCatalog.ts (components/TribunalPickerModal.tsx) no cadastro,
+  // mas 100% independentes do catálogo depois disso — livremente editáveis no Processo, sem
+  // nenhuma referência de volta a um Tribunal.id. É por isso que não há relation aqui: mudar o
+  // catálogo no futuro nunca deve alterar um Processo já cadastrado.
+  tribunalSigla     String?
+  tribunalNome      String?
+  tribunalSistema   String?
+  tribunalLink      String?
+
   caseValue         Float?
   convictionValue   Float?
   instance          String?   // Instância Original
@@ -393,6 +404,23 @@ model Case {
 
   @@index([officeId])
   @@index([officeId, processNumber])
+}
+
+// ============ CATÁLOGO DE TRIBUNAIS ============
+
+// Catálogo de tribunais brasileiros — dado de referência global, compartilhado por todos os
+// escritórios (não é multi-tenant: um TJGO é o mesmo TJGO para qualquer escritório). Populado
+// uma vez pelo endpoint idempotente /api/admin/setup-tribunais, a partir de
+// lib/tribunaisCatalog.ts. As telas nunca escrevem aqui — só leem para alimentar o seletor.
+model Tribunal {
+  id        String   @id @default(cuid())
+  sigla     String   @unique
+  nome      String
+  categoria String   // agrupamento de exibição no seletor — ver CATEGORIA_ORDER em lib/tribunaisCatalog.ts
+  sistemas  String   // texto descritivo do(s) sistema(s) processual(is)
+  portalUrl String   // link de acesso ao sistema (login/consulta de processos)
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now())
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
