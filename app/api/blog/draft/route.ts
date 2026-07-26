@@ -57,10 +57,11 @@ export async function GET(req: NextRequest) {
   const days = Number.isFinite(daysParam) && daysParam > 0 ? Math.min(daysParam, 365) : 30;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  // TODO(multi-tenant): mesmo stopgap de escritório único do POST abaixo —
-  // ver comentário lá para o motivo e o que precisa mudar antes de suportar
-  // mais de um Office.
-  const office = await prisma.office.findFirst();
+  // Resolve sempre o escritório dono da plataforma (Rodarte Prado, Office.isInternal),
+  // nunca "o primeiro Office que aparecer" — um findFirst() sem filtro já causou matéria
+  // do robô sendo associada ao Office errado assim que passou a existir mais de um
+  // registro na tabela (ex.: escritórios-clientes cadastrados no Painel Mestre).
+  const office = await prisma.office.findFirst({ where: { isInternal: true } });
 
   const posts = await prisma.blogPost.findMany({
     where: { createdAt: { gte: since }, officeId: office?.id ?? "" },
@@ -135,15 +136,15 @@ export async function POST(req: NextRequest) {
   // reescrito de outro jeito).
   // TODO(multi-tenant): este endpoint autentica o robô externo via um único
   // BLOG_ROBOT_SECRET global, sem qualquer sinal de PARA QUAL escritório a
-  // matéria se destina. Antes de este projeto suportar mais de um Office,
-  // isso precisa de um mecanismo real (ex.: um secret/token por escritório).
-  // Como stopgap TEMPORÁRIO e válido apenas enquanto houver um único Office
-  // no banco, buscamos "o" Office existente. Isso QUEBRA/fica ambíguo assim
-  // que houver mais de um escritório — precisa ser revisitado antes disso.
-  const office = await prisma.office.findFirst();
+  // matéria se destina. Enquanto o Blog Jurídico for recurso exclusivo do
+  // escritório dono da plataforma (ver Office.isInternal/blogAccess), resolver
+  // por isInternal é correto e estável mesmo com múltiplos Offices cadastrados;
+  // revisitar isso (secret/token por escritório) se blogAccess for concedido a
+  // outro Office no futuro.
+  const office = await prisma.office.findFirst({ where: { isInternal: true } });
   if (!office) {
     return NextResponse.json(
-      { error: "Nenhum escritório (Office) cadastrado; não é possível associar a matéria." },
+      { error: "Nenhum escritório interno (Office.isInternal) cadastrado; não é possível associar a matéria." },
       { status: 500 }
     );
   }
@@ -199,4 +200,30 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ id: post.id, slug: post.slug, status: post.status }, { status: 201 });
+}
+
+// Correção pontual, TEMPORÁRIA: antes do fix acima, o findFirst() sem filtro associou
+// matérias do robô a um Office que não é o dono da plataforma (isInternal), ficando
+// invisíveis na tela de revisão do Rodarte Prado. Reatribui qualquer BlogPost dos
+// últimos 7 dias que não esteja no Office correto. Idempotente (não-op se já corrigido).
+// Remover este handler depois de confirmar a correção em produção.
+export async function PATCH(req: NextRequest) {
+  const auth = req.headers.get("authorization");
+  const secret = process.env.BLOG_ROBOT_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const office = await prisma.office.findFirst({ where: { isInternal: true } });
+  if (!office) {
+    return NextResponse.json({ error: "Nenhum escritório interno cadastrado." }, { status: 500 });
+  }
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const result = await prisma.blogPost.updateMany({
+    where: { createdAt: { gte: sevenDaysAgo }, officeId: { not: office.id } },
+    data: { officeId: office.id },
+  });
+
+  return NextResponse.json({ fixedOfficeId: office.id, reassigned: result.count });
 }
