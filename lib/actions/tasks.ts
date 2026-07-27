@@ -112,13 +112,22 @@ export async function createTask(data: {
   if (data.caseId) revalidatePath(`/m/processos/${data.caseId}`);
 }
 
-// Delega um compromisso a outro membro da equipe: reaproveita a mesma lógica de
+// Delega um compromisso a um ou mais membros da equipe: reaproveita a mesma lógica de
 // criação de `createTask` (pontuação padrão, coluna inicial do kanban etc.), mas
 // grava `delegatedById` além de `responsibleId` — é esse campo extra que diferencia
 // uma tarefa delegada de uma tarefa comum que alguém cria pra si mesmo, e que faz
 // o alerta "TAREFA_DELEGADA" aparecer só para quem recebeu (ver lib/alerts.ts).
+//
+// Cada pessoa selecionada recebe sua PRÓPRIA tarefa (uma linha independente na tabela Task),
+// em vez de uma única tarefa compartilhada por várias pessoas — de propósito: Task.responsibleId
+// é uma FK única (mesmo padrão em Case/Attendance/Assessoria), e TaskScore, o balanceamento de
+// carga do Workflows (lib/actions/workflows.ts) e a marcação de "vista" de uma delegação
+// (delegationAcknowledgedAt) já assumem um responsável por tarefa — duplicar a tarefa por pessoa
+// evita reescrever essas três coisas para uma relação N:N, e cada destinatário efetivamente
+// precisa realizar a mesma ação, então faz sentido cada um ter seu próprio card e sua própria
+// pontuação, independente dos outros.
 export async function delegateTask(data: {
-  responsibleId: string;
+  responsibleIds: string[];
   type: string;
   title: string;
   dueDate: string;
@@ -130,13 +139,18 @@ export async function delegateTask(data: {
   // Preenchido quando a delegação nasce do botão "Delegar" de uma publicação
   // (components/PublicationRow.tsx) — linka a Task criada à publicação de origem e marca essa
   // pessoa como responsável pela triagem dela, no lugar do antigo select "Sem responsável"
-  // (que só trocava o campo silenciosamente, sem gerar tarefa nem avisar ninguém).
+  // (que só trocava o campo silenciosamente, sem gerar tarefa nem avisar ninguém). Publication
+  // só tem um assignedToId (FK única), então com múltiplos destinatários o primeiro selecionado
+  // é quem fica marcado como responsável pela triagem da publicação em si.
   publicationId?: string;
-}): Promise<{ error?: string; taskId?: string }> {
+}): Promise<{ error?: string; taskIds?: string[] }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Usuário não autenticado." };
-  if (!data.responsibleId) return { error: "Selecione o membro da equipe que vai receber a delegação." };
-  if (!(await isUserInOffice(data.responsibleId, viewer.officeId))) return { error: "Responsável não encontrado." };
+  const responsibleIds = [...new Set(data.responsibleIds)];
+  if (responsibleIds.length === 0) return { error: "Selecione ao menos um membro da equipe que vai receber a delegação." };
+  for (const responsibleId of responsibleIds) {
+    if (!(await isUserInOffice(responsibleId, viewer.officeId))) return { error: "Responsável não encontrado." };
+  }
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return { error: "Processo não encontrado." };
   if (data.attendanceId && !(await isAttendanceInOffice(data.attendanceId, viewer.officeId))) return { error: "Atendimento não encontrado." };
 
@@ -147,28 +161,38 @@ export async function delegateTask(data: {
 
   const dueDate = new Date(data.dueDate);
 
-  const task = await prisma.task.create({
-    data: {
-      title: data.title,
-      type: data.type,
-      dueDate,
-      dueTime: data.dueTime || null,
-      safetyDueDate: computeSafetyDueDate(dueDate),
-      priority: data.priority,
-      caseId: data.caseId || null,
-      attendanceId: data.attendanceId || null,
-      publicationId: data.publicationId || null,
-      responsibleId: data.responsibleId,
-      delegatedById: viewer.id,
-      columnId: firstColumn?.id || null,
-      description: data.description || null,
-      points,
-      officeId: viewer.officeId,
-    },
-  });
+  const taskIds: string[] = [];
+  for (const responsibleId of responsibleIds) {
+    const task = await prisma.task.create({
+      data: {
+        title: data.title,
+        type: data.type,
+        dueDate,
+        dueTime: data.dueTime || null,
+        safetyDueDate: computeSafetyDueDate(dueDate),
+        priority: data.priority,
+        caseId: data.caseId || null,
+        attendanceId: data.attendanceId || null,
+        publicationId: data.publicationId || null,
+        responsibleId,
+        delegatedById: viewer.id,
+        columnId: firstColumn?.id || null,
+        description: data.description || null,
+        points,
+        officeId: viewer.officeId,
+      },
+    });
+    taskIds.push(task.id);
+
+    sendPushIfEnabled(responsibleId, viewer.officeId, "tarefasDelegadas", {
+      title: "Nova tarefa delegada",
+      body: `${viewer.name} delegou: ${data.title}`,
+      url: "/m/agenda",
+    }).catch(() => {});
+  }
 
   if (data.publicationId) {
-    await prisma.publication.updateMany({ where: { id: data.publicationId, officeId: viewer.officeId }, data: { assignedToId: data.responsibleId } });
+    await prisma.publication.updateMany({ where: { id: data.publicationId, officeId: viewer.officeId }, data: { assignedToId: responsibleIds[0] } });
     revalidatePath("/publicacoes");
   }
 
@@ -178,13 +202,7 @@ export async function delegateTask(data: {
   revalidatePath("/alertas");
   revalidatePath("/produtividade");
 
-  sendPushIfEnabled(data.responsibleId, viewer.officeId, "tarefasDelegadas", {
-    title: "Nova tarefa delegada",
-    body: `${viewer.name} delegou: ${data.title}`,
-    url: "/m/agenda",
-  }).catch(() => {});
-
-  return { taskId: task.id };
+  return { taskIds };
 }
 
 // Marca a delegação como vista: chamado quando o destinatário abre o card da tarefa

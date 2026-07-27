@@ -8,6 +8,7 @@ import PublicationsList from "@/components/PublicationsList";
 import PublicationRespFilter from "@/components/PublicationRespFilter";
 import DistributePublicationsButton from "@/components/DistributePublicationsButton";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
+import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import { findPublicationIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { Search } from "lucide-react";
 
@@ -107,7 +108,14 @@ export default async function PublicacoesPage({
             ? `Histórico de lidas (100 mais recentes)`
             : `${unreadCount} não lida(s) — some daqui assim que marcada como lida`
         }
-        action={viewer?.isAdmin && <DistributePublicationsButton />}
+        action={
+          viewer?.isAdmin && (
+            <div className="flex gap-2">
+              <SyncPublicationsButton />
+              <DistributePublicationsButton />
+            </div>
+          )
+        }
       />
 
       <div className="flex gap-2 mb-4">

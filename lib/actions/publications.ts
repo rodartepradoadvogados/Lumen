@@ -209,7 +209,7 @@ export async function submitPublicationDistribution(
 
     for (const userId of item.userIds) {
       const result = await delegateTask({
-        responsibleId: userId,
+        responsibleIds: [userId],
         type: "PRAZO",
         title,
         dueDate: item.dueDate,
@@ -217,8 +217,9 @@ export async function submitPublicationDistribution(
         caseId: pub.caseId || undefined,
         publicationId: pub.id,
       });
-      if (result.error || !result.taskId) continue;
-      if (!item.requireConfirmation) await acknowledgeDelegation(result.taskId);
+      const taskId = result.taskIds?.[0];
+      if (result.error || !taskId) continue;
+      if (!item.requireConfirmation) await acknowledgeDelegation(taskId);
       created++;
     }
   }

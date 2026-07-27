@@ -25,7 +25,7 @@ const REFER_OPTIONS: { value: ReferTo; label: string }[] = [
 
 const emptyState = {
   step: 1,
-  responsibleId: "",
+  responsibleIds: [] as string[],
   type: "TAREFA",
   referTo: null as ReferTo | null,
   linkQuery: "",
@@ -89,7 +89,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState<{ responsibleName: string; title: string } | null>(null);
+  const [success, setSuccess] = useState<{ responsibleNames: string[]; title: string } | null>(null);
   const searchReqId = useRef(0);
 
   const needsLink = state.referTo === "PROCESSO" || state.referTo === "CASO" || state.referTo === "ATENDIMENTO";
@@ -139,8 +139,15 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
     setState((s) => ({ ...s, step }));
   }
 
+  function toggleResponsible(id: string) {
+    setState((s) => ({
+      ...s,
+      responsibleIds: s.responsibleIds.includes(id) ? s.responsibleIds.filter((r) => r !== id) : [...s.responsibleIds, id],
+    }));
+  }
+
   function canAdvanceFromStep(step: number): boolean {
-    if (step === 1) return Boolean(state.responsibleId);
+    if (step === 1) return state.responsibleIds.length > 0;
     if (step === 2) return Boolean(state.type);
     if (step === 3) return state.referTo === "OUTROS" || (needsLink && Boolean(state.selectedLink));
     return true;
@@ -154,7 +161,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
     setError("");
     setLoading(true);
     const result = await delegateTask({
-      responsibleId: state.responsibleId,
+      responsibleIds: state.responsibleIds,
       type: state.type,
       title: state.title.trim(),
       dueDate: state.dueDate,
@@ -170,8 +177,8 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
       setError(result.error);
       return;
     }
-    const responsibleName = users.find((u) => u.id === state.responsibleId)?.name ?? "";
-    setSuccess({ responsibleName, title: state.title.trim() });
+    const responsibleNames = users.filter((u) => state.responsibleIds.includes(u.id)).map((u) => u.name);
+    setSuccess({ responsibleNames, title: state.title.trim() });
   }
 
   if (success) {
@@ -182,8 +189,14 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
         </span>
         <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-lg">Delegado com sucesso!</h3>
         <p className="text-sm text-navy-800/60 dark:text-cream-50/60 max-w-sm">
-          &ldquo;{success.title}&rdquo; foi atribuído a <span className="font-semibold">{success.responsibleName}</span>. A pessoa vai receber um
-          alerta na Central de Alertas e o compromisso já aparece na Agenda.
+          &ldquo;{success.title}&rdquo; foi atribuído a{" "}
+          <span className="font-semibold">
+            {success.responsibleNames.length > 1
+              ? `${success.responsibleNames.slice(0, -1).join(", ")} e ${success.responsibleNames.slice(-1)}`
+              : success.responsibleNames[0]}
+          </span>
+          . {success.responsibleNames.length > 1 ? "Cada pessoa recebe seu próprio" : "A pessoa vai receber um"} alerta na Central de Alertas e o
+          compromisso já aparece na Agenda.
         </p>
         <button
           onClick={resetAll}
@@ -211,20 +224,34 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
         <div className="space-y-3">
           <div>
             <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Quem vai receber?</h3>
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Selecione o membro da equipe que vai ficar responsável.</p>
+            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+              Selecione um ou mais membros da equipe — cada um recebe sua própria tarefa.
+            </p>
           </div>
-          <select
-            value={state.responsibleId}
-            onChange={(e) => setState((s) => ({ ...s, responsibleId: e.target.value }))}
-            className="w-full border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
-          >
-            <option value="">Selecione um membro da equipe</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
+          <div className="border border-navy-800/12 dark:border-white/15 rounded-lg divide-y divide-navy-800/8 dark:divide-white/10 max-h-64 overflow-y-auto scrollbar-thin">
+            {users.map((u) => {
+              const checked = state.responsibleIds.includes(u.id);
+              return (
+                <label
+                  key={u.id}
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100 dark:hover:bg-white/5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleResponsible(u.id)}
+                    className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-gold-600 focus:ring-gold-500/40"
+                  />
+                  <span className="text-navy-900 dark:text-cream-50">{u.name}</span>
+                </label>
+              );
+            })}
+          </div>
+          {state.responsibleIds.length > 0 && (
+            <p className="text-xs text-navy-800/50 dark:text-cream-50/50">
+              {state.responsibleIds.length} pessoa{state.responsibleIds.length > 1 ? "s" : ""} selecionada{state.responsibleIds.length > 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       )}
 
