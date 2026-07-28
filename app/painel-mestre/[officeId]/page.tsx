@@ -65,6 +65,7 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
               monthlyFee: office.monthlyFee ?? 0,
               billingDueDay: office.billingDueDay ?? 5,
               paymentGraceDays: office.paymentGraceDays,
+              cnpj: office.cnpj ?? "",
             }}
             paymentMethod={office.subscription?.paymentMethod ?? null}
             invoices={office.invoices.map((i) => ({

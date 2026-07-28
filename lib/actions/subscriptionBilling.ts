@@ -86,7 +86,7 @@ export async function triggerPixAutomaticoAuthorization(
     // já salva pixAuthorizationId/pixAuthorizationStatus na Subscription (lib/asaas.ts).
     const result = await createPixAutomaticoAuthorization(
       { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
-      { id: office.id, name: office.name, billingEmail: office.billingEmail }
+      { id: office.id, name: office.name, billingEmail: office.billingEmail, cnpj: office.cnpj }
     );
     revalidatePath("/painel-mestre/assinaturas");
     return { qrCode: result.qrCode ?? undefined, qrCodeImage: result.qrCodeImage ?? undefined };
@@ -129,7 +129,7 @@ export async function previewPixQrCode(
   try {
     const charge = await createPixQrCodeCharge(
       { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
-      { id: office.id, name: office.name, billingEmail: office.billingEmail },
+      { id: office.id, name: office.name, billingEmail: office.billingEmail, cnpj: office.cnpj },
       { value: subscription.monthlyFee, dueDate, description: `Teste de cobrança Lúmen — ${office.name}` }
     );
     revalidatePath("/painel-mestre/assinaturas");

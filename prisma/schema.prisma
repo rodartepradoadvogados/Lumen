@@ -57,6 +57,9 @@ model Office {
   billingEmail  String? // recebe o boleto de cada fatura gerada
   monthlyFee    Float? // mensalidade combinada em contrato
   billingDueDay Int? // dia do mês de vencimento (1-28, pra não cair em mês sem o dia)
+  // CPF ou CNPJ do escritório-cliente — a Asaas exige esse dado no cliente pra emitir boleto ou
+  // Pix QR Code de verdade (rejeita a cobrança sem isso, mesmo com o "customer" já criado).
+  cnpj String?
 
   // Dias corridos de tolerância após o vencimento antes do bloqueio automático (usado pelo
   // cron de cobrança, lib/actions/billing.ts:runBillingCycle) — por escritório, pra dar

@@ -50,7 +50,7 @@ export default function OfficeDetailPanel({
   officeId: string;
   status: string;
   initialModules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
-  initialBilling: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number };
+  initialBilling: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number; cnpj: string };
   paymentMethod: string | null;
   invoices: Invoice[];
 }) {
@@ -132,6 +132,15 @@ export default function OfficeDetailPanel({
               max={90}
               value={billing.paymentGraceDays}
               onChange={(e) => setBilling((p) => ({ ...p, paymentGraceDays: Number(e.target.value) }))}
+              className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-xs"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">CPF/CNPJ do escritório</label>
+            <input
+              value={billing.cnpj}
+              onChange={(e) => setBilling((p) => ({ ...p, cnpj: e.target.value }))}
+              placeholder="Necessário pra Asaas emitir boleto/Pix"
               className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-xs"
             />
           </div>

@@ -165,7 +165,7 @@ export async function updateOfficeModules(officeId: string, modules: { financeir
 
 export async function updateOfficeBilling(
   officeId: string,
-  data: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number }
+  data: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number; cnpj: string }
 ): Promise<{ error?: string }> {
   const auth = await requirePlatformOwner();
   if ("error" in auth) return auth;
@@ -212,6 +212,11 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
     invoice = await prisma.tenantInvoice.create({
       data: { officeId, competencia, amount: office.monthlyFee, dueDate, status: "PENDENTE" },
     });
+  } else if (invoice.status === "PENDENTE" && invoice.dueDate < today) {
+    // Fatura já existia (ex.: tentativa anterior antes deste fix) com um vencimento que ficou no
+    // passado — a Asaas rejeita cobrança com dueDate vencido, então corrige pra hoje antes de
+    // tentar gerar boleto/Pix de novo.
+    invoice = await prisma.tenantInvoice.update({ where: { id: invoice.id }, data: { dueDate: today } });
   }
 
   let btgWarning: string | undefined;
@@ -224,7 +229,7 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
       try {
         const charge = await createPixQrCodeCharge(
           { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
-          { id: office.id, name: office.name, billingEmail },
+          { id: office.id, name: office.name, billingEmail, cnpj: office.cnpj },
           { value: invoice.amount, dueDate: invoice.dueDate, description: `Mensalidade Lúmen — ${office.name} — ${competencia}` }
         );
         invoice = await prisma.tenantInvoice.update({
@@ -254,7 +259,7 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
       try {
         const charge = await createBoletoCharge(
           { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
-          { id: office.id, name: office.name, billingEmail },
+          { id: office.id, name: office.name, billingEmail, cnpj: office.cnpj },
           { value: invoice.amount, dueDate: invoice.dueDate, description: `Mensalidade Lúmen — ${office.name} — ${competencia}` }
         );
         invoice = await prisma.tenantInvoice.update({

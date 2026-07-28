@@ -56,22 +56,45 @@ async function asaasFetch<T = unknown>(path: string, init?: RequestInit): Promis
 
 type AsaasCustomerResponse = { id: string };
 
+// Shape do escritório usado em toda chamada à Asaas — cnpj é opcional no tipo porque nem todo
+// escritório tem cadastrado ainda, mas a Asaas RECUSA criar cobrança (boleto/Pix QR Code) sem
+// CPF/CNPJ no customer, mesmo que o customer já exista sem esse dado.
+type OfficeForAsaas = { id: string; name: string; billingEmail: string; cnpj?: string | null };
+
 /**
  * Devolve o asaasCustomerId já salvo na Subscription deste escritório, criando o customer na
  * Asaas (e persistindo) se ainda não existir. Exige que já exista uma linha `Subscription`
  * para o escritório (é lá que o id é persistido) — chamar isso pra um escritório sem
  * Subscription ainda cadastrada é erro de uso do chamador, não algo pra silenciar.
+ *
+ * Se o customer já existia (id em cache) e agora temos um cnpj que ele não tinha antes,
+ * atualiza o customer na Asaas em vez de só devolver o id — necessário pra escritórios cujo
+ * customer foi criado antes do CNPJ ser cadastrado no Lúmen (a Asaas não completa isso sozinha).
  */
-export async function getOrCreateAsaasCustomer(office: { id: string; name: string; billingEmail: string }): Promise<string> {
+export async function getOrCreateAsaasCustomer(office: OfficeForAsaas): Promise<string> {
   const subscription = await prisma.subscription.findUnique({ where: { officeId: office.id } });
   if (!subscription) {
     throw new Error(`Escritório ${office.id} não tem Subscription cadastrada — não há onde persistir o asaasCustomerId.`);
   }
-  if (subscription.asaasCustomerId) return subscription.asaasCustomerId;
+
+  if (subscription.asaasCustomerId) {
+    if (office.cnpj) {
+      await asaasFetch(`/customers/${subscription.asaasCustomerId}`, {
+        method: "POST",
+        body: JSON.stringify({ cpfCnpj: office.cnpj }),
+      });
+    }
+    return subscription.asaasCustomerId;
+  }
 
   const customer = await asaasFetch<AsaasCustomerResponse>("/customers", {
     method: "POST",
-    body: JSON.stringify({ name: office.name, email: office.billingEmail, externalReference: office.id }),
+    body: JSON.stringify({
+      name: office.name,
+      email: office.billingEmail,
+      externalReference: office.id,
+      cpfCnpj: office.cnpj || undefined,
+    }),
   });
 
   await prisma.subscription.update({ where: { officeId: office.id }, data: { asaasCustomerId: customer.id } });
@@ -108,7 +131,7 @@ export type PixAutomaticoAuthorizationResult = {
  */
 export async function createPixAutomaticoAuthorization(
   subscription: SubscriptionForAsaas,
-  office: { id: string; name: string; billingEmail: string }
+  office: OfficeForAsaas
 ): Promise<PixAutomaticoAuthorizationResult> {
   const asaasCustomerId = await getOrCreateAsaasCustomer(office);
 
@@ -163,7 +186,7 @@ export type PixQrCodeChargeResult = {
  */
 export async function createPixQrCodeCharge(
   subscription: SubscriptionForAsaas,
-  office: { id: string; name: string; billingEmail: string },
+  office: OfficeForAsaas,
   input: ChargeInput
 ): Promise<PixQrCodeChargeResult> {
   const asaasCustomerId = await getOrCreateAsaasCustomer(office);
@@ -196,7 +219,7 @@ export type BoletoChargeResult = { asaasPaymentId: string; boletoUrl: string | n
 
 export async function createBoletoCharge(
   subscription: SubscriptionForAsaas,
-  office: { id: string; name: string; billingEmail: string },
+  office: OfficeForAsaas,
   input: ChargeInput
 ): Promise<BoletoChargeResult> {
   const asaasCustomerId = await getOrCreateAsaasCustomer(office);
