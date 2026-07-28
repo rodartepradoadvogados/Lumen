@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
-import { createPixQrCodeCharge, isAsaasConfigured } from "@/lib/asaas";
+import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured } from "@/lib/asaas";
 
 // Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate,
 // em vez de duplicar a checagem de isPlatformOwner num segundo lugar.
@@ -163,7 +163,10 @@ export async function updateOfficeModules(officeId: string, modules: { financeir
   return {};
 }
 
-export async function updateOfficeBilling(officeId: string, data: { billingEmail: string; monthlyFee: number; billingDueDay: number }): Promise<{ error?: string }> {
+export async function updateOfficeBilling(
+  officeId: string,
+  data: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number }
+): Promise<{ error?: string }> {
   const auth = await requirePlatformOwner();
   if ("error" in auth) return auth;
   await prisma.office.update({ where: { id: officeId }, data });
@@ -241,6 +244,30 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
   } else if (subscription?.paymentMethod === "PIX_AUTOMATICO") {
     if (!invoice.paymentMethod) {
       invoice = await prisma.tenantInvoice.update({ where: { id: invoice.id }, data: { paymentMethod: "PIX_AUTOMATICO" } });
+    }
+  } else if (subscription?.paymentMethod === "BOLETO" && isAsaasConfigured()) {
+    // Boleto emitido pela Asaas em vez do BTG — mesmo webhook/reconciliação que já cobre Pix
+    // passa a cobrir esse boleto também, sem precisar de nenhuma conciliação manual. O
+    // caminho BTG abaixo continua existindo só para quem não tiver Subscription.paymentMethod
+    // definido (ou enquanto a Asaas não estiver configurada).
+    if (!invoice.asaasPaymentId) {
+      try {
+        const charge = await createBoletoCharge(
+          { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
+          { id: office.id, name: office.name, billingEmail },
+          { value: invoice.amount, dueDate: invoice.dueDate, description: `Mensalidade Lúmen — ${office.name} — ${competencia}` }
+        );
+        invoice = await prisma.tenantInvoice.update({
+          where: { id: invoice.id },
+          data: { paymentMethod: "BOLETO", asaasPaymentId: charge.asaasPaymentId, boletoUrl: charge.boletoUrl },
+        });
+        boletoUrl = charge.boletoUrl;
+      } catch (e) {
+        asaasWarning = e instanceof Error ? e.message : "erro desconhecido ao criar boleto na Asaas";
+        console.error(`[asaas] falha ao criar boleto para o escritório ${officeId}:`, e);
+      }
+    } else {
+      boletoUrl = invoice.boletoUrl;
     }
   } else if (!boletoUrl && (await isBtgConnected())) {
     const boleto = await createBoleto({

@@ -50,7 +50,7 @@ export default function OfficeDetailPanel({
   officeId: string;
   status: string;
   initialModules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
-  initialBilling: { billingEmail: string; monthlyFee: number; billingDueDay: number };
+  initialBilling: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number };
   paymentMethod: string | null;
   invoices: Invoice[];
 }) {
@@ -111,7 +111,7 @@ export default function OfficeDetailPanel({
 
       <div>
         <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">Plano e cobrança</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
           <div>
             <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">E-mail de cobrança</label>
             <input value={billing.billingEmail} onChange={(e) => setBilling((p) => ({ ...p, billingEmail: e.target.value }))} className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-xs" />
@@ -123,6 +123,17 @@ export default function OfficeDetailPanel({
           <div>
             <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">Dia de vencimento</label>
             <input type="number" min={1} max={28} value={billing.billingDueDay} onChange={(e) => setBilling((p) => ({ ...p, billingDueDay: Number(e.target.value) }))} className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-xs" />
+          </div>
+          <div>
+            <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">Carência até bloqueio (dias)</label>
+            <input
+              type="number"
+              min={1}
+              max={90}
+              value={billing.paymentGraceDays}
+              onChange={(e) => setBilling((p) => ({ ...p, paymentGraceDays: Number(e.target.value) }))}
+              className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-xs"
+            />
           </div>
         </div>
         <button

@@ -58,10 +58,10 @@ model Office {
   monthlyFee    Float? // mensalidade combinada em contrato
   billingDueDay Int? // dia do mês de vencimento (1-28, pra não cair em mês sem o dia)
 
-  // Dias corridos de tolerância após o vencimento antes do bloqueio automático (Fase 2, ainda
-  // não implementada) — nasce com um padrão razoável, mas por escritório, pra dar flexibilidade
-  // caso algum cliente específico precise de mais prazo no futuro.
-  paymentGraceDays Int @default(5)
+  // Dias corridos de tolerância após o vencimento antes do bloqueio automático (usado pelo
+  // cron de cobrança, lib/actions/billing.ts:runBillingCycle) — por escritório, pra dar
+  // flexibilidade caso algum cliente específico precise de mais ou menos prazo.
+  paymentGraceDays Int @default(30)
 
   // Módulos habilitados por contrato — controla o que aparece na navegação e o que os Server
   // Actions de cada módulo aceitam fazer (checado nos dois lugares, não só escondido na tela).
