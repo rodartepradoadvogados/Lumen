@@ -197,7 +197,12 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
 
   const now = new Date();
   const competencia = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const dueDate = new Date(now.getFullYear(), now.getMonth(), office.billingDueDay);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Se o dia de vencimento cadastrado já passou neste mês (ex.: vencimento dia 10, gerando a
+  // fatura no dia 27), usa hoje como vencimento em vez de uma data no passado — a Asaas rejeita
+  // cobrança com dueDate vencido, e isso também deixava a fatura "vencida" desde a criação.
+  let dueDate = new Date(now.getFullYear(), now.getMonth(), office.billingDueDay);
+  if (dueDate < today) dueDate = today;
 
   let invoice = await prisma.tenantInvoice.findUnique({ where: { officeId_competencia: { officeId, competencia } } });
   if (!invoice) {
@@ -230,6 +235,7 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
         });
       } catch (e) {
         asaasWarning = e instanceof Error ? e.message : "erro desconhecido ao criar cobrança Pix na Asaas";
+        console.error(`[asaas] falha ao criar cobrança Pix QR Code para o escritório ${officeId}:`, e);
       }
     }
   } else if (subscription?.paymentMethod === "PIX_AUTOMATICO") {

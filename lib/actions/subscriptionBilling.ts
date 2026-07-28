@@ -91,6 +91,7 @@ export async function triggerPixAutomaticoAuthorization(
     revalidatePath("/painel-mestre/assinaturas");
     return { qrCode: result.qrCode ?? undefined, qrCodeImage: result.qrCodeImage ?? undefined };
   } catch (e) {
+    console.error(`[asaas] falha ao gerar autorização Pix Automático para o escritório ${officeId}:`, e);
     return { error: e instanceof Error ? e.message : "erro desconhecido ao gerar autorização Pix Automático" };
   }
 }
@@ -116,8 +117,14 @@ export async function previewPixQrCode(
   // de subscription.dueDay (pequeno duplicado aceitável de propósito, ver especificação da
   // Fase 3: não vale a pena refatorar generateAndSendInvoice só para extrair 2 linhas). Não cria
   // nenhuma TenantInvoice — só confirma que a integração Asaas está funcionando.
+  //
+  // Se o dia cadastrado já passou neste mês, usa hoje como vencimento — a Asaas rejeita cobrança
+  // com dueDate no passado (era exatamente isso que fazia esse teste falhar sempre que rodado
+  // depois do dia do vencimento cadastrado).
   const now = new Date();
-  const dueDate = new Date(now.getFullYear(), now.getMonth(), subscription.dueDay);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let dueDate = new Date(now.getFullYear(), now.getMonth(), subscription.dueDay);
+  if (dueDate < today) dueDate = today;
 
   try {
     const charge = await createPixQrCodeCharge(
@@ -128,6 +135,7 @@ export async function previewPixQrCode(
     revalidatePath("/painel-mestre/assinaturas");
     return { qrCodePayload: charge.qrCodePayload ?? undefined, qrCodeImage: charge.qrCodeImage ?? undefined };
   } catch (e) {
+    console.error(`[asaas] falha ao gerar QR Code de teste para o escritório ${officeId}:`, e);
     return { error: e instanceof Error ? e.message : "erro desconhecido ao gerar QR Code de teste" };
   }
 }

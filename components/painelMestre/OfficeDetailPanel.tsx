@@ -10,10 +10,27 @@ import {
   setOfficeAccess,
 } from "@/lib/actions/painelMestre";
 import StartActingModal from "@/components/painelMestre/StartActingModal";
+import CopyButton from "@/components/CopyButton";
 import { formatCurrency } from "@/components/ui";
 import { Send, CheckCircle2, Lock, Unlock } from "lucide-react";
 
-type Invoice = { id: string; competencia: string; amount: number; dueDate: string; status: string; boletoUrl: string | null };
+type Invoice = {
+  id: string;
+  competencia: string;
+  amount: number;
+  dueDate: string;
+  status: string;
+  boletoUrl: string | null;
+  paymentMethod: string | null;
+  pixQrCodePayload: string | null;
+  pixQrCodeImage: string | null;
+};
+
+const GENERATE_BUTTON_LABEL: Record<string, string> = {
+  PIX_QRCODE: "Gerar Pix QR Code e enviar por e-mail",
+  PIX_AUTOMATICO: "Registrar fatura do mês (cobrada via Pix Automático)",
+  BOLETO: "Gerar boleto e enviar por e-mail",
+};
 
 const MODULE_OPTIONS: { key: "financeiro" | "whatsapp" | "atendimento" | "assessoria"; label: string }[] = [
   { key: "financeiro", label: "Financeiro" },
@@ -27,12 +44,14 @@ export default function OfficeDetailPanel({
   status,
   initialModules,
   initialBilling,
+  paymentMethod,
   invoices,
 }: {
   officeId: string;
   status: string;
   initialModules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
   initialBilling: { billingEmail: string; monthlyFee: number; billingDueDay: number };
+  paymentMethod: string | null;
   invoices: Invoice[];
 }) {
   const router = useRouter();
@@ -42,13 +61,14 @@ export default function OfficeDetailPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function run(fn: () => Promise<{ error?: string; btgWarning?: string }>) {
+  function run(fn: () => Promise<{ error?: string; btgWarning?: string; asaasWarning?: string }>) {
     setError(null);
     setMessage(null);
     startTransition(async () => {
       const result = await fn();
       if (result?.error) setError(result.error);
       else if (result?.btgWarning) setMessage(`E-mail enviado. Aviso do BTG: ${result.btgWarning}`);
+      else if (result?.asaasWarning) setMessage(`E-mail enviado, mas a Asaas recusou a cobrança Pix: ${result.asaasWarning}`);
       else setMessage("Feito.");
       router.refresh();
     });
@@ -133,6 +153,24 @@ export default function OfficeDetailPanel({
         )}
       </div>
 
+      {pendingInvoice?.paymentMethod === "PIX_QRCODE" && pendingInvoice.pixQrCodePayload && (
+        <div className="bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg p-3 flex flex-wrap items-start gap-3">
+          {pendingInvoice.pixQrCodeImage && (
+            // eslint-disable-next-line @next/next/no-img-element -- base64 gerado em runtime, não é um asset estático
+            <img src={`data:image/png;base64,${pendingInvoice.pixQrCodeImage}`} alt="QR Code Pix da fatura pendente" className="h-28 w-28 rounded shrink-0" />
+          )}
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mb-1">Pix Copia e Cola da fatura {pendingInvoice.competencia}:</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-[11px] text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-800 border border-navy-800/12 dark:border-white/15 rounded px-2 py-1.5 break-all">
+                {pendingInvoice.pixQrCodePayload}
+              </code>
+              <CopyButton text={pendingInvoice.pixQrCodePayload} label="Copiar" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2 pt-2 border-t border-navy-800/8 dark:border-white/10">
         <button
           type="button"
@@ -140,7 +178,7 @@ export default function OfficeDetailPanel({
           onClick={() => run(() => generateAndSendInvoice(officeId))}
           className="inline-flex items-center justify-center gap-1.5 bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
         >
-          <Send size={14} /> Gerar boleto e enviar por e-mail
+          <Send size={14} /> {GENERATE_BUTTON_LABEL[paymentMethod ?? "BOLETO"] ?? GENERATE_BUTTON_LABEL.BOLETO}
         </button>
         {pendingInvoice && (
           <button

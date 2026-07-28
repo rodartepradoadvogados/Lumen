@@ -17,7 +17,11 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
 
   const office = await prisma.office.findUnique({
     where: { id: params.officeId },
-    include: { invoices: { orderBy: { competencia: "desc" }, take: 12 }, users: { where: { active: true }, select: { id: true, name: true, email: true, isAdmin: true } } },
+    include: {
+      invoices: { orderBy: { competencia: "desc" }, take: 12 },
+      users: { where: { active: true }, select: { id: true, name: true, email: true, isAdmin: true } },
+      subscription: { select: { paymentMethod: true } },
+    },
   });
   if (!office || office.isInternal) notFound();
 
@@ -61,6 +65,7 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
               monthlyFee: office.monthlyFee ?? 0,
               billingDueDay: office.billingDueDay ?? 5,
             }}
+            paymentMethod={office.subscription?.paymentMethod ?? null}
             invoices={office.invoices.map((i) => ({
               id: i.id,
               competencia: i.competencia,
@@ -68,6 +73,9 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
               dueDate: i.dueDate.toISOString(),
               status: i.status,
               boletoUrl: i.boletoUrl,
+              paymentMethod: i.paymentMethod,
+              pixQrCodePayload: i.pixQrCodePayload,
+              pixQrCodeImage: i.pixQrCodeImage,
             }))}
           />
         </div>
