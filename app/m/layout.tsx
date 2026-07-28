@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
-import { prisma } from "@/lib/prisma";
 import { getTodayElapsedSeconds } from "@/lib/timesheet";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import InstallPrompt from "@/components/mobile/InstallPrompt";
@@ -53,12 +52,12 @@ export default async function MobileLayout({ children }: { children: React.React
   // Auth já é garantida pelo middleware global; aqui só lemos o usuário para o cabeçalho.
   const user = await getCurrentUser();
   const hasFinanceAccess = user ? Boolean(user.isAdmin || user.financeAccess) : false;
-  const [unreadCount, totalAlerts, todaySeconds] = await Promise.all([
-    user ? prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }) : Promise.resolve(0),
-    // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas
-    // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
-    // do PWA (AppBadgeSync) e o badge da aba "Alertas" no menu inferior, diferente de
-    // `unreadCount` acima, que é específico de Publicações.
+  // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas,
+  // publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone do PWA
+  // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
+  // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
+  // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
+  const [totalAlerts, todaySeconds] = await Promise.all([
     user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id) : Promise.resolve(0),
     user ? getTodayElapsedSeconds(user.id) : Promise.resolve(0),
   ]);
