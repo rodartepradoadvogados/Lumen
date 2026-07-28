@@ -12,6 +12,7 @@ import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
+import { getAlertsCount } from "@/lib/alerts";
 import { Lock } from "lucide-react";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
@@ -47,8 +48,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const [unreadPublications, modules] = await Promise.all([
+  const hasFinanceAccess = user.isAdmin || user.financeAccess;
+  const [unreadPublications, totalAlerts, modules] = await Promise.all([
     prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }),
+    // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas
+    // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
+    // do PWA (AppBadgeSync) e o badge do item "Alertas" na Sidebar, diferente de
+    // `unreadPublications` acima, que é específico da aba/menu Publicações.
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id),
     getOfficeModules(user.officeId),
   ]);
 
@@ -62,12 +69,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SupportAccessBanner />
         <div className="flex flex-1 overflow-hidden">
           <InactivityNotice />
-          <AppBadgeSync initialCount={unreadPublications} />
+          <AppBadgeSync initialCount={totalAlerts} />
           <Suspense fallback={null}>
             <Sidebar
-              hasFinanceAccess={user.isAdmin || user.financeAccess}
+              hasFinanceAccess={hasFinanceAccess}
               isAdmin={user.isAdmin}
               unreadPublications={unreadPublications}
+              totalAlerts={totalAlerts}
               modules={modules}
             />
           </Suspense>
