@@ -4,7 +4,7 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
-import { Phone, DollarSign, BarChart, Settings, LogOut, Lock } from "lucide-react";
+import { Phone, DollarSign, BarChart, Settings, LogOut, Lock, Newspaper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,10 @@ export default async function MobileMais() {
   const initials = viewer ? viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("") : "??";
 
   const items = [
+    // A aba do sino no menu inferior leva pra Central de Alertas (/m/alertas), não mais
+    // direto pra Publicações — este atalho garante que Publicações continue alcançável a
+    // partir do menu inferior existente (além do card na Início).
+    { href: "/m/publicacoes", label: "Publicações", Icon: Newspaper, color: "navy" as const, show: true },
     { href: "/m/atendimento", label: "Atendimento", Icon: Phone, color: "bordo" as const, show: modules.atendimento },
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, color: "gold" as const, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, color: "navy" as const, show: true },
