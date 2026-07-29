@@ -7,10 +7,14 @@ import { Copy, Check } from "lucide-react";
 // página /alertas). Um clique copia o número para a área de transferência — precisa de
 // stopPropagation/preventDefault porque o alerta inteiro já é clicável (abre o compromisso),
 // e o clique no chip não deve disparar essa navegação.
+//
+// É um <span role="button">, não um <button>: AlertRow envolve o alerta inteiro num <button>
+// (contas e prazos) ou num <a> (menções e follow-ups), e o HTML proíbe conteúdo interativo
+// aninhado — o React acusava erro de hidratação sempre que um alerta trazia número de processo.
 export default function ProcessNumberChip({ processNumber }: { processNumber: string }) {
   const [copied, setCopied] = useState(false);
 
-  function handleClick(e: React.MouseEvent) {
+  function copy(e: React.SyntheticEvent) {
     e.preventDefault();
     e.stopPropagation();
     navigator.clipboard.writeText(processNumber).then(() => {
@@ -20,14 +24,18 @@ export default function ProcessNumberChip({ processNumber }: { processNumber: st
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={copy}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") copy(e);
+      }}
       data-tip={copied ? "Copiado!" : "Copiar número do processo"}
-      className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55 bg-navy-900/5 dark:bg-white/10 hover:bg-navy-900/10 dark:hover:bg-white/15 rounded px-1.5 py-0.5 transition-colors"
+      className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55 bg-navy-900/5 dark:bg-white/10 hover:bg-navy-900/10 dark:hover:bg-white/15 rounded px-1.5 py-0.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
     >
       {copied ? <Check size={11} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={11} />}
       {processNumber}
-    </button>
+    </span>
   );
 }
