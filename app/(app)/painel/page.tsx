@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { hasBlogAccess } from "@/lib/officeModules";
+import { getGreeting, getFirstName } from "@/lib/greeting";
 import {
   Card,
   CardHeader,
@@ -15,26 +16,51 @@ import {
   taskTypeColors,
   dueStatusClassName,
 } from "@/components/ui";
-import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, Newspaper, ExternalLink } from "lucide-react";
+import { TrendingDown, TrendingUp, AlertTriangle, CalendarClock, ArrowRight, Newspaper, ExternalLink } from "lucide-react";
 import NoticesPanel from "@/components/NoticesPanel";
 import AlertRow from "@/components/AlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PendingListModal from "@/components/PendingListModal";
 import SettleButton from "@/components/SettleButton";
 import OverdueTaskRow from "@/components/OverdueTaskRow";
+import TodayTaskRow from "@/components/TodayTaskRow";
+import PainelEscopoToggle from "@/components/PainelEscopoToggle";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: { escopo?: string } }) {
   const now = new Date();
   const soon = new Date();
   soon.setDate(now.getDate() + 7);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
 
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
-  const [payablesPending, receivablesPending, activeCases, upcomingTasks, overdueTasksList, alerts, activeUsers] = await Promise.all([
+  // Escopo "meus" (padrão) x "do escritório": só afeta tarefas/prazos — não existe "conta a
+  // pagar minha", então os indicadores financeiros continuam sempre do escritório inteiro
+  // (ver rótulos dos StatCards abaixo).
+  const escopo = searchParams.escopo === "escritorio" ? "escritorio" : "meus";
+  const scopeFilter = escopo === "meus" ? { responsibleId: viewer.id } : {};
+
+  const [
+    payablesPending,
+    receivablesPending,
+    activeCases,
+    upcomingTasks,
+    overdueTasksList,
+    todayTasksList,
+    alerts,
+    activeUsers,
+    blogPendingCount,
+    blogAccess,
+    notices,
+    byArea,
+  ] = await Promise.all([
     hasFinanceAccess
       ? prisma.payable.findMany({
           where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
@@ -51,29 +77,38 @@ export default async function DashboardPage() {
       : Promise.resolve([]),
     prisma.case.count({ where: { status: "ATIVO", officeId: viewer.officeId } }),
     prisma.task.findMany({
-      where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId },
+      where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId, ...scopeFilter },
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
       take: 8,
     }),
     prisma.task.findMany({
-      where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId },
+      where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId, ...scopeFilter },
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
     }),
+    prisma.task.findMany({
+      where: { dueDate: { gte: todayStart, lte: todayEnd }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId, ...scopeFilter },
+      include: { case: true, responsible: true },
+      orderBy: { dueTime: "asc" },
+    }),
     getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO", officeId: viewer.officeId } }),
+    hasBlogAccess(viewer.officeId),
+    prisma.notice.findMany({
+      where: { officeId: viewer.officeId },
+      include: { author: { select: { id: true, name: true, color: true } } },
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+      take: 10,
+    }),
+    prisma.case.groupBy({
+      by: ["area"],
+      where: { status: "ATIVO", officeId: viewer.officeId },
+      _count: { _all: true },
+    }),
   ]);
 
-  const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO", officeId: viewer.officeId } });
-  const blogAccess = await hasBlogAccess(viewer.officeId);
-
-  const notices = await prisma.notice.findMany({
-    where: { officeId: viewer.officeId },
-    include: { author: { select: { id: true, name: true, color: true } } },
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-    take: 10,
-  });
   const serializedNotices = notices.map((n) => ({
     id: n.id,
     content: n.content,
@@ -85,23 +120,28 @@ export default async function DashboardPage() {
   const totalPayable = payablesPending.reduce((s, p) => s + p.amount, 0);
   const totalReceivable = receivablesPending.reduce((s, r) => s + r.amount, 0);
 
-  const byArea = await prisma.case.groupBy({
-    by: ["area"],
-    where: { status: "ATIVO", officeId: viewer.officeId },
-    _count: { _all: true },
-  });
   const totalCasesByArea = byArea.reduce((s, a) => s + a._count._all, 0) || 1;
+
+  const greeting = getGreeting(now);
+  const firstName = getFirstName(viewer.name);
+  const showBlogBlock = blogAccess || blogPendingCount > 0;
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
-      <div className="mb-6">
-        <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">Painel</h1>
-        <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1 capitalize">
-          {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">
+            {greeting}
+            {firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1 capitalize">
+            {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+          </p>
+        </div>
+        <PainelEscopoToggle escopo={escopo} />
       </div>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasFinanceAccess ? "lg:grid-cols-3" : "lg:grid-cols-1"} gap-4 mb-6`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasFinanceAccess ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-4 mb-6`}>
         {hasFinanceAccess && (
           <>
             <PendingListModal
@@ -109,7 +149,7 @@ export default async function DashboardPage() {
               value={formatCurrency(totalReceivable)}
               tone="green"
               icon={<TrendingUp size={18} />}
-              hint={`${receivablesPending.length} contas em aberto`}
+              hint={`${receivablesPending.length} contas em aberto · escritório inteiro`}
               title="Contas a Receber Pendentes"
             >
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
@@ -141,7 +181,7 @@ export default async function DashboardPage() {
               value={formatCurrency(totalPayable)}
               tone="red"
               icon={<TrendingDown size={18} />}
-              hint={`${payablesPending.length} contas em aberto`}
+              hint={`${payablesPending.length} contas em aberto · escritório inteiro`}
               title="Contas a Pagar Pendentes"
             >
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
@@ -175,7 +215,7 @@ export default async function DashboardPage() {
           value={String(overdueTasksList.length)}
           tone="red"
           icon={<AlertTriangle size={18} />}
-          hint={`${activeCases} processos ativos`}
+          hint={escopo === "meus" ? `Seus prazos · ${activeCases} processos ativos` : `${activeCases} processos ativos`}
           title="Prazos Atrasados"
         >
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
@@ -196,47 +236,33 @@ export default async function DashboardPage() {
             ))}
           </div>
         </PendingListModal>
-      </div>
 
-      {/* Bloco de destaque do Juris Blog: propositalmente diferente dos StatCards acima
-          (fundo em gradiente navy->bordô, ícone em moldura dourada) para chamar atenção
-          para o blog público do escritório sem se misturar com os cards de KPI. */}
-      <div className="mb-6 relative overflow-hidden rounded-xl border border-gold-500/30 bg-gradient-to-r from-navy-900 via-navy-800 to-bordo-700 shadow-card">
-        <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-5">
-          <div className="h-12 w-12 shrink-0 rounded-full bg-gold-500/15 border border-gold-400/40 flex items-center justify-center text-gold-400">
-            <Newspaper size={22} />
+        <PendingListModal
+          label="Vence Hoje"
+          value={String(todayTasksList.length)}
+          tone="gold"
+          icon={<CalendarClock size={18} />}
+          hint={escopo === "meus" ? "Seus prazos de hoje" : "Prazos do escritório hoje"}
+          title="Vence Hoje"
+        >
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            {todayTasksList.length === 0 && <EmptyState title="Nada vence hoje" />}
+            {todayTasksList.map((t) => (
+              <TodayTaskRow
+                key={t.id}
+                task={{
+                  id: t.id,
+                  title: t.title,
+                  type: t.type,
+                  dueTime: t.dueTime,
+                  responsibleName: t.responsible?.name,
+                  caseId: t.case?.id,
+                  caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+                }}
+              />
+            ))}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-serif text-lg font-bold text-cream-50">Juris Blog</h2>
-              {blogPendingCount > 0 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gold-500/20 text-gold-300 border border-gold-400/30">
-                  {blogPendingCount} aguardando revisão
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-cream-50/70 mt-0.5">Conteúdo jurídico atualizado, publicado pelo escritório para clientes e visitantes.</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/blog"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gold-500 hover:bg-gold-400 text-navy-950 rounded-lg px-3.5 py-2 transition-colors"
-            >
-              Ver blog <ExternalLink size={13} />
-            </Link>
-            {viewer?.isAdmin && blogAccess && (
-              <Link
-                href="/configuracoes?secao=blog&blogTab=revisao"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/15 text-cream-50 border border-white/15 rounded-lg px-3.5 py-2 transition-colors"
-              >
-                Fila de revisão <ArrowRight size={13} />
-              </Link>
-            )}
-          </div>
-        </div>
+        </PendingListModal>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -253,7 +279,11 @@ export default async function DashboardPage() {
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {upcomingTasks.length === 0 && <EmptyState title="Nada agendado para os próximos dias" />}
             {upcomingTasks.map((t) => (
-              <div key={t.id} className="flex items-center justify-between px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+              <Link
+                key={t.id}
+                href={t.case ? `/processos/${t.case.id}` : "/agenda"}
+                className="flex items-center justify-between px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 dark:focus-visible:ring-gold-400 focus-visible:ring-inset"
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
@@ -265,7 +295,7 @@ export default async function DashboardPage() {
                   <p className="text-xs font-semibold text-navy-800 dark:text-cream-50/80">{formatDate(t.dueDate)}</p>
                   {t.dueTime && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</p>}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </Card>
@@ -332,6 +362,44 @@ export default async function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Faixa do Juris Blog: peso visual discreto de propósito (card comum, sem gradiente
+          de largura total) e no fim da página — os prazos do advogado vêm antes. Mesma regra
+          de exibição de sempre: só aparece pra quem tem blogAccess ou tem post aguardando revisão. */}
+      {showBlogBlock && (
+        <Card className="mt-6 px-5 py-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-gold-500/15 text-gold-700 dark:bg-gold-400/15 dark:text-gold-400 flex items-center justify-center">
+              <Newspaper size={16} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Juris Blog</p>
+                {blogPendingCount > 0 && <Badge color="gold">{blogPendingCount} aguardando revisão</Badge>}
+              </div>
+              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Conteúdo jurídico publicado pelo escritório para clientes e visitantes.</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Link
+                href="/blog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+              >
+                Ver blog <ExternalLink size={12} />
+              </Link>
+              {viewer?.isAdmin && blogAccess && (
+                <Link
+                  href="/configuracoes?secao=blog&blogTab=revisao"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800 dark:text-cream-50/80 hover:underline"
+                >
+                  Fila de revisão <ArrowRight size={12} />
+                </Link>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
