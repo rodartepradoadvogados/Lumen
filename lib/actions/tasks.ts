@@ -368,7 +368,7 @@ export async function addComment(data: { content: string; taskId?: string; caseI
   // ser forjado para atribuir o comentário (e a menção correspondente) a outra pessoa.
   if (data.taskId && !(await isTaskInOffice(data.taskId, viewer.officeId))) return;
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return;
-  const mentionNames = Array.from(data.content.matchAll(/@([\p{L}\s]+?)(?=(@|$|\n))/gu)).map((m) => m[1].trim());
+  const mentionNames = Array.from(data.content.matchAll(/@(\p{Lu}\p{L}*(?:[ \t]+\p{Lu}\p{L}*)*)/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
     data: {
       content: data.content,
