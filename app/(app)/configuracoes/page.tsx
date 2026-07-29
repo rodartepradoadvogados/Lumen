@@ -23,6 +23,7 @@ import BlogReviewManager from "@/components/BlogReviewManager";
 import BlogPublishedManager from "@/components/BlogPublishedManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
+import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
@@ -802,6 +803,18 @@ export default async function ConfiguracoesPage({
           />
           <div className="p-5">
             <ReorganizeAttachmentsButton />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && (
+        <Card>
+          <CardHeader
+            title="Nomenclatura de processos"
+            subtitle='Todo processo novo com cliente e parte adversa cadastrados já nasce com o título "Cliente x Parte Adversa" — este botão aplica o mesmo padrão aos processos já existentes'
+          />
+          <div className="p-5">
+            <RenameCasesToConventionButton />
           </div>
         </Card>
       )}

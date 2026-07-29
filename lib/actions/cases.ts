@@ -6,6 +6,17 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
+import { renameDriveFolder } from "@/lib/storageProvider";
+
+// Convenção de nomenclatura: sempre que o NOSSO cliente e a parte adversa estiverem
+// cadastrados, o título do processo é "{Cliente} x {Parte Adversa}" — nunca um meio-termo (ex.
+// só cliente, ou cliente com "x" sem adversa) para não ficar um título quebrado. Sem os dois
+// dados, mantém o título informado manualmente (ex.: Atendimento/Consultivo sem parte adversa
+// não tem por que forçar esse formato).
+function computeCaseTitle(clientName: string | null, opposingPartyName: string | null, fallback: string): string {
+  if (clientName && opposingPartyName) return `${clientName} x ${opposingPartyName}`;
+  return fallback;
+}
 
 async function assertCaseRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -63,14 +74,18 @@ export async function createCase(data: {
   await assertCaseRelationsInOffice(data, viewer.officeId);
 
   let clientId = data.clientId || null;
+  let clientName: string | null = data.newClientName || null;
   if (!clientId && data.newClientName) {
     const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF", officeId: viewer.officeId } });
     clientId = client.id;
+  } else if (clientId) {
+    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
+    clientName = client?.name ?? null;
   }
 
   const created = await prisma.case.create({
     data: {
-      title: data.title,
+      title: computeCaseTitle(clientName, data.opposingPartyName || null, data.title),
       type: data.type,
       area: data.area || null,
       processNumber: data.processNumber || null,
@@ -120,7 +135,10 @@ export async function updateCase(
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
 
-  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId: viewer.officeId }, select: { id: true } });
+  const existing = await prisma.case.findFirst({
+    where: { id: caseId, officeId: viewer.officeId },
+    select: { id: true, title: true, driveFolderId: true },
+  });
   if (!existing) return { error: "Processo não encontrado." };
 
   try {
@@ -129,9 +147,20 @@ export async function updateCase(
     return { error: err instanceof Error ? err.message : "Dados inválidos." };
   }
 
+  // Reaplica a convenção "Cliente x Parte Adversa" se a edição deixou os dois dados
+  // disponíveis — mesmo se o título ainda não seguia o padrão (ex.: processo antigo). Sem os
+  // dois, mantém o título já salvo (nunca apaga um título manual por falta de um dos dois).
+  let clientName: string | null = null;
+  if (data.clientId) {
+    const client = await prisma.client.findUnique({ where: { id: data.clientId }, select: { name: true } });
+    clientName = client?.name ?? null;
+  }
+  const newTitle = computeCaseTitle(clientName, data.opposingPartyName || null, existing.title);
+
   await prisma.case.update({
     where: { id: caseId },
     data: {
+      title: newTitle,
       clientId: data.clientId || null,
       opposingPartyName: data.opposingPartyName || null,
       opposingPartyRole: data.opposingPartyRole || null,
@@ -145,8 +174,81 @@ export async function updateCase(
     },
   });
 
+  // A pasta do processo no Drive é nomeada com o título (ver getOrCreateCaseFolder) — se o
+  // título mudou e a pasta já existe, renomeia junto pra não destoar. Best-effort: uma falha
+  // aqui (ex. credencial revogada) não deve impedir a atualização do processo em si — o sync
+  // reverso diário (lib/driveSync.ts) detecta e alerta qualquer divergência que sobrar.
+  if (newTitle !== existing.title && existing.driveFolderId) {
+    try {
+      await renameDriveFolder(existing.driveFolderId, newTitle, viewer.officeId);
+    } catch (e) {
+      console.error(`[cases] falha ao renomear a pasta do processo ${caseId} no armazenamento:`, e);
+    }
+  }
+
   revalidatePath(`/processos/${caseId}`);
   return {};
+}
+
+export type CaseNamingResult = {
+  renamed: number;
+  driveRenameErrors: number;
+  withoutClient: { id: string; title: string; processNumber: string | null }[];
+};
+
+// Ação administrativa avulsa (mesmo padrão de lib/actions/driveReorg.ts:reorganizeExistingAttachments):
+// aplica a convenção "Cliente x Parte Adversa" nos processos JÁ EXISTENTES do escritório, pra
+// quem cadastrou antes dessa regra existir. Só renomeia quando cliente E parte adversa estão
+// cadastrados (senão não tem como montar o "x"); quando não há cliente vinculado, devolve o
+// processo na lista withoutClient em vez de tentar adivinhar — quem está rodando a ação decide
+// o que fazer (vincular um cliente e rodar de novo, ou deixar como está).
+export async function applyClientOpponentNamingConvention(): Promise<CaseNamingResult | { error: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  if (!viewer.isAdmin) return { error: "Apenas administradores podem fazer isso." };
+
+  const cases = await prisma.case.findMany({
+    where: { officeId: viewer.officeId },
+    select: {
+      id: true,
+      title: true,
+      processNumber: true,
+      opposingPartyName: true,
+      driveFolderId: true,
+      clientId: true,
+      client: { select: { name: true } },
+    },
+  });
+
+  let renamed = 0;
+  let driveRenameErrors = 0;
+  const withoutClient: { id: string; title: string; processNumber: string | null }[] = [];
+
+  for (const c of cases) {
+    if (!c.clientId || !c.client) {
+      withoutClient.push({ id: c.id, title: c.title, processNumber: c.processNumber });
+      continue;
+    }
+    if (!c.opposingPartyName) continue; // sem parte adversa cadastrada — não dá pra montar "Cliente x Adversa", mantém como está
+
+    const newTitle = `${c.client.name} x ${c.opposingPartyName}`;
+    if (newTitle === c.title) continue;
+
+    await prisma.case.update({ where: { id: c.id }, data: { title: newTitle } });
+    renamed++;
+
+    if (c.driveFolderId) {
+      try {
+        await renameDriveFolder(c.driveFolderId, newTitle, viewer.officeId);
+      } catch (e) {
+        driveRenameErrors++;
+        console.error(`[cases] falha ao renomear a pasta do processo ${c.id} no armazenamento (aplicação retroativa da convenção):`, e);
+      }
+    }
+  }
+
+  revalidatePath("/processos");
+  return { renamed, driveRenameErrors, withoutClient };
 }
 
 // Mesmo cadastro de createCase, mas sem redirect() — o redirect da versão desktop aponta
@@ -180,14 +282,18 @@ export async function createCaseMobile(data: {
   await assertCaseRelationsInOffice(data, viewer.officeId);
 
   let clientId = data.clientId || null;
+  let clientName: string | null = data.newClientName || null;
   if (!clientId && data.newClientName) {
     const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF", officeId: viewer.officeId } });
     clientId = client.id;
+  } else if (clientId) {
+    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
+    clientName = client?.name ?? null;
   }
 
   const created = await prisma.case.create({
     data: {
-      title: data.title,
+      title: computeCaseTitle(clientName, data.opposingPartyName || null, data.title),
       type: data.type,
       area: data.area || null,
       processNumber: data.processNumber || null,
