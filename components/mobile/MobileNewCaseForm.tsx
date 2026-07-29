@@ -8,6 +8,7 @@ import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
 import TribunalFields from "@/components/TribunalFields";
+import NewCaseAttachmentsField from "@/components/NewCaseAttachmentsField";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 
 const inputClass =
@@ -39,6 +40,7 @@ export default function MobileNewCaseForm({
   tribunais,
   defaultType,
   defaultProcessNumber,
+  driveConnected,
 }: {
   clients: Client[];
   users: UserOption[];
@@ -46,6 +48,7 @@ export default function MobileNewCaseForm({
   tribunais: TribunalCatalogEntry[];
   defaultType: string;
   defaultProcessNumber: string;
+  driveConnected: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -60,6 +63,13 @@ export default function MobileNewCaseForm({
     }
     setError("");
     setLoading(true);
+    let stagedAttachments: { blobUrl: string; name: string; contentType: string; docType?: string }[] = [];
+    try {
+      const raw = String(formData.get("stagedAttachments") || "");
+      if (raw) stagedAttachments = JSON.parse(raw);
+    } catch {
+      stagedAttachments = [];
+    }
     try {
       const result = await createCaseMobile({
         title,
@@ -82,6 +92,7 @@ export default function MobileNewCaseForm({
         tribunalNome: String(formData.get("tribunalNome") || "") || undefined,
         tribunalSistema: String(formData.get("tribunalSistema") || "") || undefined,
         tribunalLink: String(formData.get("tribunalLink") || "") || undefined,
+        stagedAttachments,
       });
       router.push(`/m/processos/${result.id}`);
     } catch {
@@ -160,6 +171,8 @@ export default function MobileNewCaseForm({
         <label className={labelClass}>Descrição / Observações</label>
         <textarea name="description" rows={3} className={inputClass} />
       </div>
+
+      <NewCaseAttachmentsField driveConnected={driveConnected} />
 
       {error && <p className="text-xs font-semibold text-bordo-600 dark:text-bordo-400">{error}</p>}
 

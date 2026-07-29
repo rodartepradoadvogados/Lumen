@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getDriveStatus } from "@/lib/googleDrive";
 import { Card } from "@/components/ui";
 import MobileNewCaseForm from "@/components/mobile/MobileNewCaseForm";
 import { ArrowLeft } from "lucide-react";
@@ -14,7 +15,7 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
 
   // tribunais: catálogo global (não tem officeId), buscado junto para alimentar o
   // TribunalFields do formulário — mesma consulta usada na versão desktop de Novo Processo.
-  const [clients, users, assessoriasRaw, tribunais] = await Promise.all([
+  const [clients, users, assessoriasRaw, tribunais, driveStatus] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.assessoria.findMany({
@@ -23,6 +24,7 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
       orderBy: { client: { name: "asc" } },
     }),
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
+    getDriveStatus(viewer.officeId),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
@@ -45,6 +47,7 @@ export default async function MobileNewCasePage({ searchParams }: { searchParams
           tribunais={tribunais}
           defaultType={searchParams.type || "JUDICIAL"}
           defaultProcessNumber={searchParams.processNumber || ""}
+          driveConnected={driveStatus.connected}
         />
       </Card>
     </div>

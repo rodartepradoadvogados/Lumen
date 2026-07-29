@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getDriveStatus } from "@/lib/googleDrive";
 import { createCase } from "@/lib/actions/cases";
 import { PageHeader, Card } from "@/components/ui";
 import ClientPicker from "@/components/ClientPicker";
@@ -8,6 +9,7 @@ import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
 import SaveCaseButton from "@/components/SaveCaseButton";
 import TribunalFields from "@/components/TribunalFields";
+import NewCaseAttachmentsField from "@/components/NewCaseAttachmentsField";
 
 const AREA_OPTIONS = [
   "Cível",
@@ -30,7 +32,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
   if (!viewer) notFound();
 
   const defaultType = searchParams.type || "JUDICIAL";
-  const [clients, users, assessoriasRaw, tribunais] = await Promise.all([
+  const [clients, users, assessoriasRaw, tribunais, driveStatus] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.assessoria.findMany({
@@ -41,11 +43,19 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
     // Tribunal é catálogo global (sem officeId) — a ordenação real por CATEGORIA_ORDER acontece
     // no componente cliente (TribunalPickerModal), aqui só traz os dados.
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
+    getDriveStatus(viewer.officeId),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
 
   async function submit(formData: FormData) {
     "use server";
+    let stagedAttachments: { blobUrl: string; name: string; contentType: string; docType?: string }[] = [];
+    try {
+      const raw = String(formData.get("stagedAttachments") || "");
+      if (raw) stagedAttachments = JSON.parse(raw);
+    } catch {
+      stagedAttachments = [];
+    }
     await createCase({
       title: String(formData.get("title")),
       type: String(formData.get("type")),
@@ -67,6 +77,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       tribunalNome: String(formData.get("tribunalNome") || ""),
       tribunalSistema: String(formData.get("tribunalSistema") || ""),
       tribunalLink: String(formData.get("tribunalLink") || ""),
+      stagedAttachments,
     });
   }
 
@@ -144,6 +155,8 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição / Observações</label>
             <textarea name="description" rows={3} className="input" />
           </div>
+
+          <NewCaseAttachmentsField driveConnected={driveStatus.connected} />
 
           <SaveCaseButton defaultType={defaultType} />
         </form>
