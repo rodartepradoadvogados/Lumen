@@ -41,7 +41,7 @@ export default async function MobileHome() {
     // Total de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas, além de
     // publicações não lidas — ver lib/alerts.ts) — alimenta o card "Central de Alertas" abaixo,
     // que substituiu o antigo card só de Publicações nesse lugar de destaque da Início.
-    user ? getAlertsCount(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id) : Promise.resolve(0),
+    user ? getAlertsCount(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin) : Promise.resolve(0),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
   ]);
 

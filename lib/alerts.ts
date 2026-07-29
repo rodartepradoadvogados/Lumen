@@ -9,7 +9,8 @@ export type AlertItem = {
     | "MENCAO"
     | "PARCELA_SEM_VENCIMENTO"
     | "FOLLOWUP_ATRASADO"
-    | "TAREFA_DELEGADA";
+    | "TAREFA_DELEGADA"
+    | "DRIVE_INCONSISTENCIA";
   title: string;
   subtitle?: string;
   date: Date;
@@ -63,7 +64,16 @@ function computeDueStatus(dueDate: Date, now: Date): "atrasado" | "hoje" | undef
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
 // `viewerId`: quando informado, também busca tarefas delegadas para esse usuário ainda não
 // vistas (delegationAcknowledgedAt null) — alerta pessoal, visível só pra quem recebeu.
-export async function getAlerts(officeId: string, includeFinance: boolean = true, viewerId?: string): Promise<AlertItem[]> {
+// `includeDriveSync`: segue o MESMO padrão de includeFinance, mas gated por isAdmin (não por
+// financeAccess) — inconsistência de estrutura no Drive é assunto de sócio/administrador, ver
+// lib/driveSync.ts. Default false para não vazar pra quem chama getAlerts sem saber que este
+// gate existe (ex: lib/email.ts, que filtra por kind e nunca precisaria disso mesmo assim).
+export async function getAlerts(
+  officeId: string,
+  includeFinance: boolean = true,
+  viewerId?: string,
+  includeDriveSync: boolean = false
+): Promise<AlertItem[]> {
   const now = new Date();
 
   const [
@@ -75,6 +85,7 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
     undatedReceivables,
     overdueFollowups,
     delegatedTasks,
+    driveSyncIssues,
   ] = await Promise.all([
       prisma.task.findMany({
         where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -108,6 +119,13 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
             where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
             include: { case: true, delegatedBy: true },
             orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+      includeDriveSync
+        ? prisma.driveSyncIssue.findMany({
+            where: { officeId, resolvedAt: null },
+            include: { case: { select: { id: true, processNumber: true } }, attendance: { select: { id: true } } },
+            orderBy: { detectedAt: "desc" },
           })
         : Promise.resolve([]),
     ]);
@@ -214,6 +232,18 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
       dueStatus: computeDueStatus(t.dueDate, now),
     });
   }
+  for (const issue of driveSyncIssues) {
+    alerts.push({
+      id: `drive-sync-${issue.id}`,
+      kind: "DRIVE_INCONSISTENCIA",
+      title: issue.description,
+      subtitle: issue.suggestedFix,
+      date: issue.detectedAt,
+      href: issue.case ? `/processos/${issue.case.id}` : issue.attendance ? `/atendimento/${issue.attendance.id}` : "/alertas",
+      severity: "alta",
+      processNumber: issue.case?.processNumber ?? undefined,
+    });
+  }
   for (const m of unreadMentions) {
     alerts.push({
       id: `mention-${m.id}`,
@@ -235,7 +265,12 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
 // case/comment/author, que ela busca pra exibir na Central de Alertas) — usado onde só o
 // número importa (badge do ícone do PWA, badge do item "Alertas" no menu), pra não pagar o
 // custo dos joins/conteúdo completo só pra chegar num inteiro.
-export async function getAlertsCount(officeId: string, includeFinance: boolean = true, viewerId?: string): Promise<number> {
+export async function getAlertsCount(
+  officeId: string,
+  includeFinance: boolean = true,
+  viewerId?: string,
+  includeDriveSync: boolean = false
+): Promise<number> {
   const now = new Date();
 
   const [
@@ -247,6 +282,7 @@ export async function getAlertsCount(officeId: string, includeFinance: boolean =
     undatedReceivables,
     overdueFollowups,
     delegatedTasks,
+    driveSyncIssues,
   ] = await Promise.all([
     prisma.task.count({
       where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -272,6 +308,7 @@ export async function getAlertsCount(officeId: string, includeFinance: boolean =
     viewerId
       ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
       : Promise.resolve(0),
+    includeDriveSync ? prisma.driveSyncIssue.count({ where: { officeId, resolvedAt: null } }) : Promise.resolve(0),
   ]);
 
   return (
@@ -282,7 +319,8 @@ export async function getAlertsCount(officeId: string, includeFinance: boolean =
     undatedPayables +
     undatedReceivables +
     overdueFollowups +
-    delegatedTasks
+    delegatedTasks +
+    driveSyncIssues
   );
 }
 

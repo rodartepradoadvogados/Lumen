@@ -5,6 +5,7 @@
     { "path": "/api/cron/robo-bridge", "schedule": "0 */3 * * *" },
     { "path": "/api/cron/assessoria-honorarios", "schedule": "0 6 * * *" },
     { "path": "/api/cron/billing", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/resumo-diario", "schedule": "0 10 * * *" }
+    { "path": "/api/cron/resumo-diario", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/drive-sync", "schedule": "0 5 * * *" }
   ]
 }

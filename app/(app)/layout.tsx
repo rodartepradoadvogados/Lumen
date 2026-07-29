@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
     // do PWA (AppBadgeSync) e o badge do item "Alertas" na Sidebar, diferente de
     // `unreadPublications` acima, que é específico da aba/menu Publicações.
-    getAlertsCount(user.officeId, hasFinanceAccess, user.id),
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
     getOfficeModules(user.officeId),
   ]);
 

@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState, dueStatusClassName } from "@/components/ui";
 import AlertRow from "@/components/AlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
-import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, LucideIcon } from "lucide-react";
+import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, FolderSync, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +22,7 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
   FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
   TAREFA_DELEGADA: { label: "Tarefa Delegada", icon: UserPlus },
+  DRIVE_INCONSISTENCIA: { label: "Inconsistência no Drive", icon: FolderSync },
 };
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
@@ -46,7 +47,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
   const [alerts, todayItems] = await Promise.all([
-    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id),
+    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin),
     getTodayItems(viewer.officeId, hasFinanceAccess),
   ]);
 

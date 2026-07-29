@@ -58,7 +58,7 @@ export default async function MobileLayout({ children }: { children: React.React
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
   const [totalAlerts, todaySeconds] = await Promise.all([
-    user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id) : Promise.resolve(0),
+    user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin) : Promise.resolve(0),
     user ? getTodayElapsedSeconds(user.id) : Promise.resolve(0),
   ]);
 

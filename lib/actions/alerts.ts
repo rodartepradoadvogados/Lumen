@@ -13,5 +13,5 @@ export async function getUnreadAlertsCount(): Promise<number> {
   const user = await getCurrentUser();
   if (!user) return 0;
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
-  return getAlertsCount(user.officeId, hasFinanceAccess, user.id);
+  return getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin);
 }

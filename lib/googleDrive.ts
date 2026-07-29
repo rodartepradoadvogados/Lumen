@@ -429,3 +429,55 @@ export async function moveDriveFile(fileId: string, newParentId: string, officeI
     fields: "id, parents",
   });
 }
+
+// ============ SYNC REVERSO (Drive -> banco), ver lib/driveSync.ts ============
+
+export const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+
+// Usado pelo sync reverso pra pular, sem erro, escritórios que nunca conectaram o Drive — bem
+// diferente de getDriveClient (privado, acima), que LANÇA quando não há credencial, correto
+// para uma ação disparada por um usuário clicando em algo, mas errado para um cron que varre
+// todos os escritórios da plataforma.
+export async function hasPrimaryDriveCredential(officeId: string): Promise<boolean> {
+  const cred = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true }, select: { id: true } });
+  return Boolean(cred);
+}
+
+export type DriveChildEntry = { id: string; name: string; mimeType: string; webViewLink?: string | null };
+
+// Lista TODOS os filhos (arquivos + subpastas, um nível) de uma pasta do Drive, paginando
+// conforme necessário — nenhuma outra função deste arquivo lista o conteúdo inteiro de uma
+// pasta (as demais só buscam/criam UM filho pontual por nome). Usado só pelo sync reverso, que
+// precisa enumerar o que existe de verdade no Drive pra comparar com o que o banco espera.
+export async function listDriveChildren(officeId: string, folderId: string): Promise<DriveChildEntry[]> {
+  const { drive } = await getDriveClient(officeId);
+  const children: DriveChildEntry[] = [];
+  let pageToken: string | undefined;
+  do {
+    const res = await drive.files.list({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: "nextPageToken, files(id,name,mimeType,webViewLink)",
+      pageToken,
+      pageSize: 1000,
+    });
+    for (const f of res.data.files ?? []) {
+      if (f.id && f.name) children.push({ id: f.id, name: f.name, mimeType: f.mimeType ?? "", webViewLink: f.webViewLink });
+    }
+    pageToken = res.data.nextPageToken ?? undefined;
+  } while (pageToken);
+  return children;
+}
+
+// Ids das pastas-raiz "Lúmen - Processos"/"Lúmen - Atendimentos" deste escritório (cria se ainda
+// não existir, mesmo getOrCreateRootFolder usado por getOrCreateCaseFolder/
+// getOrCreateAttendanceFolder) — exportado pro sync reverso listar o conteúdo da raiz sem
+// precisar de um Case/Attendance específico em mãos.
+export async function getProcessosRootFolderId(officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, PROCESSOS_ROOT_NAME);
+}
+
+export async function getAtendimentosRootFolderId(officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
+}

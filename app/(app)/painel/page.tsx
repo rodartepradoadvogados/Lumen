@@ -61,7 +61,7 @@ export default async function DashboardPage() {
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
     }),
-    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id),
+    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 

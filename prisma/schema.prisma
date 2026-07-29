@@ -141,6 +141,8 @@ model Office {
   supportTickets SupportTicket[]
   accessRequests AccessRequest[]
   accessAudit    AccessAuditLog[]
+
+  driveSyncIssues DriveSyncIssue[]
 }
 
 // ============ EQUIPE ============
@@ -419,6 +421,7 @@ model Case {
   attachments              Attachment[]
   convertedFromAttendances Attendance[]          @relation("AttendanceConvertedCase")
   assessoriaDocumentos     AssessoriaDocumento[]
+  driveSyncIssues          DriveSyncIssue[]
 
   @@index([officeId])
   @@index([officeId, processNumber])
@@ -661,6 +664,7 @@ model Attendance {
   attachments      Attachment[]
   whatsappMessages WhatsappMessage[]
   emailMessages    EmailMessage[]
+  driveSyncIssues  DriveSyncIssue[]
 
   @@index([officeId])
   @@index([officeId, waPhone])
@@ -740,6 +744,55 @@ model Attachment {
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
 
   @@index([officeId])
+}
+
+// Problema de estrutura encontrado no Drive pelo sync reverso (lib/driveSync.ts, cron diário
+// app/api/cron/drive-sync/route.ts) — nasce de alguém salvando/renomeando algo direto no Drive
+// (fora do app), fugindo da estrutura esperada ("Lúmen - Processos/{título}/{tipo de
+// documento}"). O sync NUNCA move/renomeia/apaga nada sozinho quando não tem certeza — só
+// registra aqui o que está errado e a correção exata, pra um sócio decidir e agir manualmente
+// (ver Central de Alertas, kind DRIVE_INCONSISTENCIA em lib/alerts.ts, visível só a isAdmin).
+// Uma linha por problema "ainda aberto"; resolvedAt marca quando o próprio sync deixou de
+// detectá-lo numa rodada seguinte (pasta corrigida, arquivo movido, anexo re-registrado etc.) —
+// nunca apagada, pra manter histórico de que existiu.
+model DriveSyncIssue {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  // Id no Drive do arquivo OU pasta que está com problema — junto com officeId+issueType forma
+  // a chave usada pelo sync pra saber se um problema já detectado numa rodada anterior continua
+  // valendo (atualiza) ou já sumiu (resolve), em vez de duplicar uma linha por dia.
+  driveFileId String
+
+  // PASTA_PROCESSO_SEM_CORRESPONDENCIA | PASTA_CATEGORIA_DESCONHECIDA |
+  // ARQUIVO_SOLTO_SEM_CATEGORIA | ANEXO_SUMIU_DO_DRIVE — ver lib/driveSync.ts.
+  issueType String
+
+  description  String // o que está errado, em linguagem simples
+  suggestedFix String // a correção EXATA (ex: nome exato pra renomear a pasta) — vira o subtitle do alerta
+
+  // Link direto pro arquivo/pasta no Drive, quando disponível (webViewLink da Drive API) — nem
+  // sempre existe (ex: pasta raiz sem webViewLink retornado, ou pasta já removida entre a
+  // detecção e a exibição do alerta).
+  driveUrl String?
+
+  // Processo/Atendimento já resolvido em cujo interior o problema foi encontrado (categoria com
+  // nome errado, arquivo solto) — nulo quando o próprio problema É a pasta não corresponder a
+  // nenhum processo/atendimento (PASTA_PROCESSO_SEM_CORRESPONDENCIA não tem um dos dois pra
+  // apontar). Usado só para o alerta na Central de Alertas linkar direto pra página do
+  // processo/atendimento em vez de cair no fallback genérico.
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
+
+  attendanceId String?
+  attendance   Attendance? @relation(fields: [attendanceId], references: [id])
+
+  detectedAt DateTime  @default(now())
+  resolvedAt DateTime? // preenchido quando a rodada seguinte do sync deixa de encontrar o problema
+
+  @@unique([officeId, driveFileId, issueType])
+  @@index([officeId, resolvedAt])
 }
 
 // ============ MODELOS DE DOCUMENTO (contratos, procurações, declarações...) ============
