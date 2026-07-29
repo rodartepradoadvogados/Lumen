@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 
 async function assertCaseRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -13,6 +14,25 @@ async function assertCaseRelationsInOffice(
   if (data.clientId && !(await isClientInOffice(data.clientId, officeId))) throw new Error("Cliente não encontrado.");
   if (data.responsibleId && !(await isUserInOffice(data.responsibleId, officeId))) throw new Error("Responsável não encontrado.");
   if (data.assessoriaId && !(await isAssessoriaInOffice(data.assessoriaId, officeId))) throw new Error("Assessoria não encontrada.");
+}
+
+// Anexos que o usuário já subiu pro Vercel Blob enquanto preenchia o formulário de criação (ver
+// components/NewCaseAttachmentsField.tsx) — o caso ainda não existia, então falta só a etapa 2
+// (finalizeAttachmentUpload: baixa do Blob, manda pro Drive e cria o Attachment de verdade), que
+// só dá pra fazer agora que o caso tem um id real.
+type StagedAttachment = { blobUrl: string; name: string; contentType: string; docType?: string };
+
+async function finalizeStagedAttachments(staged: StagedAttachment[] | undefined, caseId: string): Promise<void> {
+  if (!staged || staged.length === 0) return;
+  for (const att of staged) {
+    await finalizeAttachmentUpload({
+      blobUrl: att.blobUrl,
+      name: att.name,
+      contentType: att.contentType,
+      docType: att.docType || "OUTRO",
+      caseId,
+    });
+  }
 }
 
 export async function createCase(data: {
@@ -36,6 +56,7 @@ export async function createCase(data: {
   tribunalNome?: string;
   tribunalSistema?: string;
   tribunalLink?: string;
+  stagedAttachments?: StagedAttachment[];
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
@@ -71,6 +92,7 @@ export async function createCase(data: {
       officeId: viewer.officeId,
     },
   });
+  await finalizeStagedAttachments(data.stagedAttachments, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
   redirect(`/processos/${created.id}`);
@@ -151,6 +173,7 @@ export async function createCaseMobile(data: {
   tribunalNome?: string;
   tribunalSistema?: string;
   tribunalLink?: string;
+  stagedAttachments?: StagedAttachment[];
 }): Promise<{ id: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
@@ -186,6 +209,7 @@ export async function createCaseMobile(data: {
       officeId: viewer.officeId,
     },
   });
+  await finalizeStagedAttachments(data.stagedAttachments, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
   return { id: created.id };

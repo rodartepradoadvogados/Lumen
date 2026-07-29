@@ -56,6 +56,7 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "PROCESSO_COMPLETO", label: "Processo Completo", icon: FileStack },
       { key: "PETICAO", label: "Petição", icon: FileEdit },
       { key: "PETICAO_INICIAL", label: "Petição Inicial", icon: FileEdit },
+      { key: "CARTA_CITACAO", label: "Carta de Citação", icon: Mail },
       { key: "CONTESTACAO", label: "Contestação", icon: Scale },
       { key: "REPLICA", label: "Réplica", icon: FileEdit },
       { key: "EMENDA_INICIAL", label: "Emenda à Inicial", icon: FileEdit },
