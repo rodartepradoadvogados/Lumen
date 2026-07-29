@@ -195,11 +195,13 @@ export default function Sidebar({
   hasFinanceAccess = true,
   isAdmin = false,
   unreadPublications = 0,
+  totalAlerts = 0,
   modules = ALL_MODULES_ON,
 }: {
   hasFinanceAccess?: boolean;
   isAdmin?: boolean;
   unreadPublications?: number;
+  totalAlerts?: number;
   modules?: OfficeModules;
 }) {
   const pathname = usePathname();
@@ -337,6 +339,11 @@ export default function Sidebar({
                       {item.href === "/publicacoes" && unreadPublications > 0 && (
                         <span className="bg-bordo-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
                           {unreadPublications > 99 ? "99+" : unreadPublications}
+                        </span>
+                      )}
+                      {item.href === "/alertas" && totalAlerts > 0 && (
+                        <span className="bg-bordo-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
+                          {totalAlerts > 99 ? "99+" : totalAlerts}
                         </span>
                       )}
                     </Link>

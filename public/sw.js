@@ -11,12 +11,27 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/icon-192",
-      badge: "/icon-192",
-      data: { url: data.url || "/m" },
-    })
+    (async () => {
+      await self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: "/icon-192",
+        badge: "/icon-192",
+        data: { url: data.url || "/m" },
+      });
+
+      // Se o payload já veio com a contagem total de alertas (ver lib/push.ts), atualiza o
+      // badge do ícone na hora, sem esperar o push chegar até um client aberto. Sempre avisa
+      // os clients abertos também (postMessage), pra AppBadgeSync reconsultar imediatamente
+      // em vez de só no polling de 60s — cobre o caso de o payload não trazer `count`, ou de
+      // ter ficado desatualizado entre o envio do push e o momento em que ele chega.
+      if (typeof data.count === "number" && "setAppBadge" in self.registration) {
+        if (data.count > 0) await self.registration.setAppBadge(data.count).catch(() => {});
+        else await self.registration.clearAppBadge().catch(() => {});
+      }
+
+      const clientsList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clientsList) client.postMessage({ type: "lumen-refresh-badge" });
+    })()
   );
 });
 

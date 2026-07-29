@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
+import { getAlertsCount } from "@/lib/alerts";
 import { Card } from "@/components/ui";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
 import {
@@ -13,6 +14,7 @@ import {
   Phone,
   Search,
   Bell,
+  Newspaper,
   DollarSign,
   Wallet,
   FileBarChart,
@@ -34,8 +36,12 @@ function greeting() {
 
 export default async function MobileHome() {
   const user = await getCurrentUser();
-  const [unreadCount, assessoriaCount] = await Promise.all([
+  const [unreadCount, totalAlerts, assessoriaCount] = await Promise.all([
     user ? prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }) : Promise.resolve(0),
+    // Total de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas, além de
+    // publicações não lidas — ver lib/alerts.ts) — alimenta o card "Central de Alertas" abaixo,
+    // que substituiu o antigo card só de Publicações nesse lugar de destaque da Início.
+    user ? getAlertsCount(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id) : Promise.resolve(0),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
   ]);
 
@@ -90,10 +96,31 @@ export default async function MobileHome() {
           </Link>
         </div>
 
-        <Link href="/m/publicacoes" className="block">
+        {/* Card de destaque: leva pra Central de Alertas (menções, prazos vencidos, tarefas
+            delegadas, contas vencidas e publicações não lidas — ver lib/alerts.ts), não mais
+            direto pra Publicações. Publicações continua com o mesmo 1-toque de distância da
+            Início logo abaixo, só que num card próprio, pra não regredir o acesso a ela. */}
+        <Link href="/m/alertas" className="block">
           <Card className="p-4 flex items-center gap-3">
             <span className="h-10 w-10 rounded-lg bg-bordo-500/15 dark:bg-bordo-400/10 text-bordo-600 dark:text-bordo-400 flex items-center justify-center shrink-0">
               <Bell size={18} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Central de Alertas</p>
+              <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{totalAlerts} pendente(s)</p>
+            </div>
+            {totalAlerts > 0 && (
+              <span className="min-w-[24px] h-6 px-1.5 rounded-full bg-bordo-600 dark:bg-bordo-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                {totalAlerts > 99 ? "99+" : totalAlerts}
+              </span>
+            )}
+          </Card>
+        </Link>
+
+        <Link href="/m/publicacoes" className="block">
+          <Card className="p-4 flex items-center gap-3">
+            <span className="h-10 w-10 rounded-lg bg-navy-900/8 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
+              <Newspaper size={18} />
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Publicações / Andamentos</p>

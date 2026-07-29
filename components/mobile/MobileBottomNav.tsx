@@ -4,15 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Calendar, Bell, Briefcase, Menu } from "lucide-react";
 
+// A aba do sino leva à Central de Alertas (menções, prazos vencidos, tarefas delegadas,
+// contas vencidas e publicações não lidas — ver lib/alerts.ts), não mais direto a
+// Publicações: era o único lugar do app mobile que de fato agregava tudo isso, então virou
+// a "área de notificações" real. Publicações continua acessível pelo card na Início e por
+// um atalho em Mais — ver app/m/page.tsx e app/m/mais/page.tsx.
 const items = [
   { href: "/m", label: "Início", Icon: Home, exact: true, badge: false },
   { href: "/m/agenda", label: "Agenda", Icon: Calendar, exact: false, badge: false },
-  { href: "/m/publicacoes", label: "Publicações", Icon: Bell, exact: false, badge: true },
+  { href: "/m/alertas", label: "Alertas", Icon: Bell, exact: false, badge: true },
   { href: "/m/processos", label: "Processos", Icon: Briefcase, exact: false, badge: false },
   { href: "/m/mais", label: "Mais", Icon: Menu, exact: false, badge: false },
 ];
 
-export default function MobileBottomNav({ unreadCount }: { unreadCount: number }) {
+export default function MobileBottomNav({ alertsCount }: { alertsCount: number }) {
   const pathname = usePathname();
 
   return (
@@ -36,9 +41,9 @@ export default function MobileBottomNav({ unreadCount }: { unreadCount: number }
                   className={active ? "text-white dark:text-navy-950" : "text-navy-800/40 dark:text-cream-50/40"}
                 />
               </span>
-              {badge && unreadCount > 0 && (
+              {badge && alertsCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-bordo-600 dark:bg-bordo-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                  {alertsCount > 99 ? "99+" : alertsCount}
                 </span>
               )}
             </span>

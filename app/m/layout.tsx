@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
-import { prisma } from "@/lib/prisma";
 import { getTodayElapsedSeconds } from "@/lib/timesheet";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import InstallPrompt from "@/components/mobile/InstallPrompt";
@@ -11,6 +10,7 @@ import AppBadgeSync from "@/components/AppBadgeSync";
 import LumenMark from "@/components/LumenMark";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
+import { getAlertsCount } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -51,8 +51,14 @@ function initials(name: string) {
 export default async function MobileLayout({ children }: { children: React.ReactNode }) {
   // Auth já é garantida pelo middleware global; aqui só lemos o usuário para o cabeçalho.
   const user = await getCurrentUser();
-  const [unreadCount, todaySeconds] = await Promise.all([
-    user ? prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }) : Promise.resolve(0),
+  const hasFinanceAccess = user ? Boolean(user.isAdmin || user.financeAccess) : false;
+  // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas,
+  // publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone do PWA
+  // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
+  // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
+  // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
+  const [totalAlerts, todaySeconds] = await Promise.all([
+    user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id) : Promise.resolve(0),
     user ? getTodayElapsedSeconds(user.id) : Promise.resolve(0),
   ]);
 
@@ -61,7 +67,7 @@ export default async function MobileLayout({ children }: { children: React.React
     <div className="min-h-screen bg-cream-100 dark:bg-navy-950 transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       {user && <InactivityNotice />}
-      <AppBadgeSync initialCount={unreadCount} />
+      <AppBadgeSync initialCount={totalAlerts} />
       {/* `sticky` (não `fixed`) de propósito: empilhado num flex-col junto com a faixa de
           suporte abaixo, este bloco fica colado no topo ao rolar sem precisar saber de
           antemão se a faixa vai aparecer ou não — quando ela existe, empurra o cabeçalho pra
@@ -103,7 +109,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen">{children}</main>
 
-      <MobileBottomNav unreadCount={unreadCount} />
+      <MobileBottomNav alertsCount={totalAlerts} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>

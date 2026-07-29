@@ -231,6 +231,61 @@ export async function getAlerts(officeId: string, includeFinance: boolean = true
   return alerts.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
+// Mesmo conjunto de critérios de getAlerts() acima, mas só CONTANDO (sem os includes de
+// case/comment/author, que ela busca pra exibir na Central de Alertas) — usado onde só o
+// número importa (badge do ícone do PWA, badge do item "Alertas" no menu), pra não pagar o
+// custo dos joins/conteúdo completo só pra chegar num inteiro.
+export async function getAlertsCount(officeId: string, includeFinance: boolean = true, viewerId?: string): Promise<number> {
+  const now = new Date();
+
+  const [
+    overdueTasks,
+    overduePayables,
+    overdueReceivables,
+    unreadMentions,
+    undatedPayables,
+    undatedReceivables,
+    overdueFollowups,
+    delegatedTasks,
+  ] = await Promise.all([
+    prisma.task.count({
+      where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+    }),
+    includeFinance
+      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+      : Promise.resolve(0),
+    includeFinance
+      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+      : Promise.resolve(0),
+    viewerId
+      ? prisma.mention.count({ where: { officeId, userId: viewerId, read: false } })
+      : Promise.resolve(0),
+    includeFinance
+      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+      : Promise.resolve(0),
+    includeFinance
+      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+      : Promise.resolve(0),
+    prisma.attendance.count({
+      where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
+    }),
+    viewerId
+      ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
+      : Promise.resolve(0),
+  ]);
+
+  return (
+    overdueTasks +
+    overduePayables +
+    overdueReceivables +
+    unreadMentions +
+    undatedPayables +
+    undatedReceivables +
+    overdueFollowups +
+    delegatedTasks
+  );
+}
+
 // Tudo que vence HOJE: tarefas/eventos/audiências/perícias/prazos + contas a pagar/receber — reforço do dia.
 export async function getTodayItems(officeId: string, includeFinance: boolean = true): Promise<TodayItem[]> {
   const now = new Date();
