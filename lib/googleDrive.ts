@@ -481,3 +481,42 @@ export async function getAtendimentosRootFolderId(officeId: string): Promise<str
   const { drive } = await getDriveClient(officeId);
   return getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
 }
+
+// ============ MIGRAÇÃO DE PASTAS LEGADAS (ver lib/actions/driveFolderMigration.ts) ============
+
+export type DriveFileInfo = { id: string; name: string; parents: string[]; trashed: boolean };
+
+// Lê nome + pais (parents) atuais de um arquivo/pasta no Drive pelo id — diferente de todas as
+// funções acima, que só CRIAM/buscam um filho pontual por nome, esta lê o estado bruto de um id
+// já conhecido de antemão (vindo de Case.driveFolderId/Attendance.driveFolderId). Devolve null
+// (em vez de lançar) quando o id não existe mais no Drive — apagado, ou nunca existiu de fato —
+// caso normal a se esperar depois de uma migração antiga malfeita, não um erro de programação.
+// Usado pela migração de pastas legadas pra descobrir em qual raiz uma pasta está de verdade e
+// se o nome dela ainda bate com o título atual da entidade (títulos foram renomeados pra
+// convenção "Cliente x Parte Adversa" depois que várias pastas já existiam).
+//
+// `trashed` vem junto de propósito: uma pasta na Lixeira do Drive ainda responde 200 aqui e
+// ainda reporta os `parents` que tinha antes, então sem esse campo uma pasta que alguém jogou
+// no lixo pareceria uma pasta viva no lugar errado — e a migração a "resgataria" de volta pra
+// raiz nova sem ninguém ter pedido.
+export async function getDriveFileInfo(fileId: string, officeId: string): Promise<DriveFileInfo | null> {
+  const { drive } = await getDriveClient(officeId);
+  try {
+    const file = await drive.files.get({ fileId, fields: "id, name, parents, trashed" });
+    return { id: fileId, name: file.data.name ?? "", parents: file.data.parents ?? [], trashed: Boolean(file.data.trashed) };
+  } catch (e: unknown) {
+    const status = (e as { code?: number; response?: { status?: number } })?.code ?? (e as { response?: { status?: number } })?.response?.status;
+    if (status === 404) return null;
+    throw e;
+  }
+}
+
+// Manda um arquivo/pasta para a Lixeira do Drive — de propósito NUNCA files.delete (que é
+// permanente e não pode ser desfeito por ninguém, nem o dono da conta). Usado só quando uma
+// automação está prestes a apagar algo que ela mesma concluiu (com alta confiança) ser um
+// duplicado vazio, e mesmo assim precisa continuar reversível por 30 dias pela Lixeira do Drive
+// caso a conclusão esteja errada — ver migrarPastasLegadasDoDrive.
+export async function trashDriveFile(fileId: string, officeId: string): Promise<void> {
+  const { drive } = await getDriveClient(officeId);
+  await drive.files.update({ fileId, requestBody: { trashed: true } });
+}

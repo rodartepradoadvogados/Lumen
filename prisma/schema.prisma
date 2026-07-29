@@ -767,6 +767,14 @@ model DriveSyncIssue {
 
   // PASTA_PROCESSO_SEM_CORRESPONDENCIA | PASTA_CATEGORIA_DESCONHECIDA |
   // ARQUIVO_SOLTO_SEM_CATEGORIA | ANEXO_SUMIU_DO_DRIVE — ver lib/driveSync.ts.
+  // PASTA_PROCESSO_DUPLICADA_LEGADO_VS_NOVA — a migração de pastas legadas (raiz "RP Financeiro
+  // - Processos" -> "Lúmen - Processos") achou, para um processo/atendimento, tanto a pasta
+  // antiga quanto uma pasta homônima na raiz nova, AMBAS com conteúdo — não dá pra decidir
+  // sozinho qual é a "certa" nem mesclar automaticamente sem risco de perder documento. Ver
+  // lib/actions/driveFolderMigration.ts.
+  // PASTA_ORFA_NA_RAIZ_LEGADA — pasta que ficou numa raiz ANTIGA do Drive e que nenhum
+  // processo/atendimento aponta. O sync diário (lib/driveSync.ts) só varre a raiz nova, então
+  // sem este alerta ela seguiria esquecida, com documento de cliente dentro. Idem.
   issueType String
 
   description  String // o que está errado, em linguagem simples

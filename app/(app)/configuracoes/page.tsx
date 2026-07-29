@@ -24,6 +24,7 @@ import BlogPublishedManager from "@/components/BlogPublishedManager";
 import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
+import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
@@ -803,6 +804,18 @@ export default async function ConfiguracoesPage({
           />
           <div className="p-5">
             <ReorganizeAttachmentsButton />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && secao === "modelos" && driveStatus.connected && (
+        <Card>
+          <CardHeader
+            title="Pastas de processo fora do lugar no Drive"
+            subtitle="Corrige pastas de Processo/Atendimento que ficaram apontando para a raiz antiga do Drive depois da migração para o Lúmen multi-tenant — move a pasta para a raiz correta sem alterar nenhum link já salvo"
+          />
+          <div className="p-5">
+            <MigrarPastasLegadasButton />
           </div>
         </Card>
       )}
