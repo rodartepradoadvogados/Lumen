@@ -142,18 +142,18 @@ export default function MigrarPastasLegadasButton() {
             </div>
           )}
 
-          {/* Pastas que sobraram numa raiz antiga sem nenhum processo/atendimento apontando pra
-              elas. Aparecem separadas da tabela acima porque não têm processo a que se ligar — e
-              nunca são movidas nem apagadas pela ação, só reportadas, porque só um humano sabe a
-              que processo aquele documento pertence. */}
+          {/* Pastas com conteúdo sem nenhum processo/atendimento apontando pra elas — tanto numa
+              raiz antiga quanto já dentro da raiz correta (pasta criada direto no Drive, ou
+              processo com título diferente do nome da pasta). Aparecem separadas da tabela acima
+              porque não têm processo a que se ligar — e nunca são movidas nem apagadas pela ação,
+              só reportadas, porque só um humano sabe a que processo aquele documento pertence. */}
           {exibido.orfas.length > 0 && (
             <div className="border border-bordo-700/25 dark:border-bordo-400/25 rounded-lg p-3 bg-bordo-100/40 dark:bg-bordo-700/10 space-y-1.5">
               <p className="text-xs font-semibold text-bordo-700 dark:text-bordo-400">
-                {exibido.orfas.length} pasta(s) esquecida(s) na raiz antiga, sem processo vinculado — nada foi movido nem apagado
+                {exibido.orfas.length} pasta(s) com conteúdo e sem processo vinculado — nada foi movido nem apagado
               </p>
               <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60">
-                O sync diário do Drive só varre a raiz nova, então estas pastas não apareceriam em nenhum outro lugar. Abra cada
-                uma, veja a que processo pertence e traga os documentos pelo próprio site, na tela do processo.
+                Abra cada uma, veja a que processo pertence e vincule os documentos pela tela de Anexos daquele processo.
               </p>
               <ul className="space-y-0.5 pt-0.5">
                 {exibido.orfas.map((o) => (
@@ -165,7 +165,10 @@ export default function MigrarPastasLegadasButton() {
                     ) : (
                       <span className="font-medium">{o.name}</span>
                     )}
-                    <span className="text-navy-800/45 dark:text-cream-50/45"> · {o.itens} item(ns)</span>
+                    <span className="text-navy-800/45 dark:text-cream-50/45">
+                      {" "}
+                      · {o.itens} item(ns) · {o.naRaizCorreta ? "já na raiz correta" : "raiz antiga"}
+                    </span>
                   </li>
                 ))}
               </ul>

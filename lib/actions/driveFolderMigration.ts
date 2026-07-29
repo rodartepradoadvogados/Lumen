@@ -37,6 +37,7 @@ export type DriveFolderMigrationEntry = {
   action: "MOVER" | "JA_CORRETA" | "CONFLITO" | "PASTA_INEXISTENTE";
   detail: string; // explicação em português, pro usuário ler
   emptyDuplicateId?: string; // duplicado vazio que será/foi mandado pra lixeira
+  conflictFolderId?: string; // pasta de nome parecido (não idêntico) e com conteúdo, candidata a ser o mesmo processo — ver pareceMesmoCaso
 };
 
 // Pasta que ESTÁ numa raiz legada mas que nenhum Processo/Atendimento do banco aponta. O laço
@@ -49,6 +50,7 @@ export type DriveFolderOrfa = {
   name: string;
   itens: number;
   driveUrl?: string | null;
+  naRaizCorreta: boolean; // true = já está em "Lúmen - Processos"/"Lúmen - Atendimentos", só não tem Case/Attendance apontando pra ela
 };
 
 export type DriveFolderMigrationResult = {
@@ -83,6 +85,42 @@ function normalizarNome(s: string): string {
     .replace(/\s+/g, " ");
 }
 
+// Palavras comuns demais (raz\u00e3o social, conectivos) pra servirem de ind\u00edcio de que duas pastas
+// s\u00e3o o mesmo processo \u2014 sem isso, "LTDA" ou "DE" por si s\u00f3 dispararia falso positivo em qualquer
+// par de empresas.
+const PALAVRAS_IGNORADAS = new Set([
+  "de", "da", "do", "das", "dos", "e", "em", "com", "para", "por", "ltda", "epp", "eireli", "sa",
+  "me", "cia", "jr", "junior",
+]);
+
+function palavrasSignificativas(s: string): Set<string> {
+  return new Set(
+    normalizarNome(s)
+      .split(/[^a-z0-9]+/)
+      .filter((p) => p.length >= 4 && !PALAVRAS_IGNORADAS.has(p))
+  );
+}
+
+// Acusa nomes de pasta bem diferentes (grafia, abrevia\u00e7\u00e3o, "|" vs "x", raz\u00e3o social completa vs.
+// apelido do cliente) que ainda assim s\u00e3o muito provavelmente o MESMO processo \u2014 caso real que
+// motivou isto: a pasta antiga "All Car Motors | Cynthia Borges Ramos Macedo (IDPJ) x UNITINTAS
+// COMERCIO DE TINTAS LTDA" e uma pasta j\u00e1 existente na raiz nova "ALL CAR MOTORS LTDA (Cynthia
+// Macedo) x UNITINTAS COM\u00c9RCIO DE TINTAS LTDA", com conte\u00fado diferente dos dois lados. A
+// compara\u00e7\u00e3o exata (normalizarNome) n\u00e3o as casa \u2014 nomes diferentes demais \u2014, mas 6+ palavras
+// relevantes em comum (motors, cynthia, macedo, unitintas, comercio, tintas) deixam claro que s\u00e3o
+// o mesmo caso. Sem esta checagem, a a\u00e7\u00e3o moveria a pasta antiga direto pra dentro da raiz nova,
+// criando SILENCIOSAMENTE um segundo lugar pro mesmo processo \u2014 documento dividido em dois
+// lugares, sem qualquer aviso.
+function pareceMesmoCaso(a: string, b: string): boolean {
+  const ta = palavrasSignificativas(a);
+  const tb = palavrasSignificativas(b);
+  if (ta.size === 0 || tb.size === 0) return false;
+  let compartilhadas = 0;
+  for (const p of ta) if (tb.has(p)) compartilhadas++;
+  const menor = Math.min(ta.size, tb.size);
+  return compartilhadas >= 2 || compartilhadas / menor >= 0.6;
+}
+
 async function registrarConflito(
   officeId: string,
   kind: "PROCESSO" | "ATENDIMENTO",
@@ -114,8 +152,12 @@ async function registrarConflito(
 }
 
 async function registrarOrfa(officeId: string, orfa: DriveFolderOrfa): Promise<void> {
-  const description = `A pasta "${orfa.name}" está numa raiz antiga do Drive e nenhum processo ou atendimento do Lúmen aponta para ela (${orfa.itens} item(ns) dentro).`;
-  const suggestedFix = `Abra a pasta no Drive e confira o conteúdo. Se pertencer a um processo que já existe no Lúmen, mova os documentos para a pasta certa dentro de "Lúmen - Processos" — ou anexe-os pelo próprio site, na tela do processo. Se não pertencer a nada, mande para a Lixeira.`;
+  const description = orfa.naRaizCorreta
+    ? `A pasta "${orfa.name}" está dentro da raiz correta do Drive, mas nenhum processo ou atendimento do Lúmen aponta para ela (${orfa.itens} item(ns) dentro) — pode ser um processo cadastrado com título diferente do nome da pasta, ou uma pasta criada direto no Drive sem passar pelo site.`
+    : `A pasta "${orfa.name}" está numa raiz antiga do Drive e nenhum processo ou atendimento do Lúmen aponta para ela (${orfa.itens} item(ns) dentro).`;
+  const suggestedFix = orfa.naRaizCorreta
+    ? `Abra a pasta no Drive e confira o conteúdo. Se pertencer a um processo já cadastrado no Lúmen, vincule os documentos pela tela de Anexos daquele processo (ou renomeie a pasta pra bater com o título do processo, se for só uma diferença de nome). Se não pertencer a nada, mande para a Lixeira.`
+    : `Abra a pasta no Drive e confira o conteúdo. Se pertencer a um processo que já existe no Lúmen, mova os documentos para a pasta certa dentro de "Lúmen - Processos" — ou anexe-os pelo próprio site, na tela do processo. Se não pertencer a nada, mande para a Lixeira.`;
   await prisma.driveSyncIssue.upsert({
     where: { officeId_driveFileId_issueType: { officeId, driveFileId: orfa.folderId, issueType: ORFA_ISSUE_TYPE } },
     update: { description, suggestedFix, driveUrl: orfa.driveUrl ?? null, resolvedAt: null },
@@ -182,8 +224,32 @@ async function processarEntidade(
     const homonima = irmasNaRaizCorreta.find((f) => f.mimeType === DRIVE_FOLDER_MIME_TYPE && candidatos.has(normalizarNome(f.name)));
 
     if (!homonima) {
+      // Nome exato não bateu, mas isso não garante ausência de duplicata: nomes de pasta divergem
+      // por abreviação, "|" vs "x", razão social completa vs. apelido do cliente. Antes de mover
+      // direto, procura por uma pasta na raiz correta que COMPARTILHE palavras significativas com
+      // o nome atual/título e que tenha conteúdo — achar uma sem checar teria criado
+      // silenciosamente um segundo lugar pro mesmo processo.
+      let provavelDuplicata: { id: string; name: string } | null = null;
+      for (const f of irmasNaRaizCorreta) {
+        if (f.mimeType !== DRIVE_FOLDER_MIME_TYPE) continue;
+        if (!pareceMesmoCaso(f.name, info.name) && !pareceMesmoCaso(f.name, title)) continue;
+        const conteudo = await listDriveChildren(officeId, f.id);
+        if (conteudo.length > 0) {
+          provavelDuplicata = f;
+          break;
+        }
+      }
+
+      if (provavelDuplicata) {
+        const detail = `Não existe pasta com o nome exato "${info.name}" na raiz correta, mas existe uma pasta de nome PARECIDO e com conteúdo ("${provavelDuplicata.name}", id ${provavelDuplicata.id}) — muito provavelmente o mesmo processo, só com a pasta nomeada de outro jeito. Mover automaticamente criaria um segundo lugar para o mesmo processo. Confira as duas pastas no Drive e mescle manualmente antes de rodar esta ação de novo.`;
+        if (!simulacao) {
+          await registrarConflito(officeId, kind, entityId, folderId, title, detail);
+        }
+        return { ...base, action: "CONFLITO", detail, conflictFolderId: provavelDuplicata.id };
+      }
+
       if (simulacao) {
-        return { ...base, action: "MOVER", detail: `Não existe pasta com o nome "${info.name}" (nem com o título atual "${title}") na raiz correta — será movida diretamente para lá, sem conflito.` };
+        return { ...base, action: "MOVER", detail: `Não existe pasta com o nome "${info.name}" (nem com o título atual "${title}", nem qualquer pasta de nome parecido com conteúdo) na raiz correta — será movida diretamente para lá, sem conflito.` };
       }
       await moveDriveFile(folderId, rootCorreta, officeId);
       const avisoRename = await renomearSeNecessario(folderId, info.name, title, officeId);
@@ -270,22 +336,31 @@ export async function migrarPastasLegadasDoDrive(simulacao: boolean): Promise<Dr
   entries.sort((x, y) => x.title.localeCompare(y.title, "pt-BR"));
 
   // Varredura de órfãs: agora que se sabe QUAIS são as raízes legadas (descobertas pelos parents
-  // das pastas acima, não por nome chumbado), lista o que sobrou dentro delas. Toda pasta que
-  // nenhum Processo/Atendimento aponta é reportada — nunca movida nem apagada, porque não há como
-  // saber a que processo ela pertence sem um humano olhar.
+  // das pastas acima, não por nome chumbado), lista o que sobrou dentro delas — e TAMBÉM varre a
+  // raiz correta, porque uma pasta pode ter sido criada direto lá (ex: por engano, ou por um
+  // fluxo antigo) sem nenhum Case/Attendance apontar pra ela; nesse caso ela é invisível tanto
+  // para este laço (que anda pelo banco) quanto para o sync diário, que só confirma pastas cujo
+  // nome bate com um processo conhecido. Toda pasta sem dono conhecido é reportada — nunca movida
+  // nem apagada, porque não há como saber a quem ela pertence sem um humano olhar. Pastas já
+  // explicadas por uma entrada acima (duplicada vazia que será/foi pra Lixeira, ou candidata a
+  // conflito por nome parecido) não entram aqui de novo — já têm seu próprio aviso.
   const idsConhecidos = new Set<string>([
     ...cases.map((c) => c.driveFolderId).filter((v): v is string => Boolean(v)),
     ...attendances.map((a) => a.driveFolderId).filter((v): v is string => Boolean(v)),
+    ...entries.map((e) => e.emptyDuplicateId).filter((v): v is string => Boolean(v)),
+    ...entries.map((e) => e.conflictFolderId).filter((v): v is string => Boolean(v)),
   ]);
   const orfas: DriveFolderOrfa[] = [];
-  for (const raiz of raizesLegadasVistas) {
-    if (raiz === rootProcessos || raiz === rootAtendimentos) continue;
+  const raizesParaVarrer = new Set<string>([...raizesLegadasVistas, rootProcessos, rootAtendimentos]);
+  for (const raiz of raizesParaVarrer) {
+    const naRaizCorreta = raiz === rootProcessos || raiz === rootAtendimentos;
     try {
       for (const filho of await listDriveChildren(officeId, raiz)) {
         if (filho.mimeType !== DRIVE_FOLDER_MIME_TYPE) continue;
         if (idsConhecidos.has(filho.id)) continue;
         const conteudo = await listDriveChildren(officeId, filho.id);
-        orfas.push({ folderId: filho.id, name: filho.name, itens: conteudo.length, driveUrl: filho.webViewLink });
+        if (naRaizCorreta && conteudo.length === 0) continue; // pasta vazia na raiz certa não é problema de ninguém
+        orfas.push({ folderId: filho.id, name: filho.name, itens: conteudo.length, driveUrl: filho.webViewLink, naRaizCorreta });
       }
     } catch {
       // Uma raiz ilegível não invalida a migração das pastas que já foram tratadas acima.
