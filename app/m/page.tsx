@@ -107,8 +107,7 @@ export default async function MobileHome() {
           />
           {modules.atendimento && (
             <Link href="/m/atendimento/novo" className="block h-full">
-              <Card className="p-4 h-full relative overflow-hidden">
-                <HeroGlow tone="bordo" />
+              <Card className="p-4 h-full">
                 <TileBadge icon={Phone} tone="bordo" />
                 <p className="text-sm font-bold text-navy-900 dark:text-cream-50 mt-2.5">Novo Atendimento</p>
                 <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-0.5">Abrir caso ou contato</p>
@@ -160,13 +159,6 @@ const BADGE_TONE: Record<Tone, string> = {
   magenta: "bg-gradient-to-br from-magenta-600 to-magenta-700",
 };
 
-const GLOW_TONE: Record<Tone, string> = {
-  gold: "bg-gold-500",
-  bordo: "bg-bordo-600",
-  navy: "bg-navy-600",
-  magenta: "bg-magenta-600",
-};
-
 // Selo do ícone em "squircle" (quadrado bem arredondado, não círculo) com gradiente na cor
 // do próprio atalho — mesma cor em todo tema (Dia/Tarde/Noite), só o cartão ao redor muda.
 function TileBadge({ icon: Icon, tone, size = 18 }: { icon: LucideIcon; tone: Tone; size?: number }) {
@@ -175,12 +167,6 @@ function TileBadge({ icon: Icon, tone, size = 18 }: { icon: LucideIcon; tone: To
       <Icon size={size} />
     </span>
   );
-}
-
-// Brilho discreto atrás do selo, só nos dois atalhos de CRIAR (Novo Compromisso/Novo
-// Atendimento) — o resto da grade fica quieto de propósito, pra não competir por atenção.
-function HeroGlow({ tone }: { tone: Tone }) {
-  return <span className={`absolute -top-6 -right-6 h-20 w-20 rounded-full opacity-20 blur-sm ${GLOW_TONE[tone]}`} aria-hidden="true" />;
 }
 
 // Atalho de "acompanhar": ícone + título + contagem ao vivo (não é só ícone — é resposta
@@ -236,7 +222,7 @@ function HubCard({
   wide?: boolean;
 }) {
   return (
-    <details className="group rounded-xl2 border border-navy-800/8 dark:border-white/10 bg-white dark:bg-navy-900 shadow-card open:shadow-pop transition-shadow relative overflow-hidden">
+    <details className="group rounded-xl2 border border-navy-800/8 dark:border-white/10 bg-white dark:bg-navy-900 shadow-card open:shadow-pop transition-shadow">
       {wide ? (
         <summary className="flex items-center gap-3 px-4 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <TileBadge icon={Icon} tone={tone} />
@@ -248,7 +234,6 @@ function HubCard({
         </summary>
       ) : (
         <summary className="flex flex-col p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-          <HeroGlow tone={tone} />
           <div className="flex items-start justify-between">
             <TileBadge icon={Icon} tone={tone} />
             <ChevronDown size={15} className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-180 mt-1.5" />
