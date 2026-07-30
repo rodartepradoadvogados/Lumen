@@ -22,6 +22,7 @@ import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
 import EditCaseModal from "@/components/EditCaseModal";
 import RecurringFeeCard from "@/components/RecurringFeeCard";
 import TaskActivityRow from "@/components/TaskActivityRow";
+import SendCaseEmailModal from "@/components/SendCaseEmailModal";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -258,7 +259,11 @@ export default async function CaseDetailPage({
 
       {tab === "atividades" && (
         <div>
-          <div className="flex justify-end gap-2 mb-3">
+          <div className="flex justify-end gap-2 mb-3 flex-wrap">
+            <SendCaseEmailModal
+              caseId={c.id}
+              users={users.filter((u) => u.id !== viewer.id).map((u) => ({ id: u.id, name: u.name, email: u.email }))}
+            />
             <ApplyWorkflowModal
               caseId={c.id}
               templates={workflowTemplates}

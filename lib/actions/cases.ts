@@ -8,9 +8,10 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { isClientInOffice, isUserInOffice, isCaseInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { renameDriveFolder } from "@/lib/storageProvider";
+import { sendEmailReply } from "@/lib/gmailSend";
 
 // Convenção de nomenclatura: sempre que o(s) NOSSO(s) cliente(s) e a(s) parte(s) do outro lado
 // estiverem cadastrados, o título do processo é "{Clientes} x {Partes}" — nunca um meio-termo
@@ -454,4 +455,43 @@ export async function promoteCaseToJudicial(caseId: string, data: { processNumbe
   });
   revalidatePath(`/processos/${caseId}`);
   revalidatePath("/processos");
+}
+
+// Um advogado escreve um e-mail para outro (ou pra um endereço avulso) direto de dentro do
+// processo, e ele sai NA HORA — nunca agendado, e nunca em nome do "sistema": reaproveita
+// sendEmailReply (o mesmo mecanismo já usado pra responder cliente no Atendimento), que usa a
+// conta Google/Microsoft que o próprio remetente conectou em Configurações, então o e-mail chega
+// genuinamente do endereço dele. Sem conta conectada, falha com uma mensagem clara — nunca cai
+// silenciosamente numa caixa genérica do escritório, o que quebraria a autoria do remetente.
+export async function sendCaseEmail(caseId: string, to: string, subject: string, body: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!(await isCaseInOffice(caseId, viewer.officeId))) return { error: "Processo não encontrado." };
+
+  const toAddress = to.trim();
+  const subjectText = subject.trim();
+  const bodyText = body.trim();
+  if (!toAddress || !subjectText || !bodyText) return { error: "Preencha destinatário, assunto e mensagem antes de enviar." };
+
+  const result = await sendEmailReply(viewer.id, toAddress, subjectText, bodyText);
+
+  // Registra o envio (sucesso ou falha) como um comentário do processo — mesmo lugar onde já
+  // aparece o resto da conversa da aba Comentários, sem precisar de um modelo novo só pra isso.
+  // Não passa por addComment (que também interpreta @menções) de propósito: o corpo de um
+  // e-mail pode conter um "@algumacoisa" incidental que não é uma menção de verdade.
+  await prisma.comment.create({
+    data: {
+      content: result.ok
+        ? `📧 E-mail enviado para ${toAddress} — Assunto: "${subjectText}"\n\n${bodyText}`
+        : `📧 Falha ao enviar e-mail para ${toAddress} — Assunto: "${subjectText}" (${result.error || "erro desconhecido"})`,
+      authorId: viewer.id,
+      caseId,
+      officeId: viewer.officeId,
+    },
+  });
+
+  revalidatePath(`/processos/${caseId}`);
+
+  if (!result.ok) return { error: result.error || "Não foi possível enviar o e-mail." };
+  return {};
 }
