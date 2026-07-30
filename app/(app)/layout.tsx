@@ -1,6 +1,4 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
@@ -9,6 +7,7 @@ import AppBadgeSync from "@/components/AppBadgeSync";
 import ActingOfficeBanner from "@/components/ActingOfficeBanner";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
+import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
@@ -68,35 +67,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <UndoToastProvider>
-      {/* Coluna vertical: faixa de suporte (se houver sessão ativa) acima de tudo, inclusive
-          acima da sidebar — depois o corpo do app (sidebar + conteúdo) ocupando o resto da
-          altura. Fica fora do "flex h-screen" original de propósito, pra faixa nunca competir
-          por altura fixa com sidebar/conteúdo (ela só aparece quando existe sessão). */}
-      <div className="flex flex-col h-screen overflow-hidden">
-        <SupportAccessBanner />
-        <div className="flex flex-1 overflow-hidden">
-          <InactivityNotice />
-          <AppBadgeSync initialCount={totalAlerts} />
-          <Suspense fallback={null}>
-            <Sidebar
-              hasFinanceAccess={hasFinanceAccess}
-              isAdmin={user.isAdmin}
-              unreadPublications={unreadPublications}
-              totalAlerts={totalAlerts}
-              modules={modules}
-            />
-          </Suspense>
-          <div className="flex-1 flex flex-col min-w-0 relative">
-            <Suspense fallback={null}>
-              <SiteBackgroundLayer />
-            </Suspense>
-            {user.actingAsOffice && <ActingOfficeBanner officeName={user.actingAsOffice.name} />}
-            <TopBar />
-            <main className="flex-1 overflow-y-auto scrollbar-thin">{children}</main>
-          </div>
-          <ClaudeAssistantWidget userName={user.name} />
-        </div>
-      </div>
+      {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
+          server-side de sempre e repassa como children/props. Guarda também as abas internas
+          (duplo clique num item da Sidebar) — ver components/AppShell.tsx. */}
+      <AppShell
+        sidebarProps={{
+          hasFinanceAccess,
+          isAdmin: user.isAdmin,
+          unreadPublications,
+          totalAlerts,
+          modules,
+        }}
+        topBar={<TopBar />}
+        supportBanner={<SupportAccessBanner />}
+        inactivityNotice={<InactivityNotice />}
+        badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
+        backgroundLayer={<SiteBackgroundLayer />}
+        actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
+        claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
+      >
+        {children}
+      </AppShell>
     </UndoToastProvider>
   );
 }

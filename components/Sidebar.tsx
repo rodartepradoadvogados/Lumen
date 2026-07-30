@@ -197,12 +197,21 @@ export default function Sidebar({
   unreadPublications = 0,
   totalAlerts = 0,
   modules = ALL_MODULES_ON,
+  onOpenTab,
+  onNavigate,
 }: {
   hasFinanceAccess?: boolean;
   isAdmin?: boolean;
   unreadPublications?: number;
   totalAlerts?: number;
   modules?: OfficeModules;
+  // Duplo clique num item/sub-item abre a rota como uma nova aba interna (ver
+  // components/AppShell.tsx) em vez de navegar a view "Principal"; clique simples continua
+  // navegando normalmente, só também traz o foco de volta pra "Principal" (onNavigate) — sem
+  // isso, clicar num item da Sidebar enquanto outra aba está em foco não pareceria fazer nada,
+  // já que a navegação aconteceria "por trás" da aba visível.
+  onOpenTab?: (href: string, label: string) => void;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -323,6 +332,11 @@ export default function Sidebar({
                   <div key={item.href}>
                     <Link
                       href={item.href}
+                      onClick={onNavigate}
+                      onDoubleClick={(e) => {
+                        e.preventDefault();
+                        onOpenTab?.(item.href, item.label);
+                      }}
                       className={clsx(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors",
                         active
@@ -368,6 +382,11 @@ export default function Sidebar({
                                 <Link
                                   key={sub.label}
                                   href={subHref}
+                                  onClick={onNavigate}
+                                  onDoubleClick={(e) => {
+                                    e.preventDefault();
+                                    onOpenTab?.(subHref, sub.label);
+                                  }}
                                   className={clsx(
                                     "block pl-6 pr-3 py-1.5 rounded-md text-[13px] transition-colors",
                                     subActive
