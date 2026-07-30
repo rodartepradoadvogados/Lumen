@@ -23,15 +23,22 @@ from typing import List
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from . import datajud, discovery, djen, notify
+from . import datajud, discovery, djen, notify, pncp
 from .config import Settings
-from .db import Andamento, ExecucaoLog, Publicacao, ProcessoMonitorado
+from .db import Andamento, ExecucaoLog, Publicacao, ProcessoMonitorado, upsert_licitacao
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
 
 FONTE_DJEN = "DJEN"
 FONTE_DATAJUD = "DATAJUD"
+FONTE_PNCP = "pncp"  # minusculo por instrucao do plano (as outras fontes usam maiusculo por
+# convencao anterior, mas o registro em ExecucaoLog do PNCP foi pedido especificamente assim)
+
+# Janela retroativa da coleta de licitacoes no PNCP. Fixo (nao vem de env) porque o cron do
+# site roda 1x/dia (vercel.json) — 3 dias da folga suficiente pra cobrir um atraso pontual do
+# cron sem perder licitacao, sem crescer demais o volume de paginas consultadas por ciclo.
+PNCP_DIAS_RETROATIVOS = 3
 
 
 @dataclass
@@ -39,6 +46,7 @@ class ResultadoCiclo:
     novas_publicacoes: int = 0
     novos_andamentos: int = 0
     novos_processos_descobertos: int = 0
+    novas_licitacoes: int = 0
     email_enviado: bool = False
     alertas: List[str] = field(default_factory=list)
 
@@ -177,6 +185,44 @@ def _capturar_andamentos_datajud(session, settings: Settings) -> List[Andamento]
     return novos
 
 
+def _capturar_licitacoes_pncp(session, settings: Settings) -> int:
+    """Coleta licitacoes no PNCP (src/pncp.py) e faz upsert idempotente por
+    numeroControlePNCP. Registra o resultado em ExecucaoLog(fonte="pncp").
+
+    ISOLADO de proposito: qualquer falha aqui (rede, parsing, bug de
+    mapeamento de campo) e capturada e logada, mas NUNCA impede o restante do
+    ciclo (DJEN/Datajud) de rodar normalmente — o PNCP e uma fonte nova e
+    ainda nao validada contra a API real (ver aviso no topo de src/pncp.py).
+    """
+    novas = 0
+    sucesso = True
+    detalhe = ""
+    try:
+        licitacoes = pncp.coletar_licitacoes(settings.pncp_ufs, dias_retroativos=PNCP_DIAS_RETROATIVOS)
+        for dado in licitacoes:
+            try:
+                if upsert_licitacao(session, dado):
+                    novas += 1
+            except Exception as exc:  # pragma: no cover - protecao extra por item
+                logger.exception(
+                    "Falha ao fazer upsert de uma licitacao PNCP (numeroControlePNCP=%s).",
+                    dado.get("numeroControlePNCP"),
+                )
+                sucesso = False
+                detalhe += f" | erro no item {dado.get('numeroControlePNCP')}: {exc}"
+        detalhe = (
+            f"{len(settings.pncp_ufs)} UF(s), {len(licitacoes)} item(ns) recebido(s), "
+            f"{novas} nova(s)/atualizada(s)."
+        ) + detalhe
+    except Exception as exc:  # pragma: no cover - protecao extra
+        logger.exception("Falha inesperada ao coletar licitacoes no PNCP.")
+        sucesso = False
+        detalhe = f"Falha na coleta: {exc}"
+
+    _registrar_execucao(session, FONTE_PNCP, sucesso=sucesso, detalhe=detalhe)
+    return novas
+
+
 def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> ResultadoCiclo:
     """Executa um ciclo completo e retorna um resumo do que foi feito."""
     session = session_factory()
@@ -184,6 +230,15 @@ def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> Resulta
         publicacoes_novas = _capturar_publicacoes_djen(session, settings)
         processos_novos = _descobrir_processos(session, publicacoes_novas)
         andamentos_novos = _capturar_andamentos_datajud(session, settings)
+
+        # Isolado em try/except PRÓPRIO (não é só o corpo da função que já se protege): mesmo uma
+        # falha catastrófica e inesperada aqui (ex.: erro de import, bug não previsto) não pode
+        # derrubar o commit do que já foi capturado acima (DJEN/Datajud).
+        try:
+            novas_licitacoes = _capturar_licitacoes_pncp(session, settings)
+        except Exception:
+            logger.exception("Falha inesperada e não tratada na coleta do PNCP; ciclo continua.")
+            novas_licitacoes = 0
 
         alertas: List[str] = []
         if _duas_falhas_seguidas(session, FONTE_DJEN):
@@ -208,6 +263,7 @@ def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> Resulta
             novas_publicacoes=len(publicacoes_novas),
             novos_andamentos=len(andamentos_novos),
             novos_processos_descobertos=processos_novos,
+            novas_licitacoes=novas_licitacoes,
             email_enviado=email_enviado,
             alertas=alertas,
         )

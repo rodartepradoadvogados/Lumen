@@ -7,18 +7,21 @@ util para rodar e testar localmente sem depender de infraestrutura externa.
 
 from __future__ import annotations
 
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Iterator, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from sqlalchemy import (
     Boolean,
     DateTime,
+    Float,
     Integer,
     String,
     Text,
     UniqueConstraint,
     create_engine,
+    select,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
@@ -90,6 +93,104 @@ class ProcessoMonitorado(Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<ProcessoMonitorado {self.numero_processo} origem={self.origem}>"
+
+
+class LicitacaoPNCP(Base):
+    """Licitacao capturada via API publica de consulta do PNCP (ver src/pncp.py).
+
+    Espelha o model RoboLicitacao do schema Prisma (tabela licitacoes_pncp) —
+    ATENCAO: ali os campos NAO usam @map (ao contrario dos outros 3 modelos do
+    robo acima), entao os nomes de coluna no Postgres sao exatamente os nomes
+    de campo do Prisma, em camelCase (ex.: "numeroControlePNCP"), e nao
+    snake_case. Por isso os mapped_column() abaixo informam o nome explicito
+    da coluna — se o schema.prisma mudar os nomes, replicar aqui tambem.
+
+    `id` e uma string tipo cuid do lado do Prisma, mas como este robo grava
+    direto no Postgres via SQLAlchemy (sem passar pelo Prisma Client), o valor
+    e gerado aqui mesmo (uuid4 hex) — nao ha DEFAULT a nivel de banco para
+    esta coluna.
+    """
+
+    __tablename__ = "licitacoes_pncp"
+
+    id: Mapped[str] = mapped_column("id", String(32), primary_key=True, default=lambda: uuid.uuid4().hex)
+    numero_controle_pncp: Mapped[str] = mapped_column(
+        "numeroControlePNCP", String(64), unique=True, nullable=False, index=True
+    )
+    orgao_cnpj: Mapped[Optional[str]] = mapped_column("orgaoCnpj", String(32), nullable=True)
+    orgao_nome: Mapped[Optional[str]] = mapped_column("orgaoNome", String(500), nullable=True)
+    uf: Mapped[Optional[str]] = mapped_column("uf", String(4), nullable=True)
+    municipio: Mapped[Optional[str]] = mapped_column("municipio", String(255), nullable=True)
+    modalidade_nome: Mapped[Optional[str]] = mapped_column("modalidadeNome", String(255), nullable=True)
+    objeto: Mapped[Optional[str]] = mapped_column("objeto", Text, nullable=True)
+    valor_estimado: Mapped[Optional[float]] = mapped_column("valorEstimado", Float, nullable=True)
+    situacao: Mapped[Optional[str]] = mapped_column("situacao", String(255), nullable=True)
+    data_publicacao: Mapped[Optional[str]] = mapped_column("dataPublicacao", String(32), nullable=True)
+    data_abertura_proposta: Mapped[Optional[str]] = mapped_column("dataAberturaProposta", String(32), nullable=True)
+    data_encerramento_proposta: Mapped[Optional[str]] = mapped_column(
+        "dataEncerramentoProposta", String(32), nullable=True
+    )
+    link_sistema_origem: Mapped[Optional[str]] = mapped_column("linkSistemaOrigem", Text, nullable=True)
+    payload_bruto: Mapped[Optional[str]] = mapped_column("payloadBruto", Text, nullable=True)
+    data_captura: Mapped[datetime] = mapped_column("dataCaptura", DateTime(timezone=True), default=_utcnow)
+    status_processado: Mapped[bool] = mapped_column("statusProcessado", Boolean, default=False)
+
+    def __repr__(self) -> str:  # pragma: no cover - debug helper
+        return f"<LicitacaoPNCP {self.numero_controle_pncp}>"
+
+
+# Campos de LicitacaoPNCP que sao atualizados num upsert (tudo exceto a chave natural
+# numeroControlePNCP e os campos que nao devem ser sobrescritos: id, dataCaptura original,
+# statusProcessado — este ultimo e controlado pela ponte lib/pncpBridge.ts no site, nao pelo
+# robo, entao um novo upsert nunca deve reabrir uma licitacao ja processada).
+_CAMPOS_ATUALIZAVEIS = (
+    ("orgaoCnpj", "orgao_cnpj"),
+    ("orgaoNome", "orgao_nome"),
+    ("uf", "uf"),
+    ("municipio", "municipio"),
+    ("modalidadeNome", "modalidade_nome"),
+    ("objeto", "objeto"),
+    ("valorEstimado", "valor_estimado"),
+    ("situacao", "situacao"),
+    ("dataPublicacao", "data_publicacao"),
+    ("dataAberturaProposta", "data_abertura_proposta"),
+    ("dataEncerramentoProposta", "data_encerramento_proposta"),
+    ("linkSistemaOrigem", "link_sistema_origem"),
+    ("payloadBruto", "payload_bruto"),
+)
+
+
+def upsert_licitacao(session: Session, dado: Dict[str, Any]) -> bool:
+    """Insere ou atualiza uma LicitacaoPNCP pela chave natural numeroControlePNCP
+    (unica em todo o pais) — nunca duplica, mesmo se o mesmo item vier de novo
+    num ciclo seguinte (a API do PNCP nao garante que uma licitacao so aparece
+    numa unica janela de data).
+
+    `dado` e um dict com as chaves do model RoboLicitacao (ver Tarefa 1 do
+    plano / src/pncp.py:coletar_licitacoes). Retorna True se foi uma insercao
+    nova, False se atualizou um registro ja existente.
+    """
+    numero_controle = dado.get("numeroControlePNCP")
+    if not numero_controle:
+        # Defensivo: pncp.py ja descarta itens sem numero de controle antes de chegar aqui,
+        # mas nunca confiamos demais no chamador.
+        raise ValueError("dado sem numeroControlePNCP; nao pode ser upsertado.")
+
+    existente = session.scalar(
+        select(LicitacaoPNCP).where(LicitacaoPNCP.numero_controle_pncp == numero_controle)
+    )
+    if existente is not None:
+        for chave_dado, atributo in _CAMPOS_ATUALIZAVEIS:
+            setattr(existente, atributo, dado.get(chave_dado))
+        return False
+
+    nova = LicitacaoPNCP(
+        numero_controle_pncp=numero_controle,
+        **{atributo: dado.get(chave_dado) for chave_dado, atributo in _CAMPOS_ATUALIZAVEIS},
+    )
+    session.add(nova)
+    session.flush()
+    return True
 
 
 class ExecucaoLog(Base):

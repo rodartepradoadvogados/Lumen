@@ -100,13 +100,15 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         href: "/processos",
         label: "Processos e Casos",
         icon: Briefcase,
-        subParam: "status",
+        // Sub-abas trocaram de status (ATIVO/SUSPENSO/...) para natureza (ver lib/caseNatureza.ts)
+        // — os filtros de status continuam existindo, só que como chips DENTRO da página
+        // (app/(app)/processos/page.tsx), não mais na barra lateral.
+        subParam: "natureza",
         subItems: [
           { label: "Todos" },
-          { label: "Ativo", value: "ATIVO" },
-          { label: "Suspenso", value: "SUSPENSO" },
-          { label: "Encerrado", value: "ENCERRADO" },
-          { label: "Arquivado", value: "ARQUIVADO" },
+          { label: "Judiciais", value: "judicial" },
+          { label: "Administrativos", value: "administrativo" },
+          { label: "Casos", value: "caso" },
         ],
       },
       {

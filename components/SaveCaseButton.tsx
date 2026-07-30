@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Rótulo do botão reage ao <select name="type"> do mesmo <form> (ouvindo "change" no DOM em
-// vez de virar o formulário inteiro num client component): "Salvar Processo" quando o tipo é
-// Judicial, "Salvar Caso" para os demais tipos (Extrajudicial/Atendimento/Consultivo).
+// Rótulo do botão reage ao campo "type" do mesmo <form> (ouvindo "change" no DOM em vez de virar
+// o formulário inteiro num client component): "Salvar Processo" quando o tipo é Judicial ou
+// Administrativo (ver lib/caseNatureza.ts — os dois "têm número e tramitam em órgão"), "Salvar
+// Caso" para os demais tipos (Extrajudicial/Atendimento/Consultivo). No fluxo administrativo o
+// campo é um <input type="hidden"> (NovoCaseNaturezaSection.tsx) em vez do <select> original —
+// mudanças nele não disparam "change" nativo, mas como as duas naturezas de processo têm o MESMO
+// rótulo aqui, isso nunca chega a importar.
 //
 // Também ouve "lumen:attachments-uploading" (disparado por NewCaseAttachmentsField.tsx) e
 // BLOQUEIA o envio enquanto algum anexo ainda está subindo pro Blob — antes disso só existia um
@@ -45,7 +49,7 @@ export default function SaveCaseButton({ defaultType }: { defaultType: string })
       }}
       className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
     >
-      {attachmentsUploading ? "Enviando anexos..." : type === "JUDICIAL" ? "Salvar Processo" : "Salvar Caso"}
+      {attachmentsUploading ? "Enviando anexos..." : type === "JUDICIAL" || type === "ADMINISTRATIVO" ? "Salvar Processo" : "Salvar Caso"}
     </button>
   );
 }

@@ -8,6 +8,16 @@ import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
+import {
+  type CaseNatureza,
+  naturezaOf,
+  naturezaWhere,
+  parseNaturezaParam,
+  NATUREZA_LABELS,
+  ESFERAS,
+  MATERIAS_ADMIN,
+  MATERIA_LABELS,
+} from "@/lib/caseNatureza";
 import { Scale, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -33,16 +43,38 @@ const sortLabels: Record<string, string> = {
   recente: "Mais recente",
 };
 
+// Cor da etiqueta de natureza na listagem e no cabeçalho do processo — dourado (cor de destaque
+// da marca) para Judicial, bordô (cor secundária) para Administrativo, navy para "Caso" (nem
+// judicial nem administrativo, ver lib/caseNatureza.ts).
+const naturezaBadgeColor: Record<CaseNatureza, "gold" | "bordo" | "navy"> = {
+  JUDICIAL: "gold",
+  ADMINISTRATIVO: "bordo",
+  CASO: "navy",
+};
+
 export default async function ProcessosPage({
   searchParams,
 }: {
-  searchParams: { status?: string; area?: string; q?: string; responsibleId?: string; sort?: string };
+  searchParams: {
+    status?: string;
+    area?: string;
+    q?: string;
+    responsibleId?: string;
+    sort?: string;
+    natureza?: string;
+    esfera?: string;
+    materia?: string;
+  };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
 
   const q = (searchParams.q || "").trim();
   const sortKey = searchParams.sort && SORTS[searchParams.sort] ? searchParams.sort : "nome";
+  // Ausente ou inválido = "Todos" (padrão pedido pelo dono do escritório: ver tudo de antemão).
+  const natureza = parseNaturezaParam(searchParams.natureza);
+  const esfera = searchParams.esfera || undefined;
+  const materia = searchParams.materia || undefined;
 
   const baseFilters: Prisma.CaseWhereInput = {
     officeId: viewer.officeId,
@@ -55,6 +87,12 @@ export default async function ProcessosPage({
 
   const where: Prisma.CaseWhereInput = {
     ...baseFilters,
+    ...(natureza ? (naturezaWhere(natureza) as Prisma.CaseWhereInput) : {}),
+    // Chips de esfera/matéria só existem (na UI) quando a aba ativa é Administrativos — mas o
+    // filtro em si só faz sentido combinado com esse `where.type`, então fica condicionado à
+    // mesma checagem aqui também, e não só na renderização dos chips.
+    ...(natureza === "ADMINISTRATIVO" && esfera ? { adminEsfera: esfera } : {}),
+    ...(natureza === "ADMINISTRATIVO" && materia ? { adminMateria: materia } : {}),
     ...(q
       ? {
           OR: [
@@ -69,7 +107,7 @@ export default async function ProcessosPage({
       : {}),
   };
 
-  const [cases, totalCount, areaRows, users] = await Promise.all([
+  const [cases, totalCount, areaRows, users, countTodos, countJudicial, countAdministrativo, countCaso] = await Promise.all([
     prisma.case.findMany({
       where,
       include: {
@@ -84,6 +122,13 @@ export default async function ProcessosPage({
     prisma.case.count({ where: { officeId: viewer.officeId } }),
     prisma.case.findMany({ where: { area: { not: null }, officeId: viewer.officeId }, distinct: ["area"], select: { area: true }, orderBy: { area: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    // Contagem das 4 abas de natureza — sempre respeitando os DEMAIS filtros ativos (status/area/
+    // responsável), só sem o filtro de natureza em si, pra cada aba mostrar quantos registros
+    // apareceriam se o usuário clicasse nela a partir do estado atual dos outros filtros.
+    prisma.case.count({ where: baseFilters }),
+    prisma.case.count({ where: { ...baseFilters, ...(naturezaWhere("JUDICIAL") as Prisma.CaseWhereInput) } }),
+    prisma.case.count({ where: { ...baseFilters, ...(naturezaWhere("ADMINISTRATIVO") as Prisma.CaseWhereInput) } }),
+    prisma.case.count({ where: { ...baseFilters, ...(naturezaWhere("CASO") as Prisma.CaseWhereInput) } }),
   ]);
 
   const areas = areaRows.map((a) => a.area).filter((a): a is string => Boolean(a));
@@ -97,6 +142,58 @@ export default async function ProcessosPage({
         action={<NewEntityMenu />}
       />
 
+      {/* Abas de NATUREZA (Todos/Judiciais/Administrativos/Casos) — mesmo visual de borda inferior
+          dourada usado nas abas do processo (app/(app)/processos/[id]/page.tsx). Trocar de aba
+          preserva os demais filtros (status/área/busca/responsável/ordenação) via qsFor; só sai da
+          aba Administrativos limpa esfera/matéria, que só fazem sentido ali. */}
+      <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-4 overflow-x-auto">
+        <NaturezaTab
+          label="Todos"
+          count={countTodos}
+          href={qsFor(searchParams, { natureza: undefined, esfera: undefined, materia: undefined })}
+          active={!natureza}
+        />
+        <NaturezaTab
+          label="Judiciais"
+          count={countJudicial}
+          href={qsFor(searchParams, { natureza: "judicial", esfera: undefined, materia: undefined })}
+          active={natureza === "JUDICIAL"}
+        />
+        <NaturezaTab
+          label="Administrativos"
+          count={countAdministrativo}
+          href={qsFor(searchParams, { natureza: "administrativo" })}
+          active={natureza === "ADMINISTRATIVO"}
+        />
+        <NaturezaTab
+          label="Casos"
+          count={countCaso}
+          href={qsFor(searchParams, { natureza: "caso", esfera: undefined, materia: undefined })}
+          active={natureza === "CASO"}
+        />
+      </div>
+
+      {/* Chips extras de esfera/matéria — só existem na aba Administrativos (nas demais abas o
+          conceito nem se aplica: Judicial/Caso não têm esfera/matéria administrativa). */}
+      {natureza === "ADMINISTRATIVO" && (
+        <div className="space-y-2 mb-4">
+          <div className="flex gap-2 flex-wrap items-center">
+            <span className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide mr-1">Esfera</span>
+            <FilterLink label="Todas" href={qsFor(searchParams, { esfera: undefined })} active={!esfera} />
+            {ESFERAS.map((e) => (
+              <FilterLink key={e.value} label={e.label} href={qsFor(searchParams, { esfera: e.value })} active={esfera === e.value} />
+            ))}
+          </div>
+          <div className="flex gap-2 flex-wrap items-center">
+            <span className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide mr-1">Matéria</span>
+            <FilterLink label="Todas" href={qsFor(searchParams, { materia: undefined })} active={!materia} />
+            {MATERIAS_ADMIN.map((m) => (
+              <FilterLink key={m.value} label={m.label} href={qsFor(searchParams, { materia: m.value })} active={materia === m.value} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-4 flex-wrap">
         <FilterLink label="Todos" href={qsFor(searchParams, { status: undefined })} active={!searchParams.status} />
         {["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"].map((s) => (
@@ -107,6 +204,11 @@ export default async function ProcessosPage({
       <Card className="mb-4">
         <form className="p-4 flex flex-wrap items-end gap-3">
           {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
+          {/* Preserva a aba de natureza (e os chips de esfera/matéria, quando aplicável) ao
+              enviar este formulário de busca — sem isso, "Aplicar" voltaria sempre pra "Todos". */}
+          {searchParams.natureza && <input type="hidden" name="natureza" value={searchParams.natureza} />}
+          {searchParams.esfera && <input type="hidden" name="esfera" value={searchParams.esfera} />}
+          {searchParams.materia && <input type="hidden" name="materia" value={searchParams.materia} />}
           <div className="flex-1 min-w-[200px]">
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
             <div className="relative">
@@ -171,33 +273,47 @@ export default async function ProcessosPage({
           <EmptyState title="Nenhum processo encontrado" />
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {cases.map((c) => (
-              <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
-                <div className="h-10 w-10 rounded-full bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
-                  <Scale size={18} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
-                    <Badge color={statusColors[c.status]}>{c.status}</Badge>
-                    {c.area && <Badge color="gold">{c.area}</Badge>}
+            {cases.map((c) => {
+              const nat = naturezaOf(c.type);
+              return (
+                <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="h-10 w-10 rounded-full bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
+                    <Scale size={18} />
                   </div>
-                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">
-                    {c.processNumber ? `${c.processNumber} · ` : ""}
-                    {joinCaseNames(effectiveCaseClients(c).map((cc) => cc.name))}
-                    {c.parties.length || c.opposingPartyName ? ` x ${joinCaseNames(effectiveCaseParties(c).map((p) => p.name))}` : ""}
-                  </p>
-                </div>
-                <div className="text-right shrink-0 hidden sm:block">
-                  {c.caseValue != null && <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(c.caseValue)}</p>}
-                  <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
-                </div>
-                <div className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0 w-20 text-right hidden md:block">
-                  {c._count.tasks} tarefa(s)
-                </div>
-                <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"?`} />
-              </Link>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
+                      <p className="font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
+                      <Badge color={statusColors[c.status]}>{c.status}</Badge>
+                      {c.area && <Badge color="gold">{c.area}</Badge>}
+                    </div>
+                    <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">
+                      {nat === "ADMINISTRATIVO" ? (
+                        // Linha secundária administrativa: número · órgão · matéria (em vez do
+                        // formato "cliente x parte adversa", que não se aplica a esse setor).
+                        [c.processNumber, c.tribunalSigla, c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : null]
+                          .filter(Boolean)
+                          .join(" · ") || "Sem detalhes cadastrados"
+                      ) : (
+                        <>
+                          {c.processNumber ? `${c.processNumber} · ` : ""}
+                          {joinCaseNames(effectiveCaseClients(c).map((cc) => cc.name))}
+                          {c.parties.length || c.opposingPartyName ? ` x ${joinCaseNames(effectiveCaseParties(c).map((p) => p.name))}` : ""}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0 hidden sm:block">
+                    {c.caseValue != null && <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(c.caseValue)}</p>}
+                    <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
+                  </div>
+                  <div className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0 w-20 text-right hidden md:block">
+                    {c._count.tasks} tarefa(s)
+                  </div>
+                  <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"?`} />
+                </Link>
+              );
+            })}
           </div>
         )}
       </Card>
@@ -229,6 +345,23 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
       }`}
     >
       {label}
+    </Link>
+  );
+}
+
+// Aba de natureza — mesmo padrão visual de borda inferior dourada usado nas abas do processo
+// (app/(app)/processos/[id]/page.tsx), com a contagem ao lado do rótulo.
+function NaturezaTab({ label, count, href, active }: { label: string; count: number; href: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+        active
+          ? "border-gold-600 text-navy-900 dark:text-cream-50 font-semibold"
+          : "border-transparent text-navy-800/45 dark:text-cream-50/45 hover:text-navy-800 dark:hover:text-cream-50/80"
+      }`}
+    >
+      {label} <span className="text-xs text-navy-800/40 dark:text-cream-50/40">({count})</span>
     </Link>
   );
 }

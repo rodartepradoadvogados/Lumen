@@ -23,11 +23,13 @@ import EditCaseModal from "@/components/EditCaseModal";
 import RecurringFeeCard from "@/components/RecurringFeeCard";
 import TaskActivityRow from "@/components/TaskActivityRow";
 import SendCaseEmailModal from "@/components/SendCaseEmailModal";
+import TermosVigilanciaPanel from "@/components/TermosVigilanciaPanel";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
+import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,18 @@ const TABS = [
   { key: "financeiro", label: "Financeiro" },
   { key: "publicacoes", label: "Publicações" },
   { key: "anexos", label: "Anexos" },
+  // Só aparece para processos administrativos (ver filtro de TABS mais abaixo) — o setor
+  // judicial/casos não usa termo vigiado nenhum.
+  { key: "vigilancia", label: "Vigilância" },
 ];
+
+// Cor da etiqueta de natureza — mesmo mapeamento de app/(app)/processos/page.tsx (dourado
+// Judicial, bordô Administrativo, navy Caso).
+const naturezaBadgeColor: Record<string, "gold" | "bordo" | "navy"> = {
+  JUDICIAL: "gold",
+  ADMINISTRATIVO: "bordo",
+  CASO: "navy",
+};
 
 export default async function CaseDetailPage({
   params,
@@ -52,7 +65,6 @@ export default async function CaseDetailPage({
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
-  const tab = requestedTab === "financeiro" && !hasFinanceAccess ? "visao-geral" : requestedTab;
 
   const c = await prisma.case.findFirst({
     where: { id: params.id, officeId: viewer.officeId },
@@ -75,6 +87,14 @@ export default async function CaseDetailPage({
 
   if (!c) notFound();
 
+  // Natureza do processo (ver lib/caseNatureza.ts) — decide o rótulo Órgão x Tribunal, os campos
+  // de esfera/matéria e se a aba extra "Vigilância" existe (só faz sentido em ADMINISTRATIVO).
+  const nat = naturezaOf(c.type);
+  const tab =
+    (requestedTab === "financeiro" && !hasFinanceAccess) || (requestedTab === "vigilancia" && nat !== "ADMINISTRATIVO")
+      ? "visao-geral"
+      : requestedTab;
+
   const serializedAttachments = c.attachments.map((att) => ({
     id: att.id,
     name: att.name,
@@ -84,7 +104,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -105,6 +125,10 @@ export default async function CaseDetailPage({
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
     prisma.recurringFee.findMany({ where: { caseId: c.id, active: true }, orderBy: { createdAt: "asc" } }),
+    // Termos vigiados deste processo (aba Vigilância, só existe para ADMINISTRATIVO) — busca
+    // sempre, mesmo fora dessa natureza, porque o custo é desprezível (uma query indexada por
+    // caseId) e evita bifurcar a lógica de busca por causa de uma aba condicional.
+    prisma.termoVigilancia.findMany({ where: { caseId: c.id, officeId: viewer.officeId }, orderBy: { createdAt: "desc" } }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const caseClients = effectiveCaseClients(c);
@@ -125,6 +149,13 @@ export default async function CaseDetailPage({
     taskCount: taskCountMap.get(p.id) ?? 0,
     assignedToId: p.assignedToId,
     triageStatus: p.triageStatus,
+  }));
+  const serializedTermos = termosVigilancia.map((t) => ({
+    id: t.id,
+    termo: t.termo,
+    tipo: t.tipo,
+    ativo: t.ativo,
+    ultimoHitAt: t.ultimoHitAt ? t.ultimoHitAt.toISOString() : null,
   }));
   const unreadPublicationsCount = c.publications.filter((p) => p.reads.length === 0).length;
 
@@ -148,6 +179,7 @@ export default async function CaseDetailPage({
         <div className="flex items-center gap-2">
           <PeticionarButton compact caseId={c.id} />
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
+          <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
           <CaseStatusSelect caseId={c.id} status={c.status} />
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>
@@ -168,7 +200,7 @@ export default async function CaseDetailPage({
       </p>
 
       <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-6 overflow-x-auto">
-        {TABS.filter((t) => t.key !== "financeiro" || hasFinanceAccess).map((t) => (
+        {TABS.filter((t) => (t.key !== "financeiro" || hasFinanceAccess) && (t.key !== "vigilancia" || nat === "ADMINISTRATIVO")).map((t) => (
           <Link
             key={t.key}
             href={`/processos/${c.id}?tab=${t.key}`}
@@ -191,6 +223,7 @@ export default async function CaseDetailPage({
               <EditCaseModal
                 caseData={{
                   id: c.id,
+                  type: c.type,
                   responsibleId: c.responsibleId,
                   court: c.court,
                   caseValue: c.caseValue,
@@ -198,6 +231,8 @@ export default async function CaseDetailPage({
                   tribunalNome: c.tribunalNome,
                   tribunalSistema: c.tribunalSistema,
                   tribunalLink: c.tribunalLink,
+                  adminEsfera: c.adminEsfera,
+                  adminMateria: c.adminMateria,
                   clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
                   parties: caseParties,
                 }}
@@ -231,8 +266,16 @@ export default async function CaseDetailPage({
             <Field label="Advogado Responsável" value={c.responsible?.name} />
             <Field label="Vara/Comarca" value={c.court} />
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
-            <Field label="Tribunal" value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
+            {/* "Órgão" no lugar de "Tribunal" para processo administrativo — mesmo par de campos
+                (tribunalSigla/tribunalNome), só o rótulo muda (ver lib/caseNatureza.ts). */}
+            <Field label={nat === "ADMINISTRATIVO" ? "Órgão" : "Tribunal"} value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
             <Field label="Sistema" value={c.tribunalSistema} />
+            {nat === "ADMINISTRATIVO" && (
+              <>
+                <Field label="Esfera" value={c.adminEsfera ? ESFERA_LABELS[c.adminEsfera] || c.adminEsfera : undefined} />
+                <Field label="Matéria" value={c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : undefined} />
+              </>
+            )}
             {c.tribunalLink && (
               <a
                 href={c.tribunalLink}
@@ -240,7 +283,7 @@ export default async function CaseDetailPage({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
               >
-                <ExternalLink size={12} /> Acessar sistema do tribunal
+                <ExternalLink size={12} /> Acessar sistema do {nat === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
               </a>
             )}
           </Card>
@@ -456,6 +499,12 @@ export default async function CaseDetailPage({
             <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} />
           </Card>
         </div>
+      )}
+
+      {tab === "vigilancia" && (
+        <Card className="p-5">
+          <TermosVigilanciaPanel caseId={c.id} termos={serializedTermos} />
+        </Card>
       )}
     </div>
   );

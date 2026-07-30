@@ -93,7 +93,10 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
     result.accountsScanned++;
     try {
       const priorSync = await prisma.publication.findFirst({
-        where: { officeId: cred.officeId, source: { in: ["JUSBRASIL_EMAIL", "DJE", "PJE", "ESAJ", "PROJUDI", "EPROC", "DJEN"] } },
+        // Lista de sources válidos de Publication — mantida em sincronia com lib/jusbrasilEmailSync.ts
+        // (a mesma lista existe lá) e agora também com "PNCP" (lib/pncpBridge.ts, Fase 1 do
+        // Setor de Processos Administrativos), pelo mesmo motivo que "DJEN" está aqui.
+        where: { officeId: cred.officeId, source: { in: ["JUSBRASIL_EMAIL", "DJE", "PJE", "ESAJ", "PROJUDI", "EPROC", "DJEN", "PNCP"] } },
         orderBy: { publishedAt: "desc" },
       });
       const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);

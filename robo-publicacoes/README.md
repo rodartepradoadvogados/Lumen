@@ -6,6 +6,12 @@ Robo standalone, 100% gratuito, do escritorio **Rodarte Prado Advogados**
 1. **Publicacoes/intimacoes oficiais** — via API publica **Comunica/DJEN**
    do CNJ.
 2. **Andamentos processuais** — via **API Publica Datajud** do CNJ.
+3. **Licitacoes/contratacoes publicas** — via API publica de consulta do
+   **PNCP** (Portal Nacional de Contratacoes Publicas), para as UFs
+   configuradas (ver [Licitacoes (PNCP)](#licitacoes-pncp) abaixo). Fonte 3,
+   parte do Setor de Processos Administrativos (Fase 1) — o roteamento por
+   escritorio acontece depois, em `lib/pncpBridge.ts` no site, casando contra
+   os termos vigiados (`TermoVigilancia`) de cada escritorio.
 
 O robo roda em ciclos curtos e idempotentes (varias vezes por dia, via Cron
 Job do Railway), evita duplicar qualquer dado ja capturado, persiste tudo em
@@ -22,6 +28,7 @@ conteudo desta subpasta como raiz do servico.
 
 - [Arquitetura](#arquitetura)
 - [OABs monitoradas](#oabs-monitoradas)
+- [Licitacoes (PNCP)](#licitacoes-pncp)
 - [Como rodar localmente](#como-rodar-localmente)
 - [Como rodar os testes](#como-rodar-os-testes)
 - [Adicionar/remover uma OAB](#adicionarremover-uma-oab)
@@ -216,6 +223,45 @@ variaveis do Railway) com a lista completa desejada, por exemplo:
 
 Nao e necessario alterar codigo. Para remover uma OAB, basta tira-la da
 lista (publicacoes ja capturadas permanecem no banco).
+
+---
+
+## Licitacoes (PNCP)
+
+`src/pncp.py` consulta, para cada UF configurada e para CADA modalidade de
+contratacao (codigos 1 a 14 — a API exige o codigo de modalidade como
+parametro obrigatorio, entao o robo itera sobre todos):
+
+```
+GET https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao
+    ?dataInicial=AAAAMMDD&dataFinal=AAAAMMDD
+    &codigoModalidadeContratacao=<1-14>
+    &uf=<UF>&pagina=1&tamanhoPagina=500
+```
+
+**As UFs monitoradas vem de `PNCP_UFS`** (variavel de ambiente, lista
+separada por virgula, ex.: `"GO,DF,SP"`). Sem essa variavel, o padrao e
+`GO,DF` (base atual de clientes do escritorio original). Nao e necessario
+alterar codigo para adicionar/remover uma UF — so a variavel de ambiente.
+
+**IMPORTANTE — mapeamento de campos NAO confirmado contra a API real**: o
+ambiente onde este robo foi construido nao tem acesso a rede nem ao Postgres
+de producao, entao o parsing de `src/pncp.py` (nomes de chave do JSON de
+resposta, inclusive se orgao/unidade vem aninhado em sub-objetos) e uma
+tentativa defensiva e de melhor-esforco — nunca testada contra uma resposta
+de verdade. Assim que o primeiro ciclo real rodar em producao, use
+`GET /api/admin/testar-pncp` (rota admin-only do site) para conferir as
+chaves reais do primeiro item devolvido pela API e corrigir
+`_normalizar_item()` em `src/pncp.py` se necessario. O item bruto de cada
+licitacao e sempre guardado em `payloadBruto` (tabela `licitacoes_pncp`),
+entao um ajuste de mapeamento pode ser reaplicado sem precisar consultar o
+PNCP de novo.
+
+A coleta e **isolada** no pipeline (`src/pipeline.py:_capturar_licitacoes_pncp`):
+qualquer falha (rede, parsing, bug) e registrada em `ExecucaoLog` (fonte
+`"pncp"`) e logada, mas nunca interrompe a captura de DJEN/Datajud no mesmo
+ciclo. Upsert idempotente por `numeroControlePNCP` (`src/db.py:upsert_licitacao`)
+— nunca duplica, mesmo que a mesma licitacao apareca em ciclos seguidos.
 
 ---
 

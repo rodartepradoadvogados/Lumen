@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
+import { naturezaWhere } from "@/lib/caseNatureza";
 import { Card, formatCurrency } from "@/components/ui";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
 import {
@@ -58,7 +59,7 @@ async function getMonthlyNetFlow(officeId: string) {
 
 export default async function MobileHome() {
   const user = await getCurrentUser();
-  const [unreadPublicationsRaw, totalAlerts, assessoriaCount, activeCasesCount, blockedSet] = await Promise.all([
+  const [unreadPublicationsRaw, totalAlerts, assessoriaCount, activeCasesCount, activeJudicialCount, activeAdministrativoCount, blockedSet] = await Promise.all([
     user
       ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { processNumberRaw: true } })
       : Promise.resolve([]),
@@ -67,6 +68,11 @@ export default async function MobileHome() {
     user ? getAlertsCount(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin) : Promise.resolve(0),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
     user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO" } }) : Promise.resolve(0),
+    // Divisão judicial/administrativo do atalho "Processos" abaixo — duas contagens leves a mais
+    // dentro do mesmo Promise.all já existente (naturezaWhere vem de lib/caseNatureza.ts, nunca
+    // comparar Case.type na mão).
+    user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO", ...naturezaWhere("JUDICIAL") } }) : Promise.resolve(0),
+    user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO", ...naturezaWhere("ADMINISTRATIVO") } }) : Promise.resolve(0),
     user ? getBlockedProcessNumberSet(user.id) : Promise.resolve(new Set<string>()),
   ]);
   // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou.
@@ -119,7 +125,18 @@ export default async function MobileHome() {
         {/* Acompanhar: cada atalho já mostra a contagem — decide se vale abrir sem precisar
             entrar. Alertas e Publicações usam o mesmo ícone da barra de baixo de propósito. */}
         <div className="grid grid-cols-2 gap-3">
-          <TileLink href="/m/processos" icon={Briefcase} tone="navy" title="Processos" count={activeCasesCount} countLabel="ativo(s)" />
+          <TileLink
+            href="/m/processos"
+            icon={Briefcase}
+            tone="navy"
+            title="Processos"
+            count={activeCasesCount}
+            countLabel="ativo(s)"
+            // Só mostra a divisão jud./adm. quando já existe algo administrativo cadastrado —
+            // enquanto o escritório não usa o recurso, o atalho fica exatamente como sempre foi
+            // (sem poluir com "0 adm." pra ninguém).
+            subCaption={activeAdministrativoCount > 0 ? `${activeJudicialCount} jud. · ${activeAdministrativoCount} adm.` : undefined}
+          />
           <TileLink href="/m/alertas" icon={Bell} tone="bordo" title="Central de Alertas" count={totalAlerts} countLabel="pendente(s)" />
           <TileLink href="/m/publicacoes" icon={Newspaper} tone="navy" title="Publicações" count={unreadCount} countLabel="não lida(s)" />
           {modules.assessoria && (
@@ -178,6 +195,7 @@ function TileLink({
   title,
   count,
   countLabel,
+  subCaption,
 }: {
   href: string;
   icon: LucideIcon;
@@ -185,6 +203,9 @@ function TileLink({
   title: string;
   count: number;
   countLabel: string;
+  // Legenda pequena opcional abaixo da contagem (ex.: "96 jud. · 27 adm.") — hoje só o atalho
+  // Processos usa isso, pra abrir a divisão por natureza sem precisar entrar na lista.
+  subCaption?: string;
 }) {
   return (
     <Link href={href} className="block h-full">
@@ -195,6 +216,7 @@ function TileLink({
           <span className="font-extrabold text-navy-900 dark:text-cream-50 tabular-nums">{count}</span>{" "}
           <span className="text-navy-800/50 dark:text-cream-50/50">{countLabel}</span>
         </p>
+        {subCaption && <p className="text-[10px] text-navy-800/40 dark:text-cream-50/40 mt-0.5 tabular-nums">{subCaption}</p>}
       </Card>
     </Link>
   );

@@ -59,7 +59,7 @@ model Office {
   billingDueDay Int? // dia do mês de vencimento (1-28, pra não cair em mês sem o dia)
   // CPF ou CNPJ do escritório-cliente — a Asaas exige esse dado no cliente pra emitir boleto ou
   // Pix QR Code de verdade (rejeita a cobrança sem isso, mesmo com o "customer" já criado).
-  cnpj String?
+  cnpj          String?
 
   // Dias corridos de tolerância após o vencimento antes do bloqueio automático (usado pelo
   // cron de cobrança, lib/actions/billing.ts:runBillingCycle) — por escritório, pra dar
@@ -143,9 +143,14 @@ model Office {
   accessRequests AccessRequest[]
   accessAudit    AccessAuditLog[]
 
-  driveSyncIssues DriveSyncIssue[]
+  driveSyncIssues       DriveSyncIssue[]
   blockedProcessNumbers BlockedProcessNumber[]
-  alertDismissals AlertDismissal[]
+  alertDismissals       AlertDismissal[]
+
+  // Setor de Processos Administrativos (fundação) — ver models TermoVigilancia e
+  // FonteAdministrativa mais abaixo.
+  termosVigilancia      TermoVigilancia[]
+  fontesAdministrativas FonteAdministrativa[]
 }
 
 // ============ EQUIPE ============
@@ -209,28 +214,32 @@ model User {
   office   Office @relation(fields: [officeId], references: [id])
 
   pushSubscriptions           PushSubscription[]
-  tasksResponsible            Task[]                @relation("TaskResponsible")
-  tasksDelegated              Task[]                @relation("TaskDelegatedBy")
-  casesResponsible            Case[]                @relation("CaseResponsible")
+  tasksResponsible            Task[]                 @relation("TaskResponsible")
+  tasksDelegated              Task[]                 @relation("TaskDelegatedBy")
+  casesResponsible            Case[]                 @relation("CaseResponsible")
   comments                    Comment[]
   mentions                    Mention[]
   publicationReads            PublicationRead[]
-  attendances                 Attendance[]          @relation("AttendanceResponsible")
+  attendances                 Attendance[]           @relation("AttendanceResponsible")
   attachments                 Attachment[]
   documentTemplates           DocumentTemplate[]
-  deletionRequested           DeletionRequest[]     @relation("DeletionRequestedBy")
-  deletionResolved            DeletionRequest[]     @relation("DeletionResolvedBy")
+  deletionRequested           DeletionRequest[]      @relation("DeletionRequestedBy")
+  deletionResolved            DeletionRequest[]      @relation("DeletionResolvedBy")
   loginSessions               LoginSession[]
   notices                     Notice[]
-  publicationsAssigned        Publication[]         @relation("PublicationAssignee")
+  publicationsAssigned        Publication[]          @relation("PublicationAssignee")
   googleCredentials           GoogleCredential[]
   microsoftCredentials        MicrosoftCredential[]
-  blogPostsReviewed           BlogPost[]            @relation("BlogPostReviewer")
-  emailsSent                  EmailMessage[]        @relation("EmailMessageSentBy")
-  assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
-  assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
+  blogPostsReviewed           BlogPost[]             @relation("BlogPostReviewer")
+  emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
+  assessoriasResponsible      Assessoria[]           @relation("AssessoriaResponsible")
+  assessoriaDocumentsUploaded AssessoriaDocumento[]  @relation("AssessoriaDocumentoUploadedBy")
   blockedProcessNumbers       BlockedProcessNumber[]
   alertDismissals             AlertDismissal[]
+
+  // Termos de vigilância que este usuário cadastrou (ver model TermoVigilancia mais abaixo) —
+  // só para exibir "criado por" na tela, não afeta quem enxerga o termo (isso é por officeId).
+  termosVigilanciaCriados TermoVigilancia[]
 
   // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
   platformMember PlatformMember?
@@ -312,6 +321,10 @@ model Client {
   attendances  Attendance[]  @relation("AttendanceClient")
   assessoria   Assessoria?
 
+  // Termos de vigilância (Radar de Publicações Administrativas) vigiando o nome deste cliente,
+  // independente de já haver um processo aberto — ver model TermoVigilancia mais abaixo.
+  termosVigilancia TermoVigilancia[]
+
   @@index([officeId])
 }
 
@@ -354,7 +367,7 @@ model Supplier {
 model Case {
   id            String  @id @default(cuid())
   title         String
-  type          String  @default("JUDICIAL") // JUDICIAL | EXTRAJUDICIAL | ATENDIMENTO | CONSULTIVO
+  type          String  @default("JUDICIAL") // JUDICIAL | ADMINISTRATIVO | EXTRAJUDICIAL | ATENDIMENTO | CONSULTIVO
   area          String?
   secondaryArea String?
   status        String  @default("ATIVO") // ATIVO | SUSPENSO | ENCERRADO | ARQUIVADO
@@ -383,6 +396,12 @@ model Case {
   description     String?
   clientRole      String? // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
   actionType      String? // Ação (ex: Execução Fiscal)
+
+  // Só preenchidos quando type = "ADMINISTRATIVO" — permitem filtrar a lista por esfera e
+  // por matéria sem precisar olhar o órgão. Ficam nulos em processo judicial.
+  adminEsfera  String? // FEDERAL | ESTADUAL | MUNICIPAL
+  adminMateria String? // CONTAS | TRIBUTARIO | LICITACAO | DISCIPLINAR | REGULATORIO | AMBIENTAL | PREVIDENCIARIO | OUTRO
+
   decision        String?
   outcome         String?
   tags            String?
@@ -437,6 +456,10 @@ model Case {
   // só uma linha em cada uma, espelhando os campos legados.
   clients CaseClient[]
   parties CaseParty[]
+
+  // Termos de vigilância (Radar de Publicações Administrativas) ligados a este processo — ver
+  // model TermoVigilancia mais abaixo.
+  termosVigilancia TermoVigilancia[]
 
   @@index([officeId])
   @@index([officeId, processNumber])
@@ -493,6 +516,9 @@ model Tribunal {
   portalUrl String // link de acesso ao sistema (login/consulta de processos)
   ordem     Int      @default(0)
   createdAt DateTime @default(now())
+
+  natureza String @default("JUDICIAL") // JUDICIAL | ADMINISTRATIVO — o mesmo catálogo serve
+  // aos dois seletores; o picker filtra por natureza.
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
@@ -1477,6 +1503,41 @@ model RoboExecucaoLog {
   @@map("execucao_log")
 }
 
+// Licitações capturadas pelo robô administrativo (robo-publicacoes/src/pncp.py) na API pública
+// de consulta do PNCP. Mesmo padrão dos 4 modelos acima (tabela compartilhada, sem officeId —
+// o robô não sabe a qual escritório uma licitação interessa, só coleta tudo dentro das UFs
+// configuradas). O roteamento por escritório acontece depois, em lib/pncpBridge.ts, casando
+// contra os termos vigiados (TermoVigilancia) de cada escritório. `numeroControlePNCP` é a
+// chave natural do PNCP (única por licitação em todo o país) — usada tanto pro dedup do robô
+// quanto pra chave de idempotência da Publication gerada na ponte. `payloadBruto` guarda o item
+// inteiro serializado (JSON) exatamente como veio da API: como o mapeamento de campo real ainda
+// não foi confirmado contra uma resposta de verdade (ver comentário no topo de pncp.py), isso
+// permite reprocessar/corrigir o mapeamento depois sem precisar consultar o PNCP de novo.
+// IMPORTANTE: assim como os 4 modelos acima, se esta estrutura mudar, replicar a mudança em
+// robo-publicacoes/src/db.py (senão `prisma db push` trata a tabela como órfã).
+model RoboLicitacao {
+  id                       String   @id @default(cuid())
+  numeroControlePNCP       String   @unique
+  orgaoCnpj                String?
+  orgaoNome                String?
+  uf                       String?
+  municipio                String?
+  modalidadeNome           String?
+  objeto                   String?
+  valorEstimado            Float?
+  situacao                 String?
+  dataPublicacao           String?
+  dataAberturaProposta     String?
+  dataEncerramentoProposta String?
+  linkSistemaOrigem        String?
+  payloadBruto             String? // JSON cru, para conseguir reprocessar sem consultar de novo
+  dataCaptura              DateTime @default(now())
+  statusProcessado         Boolean  @default(false)
+
+  @@map("licitacoes_pncp")
+  @@index([statusProcessado])
+}
+
 // ============ PAINEL MESTRE (cobrança entre escritórios) ============
 
 // Uma fatura mensal de um escritório-cliente da plataforma. Gerada manualmente pelo platform
@@ -1806,4 +1867,57 @@ model AccessAuditLog {
   createdAt DateTime @default(now())
 
   @@index([officeId, createdAt])
+}
+
+// ============ SETOR ADMINISTRATIVO — FUNDAÇÃO (Radar de Publicações Administrativas) ============
+
+// Um "termo vigiado" — nome de cliente, número de processo ou palavra livre que o escritório
+// quer que o robô administrativo (coletor PNCP/DOU/Diários/TCs) procure nas fontes públicas.
+// Existe tanto solto (LIVRE, sem caseId/clientId — ex.: monitorar o nome de um sócio antes de
+// existir processo) quanto amarrado a um Case ou Client já cadastrado (dispara alerta direto
+// naquele registro quando dá match). O @@unique evita cadastrar o mesmo termo duas vezes para
+// o mesmo processo (silenciosamente ignorado por addTermoVigilancia, não é erro do usuário).
+model TermoVigilancia {
+  id          String    @id @default(cuid())
+  termo       String
+  tipo        String    @default("LIVRE") // NOME | DOCUMENTO | NUMERO | LIVRE
+  ativo       Boolean   @default(true)
+  ultimoHitAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  criadoPorId String?
+  criadoPor   User?   @relation(fields: [criadoPorId], references: [id])
+
+  @@unique([officeId, termo, caseId])
+  @@index([officeId, ativo])
+}
+
+// Uma fonte pública que o robô administrativo sabe varrer (PNCP, DOU via INLABS, Querido Diário,
+// tribunais de contas etc.) — uma linha por escritório por fonte, porque a ativação e a última
+// execução são por conta (não é dado global como Tribunal). Nasce inativa (ativa=false): o
+// escritório liga cada fonte explicitamente depois de configurar o que precisa (ex.: termos
+// vigiados cadastrados), em vez de já sair varrendo tudo sem ninguém ter pedido.
+model FonteAdministrativa {
+  id               String    @id @default(cuid())
+  chave            String // PNCP | DOU_INLABS | QUERIDO_DIARIO | BTCU | DEC_TCE_GO | DOC_TCM_GO | CARF | CAT_GO
+  nome             String
+  ativa            Boolean   @default(false)
+  ultimaExecucaoAt DateTime?
+  ultimoStatus     String? // OK | ERRO
+  ultimoDetalhe    String?
+  createdAt        DateTime  @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([officeId, chave])
 }

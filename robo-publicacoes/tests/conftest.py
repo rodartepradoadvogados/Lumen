@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import create_engine
 
+from src import pipeline
 from src.config import Oab, Settings
 from src.db import build_session_factory, init_db
 
@@ -49,5 +50,23 @@ def test_settings() -> Settings:
         datajud_api_key="chave-de-teste",
         gemini_api_key=None,
         djen_proxy_url=None,
+        pncp_ufs=["GO", "DF"],
         log_level="INFO",
     )
+
+
+@pytest.fixture(autouse=True)
+def _pncp_sem_rede(monkeypatch):
+    """Autouse: nenhum teste de pipeline deve depender de acesso real a rede do PNCP (src/pncp.py)
+    — os testes existentes de DJEN/Datajud (test_dedup.py, test_pipeline_idempotente.py) chamam
+    pipeline.executar_ciclo(), que agora tambem tenta coletar licitacoes do PNCP; sem este mock
+    eles fariam requisicoes HTTP reais (bloqueadas neste ambiente, e lentas/instaveis em qualquer
+    ambiente de CI).
+
+    Importante: o mock e no nivel de request_json (simula "rede indisponivel"), NAO em
+    coletar_licitacoes() diretamente — assim o caminho defensivo REAL de src/pncp.py continua
+    sendo exercitado (retorna [] porque request_json devolve None, exatamente como aconteceria
+    em producao se o PNCP estivesse fora do ar), e os testes de tests/test_pncp.py que precisam
+    exercitar coletar_licitacoes() de verdade podem sobrescrever pncp.request_json de novo, sem
+    conflito com este fixture (o setattr mais recente vence dentro do mesmo teste)."""
+    monkeypatch.setattr(pipeline.pncp, "request_json", lambda *a, **k: None)

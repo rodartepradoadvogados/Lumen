@@ -41,10 +41,12 @@ def _rodar_um_ciclo() -> int:
 
     logger.info(
         "Ciclo concluido: %d publicacao(oes) nova(s), %d andamento(s) novo(s), "
-        "%d processo(s) descoberto(s), e-mail enviado=%s, alertas=%d.",
+        "%d processo(s) descoberto(s), %d licitacao(oes) PNCP nova(s)/atualizada(s), "
+        "e-mail enviado=%s, alertas=%d.",
         resultado.novas_publicacoes,
         resultado.novos_andamentos,
         resultado.novos_processos_descobertos,
+        resultado.novas_licitacoes,
         resultado.email_enviado,
         len(resultado.alertas),
     )

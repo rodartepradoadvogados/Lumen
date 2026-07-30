@@ -11,9 +11,21 @@ import MobileTaskResponsibleSelect from "@/components/mobile/MobileTaskResponsib
 import CopyButton from "@/components/CopyButton";
 import EditCaseModal from "@/components/EditCaseModal";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
+import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
+import NaturezaBadge from "@/components/mobile/NaturezaBadge";
 import { ArrowLeft, ChevronDown, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+// Mesmas cores de app/(app)/processos/page.tsx (statusColors) — repetido aqui em vez de
+// importado porque aquele arquivo não exporta a constante e não faz parte do escopo deste
+// agente (app/m/** e components/mobile/**, ver instruções da tarefa).
+const statusColors: Record<string, "green" | "amber" | "slate" | "red"> = {
+  ATIVO: "green",
+  SUSPENSO: "amber",
+  ENCERRADO: "slate",
+  ARQUIVADO: "red",
+};
 
 export default async function MobileCaseDetail({
   params,
@@ -62,6 +74,7 @@ export default async function MobileCaseDetail({
 
   if (!c) notFound();
 
+  const natureza = naturezaOf(c.type);
   const caseClients = effectiveCaseClients(c);
   const caseParties = effectiveCaseParties(c);
 
@@ -94,6 +107,13 @@ export default async function MobileCaseDetail({
       )}
 
       <div>
+        {/* Etiqueta de natureza junto do status — mesma pílula usada na listagem
+            (components/mobile/NaturezaBadge.tsx), pra reconhecer o processo antes de ler o
+            resto da tela. */}
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <NaturezaBadge natureza={natureza} />
+          <Badge color={statusColors[c.status] ?? "slate"}>{c.status}</Badge>
+        </div>
         <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50 leading-tight">{c.title}</h1>
         <p className="flex flex-wrap items-center text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
           {c.processNumber && (
@@ -106,8 +126,18 @@ export default async function MobileCaseDetail({
               <span className="mx-1">·</span>
             </>
           )}
-          {c.area && <span>{c.area} · </span>}
-          {c.type}
+          {natureza === "ADMINISTRATIVO" ? (
+            <>
+              {c.tribunalSigla && <span>Órgão: {c.tribunalSigla} · </span>}
+              {c.adminEsfera && <span>{ESFERA_LABELS[c.adminEsfera]} · </span>}
+              {c.adminMateria && <span>{MATERIA_LABELS[c.adminMateria]}</span>}
+            </>
+          ) : (
+            <>
+              {c.area && <span>{c.area} · </span>}
+              {NATUREZA_LABELS[natureza]}
+            </>
+          )}
         </p>
       </div>
 
@@ -159,8 +189,17 @@ export default async function MobileCaseDetail({
         <Field label="Vara/Comarca" value={c.court} />
         <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
         <Field label="Responsável" value={c.responsible?.name} />
-        <Field label="Tribunal" value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
+        <Field
+          label={natureza === "ADMINISTRATIVO" ? "Órgão" : "Tribunal"}
+          value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined}
+        />
         <Field label="Sistema" value={c.tribunalSistema} />
+        {natureza === "ADMINISTRATIVO" && (
+          <>
+            <Field label="Esfera" value={c.adminEsfera ? ESFERA_LABELS[c.adminEsfera] : undefined} />
+            <Field label="Matéria" value={c.adminMateria ? MATERIA_LABELS[c.adminMateria] : undefined} />
+          </>
+        )}
         {c.tribunalLink && (
           <a
             href={c.tribunalLink}

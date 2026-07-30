@@ -152,6 +152,20 @@ def _parse_email_list(raw: Optional[str]) -> List[str]:
     return [addr.strip() for addr in raw.split(",") if addr.strip()]
 
 
+# UFs padrao para a coleta de licitacoes no PNCP (Setor de Processos Administrativos, Fase 1):
+# GO e DF cobrem a base atual de clientes do escritorio original (Rodarte Prado). Sobrescrevivel
+# por PNCP_UFS (lista separada por virgula, ex.: "GO,DF,SP") caso outro escritorio-cliente da
+# plataforma precise monitorar licitacoes de outro estado — ver README.md.
+_DEFAULT_PNCP_UFS = ["GO", "DF"]
+
+
+def _parse_pncp_ufs(raw: Optional[str]) -> List[str]:
+    if not raw:
+        return list(_DEFAULT_PNCP_UFS)
+    ufs = [uf.strip().upper() for uf in raw.split(",") if uf.strip()]
+    return ufs or list(_DEFAULT_PNCP_UFS)
+
+
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
@@ -179,6 +193,8 @@ class Settings:
     gemini_api_key: Optional[str]
 
     djen_proxy_url: Optional[str]
+
+    pncp_ufs: List[str]
 
     log_level: str
 
@@ -219,5 +235,6 @@ def load_settings() -> Settings:
         datajud_api_key=os.getenv("DATAJUD_API_KEY") or None,
         gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
         djen_proxy_url=os.getenv("DJEN_PROXY_URL") or None,
+        pncp_ufs=_parse_pncp_ufs(os.getenv("PNCP_UFS")),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
     )

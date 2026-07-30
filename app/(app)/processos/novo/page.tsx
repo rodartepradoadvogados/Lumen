@@ -14,6 +14,7 @@ import AssessoriaSelect from "@/components/AssessoriaSelect";
 import SaveCaseButton from "@/components/SaveCaseButton";
 import TribunalFields from "@/components/TribunalFields";
 import NewCaseAttachmentsField from "@/components/NewCaseAttachmentsField";
+import NovoCaseNaturezaSection from "@/components/NovoCaseNaturezaSection";
 
 const AREA_OPTIONS = [
   "Cível",
@@ -36,6 +37,12 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
   if (!viewer) notFound();
 
   const defaultType = searchParams.type || "JUDICIAL";
+  // "Processo" (tem número e tramita em órgão, ver lib/caseNatureza.ts) é o único caso em que o
+  // NaturezaPicker faz sentido — "Caso" (Extrajudicial/Atendimento/Consultivo, chegados por
+  // NewEntityMenu.tsx ou por link antigo) continua exatamente como sempre foi, com o <select>
+  // de Tipo original, sem o passo de natureza.
+  const isProcessoFlow = defaultType === "JUDICIAL" || defaultType === "ADMINISTRATIVO";
+  const initialNatureza: "JUDICIAL" | "ADMINISTRATIVO" = defaultType === "ADMINISTRATIVO" ? "ADMINISTRATIVO" : "JUDICIAL";
   const [clients, users, assessoriasRaw, tribunais, driveStatus] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
@@ -98,6 +105,10 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       tribunalNome: String(formData.get("tribunalNome") || ""),
       tribunalSistema: String(formData.get("tribunalSistema") || ""),
       tribunalLink: String(formData.get("tribunalLink") || ""),
+      // Só preenchidos de fato quando type === "ADMINISTRATIVO" (ver isAdministrativo em
+      // createCase) — emitidos pelo OrgaoAdministrativoPicker dentro de NovoCaseNaturezaSection.
+      adminEsfera: String(formData.get("adminEsfera") || ""),
+      adminMateria: String(formData.get("adminMateria") || ""),
       stagedAttachments,
     });
   }
@@ -112,39 +123,65 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             <input name="title" required defaultValue={searchParams.title} className="input" placeholder="Ex: Fulano de Tal x Empresa XYZ" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
-              <select name="type" defaultValue={defaultType} className="input">
-                <option value="JUDICIAL">Judicial</option>
-                <option value="EXTRAJUDICIAL">Extrajudicial</option>
-                <option value="ATENDIMENTO">Atendimento</option>
-                <option value="CONSULTIVO">Consultivo</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
-              <select name="area" defaultValue="" className="input">
-                <option value="">Não definida</option>
-                {AREA_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {isProcessoFlow ? (
+            <>
+              <NovoCaseNaturezaSection
+                tribunais={tribunais}
+                defaultNatureza={initialNatureza}
+                defaultProcessNumber={searchParams.processNumber}
+                inputClassName="input"
+              />
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
+                <select name="area" defaultValue="" className="input">
+                  <option value="">Não definida</option>
+                  {AREA_OPTIONS.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                  <select name="type" defaultValue={defaultType} className="input">
+                    <option value="JUDICIAL">Judicial</option>
+                    <option value="EXTRAJUDICIAL">Extrajudicial</option>
+                    <option value="ATENDIMENTO">Atendimento</option>
+                    <option value="CONSULTIVO">Consultivo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
+                  <select name="area" defaultValue="" className="input">
+                    <option value="">Não definida</option>
+                    {AREA_OPTIONS.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do Processo</label>
-              <input name="processNumber" defaultValue={searchParams.processNumber} className="input" placeholder="0000000-00.0000.0.00.0000" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vara/Comarca</label>
-              <input name="court" className="input" />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do Processo</label>
+                  <input name="processNumber" defaultValue={searchParams.processNumber} className="input" placeholder="0000000-00.0000.0.00.0000" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vara/Comarca</label>
+                  <input name="court" className="input" />
+                </div>
+              </div>
+
+              <TribunalFields tribunais={tribunais} inputClassName="input" />
+            </>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -163,8 +200,6 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
               </select>
             </div>
           </div>
-
-          <TribunalFields tribunais={tribunais} inputClassName="input" />
 
           <ClientPicker clients={clients} inputClassName="input" />
 

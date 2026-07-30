@@ -7,10 +7,18 @@ import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import TribunalFields from "@/components/TribunalFields";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
+import { naturezaOf, ESFERAS, MATERIAS_ADMIN } from "@/lib/caseNatureza";
 import { Pencil, X } from "lucide-react";
 
 type CaseData = {
   id: string;
+  // Natureza do processo (ver lib/caseNatureza.ts) — decide se os campos de esfera/matéria
+  // administrativa abaixo aparecem. Não é editável aqui (mudar de natureza é uma operação mais
+  // delicada, fora do escopo deste modal); só serve pra ligar/desligar a seção. Opcional (e
+  // adminEsfera/adminMateria também) porque app/m/processos/[id]/page.tsx (mobile) reaproveita
+  // este mesmo componente sem passar esses campos — naturezaOf(undefined) cai em "CASO", que
+  // simplesmente mantém a seção administrativa oculta lá, sem quebrar nada.
+  type?: string;
   responsibleId: string | null;
   court: string | null;
   caseValue: number | null;
@@ -18,6 +26,8 @@ type CaseData = {
   tribunalNome: string | null;
   tribunalSistema: string | null;
   tribunalLink: string | null;
+  adminEsfera?: string | null;
+  adminMateria?: string | null;
   clients: { clientId: string | null; clientName?: string; role: string | null }[];
   parties: { name: string; document: string | null; address: string | null; role: string | null }[];
 };
@@ -40,6 +50,7 @@ export default function EditCaseModal({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isAdministrativo = naturezaOf(caseData.type) === "ADMINISTRATIVO";
 
   // Classes de input/select do modal — segue o par bg+texto do StartActingModal.tsx
   // (dark:bg-navy-800 + dark:text-cream-50 + dark:border-white/15), todos cobertos pelo MESMO
@@ -104,6 +115,10 @@ export default function EditCaseModal({
                   tribunalNome: String(formData.get("tribunalNome") || ""),
                   tribunalSistema: String(formData.get("tribunalSistema") || ""),
                   tribunalLink: String(formData.get("tribunalLink") || ""),
+                  // updateCase só grava esses dois quando o type EFETIVO (o já salvo, já que este
+                  // modal não edita natureza) é ADMINISTRATIVO — enviar sempre é inofensivo.
+                  adminEsfera: String(formData.get("adminEsfera") || ""),
+                  adminMateria: String(formData.get("adminMateria") || ""),
                 });
                 setLoading(false);
                 if (result?.error) {
@@ -160,6 +175,36 @@ export default function EditCaseModal({
                   inputClassName={inputClass}
                 />
               </div>
+
+              {/* Esfera/Matéria só fazem sentido para processo administrativo (ver
+                  lib/caseNatureza.ts) — para os demais, updateCase sempre grava os dois como
+                  null, então nem exibe o <select> aqui. */}
+              {isAdministrativo && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-navy-800/8 dark:border-white/10 pt-3">
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Esfera</label>
+                    <select name="adminEsfera" defaultValue={caseData.adminEsfera ?? ""} className={inputClass}>
+                      <option value="">Selecione...</option>
+                      {ESFERAS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Matéria</label>
+                    <select name="adminMateria" defaultValue={caseData.adminMateria ?? ""} className={inputClass}>
+                      <option value="">Selecione...</option>
+                      {MATERIAS_ADMIN.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <button type="submit" disabled={loading} className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Salvar"}

@@ -173,6 +173,11 @@ export async function createCase(data: {
   tribunalNome?: string;
   tribunalSistema?: string;
   tribunalLink?: string;
+  // Só fazem sentido quando type === "ADMINISTRATIVO" (ver lib/caseNatureza.ts) — em qualquer
+  // outro type são sempre gravados como null (ver isAdministrativo abaixo), pra nunca sobrar
+  // esfera/matéria de um cadastro administrativo num processo judicial editado depois.
+  adminEsfera?: string;
+  adminMateria?: string;
   stagedAttachments?: StagedAttachment[];
 }) {
   const viewer = await getCurrentUser();
@@ -183,6 +188,7 @@ export async function createCase(data: {
   const resolvedParties = resolvePartyInputs(data.parties);
   const primaryClient = resolvedClients[0];
   const primaryParty = resolvedParties[0];
+  const isAdministrativo = data.type === "ADMINISTRATIVO";
 
   const created = await prisma.case.create({
     data: {
@@ -205,6 +211,8 @@ export async function createCase(data: {
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,
       tribunalLink: data.tribunalLink || null,
+      adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
+      adminMateria: isAdministrativo ? data.adminMateria || null : null,
       officeId: viewer.officeId,
     },
   });
@@ -231,6 +239,13 @@ export async function updateCase(
     tribunalNome?: string;
     tribunalSistema?: string;
     tribunalLink?: string;
+    // type raramente muda aqui (hoje nenhuma tela do site desktop deixa editar — só existe pra
+    // não travar uma correção pontual de cadastro futura); quando ausente, mantém o type já
+    // salvo. adminEsfera/adminMateria seguem o type EFETIVO (o novo, se veio, senão o existente):
+    // mesma regra null-nos-dois-fora-de-ADMINISTRATIVO de createCase, ver isAdministrativo abaixo.
+    type?: string;
+    adminEsfera?: string;
+    adminMateria?: string;
   }
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
@@ -238,9 +253,10 @@ export async function updateCase(
 
   const existing = await prisma.case.findFirst({
     where: { id: caseId, officeId: viewer.officeId },
-    select: { id: true, title: true, driveFolderId: true },
+    select: { id: true, title: true, driveFolderId: true, type: true },
   });
   if (!existing) return { error: "Processo não encontrado." };
+  const isAdministrativo = (data.type || existing.type) === "ADMINISTRATIVO";
 
   let resolvedClients: { id: string; name: string; role: string | null }[];
   let resolvedParties: PartyInput[];
@@ -272,6 +288,7 @@ export async function updateCase(
     where: { id: caseId },
     data: {
       title: newTitle,
+      ...(data.type ? { type: data.type } : {}),
       clientId: primaryClient?.id || null,
       clientRole: primaryClient?.role || null,
       opposingPartyName: primaryParty?.name || null,
@@ -285,6 +302,8 @@ export async function updateCase(
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,
       tribunalLink: data.tribunalLink || null,
+      adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
+      adminMateria: isAdministrativo ? data.adminMateria || null : null,
     },
   });
   await writeCaseClientsAndParties(caseId, resolvedClients, resolvedParties);
@@ -385,6 +404,8 @@ export async function createCaseMobile(data: {
   tribunalNome?: string;
   tribunalSistema?: string;
   tribunalLink?: string;
+  adminEsfera?: string;
+  adminMateria?: string;
   stagedAttachments?: StagedAttachment[];
 }): Promise<{ id: string; anexosComErro?: number }> {
   const viewer = await getCurrentUser();
@@ -395,6 +416,7 @@ export async function createCaseMobile(data: {
   const resolvedParties = resolvePartyInputs(data.parties);
   const primaryClient = resolvedClients[0];
   const primaryParty = resolvedParties[0];
+  const isAdministrativo = data.type === "ADMINISTRATIVO";
 
   const created = await prisma.case.create({
     data: {
@@ -417,6 +439,8 @@ export async function createCaseMobile(data: {
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,
       tribunalLink: data.tribunalLink || null,
+      adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
+      adminMateria: isAdministrativo ? data.adminMateria || null : null,
       officeId: viewer.officeId,
     },
   });
