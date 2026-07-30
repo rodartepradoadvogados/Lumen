@@ -9,10 +9,15 @@ export default function CommentBox({
   caseId,
   taskId,
   users,
+  onSubmitted,
 }: {
   caseId?: string;
   taskId?: string;
   users: { id: string; name: string }[];
+  // Chamado depois que o comentário é salvo e o router é atualizado — usado pelo
+  // TaskDetailModal (card estilo Trello) pra recarregar a própria lista de comentários, já que
+  // ele busca os dados uma vez no mount em vez de depender do re-render do router.refresh().
+  onSubmitted?: () => void;
 }) {
   const router = useRouter();
   const [content, setContent] = useState("");
@@ -24,6 +29,7 @@ export default function CommentBox({
       await addComment({ content, caseId, taskId });
       setContent("");
       router.refresh();
+      onSubmitted?.();
     });
   }
 

@@ -278,18 +278,24 @@ export type TaskDetail = {
   strategy: string | null;
   responsibleId: string | null;
   case: { id: string; title: string; processNumber: string | null } | null;
+  comments: { id: string; content: string; createdAt: string; authorName: string }[];
 };
 
-// Usado pelo card de compromisso (aberto a partir de um alerta ou da lista de prazos
-// atrasados do painel): traz a tarefa completa + a lista de responsáveis possíveis,
-// já serializada (sem Date) para poder ser chamado direto de um client component.
+// Usado pelo card de compromisso (aberto a partir de um alerta, da lista de prazos atrasados do
+// painel, do Kanban ou da aba Atividades do processo): traz a tarefa completa + a conversa em
+// comentários (mesma funcionalidade de Comment/CommentBox já usada na aba Comentários do
+// processo, só que ligada à tarefa via taskId em vez de caseId) + a lista de responsáveis
+// possíveis, já serializada (sem Date) para poder ser chamado direto de um client component.
 export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | null; users: { id: string; name: string }[] }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { task: null, users: [] };
   const [task, users] = await Promise.all([
     prisma.task.findFirst({
       where: { id, officeId: viewer.officeId },
-      include: { case: { select: { id: true, title: true, processNumber: true } } },
+      include: {
+        case: { select: { id: true, title: true, processNumber: true } },
+        comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
+      },
     }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
@@ -310,6 +316,12 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
       strategy: task.strategy,
       responsibleId: task.responsibleId,
       case: task.case,
+      comments: task.comments.map((cm) => ({
+        id: cm.id,
+        content: cm.content,
+        createdAt: cm.createdAt.toISOString(),
+        authorName: cm.author.name,
+      })),
     },
     users,
   };
@@ -382,6 +394,12 @@ export async function addComment(data: { content: string; taskId?: string; caseI
   // ser forjado para atribuir o comentário (e a menção correspondente) a outra pessoa.
   if (data.taskId && !(await isTaskInOffice(data.taskId, viewer.officeId))) return;
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return;
+  // Comentário de tarefa (card estilo Trello, ver TaskDetailModal) não vem com caseId do
+  // chamador — busca o processo da própria tarefa pra também revalidar a aba Atividades dele
+  // (contador de comentários) e pro link de notificação apontar pro processo certo.
+  const taskCaseId = data.taskId
+    ? (await prisma.task.findUnique({ where: { id: data.taskId }, select: { caseId: true } }))?.caseId ?? null
+    : null;
   const mentionNames = Array.from(data.content.matchAll(/@(\p{Lu}\p{L}*(?:[ \t]+\p{Lu}\p{L}*)*)/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
     data: {
@@ -400,7 +418,8 @@ export async function addComment(data: { content: string; taskId?: string; caseI
       const user = users.find((u) => name.toLowerCase().includes(u.name.toLowerCase()) || u.name.toLowerCase().includes(name.toLowerCase()));
       if (user && user.id !== viewer.id) {
         await prisma.mention.create({ data: { commentId: comment.id, userId: user.id, officeId: viewer.officeId } });
-        const url = data.caseId ? `/m/processos/${data.caseId}` : "/m";
+        const effectiveCaseId = data.caseId || taskCaseId;
+        const url = effectiveCaseId ? `/m/processos/${effectiveCaseId}` : "/m";
         await sendPushIfEnabled(user.id, viewer.officeId, "mencao", {
           title: "Você foi mencionado",
           body: `${comment.author.name}: ${data.content.slice(0, 120)}`,
@@ -412,5 +431,6 @@ export async function addComment(data: { content: string; taskId?: string; caseI
 
   if (data.taskId) revalidatePath(`/kanban`);
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
+  if (taskCaseId) revalidatePath(`/processos/${taskCaseId}`);
   revalidatePath("/alertas");
 }

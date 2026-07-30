@@ -6,10 +6,16 @@ import Link from "next/link";
 import { X, Check } from "lucide-react";
 import { getTaskDetail, updateTask, toggleTaskDone, TaskDetail } from "@/lib/actions/tasks";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
+import CommentBox from "@/components/CommentBox";
+import { formatDate } from "@/components/ui";
 
-// "Card do compromisso": mostra e permite editar uma tarefa/evento/audiência/perícia/prazo,
-// aberto a partir da Central de Alertas (prazo vencido) ou da listagem de prazos atrasados
-// do painel. Busca os dados completos ao abrir (o chamador só precisa do id da tarefa).
+// "Card do compromisso": mostra e permite editar uma tarefa/evento/audiência/perícia/prazo, com
+// uma conversa em comentários dentro do próprio card (estilo Trello) — reaproveita o mesmo
+// Comment/CommentBox já usado na aba Comentários do processo, só que ligado à tarefa (taskId) em
+// vez de ao processo (caseId); @menções nos comentários seguem surgindo na Central de Alertas
+// normalmente (ver lib/alerts.ts, MENCAO não distingue comentário de tarefa ou de processo).
+// Aberto a partir da Central de Alertas (prazo vencido/delegação), da listagem de prazos
+// atrasados do painel, ou da aba Atividades do processo (ver components/TaskActivityRow.tsx).
 export default function TaskDetailModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const router = useRouter();
   const [task, setTask] = useState<TaskDetail | null>(null);
@@ -35,6 +41,13 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
       active = false;
     };
   }, [taskId]);
+
+  // Recarrega só os comentários (sem passar por "Carregando..." de novo) depois que
+  // CommentBox salva um novo — ver onSubmitted abaixo.
+  async function reloadComments() {
+    const res = await getTaskDetail(taskId);
+    if (res.task) setTask((prev) => (prev ? { ...prev, comments: res.task!.comments } : res.task));
+  }
 
   async function handleSubmit(formData: FormData) {
     setSaving(true);
@@ -224,6 +237,33 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               />
             </div>
           </form>
+        )}
+
+        {!loading && task && (
+          <div className="px-5 pb-5 pt-1 border-t border-navy-800/8 space-y-3">
+            <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide">Conversa</p>
+            {task.comments.length === 0 ? (
+              <p className="text-sm text-navy-800/40">Nenhum comentário ainda.</p>
+            ) : (
+              <div className="space-y-3 max-h-56 overflow-y-auto scrollbar-thin">
+                {task.comments.map((cm) => (
+                  <div key={cm.id} className="flex gap-2.5">
+                    <div className="h-7 w-7 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {cm.authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm">
+                        <span className="font-semibold text-navy-900">{cm.authorName}</span>{" "}
+                        <span className="text-[11px] text-navy-800/40">{formatDate(cm.createdAt)}</span>
+                      </p>
+                      <p className="text-sm text-navy-800/80 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <CommentBox taskId={task.id} users={users} onSubmitted={reloadComments} />
+          </div>
         )}
       </div>
       <style jsx global>{`

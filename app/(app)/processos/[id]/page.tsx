@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, Badge, formatCurrency, formatDate, EmptyState, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
 import NewReceivableModal from "@/components/NewReceivableModal";
 import EditReceivableModal from "@/components/EditReceivableModal";
@@ -19,11 +19,10 @@ import PublicationsList from "@/components/PublicationsList";
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
-import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
 import EditCaseModal from "@/components/EditCaseModal";
 import RecurringFeeCard from "@/components/RecurringFeeCard";
-import { ArrowLeft, Check, ExternalLink } from "lucide-react";
-import { toggleTaskDone } from "@/lib/actions/tasks";
+import TaskActivityRow from "@/components/TaskActivityRow";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -273,23 +272,20 @@ export default async function CaseDetailPage({
             ) : (
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
                 {c.tasks.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 px-5 py-3.5">
-                    <form action={async () => { "use server"; await toggleTaskDone(t.id); }}>
-                      <button type="submit" className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center ${t.status === "CONCLUIDO" ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 hover:border-emerald-500"}`}>
-                        <Check size={12} strokeWidth={3} />
-                      </button>
-                    </form>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
-                        <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
-                        <p className={`text-sm font-medium text-navy-900 dark:text-cream-50 ${t.status === "CONCLUIDO" ? "line-through text-navy-800/40 dark:text-cream-50/40" : ""}`}>{t.title}</p>
-                      </div>
-                      <TaskResponsibleSelect taskId={t.id} responsibleId={t.responsibleId} users={users.map((u) => ({ id: u.id, name: u.name }))} />
-                    </div>
-                    <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatDate(t.dueDate)}</p>
-                    <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir a atividade "${t.title}"?`} />
-                  </div>
+                  <TaskActivityRow
+                    key={t.id}
+                    task={{
+                      id: t.id,
+                      title: t.title,
+                      type: t.type,
+                      priority: t.priority,
+                      status: t.status,
+                      dueDate: t.dueDate.toISOString(),
+                      responsibleId: t.responsibleId,
+                      commentCount: t._count.comments,
+                    }}
+                    users={users.map((u) => ({ id: u.id, name: u.name }))}
+                  />
                 ))}
               </div>
             )}

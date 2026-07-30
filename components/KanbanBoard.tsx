@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatDate } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
+import TaskDetailModal from "@/components/TaskDetailModal";
 import { Check, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
@@ -95,6 +96,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
 function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void }) {
   const overdue = new Date(task.dueDate) < new Date() && task.status !== "CONCLUIDO";
   const done = task.status === "CONCLUIDO";
+  const [open, setOpen] = useState(false);
 
   return (
     <div
@@ -121,7 +123,12 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
           <DeleteEntityButton entityType="TASK" entityId={task.id} entityLabel={task.title} confirmMessage={`Excluir "${task.title}"?`} />
         </div>
       </div>
-      <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 leading-snug", done && "line-through")}>{task.title}</p>
+      {/* Clicar no título abre o card completo (TaskDetailModal), com a conversa em
+          comentários — mesmo card usado em Central de Alertas/Atividades do processo. Só o
+          título é clicável (não o card inteiro), pra não atrapalhar o drag-and-drop entre colunas. */}
+      <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
+        <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 leading-snug", done && "line-through")}>{task.title}</p>
+      </button>
       {task.case && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">{task.case.title}</p>}
 
       <div className="flex items-center justify-between mt-2.5">
@@ -148,6 +155,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
           )}
         </div>
       </div>
+      {open && <TaskDetailModal taskId={task.id} onClose={() => setOpen(false)} />}
     </div>
   );
 }
