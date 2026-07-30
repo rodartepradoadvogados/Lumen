@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createReceivable } from "@/lib/actions/financeiro";
+import { createReceivable, createRecurringFee } from "@/lib/actions/financeiro";
 import { createClientQuick } from "@/lib/actions/contatos";
 import { createCaseQuick } from "@/lib/actions/cases";
 import { createCostCenterQuick } from "@/lib/actions/settings";
 import { Plus, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+
+type Recorrencia = "unica" | "parcelado" | "ate_arquivamento";
 
 type Option = { id: string; name: string };
 
@@ -33,8 +35,11 @@ export default function NewReceivableModal({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [splitSuccess, setSplitSuccess] = useState(false);
-  const [parcelar, setParcelar] = useState(false);
+  const [recorrencia, setRecorrencia] = useState<Recorrencia>("unica");
+  const parcelar = recorrencia === "parcelado";
+  const ateArquivamento = recorrencia === "ate_arquivamento";
 
   return (
     <>
@@ -56,6 +61,26 @@ export default function NewReceivableModal({
             <form
               action={async (formData) => {
                 setLoading(true);
+                setError("");
+                if (ateArquivamento) {
+                  const result = await createRecurringFee({
+                    description: String(formData.get("description")),
+                    amount: String(formData.get("amount")),
+                    dueDay: String(formData.get("dueDay") || "10"),
+                    kind: String(formData.get("kind")),
+                    categoryId: String(formData.get("categoryId") || ""),
+                    costCenterId: String(formData.get("costCenterId") || ""),
+                    caseId: defaultCaseId || String(formData.get("caseId") || ""),
+                  });
+                  setLoading(false);
+                  if (result.error) {
+                    setError(result.error);
+                    return;
+                  }
+                  setOpen(false);
+                  router.refresh();
+                  return;
+                }
                 await createReceivable({
                   description: String(formData.get("description")),
                   amount: String(formData.get("amount")),
@@ -80,27 +105,61 @@ export default function NewReceivableModal({
                   Já recebido neste processo: <span className="font-semibold text-navy-900 dark:text-cream-50">{alreadyReceivedForCase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                 </p>
               )}
+              {error && (
+                <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>
+              )}
               <div>
                 <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição</label>
                 <input name="description" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" placeholder="Ex: Honorários contratuais - parcela 1/6" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{splitSuccess ? "Valor a receber agora (R$)" : parcelar ? "Valor de cada parcela (R$)" : "Valor (R$)"}</label>
-                  <input name="amount" type="number" step="0.01" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{parcelar ? "1º Vencimento" : "Vencimento (parte de agora)"}</label>
-                  <input name="dueDate" type="date" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
-                </div>
-              </div>
 
               {!splitSuccess && (
-                <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
-                  <input type="checkbox" checked={parcelar} onChange={(e) => setParcelar(e.target.checked)} />
-                  Recebimento recorrente (parcelado)
-                </label>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo de lançamento</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {(
+                      [
+                        { value: "unica", label: "Único" },
+                        { value: "parcelado", label: "Parcelado" },
+                        ...(defaultCaseId ? [{ value: "ate_arquivamento" as const, label: "Recorrente até o arquivamento" }] : []),
+                      ] as { value: Recorrencia; label: string }[]
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setRecorrencia(opt.value)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                          recorrencia === opt.value
+                            ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
+                            : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+                    {splitSuccess ? "Valor a receber agora (R$)" : parcelar ? "Valor de cada parcela (R$)" : ateArquivamento ? "Valor mensal (R$)" : "Valor (R$)"}
+                  </label>
+                  <input name="amount" type="number" step="0.01" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                </div>
+                {ateArquivamento ? (
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Dia do mês de vencimento</label>
+                    <input name="dueDay" type="number" min="1" max="28" defaultValue="10" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{parcelar ? "1º Vencimento" : "Vencimento (parte de agora)"}</label>
+                    <input name="dueDate" type="date" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                  </div>
+                )}
+              </div>
 
               {parcelar && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10">
@@ -116,7 +175,13 @@ export default function NewReceivableModal({
                 </div>
               )}
 
-              {!parcelar && (
+              {ateArquivamento && (
+                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10">
+                  Gera automaticamente uma conta a receber por mês, sempre no dia escolhido, até o processo ser arquivado — não precisa definir quantas parcelas de antemão.
+                </p>
+              )}
+
+              {recorrencia === "unica" && (
                 <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                   <input type="checkbox" checked={splitSuccess} onChange={(e) => setSplitSuccess(e.target.checked)} />
                   Dividir: parte agora + parte no êxito (sem vencimento definido)
@@ -156,18 +221,20 @@ export default function NewReceivableModal({
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente</label>
-                <EntityPicker
-                  name="clientId"
-                  options={clients}
-                  defaultValue={defaultClientId}
-                  placeholder="Buscar cliente..."
-                  emptyLabel="Nenhum"
-                  addLabel="Cadastrar novo cliente"
-                  onQuickAdd={createClientQuick}
-                />
-              </div>
+              {!ateArquivamento && (
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente</label>
+                  <EntityPicker
+                    name="clientId"
+                    options={clients}
+                    defaultValue={defaultClientId}
+                    placeholder="Buscar cliente..."
+                    emptyLabel="Nenhum"
+                    addLabel="Cadastrar novo cliente"
+                    onQuickAdd={createClientQuick}
+                  />
+                </div>
+              )}
               {!defaultCaseId && (
                 <div>
                   <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Processo vinculado (opcional)</label>

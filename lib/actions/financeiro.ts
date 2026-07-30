@@ -327,3 +327,126 @@ export async function createReceivable(data: {
   revalidateFinance();
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
 }
+
+// Quantos meses (mês corrente + à frente) o RecurringFee sempre mantém materializados em
+// Receivable — precisa cobrir a janela do Fluxo de Caixa (hoje: 3 meses à frente, ver
+// app/(app)/financeiro/fluxo-de-caixa/page.tsx), senão os meses futuros aparecem zerados na
+// projeção até o dia em que cada um "chegar" e o cron gerar a linha. Gerando com antecedência,
+// a página de projeção não precisa de nenhuma lógica própria de extrapolação — ela já soma linhas
+// reais como sempre fez.
+const RECURRING_FEE_MONTHS_AHEAD = 4;
+
+function competenciaFor(year: number, month0: number): string {
+  return `${year}-${String(month0 + 1).padStart(2, "0")}`;
+}
+
+// Usa o menor entre o dia configurado e o último dia do mês (evita "31 de fevereiro" virar 3 de
+// março sozinho, que é o que Date faz por padrão quando o dia não existe naquele mês).
+function dueDateFor(year: number, month0: number, dueDay: number): Date {
+  const daysInMonth = new Date(year, month0 + 1, 0).getDate();
+  return new Date(year, month0, Math.min(dueDay, daysInMonth));
+}
+
+// Cria um honorário "até o arquivamento": diferente do parcelamento comum de createReceivable
+// (quantidade fixa, tudo gerado de uma vez), aqui não existe uma quantidade final — o cron diário
+// (ensureRecurringFeeReceivables, ver app/api/cron/recurring-fees/route.ts) mantém sempre os
+// próximos RECURRING_FEE_MONTHS_AHEAD meses gerados, e para sozinho quando o processo é arquivado.
+export async function createRecurringFee(data: {
+  description: string;
+  amount: string;
+  dueDay: string;
+  kind: string;
+  categoryId?: string;
+  costCenterId?: string;
+  caseId: string;
+}): Promise<{ error?: string }> {
+  const officeId = await requireFinanceOfficeId();
+  if (!data.caseId) return { error: "Selecione um processo — honorário até o arquivamento precisa de um processo vinculado." };
+  await assertFinanceRelationsInOffice(data, officeId);
+
+  await prisma.recurringFee.create({
+    data: {
+      officeId,
+      caseId: data.caseId,
+      description: data.description,
+      amount: parseFloat(data.amount),
+      dueDay: Math.min(28, Math.max(1, parseInt(data.dueDay) || 10)),
+      kind: data.kind,
+      categoryId: data.categoryId || null,
+      costCenterId: data.costCenterId || null,
+    },
+  });
+  // Materializa já os próximos meses (não espera o cron rodar amanhã) — a projeção de Fluxo de
+  // Caixa reflete o novo honorário recorrente assim que ele é criado.
+  await ensureRecurringFeeReceivables();
+  revalidateFinance();
+  revalidatePath(`/processos/${data.caseId}`);
+  return {};
+}
+
+// Roda diariamente via cron (app/api/cron/recurring-fees/route.ts) — idempotente: a constraint
+// única (recurringFeeId, competencia) em Receivable garante que rodar todo dia em vez de só no
+// dia 1 não duplica nada. Também é quem desliga sozinho um RecurringFee cujo processo já foi
+// arquivado, sem precisar de nenhum hook em updateCaseStatus.
+export async function ensureRecurringFeeReceivables(): Promise<{ created: number; deactivated: number }> {
+  const now = new Date();
+  const fees = await prisma.recurringFee.findMany({
+    where: { active: true },
+    include: { case: { select: { status: true, clientId: true } } },
+  });
+
+  let created = 0;
+  let deactivated = 0;
+  for (const fee of fees) {
+    if (fee.case.status === "ARQUIVADO") {
+      await prisma.recurringFee.update({ where: { id: fee.id }, data: { active: false } });
+      deactivated++;
+      continue;
+    }
+    for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
+      const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const year = target.getFullYear();
+      const month0 = target.getMonth();
+      const competencia = competenciaFor(year, month0);
+      const exists = await prisma.receivable.findUnique({
+        where: { recurringFeeId_competencia: { recurringFeeId: fee.id, competencia } },
+      });
+      if (exists) continue;
+
+      const dueDate = dueDateFor(year, month0, fee.dueDay);
+      const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      await prisma.receivable.create({
+        data: {
+          officeId: fee.officeId,
+          description: `${fee.description} — ${monthLabel}`,
+          amount: fee.amount,
+          dueDate,
+          kind: fee.kind,
+          categoryId: fee.categoryId,
+          costCenterId: fee.costCenterId,
+          clientId: fee.case.clientId,
+          caseId: fee.caseId,
+          recurringFeeId: fee.id,
+          competencia,
+        },
+      });
+      created++;
+    }
+  }
+
+  revalidateFinance();
+  return { created, deactivated };
+}
+
+// Encerra manualmente um honorário até o arquivamento antes do processo ser arquivado (ex.:
+// cliente renegociou, contrato encerrado) — as parcelas já geradas continuam existindo
+// normalmente em Contas a Receber, só para de gerar as futuras.
+export async function deactivateRecurringFee(id: string): Promise<{ error?: string }> {
+  const officeId = await requireFinanceOfficeId();
+  const existing = await prisma.recurringFee.findFirst({ where: { id, officeId } });
+  if (!existing) return { error: "Honorário recorrente não encontrado." };
+  await prisma.recurringFee.update({ where: { id }, data: { active: false } });
+  revalidateFinance();
+  revalidatePath(`/processos/${existing.caseId}`);
+  return {};
+}

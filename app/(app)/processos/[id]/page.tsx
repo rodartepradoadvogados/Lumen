@@ -21,6 +21,7 @@ import PromoteToJudicialForm from "@/components/PromoteToJudicialForm";
 import ApplyWorkflowModal from "@/components/ApplyWorkflowModal";
 import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
 import EditCaseModal from "@/components/EditCaseModal";
+import RecurringFeeCard from "@/components/RecurringFeeCard";
 import { ArrowLeft, Check, ExternalLink } from "lucide-react";
 import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
@@ -83,7 +84,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -103,6 +104,7 @@ export default async function CaseDetailPage({
     // escritório (para o <select> de Cliente) e o catálogo global de tribunais (para o seletor).
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
+    prisma.recurringFee.findMany({ where: { caseId: c.id, active: true }, orderBy: { createdAt: "asc" } }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const caseClients = effectiveCaseClients(c);
@@ -336,6 +338,9 @@ export default async function CaseDetailPage({
             <div className="px-5 py-3 border-b border-navy-800/8 dark:border-white/10">
               <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Contas a Receber</h4>
             </div>
+            {recurringFees.map((fee) => (
+              <RecurringFeeCard key={fee.id} fee={{ id: fee.id, description: fee.description, amount: fee.amount, dueDay: fee.dueDay }} />
+            ))}
             {c.receivables.length === 0 ? (
               <EmptyState title="Nenhum lançamento" />
             ) : (

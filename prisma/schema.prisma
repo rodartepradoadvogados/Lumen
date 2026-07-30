@@ -124,6 +124,7 @@ model Office {
   costCenters          CostCenter[]
   payables             Payable[]
   receivables          Receivable[]
+  recurringFees        RecurringFee[]
   assessorias          Assessoria[]
   assessoriaDocumentos AssessoriaDocumento[]
   honorarios           Honorario[]
@@ -421,6 +422,7 @@ model Case {
   tasks                    Task[]
   comments                 Comment[]
   receivables              Receivable[]
+  recurringFees            RecurringFee[]
   payables                 Payable[]
   publications             Publication[]
   attachments              Attachment[]
@@ -1094,8 +1096,47 @@ model Receivable {
 
   honorario Honorario?
 
+  // Preenchidos só quando esta linha foi gerada por um RecurringFee ("honorário até o
+  // arquivamento") — competencia ("YYYY-MM") + a constraint única abaixo garantem que o cron
+  // (ensureRecurringFeeReceivables, lib/actions/financeiro.ts) nunca gera duas linhas pro mesmo
+  // mês, mesmo rodando todo dia. NULL não colide com NULL num índice único do Postgres, então
+  // isso não afeta em nada as linhas normais (sem recurringFeeId).
+  recurringFeeId String?
+  recurringFee   RecurringFee? @relation(fields: [recurringFeeId], references: [id])
+  competencia    String?
+
+  @@unique([recurringFeeId, competencia])
   @@index([officeId])
   @@index([officeId, dueDate])
+}
+
+// Honorário "até o arquivamento": ao contrário do parcelamento comum (Receivable.installmentTotal,
+// quantidade fixa definida na hora), aqui não se sabe de antemão quantas parcelas vão existir —
+// ensureRecurringFeeReceivables gera as próximas alguns meses à frente (o bastante para cobrir a
+// janela do Fluxo de Caixa) e para de gerar sozinho quando o Case vinculado é arquivado
+// (active vira false). categoryId/costCenterId não têm relation formal aqui de propósito: são só
+// copiados para cada Receivable gerado, que já valida a própria FK ao ser criado.
+model RecurringFee {
+  id           String   @id @default(cuid())
+  description  String
+  amount       Float
+  dueDay       Int // dia do mês de vencimento (clampado 1-28, mesmo padrão do dueDay de Assessoria)
+  kind         String   @default("HONORARIOS_CONTRATUAIS")
+  categoryId   String?
+  costCenterId String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id])
+
+  receivables Receivable[]
+
+  @@index([officeId])
+  @@index([caseId])
 }
 
 // ============ ASSESSORIA JURÍDICA ============
