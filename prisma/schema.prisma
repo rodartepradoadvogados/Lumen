@@ -144,6 +144,7 @@ model Office {
 
   driveSyncIssues DriveSyncIssue[]
   blockedProcessNumbers BlockedProcessNumber[]
+  alertDismissals AlertDismissal[]
 }
 
 // ============ EQUIPE ============
@@ -228,6 +229,7 @@ model User {
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
   blockedProcessNumbers       BlockedProcessNumber[]
+  alertDismissals             AlertDismissal[]
 
   // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
   platformMember PlatformMember?
@@ -1244,6 +1246,25 @@ model PublicationRead {
 
   @@unique([publicationId, userId])
   @@index([userId])
+}
+
+// "Lido" na Central de Alertas — só para os tipos de alerta que hoje não têm nenhuma ação de
+// resolver (MENCAO, FOLLOWUP_ATRASADO, PARCELA_SEM_VENCIMENTO, DRIVE_INCONSISTENCIA; ver
+// lib/alerts.ts). Por usuário, igual PublicationRead/BlockedProcessNumber — dispensar um alerta
+// não afeta os outros advogados do escritório. `entityId` é o mesmo AlertItem.entityId (comment.id
+// pra menção, attendance.id pro follow-up, payable/receivable.id pra parcela, driveSyncIssue.id).
+model AlertDismissal {
+  id        String   @id @default(cuid())
+  officeId  String
+  office    Office   @relation(fields: [officeId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  kind      String
+  entityId  String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, kind, entityId])
+  @@index([officeId])
 }
 
 // ============ BLOG JURÍDICO (público, por escritório) ============

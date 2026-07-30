@@ -76,6 +76,21 @@ export async function getAlerts(
 ): Promise<AlertItem[]> {
   const now = new Date();
 
+  // MENCAO/FOLLOWUP_ATRASADO/PARCELA_SEM_VENCIMENTO/DRIVE_INCONSISTENCIA não têm nenhuma ação
+  // de resolver — dispensados via botão "Lido" (dismissAlert em lib/actions/alerts.ts),
+  // por usuário. Buscado antes do Promise.all abaixo pra poder excluir cada tipo já na query.
+  const dismissedByKind = new Map<string, Set<string>>();
+  if (viewerId) {
+    const dismissals = await prisma.alertDismissal.findMany({ where: { userId: viewerId }, select: { kind: true, entityId: true } });
+    for (const d of dismissals) {
+      if (!dismissedByKind.has(d.kind)) dismissedByKind.set(d.kind, new Set());
+      dismissedByKind.get(d.kind)!.add(d.entityId);
+    }
+  }
+  const dismissedFollowupIds = Array.from(dismissedByKind.get("FOLLOWUP_ATRASADO") ?? []);
+  const dismissedParcelaIds = Array.from(dismissedByKind.get("PARCELA_SEM_VENCIMENTO") ?? []);
+  const dismissedDriveIds = Array.from(dismissedByKind.get("DRIVE_INCONSISTENCIA") ?? []);
+
   const [
     overdueTasks,
     overduePayables,
@@ -100,18 +115,18 @@ export async function getAlerts(
         : Promise.resolve([]),
       viewerId
         ? prisma.mention.findMany({
-            where: { officeId, userId: viewerId, read: false },
+            where: { officeId, userId: viewerId, read: false, ...(dismissedByKind.has("MENCAO") ? { commentId: { notIn: Array.from(dismissedByKind.get("MENCAO")!) } } : {}) },
             include: { comment: { include: { author: true, case: true, task: true } } },
           })
         : Promise.resolve([]),
       includeFinance
-        ? prisma.payable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+        ? prisma.payable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
         : Promise.resolve([]),
       includeFinance
-        ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+        ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
         : Promise.resolve([]),
       prisma.attendance.findMany({
-        where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
+        where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
         orderBy: { nextContactAt: "asc" },
       }),
       viewerId
@@ -123,7 +138,7 @@ export async function getAlerts(
         : Promise.resolve([]),
       includeDriveSync
         ? prisma.driveSyncIssue.findMany({
-            where: { officeId, resolvedAt: null },
+            where: { officeId, resolvedAt: null, id: { notIn: dismissedDriveIds } },
             include: { case: { select: { id: true, processNumber: true } }, attendance: { select: { id: true } } },
             orderBy: { detectedAt: "desc" },
           })
@@ -242,6 +257,7 @@ export async function getAlerts(
       href: issue.case ? `/processos/${issue.case.id}` : issue.attendance ? `/atendimento/${issue.attendance.id}` : "/alertas",
       severity: "alta",
       processNumber: issue.case?.processNumber ?? undefined,
+      entityId: issue.id,
     });
   }
   for (const m of unreadMentions) {
@@ -273,6 +289,18 @@ export async function getAlertsCount(
 ): Promise<number> {
   const now = new Date();
 
+  const dismissedByKind = new Map<string, Set<string>>();
+  if (viewerId) {
+    const dismissals = await prisma.alertDismissal.findMany({ where: { userId: viewerId }, select: { kind: true, entityId: true } });
+    for (const d of dismissals) {
+      if (!dismissedByKind.has(d.kind)) dismissedByKind.set(d.kind, new Set());
+      dismissedByKind.get(d.kind)!.add(d.entityId);
+    }
+  }
+  const dismissedFollowupIds = Array.from(dismissedByKind.get("FOLLOWUP_ATRASADO") ?? []);
+  const dismissedParcelaIds = Array.from(dismissedByKind.get("PARCELA_SEM_VENCIMENTO") ?? []);
+  const dismissedDriveIds = Array.from(dismissedByKind.get("DRIVE_INCONSISTENCIA") ?? []);
+
   const [
     overdueTasks,
     overduePayables,
@@ -294,21 +322,21 @@ export async function getAlertsCount(
       ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
       : Promise.resolve(0),
     viewerId
-      ? prisma.mention.count({ where: { officeId, userId: viewerId, read: false } })
+      ? prisma.mention.count({ where: { officeId, userId: viewerId, read: false, ...(dismissedByKind.has("MENCAO") ? { commentId: { notIn: Array.from(dismissedByKind.get("MENCAO")!) } } : {}) } })
       : Promise.resolve(0),
     includeFinance
-      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
       : Promise.resolve(0),
     includeFinance
-      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true } })
+      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: true, id: { notIn: dismissedParcelaIds } } })
       : Promise.resolve(0),
     prisma.attendance.count({
-      where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
+      where: { officeId, nextContactAt: { lt: now }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" }, id: { notIn: dismissedFollowupIds } },
     }),
     viewerId
       ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
       : Promise.resolve(0),
-    includeDriveSync ? prisma.driveSyncIssue.count({ where: { officeId, resolvedAt: null } }) : Promise.resolve(0),
+    includeDriveSync ? prisma.driveSyncIssue.count({ where: { officeId, resolvedAt: null, id: { notIn: dismissedDriveIds } } }) : Promise.resolve(0),
   ]);
 
   return (

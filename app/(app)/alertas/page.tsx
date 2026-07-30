@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, EmptyState, dueStatusClassName } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
+import DismissibleAlertRow from "@/components/DismissibleAlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, FolderSync, LucideIcon } from "lucide-react";
 
@@ -102,22 +103,25 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                   const meta = kindMeta[a.kind];
                   const Icon = meta.icon;
                   return (
-                    <AlertRow
+                    <DismissibleAlertRow
                       key={a.id}
-                      alert={a}
-                      className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors w-full text-left ${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
+                      kind={a.kind}
+                      entityId={a.entityId}
+                      rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
                     >
-                      <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
-                        <Icon size={16} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
-                        <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{a.title}</p>
-                        {a.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{a.subtitle}</p>}
-                        {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
-                      </div>
-                      <span className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
-                    </AlertRow>
+                      <AlertRow alert={a} className="flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors w-full text-left">
+                        <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
+                          <Icon size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
+                          <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{a.title}</p>
+                          {a.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{a.subtitle}</p>}
+                          {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
+                        </div>
+                        <span className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
+                      </AlertRow>
+                    </DismissibleAlertRow>
                   );
                 })}
               </div>
