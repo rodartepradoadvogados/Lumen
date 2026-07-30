@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   markPublicationRead,
   markPublicationUnread,
-  generateTaskFromPublication,
 } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
@@ -51,8 +50,12 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
-  const [formType, setFormType] = useState<string | null>(null);
   const [delegateOpen, setDelegateOpen] = useState(false);
+  // "Gerar Prazo"/"Marcar Audiência"/etc. no menu Agenda pré-selecionam o tipo e abrem o MESMO
+  // formulário de Delegar (não um form solto) — antes, essas ações criavam uma Task sem
+  // responsável (órfã), diferente de "Delegar", que sempre atribui a alguém. Unificado num
+  // fluxo só: default TAREFA quando aberto pelo botão "Delegar" puro.
+  const [delegateType, setDelegateType] = useState("TAREFA");
   const [pending, startTransition] = useTransition();
   const [leaving, setLeaving] = useState(false);
   const { showUndo } = useUndoToast();
@@ -166,7 +169,8 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
                       type="button"
                       onClick={() => {
                         setAgendaOpen(false);
-                        setFormType(a.type);
+                        setDelegateType(a.type);
+                        setDelegateOpen(true);
                       }}
                       className="flex items-center gap-2 w-full px-3 py-2 text-xs text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5"
                     >
@@ -180,51 +184,16 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
             {users.length > 0 && (
               <button
                 type="button"
-                onClick={() => setDelegateOpen(true)}
+                onClick={() => {
+                  setDelegateType("TAREFA");
+                  setDelegateOpen(true);
+                }}
                 className="inline-flex items-center gap-1 text-[12px] font-semibold text-gold-800 dark:text-gold-400 px-3 py-1.5 rounded-lg bg-gold-500/10 dark:bg-gold-400/15"
               >
                 <UserPlus size={13} /> Delegar
               </button>
             )}
           </div>
-
-          {formType && (
-            <form
-              action={async (formData) => {
-                await generateTaskFromPublication(pub.id, {
-                  title: String(formData.get("title")),
-                  type: String(formData.get("type")),
-                  dueDate: String(formData.get("dueDate")),
-                  dueTime: String(formData.get("dueTime") || ""),
-                  priority: "MEDIA",
-                });
-                setFormType(null);
-                router.refresh();
-              }}
-              className="mt-3 p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2"
-            >
-              <input name="title" defaultValue={pub.content.slice(0, 50)} required className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" />
-              <div className="flex gap-2 flex-wrap">
-                <select name="type" defaultValue={formType} className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5">
-                  <option value="PRAZO">Prazo</option>
-                  <option value="TAREFA">Atividade/Tarefa</option>
-                  <option value="AUDIENCIA">Audiência</option>
-                  <option value="PERICIA">Perícia</option>
-                  <option value="EVENTO">Evento</option>
-                </select>
-                <input name="dueDate" type="date" required className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" />
-                <input name="dueTime" type="time" className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5" />
-              </div>
-              <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold py-1.5 rounded-lg">
-                  Criar na Agenda/Kanban
-                </button>
-                <button type="button" onClick={() => setFormType(null)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       )}
 
@@ -244,6 +213,7 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
                 title: pub.content.slice(0, 50),
                 referTo: pub.caseId ? "PROCESSO" : "OUTROS",
                 selectedLink: pub.caseId && pub.caseTitle ? { id: pub.caseId, label: pub.caseTitle } : undefined,
+                type: delegateType,
               }}
             />
           </div>

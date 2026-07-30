@@ -46,6 +46,9 @@ export type DelegateTaskInitial = {
   selectedLink?: LinkHit;
   title?: string;
   publicationId?: string;
+  // Pré-seleciona o tipo (ex.: atalhos "Gerar Prazo"/"Marcar Audiência" em PublicationRow —
+  // ver AGENDA_TYPE_SHORTCUTS) — usuário ainda pode trocar no passo 2.
+  type?: string;
 };
 
 // Prévia do prazo de segurança (24h antes do prazo fatal) exibida no passo 4 — mesma conta
@@ -84,6 +87,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
     referTo: initial?.referTo ?? emptyState.referTo,
     selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
     title: initial?.title ?? emptyState.title,
+    type: initial?.type ?? emptyState.type,
   }));
   const [linkResults, setLinkResults] = useState<LinkHit[]>([]);
   const [searching, setSearching] = useState(false);
@@ -127,6 +131,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
       referTo: initial?.referTo ?? emptyState.referTo,
       selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
       title: initial?.title ?? emptyState.title,
+      type: initial?.type ?? emptyState.type,
     });
     setLinkResults([]);
     setSearching(false);

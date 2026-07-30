@@ -344,38 +344,3 @@ export async function unblockProcessNumber(id: string): Promise<{ error?: string
   revalidatePath("/configuracoes");
   return {};
 }
-
-export async function generateTaskFromPublication(
-  id: string,
-  data: { title: string; type: string; dueDate: string; dueTime?: string; priority: string }
-) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Sessão inválida.");
-  const pub = await prisma.publication.findFirstOrThrow({ where: { id, officeId: user.officeId } });
-  const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId: user.officeId }, orderBy: { order: "asc" } });
-  await prisma.task.create({
-    data: {
-      officeId: user.officeId,
-      title: data.title,
-      type: data.type,
-      dueDate: new Date(data.dueDate),
-      dueTime: data.dueTime || null,
-      priority: data.priority,
-      caseId: pub.caseId,
-      publicationId: pub.id,
-      columnId: firstColumn?.id,
-    },
-  });
-  await prisma.publication.update({ where: { id }, data: { deadlineGenerated: true, triageStatus: "TRATADA" } });
-  await prisma.publicationRead.upsert({
-    where: { publicationId_userId: { publicationId: id, userId: user.id } },
-    create: { publicationId: id, userId: user.id },
-    update: {},
-  });
-  revalidatePath("/publicacoes");
-  revalidatePath("/kanban");
-  revalidatePath("/agenda");
-  revalidatePath("/alertas");
-  revalidatePath("/painel");
-  if (pub.caseId) revalidatePath(`/processos/${pub.caseId}`);
-}
