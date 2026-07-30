@@ -154,7 +154,8 @@ export default function LinkPublicationMenu({
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-navy-800 dark:text-cream-50/85">
-                Esta ação faz com que esta conta não receba publicações e andamentos processuais deste processo. Tem certeza?
+                Esta ação faz com que você deixe de receber publicações e andamentos processuais deste processo — os
+                demais advogados do escritório continuam recebendo normalmente. Tem certeza?
               </p>
               <div className="flex gap-2 justify-end">
                 <button

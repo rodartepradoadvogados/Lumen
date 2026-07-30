@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount } from "@/lib/alerts";
+import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { Lock } from "lucide-react";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
@@ -49,15 +50,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const hasFinanceAccess = user.isAdmin || user.financeAccess;
-  const [unreadPublications, totalAlerts, modules] = await Promise.all([
-    prisma.publication.count({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } } }),
+  const [unreadPublicationsRaw, totalAlerts, modules, blockedSet] = await Promise.all([
+    prisma.publication.findMany({
+      where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
+      select: { processNumberRaw: true },
+    }),
     // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas
     // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
     // do PWA (AppBadgeSync) e o badge do item "Alertas" na Sidebar, diferente de
     // `unreadPublications` acima, que é específico da aba/menu Publicações.
     getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
     getOfficeModules(user.officeId),
+    getBlockedProcessNumberSet(user.id),
   ]);
+  // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou.
+  const unreadPublications = unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)).length;
 
   return (
     <UndoToastProvider>

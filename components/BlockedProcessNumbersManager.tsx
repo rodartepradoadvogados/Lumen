@@ -35,7 +35,6 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
               <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{item.displayNumber}</p>
               <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
                 Bloqueado em {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                {item.blockedByName ? ` por ${item.blockedByName}` : ""}
               </p>
             </div>
             <button

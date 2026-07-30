@@ -1200,13 +1200,13 @@ model Publication {
   @@index([officeId, publishedAt])
 }
 
-// Processo que o escritório optou por deixar de acompanhar (botão "Bloquear", só disponível para
-// publicações/andamentos SEM processo cadastrado — ver LinkPublicationMenu.tsx). A ponte do robô
-// (lib/roboBridge.ts) confere este modelo antes de criar uma nova Publication: se o número bate
-// (e o item ainda não tiver Case vinculado — um processo que passa a ser cadastrado depois volta
-// a ser acompanhado normalmente, o bloqueio nunca sobrepõe um vínculo real), o item do robô é
-// descartado, sem gerar Publication nem notificação. Gerenciado em Configurações → Geral, abaixo
-// do TaskScore (ver BlockedProcessNumbersManager.tsx) — reversível a qualquer momento.
+// Processo que um usuário optou por deixar de acompanhar (botão "Bloquear", só disponível para
+// publicações/andamentos SEM processo cadastrado — ver LinkPublicationMenu.tsx). Escopo é POR
+// USUÁRIO, não por escritório: se um advogado bloqueia, os demais do mesmo escritório continuam
+// recebendo normalmente as publicações/andamentos daquele processo — a Publication é sempre
+// criada normalmente pelo robô (lib/roboBridge.ts), o bloqueio só filtra a listagem de quem
+// bloqueou (ver lib/actions/publications.ts). Gerenciado em Configurações → Geral, abaixo do
+// TaskScore (ver BlockedProcessNumbersManager.tsx) — reversível a qualquer momento.
 model BlockedProcessNumber {
   id String @id @default(cuid())
 
@@ -1222,10 +1222,12 @@ model BlockedProcessNumber {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  blockedById String?
-  blockedBy   User?   @relation(fields: [blockedById], references: [id])
+  // @map preserva o nome de coluna antigo (blockedById) — o campo já era sempre preenchido, então
+  // virar NOT NULL + trocar a unique key pra (userId, processNumber) não perde dado nenhum.
+  userId String @map("blockedById")
+  user   User   @relation(fields: [userId], references: [id])
 
-  @@unique([officeId, processNumber])
+  @@unique([userId, processNumber])
   @@index([officeId])
 }
 

@@ -187,10 +187,10 @@ export default async function ConfiguracoesPage({
       getOneDriveStatus(officeId),
       getDropboxStatus(officeId),
       getOwnOfficeBilling(),
+      // Bloqueio é por usuário — cada advogado só vê (e só pode reverter) os próprios bloqueios.
       prisma.blockedProcessNumber.findMany({
-        where: { officeId },
+        where: { userId: viewer.id },
         orderBy: { createdAt: "desc" },
-        include: { blockedBy: { select: { name: true } } },
       }),
     ]);
   const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
@@ -198,7 +198,6 @@ export default async function ConfiguracoesPage({
     id: b.id,
     displayNumber: b.displayNumber,
     createdAt: b.createdAt.toISOString(),
-    blockedByName: b.blockedBy?.name ?? null,
   }));
 
   const photos = photosRaw.map((p) => ({
@@ -870,11 +869,11 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "geral" && (
+      {secao === "geral" && (
       <Card>
         <CardHeader
           title="Processos Bloqueados"
-          subtitle='Processos que o escritório optou por deixar de acompanhar (botão "Bloquear" em Publicações/Andamentos, disponível só para processos ainda não cadastrados) — nenhuma nova publicação ou andamento é recebido deles até o bloqueio ser revertido aqui'
+          subtitle='Processos que você optou por deixar de acompanhar (botão "Bloquear" em Publicações/Andamentos, disponível só para processos ainda não cadastrados) — some só da sua fila, os demais advogados do escritório continuam recebendo normalmente, até você reverter o bloqueio aqui'
         />
         <BlockedProcessNumbersManager items={blockedProcessNumbers} />
       </Card>

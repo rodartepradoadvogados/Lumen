@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
+import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export default async function MobilePublicacoes() {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
 
-  const [publications, users] = await Promise.all([
+  const [publicationsRaw, users, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } },
       include: { case: true, client: true },
@@ -22,7 +23,10 @@ export default async function MobilePublicacoes() {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    getBlockedProcessNumberSet(viewer.id),
   ]);
+  // Bloqueio de processo é por usuário — esconde só da fila de quem bloqueou.
+  const publications = publicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet));
 
   const serialized = publications.map((p) => ({
     id: p.id,

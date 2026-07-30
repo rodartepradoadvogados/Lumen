@@ -10,6 +10,7 @@ import DistributePublicationsButton from "@/components/DistributePublicationsBut
 import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import { findPublicationIdsByProcessNumber } from "@/lib/processNumberSearch";
+import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -54,16 +55,21 @@ export default async function PublicacoesPage({
       : {}),
   };
 
-  const [publications, unreadCount, users] = await Promise.all([
+  const [publicationsRaw, unreadRaw, users, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where,
       include: { case: true, client: true, reads: { where: { userId: viewer.id }, select: { userId: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: isLidas || isTodos ? 100 : undefined,
     }),
-    prisma.publication.count({ where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } } }),
+    prisma.publication.findMany({ where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } }, select: { processNumberRaw: true } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    getBlockedProcessNumberSet(viewer.id),
   ]);
+  // Bloqueio de processo é por usuário: esconde completamente da fila de quem bloqueou, em
+  // qualquer aba (Não lidas/Lidas/Todos) — os demais advogados do escritório não são afetados.
+  const publications = publicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet));
+  const unreadCount = unreadRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)).length;
 
   const taskCounts = await prisma.task.groupBy({
     by: ["publicationId"],

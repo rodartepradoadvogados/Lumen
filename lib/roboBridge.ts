@@ -5,7 +5,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { broadcastPushIfEnabled } from "@/lib/push";
-import { normalizeProcessNumber } from "@/lib/processNumber";
 
 export type RoboBridgeResult = {
   publicacoesCriadas: number;
@@ -71,20 +70,14 @@ type RoteamentoIndices = {
   casoPorProcesso: Map<string, { caseId: string; officeId: string }>;
   officePorOab: Map<string, string>;
   officeFallbackId: string | null;
-  // Números que o escritório optou por deixar de acompanhar (botão "Bloquear" em
-  // LinkPublicationMenu.tsx) — normalizado por normalizeProcessNumber (mais permissivo que o
-  // normalizarNumeroProcesso deste arquivo, que só aceita CNJ completo de 20 dígitos), pra casar
-  // com QUALQUER número exibido na tela, não só o formato CNJ estrito.
-  bloqueadosPorOffice: Map<string, Set<string>>;
 };
 
 async function carregarIndicesDeRoteamento(): Promise<RoteamentoIndices> {
-  const [casos, usuarios, officeInterno, officeMaisAntigo, bloqueios] = await Promise.all([
+  const [casos, usuarios, officeInterno, officeMaisAntigo] = await Promise.all([
     prisma.case.findMany({ where: { processNumber: { not: null }, office: { status: "ATIVA" } }, select: { id: true, officeId: true, processNumber: true } }),
     prisma.user.findMany({ where: { active: true, oab: { not: null }, office: { status: "ATIVA" } }, select: { oab: true, officeId: true } }),
     prisma.office.findFirst({ where: { isInternal: true }, select: { id: true } }),
     prisma.office.findFirst({ orderBy: { createdAt: "asc" }, select: { id: true } }),
-    prisma.blockedProcessNumber.findMany({ select: { officeId: true, processNumber: true } }),
   ]);
 
   const casoPorProcesso = new Map<string, { caseId: string; officeId: string }>();
@@ -99,24 +92,12 @@ async function carregarIndicesDeRoteamento(): Promise<RoteamentoIndices> {
     if (parsed) officePorOab.set(oabKey(parsed.numero, parsed.uf), u.officeId);
   }
 
-  const bloqueadosPorOffice = new Map<string, Set<string>>();
-  for (const b of bloqueios) {
-    if (!bloqueadosPorOffice.has(b.officeId)) bloqueadosPorOffice.set(b.officeId, new Set());
-    bloqueadosPorOffice.get(b.officeId)!.add(b.processNumber);
-  }
-
-  return { casoPorProcesso, officePorOab, officeFallbackId: officeInterno?.id ?? officeMaisAntigo?.id ?? null, bloqueadosPorOffice };
+  return { casoPorProcesso, officePorOab, officeFallbackId: officeInterno?.id ?? officeMaisAntigo?.id ?? null };
 }
 
-// true só quando o item NÃO bateu com nenhum Case (caseId nulo) e o número está na lista de
-// bloqueados do escritório resolvido — um processo que passa a ser cadastrado depois do bloqueio
-// volta a ser acompanhado normalmente, o bloqueio nunca sobrepõe um vínculo real.
-function estaBloqueado(indices: RoteamentoIndices, officeId: string, caseId: string | null, numeroProcessoRaw: string | null | undefined): boolean {
-  if (caseId) return false;
-  const generico = numeroProcessoRaw ? normalizeProcessNumber(numeroProcessoRaw) : null;
-  if (!generico) return false;
-  return indices.bloqueadosPorOffice.get(officeId)?.has(generico) ?? false;
-}
+// Bloqueio de processo (botão "Bloquear" em LinkPublicationMenu.tsx) é POR USUÁRIO — a Publication
+// é sempre criada normalmente pro escritório inteiro; o bloqueio só filtra a listagem de quem
+// bloqueou (ver publicationsWhereForViewer em lib/actions/publications.ts), nunca a ingestão.
 
 // oabNumero/oabUf chegam JÁ separados (colunas próprias de RoboPublicacao) — nunca texto
 // livre precisando de parseOabLivre aqui, é exatamente esse descompasso (número puro sem
@@ -228,7 +209,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
         const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, oabNumero || null, pub.uf || null);
         const lawyerTag = detectLawyerTagFromOab(pub.oab, pub.nomeAdvogado);
 
-        if (officeId && !estaBloqueado(indices, officeId, caseId, pub.numeroProcesso)) {
+        if (officeId) {
           await prisma.publication.create({
             data: {
               officeId,
@@ -267,7 +248,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
         const numeroNormalizado = normalizarNumeroProcesso(and.numeroProcesso);
         const { caseId, officeId } = resolverOffice(indices, numeroNormalizado, null, null);
 
-        if (officeId && !estaBloqueado(indices, officeId, caseId, and.numeroProcesso)) {
+        if (officeId) {
           await prisma.publication.create({
             data: {
               officeId,
