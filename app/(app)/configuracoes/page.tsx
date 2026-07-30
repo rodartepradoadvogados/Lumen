@@ -494,7 +494,7 @@ export default async function ConfiguracoesPage({
             </a>
             {driveStatus.connected && (
               <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
-                Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para as publicações por e-mail).
+                Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para as publicações por e-mail) e o acesso completo ao Drive (necessário para mover/organizar pastas de processo que já existiam antes do Lúmen — sem isso, a migração de pastas legadas em &ldquo;Pastas de processo fora do lugar no Drive&rdquo;, mais abaixo, só consegue simular, não aplicar).
               </p>
             )}
           </div>

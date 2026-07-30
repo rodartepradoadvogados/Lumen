@@ -2,11 +2,20 @@ import { google } from "googleapis";
 import { Readable } from "stream";
 import { prisma } from "@/lib/prisma";
 
+// "drive" (acesso completo), não "drive.file" + "drive.readonly" como antes: drive.file só
+// permite ESCREVER (mover, renomear, mandar pra Lixeira) em arquivos que o próprio app criou via
+// API — qualquer pasta que já existia antes do Lúmen (ou criada manualmente no Drive) fica de
+// fora, mesmo sendo dona a mesma conta que autorizou o app. Isso ficou visível na migração de
+// pastas legadas (lib/actions/driveFolderMigration.ts): a LEITURA sempre funcionou (drive.readonly
+// enxerga o Drive inteiro), mas mover/trashar a pasta antiga falhava com "the user has not
+// granted the app write access to the file" — porque essas pastas nunca foram criadas pela API do
+// Lúmen. "drive" cobre leitura e escrita em qualquer arquivo do Drive conectado, sem essa
+// restrição. Escritórios que conectaram o Google antes desta mudança precisam reconectar em
+// Configurações pra que o novo escopo passe a valer (o consentimento antigo, mais restrito,
+// continua ativo até então).
 const SCOPES = [
-  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/drive",
   "https://www.googleapis.com/auth/documents",
-  // drive.readonly: leitura de pastas pré-existentes no Drive (ex: futura pasta de doutrina jurídica)
-  "https://www.googleapis.com/auth/drive.readonly",
   "https://www.googleapis.com/auth/gmail.readonly",
   // gmail.send: permite responder o cliente por e-mail de dentro do Atendimento, usando a própria conta do advogado
   "https://www.googleapis.com/auth/gmail.send",
