@@ -4,7 +4,7 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
-import { Phone, DollarSign, BarChart, Settings, LogOut, Lock, Newspaper } from "lucide-react";
+import { Phone, DollarSign, BarChart, Settings, LogOut, Lock, Newspaper, Briefcase, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,10 @@ export default async function MobileMais() {
   const initials = viewer ? viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("") : "??";
 
   const items = [
+    // Processos saiu da barra inferior (ver components/mobile/MobileBottomNav.tsx) — continua
+    // a 1 toque na grade da Início, e ganha este atalho aqui pelo mesmo motivo de Publicações
+    // logo abaixo: garantir que dá pra chegar lá de qualquer tela, não só da Início.
+    { href: "/m/processos", label: "Processos", Icon: Briefcase, color: "navy" as const, show: true },
     // A aba do sino no menu inferior leva pra Central de Alertas (/m/alertas), não mais
     // direto pra Publicações — este atalho garante que Publicações continue alcançável a
     // partir do menu inferior existente (além do card na Início).
@@ -28,6 +32,9 @@ export default async function MobileMais() {
     { href: "/m/atendimento", label: "Atendimento", Icon: Phone, color: "bordo" as const, show: modules.atendimento },
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, color: "gold" as const, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, color: "navy" as const, show: true },
+    // Nome/foto do perfil saíram do cabeçalho (ver app/m/layout.tsx) — este é o único caminho
+    // pra /m/perfil agora, então precisa continuar aqui mesmo o card acima já mostrando nome/foto.
+    { href: "/m/perfil", label: "Meu Perfil", Icon: User, color: "navy" as const, show: true },
     { href: "/m/configuracoes", label: "Configurações", Icon: Settings, color: "navy" as const, show: true },
     // Só Jairo e Rodrigo (donos da plataforma) veem este item — mesma condição do cadeado na
     // TopBar do desktop (components/TopBar.tsx). Leva para /painel-mestre, a área da empresa

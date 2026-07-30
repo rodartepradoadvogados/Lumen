@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Bell, Briefcase, Menu } from "lucide-react";
+import { Calendar, Bell, Newspaper, Menu } from "lucide-react";
 
-// A aba do sino leva à Central de Alertas (menções, prazos vencidos, tarefas delegadas,
-// contas vencidas e publicações não lidas — ver lib/alerts.ts), não mais direto a
-// Publicações: era o único lugar do app mobile que de fato agregava tudo isso, então virou
-// a "área de notificações" real. Publicações continua acessível pelo card na Início e por
-// um atalho em Mais — ver app/m/page.tsx e app/m/mais/page.tsx.
+// Barra reduzida a 4 abas fixas (Agenda, Alertas, Publicações, Menu) — Início deixou de ser
+// uma aba própria (o logo/nome do escritório no cabeçalho leva pra lá, ver app/m/layout.tsx)
+// e Processos saiu daqui (fica a 1 toque na grade da Início e ganhou atalho em Menu, ver
+// app/m/mais/page.tsx) pra abrir espaço sem disputar com o que se usa todo dia. Alertas e
+// Publicações usam o MESMO ícone da grade da Início — reforça que é o mesmo destino, não um
+// atalho novo pra aprender.
 const items = [
-  { href: "/m", label: "Início", Icon: Home, exact: true, badge: false },
   { href: "/m/agenda", label: "Agenda", Icon: Calendar, exact: false, badge: false },
   { href: "/m/alertas", label: "Alertas", Icon: Bell, exact: false, badge: true },
-  { href: "/m/processos", label: "Processos", Icon: Briefcase, exact: false, badge: false },
-  { href: "/m/mais", label: "Mais", Icon: Menu, exact: false, badge: false },
+  { href: "/m/publicacoes", label: "Publicações", Icon: Newspaper, exact: false, badge: false },
+  { href: "/m/mais", label: "Menu", Icon: Menu, exact: false, badge: false },
 ];
 
 export default function MobileBottomNav({ alertsCount }: { alertsCount: number }) {

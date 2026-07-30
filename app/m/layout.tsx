@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getTodayElapsedSeconds } from "@/lib/timesheet";
+import { prisma } from "@/lib/prisma";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import InstallPrompt from "@/components/mobile/InstallPrompt";
 import MobileThemeToggle from "@/components/mobile/MobileThemeToggle";
@@ -39,15 +41,6 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
 export default async function MobileLayout({ children }: { children: React.ReactNode }) {
   // Auth já é garantida pelo middleware global; aqui só lemos o usuário para o cabeçalho.
   const user = await getCurrentUser();
@@ -57,9 +50,10 @@ export default async function MobileLayout({ children }: { children: React.React
   // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
-  const [totalAlerts, todaySeconds] = await Promise.all([
+  const [totalAlerts, todaySeconds, office] = await Promise.all([
     user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin) : Promise.resolve(0),
     user ? getTodayElapsedSeconds(user.id) : Promise.resolve(0),
+    user ? prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } }) : Promise.resolve(null),
   ]);
 
   return (
@@ -78,31 +72,42 @@ export default async function MobileLayout({ children }: { children: React.React
         <SupportAccessBanner />
         {/* Cabeçalho sempre navy, nos 3 temas (Dia/Tarde/Noite) — de propósito sem classes
             `dark:`, senão o Tarde tingiria o cabeçalho de bordô junto com os cards (mesmo
-            motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`). */}
-        <header className="h-[52px] shrink-0 bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between px-4">
-          <div className="flex items-center gap-1.5">
-            <LumenMark size={22} />
-            <span className="font-serif text-sm font-bold tracking-wide text-cream-50">LÚMEN</span>
-          </div>
-          <div className="flex items-center gap-1.5">
+            motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`).
+            Nome+foto do perfil saiu daqui — agora é só logo/nome do escritório + Alertas/Tema,
+            pra bater com a proposta de Início nova; Perfil segue acessível por Menu (Mais). */}
+        <header className="min-h-[52px] shrink-0 bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between gap-2 px-4 py-2">
+          <Link href="/m" className="flex items-center gap-2 min-w-0">
+            <LumenMark size={24} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-serif text-sm font-bold tracking-wide text-cream-50">LÚMEN</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" aria-hidden="true" />
+              </div>
+              {office?.name && (
+                <p className="text-[10px] text-cream-50/55 truncate max-w-[160px] leading-tight">{office.name}</p>
+              )}
+            </div>
+          </Link>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {user && (
+              <Link
+                href="/m/alertas"
+                aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
+                className="relative h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-cream-50/80 hover:text-gold-400 hover:bg-white/10 transition-colors"
+              >
+                <Bell size={16} />
+                {totalAlerts > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-bordo-600 text-white text-[9px] font-bold flex items-center justify-center border border-navy-900">
+                    {totalAlerts > 99 ? "99+" : totalAlerts}
+                  </span>
+                )}
+              </Link>
+            )}
             <MobileThemeToggle />
             {/* Ping silencioso de timesheet: o componente fica "hidden lg:flex" (nunca visível
                 na largura do app mobile), mas mantém o mecanismo de contagem de sessão do dia
                 rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
             {user && <TimesheetTimer initialSeconds={todaySeconds} />}
-            {user && (
-              <Link href="/m/perfil" className="flex items-center gap-2">
-                <span className="text-[11px] text-cream-50/70 max-w-[120px] truncate">{user.name.split(" ")[0]}</span>
-                <span className="h-8 w-8 rounded-full bg-navy-700 text-gold-400 flex items-center justify-center text-[11px] font-bold overflow-hidden shrink-0">
-                  {user.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`/api/perfil/foto/${user.id}`} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    initials(user.name)
-                  )}
-                </span>
-              </Link>
-            )}
           </div>
         </header>
       </div>
