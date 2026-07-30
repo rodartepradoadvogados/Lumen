@@ -305,6 +305,7 @@ model Client {
   office   Office @relation(fields: [officeId], references: [id])
 
   cases        Case[]
+  caseLinks    CaseClient[]
   receivables  Receivable[]
   publications Publication[]
   attendances  Attendance[]  @relation("AttendanceClient")
@@ -427,8 +428,52 @@ model Case {
   assessoriaDocumentos     AssessoriaDocumento[]
   driveSyncIssues          DriveSyncIssue[]
 
+  // Litisconsórcio: clientId/opposingParty* acima seguem existindo e sempre espelham o primeiro
+  // cliente/parte cadastrado (compat com título "Cliente x Parte Adversa", geração de documentos
+  // e qualquer leitura antiga que não olhe para as duas listas abaixo). clients/parties é onde
+  // vive o cadastro completo quando há mais de um autor/réu — um processo sem litisconsórcio tem
+  // só uma linha em cada uma, espelhando os campos legados.
+  clients CaseClient[]
+  parties CaseParty[]
+
   @@index([officeId])
   @@index([officeId, processNumber])
+}
+
+// Um dos nossos clientes vinculados a um processo — existe em paralelo a Case.clientId (que
+// sempre aponta para o primeiro CaseClient criado) para não quebrar nada que ainda só leia o
+// campo legado; a lista completa (litisconsórcio ativo) só está aqui.
+model CaseClient {
+  id        String   @id @default(cuid())
+  role      String? // Autor | Réu | Terceiro Interessado | Recorrente | Recorrido | Outro
+  createdAt DateTime @default(now())
+
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  @@unique([caseId, clientId])
+  @@index([caseId])
+  @@index([clientId])
+}
+
+// Parte do lado de fora do escritório: parte adversa ou terceiro interessado. Substitui em
+// paralelo os 4 campos opposingParty* de Case (mesma relação de compatibilidade do CaseClient
+// acima) — não é um Client cadastrado, só um registro textual simples ligado ao processo.
+model CaseParty {
+  id        String   @id @default(cuid())
+  name      String
+  document  String?
+  address   String?
+  role      String   @default("OUTRO") // AUTOR | REU | TERCEIRO_INTERESSADO | OUTRO
+  createdAt DateTime @default(now())
+
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
 }
 
 // ============ CATÁLOGO DE TRIBUNAIS ============

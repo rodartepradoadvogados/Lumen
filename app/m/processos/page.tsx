@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
+import { effectiveCaseClients, joinCaseNames } from "@/lib/caseParties";
 import { Scale, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,8 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
           OR: [
             { title: { contains: q, mode: "insensitive" } },
             { client: { is: { name: { contains: q, mode: "insensitive" } } } },
+            { clients: { some: { client: { name: { contains: q, mode: "insensitive" } } } } },
+            { parties: { some: { name: { contains: q, mode: "insensitive" } } } },
             ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
           ],
         }
@@ -35,7 +38,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
 
   const cases = await prisma.case.findMany({
     where,
-    include: { client: true },
+    include: { client: true, clients: { include: { client: true } } },
     orderBy: { title: "asc" },
     take: 100,
   });
@@ -80,7 +83,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
                   </div>
                   <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 truncate">
                     {c.processNumber ? `${c.processNumber} · ` : ""}
-                    {c.client?.name ?? "Sem cliente"}
+                    {joinCaseNames(effectiveCaseClients(c).map((cc) => cc.name)) || "Sem cliente"}
                   </p>
                 </div>
               </Link>

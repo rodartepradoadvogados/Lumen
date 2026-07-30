@@ -60,6 +60,28 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
     } catch {
       stagedAttachments = [];
     }
+    // ClientPicker/OpposingPartyFields (litisconsórcio) emitem um hidden input por entrada —
+    // getAll traz todas, cada uma um JSON {clientId/newClientName/role} ou {name/document/role/address}.
+    const clients = formData
+      .getAll("clientEntries")
+      .map((raw) => {
+        try {
+          return JSON.parse(String(raw));
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    const parties = formData
+      .getAll("partyEntries")
+      .map((raw) => {
+        try {
+          return JSON.parse(String(raw));
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
     await createCase({
       title: String(formData.get("title")),
       type: String(formData.get("type")),
@@ -67,13 +89,8 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       processNumber: String(formData.get("processNumber") || ""),
       court: String(formData.get("court") || ""),
       caseValue: String(formData.get("caseValue") || ""),
-      clientId: String(formData.get("clientId") || ""),
-      newClientName: String(formData.get("newClientName") || ""),
-      clientRole: String(formData.get("clientRole") || ""),
-      opposingPartyName: String(formData.get("opposingPartyName") || ""),
-      opposingPartyRole: String(formData.get("opposingPartyRole") || ""),
-      opposingPartyDocument: String(formData.get("opposingPartyDocument") || ""),
-      opposingPartyAddress: String(formData.get("opposingPartyAddress") || ""),
+      clients,
+      parties,
       responsibleId: String(formData.get("responsibleId") || ""),
       description: String(formData.get("description") || ""),
       assessoriaId: String(formData.get("assessoriaId") || ""),

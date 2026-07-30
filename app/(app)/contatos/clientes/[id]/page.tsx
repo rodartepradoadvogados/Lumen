@@ -35,7 +35,12 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
   const client = await prisma.client.findFirst({
     where: { id: params.id, officeId: viewer.officeId },
     include: {
+      // cases (Case.clientId legado) cobre processos cadastrados antes do litisconsórcio existir;
+      // caseLinks (CaseClient) cobre tanto os novos quanto qualquer processo em que este cliente
+      // seja um dos vários (não necessariamente o primeiro/legado) — a lista exibida abaixo é a
+      // união das duas, sem duplicar quando o mesmo processo aparece nas duas (ver dedupe abaixo).
       cases: { include: { responsible: true }, orderBy: { title: "asc" } },
+      caseLinks: { include: { case: { include: { responsible: true } } } },
       publications: {
         include: { case: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
         orderBy: { publishedAt: "desc" },
@@ -45,6 +50,10 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
   });
 
   if (!client) notFound();
+
+  const clientCases = Array.from(
+    new Map([...client.cases, ...client.caseLinks.map((cl) => cl.case)].map((c) => [c.id, c])).values()
+  ).sort((a, b) => a.title.localeCompare(b.title));
 
   const now = new Date();
   const receivables = hasFinanceAccess
@@ -86,12 +95,12 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
       </Card>
 
       <Card>
-        <CardHeader title="Processos do cliente" subtitle={`${client.cases.length} registro(s)`} />
-        {client.cases.length === 0 ? (
+        <CardHeader title="Processos do cliente" subtitle={`${clientCases.length} registro(s)`} />
+        {clientCases.length === 0 ? (
           <EmptyState title="Nenhum processo vinculado" />
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {client.cases.map((c) => (
+            {clientCases.map((c) => (
               <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
                 <div className="h-9 w-9 rounded-lg bg-navy-900/5 text-navy-800 dark:bg-white/10 dark:text-cream-50 flex items-center justify-center shrink-0">
                   <Scale size={16} />

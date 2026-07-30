@@ -7,6 +7,7 @@ import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/component
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
+import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
 import { Scale, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +61,8 @@ export default async function ProcessosPage({
             { title: { contains: q, mode: "insensitive" } },
             { opposingPartyName: { contains: q, mode: "insensitive" } },
             { client: { is: { name: { contains: q, mode: "insensitive" } } } },
+            { clients: { some: { client: { name: { contains: q, mode: "insensitive" } } } } },
+            { parties: { some: { name: { contains: q, mode: "insensitive" } } } },
             ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
           ],
         }
@@ -71,6 +74,8 @@ export default async function ProcessosPage({
       where,
       include: {
         client: true,
+        clients: { include: { client: true } },
+        parties: true,
         responsible: true,
         _count: { select: { tasks: true, comments: true } },
       },
@@ -179,8 +184,8 @@ export default async function ProcessosPage({
                   </div>
                   <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">
                     {c.processNumber ? `${c.processNumber} · ` : ""}
-                    {c.client?.name}
-                    {c.opposingPartyName ? ` x ${c.opposingPartyName}` : ""}
+                    {joinCaseNames(effectiveCaseClients(c).map((cc) => cc.name))}
+                    {c.parties.length || c.opposingPartyName ? ` x ${joinCaseNames(effectiveCaseParties(c).map((p) => p.name))}` : ""}
                   </p>
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">

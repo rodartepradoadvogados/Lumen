@@ -3,15 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateCase } from "@/lib/actions/cases";
+import ClientPicker from "@/components/ClientPicker";
+import OpposingPartyFields from "@/components/OpposingPartyFields";
 import TribunalFields from "@/components/TribunalFields";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 import { Pencil, X } from "lucide-react";
 
 type CaseData = {
   id: string;
-  clientId: string | null;
-  opposingPartyName: string | null;
-  opposingPartyRole: string | null;
   responsibleId: string | null;
   court: string | null;
   caseValue: number | null;
@@ -19,6 +18,8 @@ type CaseData = {
   tribunalNome: string | null;
   tribunalSistema: string | null;
   tribunalLink: string | null;
+  clients: { clientId: string | null; clientName?: string; role: string | null }[];
+  parties: { name: string; document: string | null; address: string | null; role: string | null }[];
 };
 
 // Edição completa dos campos hoje mostrados como Field read-only no Card da aba Visão Geral
@@ -73,10 +74,29 @@ export default function EditCaseModal({
               action={async (formData) => {
                 setLoading(true);
                 setError(null);
+                const parsedClients = formData
+                  .getAll("clientEntries")
+                  .map((raw) => {
+                    try {
+                      return JSON.parse(String(raw));
+                    } catch {
+                      return null;
+                    }
+                  })
+                  .filter(Boolean);
+                const parsedParties = formData
+                  .getAll("partyEntries")
+                  .map((raw) => {
+                    try {
+                      return JSON.parse(String(raw));
+                    } catch {
+                      return null;
+                    }
+                  })
+                  .filter(Boolean);
                 const result = await updateCase(caseData.id, {
-                  clientId: String(formData.get("clientId") || ""),
-                  opposingPartyName: String(formData.get("opposingPartyName") || ""),
-                  opposingPartyRole: String(formData.get("opposingPartyRole") || ""),
+                  clients: parsedClients,
+                  parties: parsedParties,
                   responsibleId: String(formData.get("responsibleId") || ""),
                   court: String(formData.get("court") || ""),
                   caseValue: String(formData.get("caseValue") || ""),
@@ -99,33 +119,13 @@ export default function EditCaseModal({
                 <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>
               )}
 
-              <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente</label>
-                <select name="clientId" defaultValue={caseData.clientId ?? ""} className={inputClass}>
-                  <option value="">Não definido</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <ClientPicker
+                clients={clients}
+                inputClassName={inputClass}
+                initial={caseData.clients.length > 0 ? caseData.clients.map((c) => ({ clientId: c.clientId, clientName: c.clientName, role: c.role })) : undefined}
+              />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Parte Adversa</label>
-                  <input name="opposingPartyName" defaultValue={caseData.opposingPartyName ?? ""} className={inputClass} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Polo da Parte Adversa</label>
-                  <select name="opposingPartyRole" defaultValue={caseData.opposingPartyRole ?? ""} className={inputClass}>
-                    <option value="">Não definido</option>
-                    <option value="AUTOR">Autor</option>
-                    <option value="REU">Réu</option>
-                    <option value="OUTRO">Outro</option>
-                  </select>
-                </div>
-              </div>
+              <OpposingPartyFields inputClassName={inputClass} initial={caseData.parties.length > 0 ? caseData.parties : undefined} />
 
               <div>
                 <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Advogado Responsável</label>

@@ -26,10 +26,9 @@ import { toggleTaskDone } from "@/lib/actions/tasks";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
+import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 
 export const dynamic = "force-dynamic";
-
-const opposingPartyRoleLabels: Record<string, string> = { AUTOR: "Autor", REU: "Réu", OUTRO: "Outro" };
 
 const TABS = [
   { key: "visao-geral", label: "Visão Geral" },
@@ -58,6 +57,8 @@ export default async function CaseDetailPage({
     where: { id: params.id, officeId: viewer.officeId },
     include: {
       client: true,
+      clients: { include: { client: true } },
+      parties: true,
       responsible: true,
       tasks: { include: { responsible: true, _count: { select: { comments: true } } }, orderBy: { dueDate: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
@@ -104,6 +105,8 @@ export default async function CaseDetailPage({
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
+  const caseClients = effectiveCaseClients(c);
+  const caseParties = effectiveCaseParties(c);
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
   const serializedPublications = c.publications.map((p) => ({
     id: p.id,
@@ -186,9 +189,6 @@ export default async function CaseDetailPage({
               <EditCaseModal
                 caseData={{
                   id: c.id,
-                  clientId: c.clientId,
-                  opposingPartyName: c.opposingPartyName,
-                  opposingPartyRole: c.opposingPartyRole,
                   responsibleId: c.responsibleId,
                   court: c.court,
                   caseValue: c.caseValue,
@@ -196,15 +196,36 @@ export default async function CaseDetailPage({
                   tribunalNome: c.tribunalNome,
                   tribunalSistema: c.tribunalSistema,
                   tribunalLink: c.tribunalLink,
+                  clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
+                  parties: caseParties,
                 }}
                 clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
                 users={users.map((u) => ({ id: u.id, name: u.name }))}
                 tribunais={tribunais}
               />
             </div>
-            <Field label="Cliente" value={c.client?.name} />
-            <Field label="Parte Adversa" value={c.opposingPartyName} />
-            <Field label="Polo da Parte Adversa" value={c.opposingPartyRole ? opposingPartyRoleLabels[c.opposingPartyRole] || c.opposingPartyRole : undefined} />
+            {caseClients.length === 0 ? (
+              <Field label="Cliente" value={undefined} />
+            ) : (
+              caseClients.map((cc, i) => (
+                <Field
+                  key={cc.id}
+                  label={caseClients.length > 1 ? `Cliente ${i + 1}` : "Cliente"}
+                  value={cc.role ? `${cc.name} (${cc.role})` : cc.name}
+                />
+              ))
+            )}
+            {caseParties.length === 0 ? (
+              <Field label="Parte Adversa" value={undefined} />
+            ) : (
+              caseParties.map((p, i) => (
+                <Field
+                  key={`${p.name}-${i}`}
+                  label={caseParties.length > 1 ? `Parte ${i + 1}` : "Parte Adversa"}
+                  value={p.role ? `${p.name} (${partyRoleLabels[p.role] || p.role})` : p.name}
+                />
+              ))
+            )}
             <Field label="Advogado Responsável" value={c.responsible?.name} />
             <Field label="Vara/Comarca" value={c.court} />
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
@@ -303,7 +324,7 @@ export default async function CaseDetailPage({
             <NewReceivableModal
               categories={receivableCategories}
               cases={[]}
-              clients={c.clientId ? [{ id: c.clientId, name: c.client?.name ?? "" }] : []}
+              clients={caseClients.map((cc) => ({ id: cc.id, name: cc.name }))}
               defaultCaseId={c.id}
               defaultClientId={c.clientId ?? undefined}
               label="Lançar Honorários"
@@ -346,7 +367,7 @@ export default async function CaseDetailPage({
                         }}
                         categories={receivableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
-                        clients={c.clientId ? [{ id: c.clientId, name: c.client?.name ?? "" }] : []}
+                        clients={caseClients.map((cc) => ({ id: cc.id, name: cc.name }))}
                         costCenters={costCenters}
                       />
                       <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />

@@ -12,15 +12,29 @@ import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/of
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { renameDriveFolder } from "@/lib/storageProvider";
 
-// Convenção de nomenclatura: sempre que o NOSSO cliente e a parte adversa estiverem
-// cadastrados, o título do processo é "{Cliente} x {Parte Adversa}" — nunca um meio-termo (ex.
-// só cliente, ou cliente com "x" sem adversa) para não ficar um título quebrado. Sem os dois
-// dados, mantém o título informado manualmente (ex.: Atendimento/Consultivo sem parte adversa
-// não tem por que forçar esse formato).
-function computeCaseTitle(clientName: string | null, opposingPartyName: string | null, fallback: string): string {
-  if (clientName && opposingPartyName) return `${clientName} x ${opposingPartyName}`;
+// Convenção de nomenclatura: sempre que o(s) NOSSO(s) cliente(s) e a(s) parte(s) do outro lado
+// estiverem cadastrados, o título do processo é "{Clientes} x {Partes}" — nunca um meio-termo
+// (ex. só cliente, ou cliente com "x" sem parte) para não ficar um título quebrado. Sem os dois
+// lados, mantém o título informado manualmente (ex.: Atendimento/Consultivo sem parte adversa
+// não tem por que forçar esse formato). Em litisconsórcio, cada lado vira "A e B" — a lista
+// completa de nomes já vem montada por quem chama (ver joinNames).
+function computeCaseTitle(clientNames: string[], partyNames: string[], fallback: string): string {
+  if (clientNames.length > 0 && partyNames.length > 0) return `${joinNames(clientNames)} x ${joinNames(partyNames)}`;
   return fallback;
 }
+
+function joinNames(names: string[]): string {
+  const clean = names.filter(Boolean);
+  if (clean.length <= 1) return clean[0] || "";
+  return `${clean.slice(0, -1).join(", ")} e ${clean[clean.length - 1]}`;
+}
+
+// Um cliente ou uma parte informados no cadastro/edição do processo — cada linha do array vira
+// um CaseClient/CaseParty próprio (ver createCase/updateCase). Cliente pode ser um Client já
+// cadastrado (clientId) ou um nome novo, criado na hora (newClientName) — mesma lógica que já
+// existia para o cliente único, só que agora repetida por entrada.
+type ClientInput = { clientId?: string; newClientName?: string; role?: string };
+type PartyInput = { name: string; document?: string; address?: string; role?: string };
 
 async function assertCaseRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -29,6 +43,79 @@ async function assertCaseRelationsInOffice(
   if (data.clientId && !(await isClientInOffice(data.clientId, officeId))) throw new Error("Cliente não encontrado.");
   if (data.responsibleId && !(await isUserInOffice(data.responsibleId, officeId))) throw new Error("Responsável não encontrado.");
   if (data.assessoriaId && !(await isAssessoriaInOffice(data.assessoriaId, officeId))) throw new Error("Assessoria não encontrada.");
+}
+
+// Resolve cada entrada de cliente (existente ou novo) em um { id, name, role } real, criando o
+// Client novo quando necessário — usado tanto na criação quanto na edição do processo. Entradas
+// sem clientId nem newClientName são descartadas (linha em branco deixada no formulário).
+async function resolveClientInputs(
+  inputs: ClientInput[] | undefined,
+  officeId: string
+): Promise<{ id: string; name: string; role: string | null }[]> {
+  if (!inputs || inputs.length === 0) return [];
+  const resolved: { id: string; name: string; role: string | null }[] = [];
+  const seen = new Set<string>();
+  for (const input of inputs) {
+    let id = input.clientId || "";
+    let name = "";
+    if (id) {
+      if (!(await isClientInOffice(id, officeId))) throw new Error("Cliente não encontrado.");
+      const client = await prisma.client.findUnique({ where: { id }, select: { name: true } });
+      if (!client) continue;
+      name = client.name;
+    } else if (input.newClientName?.trim()) {
+      const client = await prisma.client.create({ data: { name: input.newClientName.trim(), type: "PF", officeId } });
+      id = client.id;
+      name = client.name;
+    } else {
+      continue;
+    }
+    if (seen.has(id)) continue; // mesmo cliente selecionado duas vezes — mantém só a primeira
+    seen.add(id);
+    resolved.push({ id, name, role: input.role || null });
+  }
+  return resolved;
+}
+
+function resolvePartyInputs(inputs: PartyInput[] | undefined): PartyInput[] {
+  if (!inputs) return [];
+  return inputs.filter((p) => p.name?.trim()).map((p) => ({ ...p, name: p.name.trim() }));
+}
+
+// Grava as linhas de CaseClient/CaseParty para um processo já criado — chamado por createCase/
+// createCaseMobile (caso novo, sem nada a apagar antes) e por updateCase (substituindo a lista
+// inteira, mais simples e seguro do que tentar diffar entrada a entrada).
+async function writeCaseClientsAndParties(
+  caseId: string,
+  clients: { id: string; name: string; role: string | null }[],
+  parties: PartyInput[]
+): Promise<void> {
+  if (clients.length > 0) {
+    await prisma.caseClient.createMany({
+      data: clients.map((c) => ({ caseId, clientId: c.id, role: c.role })),
+      skipDuplicates: true,
+    });
+  }
+  if (parties.length > 0) {
+    await prisma.caseParty.createMany({
+      data: parties.map((p) => ({
+        caseId,
+        name: p.name,
+        document: p.document || null,
+        address: p.address || null,
+        role: p.role || "OUTRO",
+      })),
+    });
+  }
+}
+
+// Mapeia o polo de uma parte (que pode ser TERCEIRO_INTERESSADO, só existente na lista nova) para
+// o valor equivalente mais próximo do enum legado (AUTOR | REU | OUTRO) usado em
+// Case.opposingPartyRole — Terceiro Interessado não tem polo, então cai em OUTRO.
+function legacyOpposingPartyRole(role: string | null | undefined): string | null {
+  if (role === "AUTOR" || role === "REU") return role;
+  if (!role) return null;
+  return "OUTRO";
 }
 
 // Anexos que o usuário já subiu pro Vercel Blob enquanto preenchia o formulário de criação (ver
@@ -76,13 +163,8 @@ export async function createCase(data: {
   processNumber?: string;
   court?: string;
   caseValue?: string;
-  clientId?: string;
-  newClientName?: string;
-  clientRole?: string;
-  opposingPartyName?: string;
-  opposingPartyRole?: string;
-  opposingPartyDocument?: string;
-  opposingPartyAddress?: string;
+  clients?: ClientInput[];
+  parties?: PartyInput[];
   responsibleId?: string;
   description?: string;
   assessoriaId?: string;
@@ -94,32 +176,27 @@ export async function createCase(data: {
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
-  await assertCaseRelationsInOffice(data, viewer.officeId);
+  await assertCaseRelationsInOffice({ responsibleId: data.responsibleId, assessoriaId: data.assessoriaId }, viewer.officeId);
 
-  let clientId = data.clientId || null;
-  let clientName: string | null = data.newClientName || null;
-  if (!clientId && data.newClientName) {
-    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF", officeId: viewer.officeId } });
-    clientId = client.id;
-  } else if (clientId) {
-    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
-    clientName = client?.name ?? null;
-  }
+  const resolvedClients = await resolveClientInputs(data.clients, viewer.officeId);
+  const resolvedParties = resolvePartyInputs(data.parties);
+  const primaryClient = resolvedClients[0];
+  const primaryParty = resolvedParties[0];
 
   const created = await prisma.case.create({
     data: {
-      title: computeCaseTitle(clientName, data.opposingPartyName || null, data.title),
+      title: computeCaseTitle(resolvedClients.map((c) => c.name), resolvedParties.map((p) => p.name), data.title),
       type: data.type,
       area: data.area || null,
       processNumber: data.processNumber || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
-      clientId,
-      clientRole: data.clientRole || null,
-      opposingPartyName: data.opposingPartyName || null,
-      opposingPartyRole: data.opposingPartyRole || null,
-      opposingPartyDocument: data.opposingPartyDocument || null,
-      opposingPartyAddress: data.opposingPartyAddress || null,
+      clientId: primaryClient?.id || null,
+      clientRole: primaryClient?.role || null,
+      opposingPartyName: primaryParty?.name || null,
+      opposingPartyRole: legacyOpposingPartyRole(primaryParty?.role),
+      opposingPartyDocument: primaryParty?.document || null,
+      opposingPartyAddress: primaryParty?.address || null,
       responsibleId: data.responsibleId || null,
       description: data.description || null,
       assessoriaId: data.assessoriaId || null,
@@ -130,6 +207,7 @@ export async function createCase(data: {
       officeId: viewer.officeId,
     },
   });
+  await writeCaseClientsAndParties(created.id, resolvedClients, resolvedParties);
   const anexosComErro = await finalizeStagedAttachments(data.stagedAttachments, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
@@ -143,9 +221,8 @@ export async function createCase(data: {
 export async function updateCase(
   caseId: string,
   data: {
-    clientId?: string;
-    opposingPartyName?: string;
-    opposingPartyRole?: string;
+    clients?: ClientInput[];
+    parties?: PartyInput[];
     responsibleId?: string;
     court?: string;
     caseValue?: string;
@@ -164,29 +241,42 @@ export async function updateCase(
   });
   if (!existing) return { error: "Processo não encontrado." };
 
+  let resolvedClients: { id: string; name: string; role: string | null }[];
+  let resolvedParties: PartyInput[];
   try {
-    await assertCaseRelationsInOffice({ clientId: data.clientId, responsibleId: data.responsibleId }, viewer.officeId);
+    await assertCaseRelationsInOffice({ responsibleId: data.responsibleId }, viewer.officeId);
+    resolvedClients = await resolveClientInputs(data.clients, viewer.officeId);
+    resolvedParties = resolvePartyInputs(data.parties);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Dados inválidos." };
   }
+  const primaryClient = resolvedClients[0];
+  const primaryParty = resolvedParties[0];
 
-  // Reaplica a convenção "Cliente x Parte Adversa" se a edição deixou os dois dados
-  // disponíveis — mesmo se o título ainda não seguia o padrão (ex.: processo antigo). Sem os
-  // dois, mantém o título já salvo (nunca apaga um título manual por falta de um dos dois).
-  let clientName: string | null = null;
-  if (data.clientId) {
-    const client = await prisma.client.findUnique({ where: { id: data.clientId }, select: { name: true } });
-    clientName = client?.name ?? null;
-  }
-  const newTitle = computeCaseTitle(clientName, data.opposingPartyName || null, existing.title);
+  // Reaplica a convenção "Cliente(s) x Parte(s)" se a edição deixou os dois lados disponíveis —
+  // mesmo se o título ainda não seguia o padrão (ex.: processo antigo). Sem os dois, mantém o
+  // título já salvo (nunca apaga um título manual por falta de um dos lados).
+  const newTitle = computeCaseTitle(
+    resolvedClients.map((c) => c.name),
+    resolvedParties.map((p) => p.name),
+    existing.title
+  );
+
+  // Substitui a lista inteira de clientes/partes em vez de tentar diffar item a item — mais
+  // simples e não corre risco de deixar linha órfã de uma edição anterior.
+  await prisma.caseClient.deleteMany({ where: { caseId } });
+  await prisma.caseParty.deleteMany({ where: { caseId } });
 
   await prisma.case.update({
     where: { id: caseId },
     data: {
       title: newTitle,
-      clientId: data.clientId || null,
-      opposingPartyName: data.opposingPartyName || null,
-      opposingPartyRole: data.opposingPartyRole || null,
+      clientId: primaryClient?.id || null,
+      clientRole: primaryClient?.role || null,
+      opposingPartyName: primaryParty?.name || null,
+      opposingPartyRole: legacyOpposingPartyRole(primaryParty?.role),
+      opposingPartyDocument: primaryParty?.document || null,
+      opposingPartyAddress: primaryParty?.address || null,
       responsibleId: data.responsibleId || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
@@ -196,6 +286,7 @@ export async function updateCase(
       tribunalLink: data.tribunalLink || null,
     },
   });
+  await writeCaseClientsAndParties(caseId, resolvedClients, resolvedParties);
 
   // A pasta do processo no Drive é nomeada com o título (ver getOrCreateCaseFolder) — se o
   // título mudou e a pasta já existe, renomeia junto pra não destoar. Best-effort: uma falha
@@ -284,13 +375,8 @@ export async function createCaseMobile(data: {
   processNumber?: string;
   court?: string;
   caseValue?: string;
-  clientId?: string;
-  newClientName?: string;
-  clientRole?: string;
-  opposingPartyName?: string;
-  opposingPartyRole?: string;
-  opposingPartyDocument?: string;
-  opposingPartyAddress?: string;
+  clients?: ClientInput[];
+  parties?: PartyInput[];
   responsibleId?: string;
   description?: string;
   assessoriaId?: string;
@@ -302,32 +388,27 @@ export async function createCaseMobile(data: {
 }): Promise<{ id: string; anexosComErro?: number }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
-  await assertCaseRelationsInOffice(data, viewer.officeId);
+  await assertCaseRelationsInOffice({ responsibleId: data.responsibleId, assessoriaId: data.assessoriaId }, viewer.officeId);
 
-  let clientId = data.clientId || null;
-  let clientName: string | null = data.newClientName || null;
-  if (!clientId && data.newClientName) {
-    const client = await prisma.client.create({ data: { name: data.newClientName, type: "PF", officeId: viewer.officeId } });
-    clientId = client.id;
-  } else if (clientId) {
-    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
-    clientName = client?.name ?? null;
-  }
+  const resolvedClients = await resolveClientInputs(data.clients, viewer.officeId);
+  const resolvedParties = resolvePartyInputs(data.parties);
+  const primaryClient = resolvedClients[0];
+  const primaryParty = resolvedParties[0];
 
   const created = await prisma.case.create({
     data: {
-      title: computeCaseTitle(clientName, data.opposingPartyName || null, data.title),
+      title: computeCaseTitle(resolvedClients.map((c) => c.name), resolvedParties.map((p) => p.name), data.title),
       type: data.type,
       area: data.area || null,
       processNumber: data.processNumber || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
-      clientId,
-      clientRole: data.clientRole || null,
-      opposingPartyName: data.opposingPartyName || null,
-      opposingPartyRole: data.opposingPartyRole || null,
-      opposingPartyDocument: data.opposingPartyDocument || null,
-      opposingPartyAddress: data.opposingPartyAddress || null,
+      clientId: primaryClient?.id || null,
+      clientRole: primaryClient?.role || null,
+      opposingPartyName: primaryParty?.name || null,
+      opposingPartyRole: legacyOpposingPartyRole(primaryParty?.role),
+      opposingPartyDocument: primaryParty?.document || null,
+      opposingPartyAddress: primaryParty?.address || null,
       responsibleId: data.responsibleId || null,
       description: data.description || null,
       assessoriaId: data.assessoriaId || null,
@@ -338,6 +419,7 @@ export async function createCaseMobile(data: {
       officeId: viewer.officeId,
     },
   });
+  await writeCaseClientsAndParties(created.id, resolvedClients, resolvedParties);
   const anexosComErro = await finalizeStagedAttachments(data.stagedAttachments, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");

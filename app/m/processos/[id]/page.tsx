@@ -10,6 +10,7 @@ import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import MobileTaskResponsibleSelect from "@/components/mobile/MobileTaskResponsibleSelect";
 import CopyButton from "@/components/CopyButton";
 import EditCaseModal from "@/components/EditCaseModal";
+import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { ArrowLeft, ChevronDown, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,8 @@ export default async function MobileCaseDetail({
       where: { id: params.id, officeId: viewer.officeId },
       include: {
         client: true,
+        clients: { include: { client: true } },
+        parties: true,
         responsible: true,
         tasks: {
           where: { status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -58,6 +61,9 @@ export default async function MobileCaseDetail({
   ]);
 
   if (!c) notFound();
+
+  const caseClients = effectiveCaseClients(c);
+  const caseParties = effectiveCaseParties(c);
 
   const serializedPublications = publications.map((p) => ({
     id: p.id,
@@ -113,9 +119,6 @@ export default async function MobileCaseDetail({
           <EditCaseModal
             caseData={{
               id: c.id,
-              clientId: c.clientId,
-              opposingPartyName: c.opposingPartyName,
-              opposingPartyRole: c.opposingPartyRole,
               responsibleId: c.responsibleId,
               court: c.court,
               caseValue: c.caseValue,
@@ -123,14 +126,36 @@ export default async function MobileCaseDetail({
               tribunalNome: c.tribunalNome,
               tribunalSistema: c.tribunalSistema,
               tribunalLink: c.tribunalLink,
+              clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
+              parties: caseParties,
             }}
             clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
             users={users}
             tribunais={tribunais}
           />
         </div>
-        <Field label="Cliente" value={c.client?.name} />
-        <Field label="Parte Adversa" value={c.opposingPartyName} />
+        {caseClients.length === 0 ? (
+          <Field label="Cliente" value={undefined} />
+        ) : (
+          caseClients.map((cc, i) => (
+            <Field
+              key={cc.id}
+              label={caseClients.length > 1 ? `Cliente ${i + 1}` : "Cliente"}
+              value={cc.role ? `${cc.name} (${cc.role})` : cc.name}
+            />
+          ))
+        )}
+        {caseParties.length === 0 ? (
+          <Field label="Parte Adversa" value={undefined} />
+        ) : (
+          caseParties.map((p, i) => (
+            <Field
+              key={`${p.name}-${i}`}
+              label={caseParties.length > 1 ? `Parte ${i + 1}` : "Parte Adversa"}
+              value={p.role ? `${p.name} (${partyRoleLabels[p.role] || p.role})` : p.name}
+            />
+          ))
+        )}
         <Field label="Vara/Comarca" value={c.court} />
         <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
         <Field label="Responsável" value={c.responsible?.name} />
