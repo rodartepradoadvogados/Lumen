@@ -49,6 +49,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
       meetingType: String(formData.get("meetingType") || ""),
       location: String(formData.get("location") || ""),
       meetingUrl: String(formData.get("meetingUrl") || ""),
+      strategy: String(formData.get("strategy") || ""),
     });
     setSaving(false);
     router.refresh();
@@ -182,6 +183,19 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               <label className="text-xs font-medium text-navy-800/60">Descrição (opcional)</label>
               <textarea name="description" rows={2} defaultValue={task.description || ""} className="input" />
             </div>
+
+            {type === "AUDIENCIA" && (
+              <div>
+                <label className="text-xs font-medium text-navy-800/60">Estratégia (opcional)</label>
+                <textarea
+                  name="strategy"
+                  rows={2}
+                  defaultValue={task.strategy || ""}
+                  className="input"
+                  placeholder="Teses, pontos de atenção, preparo para a audiência..."
+                />
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-2 flex-wrap">
               <button

@@ -482,10 +482,13 @@ model Task {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Reunião (quando type = EVENTO)
+  // Reunião (quando type = EVENTO ou AUDIENCIA)
   meetingType String? // PRESENCIAL | ONLINE
   location    String?
   meetingUrl  String?
+  // Estratégia da audiência (quando type = AUDIENCIA): anotações de preparo, teses e pontos de
+  // atenção — só faz sentido nesse tipo, mas fica solto como os demais campos situacionais acima.
+  strategy    String?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])

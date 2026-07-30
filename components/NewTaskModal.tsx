@@ -49,6 +49,7 @@ export default function NewTaskModal({
       meetingType: String(formData.get("meetingType") || ""),
       location: String(formData.get("location") || ""),
       meetingUrl: String(formData.get("meetingUrl") || ""),
+      strategy: String(formData.get("strategy") || ""),
       points: pointsRaw === "" ? undefined : Number(pointsRaw),
     });
     setLoading(false);
@@ -210,6 +211,13 @@ export default function NewTaskModal({
                 <label className="text-xs font-medium text-navy-800/60">Descrição (opcional)</label>
                 <textarea name="description" rows={2} className="input" />
               </div>
+
+              {type === "AUDIENCIA" && (
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60">Estratégia (opcional)</label>
+                  <textarea name="strategy" rows={2} className="input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
+                </div>
+              )}
 
               <button
                 type="submit"

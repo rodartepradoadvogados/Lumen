@@ -33,9 +33,11 @@ export default function MobileNewTaskForm({
       dueTime: String(formData.get("dueTime") || ""),
       priority: "MEDIA",
       caseId,
+      description: String(formData.get("description") || ""),
       meetingType: String(formData.get("meetingType") || ""),
       location: String(formData.get("location") || ""),
       meetingUrl: String(formData.get("meetingUrl") || ""),
+      strategy: String(formData.get("strategy") || ""),
     });
     setLoading(false);
     setOpen(false);
@@ -139,6 +141,18 @@ export default function MobileNewTaskForm({
                 <input name="meetingUrl" type="url" className="mobile-input" placeholder="https://meet.google.com/..." />
               </div>
             )}
+          </div>
+        )}
+
+        <div>
+          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
+          <textarea name="description" rows={2} className="mobile-input" />
+        </div>
+
+        {type === "AUDIENCIA" && (
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+            <textarea name="strategy" rows={2} className="mobile-input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
           </div>
         )}
 

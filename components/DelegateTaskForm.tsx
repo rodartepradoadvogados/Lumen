@@ -35,6 +35,10 @@ const emptyState = {
   dueTime: "",
   priority: "MEDIA",
   description: "",
+  meetingType: "" as "" | "PRESENCIAL" | "ONLINE",
+  location: "",
+  meetingUrl: "",
+  strategy: "",
 };
 
 // Contexto pré-preenchido quando o formulário é aberto a partir de um lugar que já sabe a
@@ -173,6 +177,10 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
       dueTime: state.dueTime || undefined,
       priority: state.priority,
       description: state.description || undefined,
+      meetingType: state.meetingType || undefined,
+      location: state.location || undefined,
+      meetingUrl: state.meetingUrl || undefined,
+      strategy: state.type === "AUDIENCIA" ? state.strategy || undefined : undefined,
       caseId: state.referTo === "PROCESSO" || state.referTo === "CASO" ? state.selectedLink?.id : undefined,
       attendanceId: state.referTo === "ATENDIMENTO" ? state.selectedLink?.id : undefined,
       publicationId: initial?.publicationId,
@@ -433,6 +441,56 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               <option value="URGENTE">Urgente</option>
             </select>
           </div>
+          {(state.type === "EVENTO" || state.type === "AUDIENCIA") && (
+            <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 dark:bg-gold-400/10 p-3 space-y-3">
+              <p className="text-xs font-semibold text-gold-800 dark:text-gold-400 uppercase tracking-wide">
+                {state.type === "AUDIENCIA" ? "Local da audiência (opcional)" : "Reunião (opcional)"}
+              </p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                  <input
+                    type="radio"
+                    checked={state.meetingType === "PRESENCIAL"}
+                    onChange={() => setState((s) => ({ ...s, meetingType: "PRESENCIAL" }))}
+                  />
+                  Presencial
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                  <input
+                    type="radio"
+                    checked={state.meetingType === "ONLINE"}
+                    onChange={() => setState((s) => ({ ...s, meetingType: "ONLINE" }))}
+                  />
+                  Online
+                </label>
+              </div>
+              {state.meetingType === "PRESENCIAL" ? (
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço (opcional)</label>
+                  <input
+                    value={state.location}
+                    onChange={(e) => setState((s) => ({ ...s, location: e.target.value }))}
+                    placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO"
+                    className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+                    {state.type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}
+                  </label>
+                  <input
+                    type="url"
+                    value={state.meetingUrl}
+                    onChange={(e) => setState((s) => ({ ...s, meetingUrl: e.target.value }))}
+                    placeholder="https://meet.google.com/..."
+                    className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
             <textarea
@@ -442,6 +500,19 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y max-h-[40vh]"
             />
           </div>
+
+          {state.type === "AUDIENCIA" && (
+            <div>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+              <textarea
+                value={state.strategy}
+                onChange={(e) => setState((s) => ({ ...s, strategy: e.target.value }))}
+                rows={3}
+                placeholder="Teses, pontos de atenção, preparo para a audiência..."
+                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y max-h-[40vh]"
+              />
+            </div>
+          )}
         </div>
       )}
 

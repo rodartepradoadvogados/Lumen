@@ -70,6 +70,7 @@ export async function createTask(data: {
   meetingType?: string;
   location?: string;
   meetingUrl?: string;
+  strategy?: string;
   points?: number;
 }) {
   const viewer = await getCurrentUser();
@@ -100,6 +101,7 @@ export async function createTask(data: {
       meetingType: data.meetingType || null,
       location: data.location || null,
       meetingUrl: data.meetingUrl || null,
+      strategy: data.strategy || null,
       points,
       officeId: viewer.officeId,
     },
@@ -134,6 +136,10 @@ export async function delegateTask(data: {
   dueTime?: string;
   priority: string;
   description?: string;
+  meetingType?: string;
+  location?: string;
+  meetingUrl?: string;
+  strategy?: string;
   caseId?: string;
   attendanceId?: string;
   // Preenchido quando a delegação nasce do botão "Delegar" de uma publicação
@@ -178,6 +184,10 @@ export async function delegateTask(data: {
         delegatedById: viewer.id,
         columnId: firstColumn?.id || null,
         description: data.description || null,
+        meetingType: data.meetingType || null,
+        location: data.location || null,
+        meetingUrl: data.meetingUrl || null,
+        strategy: data.strategy || null,
         points,
         officeId: viewer.officeId,
       },
@@ -265,6 +275,7 @@ export type TaskDetail = {
   meetingType: string | null;
   location: string | null;
   meetingUrl: string | null;
+  strategy: string | null;
   responsibleId: string | null;
   case: { id: string; title: string; processNumber: string | null } | null;
 };
@@ -296,6 +307,7 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
       meetingType: task.meetingType,
       location: task.location,
       meetingUrl: task.meetingUrl,
+      strategy: task.strategy,
       responsibleId: task.responsibleId,
       case: task.case,
     },
@@ -334,6 +346,7 @@ export async function updateTask(id: string, data: {
   meetingType?: string;
   location?: string;
   meetingUrl?: string;
+  strategy?: string;
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) return;
@@ -353,6 +366,7 @@ export async function updateTask(id: string, data: {
       meetingType: data.meetingType || null,
       location: data.location || null,
       meetingUrl: data.meetingUrl || null,
+      strategy: data.strategy || null,
     },
   });
   revalidatePath("/kanban");
