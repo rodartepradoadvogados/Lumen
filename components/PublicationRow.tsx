@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   markPublicationRead,
@@ -59,6 +59,10 @@ const actionButtons = [
 export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: { id: string; name: string }[] }) {
   const router = useRouter();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailClosing, setDetailClosing] = useState(false);
+  const [detailEntered, setDetailEntered] = useState(false);
+  const detailClickPoint = useRef({ x: 0.5, y: 0.5 });
+  const detailBoxRef = useRef<HTMLDivElement>(null);
   const [formType, setFormType] = useState<string | null>(null);
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [delegateOpen, setDelegateOpen] = useState(false);
@@ -111,6 +115,33 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
     setFormType(type);
   }
 
+  // Efeito de origem/destino: o modal "nasce" de dentro do ponto clicado e volta pra lá ao
+  // fechar — guarda só o ponto do clique (client X/Y), o useLayoutEffect abaixo converte pra
+  // um transformOrigin relativo à própria caixa do modal assim que ela monta.
+  function openDetail(e: React.MouseEvent) {
+    detailClickPoint.current = { x: e.clientX, y: e.clientY };
+    setDetailOpen(true);
+  }
+
+  useLayoutEffect(() => {
+    if (!detailOpen || !detailBoxRef.current) return;
+    const rect = detailBoxRef.current.getBoundingClientRect();
+    const originX = ((detailClickPoint.current.x - rect.left) / rect.width) * 100;
+    const originY = ((detailClickPoint.current.y - rect.top) / rect.height) * 100;
+    detailBoxRef.current.style.transformOrigin = `${originX}% ${originY}%`;
+    const raf = requestAnimationFrame(() => setDetailEntered(true));
+    return () => cancelAnimationFrame(raf);
+  }, [detailOpen]);
+
+  function closeDetail() {
+    setDetailClosing(true);
+    setDetailEntered(false);
+    setTimeout(() => {
+      setDetailOpen(false);
+      setDetailClosing(false);
+    }, 200);
+  }
+
   function handleTriage(status: string) {
     setLoading(true);
     setPublicationTriageStatus(pub.id, status).then(() => {
@@ -136,7 +167,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           {pub.taskCount}
         </Link>
       )}
-      <button onClick={() => setDetailOpen(true)} className="block w-full text-left relative pr-7">
+      <button onClick={openDetail} className="block w-full text-left relative pr-7">
         <ChevronDown
           size={16}
           className={clsx(
@@ -302,13 +333,24 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
       )}
 
       {detailOpen && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setDetailOpen(false)}>
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+        <div
+          className={clsx(
+            "fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4 transition-opacity duration-200",
+            detailEntered && !detailClosing ? "opacity-100" : "opacity-0"
+          )}
+          onClick={closeDetail}
+        >
+          <div
+            ref={detailBoxRef}
+            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-thin transition-transform duration-200 ease-out"
+            style={{ transform: detailEntered && !detailClosing ? "scale(1)" : "scale(0.05)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
               <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">
                 {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
               </h3>
-              <button onClick={() => setDetailOpen(false)} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
+              <button onClick={closeDetail} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
                 <X size={18} />
               </button>
             </div>
