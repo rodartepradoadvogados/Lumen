@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Kanban,
@@ -213,9 +213,46 @@ export default function Sidebar({
   onOpenTab?: (href: string, label: string) => void;
   onNavigate?: () => void;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
+
+  // Distingue clique simples de duplo clique num Link sem depender de onClick+onDoubleClick
+  // separados: o navegador dispara "click" DUAS VEZES antes do "dblclick" (mousedown, mouseup,
+  // click, mousedown, mouseup, click, dblclick), então um par onClick/onDoubleClick nesse formato
+  // fazia o 1º clique já navegar (perdendo o progresso da view Principal) e só DEPOIS abrir a aba
+  // nova — os dois efeitos aconteciam juntos. Aqui todo clique é interceptado (preventDefault) e
+  // espera um instante: se um 2º clique chegar dentro da janela, é o duplo clique (abre aba nova);
+  // senão, decorrido o prazo, navega normalmente a view Principal.
+  const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(clickTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  function handleNavClick(e: React.MouseEvent, href: string, label: string) {
+    // Ctrl/Cmd/Shift+clique e clique do meio são o jeito do usuário abrir numa aba de
+    // verdade do navegador — não interceptar, deixa o comportamento nativo do <a> acontecer.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+
+    const pending = clickTimers.current[href];
+    if (pending) {
+      clearTimeout(pending);
+      delete clickTimers.current[href];
+      onOpenTab?.(href, label);
+      return;
+    }
+
+    clickTimers.current[href] = setTimeout(() => {
+      delete clickTimers.current[href];
+      onNavigate?.();
+      router.push(href);
+    }, 250);
+  }
 
   // Modo de tema exato ("light"/"auto"/"dark"), sincronizado via THEME_CHANGE_EVENT
   // (disparado por components/ThemeToggle.tsx) — necessário porque a classe `dark` do <html>
@@ -332,11 +369,7 @@ export default function Sidebar({
                   <div key={item.href}>
                     <Link
                       href={item.href}
-                      onClick={onNavigate}
-                      onDoubleClick={(e) => {
-                        e.preventDefault();
-                        onOpenTab?.(item.href, item.label);
-                      }}
+                      onClick={(e) => handleNavClick(e, item.href, item.label)}
                       className={clsx(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors",
                         active
@@ -382,11 +415,7 @@ export default function Sidebar({
                                 <Link
                                   key={sub.label}
                                   href={subHref}
-                                  onClick={onNavigate}
-                                  onDoubleClick={(e) => {
-                                    e.preventDefault();
-                                    onOpenTab?.(subHref, sub.label);
-                                  }}
+                                  onClick={(e) => handleNavClick(e, subHref, sub.label)}
                                   className={clsx(
                                     "block pl-6 pr-3 py-1.5 rounded-md text-[13px] transition-colors",
                                     subActive

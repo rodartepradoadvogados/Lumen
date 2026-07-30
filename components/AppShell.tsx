@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import TabTitleSync from "@/components/TabTitleSync";
 import type { OfficeModules } from "@/lib/officeModules";
 
 type Tab = { id: string; href: string; label: string };
@@ -63,11 +64,33 @@ function AppShellInner({
   children,
 }: AppShellProps) {
   const searchParams = useSearchParams();
-  const embed = searchParams.get("embed") === "1";
+  // `?embed=1` só resolve a 1ª pintura (evita flash de casca completa antes do JS rodar) — depois
+  // do mount, a verdade passa a ser "estou dentro de um <iframe> mesmo?" (window.self !== window.top).
+  // Isso importa porque um link clicado DENTRO da aba (navegação client-side do próprio Next, sem
+  // recarregar o iframe) pode apontar pra uma URL sem `embed=1` — sem essa checagem em runtime, a
+  // casca completa (Sidebar/TopBar) reaparecia dentro da aba na primeira navegação interna.
+  const embedParam = searchParams.get("embed") === "1";
+  const [embed, setEmbed] = useState(embedParam);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.self !== window.top) setEmbed(true);
+  }, []);
 
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (embed) return;
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.source !== "lumen-tab" || typeof data.tabId !== "string" || typeof data.label !== "string") return;
+      setTabs((prev) => prev.map((t) => (t.id === data.tabId && t.label !== data.label ? { ...t, label: data.label } : t)));
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [embed]);
 
   useEffect(() => {
     if (embed) return;
@@ -106,7 +129,12 @@ function AppShellInner({
   const goToLiveView = useCallback(() => setActiveTabId(null), []);
 
   if (embed) {
-    return <main className="h-screen overflow-y-auto scrollbar-thin">{children}</main>;
+    return (
+      <main className="h-screen overflow-y-auto scrollbar-thin">
+        <TabTitleSync />
+        {children}
+      </main>
+    );
   }
 
   return (
@@ -165,7 +193,7 @@ function AppShellInner({
           {tabs.map((tab) => (
             <iframe
               key={tab.id}
-              src={`${tab.href}${tab.href.includes("?") ? "&" : "?"}embed=1`}
+              src={`${tab.href}${tab.href.includes("?") ? "&" : "?"}embed=1&tabId=${tab.id}`}
               className={activeTabId === tab.id ? "flex-1 w-full border-0" : "hidden"}
               title={tab.label}
             />
