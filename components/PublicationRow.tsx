@@ -63,6 +63,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [delegateOpen, setDelegateOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const assignedToName = users.find((u) => u.id === pub.assignedToId)?.name;
   const { showUndo } = useUndoToast();
@@ -77,18 +78,24 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
   }, [agendaOpen]);
 
   function markRead() {
+    // Desliza 3cm pra esquerda enquanto esmorece (1.5s) antes de sumir de verdade — sem isso,
+    // o router.refresh() troca a lista instantaneamente e não dá pra perceber que a ação surtiu
+    // efeito. O toast de desfazer só aparece depois da animação, quando o item já saiu da tela.
     setLoading(true);
-    markPublicationRead(pub.id).then(() => {
-      router.refresh();
-      setLoading(false);
-      showUndo({
-        message: "Publicação marcada como lida.",
-        onUndo: async () => {
-          await markPublicationUnread(pub.id);
-          router.refresh();
-        },
+    setLeaving(true);
+    setTimeout(() => {
+      markPublicationRead(pub.id).then(() => {
+        router.refresh();
+        setLoading(false);
+        showUndo({
+          message: "Publicação marcada como lida.",
+          onUndo: async () => {
+            await markPublicationUnread(pub.id);
+            router.refresh();
+          },
+        });
       });
-    });
+    }, 1500);
   }
 
   function markUnread() {
@@ -113,7 +120,12 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
   }
 
   return (
-    <div className="px-5 py-4 relative">
+    <div
+      className={clsx(
+        "px-5 py-4 relative transition-all duration-[1500ms] ease-in-out",
+        leaving && "opacity-0 -translate-x-[3cm] pointer-events-none"
+      )}
+    >
       {pub.case && !!pub.taskCount && (
         <Link
           href={`/processos/${pub.case.id}?tab=atividades`}

@@ -54,24 +54,34 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
   const [formType, setFormType] = useState<string | null>(null);
   const [delegateOpen, setDelegateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [leaving, setLeaving] = useState(false);
   const { showUndo } = useUndoToast();
 
   function markRead() {
-    startTransition(async () => {
-      await markPublicationRead(pub.id);
-      router.refresh();
-      showUndo({
-        message: "Publicação marcada como lida.",
-        onUndo: async () => {
-          await markPublicationUnread(pub.id);
-          router.refresh();
-        },
+    // Mesmo efeito do desktop: desliza 3cm pra esquerda esmorecendo por 1.5s antes de sumir
+    // de verdade, pra ficar evidente que a ação surtiu efeito.
+    setLeaving(true);
+    setTimeout(() => {
+      startTransition(async () => {
+        await markPublicationRead(pub.id);
+        router.refresh();
+        showUndo({
+          message: "Publicação marcada como lida.",
+          onUndo: async () => {
+            await markPublicationUnread(pub.id);
+            router.refresh();
+          },
+        });
       });
-    });
+    }, 1500);
   }
 
   return (
-    <div className="px-4 py-3">
+    <div
+      className={`px-4 py-3 transition-all duration-[1500ms] ease-in-out ${
+        leaving ? "opacity-0 -translate-x-[3cm] pointer-events-none" : ""
+      }`}
+    >
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
         <Badge color={pub.kind === "PUBLICACAO" ? "blue" : "gold"}>
           {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}
@@ -114,11 +124,11 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || leaving}
               onClick={markRead}
               className="inline-flex items-center gap-1 text-[12px] font-semibold text-navy-800/70 dark:text-cream-50/70 px-3 py-1.5 rounded-lg bg-cream-100 dark:bg-white/5 hover:bg-cream-200 dark:hover:bg-white/10 disabled:opacity-50"
             >
-              <Check size={13} /> {pending ? "Marcando..." : "Marcar como lida"}
+              <Check size={13} /> {pending || leaving ? "Marcando..." : "Marcar como lida"}
             </button>
 
             {pub.caseId && (
