@@ -41,6 +41,7 @@ import {
   Undo2,
   FileQuestion,
   UserX,
+  BellRing,
 } from "lucide-react";
 
 // Taxonomia única de tipos de documento, usada tanto pelos Anexos de Processo/Caso/Atendimento
@@ -69,8 +70,20 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "PEDIDO_RECONSIDERACAO", label: "Pedido de Reconsideração", icon: Undo2 },
       { key: "IMPUGNACAO_EDITAL", label: "Impugnação ao Edital", icon: FileQuestion },
       { key: "IMPUGNACAO_LAUDO_PERICIAL", label: "Impugnação ao Laudo Pericial", icon: FileQuestion },
+      { key: "LAUDO_PERICIAL", label: "Laudo Pericial", icon: FileSearch },
+      { key: "CERTIDAO", label: "Certidão", icon: Stamp },
       { key: "PARECER", label: "Parecer", icon: ScrollText },
       { key: "REQUERIMENTO_CLIENTE", label: "Requerimento ao Cliente", icon: Mail },
+    ],
+  },
+  {
+    group: "Decisões Judiciais",
+    types: [
+      { key: "SENTENCA", label: "Sentença", icon: Gavel },
+      { key: "ACORDAO", label: "Acórdão", icon: ScrollText },
+      { key: "DESPACHO", label: "Despacho", icon: FileEdit },
+      { key: "INTIMACAO", label: "Intimação", icon: BellRing },
+      { key: "OUTRA_DECISAO", label: "Outra Decisão", icon: FileQuestion },
     ],
   },
   {
@@ -83,6 +96,7 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "AGRAVO_INSTRUMENTO", label: "Agravo de Instrumento", icon: Gavel },
       { key: "AGRAVO_PETICAO", label: "Agravo de Petição", icon: Gavel },
       { key: "AGRAVO_REGIMENTAL", label: "Agravo Regimental", icon: Gavel },
+      { key: "AGRAVO_INTERNO", label: "Agravo Interno", icon: Gavel },
       { key: "RECURSO_ESPECIAL", label: "Recurso Especial", icon: Landmark },
       { key: "AGRAVO_EM_RESP", label: "Agravo em Recurso Especial (REsp)", icon: Gavel },
       { key: "RECURSO_EXTRAORDINARIO", label: "Recurso Extraordinário", icon: Landmark },
@@ -161,11 +175,13 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "BOLETO", label: "Boleto", icon: Barcode },
       { key: "PLANILHA", label: "Planilhas", icon: FileSpreadsheet },
       { key: "DEBITO_ATUALIZADO", label: "Débito Atualizado", icon: CircleDollarSign },
+      { key: "EXTRATO", label: "Extrato", icon: FileSpreadsheet },
     ],
   },
   {
     group: "Outros",
     types: [
+      { key: "RELATORIO", label: "Relatório", icon: ClipboardList },
       { key: "PRINT", label: "Prints diversos", icon: ImageIcon },
       { key: "OUTRO_COMPROBATORIO", label: "Outro documento comprobatório do direito", icon: FileCheck },
       { key: "OUTRO", label: "Outros documentos", icon: FileText },
