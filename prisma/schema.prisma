@@ -143,6 +143,7 @@ model Office {
   accessAudit    AccessAuditLog[]
 
   driveSyncIssues DriveSyncIssue[]
+  blockedProcessNumbers BlockedProcessNumber[]
 }
 
 // ============ EQUIPE ============
@@ -226,6 +227,7 @@ model User {
   emailsSent                  EmailMessage[]        @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]          @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[] @relation("AssessoriaDocumentoUploadedBy")
+  blockedProcessNumbers       BlockedProcessNumber[]
 
   // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
   platformMember PlatformMember?
@@ -1196,6 +1198,35 @@ model Publication {
 
   @@index([officeId])
   @@index([officeId, publishedAt])
+}
+
+// Processo que o escritório optou por deixar de acompanhar (botão "Bloquear", só disponível para
+// publicações/andamentos SEM processo cadastrado — ver LinkPublicationMenu.tsx). A ponte do robô
+// (lib/roboBridge.ts) confere este modelo antes de criar uma nova Publication: se o número bate
+// (e o item ainda não tiver Case vinculado — um processo que passa a ser cadastrado depois volta
+// a ser acompanhado normalmente, o bloqueio nunca sobrepõe um vínculo real), o item do robô é
+// descartado, sem gerar Publication nem notificação. Gerenciado em Configurações → Geral, abaixo
+// do TaskScore (ver BlockedProcessNumbersManager.tsx) — reversível a qualquer momento.
+model BlockedProcessNumber {
+  id String @id @default(cuid())
+
+  // Normalizado por normalizeProcessNumber (lib/processNumber.ts) — só letras/dígitos, minúsculo,
+  // sem máscara — mesma normalização usada em toda busca por número de processo do site, para o
+  // bloqueio casar com o número digitado/exibido independente de pontuação.
+  processNumber String
+  // Como o número aparecia na tela no momento do bloqueio (com máscara), só para exibição na
+  // lista de Configurações — processNumber (acima) é o que de fato importa para o casamento.
+  displayNumber String
+  createdAt     DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  blockedById String?
+  blockedBy   User?   @relation(fields: [blockedById], references: [id])
+
+  @@unique([officeId, processNumber])
+  @@index([officeId])
 }
 
 // Leitura é por usuário, não compartilhada pelo escritório: cada advogado marca uma

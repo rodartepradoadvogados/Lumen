@@ -181,6 +181,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           <LinkPublicationMenu
             publicationId={pub.id}
             newCaseHref={`/processos/novo?type=JUDICIAL${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
+            processNumberRaw={pub.processNumberRaw}
           />
         )}
 

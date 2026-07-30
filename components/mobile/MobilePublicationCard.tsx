@@ -136,6 +136,7 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
               <LinkPublicationMenu
                 publicationId={pub.id}
                 newCaseHref={`/m/processos/novo?type=JUDICIAL${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
+                processNumberRaw={pub.processNumberRaw}
               />
             )}
 

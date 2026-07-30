@@ -276,6 +276,76 @@ export async function linkPublicationToCase(publicationId: string, caseId: strin
   revalidatePath(`/m/processos/${caseId}`);
 }
 
+// ===== Bloqueio de processo não cadastrado (LinkPublicationMenu — botão "Bloquear") =====
+// Só faz sentido para publicação/andamento SEM processo vinculado: um processo já cadastrado é
+// justamente o que o escritório quer acompanhar. Efeito é por ESCRITÓRIO ("esta conta não recebe
+// publicações e andamentos processuais deste processo", conforme o texto de confirmação exibido
+// ao usuário) — não por usuário, então some do painel de todo mundo, não só de quem bloqueou.
+
+export type BlockedProcessNumberRow = {
+  id: string;
+  displayNumber: string;
+  createdAt: string;
+  blockedByName: string | null;
+};
+
+export async function blockProcessNumber(publicationId: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const pub = await prisma.publication.findFirst({
+    where: { id: publicationId, officeId: user.officeId },
+    select: { id: true, caseId: true, processNumberRaw: true },
+  });
+  if (!pub) return { error: "Publicação não encontrada." };
+  if (pub.caseId) return { error: "Este processo já está cadastrado — o bloqueio só é permitido para processos não cadastrados." };
+  if (!pub.processNumberRaw) return { error: "Esta publicação não tem número de processo identificado." };
+
+  const normalized = normalizeProcessNumber(pub.processNumberRaw);
+  if (!normalized) return { error: "Não foi possível interpretar o número deste processo." };
+
+  await prisma.blockedProcessNumber.upsert({
+    where: { officeId_processNumber: { officeId: user.officeId, processNumber: normalized } },
+    update: {},
+    create: { officeId: user.officeId, processNumber: normalized, displayNumber: pub.processNumberRaw, blockedById: user.id },
+  });
+
+  // Publicações/andamentos já recebidos desse mesmo processo somem da fila de todo mundo — nunca
+  // apagados (mesmo princípio de nunca destruir dado usado no resto do Lúmen), só marcados como
+  // lidos (por cada usuário ativo, já que leitura é por usuário) e como tratados.
+  const semCaso = await prisma.publication.findMany({
+    where: { officeId: user.officeId, caseId: null, processNumberRaw: { not: null } },
+    select: { id: true, processNumberRaw: true },
+  });
+  const idsDoProcesso = semCaso.filter((p) => normalizeProcessNumber(p.processNumberRaw!) === normalized).map((p) => p.id);
+
+  if (idsDoProcesso.length > 0) {
+    const activeUsers = await prisma.user.findMany({ where: { officeId: user.officeId, active: true }, select: { id: true } });
+    await prisma.publicationRead.createMany({
+      data: idsDoProcesso.flatMap((pubId) => activeUsers.map((u) => ({ publicationId: pubId, userId: u.id }))),
+      skipDuplicates: true,
+    });
+    await prisma.publication.updateMany({ where: { id: { in: idsDoProcesso } }, data: { triageStatus: "TRATADA" } });
+  }
+
+  revalidatePath("/publicacoes");
+  revalidatePath("/m/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/painel");
+  revalidatePath("/configuracoes");
+  return {};
+}
+
+export async function unblockProcessNumber(id: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+  const existing = await prisma.blockedProcessNumber.findFirst({ where: { id, officeId: user.officeId }, select: { id: true } });
+  if (!existing) return { error: "Bloqueio não encontrado." };
+  await prisma.blockedProcessNumber.delete({ where: { id } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 export async function generateTaskFromPublication(
   id: string,
   data: { title: string; type: string; dueDate: string; dueTime?: string; priority: string }

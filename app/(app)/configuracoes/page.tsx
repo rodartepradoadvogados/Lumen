@@ -25,6 +25,7 @@ import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
 import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
+import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
@@ -156,6 +157,7 @@ export default async function ConfiguracoesPage({
     oneDriveStatus,
     dropboxStatus,
     ownBilling,
+    blockedProcessNumbersRaw,
   ] = await Promise.all([
       prisma.user.findMany({ where: { officeId }, orderBy: { createdAt: "asc" } }),
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
@@ -185,8 +187,19 @@ export default async function ConfiguracoesPage({
       getOneDriveStatus(officeId),
       getDropboxStatus(officeId),
       getOwnOfficeBilling(),
+      prisma.blockedProcessNumber.findMany({
+        where: { officeId },
+        orderBy: { createdAt: "desc" },
+        include: { blockedBy: { select: { name: true } } },
+      }),
     ]);
   const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
+  const blockedProcessNumbers = blockedProcessNumbersRaw.map((b) => ({
+    id: b.id,
+    displayNumber: b.displayNumber,
+    createdAt: b.createdAt.toISOString(),
+    blockedByName: b.blockedBy?.name ?? null,
+  }));
 
   const photos = photosRaw.map((p) => ({
     id: p.id,
@@ -854,6 +867,16 @@ export default async function ConfiguracoesPage({
           subtitle="Pontos atribuídos automaticamente a cada tarefa concluída, conforme o tipo. Alimenta o ranking da página Produtividade."
         />
         <TaskTypePointsManager items={taskTypePointsRows} />
+      </Card>
+      )}
+
+      {isAdmin && secao === "geral" && (
+      <Card>
+        <CardHeader
+          title="Processos Bloqueados"
+          subtitle='Processos que o escritório optou por deixar de acompanhar (botão "Bloquear" em Publicações/Andamentos, disponível só para processos ainda não cadastrados) — nenhuma nova publicação ou andamento é recebido deles até o bloqueio ser revertido aqui'
+        />
+        <BlockedProcessNumbersManager items={blockedProcessNumbers} />
       </Card>
       )}
 
