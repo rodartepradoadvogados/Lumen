@@ -1,3 +1,7 @@
+// Vários anexos no cadastro são finalizados em sequência (baixa do Blob + Drive por item) — pode
+// passar dos 10s padrão da Vercel; ver mesmo comentário em lib/actions/cases.ts.
+export const maxDuration = 60;
+
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";

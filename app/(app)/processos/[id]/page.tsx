@@ -45,9 +45,10 @@ export default async function CaseDetailPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { tab?: string };
+  searchParams: { tab?: string; anexosFalhos?: string };
 }) {
   const requestedTab = searchParams.tab || "visao-geral";
+  const anexosFalhos = Number(searchParams.anexosFalhos) || 0;
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
@@ -127,6 +128,15 @@ export default async function CaseDetailPage({
       <Link href="/processos" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 mb-3">
         <ArrowLeft size={13} /> Processos e Casos
       </Link>
+
+      {anexosFalhos > 0 && (
+        <div className="mb-4 rounded-lg border border-bordo-700/25 dark:border-bordo-400/25 bg-bordo-100/40 dark:bg-bordo-700/10 px-4 py-3 text-sm text-bordo-700 dark:text-bordo-400">
+          {anexosFalhos === 1
+            ? "1 anexo enviado no cadastro não pôde ser processado e não aparece na aba Anexos."
+            : `${anexosFalhos} anexos enviados no cadastro não puderam ser processados e não aparecem na aba Anexos.`}{" "}
+          Tente anexá-los novamente pela aba Anexos, abaixo.
+        </div>
+      )}
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{c.title}</h1>

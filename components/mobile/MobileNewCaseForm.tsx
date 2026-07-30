@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCaseMobile } from "@/lib/actions/cases";
 import { FilePlus2 } from "lucide-react";
@@ -54,11 +54,28 @@ export default function MobileNewCaseForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [type, setType] = useState(defaultType);
+  const [attachmentsUploading, setAttachmentsUploading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Ver components/NewCaseAttachmentsField.tsx e components/SaveCaseButton.tsx — mesmo evento,
+  // mesma correção: bloquear o envio enquanto algum anexo ainda está subindo pro Blob, pra não
+  // criar o caso só com os que já tinham terminado a tempo (bug real: "só subiram 3 documentos").
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const handleUploading = (e: Event) => setAttachmentsUploading(Boolean((e as CustomEvent).detail?.uploading));
+    form.addEventListener("lumen:attachments-uploading", handleUploading);
+    return () => form.removeEventListener("lumen:attachments-uploading", handleUploading);
+  }, []);
 
   async function handleSubmit(formData: FormData) {
     const title = String(formData.get("title") || "").trim();
     if (!title) {
       setError("Preencha ao menos o título do caso.");
+      return;
+    }
+    if (attachmentsUploading) {
+      setError("Aguarde o envio dos anexos terminar antes de salvar.");
       return;
     }
     setError("");
@@ -94,7 +111,7 @@ export default function MobileNewCaseForm({
         tribunalLink: String(formData.get("tribunalLink") || "") || undefined,
         stagedAttachments,
       });
-      router.push(`/m/processos/${result.id}`);
+      router.push(`/m/processos/${result.id}${result.anexosComErro ? `?anexosFalhos=${result.anexosComErro}` : ""}`);
     } catch {
       setError("Não foi possível salvar o processo. Tente novamente.");
       setLoading(false);
@@ -102,7 +119,7 @@ export default function MobileNewCaseForm({
   }
 
   return (
-    <form action={handleSubmit} className="space-y-3">
+    <form ref={formRef} action={handleSubmit} className="space-y-3">
       <div>
         <label className={labelClass}>Título do Caso</label>
         <input name="title" required className={inputClass} placeholder="Ex: Fulano de Tal x Empresa XYZ" />
@@ -178,10 +195,11 @@ export default function MobileNewCaseForm({
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || attachmentsUploading}
         className="w-full flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
       >
-        <FilePlus2 size={15} /> {loading ? "Salvando..." : type === "JUDICIAL" ? "Salvar Processo" : "Salvar Caso"}
+        <FilePlus2 size={15} />{" "}
+        {attachmentsUploading ? "Enviando anexos..." : loading ? "Salvando..." : type === "JUDICIAL" ? "Salvar Processo" : "Salvar Caso"}
       </button>
     </form>
   );

@@ -1,3 +1,8 @@
+// MobileNewCaseForm chama createCaseMobile direto (client component -> server action) — mesmo
+// motivo do maxDuration em app/(app)/processos/novo/page.tsx: vários anexos finalizados em
+// sequência podem passar dos 10s padrão da Vercel.
+export const maxDuration = 60;
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";

@@ -1,5 +1,9 @@
 "use server";
 
+// Um arquivo "use server" só pode exportar funções async — maxDuration para createCase/
+// createCaseMobile (que podem levar mais de 10s finalizando vários anexos em sequência) fica
+// nas rotas que os chamam: app/(app)/processos/novo/page.tsx e app/m/processos/novo/page.tsx.
+
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -33,17 +37,36 @@ async function assertCaseRelationsInOffice(
 // só dá pra fazer agora que o caso tem um id real.
 type StagedAttachment = { blobUrl: string; name: string; contentType: string; docType?: string };
 
-async function finalizeStagedAttachments(staged: StagedAttachment[] | undefined, caseId: string): Promise<void> {
-  if (!staged || staged.length === 0) return;
+// Cada item isolado no seu próprio try/catch: sem isso, um item que falhasse no meio da lista
+// (Drive lento, rate limit, timeout da function) derrubava a promise inteira e abortava TODOS os
+// itens seguintes sem processar — bug real relatado ("juntei vários documentos... só subiram 3").
+// Sequencial de propósito (não Promise.all): document upload no Drive não deve disparar N
+// chamadas simultâneas para a mesma pasta (getOrCreateCategoryFolder tem uma janela de
+// find-or-create que pode duplicar pasta sob concorrência). Devolve quantos falharam, pra quem
+// chamou poder avisar o usuário em vez de fingir que deu tudo certo.
+async function finalizeStagedAttachments(staged: StagedAttachment[] | undefined, caseId: string): Promise<number> {
+  if (!staged || staged.length === 0) return 0;
+  let falhas = 0;
   for (const att of staged) {
-    await finalizeAttachmentUpload({
-      blobUrl: att.blobUrl,
-      name: att.name,
-      contentType: att.contentType,
-      docType: att.docType || "OUTRO",
-      caseId,
-    });
+    try {
+      const result = await finalizeAttachmentUpload({
+        blobUrl: att.blobUrl,
+        name: att.name,
+        contentType: att.contentType,
+        docType: att.docType || "OUTRO",
+        caseId,
+      });
+      if (result.error) {
+        falhas++;
+        console.error(`[finalizeStagedAttachments] falha ao anexar "${att.name}" no caso ${caseId}: ${result.error}`);
+      }
+    } catch (e) {
+      falhas++;
+      const message = e instanceof Error ? e.message : "erro desconhecido";
+      console.error(`[finalizeStagedAttachments] falha ao anexar "${att.name}" no caso ${caseId}: ${message}`);
+    }
   }
+  return falhas;
 }
 
 export async function createCase(data: {
@@ -107,10 +130,10 @@ export async function createCase(data: {
       officeId: viewer.officeId,
     },
   });
-  await finalizeStagedAttachments(data.stagedAttachments, created.id);
+  const anexosComErro = await finalizeStagedAttachments(data.stagedAttachments, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
-  redirect(`/processos/${created.id}`);
+  redirect(`/processos/${created.id}${anexosComErro > 0 ? `?anexosFalhos=${anexosComErro}` : ""}`);
 }
 
 // Edição completa do card de Processo (aba Visão Geral) — cobre os mesmos campos hoje
@@ -276,7 +299,7 @@ export async function createCaseMobile(data: {
   tribunalSistema?: string;
   tribunalLink?: string;
   stagedAttachments?: StagedAttachment[];
-}): Promise<{ id: string }> {
+}): Promise<{ id: string; anexosComErro?: number }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
   await assertCaseRelationsInOffice(data, viewer.officeId);
@@ -315,10 +338,10 @@ export async function createCaseMobile(data: {
       officeId: viewer.officeId,
     },
   });
-  await finalizeStagedAttachments(data.stagedAttachments, created.id);
+  const anexosComErro = await finalizeStagedAttachments(data.stagedAttachments, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
-  return { id: created.id };
+  return { id: created.id, anexosComErro: anexosComErro > 0 ? anexosComErro : undefined };
 }
 
 export async function createCaseQuick(title: string, clientId?: string): Promise<{ id: string; title: string }> {

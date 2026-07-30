@@ -14,7 +14,14 @@ import { ArrowLeft, ChevronDown, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function MobileCaseDetail({ params }: { params: { id: string } }) {
+export default async function MobileCaseDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { anexosFalhos?: string };
+}) {
+  const anexosFalhos = Number(searchParams.anexosFalhos) || 0;
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
 
@@ -70,6 +77,15 @@ export default async function MobileCaseDetail({ params }: { params: { id: strin
       >
         <ArrowLeft size={13} /> Processos
       </Link>
+
+      {anexosFalhos > 0 && (
+        <div className="rounded-lg border border-bordo-700/25 dark:border-bordo-400/25 bg-bordo-100/40 dark:bg-bordo-700/10 px-3 py-2.5 text-xs text-bordo-700 dark:text-bordo-400">
+          {anexosFalhos === 1
+            ? "1 anexo enviado no cadastro não pôde ser processado."
+            : `${anexosFalhos} anexos enviados no cadastro não puderam ser processados.`}{" "}
+          Tente novamente na aba Anexos.
+        </div>
+      )}
 
       <div>
         <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50 leading-tight">{c.title}</h1>

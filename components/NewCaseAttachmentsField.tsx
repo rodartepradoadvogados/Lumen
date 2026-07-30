@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { UploadCloud, X, Loader2 } from "lucide-react";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
@@ -27,6 +27,7 @@ export type StagedCaseAttachment = { blobUrl: string; name: string; contentType:
 export default function NewCaseAttachmentsField({ driveConnected }: { driveConnected: boolean }) {
   const [items, setItems] = useState<StagedItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
   async function addFiles(files: FileList | null) {
@@ -69,12 +70,22 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
 
   const anyUploading = items.some((it) => it.uploading);
 
+  // Avisa o botão de Salvar (SaveCaseButton.tsx) se ainda há upload em andamento — sem isso, o
+  // usuário podia clicar Salvar com anexos ainda subindo pro Blob e o caso era criado só com os
+  // que já tinham terminado a tempo, silenciosamente, sem nenhum erro visível (bug real relatado:
+  // "juntei vários documentos... só subiram 3"). Evento de DOM, não Context, pro botão continuar
+  // um componente simples e desacoplado — mesmo espírito do listener de "type" que ele já tem.
+  useEffect(() => {
+    const form = rootRef.current?.closest("form");
+    form?.dispatchEvent(new CustomEvent("lumen:attachments-uploading", { detail: { uploading: anyUploading } }));
+  }, [anyUploading]);
+
   const payload: StagedCaseAttachment[] = items
     .filter((it) => it.blobUrl && !it.error)
     .map((it) => ({ blobUrl: it.blobUrl as string, name: it.name, contentType: it.contentType, docType: it.docType }));
 
   return (
-    <div>
+    <div ref={rootRef}>
       <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Anexos (opcional)</label>
       <input type="hidden" name="stagedAttachments" value={JSON.stringify(payload)} />
 
@@ -156,7 +167,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
 
       {anyUploading && (
         <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">
-          Aguarde o envio terminar antes de salvar, ou o arquivo não será anexado.
+          Enviando anexo(s)... o botão de salvar fica bloqueado até terminar, pra nenhum arquivo ficar de fora.
         </p>
       )}
     </div>
