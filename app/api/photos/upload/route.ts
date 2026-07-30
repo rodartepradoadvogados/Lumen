@@ -39,8 +39,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // O Blob Store do projeto (lumen-attachments) está provisionado como PÚBLICO —
-    // access:"private" é rejeitado com "Cannot use private access on a public store".
+    // access:"private" é rejeitado nesta store com "Cannot use private access on a public
+    // store" — mas isso não significa que o blob resultante seja anonimamente legível: a URL
+    // devolvida aponta pra um domínio *.private.blob.vercel-storage.com que retorna 403 sem o
+    // token (ver app/api/photos/file/[id]/route.ts, que busca com o token e serve os bytes —
+    // nunca use blob.url direto num <img src> ou redirect).
     const blob = await put(`photos/${Date.now()}-${file.name}`, file, { access: "public" });
 
     const photo = await prisma.photo.create({
