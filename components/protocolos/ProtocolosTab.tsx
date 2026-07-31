@@ -290,7 +290,7 @@ function SelecaoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
       <div
         className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -442,7 +442,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
           <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Registrar protocolo</h3>

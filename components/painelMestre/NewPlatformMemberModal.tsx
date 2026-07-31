@@ -67,7 +67,7 @@ export default function NewPlatformMemberModal({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/60 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-navy-950/60 flex items-center justify-center p-4">
           <div
             className="bg-navy-900 border border-white/10 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}

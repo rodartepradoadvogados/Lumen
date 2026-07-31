@@ -209,7 +209,7 @@ export default function AssessoriaProcessosCasosTab({
       </div>
 
       {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={closeSearch}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
             className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}

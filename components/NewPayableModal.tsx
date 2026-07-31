@@ -37,7 +37,7 @@ export default function NewPayableModal({
         <Plus size={16} /> Nova Conta a Pagar
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
               <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Nova Conta a Pagar</h3>

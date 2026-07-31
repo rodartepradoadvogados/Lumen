@@ -67,7 +67,7 @@ export default function MobileSearchCasesModal({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-end sm:items-center justify-center" onClick={close}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-end sm:items-center justify-center">
           <div
             className="bg-white dark:bg-navy-900 rounded-t-2xl sm:rounded-xl shadow-pop w-full sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}

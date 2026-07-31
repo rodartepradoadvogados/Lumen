@@ -77,7 +77,7 @@ export default function DistributePublicationsButton() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div
             className="bg-white dark:bg-navy-900 rounded-xl2 shadow-pop w-full max-w-4xl max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}

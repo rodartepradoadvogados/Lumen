@@ -24,7 +24,7 @@ export default function SettleModal({
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8">
           <h3 className="font-serif font-bold text-navy-900 text-sm">Confirmar Baixa</h3>

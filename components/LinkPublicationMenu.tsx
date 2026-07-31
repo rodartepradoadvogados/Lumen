@@ -131,13 +131,7 @@ export default function LinkPublicationMenu({
       </div>
 
       {blockConfirmOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!blocking) setBlockConfirmOpen(false);
-          }}
-        >
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
             className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm"
             onClick={(e) => e.stopPropagation()}
@@ -181,13 +175,7 @@ export default function LinkPublicationMenu({
       )}
 
       {searchOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSearchOpen(false);
-          }}
-        >
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
             className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}

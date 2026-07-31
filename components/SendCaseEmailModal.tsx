@@ -28,7 +28,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
         <Mail size={15} /> Enviar E-mail
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
             className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}

@@ -78,7 +78,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
       <div
         className="bg-white rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-thin animate-fade-in"
         onClick={(e) => e.stopPropagation()}

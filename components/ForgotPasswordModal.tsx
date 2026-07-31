@@ -46,7 +46,7 @@ export default function ForgotPasswordModal({ initialEmail, onClose }: { initial
   }, []);
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay}>
       <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
         {step === "ask-login" && (
           <>

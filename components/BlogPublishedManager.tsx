@@ -110,7 +110,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
       </div>
 
       {pickerPost && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setPickerPost(null)}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
             className="bg-white rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}

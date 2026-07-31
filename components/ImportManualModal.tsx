@@ -16,10 +16,7 @@ export default function ImportManualModal() {
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4"
-          onClick={() => setOpen(false)}
-        >
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
             className="bg-white rounded-xl shadow-pop w-full max-w-2xl max-h-[85vh] overflow-y-auto animate-fade-in"
             onClick={(e) => e.stopPropagation()}

@@ -44,7 +44,7 @@ export default function BulkSettleBar({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8 dark:border-white/10">
               <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Confirmar Baixa em Bloco</h3>
