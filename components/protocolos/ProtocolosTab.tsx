@@ -1,0 +1,525 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
+import { X, Plus, ExternalLink, ChevronUp, ChevronDown, FolderOpen, Stamp, Ban, RefreshCw, Search } from "lucide-react";
+import {
+  createProtocoloLote,
+  updateProtocoloLoteItens,
+  gerarPastaDoLote,
+  registrarProtocolo,
+  cancelarProtocoloLote,
+} from "@/lib/actions/protocolos";
+import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
+import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
+import { Badge, formatCalendarDate } from "@/components/ui";
+
+type AttachmentOption = { id: string; name: string; docType: string };
+type LoteItem = { id: string; ordem: number; attachmentId: string | null; nomeSnapshot: string; docTypeSnapshot: string; driveUrl: string | null };
+type Lote = {
+  id: string;
+  titulo: string;
+  status: string;
+  numeroProtocolo: string | null;
+  protocoladoEm: string | null;
+  driveFolderId: string | null;
+  criadoPor: { name: string } | null;
+  protocoladoPor: { name: string } | null;
+  comprovante: { id: string; name: string; driveUrl: string } | null;
+  createdAt: string;
+  itens: LoteItem[];
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  EM_PREPARO: "Em preparo",
+  PRONTO: "Pronto",
+  PROTOCOLADO: "Protocolado",
+  CANCELADO: "Cancelado",
+};
+const STATUS_COLOR: Record<string, "slate" | "gold" | "green" | "red"> = {
+  EM_PREPARO: "slate",
+  PRONTO: "gold",
+  PROTOCOLADO: "green",
+  CANCELADO: "red",
+};
+
+export default function ProtocolosTab({
+  caseId,
+  attachments,
+  lotes,
+  driveConnected,
+}: {
+  caseId: string;
+  attachments: AttachmentOption[];
+  lotes: Lote[];
+  driveConnected: boolean;
+}) {
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [editando, setEditando] = useState<Lote | null>(null);
+  const [registrando, setRegistrando] = useState<Lote | null>(null);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <p className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 font-mono">
+          {lotes.length === 0 ? "Nenhum protocolo ainda" : `${lotes.length} protocolo${lotes.length > 1 ? "s" : ""}`}
+        </p>
+        <button
+          onClick={() => setNovoOpen(true)}
+          className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+        >
+          <Plus size={16} /> Novo protocolo
+        </button>
+      </div>
+
+      {lotes.length === 0 ? (
+        <p className="text-sm text-navy-800/45 dark:text-cream-50/45 py-6 text-center">
+          Um protocolo é a lista dos documentos enviados (ou a enviar) ao tribunal/órgão — nenhum arquivo é duplicado, só referenciado.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {lotes.map((lote) => (
+            <LoteCard
+              key={lote.id}
+              lote={lote}
+              driveConnected={driveConnected}
+              onEditar={() => setEditando(lote)}
+              onRegistrar={() => setRegistrando(lote)}
+            />
+          ))}
+        </div>
+      )}
+
+      {novoOpen && <SelecaoModal caseId={caseId} attachments={attachments} onClose={() => setNovoOpen(false)} />}
+      {editando && (
+        <SelecaoModal
+          caseId={caseId}
+          attachments={attachments}
+          lote={editando}
+          onClose={() => setEditando(null)}
+        />
+      )}
+      {registrando && <RegistrarModal caseId={caseId} lote={registrando} onClose={() => setRegistrando(null)} />}
+    </div>
+  );
+}
+
+function LoteCard({
+  lote,
+  driveConnected,
+  onEditar,
+  onRegistrar,
+}: {
+  lote: Lote;
+  driveConnected: boolean;
+  onEditar: () => void;
+  onRegistrar: () => void;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const editavel = lote.status === "EM_PREPARO" || lote.status === "PRONTO";
+
+  async function handleGerarPasta() {
+    setPending(true);
+    setError("");
+    const res = await gerarPastaDoLote(lote.id);
+    setPending(false);
+    if (res.error) setError(res.error);
+    router.refresh();
+  }
+
+  async function handleCancelar() {
+    if (!window.confirm(`Cancelar o protocolo "${lote.titulo}"? A pasta no Drive (se houver) será apagada — os documentos originais não são afetados.`)) return;
+    setPending(true);
+    setError("");
+    const res = await cancelarProtocoloLote(lote.id);
+    setPending(false);
+    if (res.error) setError(res.error);
+    router.refresh();
+  }
+
+  return (
+    <div className="border border-navy-800/10 dark:border-white/10 rounded-lg p-4 bg-white dark:bg-navy-900">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="font-medium text-navy-900 dark:text-cream-50">{lote.titulo}</p>
+          <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 font-mono">
+            {lote.status === "PROTOCOLADO"
+              ? `protocolado ${lote.protocoladoEm ? formatCalendarDate(lote.protocoladoEm) : ""} · nº ${lote.numeroProtocolo} · ${lote.itens.length} documento(s) · ${lote.protocoladoPor?.name ?? "—"}`
+              : `${lote.itens.length} documento(s) · criado por ${lote.criadoPor?.name ?? "—"}`}
+          </p>
+        </div>
+        <Badge color={STATUS_COLOR[lote.status] ?? "slate"}>{STATUS_LABEL[lote.status] ?? lote.status}</Badge>
+      </div>
+
+      <div className="mt-3 divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/5 dark:border-white/10">
+        {lote.itens.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
+            <span className="font-mono text-xs text-navy-800/40 dark:text-cream-50/40 w-6 shrink-0">{String(item.ordem).padStart(2, "0")}</span>
+            <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50" title={item.nomeSnapshot}>
+              {item.nomeSnapshot}
+              {!item.attachmentId && <span className="text-[10px] text-bordo-600 dark:text-bordo-400 ml-1.5">(excluído do processo)</span>}
+            </span>
+            <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
+            {item.driveUrl && (
+              <a href={item.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gold-700 dark:text-gold-400 shrink-0 flex items-center gap-0.5">
+                abrir <ExternalLink size={10} />
+              </a>
+            )}
+          </div>
+        ))}
+        {lote.comprovante && (
+          <div className="flex items-center gap-2 py-1.5 text-sm">
+            <Stamp size={13} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+            <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{lote.comprovante.name}</span>
+            <a href={lote.comprovante.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gold-700 dark:text-gold-400 shrink-0 flex items-center gap-0.5">
+              abrir <ExternalLink size={10} />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {error && <p className="text-[11px] text-bordo-600 dark:text-bordo-400 mt-2">{error}</p>}
+
+      {editavel && (
+        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-navy-800/5 dark:border-white/10">
+          <button
+            onClick={onRegistrar}
+            className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+          >
+            <Stamp size={13} /> Registrar protocolo
+          </button>
+          <button onClick={onEditar} className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5">
+            Editar seleção
+          </button>
+          {driveConnected && (
+            <button
+              onClick={handleGerarPasta}
+              disabled={pending}
+              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 disabled:opacity-50"
+            >
+              {lote.driveFolderId ? <RefreshCw size={13} /> : <FolderOpen size={13} />}
+              {pending ? "Gerando..." : lote.driveFolderId ? "Regenerar pasta no Drive" : "Gerar pasta no Drive"}
+            </button>
+          )}
+          <button
+            onClick={handleCancelar}
+            disabled={pending}
+            className="flex items-center gap-1.5 text-xs font-semibold text-bordo-600 dark:text-bordo-400 hover:bg-bordo-50 dark:hover:bg-bordo-950/30 px-3 py-1.5 rounded-lg ml-auto disabled:opacity-50"
+          >
+            <Ban size={13} /> Cancelar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Passo único de seleção + ordenação — reaproveitado tanto para "Novo protocolo" quanto para
+// "Editar seleção" de um lote existente (nesse caso `lote` vem preenchido e o título não muda).
+function SelecaoModal({
+  caseId,
+  attachments,
+  lote,
+  onClose,
+}: {
+  caseId: string;
+  attachments: AttachmentOption[];
+  lote?: Lote;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [titulo, setTitulo] = useState(lote?.titulo ?? "");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<string[]>(
+    lote ? lote.itens.filter((i) => i.attachmentId).map((i) => i.attachmentId as string) : []
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const disponiveis = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return [...attachments]
+      .filter((a) => !q || a.name.toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [attachments, search]);
+
+  const selectedAttachments = useMemo(
+    () => selected.map((id) => attachments.find((a) => a.id === id)).filter((a): a is AttachmentOption => Boolean(a)),
+    [selected, attachments]
+  );
+
+  function toggle(id: string) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  function move(id: string, dir: -1 | 1) {
+    setSelected((s) => {
+      const idx = s.indexOf(id);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= s.length) return s;
+      const copy = [...s];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+  }
+
+  async function handleConfirm() {
+    if (!lote && !titulo.trim()) {
+      setError("Dê um título ao protocolo.");
+      return;
+    }
+    if (selected.length === 0) {
+      setError("Selecione ao menos um documento.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const res = lote
+      ? await updateProtocoloLoteItens({ loteId: lote.id, attachmentIds: selected })
+      : await createProtocoloLote({ caseId, titulo: titulo.trim(), attachmentIds: selected });
+    setLoading(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    onClose();
+    router.refresh();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">{lote ? "Editar seleção" : "Novo protocolo"}</h3>
+          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3 overflow-y-auto scrollbar-thin flex-1">
+          {!lote && (
+            <div>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do protocolo</label>
+              <input
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Ex: Petição Inicial + documentos"
+                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              />
+            </div>
+          )}
+
+          {selectedAttachments.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
+                Ordem de envio ({selectedAttachments.length})
+              </p>
+              <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10">
+                {selectedAttachments.map((a, idx) => (
+                  <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+                    <span className="font-mono text-xs text-navy-800/40 dark:text-cream-50/40 w-6">{String(idx + 1).padStart(2, "0")}</span>
+                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
+                    <div className="flex items-center shrink-0">
+                      <button onClick={() => move(a.id, -1)} disabled={idx === 0} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
+                        <ChevronUp size={14} />
+                      </button>
+                      <button onClick={() => move(a.id, 1)} disabled={idx === selectedAttachments.length - 1} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
+                        <ChevronDown size={14} />
+                      </button>
+                      <button onClick={() => toggle(a.id)} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">Documentos do processo</p>
+            <div className="relative mb-2">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome"
+                className="w-full text-xs border border-navy-800/12 dark:border-white/15 rounded-lg pl-7 pr-2.5 py-1.5 bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              />
+            </div>
+            <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10 max-h-56 overflow-y-auto scrollbar-thin">
+              {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-navy-800/40 dark:text-cream-50/40">Nenhum documento encontrado.</p>}
+              {disponiveis.map((a) => {
+                const checked = selected.includes(a.id);
+                const Icon = getDocumentTypeIcon(a.docType);
+                return (
+                  <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100 dark:hover:bg-white/5">
+                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-gold-600 focus:ring-gold-500/40 shrink-0" />
+                    <Icon size={14} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
+                    <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10 shrink-0">
+          <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          >
+            {loading ? "Salvando..." : lote ? "Salvar seleção" : "Criar lote e gerar pasta"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote; onClose: () => void }) {
+  const router = useRouter();
+  const [numero, setNumero] = useState("");
+  const [data, setData] = useState("");
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleConfirm() {
+    if (!numero.trim() || !data) {
+      setError("Informe o número e a data do protocolo.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+
+    let comprovanteAttachmentId: string | undefined;
+    if (stagedFile) {
+      try {
+        const blob = await upload(stagedFile.name, stagedFile, { access: "public", handleUploadUrl: "/api/attachments/blob-token" });
+        const uploadResult = await finalizeAttachmentUpload({
+          blobUrl: blob.url,
+          name: stagedFile.name,
+          contentType: stagedFile.type || "application/octet-stream",
+          docType: "COMPROVANTE_PROTOCOLO",
+          caseId,
+        });
+        if (uploadResult.error || !uploadResult.id) {
+          setLoading(false);
+          setError(uploadResult.error || "Erro ao enviar o comprovante.");
+          return;
+        }
+        comprovanteAttachmentId = uploadResult.id;
+      } catch {
+        setLoading(false);
+        setError("Erro ao enviar o comprovante. Verifique sua conexão.");
+        return;
+      }
+    }
+
+    const res = await registrarProtocolo({ loteId: lote.id, numeroProtocolo: numero.trim(), protocoladoEm: data, comprovanteAttachmentId });
+    setLoading(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    onClose();
+    router.refresh();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Registrar protocolo</h3>
+          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          <p className="text-xs text-navy-800/50 dark:text-cream-50/50">&ldquo;{lote.titulo}&rdquo; — depois de enviar pelo sistema do tribunal/órgão.</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do protocolo</label>
+              <input
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
+                placeholder="20260731-993217"
+                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data do protocolo</label>
+              <input
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Comprovante (opcional)</label>
+            {stagedFile ? (
+              <div className="flex items-center gap-2 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-cream-50 dark:bg-navy-800">
+                <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{stagedFile.name}</span>
+                <button onClick={() => setStagedFile(null)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 shrink-0">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 rounded-lg py-3 text-xs text-navy-800/60 dark:text-cream-50/60"
+              >
+                Anexar comprovante devolvido pelo tribunal/órgão
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setStagedFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+          {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10">
+          <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          >
+            {loading ? "Registrando..." : "Concluir protocolo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

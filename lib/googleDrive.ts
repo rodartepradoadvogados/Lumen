@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { Readable } from "stream";
 import { prisma } from "@/lib/prisma";
+import { PROTOCOLOS_FOLDER_NAME } from "@/lib/protocolos";
 
 // "drive" (acesso completo), não "drive.file" + "drive.readonly" como antes: drive.file só
 // permite ESCREVER (mover, renomear, mandar pra Lixeira) em arquivos que o próprio app criou via
@@ -418,6 +419,50 @@ export async function getOrCreateCategoryFolder(parentFolderId: string, category
 export async function renameDriveFolder(folderId: string, newName: string, officeId: string): Promise<void> {
   const { drive } = await getDriveClient(officeId);
   await drive.files.update({ fileId: folderId, requestBody: { name: newName } });
+}
+
+// ============ PROTOCOLOS (ver lib/protocolos.ts e lib/actions/protocolos.ts) ============
+
+// Subpasta de sistema "Protocolos" dentro da pasta do processo — reaproveita
+// findOrCreateChildFolder (mesmo padrão de getOrCreateCategoryFolder), mas o nome vem de
+// PROTOCOLOS_FOLDER_NAME (lib/protocolos.ts) por ser a mesma constante que o sync reverso do
+// Drive usa pra ignorar esta pasta (isReservedCaseSubfolder) — nunca dessincronizar os dois nomes.
+export async function getOrCreateProtocolosContainerFolder(caseFolderId: string, officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  return findOrCreateChildFolder(drive, caseFolderId, PROTOCOLOS_FOLDER_NAME);
+}
+
+// Cria uma pasta com nome exato (sem reaproveitar por nome, ao contrário de
+// findOrCreateChildFolder) — cada protocolo é um lote novo, então uma pasta homônima de um lote
+// anterior (raro, mas possível com títulos repetidos) não deve ser reaproveitada.
+export async function createNamedDriveFolder(parentId: string, name: string, officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  const created = await drive.files.create({
+    requestBody: { name, mimeType: DRIVE_FOLDER_MIME_TYPE, parents: [parentId] },
+    fields: "id",
+  });
+  const id = created.data.id;
+  if (!id) throw new Error(`Não foi possível criar a pasta "${name}" no Google Drive.`);
+  return id;
+}
+
+// Atalho do Drive: um ponteiro pro arquivo original (targetFileId), não uma cópia — ocupa zero
+// espaço e apagá-lo nunca apaga o arquivo apontado. É o mecanismo inteiro por trás de "protocolo
+// não duplica documento" (ver lib/protocolos.ts): a pasta do lote só tem atalhos.
+export async function createDriveShortcut(parentId: string, name: string, targetFileId: string, officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  const created = await drive.files.create({
+    requestBody: {
+      name,
+      mimeType: "application/vnd.google-apps.shortcut",
+      parents: [parentId],
+      shortcutDetails: { targetId: targetFileId },
+    },
+    fields: "id",
+  });
+  const id = created.data.id;
+  if (!id) throw new Error(`Não foi possível criar o atalho "${name}" no Google Drive.`);
+  return id;
 }
 
 export async function deleteDriveFile(fileId: string, officeId: string): Promise<void> {

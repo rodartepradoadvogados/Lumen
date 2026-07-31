@@ -24,6 +24,7 @@ import RecurringFeeCard from "@/components/RecurringFeeCard";
 import TaskActivityRow from "@/components/TaskActivityRow";
 import SendCaseEmailModal from "@/components/SendCaseEmailModal";
 import TermosVigilanciaPanel from "@/components/TermosVigilanciaPanel";
+import ProtocolosTab from "@/components/protocolos/ProtocolosTab";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -40,6 +41,9 @@ const TABS = [
   { key: "financeiro", label: "Financeiro" },
   { key: "publicacoes", label: "Publicações" },
   { key: "anexos", label: "Anexos" },
+  // Só aparece pra Judicial/Administrativo (ver filtro de TABS mais abaixo) — Casos não
+  // protocolam nada em tribunal/órgão.
+  { key: "protocolos", label: "Protocolos" },
   // Só aparece para processos administrativos (ver filtro de TABS mais abaixo) — o setor
   // judicial/casos não usa termo vigiado nenhum.
   { key: "vigilancia", label: "Vigilância" },
@@ -82,6 +86,15 @@ export default async function CaseDetailPage({
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       },
       attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
+      protocoloLotes: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          criadoPor: { select: { name: true } },
+          protocoladoPor: { select: { name: true } },
+          comprovante: { select: { id: true, name: true, driveUrl: true } },
+          itens: { orderBy: { ordem: "asc" }, include: { attachment: { select: { driveUrl: true } } } },
+        },
+      },
     },
   });
 
@@ -91,7 +104,9 @@ export default async function CaseDetailPage({
   // de esfera/matéria e se a aba extra "Vigilância" existe (só faz sentido em ADMINISTRATIVO).
   const nat = naturezaOf(c.type);
   const tab =
-    (requestedTab === "financeiro" && !hasFinanceAccess) || (requestedTab === "vigilancia" && nat !== "ADMINISTRATIVO")
+    (requestedTab === "financeiro" && !hasFinanceAccess) ||
+    (requestedTab === "vigilancia" && nat !== "ADMINISTRATIVO") ||
+    (requestedTab === "protocolos" && nat === "CASO")
       ? "visao-geral"
       : requestedTab;
 
@@ -158,6 +173,26 @@ export default async function CaseDetailPage({
     ultimoHitAt: t.ultimoHitAt ? t.ultimoHitAt.toISOString() : null,
   }));
   const unreadPublicationsCount = c.publications.filter((p) => p.reads.length === 0).length;
+  const serializedLotes = c.protocoloLotes.map((lote) => ({
+    id: lote.id,
+    titulo: lote.titulo,
+    status: lote.status,
+    numeroProtocolo: lote.numeroProtocolo,
+    protocoladoEm: lote.protocoladoEm ? lote.protocoladoEm.toISOString() : null,
+    driveFolderId: lote.driveFolderId,
+    criadoPor: lote.criadoPor ? { name: lote.criadoPor.name } : null,
+    protocoladoPor: lote.protocoladoPor ? { name: lote.protocoladoPor.name } : null,
+    comprovante: lote.comprovante ? { id: lote.comprovante.id, name: lote.comprovante.name, driveUrl: lote.comprovante.driveUrl } : null,
+    createdAt: lote.createdAt.toISOString(),
+    itens: lote.itens.map((item) => ({
+      id: item.id,
+      ordem: item.ordem,
+      attachmentId: item.attachmentId,
+      nomeSnapshot: item.nomeSnapshot,
+      docTypeSnapshot: item.docTypeSnapshot,
+      driveUrl: item.attachment?.driveUrl ?? null,
+    })),
+  }));
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
@@ -200,7 +235,12 @@ export default async function CaseDetailPage({
       </p>
 
       <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-6 overflow-x-auto">
-        {TABS.filter((t) => (t.key !== "financeiro" || hasFinanceAccess) && (t.key !== "vigilancia" || nat === "ADMINISTRATIVO")).map((t) => (
+        {TABS.filter(
+          (t) =>
+            (t.key !== "financeiro" || hasFinanceAccess) &&
+            (t.key !== "vigilancia" || nat === "ADMINISTRATIVO") &&
+            (t.key !== "protocolos" || nat !== "CASO")
+        ).map((t) => (
           <Link
             key={t.key}
             href={`/processos/${c.id}?tab=${t.key}`}
@@ -499,6 +539,17 @@ export default async function CaseDetailPage({
             <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} />
           </Card>
         </div>
+      )}
+
+      {tab === "protocolos" && (
+        <Card className="p-5">
+          <ProtocolosTab
+            caseId={c.id}
+            attachments={serializedAttachments.map((a) => ({ id: a.id, name: a.name, docType: a.docType }))}
+            lotes={serializedLotes}
+            driveConnected={driveStatus.connected}
+          />
+        </Card>
       )}
 
       {tab === "vigilancia" && (

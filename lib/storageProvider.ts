@@ -27,6 +27,14 @@ async function providerFor(officeId: string): Promise<StorageProvider> {
   return "GOOGLE_DRIVE";
 }
 
+// Exportado para quem precisa decidir ANTES de agir se uma operação é possível — hoje só
+// Protocolos (lib/actions/protocolos.ts): a pasta-espelho com atalhos é recurso exclusivo do
+// Google Drive (OneDrive/Dropbox não têm atalho equivalente), então o lote funciona igual no
+// site nos três provedores, mas só gera a pasta espelho quando este escritório usa Google.
+export async function getStorageProvider(officeId: string): Promise<StorageProvider> {
+  return providerFor(officeId);
+}
+
 export type UploadResult = { id: string; webViewLink: string; storageProvider: StorageProvider };
 
 export async function uploadFileToDrive(
