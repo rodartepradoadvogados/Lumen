@@ -23,6 +23,19 @@
   /* Papel — superfícies claras e leitura longa (blog) */
   --lumen-paper: #f4efe4;
   --lumen-paper-2: #ece3d2;
+
+  /* Tons de preenchimento das seções de formulário do Financeiro (SecaoLancamento, Fase 2:
+     Lançar Honorários; Fase 3: Contas a Pagar/Receber reaproveitam) — valores do modo Dia. */
+  --secao-palha-bg: #f8f2e0;
+  --secao-palha-border: #b8860b;
+  --secao-azul-bg: #e9eff9;
+  --secao-azul-border: #3b5c92;
+  --secao-ouro-bg: #fbeed2;
+  --secao-ouro-border: #9c6f0a;
+  --secao-verde-bg: #e7f0ec;
+  --secao-verde-border: #276a56;
+  --secao-rosa-bg: #f9e9ed;
+  --secao-rosa-border: #8f1c38;
 }
 
 :root {
@@ -37,6 +50,20 @@
   --background: var(--lumen-navy);
   --foreground: #f1ece0;
   color-scheme: dark;
+
+  /* Tons de seção (SecaoLancamento) no modo Noite — mesmos tons "escuros" definidos junto com o
+     Dia acima (ver componente), aqui sobrescritos porque .dark tem mais especificidade que :root
+     sozinho para a MESMA variável (a última declaração que casar com o elemento vence). */
+  --secao-palha-bg: #1c2135;
+  --secao-palha-border: #c8993a;
+  --secao-azul-bg: #142346;
+  --secao-azul-border: #6f8fd0;
+  --secao-ouro-bg: #241f2e;
+  --secao-ouro-border: #d9a93a;
+  --secao-verde-bg: #12262b;
+  --secao-verde-border: #5cb598;
+  --secao-rosa-bg: #2a1a26;
+  --secao-rosa-border: #c96a80;
 }
 
 /* Sem declarar color-scheme, o navegador estiliza campos nativos (select, input, scrollbar)
@@ -94,6 +121,24 @@ body {
      o --foreground do Tarde (bordô escuro, pensado pra fundo claro) — texto escuro sobre fundo
      escuro. Mesma causa do bug acima, mas em campos de formulário em vez de <span>/<p> soltos. */
   color-scheme: light;
+
+  /* Tons de seção (SecaoLancamento) no Tarde: o Tarde é "página clara com a classe `dark`
+     ligada" — todo o resto do remap acima existe para levar fundos/textos pensados pro Noite
+     de volta a um par claro/escuro legível. Nossas seções, em vez de herdar o par ESCURO do
+     Noite (que ficaria sutil ou ilegível sobre o restante claro do Tarde), voltam a usar os
+     MESMOS valores do modo Dia — o texto do título/labels usa `dark:text-cream-50` etc., que o
+     bloco de remap logo abaixo já escurece para combinar com fundo claro, então texto escuro
+     sobre estas seções claras fica legível nos dois (Dia e Tarde) sem duplicar variável nenhuma. */
+  --secao-palha-bg: #f8f2e0;
+  --secao-palha-border: #b8860b;
+  --secao-azul-bg: #e9eff9;
+  --secao-azul-border: #3b5c92;
+  --secao-ouro-bg: #fbeed2;
+  --secao-ouro-border: #9c6f0a;
+  --secao-verde-bg: #e7f0ec;
+  --secao-verde-border: #276a56;
+  --secao-rosa-bg: #f9e9ed;
+  --secao-rosa-border: #8f1c38;
 }
 .dark.theme-tarde .brand-texture {
   background-color: #f8fafc;
@@ -305,6 +350,30 @@ body {
 }
 .dark.theme-tarde .solid-popover .dark\:text-gold-400 {
   color: #d9a93a;
+}
+
+/* Tons de preenchimento das seções de formulário do Financeiro — ver components/financeiro/
+   SecaoLancamento.tsx para o porquê de serem variáveis CSS (declaradas acima, em :root/.dark/
+   .dark.theme-tarde) em vez de classes utilitárias com hex solto. */
+.secao-lancamento--palha {
+  background-color: var(--secao-palha-bg);
+  border-left-color: var(--secao-palha-border);
+}
+.secao-lancamento--azul {
+  background-color: var(--secao-azul-bg);
+  border-left-color: var(--secao-azul-border);
+}
+.secao-lancamento--ouro {
+  background-color: var(--secao-ouro-bg);
+  border-left-color: var(--secao-ouro-border);
+}
+.secao-lancamento--verde {
+  background-color: var(--secao-verde-bg);
+  border-left-color: var(--secao-verde-border);
+}
+.secao-lancamento--rosa {
+  background-color: var(--secao-rosa-bg);
+  border-left-color: var(--secao-rosa-border);
 }
 
 .scrollbar-thin::-webkit-scrollbar {

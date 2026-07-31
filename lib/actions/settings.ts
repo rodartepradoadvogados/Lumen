@@ -309,6 +309,21 @@ export async function createCostCenterQuick(name: string): Promise<{ id: string;
   return { id: costCenter.id, name: costCenter.name };
 }
 
+// Quick-add de conta bancária a partir do EntityPicker do bloco "Recebimento" do Lançamento de
+// Honorários (components/honorarios/LancarHonorariosModal.tsx) — mesmo padrão de
+// createCostCenterQuick acima. Não existe ainda uma tela de gestão de contas bancárias em
+// Configurações (Fase 3): este é o único jeito de cadastrar uma conta hoje, direto de dentro do
+// lançamento, sem precisar sair da janela.
+export async function createBankAccountQuick(name: string): Promise<{ id: string; name: string; error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { id: "", name: "", error: "Sessão expirada." };
+  const bankAccount = await prisma.bankAccount.create({ data: { officeId: viewer.officeId, name } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
+  return { id: bankAccount.id, name: bankAccount.name };
+}
+
 export async function deleteCostCenter(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada." };

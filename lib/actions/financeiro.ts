@@ -4,13 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice } from "@/lib/officeScope";
 
 // Exportado para lib/actions/honorarioLancamento.ts reaproveitar a mesma checagem de vínculos
 // (categoria/centro de custo/cliente/processo do escritório do usuário logado) no lançamento
-// de honorários parcelado, em vez de duplicar a função.
+// de honorários parcelado, em vez de duplicar a função. bankAccountId (Fase 2 — bloco
+// Recebimento do Lançamento de Honorários) é opcional pelo mesmo motivo dos demais: só é checado
+// quando o chamador de fato manda um valor.
 export async function assertFinanceRelationsInOffice(
-  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string },
+  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string; bankAccountId?: string },
   officeId: string
 ): Promise<void> {
   if (data.caseId && !(await isCaseInOffice(data.caseId, officeId))) throw new Error("Processo não encontrado.");
@@ -18,6 +20,7 @@ export async function assertFinanceRelationsInOffice(
   if (data.categoryId && !(await isCategoryInOffice(data.categoryId, officeId))) throw new Error("Categoria não encontrada.");
   if (data.costCenterId && !(await isCostCenterInOffice(data.costCenterId, officeId))) throw new Error("Centro de custo não encontrado.");
   if (data.supplierId && !(await isSupplierInOffice(data.supplierId, officeId))) throw new Error("Fornecedor não encontrado.");
+  if (data.bankAccountId && !(await isBankAccountInOffice(data.bankAccountId, officeId))) throw new Error("Conta bancária não encontrada.");
 }
 
 // Não pode ser exportada (todo export de um arquivo "use server" precisa ser função async) —

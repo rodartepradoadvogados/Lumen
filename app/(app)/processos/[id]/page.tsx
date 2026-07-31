@@ -124,7 +124,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -149,6 +149,10 @@ export default async function CaseDetailPage({
     // sempre, mesmo fora dessa natureza, porque o custo é desprezível (uma query indexada por
     // caseId) e evita bifurcar a lógica de busca por causa de uma aba condicional.
     prisma.termoVigilancia.findMany({ where: { caseId: c.id, officeId: viewer.officeId }, orderBy: { createdAt: "desc" } }),
+    // Contas bancárias do escritório (bloco "Recebimento" do Lançar Honorários, Fase 2) — ainda
+    // sem tela de gestão própria (Fase 3); cadastradas por aqui mesmo, via EntityPicker/
+    // createBankAccountQuick (ver lib/actions/settings.ts).
+    prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const caseClients = effectiveCaseClients(c);
@@ -420,9 +424,12 @@ export default async function CaseDetailPage({
               categories={receivableCategories}
               clients={caseClients.map((cc) => ({ id: cc.id, name: cc.name }))}
               costCenters={costCenters}
+              responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
+              bankAccounts={bankAccounts}
               defaultCaseId={c.id}
               defaultClientId={c.clientId ?? undefined}
-              bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue }}
+              defaultResponsibleId={viewer.id}
+              bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue }}
               alreadyReceivedForCase={c.receivables.filter((r) => r.status === "PAGO").reduce((s, r) => s + (r.paidAmount ?? r.amount), 0)}
             />
           </div>
@@ -440,6 +447,8 @@ export default async function CaseDetailPage({
                 lancamento={{
                   id: h.id,
                   valorTotalIndicado: h.valorTotalIndicado,
+                  payerType: h.payerType,
+                  payerName: h.payerName,
                   parcelas: h.parcelas.map((p) => ({
                     id: p.id,
                     description: p.description,
@@ -453,27 +462,41 @@ export default async function CaseDetailPage({
                     percentualBase: p.percentualBase,
                     vinculadoAoTotal: p.vinculadoAoTotal,
                     isSuccessPortion: p.isSuccessPortion,
+                    installmentBoleto: p.installmentBoleto,
+                    payerType: p.payerType,
+                    payerName: p.payerName,
                   })),
                 }}
-                bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue }}
+                bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue }}
               />
             ))}
             {c.receivables.filter((r) => !r.honorarioLancamentoId).length === 0 && c.honorarioLancamentos.length === 0 && recurringFees.length === 0 ? (
               <EmptyState title="Nenhum lançamento" />
             ) : (
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-                {c.receivables.filter((r) => !r.honorarioLancamentoId).map((r) => (
+                {c.receivables.filter((r) => !r.honorarioLancamentoId).map((r) => {
+                  const isApurar = r.status === "A_APURAR";
+                  const saldo = r.amount - (r.paidAmount ?? 0);
+                  return (
                   <div key={r.id} className="flex justify-between items-center px-5 py-3">
                     <div>
                       <p className="text-sm text-navy-900 dark:text-cream-50">{r.description}</p>
-                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40">
+                        {r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}
+                        {r.payerType !== "CLIENTE" && (
+                          <> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : r.payerType === "ADVERSA" ? "Parte adversa" : r.payerType}</>
+                        )}
+                      </p>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(r.amount)}</p>
-                        <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : "amber"}>{r.status}</Badge>
+                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(r.amount)}</p>
+                        {r.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                        <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : isApurar ? "slate" : "amber"}>
+                          {isApurar ? "A apurar" : r.status}
+                        </Badge>
                       </div>
-                      <SettleButton id={r.id} kind="receivable" amount={r.amount} status={r.status} />
+                      {!isApurar && <SettleButton id={r.id} kind="receivable" amount={r.amount} status={r.status} />}
                       <EditReceivableModal
                         receivable={{
                           id: r.id,
@@ -495,7 +518,8 @@ export default async function CaseDetailPage({
                       <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>

@@ -6,7 +6,7 @@ import { formatCurrency, formatDate, Badge } from "@/components/ui";
 import SettleButton from "@/components/SettleButton";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { updateHonorarioLancamentoParcelas, type ParcelaEdicao } from "@/lib/actions/honorarioLancamento";
-import { VALUE_TYPE_LABELS, PERCENTUAL_BASE_LABELS, estimatePercentualAmount, type CaseValueBases } from "@/lib/honorarioLancamento";
+import { VALUE_TYPE_LABELS, PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS, estimatePercentualAmount, type CaseValueBases } from "@/lib/honorarioLancamento";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 
 type Parcela = {
@@ -22,11 +22,16 @@ type Parcela = {
   percentualBase: string | null;
   vinculadoAoTotal: boolean;
   isSuccessPortion: boolean;
+  installmentBoleto: string | null;
+  payerType: string;
+  payerName: string | null;
 };
 
 type Lancamento = {
   id: string;
   valorTotalIndicado: number | null;
+  payerType: string;
+  payerName: string | null;
   parcelas: Parcela[];
 };
 
@@ -40,6 +45,7 @@ type LinhaEdicao = {
   amount: string;
   percentual: string;
   percentualBase: string;
+  installmentBoleto: string;
   dueDate: string;
   noDueDate: boolean;
   isSuccessPortion: boolean;
@@ -54,6 +60,7 @@ function toLinha(p: Parcela): LinhaEdicao {
     amount: String(p.amount ?? ""),
     percentual: String(p.percentual ?? ""),
     percentualBase: p.percentualBase ?? "VALOR_CAUSA",
+    installmentBoleto: p.installmentBoleto ?? "",
     dueDate: p.dueDate.slice(0, 10),
     noDueDate: p.noDueDate,
     isSuccessPortion: p.isSuccessPortion,
@@ -69,6 +76,7 @@ function novaLinha(): LinhaEdicao {
     amount: "",
     percentual: "",
     percentualBase: "VALOR_CAUSA",
+    installmentBoleto: "",
     dueDate: "",
     noDueDate: false,
     isSuccessPortion: false,
@@ -77,7 +85,9 @@ function novaLinha(): LinhaEdicao {
 }
 
 // Soma o valor efetivo (paidAmount se já pago, senão amount) de toda parcela vinculada ao total
-// indicado — é o número comparado com valorTotalIndicado para a nota de divergência.
+// indicado — é o número comparado com valorTotalIndicado para a nota de divergência. Parcelas
+// A_APURAR nunca entram aqui (nascem com vinculadoAoTotal=false, ver Server Action) — de propósito,
+// já que amount=0 nelas não representa dinheiro real nenhum ainda.
 function somaVinculada(parcelas: { amount: number; paidAmount: number | null; vinculadoAoTotal: boolean }[]): number {
   return parcelas.filter((p) => p.vinculadoAoTotal).reduce((s, p) => s + (p.paidAmount ?? p.amount), 0);
 }
@@ -92,6 +102,21 @@ function DivergenceNote({ valorTotalIndicado, parcelas }: { valorTotalIndicado: 
       A soma das parcelas vinculadas ao total ({formatCurrency(soma)}) {diff > 0 ? "excede" : "é menor que"} o valor indicado ({formatCurrency(valorTotalIndicado)}) em {formatCurrency(Math.abs(diff))}.
     </p>
   );
+}
+
+// PENDENTE/ATRASADO seguem o mesmo tom âmbar de antes; PAGO verde, PARCIAL âmbar também (ainda
+// está em aberto, só que parcialmente) e A_APURAR ganha um tom neutro (slate) — não é nem "aberto"
+// nem "pago", é uma estimativa sem valor real ainda (ver lib/financeQuery.ts).
+function statusBadgeColor(status: string): "green" | "red" | "amber" | "slate" {
+  if (status === "PAGO") return "green";
+  if (status === "ATRASADO") return "red";
+  if (status === "A_APURAR") return "slate";
+  return "amber";
+}
+
+function statusLabel(status: string): string {
+  if (status === "A_APURAR") return "A apurar";
+  return status;
 }
 
 export default function HonorarioLancamentoCard({ lancamento, bases }: { lancamento: Lancamento; bases: CaseValueBases }) {
@@ -116,6 +141,7 @@ export default function HonorarioLancamentoCard({ lancamento, bases }: { lancame
       amount: l.valueType === "FIXO" ? l.amount : undefined,
       percentual: l.valueType === "PERCENTUAL" ? l.percentual : undefined,
       percentualBase: l.valueType === "PERCENTUAL" ? l.percentualBase : undefined,
+      installmentBoleto: l.installmentBoleto || undefined,
       dueDate: l.noDueDate ? undefined : l.dueDate,
       noDueDate: l.noDueDate,
       isSuccessPortion: l.isSuccessPortion,
@@ -138,6 +164,11 @@ export default function HonorarioLancamentoCard({ lancamento, bases }: { lancame
           <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">
             Honorário parcelado{lancamento.valorTotalIndicado != null && <> — total indicado {formatCurrency(lancamento.valorTotalIndicado)}</>}
           </p>
+          {lancamento.payerType !== "CLIENTE" && (
+            <p className="text-xs text-navy-800/50 dark:text-cream-50/50">
+              Pagador: {lancamento.payerType === "OUTRO" ? lancamento.payerName || "Outro" : PAYER_TYPE_LABELS[lancamento.payerType]}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -157,31 +188,44 @@ export default function HonorarioLancamentoCard({ lancamento, bases }: { lancame
       </div>
       <DivergenceNote valorTotalIndicado={lancamento.valorTotalIndicado} parcelas={lancamento.parcelas} />
       <div className="mt-2 space-y-2">
-        {lancamento.parcelas.map((p) => (
-          <div key={p.id} className="flex justify-between items-center">
-            <div>
-              <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
-              <p className="text-xs text-navy-800/40 dark:text-cream-50/40">
-                {p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}
-                {p.valueType === "PERCENTUAL" && (
-                  <>
-                    {" "}
-                    — {p.percentual}% de {PERCENTUAL_BASE_LABELS[p.percentualBase ?? ""] ?? "base não definida"} (estimado)
-                  </>
-                )}
-                {!p.vinculadoAoTotal && " — fora do total indicado"}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(p.amount)}</p>
-                <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
+        {lancamento.parcelas.map((p) => {
+          const isApurar = p.status === "A_APURAR";
+          const saldo = p.amount - (p.paidAmount ?? 0);
+          return (
+            <div key={p.id} className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
+                <p className="text-xs text-navy-800/40 dark:text-cream-50/40">
+                  {isApurar
+                    ? `${p.percentual}% de ${PERCENTUAL_BASE_LABELS[p.percentualBase ?? ""] ?? "base não definida"} — a apurar no desfecho`
+                    : p.noDueDate
+                      ? "Sem vencimento"
+                      : formatDate(p.dueDate)}
+                  {!isApurar && p.valueType === "PERCENTUAL" && (
+                    <>
+                      {" "}
+                      — {p.percentual}% de {PERCENTUAL_BASE_LABELS[p.percentualBase ?? ""] ?? "base não definida"} (estimado)
+                    </>
+                  )}
+                  {p.installmentBoleto && <> · boleto {p.installmentBoleto}</>}
+                  {!p.vinculadoAoTotal && !isApurar && " — fora do total indicado"}
+                  {p.payerType !== "CLIENTE" && (
+                    <> · pagador: {p.payerType === "OUTRO" ? p.payerName || "Outro" : PAYER_TYPE_LABELS[p.payerType]}</>
+                  )}
+                </p>
               </div>
-              <SettleButton id={p.id} kind="receivable" amount={p.amount} status={p.status} />
-              <DeleteEntityButton entityType="RECEIVABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir a parcela "${p.description}"?`} />
+              <div className="flex items-center gap-1">
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(p.amount)}</p>
+                  {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                  <Badge color={statusBadgeColor(p.status)}>{statusLabel(p.status)}</Badge>
+                </div>
+                {!isApurar && <SettleButton id={p.id} kind="receivable" amount={p.amount} status={p.status} />}
+                <DeleteEntityButton entityType="RECEIVABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir a parcela "${p.description}"?`} />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {editing && (
@@ -296,6 +340,12 @@ export default function HonorarioLancamentoCard({ lancamento, bases }: { lancame
                         </select>
                       </div>
                     )}
+                    <input
+                      placeholder="Nº do boleto"
+                      value={l.installmentBoleto}
+                      onChange={(e) => updateLinha(l.key, { installmentBoleto: e.target.value })}
+                      className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                    />
                     <div className="flex items-center gap-3">
                       <label className="flex items-center gap-1.5 text-xs text-navy-800/70 dark:text-cream-50/70">
                         <input type="checkbox" checked={l.noDueDate} onChange={(e) => updateLinha(l.key, { noDueDate: e.target.checked })} />

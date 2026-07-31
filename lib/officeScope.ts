@@ -49,3 +49,10 @@ export async function isTaskInOffice(taskId: string, officeId: string): Promise<
 export async function isKanbanColumnInOffice(columnId: string, officeId: string): Promise<boolean> {
   return Boolean(await prisma.kanbanColumn.findFirst({ where: { id: columnId, officeId }, select: { id: true } }));
 }
+
+// Fase 2 do Lançamento de Honorários (bloco "Recebimento" — Conta bancária, ver
+// components/honorarios/LancarHonorariosModal.tsx) — mesma checagem de posse das demais, para o
+// FinancePayment nunca gravar bankAccountId de outro escritório.
+export async function isBankAccountInOffice(bankAccountId: string, officeId: string): Promise<boolean> {
+  return Boolean(await prisma.bankAccount.findFirst({ where: { id: bankAccountId, officeId }, select: { id: true } }));
+}
