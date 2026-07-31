@@ -51,6 +51,12 @@ def test_settings() -> Settings:
         gemini_api_key=None,
         djen_proxy_url=None,
         pncp_ufs=["GO", "DF"],
+        # Sem credenciais nos testes: src/inlabs.py:coletar_dou() detecta a ausencia e retorna
+        # cedo (loga aviso, nunca tenta rede) — mesmo comportamento defensivo de producao
+        # quando INLABS_USERNAME/INLABS_PASSWORD nao estao configuradas (ver config.py).
+        inlabs_username=None,
+        inlabs_password=None,
+        inlabs_secoes=["DO1", "DO3"],
         log_level="INFO",
     )
 

@@ -4,6 +4,7 @@
     { "path": "/api/cron/jusbrasil-sync", "schedule": "0 */3 * * *" },
     { "path": "/api/cron/robo-bridge", "schedule": "0 */3 * * *" },
     { "path": "/api/cron/pncp", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/dou", "schedule": "0 8 * * *" },
     { "path": "/api/cron/assessoria-honorarios", "schedule": "0 6 * * *" },
     { "path": "/api/cron/recurring-fees", "schedule": "0 6 * * *" },
     { "path": "/api/cron/billing", "schedule": "0 9 * * *" },

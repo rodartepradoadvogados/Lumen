@@ -244,9 +244,10 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       // escritório (de qualquer fonte), não o mais recente da plataforma inteira.
       const priorSync = await prisma.publication.findFirst({
         // Lista de sources válidos de Publication — mantida em sincronia com lib/outlookEmailSync.ts
-        // (a mesma lista existe lá) e agora também com "PNCP" (lib/pncpBridge.ts, Fase 1 do
-        // Setor de Processos Administrativos), pelo mesmo motivo que "DJEN" está aqui.
-        where: { officeId, source: { in: ["JUSBRASIL_EMAIL", "DJE", "PJE", "ESAJ", "PROJUDI", "EPROC", "DJEN", "PNCP"] } },
+        // (a mesma lista existe lá) e agora também com "PNCP" (lib/pncpBridge.ts, Fase 1) e "DOU"
+        // (lib/douBridge.ts, Fase 2 do Setor de Processos Administrativos), pelo mesmo motivo
+        // que "DJEN" está aqui.
+        where: { officeId, source: { in: ["JUSBRASIL_EMAIL", "DJE", "PJE", "ESAJ", "PROJUDI", "EPROC", "DJEN", "PNCP", "DOU"] } },
         orderBy: { publishedAt: "desc" },
       });
       const sinceDate = priorSync ? priorSync.publishedAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);

@@ -151,6 +151,9 @@ model Office {
   // FonteAdministrativa mais abaixo.
   termosVigilancia      TermoVigilancia[]
   fontesAdministrativas FonteAdministrativa[]
+
+  // Fase 2 do Setor de Processos Administrativos — ver model RoboDouItem mais abaixo.
+  roboDouItens RoboDouItem[]
 }
 
 // ============ EQUIPE ============
@@ -1536,6 +1539,40 @@ model RoboLicitacao {
 
   @@map("licitacoes_pncp")
   @@index([statusProcessado])
+}
+
+// Artigo do Diario Oficial da Uniao (DOU) capturado via INLABS (Imprensa Nacional) que bateu
+// com pelo menos um termo vigiado (TermoVigilancia) de um escritorio — Fase 2 do Setor de
+// Processos Administrativos. DIFERENTE do padrao de RoboLicitacao/RoboPublicacao/RoboAndamento
+// (que gravam TUDO e deixam o casamento por escritorio acontecer depois, na ponte TypeScript):
+// aqui o casamento com os termos vigiados acontece DENTRO do robo Python (src/inlabs.py), no
+// momento da propria captura, porque o DOU publica milhares de artigos por dia e gravar todos
+// incharia o banco a toa — so interessa o artigo que realmente bate com um termo de algum
+// escritorio. Por isso este model JA NASCE com officeId obrigatorio (nao-nulo), ao contrario
+// dos outros models do robo: cada linha aqui e o resultado de um casamento que ja aconteceu.
+// Se dois escritorios diferentes tiverem termos que batem no MESMO artigo, o Python grava DUAS
+// linhas (uma por escritorio), cada uma com sua propria chaveUnica (ver campo abaixo).
+// IMPORTANTE: assim como os modelos do robo acima, se esta estrutura mudar, replicar a mudanca
+// em robo-publicacoes/src/db.py (senao `prisma db push` trata a tabela como orfa).
+model RoboDouItem {
+  id               String   @id @default(cuid())
+  chaveUnica       String   @unique // dataPublicacao + secao + id do artigo + officeId — evita duplicar entre execuções
+  secao            String   // DO1 | DO2 | DO3 | DO1E | DO2E | DO3E
+  orgao            String?
+  titulo           String?
+  ementa           String?
+  textoResumo      String?  // trecho em torno do termo encontrado, não o artigo inteiro
+  dataPublicacao   String?
+  numeroPagina     String?
+  termoEncontrado  String   // texto do termo que bateu (não o id — sobrevive se o termo for apagado depois)
+  payloadBruto     String?  // XML do artigo; truncado com segurança se muito grande
+  dataCaptura      DateTime @default(now())
+  statusProcessado Boolean  @default(false)
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, statusProcessado])
 }
 
 // ============ PAINEL MESTRE (cobrança entre escritórios) ============

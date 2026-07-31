@@ -193,6 +193,95 @@ def upsert_licitacao(session: Session, dado: Dict[str, Any]) -> bool:
     return True
 
 
+class DouItem(Base):
+    """Artigo do Diario Oficial da Uniao (DOU), capturado via INLABS (ver src/inlabs.py),
+    que bateu com um termo de vigilancia (TermoVigilancia) de algum escritorio.
+
+    Espelha o model RoboDouItem do schema Prisma. ATENCAO — ao contrario de LicitacaoPNCP
+    (que usa @@map para uma tabela snake_case "licitacoes_pncp"), RoboDouItem NAO usa
+    @@map no Prisma: a tabela no Postgres se chama exatamente "RoboDouItem" (mesmo nome do
+    model, caixa preservada — mesmo padrao de TermoVigilancia/FonteAdministrativa), e os
+    nomes de coluna sao exatamente os nomes de campo do Prisma, em camelCase. Por isso
+    __tablename__ e os mapped_column() abaixo usam esses nomes explicitos. Se o
+    schema.prisma mudar, replicar a mudanca aqui tambem.
+
+    Ao contrario dos outros models do robo (Publicacao/Andamento/LicitacaoPNCP), este JA
+    NASCE com officeId preenchido: o casamento com o termo de vigilancia acontece DENTRO do
+    Python (src/inlabs.py), no momento da propria captura — nao depois, numa ponte
+    TypeScript (ver decisao de arquitetura no topo de src/inlabs.py).
+
+    `id` e uma string tipo cuid do lado do Prisma, mas como este robo grava direto no
+    Postgres via SQLAlchemy (sem passar pelo Prisma Client), o valor e gerado aqui mesmo
+    (uuid4 hex), igual a LicitacaoPNCP.
+    """
+
+    __tablename__ = "RoboDouItem"
+
+    id: Mapped[str] = mapped_column("id", String(32), primary_key=True, default=lambda: uuid.uuid4().hex)
+    chave_unica: Mapped[str] = mapped_column("chaveUnica", String(255), unique=True, nullable=False, index=True)
+    secao: Mapped[str] = mapped_column("secao", String(16), nullable=False)
+    orgao: Mapped[Optional[str]] = mapped_column("orgao", String(500), nullable=True)
+    titulo: Mapped[Optional[str]] = mapped_column("titulo", Text, nullable=True)
+    ementa: Mapped[Optional[str]] = mapped_column("ementa", Text, nullable=True)
+    texto_resumo: Mapped[Optional[str]] = mapped_column("textoResumo", Text, nullable=True)
+    data_publicacao: Mapped[Optional[str]] = mapped_column("dataPublicacao", String(32), nullable=True)
+    numero_pagina: Mapped[Optional[str]] = mapped_column("numeroPagina", String(32), nullable=True)
+    termo_encontrado: Mapped[str] = mapped_column("termoEncontrado", String(500), nullable=False)
+    payload_bruto: Mapped[Optional[str]] = mapped_column("payloadBruto", Text, nullable=True)
+    data_captura: Mapped[datetime] = mapped_column("dataCaptura", DateTime(timezone=True), default=_utcnow)
+    status_processado: Mapped[bool] = mapped_column("statusProcessado", Boolean, default=False)
+    office_id: Mapped[str] = mapped_column("officeId", String(32), nullable=False)
+
+    def __repr__(self) -> str:  # pragma: no cover - debug helper
+        return f"<DouItem {self.chave_unica} office={self.office_id}>"
+
+
+# Campos de DouItem atualizados num upsert (tudo exceto a chave natural chaveUnica e os campos
+# que nao devem ser sobrescritos: id, dataCaptura original, statusProcessado — este ultimo e
+# controlado pela ponte lib/douBridge.ts no site, nao pelo robo, entao um novo upsert nunca deve
+# reabrir um item ja processado).
+_CAMPOS_ATUALIZAVEIS_DOU = (
+    ("secao", "secao"),
+    ("orgao", "orgao"),
+    ("titulo", "titulo"),
+    ("ementa", "ementa"),
+    ("textoResumo", "texto_resumo"),
+    ("dataPublicacao", "data_publicacao"),
+    ("numeroPagina", "numero_pagina"),
+    ("termoEncontrado", "termo_encontrado"),
+    ("payloadBruto", "payload_bruto"),
+    ("officeId", "office_id"),
+)
+
+
+def upsert_dou_item(session: Session, dado: Dict[str, Any]) -> bool:
+    """Insere ou atualiza um DouItem pela chave natural chaveUnica (dataPublicacao + secao +
+    id do artigo + officeId, ver src/inlabs.py:coletar_dou) — nunca duplica, mesmo que o
+    mesmo artigo apareca de novo num ciclo seguinte (ex.: o robo rodou duas vezes no mesmo
+    dia, ou o INLABS reabriu a mesma data). Retorna True se foi uma insercao nova, False se
+    atualizou um registro ja existente.
+    """
+    chave_unica = dado.get("chaveUnica")
+    if not chave_unica:
+        # Defensivo: src/inlabs.py ja descarta artigos sem id reconhecivel antes de chegar
+        # aqui, mas nunca confiamos demais no chamador.
+        raise ValueError("dado sem chaveUnica; nao pode ser upsertado.")
+
+    existente = session.scalar(select(DouItem).where(DouItem.chave_unica == chave_unica))
+    if existente is not None:
+        for chave_dado, atributo in _CAMPOS_ATUALIZAVEIS_DOU:
+            setattr(existente, atributo, dado.get(chave_dado))
+        return False
+
+    nova = DouItem(
+        chave_unica=chave_unica,
+        **{atributo: dado.get(chave_dado) for chave_dado, atributo in _CAMPOS_ATUALIZAVEIS_DOU},
+    )
+    session.add(nova)
+    session.flush()
+    return True
+
+
 class ExecucaoLog(Base):
     """Registro de cada tentativa de captura, por fonte, para diagnostico."""
 

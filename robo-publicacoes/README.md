@@ -12,6 +12,13 @@ Robo standalone, 100% gratuito, do escritorio **Rodarte Prado Advogados**
    parte do Setor de Processos Administrativos (Fase 1) — o roteamento por
    escritorio acontece depois, em `lib/pncpBridge.ts` no site, casando contra
    os termos vigiados (`TermoVigilancia`) de cada escritorio.
+4. **Diario Oficial da Uniao (DOU)** — via **INLABS** (servico de distribuicao
+   de conteudo da Imprensa Nacional), para as secoes configuradas (ver
+   [DOU (INLABS)](#dou-inlabs) abaixo). Fonte 4, Fase 2 do Setor de Processos
+   Administrativos — DIFERENTE da Fase 1: aqui o casamento contra os termos
+   vigiados (`TermoVigilancia`) ja acontece DENTRO deste robo (`src/inlabs.py`),
+   nao depois no site, porque o DOU publica milhares de artigos por dia e so
+   vale a pena persistir o que ja bateu com um termo de algum escritorio.
 
 O robo roda em ciclos curtos e idempotentes (varias vezes por dia, via Cron
 Job do Railway), evita duplicar qualquer dado ja capturado, persiste tudo em
@@ -29,6 +36,7 @@ conteudo desta subpasta como raiz do servico.
 - [Arquitetura](#arquitetura)
 - [OABs monitoradas](#oabs-monitoradas)
 - [Licitacoes (PNCP)](#licitacoes-pncp)
+- [DOU (INLABS)](#dou-inlabs)
 - [Como rodar localmente](#como-rodar-localmente)
 - [Como rodar os testes](#como-rodar-os-testes)
 - [Adicionar/remover uma OAB](#adicionarremover-uma-oab)
@@ -54,8 +62,10 @@ robo-publicacoes/
     discovery.py        # descobre processos novos a partir das publicacoes
     notify.py            # monta e envia e-mail de novidades
     gemini.py            # resumo opcional (Google Gemini) de textos longos
-    pipeline.py           # orquestra um ciclo completo, idempotente
-    main.py                # entrypoint (um ciclo, ou --loop continuo)
+    pncp.py                # captura licitacoes (API publica de consulta do PNCP)
+    inlabs.py               # captura + casa artigos do DOU (INLABS) contra TermoVigilancia
+    pipeline.py               # orquestra um ciclo completo, idempotente
+    main.py                    # entrypoint (um ciclo, ou --loop continuo)
   scripts/
     add_processo.py       # CLI: cadastra manualmente um processo
     export_historico.py   # CLI: exporta publicacoes/andamentos p/ CSV/JSON
@@ -265,6 +275,63 @@ ciclo. Upsert idempotente por `numeroControlePNCP` (`src/db.py:upsert_licitacao`
 
 ---
 
+## DOU (INLABS)
+
+`src/inlabs.py` faz login no **INLABS** (servico de distribuicao de conteudo
+da Imprensa Nacional) e baixa, para cada secao configurada, o ZIP diario do
+Diario Oficial da Uniao:
+
+```
+POST https://inlabs.in.gov.br/logar.php          (login, mantem cookie de sessao)
+GET  https://inlabs.in.gov.br/index.php?p=&dt=DD-MM-AAAA&section=<SECAO>
+```
+
+**As secoes monitoradas vem de `INLABS_SECOES`** (variavel de ambiente, lista
+separada por virgula, ex.: `"DO1,DO2,DO3"`). Sem essa variavel, o padrao e
+`DO1,DO3` (ver src/config.py). **`INLABS_USERNAME`/`INLABS_PASSWORD` sao
+variaveis do RAILWAY (nunca da Vercel)** — o site Next.js nao chama o INLABS
+diretamente, so le o que este robo ja gravou no Postgres (ver
+`lib/douBridge.ts`). Sem essas credenciais, o coletor loga um aviso claro e
+pula a coleta do DOU neste ciclo, sem derrubar o robo.
+
+**DECISAO DE ARQUITETURA — diferente do PNCP**: no PNCP, o robo grava TODAS
+as licitacoes e o casamento contra os termos vigiados (`TermoVigilancia`)
+acontece depois, no site (`lib/pncpBridge.ts`). No DOU, esse casamento
+acontece **DENTRO deste robo**, no momento da propria captura
+(`src/inlabs.py:coletar_dou`, que consulta `TermoVigilancia` direto no banco
+via `config.py:carregar_termos_vigilancia_do_banco`, mesmo padrao de
+`carregar_oabs_do_banco`) — motivo: o DOU publica milhares de artigos por
+dia, e gravar todos incharia o banco a toa, ja que so interessa o artigo que
+bate com um termo de algum escritorio. Artigos sem nenhum termo batendo sao
+descartados (nao persistidos) — comportamento esperado.
+
+**IMPORTANTE — contrato do INLABS NAO confirmado contra o site real, e MENOS
+confiavel que o do PNCP** (que ao menos tem Swagger publico): o ambiente
+onde este robo foi construido nao tem acesso a rede nem ao Postgres de
+producao, entao (a) o nome dos campos do formulario de login, (b) o formato
+exato do download, e (c) as tags do XML de cada artigo sao tentativas
+defensivas de melhor-esforco (ver aviso detalhado no topo de `src/inlabs.py`)
+— NUNCA testadas contra o site real. Ao contrario do PNCP, **nao existe uma
+rota de teste facil no site** para o DOU (o Vercel nao tem as credenciais do
+INLABS para chamar o servico por conta propria) — por isso o LOG desta
+captura precisa servir de diagnostico sozinho quando o primeiro ciclo real
+rodar em producao (Railway). Use `GET /api/admin/status-fontes` (rota
+admin-only do site) para conferir, sem acessar o Railway, se a fonte
+`DOU_INLABS` rodou hoje e qual foi o ultimo status/detalhe registrado. O XML
+de cada artigo que bateu com um termo e sempre guardado (truncado com
+seguranca) em `payloadBruto` (tabela `RoboDouItem`), para permitir
+reprocessar/corrigir o mapeamento depois sem precisar consultar o INLABS de
+novo.
+
+A coleta e **isolada** no pipeline (`src/pipeline.py:_capturar_dou_inlabs`):
+qualquer falha (login, rede, parsing, bug) e registrada em `ExecucaoLog`
+(fonte `"dou_inlabs"`) e logada, mas nunca interrompe a captura de
+DJEN/Datajud/PNCP no mesmo ciclo. Upsert idempotente por `chaveUnica`
+(`src/db.py:upsert_dou_item`) — nunca duplica, mesmo que o mesmo artigo
+apareca de novo num ciclo seguinte.
+
+---
+
 ## Adicionar um processo manualmente
 
 Quando um processo precisa ser monitorado no Datajud sem ter vindo de uma
@@ -318,6 +385,11 @@ python scripts/export_historico.py --formato csv \
    - `EMAIL_TO` (ex.: `rodartepradoadvogados@gmail.com`)
    - `DATAJUD_API_KEY` (veja
      [datajud-wiki.cnj.jus.br/api-publica/acesso](https://datajud-wiki.cnj.jus.br/api-publica/acesso))
+   - `PNCP_UFS` (opcional — o default `GO,DF` ja funciona)
+   - `INLABS_USERNAME`, `INLABS_PASSWORD` (credenciais da assinatura INLABS —
+     **so existem aqui, no Railway**; sem elas o coletor do DOU pula a
+     coleta, sem erro fatal) e `INLABS_SECOES` (opcional — o default
+     `DO1,DO3` ja cobre a maior parte do que interessa)
    - `GEMINI_API_KEY` (opcional)
    - `LOG_LEVEL` (ex.: `INFO`)
 4. **Configurar o servico como Cron Job**: em Settings > Cron Schedule,

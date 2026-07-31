@@ -23,9 +23,9 @@ from typing import List
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
-from . import datajud, discovery, djen, notify, pncp
-from .config import Settings
-from .db import Andamento, ExecucaoLog, Publicacao, ProcessoMonitorado, upsert_licitacao
+from . import datajud, discovery, djen, inlabs, notify, pncp
+from .config import Settings, carregar_termos_vigilancia_do_banco
+from .db import Andamento, ExecucaoLog, Publicacao, ProcessoMonitorado, upsert_dou_item, upsert_licitacao
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -34,6 +34,7 @@ FONTE_DJEN = "DJEN"
 FONTE_DATAJUD = "DATAJUD"
 FONTE_PNCP = "pncp"  # minusculo por instrucao do plano (as outras fontes usam maiusculo por
 # convencao anterior, mas o registro em ExecucaoLog do PNCP foi pedido especificamente assim)
+FONTE_DOU_INLABS = "dou_inlabs"  # minusculo, mesma convencao adotada para o pncp acima
 
 # Janela retroativa da coleta de licitacoes no PNCP. Fixo (nao vem de env) porque o cron do
 # site roda 1x/dia (vercel.json) — 3 dias da folga suficiente pra cobrir um atraso pontual do
@@ -47,6 +48,7 @@ class ResultadoCiclo:
     novos_andamentos: int = 0
     novos_processos_descobertos: int = 0
     novas_licitacoes: int = 0
+    novos_itens_dou: int = 0
     email_enviado: bool = False
     alertas: List[str] = field(default_factory=list)
 
@@ -223,6 +225,63 @@ def _capturar_licitacoes_pncp(session, settings: Settings) -> int:
     return novas
 
 
+def _capturar_dou_inlabs(session, settings: Settings) -> int:
+    """Coleta artigos do DOU via INLABS (src/inlabs.py) e faz upsert idempotente por
+    chaveUnica. Registra o resultado em ExecucaoLog(fonte="dou_inlabs").
+
+    ISOLADO de proposito, igual a _capturar_licitacoes_pncp: qualquer falha aqui (login,
+    rede, parsing, bug de mapeamento de campo) e capturada e logada, mas NUNCA impede o
+    restante do ciclo (DJEN/Datajud/PNCP) de rodar normalmente — o INLABS e uma fonte nova,
+    escrita sob a mesma restricao de ambiente sem rede do PNCP (ver aviso no topo de
+    src/inlabs.py), porem com um contrato ainda menos confiavel (sem Swagger publico).
+
+    Ao contrario de _capturar_licitacoes_pncp, o casamento contra os termos de vigilancia
+    (TermoVigilancia) ja acontece DENTRO de inlabs.coletar_dou — por isso aqui tambem
+    carregamos os termos do banco (config.carregar_termos_vigilancia_do_banco) antes de
+    chamar a coleta. Se o banco nao estiver configurado (settings.database_url ausente,
+    ex.: rodando local com SQLite) ou a consulta falhar, a lista de termos fica vazia e
+    coletar_dou simplesmente nao persiste nenhum artigo neste ciclo (loga e explica por
+    que) — nunca lanca excecao por causa disso.
+    """
+    novos = 0
+    sucesso = True
+    detalhe = ""
+    try:
+        termos = (
+            carregar_termos_vigilancia_do_banco(settings.database_url)
+            if settings.database_url
+            else []
+        )
+        itens = inlabs.coletar_dou(
+            settings.inlabs_secoes,
+            settings.inlabs_username,
+            settings.inlabs_password,
+            termos,
+        )
+        for dado in itens:
+            try:
+                if upsert_dou_item(session, dado):
+                    novos += 1
+            except Exception as exc:  # pragma: no cover - protecao extra por item
+                logger.exception(
+                    "Falha ao fazer upsert de um item do DOU (chaveUnica=%s).",
+                    dado.get("chaveUnica"),
+                )
+                sucesso = False
+                detalhe += f" | erro no item {dado.get('chaveUnica')}: {exc}"
+        detalhe = (
+            f"{len(settings.inlabs_secoes)} secao(oes), {len(termos)} termo(s) de vigilancia "
+            f"ativo(s), {len(itens)} item(ns) recebido(s), {novos} novo(s)/atualizado(s)."
+        ) + detalhe
+    except Exception as exc:  # pragma: no cover - protecao extra
+        logger.exception("Falha inesperada ao coletar o DOU via INLABS.")
+        sucesso = False
+        detalhe = f"Falha na coleta: {exc}"
+
+    _registrar_execucao(session, FONTE_DOU_INLABS, sucesso=sucesso, detalhe=detalhe)
+    return novos
+
+
 def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> ResultadoCiclo:
     """Executa um ciclo completo e retorna um resumo do que foi feito."""
     session = session_factory()
@@ -239,6 +298,16 @@ def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> Resulta
         except Exception:
             logger.exception("Falha inesperada e não tratada na coleta do PNCP; ciclo continua.")
             novas_licitacoes = 0
+
+        # Isolado em try/except PRÓPRIO, mesmo princípio do PNCP acima: o DOU/INLABS é uma
+        # fonte ainda mais nova e menos confirmada (ver aviso no topo de src/inlabs.py); uma
+        # falha catastrófica aqui não pode derrubar o commit do que já foi capturado
+        # (DJEN/Datajud/PNCP) nas etapas anteriores deste mesmo ciclo.
+        try:
+            novos_itens_dou = _capturar_dou_inlabs(session, settings)
+        except Exception:
+            logger.exception("Falha inesperada e não tratada na coleta do DOU/INLABS; ciclo continua.")
+            novos_itens_dou = 0
 
         alertas: List[str] = []
         if _duas_falhas_seguidas(session, FONTE_DJEN):
@@ -264,6 +333,7 @@ def executar_ciclo(settings: Settings, session_factory: sessionmaker) -> Resulta
             novos_andamentos=len(andamentos_novos),
             novos_processos_descobertos=processos_novos,
             novas_licitacoes=novas_licitacoes,
+            novos_itens_dou=novos_itens_dou,
             email_enviado=email_enviado,
             alertas=alertas,
         )

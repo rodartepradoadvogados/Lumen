@@ -114,6 +114,45 @@ def carregar_oabs_do_banco(database_url: str) -> List[Oab]:
     return oabs
 
 
+def carregar_termos_vigilancia_do_banco(database_url: str) -> List[tuple[str, str]]:
+    """Descobre os termos de vigilancia ATIVOS de TODOS os escritorios, consultando a
+    tabela TermoVigilancia do site (Next.js/Prisma) — mesmo padrao de
+    carregar_oabs_do_banco() acima, aplicado a mais uma tabela do lado Next.js.
+
+    Usado pelo coletor do DOU/INLABS (src/inlabs.py), que — ao contrario dos coletores
+    de DJEN/Datajud/PNCP — precisa saber DENTRO do proprio Python quais termos existem e
+    de qual escritorio sao, porque o casamento com o termo acontece no momento da captura
+    (nao depois, numa ponte TypeScript): o DOU publica milhares de artigos por dia, entao
+    so vale a pena persistir o que ja bateu com um termo vigiado de algum escritorio.
+
+    Retorna lista de tuplas (termo, office_id) — o texto do termo, NAO normalizado (quem
+    chama decide como normalizar/comparar; ver _normalizar_texto em src/inlabs.py). Lista
+    vazia (nunca lanca) se a consulta falhar por qualquer motivo, assim como
+    carregar_oabs_do_banco — quem chama decide o fallback (aqui, o fallback e
+    simplesmente nao ter nenhum termo pra casar, e portanto nao persistir nenhum artigo).
+    """
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text('SELECT "termo", "officeId" FROM "TermoVigilancia" WHERE "ativo" = true')
+            ).fetchall()
+    except Exception:
+        logger.exception("Falha ao consultar termos de vigilancia no banco (tabela TermoVigilancia).")
+        return []
+    finally:
+        engine.dispose()
+
+    termos: List[tuple[str, str]] = []
+    for termo, office_id in rows:
+        if not termo or not office_id:
+            continue
+        termos.append((str(termo), str(office_id)))
+    return termos
+
+
 def _parse_oabs(raw: Optional[str]) -> List[Oab]:
     if not raw:
         data = _DEFAULT_OABS
@@ -166,6 +205,21 @@ def _parse_pncp_ufs(raw: Optional[str]) -> List[str]:
     return ufs or list(_DEFAULT_PNCP_UFS)
 
 
+# Secoes padrao do DOU monitoradas pelo coletor INLABS (src/inlabs.py), Fase 2 do Setor de
+# Processos Administrativos. DO1 (atos normativos gerais) e DO3 (contratos/licitacoes/editais)
+# cobrem a maior parte do que interessa a um escritorio de advocacia; DO2 (pessoal, atos de
+# servidores) fica de fora por padrao pra nao inflar o volume de artigos avaliados a toa.
+# Sobrescrevivel por INLABS_SECOES (lista separada por virgula, ex.: "DO1,DO2,DO3") — ver README.
+_DEFAULT_INLABS_SECOES = ["DO1", "DO3"]
+
+
+def _parse_inlabs_secoes(raw: Optional[str]) -> List[str]:
+    if not raw:
+        return list(_DEFAULT_INLABS_SECOES)
+    secoes = [s.strip().upper() for s in raw.split(",") if s.strip()]
+    return secoes or list(_DEFAULT_INLABS_SECOES)
+
+
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
@@ -195,6 +249,15 @@ class Settings:
     djen_proxy_url: Optional[str]
 
     pncp_ufs: List[str]
+
+    # Credenciais do INLABS (Imprensa Nacional) — SEMPRE variaveis de ambiente do RAILWAY
+    # (nunca da Vercel: o site Next.js nao chama o INLABS diretamente, so le o que este robo
+    # ja gravou no Postgres). Sem default proposital: sao credenciais de login de verdade, nao
+    # ha um valor generico razoavel. Se ausentes, o coletor (src/inlabs.py) loga um aviso claro
+    # e pula a coleta inteira neste ciclo, sem derrubar o robo (ver pipeline.py).
+    inlabs_username: Optional[str]
+    inlabs_password: Optional[str]
+    inlabs_secoes: List[str]
 
     log_level: str
 
@@ -236,5 +299,8 @@ def load_settings() -> Settings:
         gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
         djen_proxy_url=os.getenv("DJEN_PROXY_URL") or None,
         pncp_ufs=_parse_pncp_ufs(os.getenv("PNCP_UFS")),
+        inlabs_username=os.getenv("INLABS_USERNAME") or None,
+        inlabs_password=os.getenv("INLABS_PASSWORD") or None,
+        inlabs_secoes=_parse_inlabs_secoes(os.getenv("INLABS_SECOES")),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
     )
