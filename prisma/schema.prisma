@@ -157,6 +157,9 @@ model Office {
 
   // Protocolos dos processos deste escritório — ver model ProtocoloLote mais abaixo.
   protocoloLotes ProtocoloLote[]
+
+  // Lançamentos de honorários deste escritório — ver model HonorarioLancamento mais abaixo.
+  honorarioLancamentos HonorarioLancamento[]
 }
 
 // ============ EQUIPE ============
@@ -325,12 +328,13 @@ model Client {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  cases        Case[]
-  caseLinks    CaseClient[]
-  receivables  Receivable[]
-  publications Publication[]
-  attendances  Attendance[]  @relation("AttendanceClient")
-  assessoria   Assessoria?
+  cases                Case[]
+  caseLinks            CaseClient[]
+  receivables          Receivable[]
+  honorarioLancamentos HonorarioLancamento[]
+  publications         Publication[]
+  attendances          Attendance[]          @relation("AttendanceClient")
+  assessoria           Assessoria?
 
   // Termos de vigilância (Radar de Publicações Administrativas) vigiando o nome deste cliente,
   // independente de já haver um processo aberto — ver model TermoVigilancia mais abaixo.
@@ -398,8 +402,13 @@ model Case {
   tribunalSistema String?
   tribunalLink    String?
 
-  caseValue       Float?
-  convictionValue Float?
+  caseValue           Float?
+  convictionValue     Float?
+  // "Proveito econômico" — base alternativa de cálculo de honorário percentual (ver
+  // HonorarioLancamento.percentualBase), ao lado de caseValue (valor da causa) e
+  // convictionValue (valor da condenação). Puramente informativo até que uma parcela
+  // percentual referencie esta base no cálculo do valor estimado da parcela.
+  economicBenefitValue Float?
   instance        String? // Instância Original
   currentInstance String? // Instância Atual
   distributedAt   DateTime?
@@ -474,6 +483,9 @@ model Case {
 
   // Protocolos deste processo (aba Protocolos) — ver model ProtocoloLote mais abaixo.
   protocoloLotes ProtocoloLote[]
+
+  // Lançamentos de honorários (aba Financeiro) — ver model HonorarioLancamento mais abaixo.
+  honorarioLancamentos HonorarioLancamento[]
 
   @@index([officeId])
   @@index([officeId, processNumber])
@@ -922,6 +934,45 @@ model ProtocoloLoteItem {
   @@index([loteId])
 }
 
+// Cabeçalho de um lançamento de honorários "parcelado" (aba Financeiro do Processo) — agrupa as
+// Receivable geradas por ele (Receivable.honorarioLancamentoId) e guarda o valor total indicado
+// no momento da criação, para a nota de divergência mostrada ao editar as parcelas (ver
+// lib/actions/honorarios.ts, updateHonorarioLancamentoParcelas): soma o amount de toda parcela
+// com vinculadoAoTotal=true e compara com valorTotalIndicado. Um honorário "único" (não
+// parcelado) não passa por aqui — vira uma Receivable solta, com honorarioLancamentoId nulo,
+// exatamente como antes.
+model HonorarioLancamento {
+  id                 String  @id @default(cuid())
+  // Total declarado pelo usuário ao criar o parcelamento (ex.: 5.000,00 no exemplo entrada +
+  // êxito) — nunca recalculado sozinho depois; só serve de referência para a nota de
+  // divergência. Nulo quando o próprio lançamento já nasce só com parcela(s) percentual(is)
+  // sem nenhum valor total declarado.
+  valorTotalIndicado Float?
+  kind               String  @default("HONORARIOS_CONTRATUAIS") // mesmo catálogo de Receivable.kind
+
+  createdAt DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id])
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  categoryId String?
+  category   FinancialCategory? @relation(fields: [categoryId], references: [id])
+
+  costCenterId String?
+  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id])
+
+  parcelas Receivable[]
+
+  @@index([officeId])
+  @@index([caseId])
+}
+
 // Problema de estrutura encontrado no Drive pelo sync reverso (lib/driveSync.ts, cron diário
 // app/api/cron/drive-sync/route.ts) — nasce de alguém salvando/renomeando algo direto no Drive
 // (fora do app), fugindo da estrutura esperada ("Lúmen - Processos/{título}/{tipo de
@@ -1124,8 +1175,9 @@ model FinancialCategory {
   parent   FinancialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
   children FinancialCategory[] @relation("CategoryTree")
 
-  payables    Payable[]
-  receivables Receivable[]
+  payables             Payable[]
+  receivables          Receivable[]
+  honorarioLancamentos HonorarioLancamento[]
 
   @@index([officeId])
 }
@@ -1139,8 +1191,9 @@ model CostCenter {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
-  payables    Payable[]
-  receivables Receivable[]
+  payables             Payable[]
+  receivables          Receivable[]
+  honorarioLancamentos HonorarioLancamento[]
 
   @@index([officeId])
 }
@@ -1201,6 +1254,22 @@ model Receivable {
   paymentMethod        String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
   createdAt            DateTime  @default(now())
 
+  // Lançamento de honorário em dinheiro (FIXO, o padrão — amount é o valor real) ou em
+  // PERCENTUAL sobre uma base do processo (percentualBase). Numa parcela PERCENTUAL, amount
+  // guarda a ESTIMATIVA calculada (percentual × valor da base no momento em que a parcela foi
+  // criada/editada) — só para exibição e soma na lista; o valor real recebido continua sendo
+  // paidAmount, preenchido à mão na baixa (ver markReceivablePaid), já que a base do processo
+  // pode mudar ou só ser conhecida de fato no desfecho do caso.
+  valueType      String  @default("FIXO") // FIXO | PERCENTUAL
+  percentual     Float?
+  percentualBase String? // VALOR_CAUSA | PROVEITO_ECONOMICO | CONDENACAO — ver Case.caseValue/economicBenefitValue/convictionValue
+
+  // Se esta parcela conta na soma comparada com HonorarioLancamento.valorTotalIndicado (nota de
+  // divergência). Ex.: honorário de 5.000 em 2 parcelas — "5.000 de entrada" vinculado (soma
+  // bate com o total) e "10% do êxito" desvinculado (percentual à parte, fora do total
+  // indicado). Irrelevante (mas mantido true) fora de um HonorarioLancamento.
+  vinculadoAoTotal Boolean @default(true)
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
@@ -1217,6 +1286,12 @@ model Receivable {
   case   Case?   @relation(fields: [caseId], references: [id])
 
   honorario Honorario?
+
+  // Presente só quando esta parcela nasceu de um lançamento de honorários parcelado (ver model
+  // HonorarioLancamento acima) — nulo para toda Receivable "solta" (única, recorrente até o
+  // arquivamento, ou lançada fora da aba Financeiro do Processo).
+  honorarioLancamentoId String?
+  honorarioLancamento   HonorarioLancamento? @relation(fields: [honorarioLancamentoId], references: [id], onDelete: Cascade)
 
   // Preenchidos só quando esta linha foi gerada por um RecurringFee ("honorário até o
   // arquivamento") — competencia ("YYYY-MM") + a constraint única abaixo garantem que o cron

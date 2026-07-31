@@ -6,7 +6,10 @@ import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice } from "@/lib/officeScope";
 
-async function assertFinanceRelationsInOffice(
+// Exportado para lib/actions/honorarioLancamento.ts reaproveitar a mesma checagem de vínculos
+// (categoria/centro de custo/cliente/processo do escritório do usuário logado) no lançamento
+// de honorários parcelado, em vez de duplicar a função.
+export async function assertFinanceRelationsInOffice(
   data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string },
   officeId: string
 ): Promise<void> {
@@ -17,6 +20,9 @@ async function assertFinanceRelationsInOffice(
   if (data.supplierId && !(await isSupplierInOffice(data.supplierId, officeId))) throw new Error("Fornecedor não encontrado.");
 }
 
+// Não pode ser exportada (todo export de um arquivo "use server" precisa ser função async) —
+// lib/actions/honorarioLancamento.ts mantém sua própria cópia local desta mesma lista de
+// revalidatePath.
 function revalidateFinance() {
   revalidatePath("/financeiro");
   revalidatePath("/financeiro/despesas");
@@ -37,8 +43,9 @@ function firstOfNextMonth() {
 
 // Confere acesso ao módulo Financeiro (requireFinanceAccess) e devolve o officeId do
 // usuário logado, para uso em todo where/data deste arquivo — nunca operar em
-// Payable/Receivable/FinancialCategory/CostCenter sem passar por aqui.
-async function requireFinanceOfficeId(): Promise<string> {
+// Payable/Receivable/FinancialCategory/CostCenter sem passar por aqui. Exportado para
+// lib/actions/honorarioLancamento.ts reaproveitar a mesma checagem.
+export async function requireFinanceOfficeId(): Promise<string> {
   await requireFinanceAccess();
   const user = await getCurrentUser();
   if (!user) throw new Error("Sessão inválida.");
@@ -46,8 +53,9 @@ async function requireFinanceOfficeId(): Promise<string> {
 }
 
 // Cria um lembrete de vencimento na Agenda/Kanban para uma parcela recorrente
-// de contas a pagar/receber, vinculado ao processo quando houver.
-async function createInstallmentReminder(officeId: string, kind: "pagar" | "receber", title: string, dueDate: Date, caseId?: string | null) {
+// de contas a pagar/receber, vinculado ao processo quando houver. Exportado para
+// lib/actions/honorarioLancamento.ts reaproveitar no lembrete da parcela de entrada.
+export async function createInstallmentReminder(officeId: string, kind: "pagar" | "receber", title: string, dueDate: Date, caseId?: string | null) {
   const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId }, orderBy: { order: "asc" } });
   await prisma.task.create({
     data: {

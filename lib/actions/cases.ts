@@ -235,6 +235,8 @@ export async function updateCase(
     responsibleId?: string;
     court?: string;
     caseValue?: string;
+    convictionValue?: string;
+    economicBenefitValue?: string;
     tribunalSigla?: string;
     tribunalNome?: string;
     tribunalSistema?: string;
@@ -298,6 +300,8 @@ export async function updateCase(
       responsibleId: data.responsibleId || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
+      convictionValue: data.convictionValue ? parseFloat(data.convictionValue) : null,
+      economicBenefitValue: data.economicBenefitValue ? parseFloat(data.economicBenefitValue) : null,
       tribunalSigla: data.tribunalSigla || null,
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,

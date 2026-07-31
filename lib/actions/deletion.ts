@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 
-type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE";
+type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
 
 async function performDelete(entityType: string, entityId: string, officeId: string) {
   if (entityType === "TASK") {
@@ -55,6 +55,12 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     const receivable = await prisma.receivable.findFirst({ where: { id: entityId, officeId } });
     if (!receivable) return;
     await prisma.receivable.delete({ where: { id: entityId } });
+    // Se esta era a última parcela de um lançamento de honorários parcelado, o cabeçalho fica
+    // órfão (sem nenhuma parcela) — apaga junto para não sobrar um HonorarioLancamento vazio.
+    if (receivable.honorarioLancamentoId) {
+      const restantes = await prisma.receivable.count({ where: { honorarioLancamentoId: receivable.honorarioLancamentoId } });
+      if (restantes === 0) await prisma.honorarioLancamento.deleteMany({ where: { id: receivable.honorarioLancamentoId } });
+    }
     revalidatePath("/financeiro");
     revalidatePath("/financeiro/receitas");
     revalidatePath("/financeiro/dre");
@@ -62,6 +68,25 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     revalidatePath("/alertas");
     revalidatePath("/painel");
     if (receivable?.caseId) revalidatePath(`/processos/${receivable.caseId}`);
+  } else if (entityType === "HONORARIO_LANCAMENTO") {
+    const lancamento = await prisma.honorarioLancamento.findFirst({ where: { id: entityId, officeId } });
+    if (!lancamento) return;
+    // As parcelas já PAGAS são registro financeiro definitivo — excluir o lançamento inteiro só
+    // desvincula essas parcelas (viram Receivable soltas, preservando o histórico de baixa) e
+    // apaga as parcelas ainda pendentes junto com o cabeçalho.
+    await prisma.receivable.updateMany({
+      where: { honorarioLancamentoId: entityId, status: "PAGO" },
+      data: { honorarioLancamentoId: null },
+    });
+    await prisma.receivable.deleteMany({ where: { honorarioLancamentoId: entityId, status: { not: "PAGO" } } });
+    await prisma.honorarioLancamento.delete({ where: { id: entityId } });
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/receitas");
+    revalidatePath("/financeiro/dre");
+    revalidatePath("/financeiro/livro-caixa");
+    revalidatePath("/alertas");
+    revalidatePath("/painel");
+    revalidatePath(`/processos/${lancamento.caseId}`);
   }
 }
 

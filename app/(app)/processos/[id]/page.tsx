@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
-import NewReceivableModal from "@/components/NewReceivableModal";
 import EditReceivableModal from "@/components/EditReceivableModal";
+import LancarHonorariosModal from "@/components/honorarios/LancarHonorariosModal";
+import HonorarioLancamentoCard from "@/components/honorarios/HonorarioLancamentoCard";
 import EditPayableModal from "@/components/EditPayableModal";
 import SettleButton from "@/components/SettleButton";
 import CommentBox from "@/components/CommentBox";
@@ -94,6 +95,10 @@ export default async function CaseDetailPage({
           comprovante: { select: { id: true, name: true, driveUrl: true } },
           itens: { orderBy: { ordem: "asc" }, include: { attachment: { select: { driveUrl: true } } } },
         },
+      },
+      honorarioLancamentos: {
+        orderBy: { createdAt: "desc" },
+        include: { parcelas: { orderBy: { dueDate: "asc" } } },
       },
     },
   });
@@ -267,6 +272,8 @@ export default async function CaseDetailPage({
                   responsibleId: c.responsibleId,
                   court: c.court,
                   caseValue: c.caseValue,
+                  convictionValue: c.convictionValue,
+                  economicBenefitValue: c.economicBenefitValue,
                   tribunalSigla: c.tribunalSigla,
                   tribunalNome: c.tribunalNome,
                   tribunalSistema: c.tribunalSistema,
@@ -306,6 +313,8 @@ export default async function CaseDetailPage({
             <Field label="Advogado Responsável" value={c.responsible?.name} />
             <Field label="Vara/Comarca" value={c.court} />
             <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
+            <Field label="Proveito Econômico" value={c.economicBenefitValue != null ? formatCurrency(c.economicBenefitValue) : undefined} />
+            <Field label="Valor da Condenação" value={c.convictionValue != null ? formatCurrency(c.convictionValue) : undefined} />
             {/* "Órgão" no lugar de "Tribunal" para processo administrativo — mesmo par de campos
                 (tribunalSigla/tribunalNome), só o rótulo muda (ver lib/caseNatureza.ts). */}
             <Field label={nat === "ADMINISTRATIVO" ? "Órgão" : "Tribunal"} value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
@@ -407,13 +416,13 @@ export default async function CaseDetailPage({
       {tab === "financeiro" && (
         <div>
           <div className="flex justify-end mb-3">
-            <NewReceivableModal
+            <LancarHonorariosModal
               categories={receivableCategories}
-              cases={[]}
               clients={caseClients.map((cc) => ({ id: cc.id, name: cc.name }))}
+              costCenters={costCenters}
               defaultCaseId={c.id}
               defaultClientId={c.clientId ?? undefined}
-              label="Lançar Honorários"
+              bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue }}
               alreadyReceivedForCase={c.receivables.filter((r) => r.status === "PAGO").reduce((s, r) => s + (r.paidAmount ?? r.amount), 0)}
             />
           </div>
@@ -425,11 +434,35 @@ export default async function CaseDetailPage({
             {recurringFees.map((fee) => (
               <RecurringFeeCard key={fee.id} fee={{ id: fee.id, description: fee.description, amount: fee.amount, dueDay: fee.dueDay }} />
             ))}
-            {c.receivables.length === 0 ? (
+            {c.honorarioLancamentos.map((h) => (
+              <HonorarioLancamentoCard
+                key={h.id}
+                lancamento={{
+                  id: h.id,
+                  valorTotalIndicado: h.valorTotalIndicado,
+                  parcelas: h.parcelas.map((p) => ({
+                    id: p.id,
+                    description: p.description,
+                    amount: p.amount,
+                    dueDate: p.dueDate.toISOString(),
+                    noDueDate: p.noDueDate,
+                    status: p.status,
+                    paidAmount: p.paidAmount,
+                    valueType: p.valueType,
+                    percentual: p.percentual,
+                    percentualBase: p.percentualBase,
+                    vinculadoAoTotal: p.vinculadoAoTotal,
+                    isSuccessPortion: p.isSuccessPortion,
+                  })),
+                }}
+                bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue }}
+              />
+            ))}
+            {c.receivables.filter((r) => !r.honorarioLancamentoId).length === 0 && c.honorarioLancamentos.length === 0 && recurringFees.length === 0 ? (
               <EmptyState title="Nenhum lançamento" />
             ) : (
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-                {c.receivables.map((r) => (
+                {c.receivables.filter((r) => !r.honorarioLancamentoId).map((r) => (
                   <div key={r.id} className="flex justify-between items-center px-5 py-3">
                     <div>
                       <p className="text-sm text-navy-900 dark:text-cream-50">{r.description}</p>

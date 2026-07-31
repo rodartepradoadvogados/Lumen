@@ -12,7 +12,7 @@ export default function DeleteEntityButton({
   confirmMessage,
   onDone,
 }: {
-  entityType: "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE";
+  entityType: "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
   entityId: string;
   entityLabel: string;
   confirmMessage: string;

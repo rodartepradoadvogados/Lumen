@@ -22,6 +22,8 @@ type CaseData = {
   responsibleId: string | null;
   court: string | null;
   caseValue: number | null;
+  convictionValue?: number | null;
+  economicBenefitValue?: number | null;
   tribunalSigla: string | null;
   tribunalNome: string | null;
   tribunalSistema: string | null;
@@ -111,6 +113,8 @@ export default function EditCaseModal({
                   responsibleId: String(formData.get("responsibleId") || ""),
                   court: String(formData.get("court") || ""),
                   caseValue: String(formData.get("caseValue") || ""),
+                  convictionValue: String(formData.get("convictionValue") || ""),
+                  economicBenefitValue: String(formData.get("economicBenefitValue") || ""),
                   tribunalSigla: String(formData.get("tribunalSigla") || ""),
                   tribunalNome: String(formData.get("tribunalNome") || ""),
                   tribunalSistema: String(formData.get("tribunalSistema") || ""),
@@ -164,6 +168,20 @@ export default function EditCaseModal({
                   <input name="caseValue" type="number" step="0.01" defaultValue={caseData.caseValue ?? ""} className={inputClass} />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Proveito Econômico (R$)</label>
+                  <input name="economicBenefitValue" type="number" step="0.01" defaultValue={caseData.economicBenefitValue ?? ""} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor da Condenação (R$)</label>
+                  <input name="convictionValue" type="number" step="0.01" defaultValue={caseData.convictionValue ?? ""} className={inputClass} />
+                </div>
+              </div>
+              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                Valor da Causa, Proveito Econômico e Valor da Condenação são as bases disponíveis para honorários lançados em percentual (aba Financeiro).
+              </p>
 
               <div className="border-t border-navy-800/8 dark:border-white/10 pt-3">
                 <TribunalFields
