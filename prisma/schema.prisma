@@ -154,6 +154,9 @@ model Office {
 
   // Fase 2 do Setor de Processos Administrativos — ver model RoboDouItem mais abaixo.
   roboDouItens RoboDouItem[]
+
+  // Protocolos dos processos deste escritório — ver model ProtocoloLote mais abaixo.
+  protocoloLotes ProtocoloLote[]
 }
 
 // ============ EQUIPE ============
@@ -243,6 +246,11 @@ model User {
   // Termos de vigilância que este usuário cadastrou (ver model TermoVigilancia mais abaixo) —
   // só para exibir "criado por" na tela, não afeta quem enxerga o termo (isso é por officeId).
   termosVigilanciaCriados TermoVigilancia[]
+
+  // Protocolos que esta pessoa montou e os que ela registrou como protocolados — dois papéis
+  // distintos de propósito: quem prepara o lote muitas vezes não é quem envia ao tribunal.
+  protocoloLotesCriados      ProtocoloLote[] @relation("ProtocoloLoteCriadoPor")
+  protocoloLotesProtocolados ProtocoloLote[] @relation("ProtocoloLoteProtocoladoPor")
 
   // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
   platformMember PlatformMember?
@@ -463,6 +471,9 @@ model Case {
   // Termos de vigilância (Radar de Publicações Administrativas) ligados a este processo — ver
   // model TermoVigilancia mais abaixo.
   termosVigilancia TermoVigilancia[]
+
+  // Protocolos deste processo (aba Protocolos) — ver model ProtocoloLote mais abaixo.
+  protocoloLotes ProtocoloLote[]
 
   @@index([officeId])
   @@index([officeId, processNumber])
@@ -826,7 +837,89 @@ model Attachment {
   attendanceId String?
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
 
+  // Protocolos que REFERENCIAM este anexo (ver ProtocoloLoteItem) e protocolos dos quais este
+  // anexo é o comprovante. Um mesmo documento pode entrar em vários protocolos sem nunca ser
+  // copiado — é essa relação, e não uma cópia de arquivo, que compõe um protocolo.
+  protocoloItens         ProtocoloLoteItem[] @relation("ProtocoloLoteItemAttachment")
+  protocoloComprovanteDe ProtocoloLote[]     @relation("ProtocoloLoteComprovante")
+
   @@index([officeId])
+}
+
+// ============ PROTOCOLOS (aba Protocolos do Processo) ============
+
+// Um protocolo do processo: a lista ordenada de documentos enviados (ou a enviar) ao tribunal/
+// órgão, mais número, data e comprovante. NUNCA guarda arquivo — só referências a Attachment
+// (ver ProtocoloLoteItem). É essa decisão que impede duplicar documento: o arquivo continua
+// existindo uma única vez, na subpasta do tipo dele, e o protocolo só aponta para ele.
+model ProtocoloLote {
+  id         String  @id @default(cuid())
+  titulo     String
+  // EM_PREPARO | PRONTO | PROTOCOLADO | CANCELADO — ver PROTOCOLO_STATUS em lib/protocolos.ts.
+  status     String  @default("EM_PREPARO")
+  observacao String?
+
+  // Só preenchidos quando o lote vira PROTOCOLADO.
+  numeroProtocolo  String?
+  protocoladoEm    DateTime?
+  protocoladoPorId String?
+  protocoladoPor   User?     @relation("ProtocoloLoteProtocoladoPor", fields: [protocoladoPorId], references: [id])
+
+  // Pasta-espelho no Drive contendo APENAS atalhos para os documentos originais (Google Drive;
+  // OneDrive/Dropbox não têm atalho equivalente e ficam sem pasta, sem perder funcionalidade —
+  // o site é a fonte da verdade). Criada sob demanda, nula até alguém pedir; apagada inteira
+  // quando o lote é cancelado, o que é seguro justamente por só conter atalhos.
+  driveFolderId String?
+
+  // O comprovante é o ÚNICO arquivo novo que um protocolo cria — e entra como Attachment comum
+  // (docType COMPROVANTE_PROTOCOLO), na subpasta do tipo dele, como qualquer outro anexo.
+  comprovanteId String?
+  comprovante   Attachment? @relation("ProtocoloLoteComprovante", fields: [comprovanteId], references: [id], onDelete: SetNull)
+
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id])
+
+  criadoPorId String?
+  criadoPor   User?   @relation("ProtocoloLoteCriadoPor", fields: [criadoPorId], references: [id])
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  itens ProtocoloLoteItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([officeId])
+  @@index([caseId])
+}
+
+// Uma linha da lista de um protocolo: a ordem + o anexo referenciado.
+//
+// nomeSnapshot/docTypeSnapshot são cópia do nome e do tipo no momento em que o documento entrou
+// no protocolo — de propósito. Um protocolo concluído é registro histórico: se alguém excluir o
+// anexo depois (confirmando o aviso de deleteAttachment), attachmentId fica nulo (onDelete:
+// SetNull) mas a linha permanece, mostrando o que foi protocolado e que o arquivo não existe
+// mais. Sem isso, um histórico de protocolo perderia linhas em silêncio.
+model ProtocoloLoteItem {
+  id    String @id @default(cuid())
+  ordem Int
+
+  loteId String
+  lote   ProtocoloLote @relation(fields: [loteId], references: [id], onDelete: Cascade)
+
+  attachmentId String?
+  attachment   Attachment? @relation("ProtocoloLoteItemAttachment", fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  nomeSnapshot    String
+  docTypeSnapshot String
+
+  // Id do atalho criado no Drive para este item (Google Drive). Guardado para conseguir apagar
+  // exatamente este atalho ao remover o documento do lote, sem varrer a pasta procurando por nome.
+  driveShortcutId String?
+
+  @@unique([loteId, attachmentId])
+  @@index([loteId])
 }
 
 // Problema de estrutura encontrado no Drive pelo sync reverso (lib/driveSync.ts, cron diário

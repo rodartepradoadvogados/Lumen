@@ -20,6 +20,7 @@ import {
   getAtendimentosRootFolderId,
 } from "@/lib/googleDrive";
 import { DOCUMENT_TYPES } from "@/lib/documentTypes";
+import { isReservedCaseSubfolder } from "@/lib/protocolos";
 
 export type DriveSyncIssueType =
   | "PASTA_PROCESSO_SEM_CORRESPONDENCIA"
@@ -118,6 +119,13 @@ async function syncContainerFolder(
 
   for (const child of children) {
     if (child.mimeType === DRIVE_FOLDER_MIME_TYPE) {
+      // Pasta de estrutura do sistema ("Protocolos", ver lib/protocolos.ts): não é categoria de
+      // tipo de documento e não deve ser varrida. Sem esta saída, cada processo com protocolo
+      // geraria PASTA_CATEGORIA_DESCONHECIDA todo dia na Central de Alertas — e, pior, o conteúdo
+      // dela (atalhos para documentos que JÁ são anexos registrados) poderia ser registrado de
+      // novo, criando exatamente a duplicação que a funcionalidade de protocolos evita.
+      if (isReservedCaseSubfolder(child.name)) continue;
+
       const docTypeKey = CATEGORY_LABEL_TO_KEY.get(child.name);
       // Lista os arquivos da subpasta de qualquer forma (reconhecida ou não) só pra marcar como
       // "vistos" — uma categoria com nome errado não pode fazer os anexos já registrados dela

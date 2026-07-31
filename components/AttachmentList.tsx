@@ -137,7 +137,31 @@ export default function AttachmentList({
   function handleDelete(id: string) {
     if (!window.confirm("Excluir este anexo? O arquivo também será apagado do Drive.")) return;
     startTransition(async () => {
-      await deleteAttachment(id);
+      const res = await deleteAttachment(id);
+
+      // O anexo faz parte de um protocolo já concluído: a action não excluiu nada ainda e
+      // devolveu quais protocolos seriam afetados, pra confirmação em cima do fato concreto
+      // (ver deleteAttachment em lib/actions/attachments.ts).
+      if (res.precisaConfirmar) {
+        const lista = (res.protocolos ?? []).map((p) => `• ${p}`).join("\n");
+        const confirmado = window.confirm(
+          `Este documento faz parte de protocolo já concluído:\n\n${lista}\n\n` +
+            "O protocolo continua no histórico com o nome do documento, mas o arquivo deixa de existir e o link para de abrir.\n\nExcluir mesmo assim?"
+        );
+        if (!confirmado) return;
+        const forcado = await deleteAttachment(id, { confirmarProtocolado: true });
+        if (forcado.error) {
+          setError(forcado.error);
+          return;
+        }
+        router.refresh();
+        return;
+      }
+
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
       router.refresh();
     });
   }

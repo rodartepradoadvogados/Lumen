@@ -125,11 +125,43 @@ export async function finalizeAttachmentUpload(data: {
   }
 }
 
-export async function deleteAttachment(id: string): Promise<{ error?: string }> {
+// `confirmarProtocolado` só é passado no segundo chamado, depois do usuário confirmar o aviso —
+// ver components/AttachmentList.tsx. Sem ele, um documento que faz parte de protocolo concluído
+// não é excluído: a action devolve `precisaConfirmar` com a lista de protocolos afetados, pra
+// quem está apagando saber exatamente o que vai furar no histórico.
+export async function deleteAttachment(
+  id: string,
+  opts?: { confirmarProtocolado?: boolean }
+): Promise<{ error?: string; precisaConfirmar?: boolean; protocolos?: string[] }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
   const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
   if (!att) return { error: "Anexo não encontrado." };
+
+  // Um protocolo já concluído é registro histórico do que foi enviado ao tribunal. Excluir um
+  // documento que faz parte dele não é proibido (o dono do escritório manda), mas nunca pode ser
+  // um clique distraído. A linha do protocolo sobrevive de qualquer forma — ProtocoloLoteItem
+  // guarda nome e tipo em snapshot, e attachmentId vira nulo (ver prisma/schema.prisma).
+  if (!opts?.confirmarProtocolado) {
+    // try/catch de propósito: a tabela de protocolos é criada por SQL aplicado à mão no Neon
+    // (prisma/sql/2026-07-31-protocolos.sql), que pode rodar depois deste código subir. Enquanto
+    // ela não existir, a consulta falha — e aí o certo é seguir excluindo como sempre foi, não
+    // travar uma funcionalidade que já funcionava. A trava liga sozinha quando a tabela existir.
+    const emProtocolos = await prisma.protocoloLoteItem
+      .findMany({
+        where: { attachmentId: id, lote: { status: "PROTOCOLADO", officeId: user.officeId } },
+        select: { lote: { select: { titulo: true, numeroProtocolo: true, protocoladoEm: true } } },
+      })
+      .catch(() => []);
+    if (emProtocolos.length > 0) {
+      const protocolos = emProtocolos.map((i) => {
+        const dia = i.lote.protocoladoEm ? i.lote.protocoladoEm.toLocaleDateString("pt-BR", { timeZone: "UTC" }) : null;
+        const numero = i.lote.numeroProtocolo ? `nº ${i.lote.numeroProtocolo}` : null;
+        return [i.lote.titulo, numero, dia].filter(Boolean).join(" · ");
+      });
+      return { precisaConfirmar: true, protocolos };
+    }
+  }
 
   // Apaga o arquivo de verdade no provedor certo (não só o vínculo) — se a exclusão falhar lá,
   // segue removendo o vínculo mesmo assim, pra não travar o usuário por um arquivo já apagado

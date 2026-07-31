@@ -42,6 +42,7 @@ import {
   FileQuestion,
   UserX,
   BellRing,
+  BadgeCheck,
 } from "lucide-react";
 
 // Taxonomia única de tipos de documento, usada tanto pelos Anexos de Processo/Caso/Atendimento
@@ -72,6 +73,11 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "IMPUGNACAO_LAUDO_PERICIAL", label: "Impugnação ao Laudo Pericial", icon: FileQuestion },
       { key: "LAUDO_PERICIAL", label: "Laudo Pericial", icon: FileSearch },
       { key: "CERTIDAO", label: "Certidão", icon: Stamp },
+      // Comprovante devolvido pelo sistema do tribunal/órgão ao protocolar. É o ÚNICO arquivo
+      // novo que um protocolo cria (ver lib/protocolos.ts) — todo o resto do protocolo são
+      // referências a documentos que já existiam. Como qualquer tipo, ganha sua própria subpasta
+      // no Drive com este mesmo rótulo.
+      { key: "COMPROVANTE_PROTOCOLO", label: "Comprovante de Protocolo", icon: BadgeCheck },
       { key: "PARECER", label: "Parecer", icon: ScrollText },
       { key: "REQUERIMENTO_CLIENTE", label: "Requerimento ao Cliente", icon: Mail },
     ],
