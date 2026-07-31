@@ -62,6 +62,11 @@ export default function MobileNewReceivableForm({
             categoryId: String(formData.get("categoryId") || ""),
             costCenterId: String(formData.get("costCenterId") || ""),
             clientId: String(formData.get("clientId") || ""),
+            // Versão de campo, sem parcelamento nem "já recebido" — mesma limitação de sempre (ver
+            // comentário no topo do arquivo), agora explícita pelo novo formato do Server Action
+            // (Fase 3, compartilhado com a tela nova de Contas a Receber do desktop).
+            parcelado: false,
+            recebido: false,
           });
           setLoading(false);
           setOpen(false);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getFilteredReceivables } from "@/lib/financeQuery";
+import { valorLiquido } from "@/lib/financeCalc";
 import { getCurrentUser } from "@/lib/currentUser";
 import { redirect } from "next/navigation";
 
@@ -20,14 +21,17 @@ export default async function ReceitasPage({
   if (!viewer) redirect("/");
 
   const filtered = await getFilteredReceivables(searchParams, viewer.officeId);
-  const total = filtered.reduce((s, r) => s + r.amount, 0);
-  const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
+  // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
+  const total = filtered.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" || searchParams.tab === "apurar" ? searchParams.tab : "abertas";
 
-  const [categories, cases, clients, costCenters] = await Promise.all([
+  const [categories, cases, clients, costCenters, responsibles, bankAccounts] = await Promise.all([
     getLeafCategoryOptions("RECEITA", viewer.officeId),
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const exportHref = (() => {
@@ -52,12 +56,23 @@ export default async function ReceitasPage({
       <PageHeader
         title="Receitas"
         subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
-        action={<NewReceivableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} clients={clients} costCenters={costCenters} />}
+        action={
+          <NewReceivableModal
+            categories={categories}
+            cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+            clients={clients}
+            costCenters={costCenters}
+            responsibles={responsibles}
+            bankAccounts={bankAccounts}
+            defaultResponsibleId={viewer.id}
+          />
+        }
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
         <FilterLink label="Contas a Receber" href={qs({ tab: undefined })} active={tab === "abertas"} />
         <FilterLink label="Recebidas" href={qs({ tab: "pagas" })} active={tab === "pagas"} />
+        <FilterLink label="A apurar" href={qs({ tab: "apurar" })} active={tab === "apurar"} />
         <FilterLink label="Todas" href={qs({ tab: "todas" })} active={tab === "todas"} />
       </div>
 
@@ -121,19 +136,34 @@ export default async function ReceitasPage({
             id: r.id,
             description: r.description,
             amount: r.amount,
+            discount: r.discount,
+            surcharge: r.surcharge,
             dueDate: r.dueDate.toISOString(),
             noDueDate: r.noDueDate,
             status: r.status,
             effectiveStatus: r.effectiveStatus,
             paidAmount: r.paidAmount,
+            paidDate: r.paidDate ? r.paidDate.toISOString() : null,
+            paidSum: r.paidSum,
             paymentReceiptNumber: r.paymentReceiptNumber,
             paymentMethod: r.paymentMethod,
             kind: r.kind,
             isSuccessPortion: r.isSuccessPortion,
+            documentType: r.documentType,
+            documentNumber: r.documentNumber,
+            payerType: r.payerType,
+            payerName: r.payerName,
+            percentual: r.percentual,
+            percentualBase: r.percentualBase,
             categoryId: r.categoryId,
             costCenterId: r.costCenterId,
             clientId: r.clientId,
             caseId: r.caseId,
+            responsibleId: r.responsibleId,
+            issueDate: r.issueDate ? r.issueDate.toISOString() : null,
+            installmentBoleto: r.installmentBoleto,
+            installmentNumber: r.installmentNumber,
+            installmentTotal: r.installmentTotal,
             category: r.category ? { name: r.category.name } : null,
             costCenter: r.costCenter ? { name: r.costCenter.name } : null,
             case: r.case ? { title: r.case.title } : null,
@@ -143,6 +173,8 @@ export default async function ReceitasPage({
           cases={cases.map((c) => ({ id: c.id, name: c.title }))}
           clients={clients}
           costCenters={costCenters}
+          responsibles={responsibles}
+          bankAccounts={bankAccounts}
         />
       </Card>
       <style>{`

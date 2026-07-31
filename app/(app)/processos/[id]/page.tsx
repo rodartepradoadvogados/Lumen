@@ -32,6 +32,7 @@ import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -80,8 +81,8 @@ export default async function CaseDetailPage({
       responsible: true,
       tasks: { include: { responsible: true, _count: { select: { comments: true } } }, orderBy: { dueDate: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
-      receivables: { orderBy: { dueDate: "asc" } },
-      payables: { orderBy: { dueDate: "asc" } },
+      receivables: { orderBy: { dueDate: "asc" }, include: { payments: true } },
+      payables: { orderBy: { dueDate: "asc" }, include: { payments: true } },
       publications: {
         include: { client: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
@@ -98,7 +99,7 @@ export default async function CaseDetailPage({
       },
       honorarioLancamentos: {
         orderBy: { createdAt: "desc" },
-        include: { parcelas: { orderBy: { dueDate: "asc" } } },
+        include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: true } } },
       },
     },
   });
@@ -453,6 +454,9 @@ export default async function CaseDetailPage({
                     id: p.id,
                     description: p.description,
                     amount: p.amount,
+                    discount: p.discount,
+                    surcharge: p.surcharge,
+                    paidSum: p.payments.reduce((s, x) => s + x.amount, 0),
                     dueDate: p.dueDate.toISOString(),
                     noDueDate: p.noDueDate,
                     status: p.status,
@@ -468,6 +472,7 @@ export default async function CaseDetailPage({
                   })),
                 }}
                 bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue }}
+                bankAccounts={bankAccounts}
               />
             ))}
             {c.receivables.filter((r) => !r.honorarioLancamentoId).length === 0 && c.honorarioLancamentos.length === 0 && recurringFees.length === 0 ? (
@@ -476,7 +481,9 @@ export default async function CaseDetailPage({
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
                 {c.receivables.filter((r) => !r.honorarioLancamentoId).map((r) => {
                   const isApurar = r.status === "A_APURAR";
-                  const saldo = r.amount - (r.paidAmount ?? 0);
+                  const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
+                  const paidSum = r.payments.reduce((s, x) => s + x.amount, 0);
+                  const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, paidSum);
                   return (
                   <div key={r.id} className="flex justify-between items-center px-5 py-3">
                     <div>
@@ -490,18 +497,22 @@ export default async function CaseDetailPage({
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(r.amount)}</p>
+                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
                         {r.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
                         <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : isApurar ? "slate" : "amber"}>
                           {isApurar ? "A apurar" : r.status}
                         </Badge>
                       </div>
-                      {!isApurar && <SettleButton id={r.id} kind="receivable" amount={r.amount} status={r.status} />}
+                      {!isApurar && (
+                        <SettleButton id={r.id} kind="receivable" liquido={liquido} alreadyPaid={paidSum} status={r.status} bankAccounts={bankAccounts} />
+                      )}
                       <EditReceivableModal
                         receivable={{
                           id: r.id,
                           description: r.description,
                           amount: r.amount,
+                          discount: r.discount,
+                          surcharge: r.surcharge,
                           dueDate: r.dueDate.toISOString(),
                           noDueDate: r.noDueDate,
                           kind: r.kind,
@@ -509,11 +520,24 @@ export default async function CaseDetailPage({
                           costCenterId: r.costCenterId,
                           clientId: r.clientId,
                           caseId: r.caseId,
+                          responsibleId: r.responsibleId,
+                          documentType: r.documentType,
+                          documentNumber: r.documentNumber,
+                          issueDate: r.issueDate ? r.issueDate.toISOString() : null,
+                          installmentBoleto: r.installmentBoleto,
+                          installmentNumber: r.installmentNumber,
+                          installmentTotal: r.installmentTotal,
+                          status: r.status,
+                          paidAmount: r.paidAmount,
+                          paidDate: r.paidDate ? r.paidDate.toISOString() : null,
+                          paymentMethod: r.paymentMethod,
+                          paymentReceiptNumber: r.paymentReceiptNumber,
                         }}
                         categories={receivableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
                         clients={caseClients.map((cc) => ({ id: cc.id, name: cc.name }))}
                         costCenters={costCenters}
+                        responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                       />
                       <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
                     </div>
@@ -531,7 +555,11 @@ export default async function CaseDetailPage({
               <EmptyState title="Nenhum lançamento" />
             ) : (
               <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-                {c.payables.map((p) => (
+                {c.payables.map((p) => {
+                  const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
+                  const paidSum = p.payments.reduce((s, x) => s + x.amount, 0);
+                  const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, paidSum);
+                  return (
                   <div key={p.id} className="flex justify-between items-center px-5 py-3">
                     <div>
                       <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
@@ -539,30 +567,48 @@ export default async function CaseDetailPage({
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(p.amount)}</p>
+                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(liquido)}</p>
+                        {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
                         <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
                       </div>
+                      <SettleButton id={p.id} kind="payable" liquido={liquido} alreadyPaid={paidSum} status={p.status} bankAccounts={bankAccounts} />
                       <EditPayableModal
                         payable={{
                           id: p.id,
                           description: p.description,
                           supplierId: p.supplierId,
                           amount: p.amount,
+                          discount: p.discount,
+                          surcharge: p.surcharge,
                           dueDate: p.dueDate.toISOString(),
                           noDueDate: p.noDueDate,
                           categoryId: p.categoryId,
                           costCenterId: p.costCenterId,
                           caseId: p.caseId,
+                          responsibleId: p.responsibleId,
+                          documentType: p.documentType,
+                          documentNumber: p.documentNumber,
+                          issueDate: p.issueDate ? p.issueDate.toISOString() : null,
+                          installmentBoleto: p.installmentBoleto,
+                          installmentNumber: p.installmentNumber,
+                          installmentTotal: p.installmentTotal,
+                          status: p.status,
+                          paidAmount: p.paidAmount,
+                          paidDate: p.paidDate ? p.paidDate.toISOString() : null,
+                          paymentMethod: p.paymentMethod,
+                          paymentReceiptNumber: p.paymentReceiptNumber,
                         }}
                         categories={payableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
                         suppliers={suppliers}
                         costCenters={costCenters}
+                        responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                       />
                       <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>

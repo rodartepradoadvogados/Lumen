@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { valorLiquido } from "@/lib/financeCalc";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 
 export type AlertItem = {
   id: string;
@@ -64,8 +64,15 @@ function computeDueStatus(dueDate: Date, now: Date): "atrasado" | "hoje" | undef
 // Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
 // Toda consulta de Payable/Receivable abaixo filtra status por LISTA EXPLÍCITA (["PENDENTE",
-// "ATRASADO"]), nunca por negação — por isso A_APURAR (Fase 1: provisão de honorário percentual
-// sem valor real ainda) já fica fora destes alertas sem precisar de exclusão adicional.
+// "ATRASADO", "PARCIAL"] nas duas vencidas — ver correção da Fase 3 logo abaixo — ou só
+// ["PENDENTE", "ATRASADO"] nas sem-vencimento, que PARCIAL não se aplica), nunca por negação —
+// por isso A_APURAR (Fase 1: provisão de honorário percentual sem valor real ainda) já fica fora
+// destes alertas sem precisar de exclusão adicional.
+// Correção da Fase 3: uma conta PARCIAL vencida (já teve algum FinancePayment lançado, mas o
+// saldo em aberto continua > 0) antes só entrava aqui como ["PENDENTE","ATRASADO"] — nunca
+// aparecia no alerta de conta vencida, mesmo tendo dinheiro de verdade em aberto. Passou a entrar
+// nas DUAS consultas "vencida" abaixo (contagem e listagem), com o subtitle mostrando o SALDO EM
+// ABERTO (não mais o valor cheio) — ver saldoEmAberto, lib/financeCalc.ts.
 // `viewerId`: quando informado, também busca tarefas delegadas para esse usuário ainda não
 // vistas (delegationAcknowledgedAt null) — alerta pessoal, visível só pra quem recebeu.
 // `includeDriveSync`: segue o MESMO padrão de includeFinance, mas gated por isAdmin (não por
@@ -112,10 +119,16 @@ export async function getAlerts(
         orderBy: { dueDate: "asc" },
       }),
       includeFinance
-        ? prisma.payable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+        ? prisma.payable.findMany({
+            where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false },
+            include: { payments: true },
+          })
         : Promise.resolve([]),
       includeFinance
-        ? prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+        ? prisma.receivable.findMany({
+            where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false },
+            include: { payments: true },
+          })
         : Promise.resolve([]),
       viewerId
         ? prisma.mention.findMany({
@@ -167,33 +180,38 @@ export async function getAlerts(
     });
   }
   for (const p of overduePayables) {
-    const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
+    // Saldo em aberto, não o valor cheio (Fase 3): uma conta PARCIAL vencida já teve parte paga —
+    // o alerta deve refletir só o que ainda falta sair do caixa, senão soaria como se nada tivesse
+    // sido pago ainda.
+    const somaPaga = p.payments.reduce((s, x) => s + x.amount, 0);
+    const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, somaPaga);
     alerts.push({
       id: `payable-${p.id}`,
       kind: "CONTA_PAGAR_VENCIDA",
       title: p.description,
-      subtitle: `R$ ${liquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${p.status === "PARCIAL" ? " (saldo em aberto)" : ""}`,
       date: p.dueDate,
       href: `/financeiro/despesas`,
       severity: "alta",
       entityKind: "PAYABLE",
       entityId: p.id,
-      amount: liquido,
+      amount: saldo,
     });
   }
   for (const r of overdueReceivables) {
-    const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
+    const somaPaga = r.payments.reduce((s, x) => s + x.amount, 0);
+    const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, somaPaga);
     alerts.push({
       id: `receivable-${r.id}`,
       kind: "CONTA_RECEBER_VENCIDA",
       title: r.description,
-      subtitle: `R$ ${liquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${r.status === "PARCIAL" ? " (saldo em aberto)" : ""}`,
       date: r.dueDate,
       href: `/financeiro/receitas`,
       severity: "media",
       entityKind: "RECEIVABLE",
       entityId: r.id,
-      amount: liquido,
+      amount: saldo,
     });
   }
   for (const p of undatedPayables) {
@@ -324,10 +342,10 @@ export async function getAlertsCount(
       where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
     }),
     includeFinance
-      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false } })
       : Promise.resolve(0),
     includeFinance
-      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, dueDate: { lt: now }, noDueDate: false } })
+      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false } })
       : Promise.resolve(0),
     viewerId
       ? prisma.mention.count({ where: { officeId, userId: viewerId, read: false, ...(dismissedByKind.has("MENCAO") ? { commentId: { notIn: Array.from(dismissedByKind.get("MENCAO")!) } } : {}) } })

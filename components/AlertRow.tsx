@@ -33,7 +33,13 @@ export default function AlertRow({
           <SettleModal
             id={alert.entityId}
             kind={alert.entityKind === "PAYABLE" ? "payable" : "receivable"}
-            amount={alert.amount ?? 0}
+            // alert.amount já vem como SALDO EM ABERTO (Fase 3 — ver lib/alerts.ts), não o valor
+            // cheio: passar liquido=saldo e alreadyPaid=0 aqui reproduz exatamente esse saldo como
+            // valor sugerido, sem precisar buscar de novo o histórico de pagamentos só para este
+            // atalho. bankAccounts vazio: quem precisar de uma conta cadastra na hora (quick-add).
+            liquido={alert.amount ?? 0}
+            alreadyPaid={0}
+            bankAccounts={[]}
             onClose={() => setModal(null)}
           />
         )}

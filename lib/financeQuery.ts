@@ -54,12 +54,20 @@ export async function getFilteredPayables(sp: FinanceSearchParams, officeId: str
       costCenterId: sp.costCenterId || undefined,
       categoryId: sp.categoryId || undefined,
     },
-    include: { category: true, case: true, costCenter: true },
+    include: { category: true, case: true, costCenter: true, responsible: true, payments: true },
     orderBy: { dueDate: "asc" },
   });
   const q = (sp.q || "").trim().toLowerCase();
   return all
-    .map((p) => ({ ...p, effectiveStatus: effective(p.status, p.dueDate, p.noDueDate, now) }))
+    .map((p) => ({
+      ...p,
+      effectiveStatus: effective(p.status, p.dueDate, p.noDueDate, now),
+      // Soma real dos FinancePayment desta conta (Fase 3) — é o que decide o saldo em aberto
+      // exibido na listagem quando o status é PARCIAL; paidAmount (legado) já é mantido
+      // consistente com esta soma pelas Server Actions, mas a lista usa a soma direto para nunca
+      // depender de um campo derivado ficar desatualizado.
+      paidSum: p.payments.reduce((s, x) => s + x.amount, 0),
+    }))
     .filter((p) => matchesTab(p.effectiveStatus, tab))
     .filter((p) => !q || p.description.toLowerCase().includes(q) || (p.supplier || "").toLowerCase().includes(q));
 }
@@ -77,12 +85,16 @@ export async function getFilteredReceivables(sp: FinanceSearchParams, officeId: 
       costCenterId: sp.costCenterId || undefined,
       categoryId: sp.categoryId || undefined,
     },
-    include: { client: true, case: true, costCenter: true, category: true },
+    include: { client: true, case: true, costCenter: true, category: true, responsible: true, payments: true },
     orderBy: { dueDate: "asc" },
   });
   const q = (sp.q || "").trim().toLowerCase();
   return all
-    .map((r) => ({ ...r, effectiveStatus: effective(r.status, r.dueDate, r.noDueDate, now) }))
+    .map((r) => ({
+      ...r,
+      effectiveStatus: effective(r.status, r.dueDate, r.noDueDate, now),
+      paidSum: r.payments.reduce((s, x) => s + x.amount, 0),
+    }))
     .filter((r) => matchesTab(r.effectiveStatus, tab))
     .filter((r) => !q || r.description.toLowerCase().includes(q) || (r.client?.name || "").toLowerCase().includes(q));
 }

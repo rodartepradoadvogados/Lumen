@@ -9,8 +9,23 @@ import SettleButton from "@/components/SettleButton";
 import BulkSettleBar from "@/components/BulkSettleBar";
 import { markManyReceivablesPaid } from "@/lib/actions/financeiro";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { DOCUMENT_TYPE_OPTIONS, PAYER_TYPE_LABELS, PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 
-const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", CANCELADO: "red" };
+const statusColor: Record<string, "green" | "red" | "amber" | "slate"> = {
+  PAGO: "green",
+  ATRASADO: "red",
+  PENDENTE: "amber",
+  PARCIAL: "amber",
+  CANCELADO: "red",
+  A_APURAR: "slate",
+};
+
+function statusLabel(status: string): string {
+  return status === "A_APURAR" ? "A apurar" : status;
+}
+
+const documentTypeLabels: Record<string, string> = Object.fromEntries(DOCUMENT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
 const kindLabels: Record<string, string> = {
   HONORARIOS_CONTRATUAIS: "Honorários Contratuais",
@@ -23,19 +38,34 @@ type Receivable = {
   id: string;
   description: string;
   amount: number;
+  discount: number;
+  surcharge: number;
   dueDate: string;
   noDueDate: boolean;
   status: string;
   effectiveStatus: string;
   paidAmount: number | null;
+  paidDate: string | null;
+  paidSum: number;
   paymentReceiptNumber: string | null;
   paymentMethod: string | null;
   kind: string;
   isSuccessPortion: boolean;
+  documentType: string | null;
+  documentNumber: string | null;
+  payerType: string;
+  payerName: string | null;
+  percentual: number | null;
+  percentualBase: string | null;
   categoryId: string | null;
   costCenterId: string | null;
   clientId: string | null;
   caseId: string | null;
+  responsibleId: string | null;
+  issueDate: string | null;
+  installmentBoleto: string | null;
+  installmentNumber: number | null;
+  installmentTotal: number | null;
   category: { name: string } | null;
   costCenter: { name: string } | null;
   case: { title: string } | null;
@@ -50,12 +80,16 @@ export default function ReceivablesList({
   cases,
   clients,
   costCenters,
+  responsibles = [],
+  bankAccounts = [],
 }: {
   receivables: Receivable[];
   categories: Option[];
   cases: Option[];
   clients: Option[];
   costCenters: Option[];
+  responsibles?: Option[];
+  bankAccounts?: Option[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -70,7 +104,8 @@ export default function ReceivablesList({
   }
 
   const selectedItems = receivables.filter((r) => selected.has(r.id));
-  const total = selectedItems.reduce((s, r) => s + r.amount, 0);
+  // Soma líquida (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
+  const total = selectedItems.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
 
   if (receivables.length === 0) {
     return <EmptyState title="Nenhuma conta encontrada" />;
@@ -80,7 +115,10 @@ export default function ReceivablesList({
     <div>
       <div className="divide-y divide-navy-800/5 dark:divide-white/10">
         {receivables.map((r) => {
-          const selectable = r.status !== "PAGO";
+          const isApurar = r.effectiveStatus === "A_APURAR";
+          const selectable = r.status !== "PAGO" && !isApurar;
+          const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
+          const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, r.paidSum);
           return (
             <div key={r.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
               <div className="shrink-0 flex items-center">
@@ -103,28 +141,44 @@ export default function ReceivablesList({
                   {r.case && <span> · {r.case.title}</span>}
                   {r.costCenter && <span> · {r.costCenter.name}</span>}
                   {" · "}
-                  {kindLabels[r.kind]}
+                  {kindLabels[r.kind] ?? r.kind}
                   {r.isSuccessPortion && <span> · Êxito</span>}
+                  {r.payerType !== "CLIENTE" && (
+                    <span> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : PAYER_TYPE_LABELS[r.payerType]}</span>
+                  )}
+                  {r.documentType && <span> · {documentTypeLabels[r.documentType] ?? r.documentType}{r.documentNumber && ` ${r.documentNumber}`}</span>}
                   {r.status === "PAGO" && r.paymentMethod && <span> · {paymentMethodLabels[r.paymentMethod] ?? r.paymentMethod}</span>}
                   {r.status === "PAGO" && r.paymentReceiptNumber && <span> · Comprovante: {r.paymentReceiptNumber}</span>}
                 </p>
+                {isApurar && (
+                  <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                    {r.percentual}% de {PERCENTUAL_BASE_LABELS[r.percentualBase ?? ""] ?? "base não definida"} — regra a apurar no desfecho do processo
+                  </p>
+                )}
               </div>
               <div className="flex items-center justify-between sm:contents">
-                <div className="text-left sm:text-right shrink-0 sm:w-28">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(r.amount)}</p>
+                <div className="text-left sm:text-right shrink-0 sm:w-32">
+                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                  {r.effectiveStatus === "PARCIAL" && (
+                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>
+                  )}
                   <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                 </div>
                 <div className="shrink-0 sm:w-24">
-                  <Badge color={statusColor[r.effectiveStatus]}>{r.effectiveStatus}</Badge>
+                  <Badge color={statusColor[r.effectiveStatus]}>{statusLabel(r.effectiveStatus)}</Badge>
                 </div>
               </div>
               <div className="shrink-0 flex items-center gap-1">
-                <SettleButton id={r.id} kind="receivable" amount={r.paidAmount ?? r.amount} status={r.status} />
+                {!isApurar && (
+                  <SettleButton id={r.id} kind="receivable" liquido={liquido} alreadyPaid={r.paidSum} status={r.status} bankAccounts={bankAccounts} />
+                )}
                 <EditReceivableModal
                   receivable={{
                     id: r.id,
                     description: r.description,
                     amount: r.amount,
+                    discount: r.discount,
+                    surcharge: r.surcharge,
                     dueDate: r.dueDate,
                     noDueDate: r.noDueDate,
                     kind: r.kind,
@@ -132,11 +186,24 @@ export default function ReceivablesList({
                     costCenterId: r.costCenterId,
                     clientId: r.clientId,
                     caseId: r.caseId,
+                    responsibleId: r.responsibleId,
+                    documentType: r.documentType,
+                    documentNumber: r.documentNumber,
+                    issueDate: r.issueDate,
+                    installmentBoleto: r.installmentBoleto,
+                    installmentNumber: r.installmentNumber,
+                    installmentTotal: r.installmentTotal,
+                    status: r.status,
+                    paidAmount: r.paidAmount,
+                    paidDate: r.paidDate,
+                    paymentMethod: r.paymentMethod,
+                    paymentReceiptNumber: r.paymentReceiptNumber,
                   }}
                   categories={categories}
                   cases={cases}
                   clients={clients}
                   costCenters={costCenters}
+                  responsibles={responsibles}
                 />
                 <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
               </div>
@@ -149,9 +216,10 @@ export default function ReceivablesList({
         <BulkSettleBar
           count={selected.size}
           total={total}
+          bankAccounts={bankAccounts}
           onClear={() => setSelected(new Set())}
-          onConfirm={async (paidDate, receiptNumber, paymentMethod) => {
-            await markManyReceivablesPaid([...selected], paidDate, receiptNumber, paymentMethod);
+          onConfirm={async (paidDate, receiptNumber, paymentMethod, bankAccountId) => {
+            await markManyReceivablesPaid([...selected], paidDate, receiptNumber, paymentMethod, bankAccountId);
             setSelected(new Set());
             router.refresh();
           }}

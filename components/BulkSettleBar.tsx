@@ -5,16 +5,26 @@ import { useRouter } from "next/navigation";
 import { X, CheckCheck } from "lucide-react";
 import { formatCurrency } from "@/components/ui";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
+import { createBankAccountQuick } from "@/lib/actions/settings";
+import EntityPicker from "@/components/EntityPicker";
 
+type Option = { id: string; name: string };
+
+// Baixa em bloco (Fase 3): SEMPRE integral — cada conta selecionada é quitada pelo próprio saldo
+// em aberto (ver lib/actions/financeiro.ts:markManyPayablesPaid/markManyReceivablesPaid), nunca
+// um valor arbitrário digitado aqui. Quem precisar de uma baixa PARCIAL usa o botão individual
+// "Dar Baixa" de cada linha (SettleButton/SettleModal), que aceita valor menor que o devido.
 export default function BulkSettleBar({
   count,
   total,
+  bankAccounts = [],
   onConfirm,
   onClear,
 }: {
   count: number;
   total: number;
-  onConfirm: (paidDate: string, receiptNumber: string, paymentMethod: string) => Promise<void>;
+  bankAccounts?: Option[];
+  onConfirm: (paidDate: string, receiptNumber: string, paymentMethod: string, bankAccountId?: string) => Promise<void>;
   onClear: () => void;
 }) {
   const router = useRouter();
@@ -58,7 +68,8 @@ export default function BulkSettleBar({
                 const paidDate = String(formData.get("paidDate"));
                 const receiptNumber = String(formData.get("receiptNumber") || "");
                 const paymentMethod = String(formData.get("paymentMethod") || "");
-                await onConfirm(paidDate, receiptNumber, paymentMethod);
+                const bankAccountId = String(formData.get("bankAccountId") || "");
+                await onConfirm(paidDate, receiptNumber, paymentMethod, bankAccountId || undefined);
                 setLoading(false);
                 setOpen(false);
                 router.refresh();
@@ -66,11 +77,23 @@ export default function BulkSettleBar({
               className="p-5 space-y-3"
             >
               <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
-                {count} lançamento(s) selecionado(s) · Total <strong>{formatCurrency(total)}</strong>. Cada lançamento será baixado pelo seu próprio valor.
+                {count} lançamento(s) selecionado(s) · Total <strong>{formatCurrency(total)}</strong>. Baixa em bloco é sempre <strong>integral</strong> —
+                cada lançamento é quitado pelo próprio saldo em aberto.
               </p>
               <div>
                 <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data do pagamento</label>
                 <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Conta bancária</label>
+                <EntityPicker
+                  name="bankAccountId"
+                  options={bankAccounts}
+                  placeholder="Buscar conta..."
+                  emptyLabel="Nenhuma"
+                  addLabel="Cadastrar nova conta bancária"
+                  onQuickAdd={createBankAccountQuick}
+                />
               </div>
               <div>
                 <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Modalidade de pagamento</label>

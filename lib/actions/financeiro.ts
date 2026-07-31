@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice } from "@/lib/officeScope";
+import { valorLiquido, statusPorPagamentos } from "@/lib/financeCalc";
 
 // Exportado para lib/actions/honorarioLancamento.ts reaproveitar a mesma checagem de vínculos
 // (categoria/centro de custo/cliente/processo do escritório do usuário logado) no lançamento
@@ -73,70 +74,173 @@ export async function createInstallmentReminder(officeId: string, kind: "pagar" 
   });
 }
 
-export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string) {
+// Recalcula status/campos legados de uma Payable a partir da SOMA real dos FinancePayment dela —
+// chamada depois de toda operação que cria/apaga uma linha em FinancePayment (baixa, baixa em
+// bloco, reabertura), para os dois nunca divergirem (várias telas ainda leem só os campos
+// legados: status/paidAmount/paidDate/paymentReceiptNumber/paymentMethod). paidAmount passa a
+// guardar a SOMA (não mais "o último valor pago"); paidDate/paymentReceiptNumber/paymentMethod
+// espelham o pagamento mais recente (createdAt desc), única aproximação possível já que são
+// campos singulares e um lançamento pode ter N pagamentos (Fase 3 — baixa parcial).
+async function syncPayableStatus(id: string, officeId: string): Promise<void> {
+  const p = await prisma.payable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
+  if (!p) return;
+  const soma = p.payments.reduce((s, x) => s + x.amount, 0);
+  const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
+  const status = statusPorPagamentos(liquido, soma);
+  const last = p.payments[0];
+  await prisma.payable.update({
+    where: { id },
+    data: {
+      status,
+      paidAmount: soma > 0 ? soma : null,
+      paidDate: last ? last.paidDate : null,
+      paymentReceiptNumber: last?.documentNumber ?? null,
+      paymentMethod: last?.paymentMethod ?? null,
+    },
+  });
+}
+
+// Mesma conta acima, para Receivable — nunca chamada para uma linha A_APURAR (provisão de
+// honorário percentual sem valor real, ver lib/actions/honorarioLancamento.ts): o botão de baixa
+// não aparece para essas linhas na UI (HonorarioLancamentoCard), e statusPorPagamentos só devolve
+// PENDENTE/PARCIAL/PAGO, nunca A_APURAR — não há como esta função "promover" uma provisão sem
+// querer.
+async function syncReceivableStatus(id: string, officeId: string): Promise<void> {
+  const r = await prisma.receivable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
+  if (!r) return;
+  const soma = r.payments.reduce((s, x) => s + x.amount, 0);
+  const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
+  const status = statusPorPagamentos(liquido, soma);
+  const last = r.payments[0];
+  await prisma.receivable.update({
+    where: { id },
+    data: {
+      status,
+      paidAmount: soma > 0 ? soma : null,
+      paidDate: last ? last.paidDate : null,
+      paymentReceiptNumber: last?.documentNumber ?? null,
+      paymentMethod: last?.paymentMethod ?? null,
+    },
+  });
+}
+
+// Dar baixa (Fase 3 — aceita valor PARCIAL, menor que o saldo em aberto): cada chamada cria UM
+// FinancePayment novo (nunca sobrescreve os anteriores) e recalcula o status pela soma real —
+// ver syncPayableStatus. bankAccountId é opcional pelo mesmo motivo dos demais vínculos
+// opcionais deste arquivo: só checado quando informado.
+export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
   if (!existing) throw new Error("Conta a pagar não encontrada.");
-  await prisma.payable.update({
-    where: { id },
-    data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate), paymentReceiptNumber: receiptNumber || null, paymentMethod: paymentMethod || null },
+  if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
+  await prisma.financePayment.create({
+    data: {
+      officeId,
+      amount: paidAmount,
+      paidDate: new Date(paidDate),
+      paymentMethod: paymentMethod || null,
+      documentNumber: receiptNumber || null,
+      bankAccountId: bankAccountId || null,
+      payableId: id,
+    },
   });
+  await syncPayableStatus(id, officeId);
   revalidateFinance();
 }
 
-export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string) {
+export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
   if (!existing) throw new Error("Conta a receber não encontrada.");
-  await prisma.receivable.update({
-    where: { id },
-    data: { status: "PAGO", paidAmount, paidDate: new Date(paidDate), paymentReceiptNumber: receiptNumber || null, paymentMethod: paymentMethod || null },
+  if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
+  await prisma.financePayment.create({
+    data: {
+      officeId,
+      amount: paidAmount,
+      paidDate: new Date(paidDate),
+      paymentMethod: paymentMethod || null,
+      documentNumber: receiptNumber || null,
+      bankAccountId: bankAccountId || null,
+      receivableId: id,
+    },
   });
+  await syncReceivableStatus(id, officeId);
   revalidateFinance();
 }
 
-// Baixa em bloco: várias contas quitadas na mesma transferência/pagamento.
-// Cada lançamento é pago pelo seu próprio valor (não dividido); o nº do comprovante
-// e a modalidade de pagamento, quando informados, são os mesmos para todos os selecionados.
-export async function markManyPayablesPaid(ids: string[], paidDate: string, receiptNumber?: string, paymentMethod?: string): Promise<{ count: number }> {
+// Baixa em bloco: várias contas quitadas na mesma transferência/pagamento — SEMPRE integral
+// (quita exatamente o saldo em aberto de cada uma, nunca um valor arbitrário), diferente da baixa
+// individual (markPayablePaid/markReceivablePaid), que aceita parcial. Uma conta já PAGA (saldo
+// zero) é ignorada silenciosamente — na prática nunca chega selecionável aqui (as listas só
+// deixam marcar contas com status != PAGO), mas o guard evita criar um FinancePayment de valor
+// zero se algo mudar por trás enquanto a tela estava aberta.
+export async function markManyPayablesPaid(ids: string[], paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string): Promise<{ count: number }> {
   const officeId = await requireFinanceOfficeId();
   if (ids.length === 0) return { count: 0 };
-  const items = await prisma.payable.findMany({ where: { id: { in: ids }, officeId }, select: { id: true, amount: true } });
+  if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
+  const items = await prisma.payable.findMany({ where: { id: { in: ids }, officeId }, include: { payments: true } });
   const date = new Date(paidDate);
-  await prisma.$transaction(
-    items.map((p) =>
-      prisma.payable.update({
-        where: { id: p.id },
-        data: { status: "PAGO", paidAmount: p.amount, paidDate: date, paymentReceiptNumber: receiptNumber || null, paymentMethod: paymentMethod || null },
-      })
-    )
-  );
+  for (const p of items) {
+    const soma = p.payments.reduce((s, x) => s + x.amount, 0);
+    const saldo = Math.max(0, valorLiquido(p.amount, p.discount, p.surcharge) - soma);
+    if (saldo <= 0) continue;
+    await prisma.financePayment.create({
+      data: {
+        officeId,
+        amount: saldo,
+        paidDate: date,
+        paymentMethod: paymentMethod || null,
+        documentNumber: receiptNumber || null,
+        bankAccountId: bankAccountId || null,
+        payableId: p.id,
+      },
+    });
+    await syncPayableStatus(p.id, officeId);
+  }
   revalidateFinance();
   return { count: items.length };
 }
 
-export async function markManyReceivablesPaid(ids: string[], paidDate: string, receiptNumber?: string, paymentMethod?: string): Promise<{ count: number }> {
+export async function markManyReceivablesPaid(ids: string[], paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string): Promise<{ count: number }> {
   const officeId = await requireFinanceOfficeId();
   if (ids.length === 0) return { count: 0 };
-  const items = await prisma.receivable.findMany({ where: { id: { in: ids }, officeId }, select: { id: true, amount: true } });
+  if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
+  const items = await prisma.receivable.findMany({ where: { id: { in: ids }, officeId }, include: { payments: true } });
   const date = new Date(paidDate);
-  await prisma.$transaction(
-    items.map((r) =>
-      prisma.receivable.update({
-        where: { id: r.id },
-        data: { status: "PAGO", paidAmount: r.amount, paidDate: date, paymentReceiptNumber: receiptNumber || null, paymentMethod: paymentMethod || null },
-      })
-    )
-  );
+  for (const r of items) {
+    const soma = r.payments.reduce((s, x) => s + x.amount, 0);
+    const saldo = Math.max(0, valorLiquido(r.amount, r.discount, r.surcharge) - soma);
+    if (saldo <= 0) continue;
+    await prisma.financePayment.create({
+      data: {
+        officeId,
+        amount: saldo,
+        paidDate: date,
+        paymentMethod: paymentMethod || null,
+        documentNumber: receiptNumber || null,
+        bankAccountId: bankAccountId || null,
+        receivableId: r.id,
+      },
+    });
+    await syncReceivableStatus(r.id, officeId);
+  }
   revalidateFinance();
   return { count: items.length };
 }
 
+// Reabrir (Fase 3): apaga TODOS os FinancePayment da conta, não só limpa os campos legados —
+// senão uma conta PARCIAL reaberta voltaria a exibir "PENDENTE" nos campos legados enquanto o
+// histórico de pagamentos parciais continuaria por baixo, e a próxima baixa recalcularia errado
+// (a soma incluiria pagamentos que o usuário queria desfazer). Reabrir é sempre "voltar à
+// estaca zero": quem quiser corrigir só uma baixa específica cancela e lança de novo.
 export async function reopenPayable(id: string) {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
   if (!existing) throw new Error("Conta a pagar não encontrada.");
-  await prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } });
+  await prisma.$transaction([
+    prisma.financePayment.deleteMany({ where: { payableId: id, officeId } }),
+    prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } }),
+  ]);
   revalidateFinance();
 }
 
@@ -144,7 +248,10 @@ export async function reopenReceivable(id: string) {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
   if (!existing) throw new Error("Conta a receber não encontrada.");
-  await prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } });
+  await prisma.$transaction([
+    prisma.financePayment.deleteMany({ where: { receivableId: id, officeId } }),
+    prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } }),
+  ]);
   revalidateFinance();
 }
 
@@ -154,21 +261,88 @@ async function supplierDisplayName(supplierId: string | undefined, officeId: str
   return supplier?.name ?? null;
 }
 
+// ---- Fase 3 — Contas a Pagar/Receber com a mesma casca de Lançar Honorários -----------------
+// Tipos compartilhados entre createPayable/createReceivable, no mesmo formato de
+// lib/actions/honorarioLancamento.ts:ParcelaInput/PagamentoInput — duplicados aqui (não
+// importados de lá) porque um arquivo "use server" só pode exportar função async, e os dois
+// arquivos não têm nenhuma outra razão para se importar um ao outro.
+export type ParcelaInput = {
+  dueDate: string;
+  amount: string;
+  installmentBoleto?: string;
+  pago: boolean;
+};
+
+export type PagamentoInput = {
+  paidDate: string;
+  paidAmount: string;
+  bankAccountId?: string;
+  documentNumber?: string;
+  paymentMethod?: string;
+};
+
+async function registrarPagamentoPayable(payableId: string, pagamento: PagamentoInput, officeId: string): Promise<void> {
+  const paidAmount = parseFloat(pagamento.paidAmount || "0") || 0;
+  await prisma.financePayment.create({
+    data: {
+      officeId,
+      amount: paidAmount,
+      paidDate: new Date(pagamento.paidDate || ""),
+      paymentMethod: pagamento.paymentMethod || null,
+      documentNumber: pagamento.documentNumber || null,
+      bankAccountId: pagamento.bankAccountId || null,
+      payableId,
+    },
+  });
+  await syncPayableStatus(payableId, officeId);
+}
+
+async function registrarPagamentoReceivable(receivableId: string, pagamento: PagamentoInput, officeId: string): Promise<void> {
+  const paidAmount = parseFloat(pagamento.paidAmount || "0") || 0;
+  await prisma.financePayment.create({
+    data: {
+      officeId,
+      amount: paidAmount,
+      paidDate: new Date(pagamento.paidDate || ""),
+      paymentMethod: pagamento.paymentMethod || null,
+      documentNumber: pagamento.documentNumber || null,
+      bankAccountId: pagamento.bankAccountId || null,
+      receivableId,
+    },
+  });
+  await syncReceivableStatus(receivableId, officeId);
+}
+
 export async function updatePayable(id: string, data: {
   description: string;
   supplierId?: string;
-  amount: string;
-  dueDate: string;
-  categoryId?: string;
   costCenterId?: string;
+  categoryId?: string;
   caseId?: string;
+  responsibleId?: string;
+  documentType?: string;
+  documentNumber?: string;
+  issueDate?: string;
+  installmentBoleto?: string;
+  amount: string;
+  discount?: string;
+  surcharge?: string;
+  dueDate: string;
   noDueDate?: boolean;
-}) {
+}): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
-  if (!existing) throw new Error("Conta a pagar não encontrada.");
-  await assertFinanceRelationsInOffice(data, officeId);
+  if (!existing) return { error: "Conta a pagar não encontrada." };
+  try {
+    await assertFinanceRelationsInOffice(data, officeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+  if (!data.description.trim()) return { error: "Informe a descrição." };
   const noDueDate = data.noDueDate ?? false;
+  if (!noDueDate && isNaN(new Date(data.dueDate).getTime())) {
+    return { error: 'Informe a data de vencimento, ou marque "Sem vencimento definido".' };
+  }
   const supplierName = await supplierDisplayName(data.supplierId, officeId);
   await prisma.payable.update({
     where: { id },
@@ -176,167 +350,289 @@ export async function updatePayable(id: string, data: {
       description: data.description,
       supplierId: data.supplierId || null,
       supplier: supplierName,
-      amount: parseFloat(data.amount),
-      dueDate: noDueDate ? undefined : new Date(data.dueDate),
-      categoryId: data.categoryId || null,
       costCenterId: data.costCenterId || null,
+      categoryId: data.categoryId || null,
       caseId: data.caseId || null,
+      responsibleId: data.responsibleId || null,
+      documentType: data.documentType || null,
+      documentNumber: data.documentNumber || null,
+      issueDate: data.issueDate ? new Date(data.issueDate) : null,
+      installmentBoleto: data.installmentBoleto || null,
+      amount: parseFloat(data.amount),
+      discount: parseFloat(data.discount || "0") || 0,
+      surcharge: parseFloat(data.surcharge || "0") || 0,
+      dueDate: noDueDate ? undefined : new Date(data.dueDate),
       noDueDate,
     },
   });
   revalidateFinance();
+  return {};
 }
 
 export async function updateReceivable(id: string, data: {
   description: string;
   amount: string;
+  discount?: string;
+  surcharge?: string;
   dueDate: string;
   kind: string;
   categoryId?: string;
   costCenterId?: string;
   clientId?: string;
   caseId?: string;
+  responsibleId?: string;
+  documentType?: string;
+  documentNumber?: string;
+  issueDate?: string;
+  installmentBoleto?: string;
   noDueDate?: boolean;
-}) {
+}): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
   const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
-  if (!existing) throw new Error("Conta a receber não encontrada.");
-  await assertFinanceRelationsInOffice(data, officeId);
+  if (!existing) return { error: "Conta a receber não encontrada." };
+  try {
+    await assertFinanceRelationsInOffice(data, officeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+  if (!data.description.trim()) return { error: "Informe a descrição." };
   const noDueDate = data.noDueDate ?? false;
+  if (!noDueDate && isNaN(new Date(data.dueDate).getTime())) {
+    return { error: 'Informe a data de vencimento, ou marque "Sem vencimento definido".' };
+  }
   await prisma.receivable.update({
     where: { id },
     data: {
       description: data.description,
       amount: parseFloat(data.amount),
+      discount: parseFloat(data.discount || "0") || 0,
+      surcharge: parseFloat(data.surcharge || "0") || 0,
       dueDate: noDueDate ? undefined : new Date(data.dueDate),
       kind: data.kind,
       categoryId: data.categoryId || null,
       costCenterId: data.costCenterId || null,
       clientId: data.clientId || null,
       caseId: data.caseId || null,
+      responsibleId: data.responsibleId || null,
+      documentType: data.documentType || null,
+      documentNumber: data.documentNumber || null,
+      issueDate: data.issueDate ? new Date(data.issueDate) : null,
+      installmentBoleto: data.installmentBoleto || null,
       noDueDate,
     },
   });
   revalidateFinance();
+  return {};
 }
 
-export async function createPayable(data: {
+export type CreatePayableInput = {
   description: string;
   supplierId?: string;
-  amount: string;
-  dueDate: string;
-  categoryId?: string;
   costCenterId?: string;
+  categoryId?: string;
   caseId?: string;
+  responsibleId?: string;
+  documentType?: string;
+  documentNumber?: string;
+  issueDate?: string;
+  amount?: string; // valor único, quando não parcelado
+  discount?: string;
+  surcharge?: string;
+  dueDate?: string;
   noDueDate?: boolean;
-  installmentCount?: string;
-  installmentIntervalDays?: string;
-}) {
+  parcelado: boolean;
+  parcelas?: ParcelaInput[];
+  pago: boolean;
+  pagamento?: PagamentoInput;
+};
+
+export async function createPayable(data: CreatePayableInput): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
-  await assertFinanceRelationsInOffice(data, officeId);
+  try {
+    await assertFinanceRelationsInOffice({ ...data, bankAccountId: data.pagamento?.bankAccountId }, officeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+  if (!data.description.trim()) return { error: "Informe a descrição." };
+
+  // Trava do produto (mesma do Lançamento de Honorários, ver lib/actions/honorarioLancamento.ts):
+  // parcelado e já pago são mutuamente exclusivos — a UI já desabilita um quando o outro está
+  // marcado, mas o Server Action nunca confia só nisso.
+  const parcelado = data.parcelado;
+  const pago = data.pago && !parcelado;
   const noDueDate = data.noDueDate ?? false;
-  const count = Math.max(1, parseInt(data.installmentCount || "1") || 1);
-  const intervalDays = Math.max(1, parseInt(data.installmentIntervalDays || "30") || 30);
-  const groupId = count > 1 ? crypto.randomUUID() : null;
-  const baseDate = noDueDate ? firstOfNextMonth() : new Date(data.dueDate);
+
   const supplierName = await supplierDisplayName(data.supplierId, officeId);
+  const shared = {
+    officeId,
+    categoryId: data.categoryId || null,
+    costCenterId: data.costCenterId || null,
+    caseId: data.caseId || null,
+    supplierId: data.supplierId || null,
+    supplier: supplierName,
+    responsibleId: data.responsibleId || null,
+    documentType: data.documentType || null,
+    documentNumber: data.documentNumber || null,
+    issueDate: data.issueDate ? new Date(data.issueDate) : null,
+  };
 
-  for (let i = 0; i < count; i++) {
-    const dueDate = new Date(baseDate);
-    if (!noDueDate) dueDate.setDate(dueDate.getDate() + i * intervalDays);
-    const description = count > 1 ? `${data.description} (${i + 1}/${count})` : data.description;
-    await prisma.payable.create({
-      data: {
-        officeId,
-        description,
-        supplierId: data.supplierId || null,
-        supplier: supplierName,
-        amount: parseFloat(data.amount),
-        dueDate,
-        categoryId: data.categoryId || null,
-        costCenterId: data.costCenterId || null,
-        caseId: data.caseId || null,
-        noDueDate,
-        groupId,
-        installmentNumber: count > 1 ? i + 1 : null,
-        installmentTotal: count > 1 ? count : null,
-      },
-    });
-    if (count > 1 && !noDueDate) {
-      await createInstallmentReminder(officeId, "pagar", description, dueDate, data.caseId);
+  if (parcelado) {
+    const rows = data.parcelas ?? [];
+    if (rows.length === 0) return { error: "Informe ao menos uma parcela." };
+    const groupId = crypto.randomUUID();
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowAmount = parseFloat(row.amount || "0") || 0;
+      const rowDueDate = new Date(row.dueDate || "");
+      if (isNaN(rowDueDate.getTime())) return { error: `Parcela ${i + 1}/${rows.length}: informe o vencimento.` };
+      const description = `${data.description} (${i + 1}/${rows.length})`;
+      const payable = await prisma.payable.create({
+        data: {
+          ...shared,
+          description,
+          amount: rowAmount,
+          dueDate: rowDueDate,
+          groupId,
+          installmentNumber: i + 1,
+          installmentTotal: rows.length,
+          installmentBoleto: row.installmentBoleto || null,
+        },
+      });
+      if (row.pago) {
+        // Único caminho para lançamento retroativo parcelado: a parcela já quitada antes do
+        // cadastro se marca na própria linha da tabela (mesma regra da Fase 2).
+        await prisma.financePayment.create({
+          data: { officeId, amount: rowAmount, paidDate: rowDueDate, documentNumber: row.installmentBoleto || null, payableId: payable.id },
+        });
+        await syncPayableStatus(payable.id, officeId);
+      } else {
+        await createInstallmentReminder(officeId, "pagar", description, rowDueDate, data.caseId);
+      }
     }
-  }
-  revalidateFinance();
-}
-
-export async function createReceivable(data: {
-  description: string;
-  amount: string;
-  dueDate: string;
-  kind: string;
-  categoryId?: string;
-  costCenterId?: string;
-  clientId?: string;
-  caseId?: string;
-  successAmount?: string;
-  installmentCount?: string;
-  installmentIntervalDays?: string;
-}) {
-  const officeId = await requireFinanceOfficeId();
-  await assertFinanceRelationsInOffice(data, officeId);
-  const hasSuccessPortion = !!data.successAmount && parseFloat(data.successAmount) > 0;
-  const count = hasSuccessPortion ? 1 : Math.max(1, parseInt(data.installmentCount || "1") || 1);
-  const intervalDays = Math.max(1, parseInt(data.installmentIntervalDays || "30") || 30);
-  const groupId = hasSuccessPortion || count > 1 ? crypto.randomUUID() : null;
-  const baseDate = new Date(data.dueDate);
-
-  for (let i = 0; i < count; i++) {
-    const dueDate = new Date(baseDate);
-    dueDate.setDate(dueDate.getDate() + i * intervalDays);
-    const description =
-      count > 1 ? `${data.description} (${i + 1}/${count})` : hasSuccessPortion ? `${data.description} (parte agora)` : data.description;
-    await prisma.receivable.create({
-      data: {
-        officeId,
-        description,
-        amount: parseFloat(data.amount),
-        dueDate,
-        kind: data.kind,
-        categoryId: data.categoryId || null,
-        costCenterId: data.costCenterId || null,
-        clientId: data.clientId || null,
-        caseId: data.caseId || null,
-        groupId,
-        installmentNumber: count > 1 ? i + 1 : null,
-        installmentTotal: count > 1 ? count : null,
-      },
-    });
-    if (count > 1) {
-      await createInstallmentReminder(officeId, "receber", description, dueDate, data.caseId);
+  } else {
+    const amount = parseFloat(data.amount || "0") || 0;
+    const discount = parseFloat(data.discount || "0") || 0;
+    const surcharge = parseFloat(data.surcharge || "0") || 0;
+    const dueDate = noDueDate ? firstOfNextMonth() : new Date(data.dueDate || "");
+    if (!noDueDate && isNaN(dueDate.getTime())) {
+      return { error: 'Informe a data de vencimento, ou marque "Sem vencimento definido".' };
     }
-  }
-
-  if (hasSuccessPortion) {
-    await prisma.receivable.create({
-      data: {
-        officeId,
-        description: `${data.description} (parte no êxito)`,
-        amount: parseFloat(data.successAmount!),
-        dueDate: firstOfNextMonth(),
-        noDueDate: true,
-        isSuccessPortion: true,
-        kind: data.kind,
-        categoryId: data.categoryId || null,
-        costCenterId: data.costCenterId || null,
-        clientId: data.clientId || null,
-        caseId: data.caseId || null,
-        groupId,
-      },
+    const payable = await prisma.payable.create({
+      data: { ...shared, description: data.description, amount, discount, surcharge, dueDate, noDueDate },
     });
+    if (pago && data.pagamento) {
+      await registrarPagamentoPayable(payable.id, data.pagamento, officeId);
+    } else if (!noDueDate) {
+      await createInstallmentReminder(officeId, "pagar", data.description, dueDate, data.caseId);
+    }
   }
 
   revalidateFinance();
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
+  return {};
+}
+
+export type CreateReceivableInput = {
+  description: string;
+  clientId?: string;
+  costCenterId?: string;
+  categoryId?: string;
+  caseId?: string;
+  responsibleId?: string;
+  kind: string;
+  documentType?: string;
+  documentNumber?: string;
+  issueDate?: string;
+  amount?: string;
+  discount?: string;
+  surcharge?: string;
+  dueDate?: string;
+  noDueDate?: boolean;
+  parcelado: boolean;
+  parcelas?: ParcelaInput[];
+  recebido: boolean;
+  pagamento?: PagamentoInput;
+};
+
+export async function createReceivable(data: CreateReceivableInput): Promise<{ error?: string }> {
+  const officeId = await requireFinanceOfficeId();
+  try {
+    await assertFinanceRelationsInOffice({ ...data, bankAccountId: data.pagamento?.bankAccountId }, officeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+  if (!data.description.trim()) return { error: "Informe a descrição." };
+
+  // Mesma trava de createPayable acima.
+  const parcelado = data.parcelado;
+  const recebido = data.recebido && !parcelado;
+  const noDueDate = data.noDueDate ?? false;
+
+  const shared = {
+    officeId,
+    categoryId: data.categoryId || null,
+    costCenterId: data.costCenterId || null,
+    caseId: data.caseId || null,
+    clientId: data.clientId || null,
+    kind: data.kind || "HONORARIOS_CONTRATUAIS",
+    responsibleId: data.responsibleId || null,
+    documentType: data.documentType || null,
+    documentNumber: data.documentNumber || null,
+    issueDate: data.issueDate ? new Date(data.issueDate) : null,
+  };
+
+  if (parcelado) {
+    const rows = data.parcelas ?? [];
+    if (rows.length === 0) return { error: "Informe ao menos uma parcela." };
+    const groupId = crypto.randomUUID();
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowAmount = parseFloat(row.amount || "0") || 0;
+      const rowDueDate = new Date(row.dueDate || "");
+      if (isNaN(rowDueDate.getTime())) return { error: `Parcela ${i + 1}/${rows.length}: informe o vencimento.` };
+      const description = `${data.description} (${i + 1}/${rows.length})`;
+      const receivable = await prisma.receivable.create({
+        data: {
+          ...shared,
+          description,
+          amount: rowAmount,
+          dueDate: rowDueDate,
+          groupId,
+          installmentNumber: i + 1,
+          installmentTotal: rows.length,
+          installmentBoleto: row.installmentBoleto || null,
+        },
+      });
+      if (row.pago) {
+        await prisma.financePayment.create({
+          data: { officeId, amount: rowAmount, paidDate: rowDueDate, documentNumber: row.installmentBoleto || null, receivableId: receivable.id },
+        });
+        await syncReceivableStatus(receivable.id, officeId);
+      } else {
+        await createInstallmentReminder(officeId, "receber", description, rowDueDate, data.caseId);
+      }
+    }
+  } else {
+    const amount = parseFloat(data.amount || "0") || 0;
+    const discount = parseFloat(data.discount || "0") || 0;
+    const surcharge = parseFloat(data.surcharge || "0") || 0;
+    const dueDate = noDueDate ? firstOfNextMonth() : new Date(data.dueDate || "");
+    if (!noDueDate && isNaN(dueDate.getTime())) {
+      return { error: 'Informe a data de vencimento, ou marque "Sem vencimento definido".' };
+    }
+    const receivable = await prisma.receivable.create({
+      data: { ...shared, description: data.description, amount, discount, surcharge, dueDate, noDueDate },
+    });
+    if (recebido && data.pagamento) {
+      await registrarPagamentoReceivable(receivable.id, data.pagamento, officeId);
+    } else if (!noDueDate) {
+      await createInstallmentReminder(officeId, "receber", data.description, dueDate, data.caseId);
+    }
+  }
+
+  revalidateFinance();
+  if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
+  return {};
 }
 
 // Quantos meses (mês corrente + à frente) o RecurringFee sempre mantém materializados em

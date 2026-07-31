@@ -56,6 +56,11 @@ export default function MobileNewPayableForm({
             categoryId: String(formData.get("categoryId") || ""),
             costCenterId: String(formData.get("costCenterId") || ""),
             noDueDate: semVencimento,
+            // Versão de campo, sem parcelamento nem "já pago" — mesma limitação de sempre (ver
+            // comentário no topo do arquivo), agora explícita pelo novo formato do Server Action
+            // (Fase 3, compartilhado com a tela nova de Contas a Pagar do desktop).
+            parcelado: false,
+            pago: false,
           });
           setLoading(false);
           setOpen(false);

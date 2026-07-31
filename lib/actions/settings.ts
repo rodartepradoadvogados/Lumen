@@ -324,6 +324,81 @@ export async function createBankAccountQuick(name: string): Promise<{ id: string
   return { id: bankAccount.id, name: bankAccount.name };
 }
 
+// ============ CONTAS BANCÁRIAS (Fase 3) ============
+// Tela de gestão em Configurações → Financeiro: listar, criar, editar, ativar/desativar — segue
+// o mesmo padrão de createCostCenter/deleteCostCenter acima, mas com edição e inativação (em vez
+// de exclusão) porque uma conta bancária normalmente já tem FinancePayment vinculado (histórico
+// financeiro real, nunca deve sumir) assim que passa a ser usada — inativar apenas a tira das
+// listas de seleção de novos lançamentos, sem apagar nada.
+export async function createBankAccount(data: {
+  name: string;
+  bank?: string;
+  agency?: string;
+  accountNumber?: string;
+  type?: string;
+  initialBalance?: string;
+  notes?: string;
+}): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  if (!data.name.trim()) return { error: "Informe o apelido da conta." };
+  await prisma.bankAccount.create({
+    data: {
+      officeId: viewer.officeId,
+      name: data.name.trim(),
+      bank: data.bank || null,
+      agency: data.agency || null,
+      accountNumber: data.accountNumber || null,
+      type: data.type || "CORRENTE",
+      initialBalance: parseFloat(data.initialBalance || "0") || 0,
+      notes: data.notes || null,
+    },
+  });
+  revalidatePath("/configuracoes");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
+  return {};
+}
+
+export async function updateBankAccount(
+  id: string,
+  data: { name: string; bank?: string; agency?: string; accountNumber?: string; type?: string; initialBalance?: string; notes?: string }
+): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const account = await prisma.bankAccount.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!account) return { error: "Conta bancária não encontrada." };
+  if (!data.name.trim()) return { error: "Informe o apelido da conta." };
+  await prisma.bankAccount.update({
+    where: { id },
+    data: {
+      name: data.name.trim(),
+      bank: data.bank || null,
+      agency: data.agency || null,
+      accountNumber: data.accountNumber || null,
+      type: data.type || "CORRENTE",
+      initialBalance: parseFloat(data.initialBalance || "0") || 0,
+      notes: data.notes || null,
+    },
+  });
+  revalidatePath("/configuracoes");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
+  return {};
+}
+
+export async function toggleBankAccountActive(id: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const account = await prisma.bankAccount.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!account) return { error: "Conta bancária não encontrada." };
+  await prisma.bankAccount.update({ where: { id }, data: { active: !account.active } });
+  revalidatePath("/configuracoes");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/receitas");
+  return {};
+}
+
 export async function deleteCostCenter(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada." };

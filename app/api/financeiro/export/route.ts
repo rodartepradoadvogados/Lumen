@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getFilteredPayables, getFilteredReceivables, FinanceSearchParams } from "@/lib/financeQuery";
 import { formatDate } from "@/components/ui";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +41,10 @@ export async function GET(request: NextRequest) {
       Categoria: p.category ? `${p.category.code} ${p.category.name}` : "",
       "Centro de Custo": p.costCenter?.name || "",
       Vencimento: p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate),
-      Valor: p.amount,
+      // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
+      Valor: valorLiquido(p.amount, p.discount, p.surcharge),
       Status: p.effectiveStatus,
+      "Saldo em aberto": p.effectiveStatus === "PARCIAL" ? saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum) : "",
       "Pago em": p.paidDate ? formatDate(p.paidDate) : "",
       "Valor pago": p.paidAmount ?? "",
       "Forma de Pagamento": p.paymentMethod ? paymentMethodLabels[p.paymentMethod] ?? p.paymentMethod : "",
@@ -55,8 +58,9 @@ export async function GET(request: NextRequest) {
       Categoria: r.category ? `${r.category.code} ${r.category.name}` : kindLabels[r.kind] || "",
       "Centro de Custo": r.costCenter?.name || "",
       Vencimento: r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate),
-      Valor: r.amount,
+      Valor: r.status === "A_APURAR" ? "" : valorLiquido(r.amount, r.discount, r.surcharge),
       Status: r.effectiveStatus,
+      "Saldo em aberto": r.effectiveStatus === "PARCIAL" ? saldoEmAberto(r.amount, r.discount, r.surcharge, r.paidSum) : "",
       "Pago em": r.paidDate ? formatDate(r.paidDate) : "",
       "Valor pago": r.paidAmount ?? "",
       "Forma de Pagamento": r.paymentMethod ? paymentMethodLabels[r.paymentMethod] ?? r.paymentMethod : "",
@@ -65,7 +69,7 @@ export async function GET(request: NextRequest) {
   }
 
   const worksheet = XLSX.utils.json_to_sheet(rows, {
-    header: ["Descrição", "Fornecedor/Cliente", "Categoria", "Centro de Custo", "Vencimento", "Valor", "Status", "Pago em", "Valor pago", "Forma de Pagamento", "Comprovante"],
+    header: ["Descrição", "Fornecedor/Cliente", "Categoria", "Centro de Custo", "Vencimento", "Valor", "Status", "Saldo em aberto", "Pago em", "Valor pago", "Forma de Pagamento", "Comprovante"],
   });
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, tipo === "pagar" ? "Contas a Pagar" : "Contas a Receber");

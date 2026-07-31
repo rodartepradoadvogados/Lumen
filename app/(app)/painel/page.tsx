@@ -36,18 +36,18 @@ export default async function DashboardPage() {
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
-  const [payablesPending, receivablesPending, activeCases, upcomingTasks, overdueTasksList, alerts, activeUsers] = await Promise.all([
+  const [payablesPending, receivablesPending, activeCases, upcomingTasks, overdueTasksList, alerts, activeUsers, bankAccounts] = await Promise.all([
     hasFinanceAccess
       ? prisma.payable.findMany({
           where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
-          include: { case: true },
+          include: { case: true, payments: true },
           orderBy: { dueDate: "asc" },
         })
       : Promise.resolve([]),
     hasFinanceAccess
       ? prisma.receivable.findMany({
           where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
-          include: { case: true, client: true },
+          include: { case: true, client: true, payments: true },
           orderBy: { dueDate: "asc" },
         })
       : Promise.resolve([]),
@@ -65,6 +65,9 @@ export default async function DashboardPage() {
     }),
     getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    hasFinanceAccess
+      ? prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
   ]);
 
   const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO", officeId: viewer.officeId } });
@@ -132,8 +135,15 @@ export default async function DashboardPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(r.amount)}</span>
-                      <SettleButton id={r.id} kind="receivable" amount={r.amount} status={r.status} />
+                      <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(valorLiquido(r.amount, r.discount, r.surcharge))}</span>
+                      <SettleButton
+                        id={r.id}
+                        kind="receivable"
+                        liquido={valorLiquido(r.amount, r.discount, r.surcharge)}
+                        alreadyPaid={r.payments.reduce((s, x) => s + x.amount, 0)}
+                        status={r.status}
+                        bankAccounts={bankAccounts}
+                      />
                     </div>
                   </div>
                 ))}
@@ -164,8 +174,15 @@ export default async function DashboardPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(p.amount)}</span>
-                      <SettleButton id={p.id} kind="payable" amount={p.amount} status={p.status} />
+                      <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(valorLiquido(p.amount, p.discount, p.surcharge))}</span>
+                      <SettleButton
+                        id={p.id}
+                        kind="payable"
+                        liquido={valorLiquido(p.amount, p.discount, p.surcharge)}
+                        alreadyPaid={p.payments.reduce((s, x) => s + x.amount, 0)}
+                        status={p.status}
+                        bankAccounts={bankAccounts}
+                      />
                     </div>
                   </div>
                 ))}

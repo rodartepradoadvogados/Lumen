@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getFilteredPayables } from "@/lib/financeQuery";
+import { valorLiquido } from "@/lib/financeCalc";
 import { getCurrentUser } from "@/lib/currentUser";
 import { redirect } from "next/navigation";
 
@@ -20,14 +21,17 @@ export default async function DespesasPage({
   if (!viewer) redirect("/");
 
   const filtered = await getFilteredPayables(searchParams, viewer.officeId);
-  const total = filtered.reduce((s, p) => s + p.amount, 0);
+  // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
+  const total = filtered.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
 
-  const [categories, cases, costCenters, suppliers] = await Promise.all([
+  const [categories, cases, costCenters, suppliers, responsibles, bankAccounts] = await Promise.all([
     getLeafCategoryOptions("DESPESA", viewer.officeId),
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const exportHref = (() => {
@@ -52,7 +56,17 @@ export default async function DespesasPage({
       <PageHeader
         title="Despesas"
         subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
-        action={<NewPayableModal categories={categories} cases={cases.map((c) => ({ id: c.id, name: c.title }))} costCenters={costCenters} suppliers={suppliers} />}
+        action={
+          <NewPayableModal
+            categories={categories}
+            cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+            costCenters={costCenters}
+            suppliers={suppliers}
+            responsibles={responsibles}
+            bankAccounts={bankAccounts}
+            defaultResponsibleId={viewer.id}
+          />
+        }
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -123,16 +137,27 @@ export default async function DespesasPage({
             supplier: p.supplier,
             supplierId: p.supplierId,
             amount: p.amount,
+            discount: p.discount,
+            surcharge: p.surcharge,
             dueDate: p.dueDate.toISOString(),
             noDueDate: p.noDueDate,
             status: p.status,
             effectiveStatus: p.effectiveStatus,
             paidAmount: p.paidAmount,
+            paidDate: p.paidDate ? p.paidDate.toISOString() : null,
+            paidSum: p.paidSum,
             paymentReceiptNumber: p.paymentReceiptNumber,
             paymentMethod: p.paymentMethod,
+            documentType: p.documentType,
+            documentNumber: p.documentNumber,
             categoryId: p.categoryId,
             costCenterId: p.costCenterId,
             caseId: p.caseId,
+            responsibleId: p.responsibleId,
+            issueDate: p.issueDate ? p.issueDate.toISOString() : null,
+            installmentBoleto: p.installmentBoleto,
+            installmentNumber: p.installmentNumber,
+            installmentTotal: p.installmentTotal,
             category: p.category ? { name: p.category.name } : null,
             costCenter: p.costCenter ? { name: p.costCenter.name } : null,
             case: p.case ? { title: p.case.title } : null,
@@ -141,6 +166,8 @@ export default async function DespesasPage({
           cases={cases.map((c) => ({ id: c.id, name: c.title }))}
           costCenters={costCenters}
           suppliers={suppliers}
+          responsibles={responsibles}
+          bankAccounts={bankAccounts}
         />
       </Card>
       <style>{`

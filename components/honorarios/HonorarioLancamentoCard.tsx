@@ -7,12 +7,18 @@ import SettleButton from "@/components/SettleButton";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { updateHonorarioLancamentoParcelas, type ParcelaEdicao } from "@/lib/actions/honorarioLancamento";
 import { VALUE_TYPE_LABELS, PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS, estimatePercentualAmount, type CaseValueBases } from "@/lib/honorarioLancamento";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
+
+type Option = { id: string; name: string };
 
 type Parcela = {
   id: string;
   description: string;
   amount: number;
+  discount: number;
+  surcharge: number;
+  paidSum: number;
   dueDate: string;
   noDueDate: boolean;
   status: string;
@@ -119,7 +125,15 @@ function statusLabel(status: string): string {
   return status;
 }
 
-export default function HonorarioLancamentoCard({ lancamento, bases }: { lancamento: Lancamento; bases: CaseValueBases }) {
+export default function HonorarioLancamentoCard({
+  lancamento,
+  bases,
+  bankAccounts = [],
+}: {
+  lancamento: Lancamento;
+  bases: CaseValueBases;
+  bankAccounts?: Option[];
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -190,7 +204,8 @@ export default function HonorarioLancamentoCard({ lancamento, bases }: { lancame
       <div className="mt-2 space-y-2">
         {lancamento.parcelas.map((p) => {
           const isApurar = p.status === "A_APURAR";
-          const saldo = p.amount - (p.paidAmount ?? 0);
+          const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
+          const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
           return (
             <div key={p.id} className="flex justify-between items-center">
               <div>
@@ -216,11 +231,13 @@ export default function HonorarioLancamentoCard({ lancamento, bases }: { lancame
               </div>
               <div className="flex items-center gap-1">
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(p.amount)}</p>
+                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
                   {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
                   <Badge color={statusBadgeColor(p.status)}>{statusLabel(p.status)}</Badge>
                 </div>
-                {!isApurar && <SettleButton id={p.id} kind="receivable" amount={p.amount} status={p.status} />}
+                {!isApurar && (
+                  <SettleButton id={p.id} kind="receivable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />
+                )}
                 <DeleteEntityButton entityType="RECEIVABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir a parcela "${p.description}"?`} />
               </div>
             </div>

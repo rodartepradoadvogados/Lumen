@@ -30,6 +30,7 @@ import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
+import BankAccountsManager from "@/components/BankAccountsManager";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -139,6 +140,7 @@ export default async function ConfiguracoesPage({
     columns,
     categories,
     costCenters,
+    bankAccounts,
     driveStatus,
     documentTemplates,
     taskTypePoints,
@@ -163,6 +165,7 @@ export default async function ConfiguracoesPage({
       prisma.kanbanColumn.findMany({ where: { officeId }, orderBy: { order: "asc" }, include: { _count: { select: { tasks: true } } } }),
       prisma.financialCategory.findMany({ where: { officeId } }),
       prisma.costCenter.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
+      prisma.bankAccount.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
       getDriveStatus(officeId),
       prisma.documentTemplate.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
       prisma.taskTypePoints.findMany({ where: { officeId } }),
@@ -1007,6 +1010,23 @@ export default async function ConfiguracoesPage({
             Adicionar
           </button>
         </form>
+      </Card>
+
+      <Card>
+        <CardHeader title="Contas Bancárias" subtitle="Usadas na baixa de Contas a Pagar/Receber e no Lançamento de Honorários" />
+        <BankAccountsManager
+          accounts={bankAccounts.map((b) => ({
+            id: b.id,
+            name: b.name,
+            bank: b.bank,
+            agency: b.agency,
+            accountNumber: b.accountNumber,
+            type: b.type,
+            initialBalance: b.initialBalance,
+            notes: b.notes,
+            active: b.active,
+          }))}
+        />
       </Card>
       </>
       )}
