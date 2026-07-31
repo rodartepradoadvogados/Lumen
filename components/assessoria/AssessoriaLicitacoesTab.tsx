@@ -7,7 +7,7 @@ import {
   addLicitacaoTask,
   type getAssessoriaDetail,
 } from "@/lib/actions/assessoria";
-import { Badge, formatCurrency, formatDate } from "@/components/ui";
+import { Badge, formatCurrency, formatCalendarDate } from "@/components/ui";
 import { Plus } from "lucide-react";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
@@ -143,7 +143,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                       <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{l.orgao}</p>
                     </td>
                     <td className="py-2.5 pr-3 text-navy-800/70 dark:text-cream-50/70">{l.modalidade || "—"}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{l.prazoFinal ? formatDate(l.prazoFinal) : "—"}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{l.prazoFinal ? formatCalendarDate(l.prazoFinal) : "—"}</td>
                     <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{l.valorEstimado ? formatCurrency(l.valorEstimado) : "—"}</td>
                     <td className="py-2.5"><Badge color={statusMeta(l.status).color}>{statusMeta(l.status).label}</Badge></td>
                   </tr>
@@ -226,7 +226,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                         <div key={t.id} className="flex justify-between gap-3 py-2 text-sm">
                           <span className={t.status === "CONCLUIDO" ? "line-through text-navy-800/40 dark:text-cream-50/40" : "text-navy-900 dark:text-cream-50"}>{t.title}</span>
                           <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap tabular-nums">
-                            {formatDate(t.dueDate)}{t.responsible ? ` · ${t.responsible.name.split(" ")[0]}` : ""}
+                            {formatCalendarDate(t.dueDate)}{t.responsible ? ` · ${t.responsible.name.split(" ")[0]}` : ""}
                           </span>
                         </div>
                       ))}

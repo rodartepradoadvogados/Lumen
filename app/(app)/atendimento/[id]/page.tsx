@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, Badge, formatDate, EmptyState, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import { Card, Badge, formatDate, formatCalendarDate, EmptyState, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
 import AttachmentList from "@/components/AttachmentList";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
@@ -245,7 +245,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                         </div>
                         {t.responsible && <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">Responsável: {t.responsible.name}</p>}
                       </div>
-                      <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatDate(t.dueDate)}</p>
+                      <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatCalendarDate(t.dueDate)}</p>
                       <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir a tarefa "${t.title}"?`} />
                     </div>
                   ))}

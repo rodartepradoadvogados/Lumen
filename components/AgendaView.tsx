@@ -82,10 +82,16 @@ export default function AgendaView({
 
   const tasksByDay: Record<string, TaskData[]> = {};
   for (const t of tasks) {
-    const fatalKey = ymd(new Date(t.dueDate));
+    // t.dueDate/t.safetyDueDate chegam do servidor como ISO de meia-noite UTC (a data-calendário
+    // do prazo, sem hora — ver computeSafetyDueDate em lib/actions/tasks.ts). Fazer
+    // `new Date(iso).getDate()` leria essa meia-noite UTC no fuso LOCAL do navegador: em
+    // Brasília (UTC-3) isso cai sempre um dia antes (ex.: 2026-08-10T00:00:00Z vira 09/08 às
+    // 21h aqui), fazendo o prazo aparecer no dia errado na grade. Como o valor já É a data-
+    // calendário certa nos 10 primeiros caracteres do ISO, extrair direto evita esse desvio.
+    const fatalKey = t.dueDate.slice(0, 10);
     (tasksByDay[fatalKey] ||= []).push({ ...t, entryKind: "fatal" });
     if (t.safetyDueDate) {
-      const safeKey = ymd(new Date(t.safetyDueDate));
+      const safeKey = t.safetyDueDate.slice(0, 10);
       (tasksByDay[safeKey] ||= []).push({ ...t, entryKind: "seguranca" });
     }
   }

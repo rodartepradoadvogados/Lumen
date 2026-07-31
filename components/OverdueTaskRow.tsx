@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import TaskDetailModal from "@/components/TaskDetailModal";
-import { Badge, formatDate, taskTypeColors, taskTypeLabels } from "@/components/ui";
+import { Badge, formatCalendarDate, taskTypeColors, taskTypeLabels } from "@/components/ui";
 
 // Linha de uma tarefa atrasada dentro do modal "Prazos Atrasados" do painel: clicar na
 // linha abre o card do compromisso; o número do processo é um link separado (não aninhado
@@ -32,7 +32,7 @@ export default function OverdueTaskRow({
         </div>
         <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
           {task.responsibleName && <>Responsável: {task.responsibleName} · </>}
-          Venceu em {formatDate(task.dueDate)}
+          Venceu em {formatCalendarDate(task.dueDate)}
         </p>
       </button>
       {task.caseId && (

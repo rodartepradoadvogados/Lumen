@@ -11,6 +11,7 @@ import {
   EmptyState,
   formatCurrency,
   formatDate,
+  formatCalendarDate,
   taskTypeLabels,
   taskTypeColors,
   dueStatusClassName,
@@ -262,7 +263,7 @@ export default async function DashboardPage() {
                   {t.case && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 truncate">{t.case.title}</p>}
                 </div>
                 <div className="text-right shrink-0 ml-3">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50/80">{formatDate(t.dueDate)}</p>
+                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50/80">{formatCalendarDate(t.dueDate)}</p>
                   {t.dueTime && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</p>}
                 </div>
               </div>

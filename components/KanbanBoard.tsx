@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatDate } from "@/components/ui";
+import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatCalendarDate } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { Check, MessageSquare } from "lucide-react";
@@ -142,7 +142,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         </div>
         <div className="flex items-center gap-1">
           <span className={clsx("text-[11px] font-semibold", overdue ? "text-red-600 dark:text-bordo-400" : "text-navy-800/50 dark:text-cream-50/50")}>
-            {formatDate(task.dueDate)}
+            {formatCalendarDate(task.dueDate)}
           </span>
           {task.responsible && (
             <span

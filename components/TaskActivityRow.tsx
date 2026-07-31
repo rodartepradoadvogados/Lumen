@@ -6,7 +6,7 @@ import TaskDetailModal from "@/components/TaskDetailModal";
 import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, formatDate, taskTypeColors, taskTypeLabels, priorityColors } from "@/components/ui";
+import { Badge, formatCalendarDate, taskTypeColors, taskTypeLabels, priorityColors } from "@/components/ui";
 import { Check, MessageSquare } from "lucide-react";
 
 // Linha da aba Atividades do processo, em estilo "card Trello": clicar no título abre o mesmo
@@ -71,7 +71,7 @@ export default function TaskActivityRow({
         </button>
         <TaskResponsibleSelect taskId={task.id} responsibleId={task.responsibleId} users={users} />
       </div>
-      <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatDate(task.dueDate)}</p>
+      <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatCalendarDate(task.dueDate)}</p>
       <DeleteEntityButton entityType="TASK" entityId={task.id} entityLabel={task.title} confirmMessage={`Excluir a atividade "${task.title}"?`} />
       {open && <TaskDetailModal taskId={task.id} onClose={() => setOpen(false)} />}
     </div>

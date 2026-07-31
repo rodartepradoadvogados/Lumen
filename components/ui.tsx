@@ -150,6 +150,18 @@ export function formatDate(d: Date | string) {
   return date.toLocaleDateString("pt-BR");
 }
 
+// Para datas-calendário puras (Task.dueDate/safetyDueDate, vencimento de conta, prazo final...):
+// esses campos nascem de um <input type="date"> e são gravados como meia-noite UTC (a data em
+// si, sem hora — mesma convenção documentada em computeSafetyDueDate, lib/actions/tasks.ts).
+// formatDate() usa o fuso LOCAL do navegador pra formatar, o que em Brasília (UTC-3) lê essa
+// meia-noite UTC como 21h do dia anterior — mostrando um dia a menos. formatCalendarDate() força
+// a leitura em UTC, batendo com a data que foi digitada. Não usar para timestamps de verdade
+// (createdAt, paidAt...), onde o horário local em que a coisa aconteceu importa de verdade.
+export function formatCalendarDate(d: Date | string) {
+  const date = new Date(d);
+  return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
+
 export const taskTypeLabels: Record<string, string> = {
   TAREFA: "Tarefa",
   EVENTO: "Evento",

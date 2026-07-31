@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, EmptyState, formatCurrency, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatDate, formatCalendarDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileCommentForm from "@/components/mobile/MobileCommentForm";
 import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
 import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
@@ -236,7 +236,7 @@ export default async function MobileCaseDetail({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
-                    <span className="text-xs font-semibold text-navy-800/55 dark:text-cream-50/55">{formatDate(t.dueDate)}</span>
+                    <span className="text-xs font-semibold text-navy-800/55 dark:text-cream-50/55">{formatCalendarDate(t.dueDate)}</span>
                     {t.dueTime && <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</span>}
                   </div>
                   <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{t.title}</p>

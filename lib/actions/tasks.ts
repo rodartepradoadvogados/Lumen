@@ -207,6 +207,7 @@ export async function delegateTask(data: {
   }
 
   revalidatePath("/agenda");
+  revalidatePath("/m/agenda");
   revalidatePath("/kanban");
   revalidatePath("/painel");
   revalidatePath("/alertas");

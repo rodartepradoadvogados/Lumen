@@ -6,7 +6,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
-import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
+import ProcessosFiltroForm from "@/components/ProcessosFiltroForm";
+import { buildCasesWhere } from "@/lib/casesFilter";
 import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
 import {
   type CaseNatureza,
@@ -18,7 +19,7 @@ import {
   MATERIAS_ADMIN,
   MATERIA_LABELS,
 } from "@/lib/caseNatureza";
-import { Scale, Search } from "lucide-react";
+import { Scale } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -82,30 +83,19 @@ export default async function ProcessosPage({
     area: searchParams.area || undefined,
     responsibleId: searchParams.responsibleId || undefined,
   };
-  // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.
-  const matchingProcessNumberIds = q ? await findCaseIdsByProcessNumber(q, baseFilters) : [];
-
-  const where: Prisma.CaseWhereInput = {
-    ...baseFilters,
-    ...(natureza ? (naturezaWhere(natureza) as Prisma.CaseWhereInput) : {}),
-    // Chips de esfera/matéria só existem (na UI) quando a aba ativa é Administrativos — mas o
-    // filtro em si só faz sentido combinado com esse `where.type`, então fica condicionado à
-    // mesma checagem aqui também, e não só na renderização dos chips.
-    ...(natureza === "ADMINISTRATIVO" && esfera ? { adminEsfera: esfera } : {}),
-    ...(natureza === "ADMINISTRATIVO" && materia ? { adminMateria: materia } : {}),
-    ...(q
-      ? {
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { opposingPartyName: { contains: q, mode: "insensitive" } },
-            { client: { is: { name: { contains: q, mode: "insensitive" } } } },
-            { clients: { some: { client: { name: { contains: q, mode: "insensitive" } } } } },
-            { parties: { some: { name: { contains: q, mode: "insensitive" } } } },
-            ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
-          ],
-        }
-      : {}),
-  };
+  // Mesmo builder de where usado pela pré-visualização dinâmica do formulário (ver
+  // lib/actions/casesSearch.ts) — garante que a prévia mostrada ao digitar bate exatamente com
+  // o que "Aplicar" traz aqui.
+  const where = await buildCasesWhere({
+    officeId: viewer.officeId,
+    status: searchParams.status,
+    area: searchParams.area,
+    responsibleId: searchParams.responsibleId,
+    natureza,
+    esfera,
+    materia,
+    q,
+  });
 
   const [cases, totalCount, areaRows, users, countTodos, countJudicial, countAdministrativo, countCaso] = await Promise.all([
     prisma.case.findMany({
@@ -202,70 +192,24 @@ export default async function ProcessosPage({
       </div>
 
       <Card className="mb-4">
-        <form className="p-4 flex flex-wrap items-end gap-3">
-          {searchParams.status && <input type="hidden" name="status" value={searchParams.status} />}
-          {/* Preserva a aba de natureza (e os chips de esfera/matéria, quando aplicável) ao
-              enviar este formulário de busca — sem isso, "Aplicar" voltaria sempre pra "Todos". */}
-          {searchParams.natureza && <input type="hidden" name="natureza" value={searchParams.natureza} />}
-          {searchParams.esfera && <input type="hidden" name="esfera" value={searchParams.esfera} />}
-          {searchParams.materia && <input type="hidden" name="materia" value={searchParams.materia} />}
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
-            <div className="relative">
-              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
-              <input
-                type="text"
-                name="q"
-                defaultValue={searchParams.q}
-                placeholder="Título, número, cliente ou parte adversa"
-                className="pr-input w-full pl-8"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Área</label>
-            <select name="area" defaultValue={searchParams.area} className="pr-input">
-              <option value="">Todas</option>
-              {areas.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Responsável</label>
-            <select name="responsibleId" defaultValue={searchParams.responsibleId} className="pr-input">
-              <option value="">Todos</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Ordenar por</label>
-            <select name="sort" defaultValue={sortKey} className="pr-input">
-              {Object.entries(sortLabels).map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
-            Aplicar
-          </button>
-          {(q || searchParams.area || searchParams.responsibleId || (searchParams.sort && searchParams.sort !== "nome")) && (
-            <Link
-              href={qsFor(searchParams, { q: undefined, area: undefined, responsibleId: undefined, sort: undefined })}
-              className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2"
-            >
-              Limpar filtros
-            </Link>
-          )}
-        </form>
+        <ProcessosFiltroForm
+          status={searchParams.status}
+          natureza={searchParams.natureza}
+          esfera={searchParams.esfera}
+          materia={searchParams.materia}
+          initialQ={searchParams.q || ""}
+          initialArea={searchParams.area || ""}
+          initialResponsibleId={searchParams.responsibleId || ""}
+          initialSort={sortKey}
+          areas={areas}
+          users={users}
+          sortLabels={sortLabels}
+          clearHref={
+            q || searchParams.area || searchParams.responsibleId || (searchParams.sort && searchParams.sort !== "nome")
+              ? qsFor(searchParams, { q: undefined, area: undefined, responsibleId: undefined, sort: undefined })
+              : null
+          }
+        />
       </Card>
 
       <Card>
