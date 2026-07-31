@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export type AlertItem = {
   id: string;
@@ -62,6 +63,9 @@ function computeDueStatus(dueDate: Date, now: Date): "atrasado" | "hoje" | undef
 
 // Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
+// Toda consulta de Payable/Receivable abaixo filtra status por LISTA EXPLÍCITA (["PENDENTE",
+// "ATRASADO"]), nunca por negação — por isso A_APURAR (Fase 1: provisão de honorário percentual
+// sem valor real ainda) já fica fora destes alertas sem precisar de exclusão adicional.
 // `viewerId`: quando informado, também busca tarefas delegadas para esse usuário ainda não
 // vistas (delegationAcknowledgedAt null) — alerta pessoal, visível só pra quem recebeu.
 // `includeDriveSync`: segue o MESMO padrão de includeFinance, mas gated por isAdmin (não por
@@ -163,59 +167,63 @@ export async function getAlerts(
     });
   }
   for (const p of overduePayables) {
+    const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
     alerts.push({
       id: `payable-${p.id}`,
       kind: "CONTA_PAGAR_VENCIDA",
       title: p.description,
-      subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${liquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       date: p.dueDate,
       href: `/financeiro/despesas`,
       severity: "alta",
       entityKind: "PAYABLE",
       entityId: p.id,
-      amount: p.amount,
+      amount: liquido,
     });
   }
   for (const r of overdueReceivables) {
+    const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
     alerts.push({
       id: `receivable-${r.id}`,
       kind: "CONTA_RECEBER_VENCIDA",
       title: r.description,
-      subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${liquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       date: r.dueDate,
       href: `/financeiro/receitas`,
       severity: "media",
       entityKind: "RECEIVABLE",
       entityId: r.id,
-      amount: r.amount,
+      amount: liquido,
     });
   }
   for (const p of undatedPayables) {
+    const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
     alerts.push({
       id: `payable-undated-${p.id}`,
       kind: "PARCELA_SEM_VENCIMENTO",
       title: `Definir vencimento: ${p.description}`,
-      subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · revisar todo início de mês`,
+      subtitle: `R$ ${liquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · revisar todo início de mês`,
       date: p.dueDate,
       href: `/financeiro/despesas`,
       severity: "baixa",
       entityKind: "PAYABLE",
       entityId: p.id,
-      amount: p.amount,
+      amount: liquido,
     });
   }
   for (const r of undatedReceivables) {
+    const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
     alerts.push({
       id: `receivable-undated-${r.id}`,
       kind: "PARCELA_SEM_VENCIMENTO",
       title: `Definir vencimento: ${r.description}`,
-      subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · revisar todo início de mês`,
+      subtitle: `R$ ${liquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · revisar todo início de mês`,
       date: r.dueDate,
       href: `/financeiro/receitas`,
       severity: "baixa",
       entityKind: "RECEIVABLE",
       entityId: r.id,
-      amount: r.amount,
+      amount: liquido,
     });
   }
   for (const f of overdueFollowups) {
@@ -390,7 +398,7 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
       id: `payable-today-${p.id}`,
       kind: "CONTA_PAGAR",
       title: p.description,
-      subtitle: `R$ ${p.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${valorLiquido(p.amount, p.discount, p.surcharge).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       href: "/financeiro/despesas",
     });
   }
@@ -399,7 +407,7 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
       id: `receivable-today-${r.id}`,
       kind: "CONTA_RECEBER",
       title: r.description,
-      subtitle: `R$ ${r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${valorLiquido(r.amount, r.discount, r.surcharge).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       href: "/financeiro/receitas",
     });
   }

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, formatCurrency } from "@/components/ui";
 import { buildCategoryBreakdown } from "@/lib/cashFlowGroups";
 import { CategoryBreakdownSection } from "@/components/CategoryBreakdownTree";
+import { valorLiquido } from "@/lib/financeCalc";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +13,9 @@ export const dynamic = "force-dynamic";
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 // Mesma lógica de cálculo da página desktop (`/financeiro/fluxo-de-caixa`): projeção por
-// vencimento, -3 a +3 meses a partir do mês atual, excluindo lançamentos cancelados — só a
-// apresentação muda para lista.
+// vencimento, -3 a +3 meses a partir do mês atual, excluindo lançamentos cancelados e provisões
+// A_APURAR (estimativa de honorário percentual sem valor real ainda) — só a apresentação muda
+// para lista.
 export default async function MobileFluxoDeCaixa() {
   const viewer = await getCurrentUser();
   if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
@@ -23,8 +25,8 @@ export default async function MobileFluxoDeCaixa() {
   const windowEnd = new Date(now.getFullYear(), now.getMonth() + 4, 0, 23, 59, 59);
 
   const [payables, receivables] = await Promise.all([
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { not: "CANCELADO" }, dueDate: { gte: windowStart, lte: windowEnd } } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { not: "CANCELADO" }, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
   ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number }[] = [];
@@ -36,12 +38,12 @@ export default async function MobileFluxoDeCaixa() {
   for (const r of receivables) {
     const key = `${r.dueDate.getFullYear()}-${r.dueDate.getMonth()}`;
     const m = months.find((mo) => mo.key === key);
-    if (m) m.entradas += r.amount;
+    if (m) m.entradas += valorLiquido(r.amount, r.discount, r.surcharge);
   }
   for (const p of payables) {
     const key = `${p.dueDate.getFullYear()}-${p.dueDate.getMonth()}`;
     const m = months.find((mo) => mo.key === key);
-    if (m) m.saidas += p.amount;
+    if (m) m.saidas += valorLiquido(p.amount, p.discount, p.surcharge);
   }
 
   let saldoAcumulado = 0;
@@ -55,12 +57,12 @@ export default async function MobileFluxoDeCaixa() {
     buildCategoryBreakdown(
       "RECEITA",
       viewer.officeId,
-      receivables.map((r) => ({ id: r.id, description: r.description, date: r.dueDate, amount: r.amount, categoryId: r.categoryId }))
+      receivables.map((r) => ({ id: r.id, description: r.description, date: r.dueDate, amount: valorLiquido(r.amount, r.discount, r.surcharge), categoryId: r.categoryId }))
     ),
     buildCategoryBreakdown(
       "DESPESA",
       viewer.officeId,
-      payables.map((p) => ({ id: p.id, description: p.description, date: p.dueDate, amount: p.amount, categoryId: p.categoryId }))
+      payables.map((p) => ({ id: p.id, description: p.description, date: p.dueDate, amount: valorLiquido(p.amount, p.discount, p.surcharge), categoryId: p.categoryId }))
     ),
   ]);
 

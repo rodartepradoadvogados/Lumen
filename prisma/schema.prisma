@@ -160,6 +160,12 @@ model Office {
 
   // Lançamentos de honorários deste escritório — ver model HonorarioLancamento mais abaixo.
   honorarioLancamentos HonorarioLancamento[]
+
+  // Fundação de dados do financeiro avançado (Fase 1 — dinheiro/percentual/parcelamento
+  // editável/apuração do êxito), ainda dormente: nenhuma tela lê estes três abaixo.
+  bankAccounts    BankAccount[]
+  holidays        Holiday[]
+  financePayments FinancePayment[]
 }
 
 // ============ EQUIPE ============
@@ -257,6 +263,17 @@ model User {
 
   // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
   platformMember PlatformMember?
+
+  // Fundação de dados do financeiro avançado (Fase 1), ainda dormente — quem lançou a conta
+  // (responsibleId de Payable/Receivable/HonorarioLancamento), quem apurou o valor real de uma
+  // parcela percentual (Receivable.apuradoPorId) e quem registrou um recebimento/pagamento
+  // parcial (FinancePayment.createdById). Papéis distintos entre si de propósito: quem lança a
+  // conta muitas vezes não é quem depois dá baixa ou apura o êxito.
+  payablesResponsible            Payable[]             @relation("PayableResponsible")
+  receivablesResponsible         Receivable[]          @relation("ReceivableResponsible")
+  receivablesApuradas            Receivable[]          @relation("ReceivableApuradoPor")
+  honorarioLancamentosResponsible HonorarioLancamento[] @relation("HonorarioLancamentoResponsible")
+  financePayments                FinancePayment[]
 
   @@unique([officeId, username])
 }
@@ -409,6 +426,13 @@ model Case {
   // convictionValue (valor da condenação). Puramente informativo até que uma parcela
   // percentual referencie esta base no cálculo do valor estimado da parcela.
   economicBenefitValue Float?
+  // "Valor do acordo" — quarta base de cálculo de honorário percentual (ver
+  // Receivable.percentualBase), ao lado de caseValue/economicBenefitValue/convictionValue acima.
+  // Só costuma ser preenchido quando o processo termina em acordo homologado, em vez de sentença/
+  // condenação — as demais bases continuam existindo em paralelo (um caso pode ter as quatro
+  // preenchidas ao longo do tempo; qual delas vale para uma parcela específica é escolha de quem
+  // lança o honorário, não automática).
+  agreementValue Float?
   instance        String? // Instância Original
   currentInstance String? // Instância Atual
   distributedAt   DateTime?
@@ -952,6 +976,24 @@ model HonorarioLancamento {
 
   createdAt DateTime @default(now())
 
+  // ---- Fase 1 (fundação de dados, ainda dormente) — mesmo par documentType/documentNumber/
+  // issueDate/responsibleId/payerType/payerName de Receivable/Payable, aqui no CABEÇALHO do
+  // parcelamento (as parcelas individuais têm os seus próprios, quando divergirem do cabeçalho).
+  documentType   String?
+  documentNumber String?
+  issueDate      DateTime?
+  responsibleId  String?
+  responsible    User?     @relation("HonorarioLancamentoResponsible", fields: [responsibleId], references: [id])
+  payerType      String    @default("CLIENTE") // CLIENTE | ADVERSA | OUTRO
+  payerName      String?
+
+  // "Encerrar sem êxito" — preserva o histórico do lançamento em vez de excluí-lo quando o
+  // desfecho do processo não gera direito a honorário percentual (ex.: ação julgada
+  // improcedente). encerradoMotivo é texto livre explicando o porquê, para quem olhar depois
+  // entender a decisão sem precisar perguntar.
+  encerradoEm     DateTime?
+  encerradoMotivo String?
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
@@ -1206,7 +1248,13 @@ model Payable {
   dueDate              DateTime
   paidDate             DateTime?
   paidAmount           Float?
-  status               String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  // PENDENTE (nada pago) | PAGO (baixado integralmente, fluxo antigo de uma tacada só) |
+  // ATRASADO (calculado por effective() em lib/financeQuery.ts, nunca gravado direto) |
+  // CANCELADO | PARCIAL (Fase 1 — algum FinancePayment já lançado, mas a soma ainda não cobre o
+  // valor líquido; ver lib/financeCalc.ts:statusPorPagamentos) — "A_APURAR" não se aplica a
+  // Payable (não existe conta a pagar de valor desconhecido; só Receivable percentual apura
+  // depois), mantido de fora de propósito.
+  status               String    @default("PENDENTE")
   notes                String?
   noDueDate            Boolean   @default(false) // parcela sem vencimento definido — aparece na Central de Alertas
   groupId              String? // agrupa parcelas geradas juntas
@@ -1215,6 +1263,15 @@ model Payable {
   paymentReceiptNumber String? // nº do comprovante de pagamento; pode ser o mesmo em várias contas quitadas na mesma transferência
   paymentMethod        String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | OUTROS
   createdAt            DateTime  @default(now())
+
+  // ---- Fase 1 (fundação de dados, ainda dormente) — mesmos campos espelhados em Receivable,
+  // para as duas telas (Contas a Pagar/Contas a Receber) ficarem idênticas em estrutura. ----
+  documentType      String? // BOLETO | CONTRATO | FATURA | FOLHA_PAGAMENTO | NOTA_FISCAL | ORDEM_SERVICO | RECIBO | OUTROS
+  documentNumber    String?
+  issueDate         DateTime? // data de emissão do documento (distinta de dueDate/createdAt)
+  discount          Float     @default(0) // desconto aplicado — ver lib/financeCalc.ts:valorLiquido
+  surcharge         Float     @default(0) // acréscimo (juros/multa) — ver lib/financeCalc.ts:valorLiquido
+  installmentBoleto String? // nº do boleto desta parcela específica (distinto de paymentReceiptNumber, que é do comprovante de pagamento)
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1231,6 +1288,15 @@ model Payable {
   supplierId  String?
   supplierRef Supplier? @relation(fields: [supplierId], references: [id])
 
+  // Quem lançou esta conta — só para exibição ("lançado por"), não afeta quem enxerga
+  // (isso é por officeId, como sempre).
+  responsibleId String?
+  responsible   User?   @relation("PayableResponsible", fields: [responsibleId], references: [id])
+
+  // Histórico de pagamentos desta conta (ver model FinancePayment mais abaixo) — permite
+  // pagamento PARCIAL: a soma de payments decide entre PENDENTE/PARCIAL/PAGO.
+  payments FinancePayment[]
+
   @@index([officeId])
   @@index([officeId, dueDate])
 }
@@ -1242,7 +1308,14 @@ model Receivable {
   dueDate              DateTime
   paidDate             DateTime?
   paidAmount           Float?
-  status               String    @default("PENDENTE") // PENDENTE | PAGO | ATRASADO | CANCELADO
+  // PENDENTE (nada pago) | PAGO (baixado integralmente, fluxo antigo de uma tacada só) |
+  // ATRASADO (calculado por effective() em lib/financeQuery.ts, nunca gravado direto) |
+  // CANCELADO | PARCIAL (Fase 1 — algum FinancePayment já lançado, mas a soma ainda não cobre o
+  // valor líquido; ver lib/financeCalc.ts:statusPorPagamentos) | A_APURAR (Fase 1 — parcela
+  // PERCENTUAL cujo valor real só será conhecido no desfecho do processo; amount aqui é só a
+  // ESTIMATIVA, nunca soma como receita prevista de verdade — ver lib/financeQuery.ts e todo
+  // ponto que soma "a receber", que precisam ignorar este status).
+  status               String    @default("PENDENTE")
   kind                 String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
   notes                String?
   noDueDate            Boolean   @default(false)
@@ -1262,13 +1335,40 @@ model Receivable {
   // pode mudar ou só ser conhecida de fato no desfecho do caso.
   valueType      String  @default("FIXO") // FIXO | PERCENTUAL
   percentual     Float?
-  percentualBase String? // VALOR_CAUSA | PROVEITO_ECONOMICO | CONDENACAO — ver Case.caseValue/economicBenefitValue/convictionValue
+  percentualBase String? // VALOR_CAUSA | PROVEITO_ECONOMICO | CONDENACAO | ACORDO — ver Case.caseValue/economicBenefitValue/convictionValue/agreementValue
 
   // Se esta parcela conta na soma comparada com HonorarioLancamento.valorTotalIndicado (nota de
   // divergência). Ex.: honorário de 5.000 em 2 parcelas — "5.000 de entrada" vinculado (soma
   // bate com o total) e "10% do êxito" desvinculado (percentual à parte, fora do total
   // indicado). Irrelevante (mas mantido true) fora de um HonorarioLancamento.
   vinculadoAoTotal Boolean @default(true)
+
+  // ---- Fase 1 (fundação de dados, ainda dormente) — mesmos campos espelhados em Payable, para
+  // as duas telas (Contas a Pagar/Contas a Receber) ficarem idênticas em estrutura. ----
+  documentType      String? // BOLETO | CONTRATO | FATURA | FOLHA_PAGAMENTO | NOTA_FISCAL | ORDEM_SERVICO | RECIBO | OUTROS
+  documentNumber    String?
+  issueDate         DateTime? // data de emissão do documento (distinta de dueDate/createdAt)
+  discount          Float     @default(0) // desconto aplicado — ver lib/financeCalc.ts:valorLiquido
+  surcharge         Float     @default(0) // acréscimo (juros/multa) — ver lib/financeCalc.ts:valorLiquido
+  installmentBoleto String? // nº do boleto desta parcela específica (distinto de paymentReceiptNumber, que é do comprovante de pagamento)
+
+  // Só em Receivable: honorário tem pagador que pode não ser o próprio cliente (ex.: parte
+  // adversa condenada em sucumbência, ou terceiro pagando por conta do cliente).
+  payerType String  @default("CLIENTE") // CLIENTE | ADVERSA | OUTRO
+  payerName String? // preenchido quando payerType é ADVERSA ou OUTRO
+
+  // Quando true numa parcela PERCENTUAL, o valor apurado no desfecho (ver
+  // lib/financeCalc.ts:valorPercentualApurado) desconta o que já foi pago em dinheiro no mesmo
+  // HonorarioLancamento — reproduz a cláusula do contrato ENTRADA_EXITO gerado em
+  // lib/honorarios.ts ("com abatimento do valor já pago a título de entrada"), que o financeiro
+  // ainda não aplicava.
+  abaterEntrada Boolean @default(false)
+
+  // Preenchidos quando uma parcela PERCENTUAL (A_APURAR) vira valor real conhecido — quem apurou
+  // e quando, para auditoria. Nulos enquanto a provisão continua em aberto.
+  apuradoEm    DateTime?
+  apuradoPorId String?
+  apuradoPor   User?     @relation("ReceivableApuradoPor", fields: [apuradoPorId], references: [id])
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1284,6 +1384,14 @@ model Receivable {
 
   caseId String?
   case   Case?   @relation(fields: [caseId], references: [id])
+
+  // Quem lançou esta conta — só para exibição ("lançado por"), não afeta quem enxerga.
+  responsibleId String?
+  responsible   User?   @relation("ReceivableResponsible", fields: [responsibleId], references: [id])
+
+  // Histórico de pagamentos desta conta (ver model FinancePayment mais abaixo) — permite
+  // recebimento PARCIAL: a soma de payments decide entre PENDENTE/PARCIAL/PAGO.
+  payments FinancePayment[]
 
   honorario Honorario?
 
@@ -1334,6 +1442,94 @@ model RecurringFee {
 
   @@index([officeId])
   @@index([caseId])
+}
+
+// ============ FUNDAÇÃO DE DADOS — FINANCEIRO AVANÇADO (Fase 1, aditiva e dormente) ============
+//
+// Base para o honorário em dinheiro + percentual + parcelamento editável linha a linha + apuração
+// do êxito no desfecho do processo. Nenhuma tela lê os três modelos abaixo ainda — só schema,
+// helpers puros (lib/financeCalc.ts, lib/prazos.ts) e os ajustes de leitura em
+// lib/financeQuery.ts para os status novos (PARCIAL/A_APURAR) não sumirem das abas existentes.
+
+// Conta bancária do escritório — cadastro simples (Fase 3 monta a tela); aqui só o registro para
+// FinancePayment.bankAccountId ter o que referenciar desde já.
+model BankAccount {
+  id            String   @id @default(cuid())
+  name          String // apelido, ex. "Itaú Principal"
+  bank          String?
+  agency        String?
+  accountNumber String?
+  type          String   @default("CORRENTE") // CORRENTE | POUPANCA | INVESTIMENTO
+  initialBalance Float   @default(0)
+  active        Boolean  @default(true)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  payments FinancePayment[]
+
+  @@index([officeId])
+}
+
+// Feriado LOCAL/personalizado cadastrado pelo escritório (estadual, municipal ou forense) — os
+// feriados NACIONAIS (fixos e móveis) nunca entram aqui, são calculados em código (ver
+// lib/prazos.ts:feriadosNacionais); esta tabela só existe para o que o calendário nacional não
+// cobre (ex.: aniversário da comarca, feriado forense local).
+model Holiday {
+  id    String @id @default(cuid())
+  // Data-calendário em UTC-meia-noite, mesma convenção de Task.dueDate (ver
+  // formatCalendarDate em components/ui.tsx) — nunca ler com getters locais de Date.
+  date  DateTime
+  name  String
+  scope String // NACIONAL | ESTADUAL | MUNICIPAL | FORENSE
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([officeId, date])
+}
+
+// Histórico de recebimentos/pagamentos de uma conta — é o que viabiliza pagamento PARCIAL: uma
+// Receivable/Payable pode ter N FinancePayment, e a SOMA deles decide o status entre
+// PENDENTE (soma zero) / PARCIAL (soma > 0 mas menor que o valor líquido) / PAGO (soma cobre o
+// valor líquido) — ver lib/financeCalc.ts:statusPorPagamentos. Uma conta paga "de uma vez só" no
+// fluxo antigo (markReceivablePaid/markPayablePaid) continua funcionando sem nenhuma linha aqui;
+// FinancePayment só entra em cena quando a baixa passar a ser parcial/em várias vezes.
+model FinancePayment {
+  id              String    @id @default(cuid())
+  amount          Float
+  paidDate        DateTime
+  paymentMethod   String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | DINHEIRO | OUTROS
+  documentNumber  String? // nº do documento de pagamento (comprovante, autenticação bancária...)
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  bankAccountId String?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  // Aponta para exatamente um dos dois — nunca ambos, nunca nenhum solto sem sentido de negócio,
+  // mas isso é responsabilidade da Server Action que cria o registro (Fase futura), não uma
+  // constraint do schema. onDelete Cascade: apagar a conta apaga o próprio histórico dela junto,
+  // não faz sentido um FinancePayment sobreviver órfão sem a conta que ele estava quitando.
+  receivableId String?
+  receivable   Receivable? @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+
+  payableId String?
+  payable   Payable? @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  @@index([officeId])
+  @@index([receivableId])
+  @@index([payableId])
 }
 
 // ============ ASSESSORIA JURÍDICA ============

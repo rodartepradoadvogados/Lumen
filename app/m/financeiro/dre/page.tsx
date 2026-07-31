@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -32,15 +33,17 @@ export default async function MobileDre({
     prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
   ]);
 
+  // status "PAGO" (exato) já exclui A_APURAR sozinho — ver comentário equivalente na página
+  // desktop (/financeiro/dre).
   const receitasPorCategoria: Record<string, number> = {};
   for (const r of receivables) {
     const key = r.category?.name ?? "Outras Receitas";
-    receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? r.amount);
+    receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge));
   }
   const despesasPorCategoria: Record<string, number> = {};
   for (const p of payables) {
     const key = p.category?.name ?? "Outras Despesas";
-    despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? p.amount);
+    despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
   }
 
   const totalReceitas = Object.values(receitasPorCategoria).reduce((s, v) => s + v, 0);

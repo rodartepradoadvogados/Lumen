@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, formatCurrency, formatDate, EmptyState } from "@/components/ui";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,13 @@ export default async function LivroCaixaPage() {
     prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { lte: now } } }),
   ]);
 
+  // status "PAGO" já exclui A_APURAR sozinho (provisão percentual nunca é baixada direto como
+  // paga). paidAmount é o valor de fato movimentado; o fallback para amount (registro legado sem
+  // paidAmount) passa por valorLiquido para respeitar desconto/acréscimo.
   type Entry = { date: Date; description: string; value: number; type: "entrada" | "saida" };
   const entries: Entry[] = [
-    ...receivables.map((r) => ({ date: r.paidDate!, description: `${r.description}${r.client ? ` — ${r.client.name}` : ""}`, value: r.paidAmount ?? r.amount, type: "entrada" as const })),
-    ...payables.map((p) => ({ date: p.paidDate!, description: p.description, value: -(p.paidAmount ?? p.amount), type: "saida" as const })),
+    ...receivables.map((r) => ({ date: r.paidDate!, description: `${r.description}${r.client ? ` — ${r.client.name}` : ""}`, value: r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge), type: "entrada" as const })),
+    ...payables.map((p) => ({ date: p.paidDate!, description: p.description, value: -(p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), type: "saida" as const })),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   let running = 0;

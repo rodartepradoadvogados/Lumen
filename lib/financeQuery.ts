@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
-export type FinanceTab = "abertas" | "pagas" | "todas";
+// "apurar" (Fase 1, ainda dormente — nenhuma tela passa este valor em `tab` hoje) existe para o
+// status A_APURAR ter uma aba própria assim que uma tela precisar filtrar por ela; ver
+// matchesTab() logo abaixo para o motivo de A_APURAR não poder ficar em "abertas"/"pagas".
+export type FinanceTab = "abertas" | "pagas" | "todas" | "apurar";
 
 export type FinanceSearchParams = {
   tab?: string;
@@ -11,21 +14,31 @@ export type FinanceSearchParams = {
   categoryId?: string;
 };
 
+// Só PENDENTE vira ATRASADO por data de vencimento — de propósito. PARCIAL já teve pelo menos um
+// FinancePayment lançado (não é mais "nada pago"; o alerta de atraso não faz sentido do mesmo
+// jeito) e A_APURAR nem tem valor real conhecido ainda (não existe "atraso" de uma provisão sem
+// valor). Confirmar isto aqui sempre que status novo for adicionado: promover PARCIAL/A_APURAR
+// para ATRASADO por acidente faria uma parcela parcialmente paga ou uma provisão percentual
+// aparecerem coladas com contas de verdade vencidas.
 function effective(status: string, dueDate: Date, noDueDate: boolean, now: Date) {
   return status === "PENDENTE" && dueDate < now && !noDueDate ? "ATRASADO" : status;
 }
 
-// "abertas" (padrão) = só pendentes/atrasadas — contas a pagar/receber nunca devem se
-// confundir com contas já pagas/recebidas. "pagas" isola o que já foi liquidado. "todas"
-// não filtra por status (inclui também CANCELADO).
+// "abertas" (padrão) = pendentes/atrasadas + PARCIAL — PARCIAL é dinheiro que ainda falta
+// entrar/sair (saldo em aberto), então continua contando como conta aberta; não entra em "pagas"
+// porque ainda não foi. A_APURAR fica de fora tanto de "abertas" quanto de "pagas": é só uma
+// ESTIMATIVA sem valor real ainda, misturar com conta aberta de verdade infla a lista com dinheiro
+// que talvez nem exista — tem aba própria ("apurar", ver FinanceTab). "todas" não filtra por
+// status nenhum (inclui também CANCELADO e A_APURAR).
 function matchesTab(effectiveStatus: string, tab: FinanceTab) {
   if (tab === "todas") return true;
+  if (tab === "apurar") return effectiveStatus === "A_APURAR";
   if (tab === "pagas") return effectiveStatus === "PAGO";
-  return effectiveStatus === "PENDENTE" || effectiveStatus === "ATRASADO";
+  return effectiveStatus === "PENDENTE" || effectiveStatus === "ATRASADO" || effectiveStatus === "PARCIAL";
 }
 
 function resolveTab(tab?: string): FinanceTab {
-  return tab === "pagas" || tab === "todas" ? tab : "abertas";
+  return tab === "pagas" || tab === "todas" || tab === "apurar" ? tab : "abertas";
 }
 
 export async function getFilteredPayables(sp: FinanceSearchParams, officeId: string) {

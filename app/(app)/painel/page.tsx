@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { hasBlogAccess } from "@/lib/officeModules";
+import { valorLiquido } from "@/lib/financeCalc";
 import {
   Card,
   CardHeader,
@@ -83,8 +84,10 @@ export default async function DashboardPage() {
     author: { id: n.author.id, name: n.author.name, color: n.author.color },
   }));
 
-  const totalPayable = payablesPending.reduce((s, p) => s + p.amount, 0);
-  const totalReceivable = receivablesPending.reduce((s, r) => s + r.amount, 0);
+  // status filtrado em [PENDENTE, ATRASADO] já exclui A_APURAR sozinho (lista explícita, não
+  // negação) — a soma usa valorLiquido para refletir desconto/acréscimo já lançados.
+  const totalPayable = payablesPending.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
+  const totalReceivable = receivablesPending.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
 
   const byArea = await prisma.case.groupBy({
     by: ["area"],

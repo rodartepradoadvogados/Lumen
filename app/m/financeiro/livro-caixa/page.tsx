@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -24,18 +25,20 @@ export default async function MobileLivroCaixa() {
     prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { lte: now } } }),
   ]);
 
+  // status "PAGO" já exclui A_APURAR sozinho — ver comentário equivalente na página desktop
+  // (/financeiro/livro-caixa).
   type Entry = { date: Date; description: string; value: number; type: "entrada" | "saida" };
   const entries: Entry[] = [
     ...receivables.map((r) => ({
       date: r.paidDate!,
       description: `${r.description}${r.client ? ` — ${r.client.name}` : ""}`,
-      value: r.paidAmount ?? r.amount,
+      value: r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge),
       type: "entrada" as const,
     })),
     ...payables.map((p) => ({
       date: p.paidDate!,
       description: p.description,
-      value: -(p.paidAmount ?? p.amount),
+      value: -(p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)),
       type: "saida" as const,
     })),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());

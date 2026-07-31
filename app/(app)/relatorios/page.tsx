@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
 import { Users, Target, Newspaper, Wallet, Scale } from "lucide-react";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -497,17 +498,21 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
     prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
   ]);
 
+  // paidReceivables/paidPayables (status "PAGO" exato) e overdueReceivables (status em
+  // [PENDENTE, ATRASADO]) já excluem A_APURAR sozinhos — nenhum dos dois filtros deixaria passar
+  // uma provisão de honorário percentual ainda sem valor real. As somas usam valorLiquido/
+  // paidAmount para respeitar desconto/acréscimo.
   const financeMonthly = months.map((m) => ({
     label: m.label,
-    receita: paidReceivables.filter((r) => r.paidDate && monthKey(r.paidDate) === m.key).reduce((s, r) => s + (r.paidAmount ?? r.amount), 0),
-    despesa: paidPayables.filter((p) => p.paidDate && monthKey(p.paidDate) === m.key).reduce((s, p) => s + (p.paidAmount ?? p.amount), 0),
+    receita: paidReceivables.filter((r) => r.paidDate && monthKey(r.paidDate) === m.key).reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0),
+    despesa: paidPayables.filter((p) => p.paidDate && monthKey(p.paidDate) === m.key).reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0),
   }));
   const maxFinance = Math.max(1, ...financeMonthly.flatMap((m) => [m.receita, m.despesa]));
 
   const expenseByCat: Record<string, number> = {};
   for (const p of paidPayables) {
     const key = p.category?.name ?? "Sem categoria";
-    expenseByCat[key] = (expenseByCat[key] ?? 0) + (p.paidAmount ?? p.amount);
+    expenseByCat[key] = (expenseByCat[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
   }
   const topExpenses = Object.entries(expenseByCat)
     .map(([label, value]) => ({ label, value }))
@@ -515,7 +520,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
     .slice(0, 5);
   const maxExpense = Math.max(0, ...topExpenses.map((e) => e.value));
 
-  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + r.amount, 0);
+  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
   const inadimplenciaCount = overdueReceivables.length;
 
   return (

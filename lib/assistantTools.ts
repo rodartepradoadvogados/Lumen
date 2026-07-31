@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { valorLiquido } from "@/lib/financeCalc";
 
 // ============================================================================
 // Ferramentas do Assistente Claude (chat interno)
@@ -259,19 +260,22 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
 
     const resultado: Record<string, unknown> = {};
 
+    // status: mesmo quando "apenasPendente" é false (traz todos os status), A_APURAR é excluído
+    // explicitamente da consulta — é só uma ESTIMATIVA de honorário percentual sem valor real
+    // ainda, o assistente não pode informar isso como "a receber" de verdade ao usuário.
     if (tipo === "pagar" || tipo === "ambos") {
       const payables = await prisma.payable.findMany({
-        where: { officeId, status: apenasPendente ? "PENDENTE" : undefined },
+        where: { officeId, status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" } },
         include: { category: true },
         orderBy: { dueDate: "asc" },
         take: 20,
       });
       resultado.contasAPagar = {
         total: payables.length,
-        somaValores: payables.reduce((acc, p) => acc + p.amount, 0),
+        somaValores: payables.reduce((acc, p) => acc + valorLiquido(p.amount, p.discount, p.surcharge), 0),
         lista: payables.map((p) => ({
           description: p.description,
-          amount: p.amount,
+          amount: valorLiquido(p.amount, p.discount, p.surcharge),
           dueDate: p.dueDate,
           status: p.status,
           categoria: p.category?.name ?? null,
@@ -281,17 +285,17 @@ async function executarConsultarFinanceiro(input: ToolInput, officeId: string): 
 
     if (tipo === "receber" || tipo === "ambos") {
       const receivables = await prisma.receivable.findMany({
-        where: { officeId, status: apenasPendente ? "PENDENTE" : undefined },
+        where: { officeId, status: apenasPendente ? "PENDENTE" : { not: "A_APURAR" } },
         include: { category: true },
         orderBy: { dueDate: "asc" },
         take: 20,
       });
       resultado.contasAReceber = {
         total: receivables.length,
-        somaValores: receivables.reduce((acc, r) => acc + r.amount, 0),
+        somaValores: receivables.reduce((acc, r) => acc + valorLiquido(r.amount, r.discount, r.surcharge), 0),
         lista: receivables.map((r) => ({
           description: r.description,
-          amount: r.amount,
+          amount: valorLiquido(r.amount, r.discount, r.surcharge),
           dueDate: r.dueDate,
           status: r.status,
           categoria: r.category?.name ?? null,

@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
+import { valorLiquido } from "@/lib/financeCalc";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -571,10 +572,12 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
       const overdue: DigestListItem[] = overdueTasks.map((t) => taskToDigestItem(t, `${daysLate(t.dueDate, now)} dia(s)`, true));
       const today: DigestListItem[] = todayTasks.map((t) => taskToDigestItem(t, t.dueTime ? `${t.dueTime} · ${typeLabels[t.type] ?? t.type}` : typeLabels[t.type] ?? t.type, false));
 
+      // status filtrado em [PENDENTE, ATRASADO] já exclui A_APURAR sozinho; amount usa
+      // valorLiquido para refletir desconto/acréscimo.
       const finance = user.isAdmin
         ? [
-            ...payablesToday.map((p) => ({ label: p.description, sub: p.supplier ?? "", amount: p.amount, kind: "pagar" as const })),
-            ...receivablesToday.map((r) => ({ label: r.description, sub: "", amount: r.amount, kind: "receber" as const })),
+            ...payablesToday.map((p) => ({ label: p.description, sub: p.supplier ?? "", amount: valorLiquido(p.amount, p.discount, p.surcharge), kind: "pagar" as const })),
+            ...receivablesToday.map((r) => ({ label: r.description, sub: "", amount: valorLiquido(r.amount, r.discount, r.surcharge), kind: "receber" as const })),
           ]
         : null;
 

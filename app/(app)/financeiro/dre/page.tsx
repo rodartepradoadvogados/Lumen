@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, formatCurrency, EmptyState } from "@/components/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,11 @@ export default async function DrePage({
 
   const costCenterId = searchParams.costCenterId || undefined;
 
+  // status "PAGO" (exato, não uma lista/negação) já exclui A_APURAR sozinho — uma provisão
+  // percentual nunca é baixada como paga sem antes ser apurada. paidAmount é o valor
+  // efetivamente pago/recebido (regime de caixa de verdade); o fallback para amount só cobre
+  // registro legado sem paidAmount, e nesse caso ainda passa por valorLiquido (desconto/
+  // acréscimo) para não subestimar/superestimar o período.
   const [receivables, payables, costCenters] = await Promise.all([
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
     prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
@@ -35,12 +41,12 @@ export default async function DrePage({
   const receitasPorCategoria: Record<string, number> = {};
   for (const r of receivables) {
     const key = r.category?.name ?? "Outras Receitas";
-    receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? r.amount);
+    receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge));
   }
   const despesasPorCategoria: Record<string, number> = {};
   for (const p of payables) {
     const key = p.category?.name ?? "Outras Despesas";
-    despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? p.amount);
+    despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
   }
 
   const totalReceitas = Object.values(receitasPorCategoria).reduce((s, v) => s + v, 0);
