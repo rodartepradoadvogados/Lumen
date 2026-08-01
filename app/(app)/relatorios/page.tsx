@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
-import { Users, Target, Newspaper, Wallet, Scale } from "lucide-react";
-import { valorLiquido } from "@/lib/financeCalc";
+import { Users, Target, Newspaper, Wallet, Scale, Info } from "lucide-react";
+import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -494,7 +494,10 @@ async function PublicacoesSection({ start, end, months, officeId }: { start: Dat
 async function FinanceiroSection({ start, end, months, now, officeId }: { start: Date; end: Date; months: MonthBucket[]; now: Date; officeId: string }) {
   const [paidReceivables, paidPayables, overdueReceivables] = await Promise.all([
     prisma.receivable.findMany({ where: { officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.payable.findMany({ where: { officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+    prisma.payable.findMany({
+      where: { officeId, status: "PAGO", paidDate: { gte: start, lt: end } },
+      include: { category: true, reimbursementReceivable: { select: { id: true } } },
+    }),
     prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
   ]);
 
@@ -502,15 +505,27 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
   // [PENDENTE, ATRASADO]) já excluem A_APURAR sozinhos — nenhum dos dois filtros deixaria passar
   // uma provisão de honorário percentual ainda sem valor real. As somas usam valorLiquido/
   // paidAmount para respeitar desconto/acréscimo.
+  //
+  // Adiantamentos a Clientes (Despesas do Processo com reembolso vinculado) são excluídos da
+  // Receita/Despesa normais — mesma lógica do DRE (/financeiro/dre), ver isAdiantamentoPayable/
+  // isReembolsoReceivable em lib/financeCalc.ts — e somados à parte, numa seção informativa
+  // própria mais abaixo.
+  const receitasNormais = paidReceivables.filter((r) => !isReembolsoReceivable(r));
+  const despesasNormais = paidPayables.filter((p) => !isAdiantamentoPayable(p));
+  const adiantamentos = paidPayables.filter(isAdiantamentoPayable);
+  const reembolsos = paidReceivables.filter(isReembolsoReceivable);
+  const totalAdiantado = adiantamentos.reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0);
+  const totalReembolsado = reembolsos.reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0);
+
   const financeMonthly = months.map((m) => ({
     label: m.label,
-    receita: paidReceivables.filter((r) => r.paidDate && monthKey(r.paidDate) === m.key).reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0),
-    despesa: paidPayables.filter((p) => p.paidDate && monthKey(p.paidDate) === m.key).reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0),
+    receita: receitasNormais.filter((r) => r.paidDate && monthKey(r.paidDate) === m.key).reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0),
+    despesa: despesasNormais.filter((p) => p.paidDate && monthKey(p.paidDate) === m.key).reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0),
   }));
   const maxFinance = Math.max(1, ...financeMonthly.flatMap((m) => [m.receita, m.despesa]));
 
   const expenseByCat: Record<string, number> = {};
-  for (const p of paidPayables) {
+  for (const p of despesasNormais) {
     const key = p.category?.name ?? "Sem categoria";
     expenseByCat[key] = (expenseByCat[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
   }
@@ -522,6 +537,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
 
   const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
   const inadimplenciaCount = overdueReceivables.length;
+  const saldoAdiantamentos = totalAdiantado - totalReembolsado;
 
   return (
     <Card>
@@ -590,6 +606,38 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
             </div>
           </div>
         </div>
+
+        {(totalAdiantado > 0 || totalReembolsado > 0) && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3">
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Adiantamentos a Clientes</p>
+              <span className="text-[10px] font-semibold text-navy-800/40 dark:text-cream-50/40">(informativo — fora da Receita/Despesa acima)</span>
+            </div>
+            <div className="rounded-xl border border-dashed border-navy-800/15 dark:border-white/15 p-5">
+              <div className="flex items-start gap-2 text-xs text-navy-800/60 dark:text-cream-50/60 mb-4">
+                <Info size={14} className="shrink-0 mt-0.5" />
+                <p>
+                  Despesas do processo pagas por conta do cliente (com reembolso vinculado) são um adiantamento que volta, não custo
+                  nem receita real do escritório — por isso não entram nos números de Receita/Despesa/Recebido x Pago desta seção.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Adiantado no período</p>
+                  <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalAdiantado)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Reembolsado no período</p>
+                  <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalReembolsado)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Saldo do período</p>
+                  <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(saldoAdiantamentos)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );

@@ -59,3 +59,27 @@ export function valorPercentualApurado(params: {
   const apurado = abaterEntrada ? bruto - jaPagoEmDinheiro : bruto;
   return Math.max(0, apurado);
 }
+
+// "Adiantamento a Cliente" (Despesas do Processo, ver Payable.expensePayer/reimbursementReceivable
+// e Receivable.reimbursesPayableId/kind no schema): quando o escritório paga uma despesa que é do
+// cliente e cria uma conta a receber de reembolso vinculada, o par Payable/Receivable NÃO é
+// despesa nem receita de verdade da atividade do escritório — é uma transferência (o dinheiro sai,
+// vira um direito a receber; depois volta). Contar os dois cheios no DRE/Relatórios infla Receita
+// e Despesa ao mesmo tempo, distorcendo o Resultado do Período. Estas duas funções identificam os
+// dois lados do par para quem monta o resultado (DRE desktop/mobile, Relatórios) excluí-los da
+// Receita/Despesa normais e somar à parte, numa seção informativa própria.
+//
+// isAdiantamentoPayable exige reimbursementReceivable presente (não só expensePayer === "CLIENTE")
+// de propósito: uma despesa CLIENTE sem reembolso vinculado (usuário optou por não criar, ou vai
+// lançar/cobrar de outra forma) não tem o "outro lado" rastreado para compensar — nesse caso ela
+// continua sendo despesa normal do escritório do ponto de vista contábil desta tela.
+export function isAdiantamentoPayable(p: { expensePayer: string; reimbursementReceivable?: { id: string } | null }): boolean {
+  return p.expensePayer === "CLIENTE" && !!p.reimbursementReceivable;
+}
+
+// Espelho do lado Receivable do par — kind "REEMBOLSO" sozinho não basta (é só rótulo livre,
+// alguém poderia lançar um "REEMBOLSO" avulso sem processo por trás); exige reimbursesPayableId
+// preenchido, a FK @unique que de fato liga esta receita a uma despesa adiantada.
+export function isReembolsoReceivable(r: { kind: string; reimbursesPayableId?: string | null }): boolean {
+  return r.kind === "REEMBOLSO" && !!r.reimbursesPayableId;
+}

@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, formatCurrency, EmptyState } from "@/components/ui";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { valorLiquido } from "@/lib/financeCalc";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -34,17 +34,35 @@ export default async function DrePage({
   // acréscimo) para não subestimar/superestimar o período.
   const [receivables, payables, costCenters] = await Promise.all([
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
+    prisma.payable.findMany({
+      where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId },
+      include: { category: true, reimbursementReceivable: { select: { id: true } } },
+    }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
+  // Adiantamentos a Clientes (Despesas do Processo com reembolso vinculado) são uma transferência,
+  // não Receita/Despesa de verdade do escritório — ver comentário de isAdiantamentoPayable/
+  // isReembolsoReceivable em lib/financeCalc.ts. Excluídos aqui do resultado normal e somados à
+  // parte, numa seção informativa própria (mais abaixo).
+  let totalAdiantado = 0;
+  let totalReembolsado = 0;
+
   const receitasPorCategoria: Record<string, number> = {};
   for (const r of receivables) {
+    if (isReembolsoReceivable(r)) {
+      totalReembolsado += r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge);
+      continue;
+    }
     const key = r.category?.name ?? "Outras Receitas";
     receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge));
   }
   const despesasPorCategoria: Record<string, number> = {};
   for (const p of payables) {
+    if (isAdiantamentoPayable(p)) {
+      totalAdiantado += p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge);
+      continue;
+    }
     const key = p.category?.name ?? "Outras Despesas";
     despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
   }
@@ -52,6 +70,7 @@ export default async function DrePage({
   const totalReceitas = Object.values(receitasPorCategoria).reduce((s, v) => s + v, 0);
   const totalDespesas = Object.values(despesasPorCategoria).reduce((s, v) => s + v, 0);
   const resultado = totalReceitas - totalDespesas;
+  const saldoAdiantamentos = totalAdiantado - totalReembolsado;
 
   const carryParams = costCenterId ? `&costCenterId=${costCenterId}` : "";
   const prevHref = `/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}${carryParams}`;
@@ -151,6 +170,33 @@ export default async function DrePage({
           </div>
         </div>
       </Card>
+
+      {(totalAdiantado > 0 || totalReembolsado > 0) && (
+        <Card className="mb-5 border border-dashed border-navy-800/15 dark:border-white/15">
+          <CardHeader title="Adiantamentos a Clientes" subtitle="Informativo — não entra na Receita, na Despesa nem no Resultado do Período" />
+          <div className="px-5 py-4 flex items-start gap-2 text-xs text-navy-800/60 dark:text-cream-50/60">
+            <Info size={14} className="shrink-0 mt-0.5" />
+            <p>
+              Despesas do processo pagas pelo escritório por conta do cliente (com reembolso vinculado) não são custo nem receita da
+              atividade do escritório — são um adiantamento que volta. Por isso ficam de fora do resultado acima e aparecem só aqui.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/8 dark:border-white/10">
+            <div className="px-5 py-3.5">
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Adiantado no período</p>
+              <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalAdiantado)}</p>
+            </div>
+            <div className="px-5 py-3.5">
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Reembolsado no período</p>
+              <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalReembolsado)}</p>
+            </div>
+            <div className="px-5 py-3.5">
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Saldo do período (adiantado − reembolsado)</p>
+              <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(saldoAdiantamentos)}</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className={`p-5 flex justify-between items-center ${resultado >= 0 ? "bg-gold-500/10 dark:bg-gold-400/15" : "bg-red-50 dark:bg-bordo-400/15"}`}>
         <span className="font-serif font-bold text-navy-900 dark:text-cream-50">Resultado do Período</span>
