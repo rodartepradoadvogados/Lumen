@@ -1,0 +1,193 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Check, Undo2, X } from "lucide-react";
+import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEditor";
+import { pendenciaKindLabel, PENDENCIA_DIRECTION_LABELS } from "@/lib/pendencias";
+import { formatCalendarDate } from "@/components/ui";
+import {
+  createAttendancePendencias,
+  completeAttendancePendencia,
+  reopenAttendancePendencia,
+  deleteAttendancePendencia,
+} from "@/lib/actions/attendancePendencias";
+
+export type PendenciaData = {
+  id: string;
+  direction: string;
+  kind: string;
+  description: string | null;
+  status: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  responsible: { name: string } | null;
+};
+
+export default function AttendancePendenciasPanel({
+  attendanceId,
+  users,
+  pendencias,
+}: {
+  attendanceId: string;
+  users: { id: string; name: string }[];
+  pendencias: PendenciaData[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [adding, setAdding] = useState(false);
+  const [newRows, setNewRows] = useState<PendenciaRow[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const abertas = pendencias.filter((p) => p.status === "PENDENTE");
+  const concluidas = pendencias.filter((p) => p.status !== "PENDENTE");
+
+  function handleComplete(id: string) {
+    startTransition(async () => {
+      await completeAttendancePendencia(id);
+      router.refresh();
+    });
+  }
+  function handleReopen(id: string) {
+    startTransition(async () => {
+      await reopenAttendancePendencia(id);
+      router.refresh();
+    });
+  }
+  function handleDelete(id: string) {
+    if (!window.confirm("Excluir esta pendência?")) return;
+    startTransition(async () => {
+      await deleteAttendancePendencia(id);
+      router.refresh();
+    });
+  }
+
+  async function handleSaveNew() {
+    if (newRows.length === 0) {
+      setAdding(false);
+      return;
+    }
+    setSaving(true);
+    await createAttendancePendencias(
+      attendanceId,
+      newRows.map((r) => ({
+        direction: r.direction,
+        kind: r.kind,
+        description: r.description.trim() || undefined,
+        responsibleId: r.responsibleId || undefined,
+        dueDate: r.dueDate || undefined,
+      }))
+    );
+    setSaving(false);
+    setAdding(false);
+    setNewRows([]);
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-3">
+      {abertas.length === 0 && !adding && <p className="text-sm text-navy-800/45 dark:text-cream-50/45">Nenhuma pendência em aberto.</p>}
+
+      {abertas.length > 0 && (
+        <div className="space-y-2">
+          {abertas.map((p) => {
+            const overdue = p.dueDate && new Date(p.dueDate) < new Date();
+            return (
+              <div
+                key={p.id}
+                className={`flex items-start justify-between gap-3 rounded-lg border px-3 py-2 ${
+                  overdue
+                    ? "border-bordo-300 dark:border-bordo-400/40 bg-bordo-50 dark:bg-bordo-900/20"
+                    : "border-navy-800/8 dark:border-white/10 bg-cream-50 dark:bg-navy-800"
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mr-1.5">
+                      {PENDENCIA_DIRECTION_LABELS[p.direction as "SOLICITAR" | "ENVIAR"] || p.direction}
+                    </span>
+                    {pendenciaKindLabel(p.direction, p.kind)}
+                  </p>
+                  {p.description && <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{p.description}</p>}
+                  <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                    {p.responsible?.name ? `${p.responsible.name} · ` : ""}
+                    {p.dueDate ? (overdue ? `Vencida em ${formatCalendarDate(p.dueDate)}` : `Prazo: ${formatCalendarDate(p.dueDate)}`) : "Sem prazo"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleComplete(p.id)}
+                    disabled={pending}
+                    title="Concluir"
+                    className="p-1.5 rounded-md text-navy-800/40 dark:text-cream-50/40 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    disabled={pending}
+                    title="Excluir"
+                    className="p-1.5 rounded-md text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {concluidas.length > 0 && (
+        <details className="text-xs">
+          <summary className="cursor-pointer font-semibold text-navy-800/45 dark:text-cream-50/45">
+            {concluidas.length} concluída(s)
+          </summary>
+          <div className="mt-2 space-y-1.5">
+            {concluidas.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-2 text-navy-800/50 dark:text-cream-50/50">
+                <span className="line-through">
+                  {PENDENCIA_DIRECTION_LABELS[p.direction as "SOLICITAR" | "ENVIAR"] || p.direction} · {pendenciaKindLabel(p.direction, p.kind)}
+                </span>
+                <button onClick={() => handleReopen(p.id)} disabled={pending} className="flex items-center gap-1 text-gold-700 dark:text-gold-400 hover:underline shrink-0">
+                  <Undo2 size={11} /> Reabrir
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      {adding ? (
+        <div className="space-y-3 border-t border-navy-800/8 dark:border-white/10 pt-3">
+          <PendenciasEditor rows={newRows} onChange={setNewRows} users={users} compact />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveNew}
+              disabled={saving}
+              className="bg-gold-600 hover:bg-gold-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+            >
+              {saving ? "Salvando..." : "Salvar pendência(s)"}
+            </button>
+            <button
+              onClick={() => {
+                setAdding(false);
+                setNewRows([]);
+              }}
+              className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2.5 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+        >
+          <Plus size={13} /> Adicionar pendência
+        </button>
+      )}
+    </div>
+  );
+}

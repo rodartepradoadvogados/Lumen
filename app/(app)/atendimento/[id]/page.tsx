@@ -9,6 +9,7 @@ import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
 import AttendanceStatusSelect from "@/components/AttendanceStatusSelect";
 import FunnelStageSelect from "@/components/FunnelStageSelect";
 import AttendanceCommercialForm from "@/components/AttendanceCommercialForm";
+import AttendancePendenciasPanel from "@/components/AttendancePendenciasPanel";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
@@ -34,6 +35,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
       convertedCase: true,
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
+      pendencias: { include: { responsible: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
     },
   });
   if (!a) notFound();
@@ -54,6 +56,17 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
     docType: att.docType,
     createdAt: att.createdAt.toISOString(),
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
+  }));
+
+  const serializedPendencias = a.pendencias.map((p) => ({
+    id: p.id,
+    direction: p.direction,
+    kind: p.kind,
+    description: p.description,
+    status: p.status,
+    dueDate: p.dueDate ? p.dueDate.toISOString() : null,
+    completedAt: p.completedAt ? p.completedAt.toISOString() : null,
+    responsible: p.responsible ? { name: p.responsible.name } : null,
   }));
 
   return (
@@ -116,6 +129,11 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                     estimatedValue={a.estimatedValue}
                     leadSource={a.leadSource}
                     nextContactAt={a.nextContactAt ? a.nextContactAt.toISOString() : null}
+                    feeMode={a.feeMode}
+                    feePercentual={a.feePercentual}
+                    feePercentualBase={a.feePercentualBase}
+                    responseDeadline={a.responseDeadline ? a.responseDeadline.toISOString() : null}
+                    firstResponseAt={a.firstResponseAt ? a.firstResponseAt.toISOString() : null}
                   />
                 </div>
               </Card>
@@ -124,6 +142,15 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
               </Card>
             </div>
+
+            <Card className="p-5 mb-5">
+              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-1">Pendências</h4>
+              <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+                O que falta pedir ao lead e o que falta mandar para ele. Fecha sozinha quando o anexo do tipo correspondente é registrado
+                abaixo (Procuração, Contrato de Honorários e Declaração de Hipossuficiência); o resto se marca à mão.
+              </p>
+              <AttendancePendenciasPanel attendanceId={a.id} users={users} pendencias={serializedPendencias} />
+            </Card>
 
             {!a.convertedCaseId && (
               <Card className="p-5 mb-5">

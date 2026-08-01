@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { pendenciaKindLabel } from "@/lib/pendencias";
 
 export type AlertItem = {
   id: string;
@@ -17,7 +18,13 @@ export type AlertItem = {
     | "HONORARIO_APURAR_DECISAO"
     // Alerta de acompanhamento (Fase 4): parcela A_APURAR parada há mais de 90 dias, mesmo sem
     // nenhuma publicação nova — para o sócio não esquecer de cobrar/consultar o andamento.
-    | "HONORARIO_APURAR_PARADO";
+    | "HONORARIO_APURAR_PARADO"
+    // Fase 5 (Atendimento) — pendência do atendimento (SOLICITAR/ENVIAR, ver
+    // model AtendimentoPendencia) com prazo vencido e ainda não concluída.
+    | "PENDENCIA_ATENDIMENTO_VENCIDA"
+    // Fase 5 — prazo de resposta ao lead (Attendance.responseDeadline) estourou sem nenhuma
+    // primeira resposta registrada (Attendance.firstResponseAt) — "lead sem retorno é lead perdido".
+    | "RESPOSTA_PRAZO_ESTOURADO";
   title: string;
   subtitle?: string;
   date: Date;
@@ -151,6 +158,8 @@ export async function getAlerts(
     delegatedTasks,
     driveSyncIssues,
     apurarReceivables,
+    overduePendencias,
+    overdueResponseDeadlines,
   ] = await Promise.all([
       prisma.task.findMany({
         where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -209,6 +218,24 @@ export async function getAlerts(
             select: { id: true, createdAt: true, caseId: true, case: { select: { id: true, title: true, processNumber: true } } },
           })
         : Promise.resolve([]),
+      // Fase 5 — pendências do atendimento (SOLICITAR/ENVIAR) com prazo vencido e ainda abertas.
+      prisma.atendimentoPendencia.findMany({
+        where: { officeId, status: "PENDENTE", dueDate: { lt: now } },
+        include: { attendance: { select: { id: true, clientName: true } } },
+        orderBy: { dueDate: "asc" },
+      }),
+      // Fase 5 — prazo de resposta ao lead estourado sem primeira resposta registrada. Exclui
+      // atendimentos já encerrados (arquivado/rascunho/convertido) — não faz sentido cobrar
+      // resposta de um lead que já não está mais em aberto.
+      prisma.attendance.findMany({
+        where: {
+          officeId,
+          responseDeadline: { lt: now },
+          firstResponseAt: null,
+          status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] },
+        },
+        orderBy: { responseDeadline: "asc" },
+      }),
     ]);
 
   // Publicações recentes dos processos com parcela a apurar (Porta 1) — consulta separada porque
@@ -318,6 +345,37 @@ export async function getAlerts(
       severity: "media",
       entityKind: "ATTENDANCE",
       entityId: f.id,
+    });
+  }
+  for (const p of overduePendencias) {
+    if (!p.dueDate) continue;
+    const direction = p.direction === "ENVIAR" ? "Enviar" : "Solicitar";
+    alerts.push({
+      id: `pendencia-atendimento-${p.id}`,
+      kind: "PENDENCIA_ATENDIMENTO_VENCIDA",
+      title: `${direction} · ${pendenciaKindLabel(p.direction, p.kind)} — ${p.attendance.clientName}`,
+      subtitle: p.description || undefined,
+      date: p.dueDate,
+      href: `/atendimento/${p.attendanceId}`,
+      severity: "media",
+      entityKind: "ATTENDANCE",
+      entityId: p.attendanceId,
+      dueStatus: "atrasado",
+    });
+  }
+  for (const a of overdueResponseDeadlines) {
+    if (!a.responseDeadline) continue;
+    alerts.push({
+      id: `resposta-prazo-${a.id}`,
+      kind: "RESPOSTA_PRAZO_ESTOURADO",
+      title: `Sem resposta ao lead: ${a.clientName}`,
+      subtitle: a.subject,
+      date: a.responseDeadline,
+      href: `/atendimento/${a.id}`,
+      severity: "alta",
+      entityKind: "ATTENDANCE",
+      entityId: a.id,
+      dueStatus: "atrasado",
     });
   }
   for (const t of delegatedTasks) {
@@ -455,6 +513,8 @@ export async function getAlertsCount(
     delegatedTasks,
     driveSyncIssues,
     apurarReceivables,
+    overduePendenciasCount,
+    overdueResponseDeadlinesCount,
   ] = await Promise.all([
     prisma.task.count({
       where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -484,6 +544,10 @@ export async function getAlertsCount(
     includeFinance
       ? prisma.receivable.findMany({ where: { officeId, status: "A_APURAR", caseId: { not: null } }, select: { id: true, createdAt: true, caseId: true } })
       : Promise.resolve([]),
+    prisma.atendimentoPendencia.count({ where: { officeId, status: "PENDENTE", dueDate: { lt: now } } }),
+    prisma.attendance.count({
+      where: { officeId, responseDeadline: { lt: now }, firstResponseAt: null, status: { notIn: ["ARQUIVADO", "CONVERTIDO", "RASCUNHO"] } },
+    }),
   ]);
 
   // Mesma lógica de getAlerts() acima para as duas Portas de apuração do êxito, só contando em
@@ -516,7 +580,9 @@ export async function getAlertsCount(
     delegatedTasks +
     driveSyncIssues +
     casosComDecisaoNaoDispensados.size +
-    parcelasParadas
+    parcelasParadas +
+    overduePendenciasCount +
+    overdueResponseDeadlinesCount
   );
 }
 

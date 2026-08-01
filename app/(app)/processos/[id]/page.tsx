@@ -65,10 +65,30 @@ export default async function CaseDetailPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { tab?: string; anexosFalhos?: string };
+  searchParams: {
+    tab?: string;
+    anexosFalhos?: string;
+    // Honorário pretendido vindo da conversão de um Atendimento (Fase 5) — ver
+    // convertAttendanceToCase, lib/actions/attendance.ts. Só pré-preenche o Lançar Honorários
+    // (prop `prefill`/`autoOpen` de LancarHonorariosModal), nunca cria a cobrança sozinho.
+    honorarioPretendido?: string;
+    feeMode?: string;
+    feeAmount?: string;
+    feePercentual?: string;
+    feePercentualBase?: string;
+  };
 }) {
   const requestedTab = searchParams.tab || "visao-geral";
   const anexosFalhos = Number(searchParams.anexosFalhos) || 0;
+  const honorarioPretendidoPrefill =
+    searchParams.honorarioPretendido === "1"
+      ? {
+          cobranca: (searchParams.feeMode as "DINHEIRO" | "PERCENTUAL" | "AMBOS" | undefined) ?? "DINHEIRO",
+          amount: searchParams.feeAmount,
+          percentual: searchParams.feePercentual,
+          percentualBase: searchParams.feePercentualBase,
+        }
+      : undefined;
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
@@ -462,6 +482,8 @@ export default async function CaseDetailPage({
               defaultResponsibleId={viewer.id}
               bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue }}
               alreadyReceivedForCase={c.receivables.filter((r) => r.status === "PAGO").reduce((s, r) => s + (r.paidAmount ?? r.amount), 0)}
+              prefill={honorarioPretendidoPrefill}
+              autoOpen={Boolean(honorarioPretendidoPrefill)}
             />
           </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setAttendanceStage } from "@/lib/actions/attendance";
+import AttendanceLostReasonModal from "@/components/AttendanceLostReasonModal";
 
 export const stageOptions = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
 
@@ -33,38 +34,48 @@ export default function FunnelStageSelect({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Motivo da perda passou a ser OBRIGATÓRIO (Fase 5) — em vez do antigo window.prompt opcional,
+  // abre um modal com opções fechadas + "Outro" (ver AttendanceLostReasonModal.tsx). O <select>
+  // continua mostrando o estágio ANTIGO enquanto o modal está aberto, só avança de verdade depois
+  // de confirmado — não dá pra "escapar" do motivo fechando o prompt sem preencher nada.
+  const [askingLostReason, setAskingLostReason] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const next = e.target.value;
-    let lostReason: string | undefined;
     if (next === "PERDIDO") {
-      const motivo = window.prompt("Motivo da perda (opcional):", "");
-      if (motivo === null) {
-        // usuário cancelou — reverte o select para o valor atual
-        e.target.value = stage;
-        return;
-      }
-      lostReason = motivo.trim() || undefined;
+      setAskingLostReason(true);
+      return;
     }
     startTransition(async () => {
-      await setAttendanceStage(attendanceId, next, lostReason);
+      await setAttendanceStage(attendanceId, next);
+      router.refresh();
+    });
+  }
+
+  function confirmLostReason(reason: string) {
+    setAskingLostReason(false);
+    startTransition(async () => {
+      await setAttendanceStage(attendanceId, "PERDIDO", reason);
       router.refresh();
     });
   }
 
   return (
-    <select
-      value={stage}
-      disabled={pending}
-      onChange={handleChange}
-      onClick={(e) => e.stopPropagation()}
-      className={`text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer disabled:opacity-50 ${colors[stage] || colors.NOVO} ${className || ""}`}
-    >
-      {stageOptions.map((o) => (
-        <option key={o} value={o}>
-          {stageLabels[o]}
-        </option>
-      ))}
-    </select>
+    <>
+      <select
+        value={stage}
+        disabled={pending}
+        onChange={handleChange}
+        onClick={(e) => e.stopPropagation()}
+        className={`text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer disabled:opacity-50 ${colors[stage] || colors.NOVO} ${className || ""}`}
+      >
+        {stageOptions.map((o) => (
+          <option key={o} value={o}>
+            {stageLabels[o]}
+          </option>
+        ))}
+      </select>
+      {askingLostReason && <AttendanceLostReasonModal onConfirm={confirmLostReason} onCancel={() => setAskingLostReason(false)} />}
+    </>
   );
 }

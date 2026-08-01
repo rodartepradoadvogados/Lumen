@@ -15,6 +15,7 @@ import {
 } from "@/lib/storageProvider";
 import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
+import { autoResolvePendenciasForAttachment } from "@/lib/actions/attendancePendencias";
 
 export async function createAttachment(data: {
   name: string;
@@ -49,6 +50,7 @@ export async function createAttachment(data: {
       officeId: user.officeId,
     },
   });
+  if (data.attendanceId) await autoResolvePendenciasForAttachment(data.attendanceId, data.docType || "OUTRO", user.officeId);
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
   return {};
@@ -116,6 +118,7 @@ export async function finalizeAttachmentUpload(data: {
 
     del(data.blobUrl).catch(() => {});
 
+    if (resolvedAttendanceId) await autoResolvePendenciasForAttachment(resolvedAttendanceId, data.docType, user.officeId);
     if (resolvedCaseId) revalidatePath(`/processos/${resolvedCaseId}`);
     if (resolvedAttendanceId) revalidatePath(`/atendimento/${resolvedAttendanceId}`);
 
@@ -191,6 +194,7 @@ export async function updateAttachmentDocType(id: string, docType: string): Prom
   const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
   if (!att) return { error: "Anexo não encontrado." };
   await prisma.attachment.update({ where: { id }, data: { docType } });
+  if (att.attendanceId) await autoResolvePendenciasForAttachment(att.attendanceId, docType, user.officeId);
   if (att.caseId) revalidatePath(`/processos/${att.caseId}`);
   if (att.attendanceId) revalidatePath(`/atendimento/${att.attendanceId}`);
   return {};

@@ -128,6 +128,8 @@ export default function LancarHonorariosModal({
   defaultResponsibleId,
   bases,
   alreadyReceivedForCase,
+  prefill,
+  autoOpen,
 }: {
   categories: Option[];
   clients: Option[];
@@ -139,9 +141,15 @@ export default function LancarHonorariosModal({
   defaultResponsibleId?: string;
   bases: CaseValueBases;
   alreadyReceivedForCase?: number;
+  // Honorário pretendido, vindo da conversão de um Atendimento (Fase 5 — ver
+  // convertAttendanceToCase, lib/actions/attendance.ts, e app/(app)/processos/[id]/page.tsx, que
+  // monta este objeto a partir da querystring do redirect). SÓ pré-preenche os campos — nunca cria
+  // a cobrança sozinho, o advogado sempre confirma clicando em "Salvar lançamento".
+  prefill?: { cobranca?: Cobranca; amount?: string; percentual?: string; percentualBase?: string };
+  autoOpen?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(autoOpen));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -156,12 +164,12 @@ export default function LancarHonorariosModal({
   const [issueDate, setIssueDate] = useState("");
 
   // ---- Forma de cobrança ----
-  const [cobranca, setCobranca] = useState<Cobranca>("DINHEIRO");
-  const [amount, setAmount] = useState("");
+  const [cobranca, setCobranca] = useState<Cobranca>(prefill?.cobranca ?? "DINHEIRO");
+  const [amount, setAmount] = useState(prefill?.amount ?? "");
   const [discount, setDiscount] = useState("0");
   const [surcharge, setSurcharge] = useState("0");
-  const [percentual, setPercentual] = useState("");
-  const [percentualBase, setPercentualBase] = useState("VALOR_CAUSA");
+  const [percentual, setPercentual] = useState(prefill?.percentual ?? "");
+  const [percentualBase, setPercentualBase] = useState(prefill?.percentualBase ?? "VALOR_CAUSA");
   const [abaterEntrada, setAbaterEntrada] = useState(false);
 
   // ---- Vencimento ----
@@ -344,9 +352,21 @@ export default function LancarHonorariosModal({
                 )}
                 {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
 
+                {prefill && (
+                  <p className="text-xs text-gold-800 dark:text-gold-400 bg-gold-500/10 rounded-lg px-3 py-2">
+                    Honorário pretendido registrado na triagem deste atendimento — confira os valores abaixo e confirme antes de salvar.
+                  </p>
+                )}
+
                 <div>
                   <label className={labelCls}>Descrição</label>
-                  <input name="description" required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" placeholder="Ex: Honorários contratuais" />
+                  <input
+                    name="description"
+                    required
+                    defaultValue={prefill ? "Honorários contratuais" : undefined}
+                    className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                    placeholder="Ex: Honorários contratuais"
+                  />
                 </div>
 
                 <SecaoLancamento title="Identificação" tone="palha">

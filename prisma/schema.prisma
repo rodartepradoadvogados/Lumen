@@ -166,6 +166,9 @@ model Office {
   bankAccounts    BankAccount[]
   holidays        Holiday[]
   financePayments FinancePayment[]
+
+  // Pendências do Atendimento (Fase 5) — ver model AtendimentoPendencia mais abaixo.
+  atendimentoPendencias AtendimentoPendencia[]
 }
 
 // ============ EQUIPE ============
@@ -274,6 +277,10 @@ model User {
   receivablesApuradas            Receivable[]          @relation("ReceivableApuradoPor")
   honorarioLancamentosResponsible HonorarioLancamento[] @relation("HonorarioLancamentoResponsible")
   financePayments                FinancePayment[]
+
+  // Pendências do Atendimento (Fase 5) atribuídas a esta pessoa como responsável — ver model
+  // AtendimentoPendencia mais abaixo.
+  atendimentoPendenciasResponsible AtendimentoPendencia[] @relation("AtendimentoPendenciaResponsible")
 
   @@unique([officeId, username])
 }
@@ -752,11 +759,36 @@ model Attendance {
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
-  estimatedValue Float? // valor estimado do contrato
+  estimatedValue Float? // valor estimado do contrato — dobra de "valor em dinheiro" do honorário
+  // pretendido (feeMode abaixo) quando ele inclui DINHEIRO, para não duplicar o mesmo número em
+  // dois campos.
   leadSource     String? // INDICACAO | INSTAGRAM | GOOGLE | SITE | WHATSAPP | OUTRO
-  lostReason     String? // preenchido ao mover para PERDIDO
+  // Preenchido (obrigatoriamente, a partir da Fase 5) ao mover para PERDIDO — opções fechadas em
+  // components/AttendanceLostReasonModal.tsx (Preço | Prazo | Escolheu outro escritório | Desistiu
+  // da ação | Sem resposta | Fora da nossa área | Outro: <texto livre>). Alimenta o relatório de
+  // captação — por isso nunca mais fica nulo depois que o estágio vira PERDIDO uma vez.
+  lostReason     String?
   nextContactAt  DateTime? // data do próximo contato/follow-up
   stageChangedAt DateTime? // quando o estágio comercial mudou pela última vez
+
+  // Honorário PRETENDIDO (Fase 5) — forma de cobrança que o advogado pretende propor ao lead,
+  // capturada já na triagem para não ser redigitada na conversão em Processo (ver
+  // convertAttendanceToCase, lib/actions/attendance.ts, que usa estes 3 campos + estimatedValue
+  // acima só para PRÉ-PREENCHER o Lançar Honorários do processo novo — nunca cria a cobrança
+  // sozinho, o advogado sempre confirma). Mesmo vocabulário do financeiro (ver
+  // lib/honorarioLancamento.ts) para não inventar um segundo dicionário de termos.
+  feeMode           String? // DINHEIRO | PERCENTUAL | AMBOS
+  feePercentual     Float? // % pretendido, só relevante quando feeMode inclui PERCENTUAL
+  feePercentualBase String? // VALOR_CAUSA | PROVEITO_ECONOMICO | CONDENACAO | ACORDO
+
+  // Prazo de resposta ao lead (Fase 5) — "lead sem retorno é lead perdido". Default 24h após a
+  // criação (calculado no client, ver NewAttendanceModal.tsx), editável na janela de criação.
+  // firstResponseAt é carimbado sozinho no primeiro e-mail/WhatsApp enviado deste atendimento (ver
+  // replyWhatsapp/replyEmail abaixo) ou manualmente via markAttendanceResponded, para quando a
+  // resposta saiu por um canal que o sistema não rastreia (telefone, presencial). Alerta na
+  // Central quando responseDeadline estoura sem firstResponseAt (ver lib/alerts.ts).
+  responseDeadline DateTime?
+  firstResponseAt  DateTime?
 
   // Integração WhatsApp (Cloud API oficial da Meta) — número/credenciais por escritório (Fase 2)
   waPhone         String? // telefone do cliente no WhatsApp (E.164), usado como chave de conversa
@@ -795,9 +827,44 @@ model Attendance {
   whatsappMessages WhatsappMessage[]
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
+  pendencias       AtendimentoPendencia[]
 
   @@index([officeId])
   @@index([officeId, waPhone])
+}
+
+// ============ PENDÊNCIAS DO ATENDIMENTO (Fase 5) ============
+
+// O que falta para fechar o atendimento, nas duas direções: pedir algo AO lead (SOLICITAR) ou
+// mandar algo PARA o lead (ENVIAR) — ver lib/pendencias.ts para o vocabulário fechado de `kind`
+// por direção. Fecha sozinha (status CONCLUIDA + completedAt) quando um anexo do tipo de documento
+// correspondente é registrado neste atendimento (só para os 3 casos com correspondência 1:1 no
+// catálogo — ver DOC_TYPE_TO_PENDENCIA_ENVIAR); o resto se fecha à mão na tela do atendimento.
+// Aparece em aberto na tela de detalhe do atendimento e na Central de Alertas (com o prazo) quando
+// vencida — ver lib/alerts.ts.
+model AtendimentoPendencia {
+  id           String     @id @default(cuid())
+  attendanceId String
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  direction String // SOLICITAR | ENVIAR
+  kind      String // ver lib/pendencias.ts (SOLICITAR_KIND_OPTIONS / ENVIAR_KIND_OPTIONS)
+  // "Quais?" — só preenchido/exigido para os kinds que pedem descrição livre (Documentos,
+  // Informações, Outros — ver pendenciaKindNeedsDescription em lib/pendencias.ts).
+  description String?
+  status      String     @default("PENDENTE") // PENDENTE | CONCLUIDA
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  responsibleId String?
+  responsible   User?   @relation("AtendimentoPendenciaResponsible", fields: [responsibleId], references: [id])
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId])
+  @@index([attendanceId])
 }
 
 // ============ WHATSAPP (mensagens da integração com a Cloud API da Meta) ============

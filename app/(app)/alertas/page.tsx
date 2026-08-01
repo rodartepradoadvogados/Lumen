@@ -8,7 +8,7 @@ import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
 import DismissibleAlertRow from "@/components/DismissibleAlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
-import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, FolderSync, LucideIcon } from "lucide-react";
+import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, FolderSync, ClipboardList, AlarmClock, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,8 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   DRIVE_INCONSISTENCIA: { label: "Inconsistência no Drive", icon: FolderSync },
   HONORARIO_APURAR_DECISAO: { label: "Honorário a Apurar — Decisão", icon: Gavel },
   HONORARIO_APURAR_PARADO: { label: "Honorário a Apurar — Parado", icon: Gavel },
+  PENDENCIA_ATENDIMENTO_VENCIDA: { label: "Pendência do Atendimento", icon: ClipboardList },
+  RESPOSTA_PRAZO_ESTOURADO: { label: "Prazo de Resposta Estourado", icon: AlarmClock },
 };
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {

@@ -9,6 +9,8 @@ import { sendEmailReply } from "@/lib/gmailSend";
 import { renameDriveFolder } from "@/lib/storageProvider";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
+import { normalizeForCompare } from "@/lib/textNormalize";
+import { createAttendancePendencias, type PendenciaInput } from "@/lib/actions/attendancePendencias";
 
 async function assertAttendanceRelationsInOffice(
   data: { clientId?: string; responsibleId?: string; assessoriaId?: string },
@@ -34,6 +36,16 @@ type CreateAttendanceInput = {
   leadSource?: string;
   nextContactAt?: string;
   assessoriaId?: string;
+  // Prazo de resposta ao lead (Fase 5) — vem já calculado do client (default 24h após a criação,
+  // editável na janela), string ISO/datetime-local.
+  responseDeadline?: string;
+  // Honorário pretendido (Fase 5) — ver comentário do schema (Attendance.feeMode e vizinhos).
+  feeMode?: string;
+  feePercentual?: number | null;
+  feePercentualBase?: string;
+  // Pendências marcadas já na criação (Fase 5) — criadas depois do Attendance existir, na mesma
+  // chamada (precisa do id gerado).
+  pendencias?: PendenciaInput[];
 };
 
 export async function createAttendance(data: CreateAttendanceInput): Promise<{ id: string; newClientId?: string }> {
@@ -82,11 +94,69 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<{ i
       stageChangedAt: new Date(),
       assessoriaId: data.assessoriaId || null,
       officeId: viewer.officeId,
+      responseDeadline: data.responseDeadline ? new Date(data.responseDeadline) : new Date(Date.now() + 24 * 3600 * 1000),
+      feeMode: data.feeMode || null,
+      feePercentual: data.feePercentual ?? null,
+      feePercentualBase: data.feePercentualBase || null,
     },
   });
+
+  if (data.pendencias && data.pendencias.length > 0) {
+    await createAttendancePendencias(created.id, data.pendencias);
+  }
+
   revalidatePath("/atendimento");
   revalidatePath("/atendimento/funil");
   return { id: created.id, newClientId };
+}
+
+// Checagem de conflito de interesses (Fase 5) — nome digitado no "Nome do Contato" contra a parte
+// adversa de qualquer processo do escritório (CaseParty.name + o campo legado
+// Case.opposingPartyName). Comparação tolerante (sem acento/caixa/espaços — ver
+// lib/textNormalize.ts) porque o mesmo nome quase nunca é digitado igual duas vezes. Não bloqueia
+// nada — só avisa (ver NewAttendanceModal.tsx); a decisão de seguir ou não é sempre do advogado.
+export async function checkOpposingPartyConflict(
+  name: string
+): Promise<{ id: string; title: string; processNumber: string | null }[]> {
+  const q = name.trim();
+  if (q.length < 3) return [];
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  const target = normalizeForCompare(q);
+
+  const [byParty, byLegacyField] = await Promise.all([
+    prisma.caseParty.findMany({
+      where: { case: { officeId: viewer.officeId } },
+      select: { name: true, case: { select: { id: true, title: true, processNumber: true } } },
+    }),
+    prisma.case.findMany({
+      where: { officeId: viewer.officeId, opposingPartyName: { not: null } },
+      select: { id: true, title: true, processNumber: true, opposingPartyName: true },
+    }),
+  ]);
+
+  const matches = new Map<string, { id: string; title: string; processNumber: string | null }>();
+  for (const p of byParty) {
+    if (normalizeForCompare(p.name) === target) matches.set(p.case.id, p.case);
+  }
+  for (const c of byLegacyField) {
+    if (c.opposingPartyName && normalizeForCompare(c.opposingPartyName) === target) {
+      matches.set(c.id, { id: c.id, title: c.title, processNumber: c.processNumber });
+    }
+  }
+  return Array.from(matches.values());
+}
+
+export async function markAttendanceResponded(attendanceId: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  await prisma.attendance.updateMany({
+    where: { id: attendanceId, officeId: viewer.officeId, firstResponseAt: null },
+    data: { firstResponseAt: new Date() },
+  });
+  revalidatePath(`/atendimento/${attendanceId}`);
+  revalidatePath("/alertas");
+  return {};
 }
 
 // Rascunho: salva o que já foi preenchido para retomar depois. Nunca cria um Client novo
@@ -120,8 +190,17 @@ export async function saveAttendanceDraft(
       stageChangedAt: new Date(),
       assessoriaId: data.assessoriaId || null,
       officeId: viewer.officeId,
+      responseDeadline: data.responseDeadline ? new Date(data.responseDeadline) : new Date(Date.now() + 24 * 3600 * 1000),
+      feeMode: data.feeMode || null,
+      feePercentual: data.feePercentual ?? null,
+      feePercentualBase: data.feePercentualBase || null,
     },
   });
+
+  if (data.pendencias && data.pendencias.length > 0) {
+    await createAttendancePendencias(created.id, data.pendencias);
+  }
+
   revalidatePath("/atendimento");
   return { id: created.id };
 }
@@ -188,16 +267,25 @@ export async function updateAttendanceStatus(id: string, status: string) {
 
 // ===== Funil comercial (CRM de captação) — eixo independente do status operacional =====
 
-export async function setAttendanceStage(id: string, stage: string, lostReason?: string) {
+export async function setAttendanceStage(id: string, stage: string, lostReason?: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
+
+  // Motivo da perda passou a ser OBRIGATÓRIO (Fase 5) — é o que alimenta o relatório de captação.
+  // Quem chama isto para PERDIDO precisa já ter coletado o motivo antes (ver
+  // components/AttendanceLostReasonModal.tsx, opções fechadas + "Outro" com texto livre) — aqui só
+  // se recusa a gravar um PERDIDO sem motivo, não decide QUAL motivo.
+  if (stage === "PERDIDO" && !lostReason?.trim()) {
+    return { error: "Informe o motivo da perda antes de mover para Perdido." };
+  }
+
   await prisma.attendance.updateMany({
     where: { id, officeId: viewer.officeId },
     data: {
       stage,
       stageChangedAt: new Date(),
       // motivo só é gravado (ou limpo) quando o estágio é PERDIDO
-      lostReason: stage === "PERDIDO" ? lostReason || null : null,
+      lostReason: stage === "PERDIDO" ? lostReason!.trim() : null,
       // não mexe no `status` operacional: os dois eixos são independentes
     },
   });
@@ -205,11 +293,22 @@ export async function setAttendanceStage(id: string, stage: string, lostReason?:
   revalidatePath("/atendimento/funil");
   revalidatePath(`/atendimento/${id}`);
   revalidatePath("/alertas");
+  return {};
 }
 
 export async function updateAttendanceCommercial(
   id: string,
-  data: { estimatedValue?: number | null; leadSource?: string | null; nextContactAt?: string | null }
+  data: {
+    estimatedValue?: number | null;
+    leadSource?: string | null;
+    nextContactAt?: string | null;
+    // Fase 5 — honorário pretendido e prazo de resposta, editáveis junto com o resto do bloco
+    // "Comercial (Funil)" da tela de detalhe (ver AttendanceCommercialForm.tsx).
+    feeMode?: string | null;
+    feePercentual?: number | null;
+    feePercentualBase?: string | null;
+    responseDeadline?: string | null;
+  }
 ) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
@@ -219,6 +318,10 @@ export async function updateAttendanceCommercial(
       estimatedValue: data.estimatedValue ?? null,
       leadSource: data.leadSource || null,
       nextContactAt: data.nextContactAt ? new Date(data.nextContactAt) : null,
+      feeMode: data.feeMode || null,
+      feePercentual: data.feePercentual ?? null,
+      feePercentualBase: data.feePercentualBase || null,
+      responseDeadline: data.responseDeadline ? new Date(data.responseDeadline) : null,
     },
   });
   revalidatePath("/atendimento");
@@ -259,7 +362,11 @@ export async function replyWhatsapp(attendanceId: string, body: string): Promise
 
   await prisma.attendance.update({
     where: { id: attendanceId },
-    data: { waLastMessageAt: new Date() },
+    data: {
+      waLastMessageAt: new Date(),
+      // Primeira resposta ao lead (Fase 5) — só carimba se ainda estiver nula, nunca sobrescreve.
+      firstResponseAt: attendance.firstResponseAt ?? new Date(),
+    },
   });
 
   revalidatePath(`/atendimento/${attendanceId}`);
@@ -310,6 +417,12 @@ export async function replyEmail(attendanceId: string, subject: string, body: st
       officeId: user.officeId,
     },
   });
+
+  // Primeira resposta ao lead (Fase 5) — só quando o envio realmente saiu, e só carimba se ainda
+  // estiver nula (nunca sobrescreve a primeira resposta de verdade por uma resposta posterior).
+  if (result.ok && !attendance.firstResponseAt) {
+    await prisma.attendance.update({ where: { id: attendanceId }, data: { firstResponseAt: new Date() } });
+  }
 
   revalidatePath(`/atendimento/${attendanceId}`);
 
@@ -397,5 +510,19 @@ export async function convertAttendanceToCase(
   revalidatePath("/processos");
   revalidatePath("/m/atendimento");
   revalidatePath("/m/processos");
-  redirect(`${redirectBasePath}/${created.id}`);
+
+  // Honorário pretendido (Fase 5) — passado por querystring para o Processo novo só PRÉ-PREENCHER
+  // o Lançar Honorários (ver LancarHonorariosModal.tsx, prop `prefill`/`autoOpen`); nunca cria a
+  // cobrança sozinho. A tela mobile do Processo ignora esses parâmetros (não tem esse modal), então
+  // é seguro incluir sempre, mesmo quando redirectBasePath é "/m/processos".
+  const feeParams = new URLSearchParams();
+  if (attendance.feeMode) {
+    feeParams.set("honorarioPretendido", "1");
+    feeParams.set("feeMode", attendance.feeMode);
+    if (attendance.estimatedValue != null) feeParams.set("feeAmount", String(attendance.estimatedValue));
+    if (attendance.feePercentual != null) feeParams.set("feePercentual", String(attendance.feePercentual));
+    if (attendance.feePercentualBase) feeParams.set("feePercentualBase", attendance.feePercentualBase);
+  }
+  const qs = feeParams.toString();
+  redirect(`${redirectBasePath}/${created.id}${qs ? `?tab=financeiro&${qs}` : ""}`);
 }
