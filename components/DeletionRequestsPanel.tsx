@@ -9,11 +9,27 @@ type Req = {
   id: string;
   entityType: string;
   entityLabel: string;
+  scope?: string | null;
   createdAt: string;
   requestedBy: { name: string };
 };
 
-const entityLabels: Record<string, string> = { TASK: "Tarefa/Evento", CASE: "Processo/Caso", ATTENDANCE: "Atendimento" };
+const entityLabels: Record<string, string> = {
+  TASK: "Tarefa/Evento",
+  CASE: "Processo/Caso",
+  ATTENDANCE: "Atendimento",
+  PAYABLE: "Conta a Pagar",
+  RECEIVABLE: "Conta a Receber",
+  HONORARIO_LANCAMENTO: "Honorário parcelado",
+};
+
+// Só preenchido para RECEIVABLE/PAYABLE agrupados (ver DeletionScope em lib/actions/deletion.ts)
+// — mostra pro admin, antes de aprovar, que a exclusão pode ser bem mais drástica que "só este
+// lançamento".
+const scopeLabels: Record<string, string> = {
+  FOLLOWING: "este lançamento e os seguintes",
+  ALL: "TODOS os lançamentos deste agrupamento",
+};
 
 export default function DeletionRequestsPanel({ requests }: { requests: Req[] }) {
   const router = useRouter();
@@ -34,6 +50,9 @@ export default function DeletionRequestsPanel({ requests }: { requests: Req[] })
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-navy-800/40 uppercase tracking-wide">{entityLabels[r.entityType] ?? r.entityType}</p>
             <p className="text-sm font-medium text-navy-900 mt-0.5 truncate">{r.entityLabel}</p>
+            {r.scope && scopeLabels[r.scope] && (
+              <p className="text-xs font-semibold text-bordo-600 mt-0.5">Escopo: {scopeLabels[r.scope]}</p>
+            )}
             <p className="text-xs text-navy-800/45 mt-0.5">Solicitado por {r.requestedBy.name}</p>
           </div>
           <button

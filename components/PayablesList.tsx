@@ -10,6 +10,7 @@ import BulkSettleBar from "@/components/BulkSettleBar";
 import { markManyPayablesPaid } from "@/lib/actions/financeiro";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { financeGroupKind } from "@/lib/financeGroupKind";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
 
 const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", PARCIAL: "amber", CANCELADO: "red" };
@@ -43,6 +44,7 @@ type Payable = {
   installmentBoleto: string | null;
   installmentNumber: number | null;
   installmentTotal: number | null;
+  groupId: string | null;
   category: { name: string } | null;
   costCenter: { name: string } | null;
   case: { title: string } | null;
@@ -167,7 +169,13 @@ export default function PayablesList({
                   costCenters={costCenters}
                   responsibles={responsibles}
                 />
-                <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
+                <DeleteEntityButton
+                  entityType="PAYABLE"
+                  entityId={p.id}
+                  entityLabel={p.description}
+                  confirmMessage={`Excluir o lançamento "${p.description}"?`}
+                  groupKind={financeGroupKind(p)}
+                />
               </div>
             </div>
           );

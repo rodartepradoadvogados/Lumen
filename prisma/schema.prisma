@@ -1161,9 +1161,14 @@ model DocumentTemplate {
 
 model DeletionRequest {
   id          String   @id @default(cuid())
-  entityType  String // TASK | CASE | ATTENDANCE
+  entityType  String // TASK | CASE | ATTENDANCE | PAYABLE | RECEIVABLE | HONORARIO_LANCAMENTO
   entityId    String
   entityLabel String // snapshot legível (título/nome) para exibir mesmo após excluir
+  // ONLY | FOLLOWING | ALL — só preenchido para RECEIVABLE/PAYABLE pertencentes a um agrupamento
+  // (parcelamento, honorário parcelado ou honorário recorrente; ver requestDeletionScoped em
+  // lib/actions/deletion.ts). Nulo para os demais entityType e para RECEIVABLE/PAYABLE avulsos —
+  // nesses casos a aprovação segue o fluxo antigo (performDelete), sem escopo nenhum.
+  scope       String?
   status      String   @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
   createdAt   DateTime @default(now())
 

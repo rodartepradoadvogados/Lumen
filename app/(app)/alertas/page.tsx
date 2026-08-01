@@ -91,6 +91,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                   id: r.id,
                   entityType: r.entityType,
                   entityLabel: r.entityLabel,
+                  scope: r.scope,
                   createdAt: r.createdAt.toISOString(),
                   requestedBy: { name: r.requestedBy.name },
                 }))}

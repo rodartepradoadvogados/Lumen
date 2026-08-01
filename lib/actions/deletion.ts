@@ -6,6 +6,11 @@ import { getCurrentUser } from "@/lib/currentUser";
 
 type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
 
+// ONLY = comportamento de sempre (exclui só o lançamento clicado, sem olhar agrupamento nenhum).
+// FOLLOWING/ALL só fazem sentido para RECEIVABLE/PAYABLE que pertencem a um dos três agrupamentos
+// existentes (ver performDeleteScoped abaixo) — usados fora disso, caem de volta em ONLY.
+export type DeletionScope = "ONLY" | "FOLLOWING" | "ALL";
+
 async function performDelete(entityType: string, entityId: string, officeId: string) {
   if (entityType === "TASK") {
     await prisma.$transaction([
@@ -90,6 +95,121 @@ async function performDelete(entityType: string, entityId: string, officeId: str
   }
 }
 
+// Revalidação comum das listas/relatórios de Financeiro afetados por qualquer exclusão em lote de
+// RECEIVABLE/PAYABLE — mesmo conjunto de caminhos usado pelas ramificações RECEIVABLE/PAYABLE de
+// performDelete acima, sem o revalidatePath específico de processo (cada chamador decide isso,
+// já que o caseId pode variar dentro do próprio agrupamento — ver RecurringFee/HonorarioLancamento
+// que sempre têm um único caseId, mas o groupId genérico pode, em teoria, não ter).
+function revalidateFinanceScoped() {
+  revalidatePath("/financeiro");
+  revalidatePath("/financeiro/receitas");
+  revalidatePath("/financeiro/despesas");
+  revalidatePath("/financeiro/dre");
+  revalidatePath("/financeiro/livro-caixa");
+  revalidatePath("/alertas");
+  revalidatePath("/painel");
+}
+
+function revalidateCaseScoped(caseId: string | null | undefined) {
+  if (!caseId) return;
+  revalidatePath(`/processos/${caseId}`);
+  revalidatePath(`/m/processos/${caseId}`);
+}
+
+// Exclusão em lote de RECEIVABLE/PAYABLE por escopo ("este e os seguintes" / "todos") — só chamada
+// para os três agrupamentos que existem hoje (ver comentário de cada ramo abaixo); fora deles cai
+// de volta em performDelete (comportamento de sempre, sem lote nenhum). Regra que vale para TODO
+// agrupamento aqui: uma parcela/linha já PAGA nunca é apagada de fato — ou é desvinculada do
+// cabeçalho (honorário parcelado) ou simplesmente pulada (parcelamento genérico e recorrente), pra
+// nunca sumir um registro financeiro definitivo de dentro de uma exclusão em lote.
+async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityId: string, officeId: string, scope: DeletionScope) {
+  if (scope === "ONLY") {
+    await performDelete(entityType, entityId, officeId);
+    return;
+  }
+
+  if (entityType === "PAYABLE") {
+    const anchor = await prisma.payable.findFirst({ where: { id: entityId, officeId } });
+    if (!anchor) return;
+    if (!anchor.groupId) {
+      // Avulso (sem parcelamento) — "seguintes"/"todos" não têm o que agrupar, comporta-se como ONLY.
+      await performDelete(entityType, entityId, officeId);
+      return;
+    }
+    const siblingsWhere =
+      scope === "FOLLOWING"
+        ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
+        : { groupId: anchor.groupId, officeId };
+    await prisma.payable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
+    revalidateFinanceScoped();
+    revalidateCaseScoped(anchor.caseId);
+    return;
+  }
+
+  // RECEIVABLE
+  const anchor = await prisma.receivable.findFirst({ where: { id: entityId, officeId } });
+  if (!anchor) return;
+
+  if (anchor.honorarioLancamentoId) {
+    // Honorário parcelado (Fase 2) — mesma proteção do entityType HONORARIO_LANCAMENTO em
+    // performDelete: parcela PAGA nunca é apagada, só desvinculada (vira Receivable solta,
+    // preservando a baixa). "Seguintes" só faz sentido quando a parcela tem installmentNumber
+    // (nasceu de um parcelamento de verdade, ver createHonorarioLancamento); nos lançamentos
+    // "dinheiro + percentual" sem parcelamento (installmentNumber nulo) não existe ordem nenhuma
+    // entre as linhas, então "seguintes" cai no mesmo efeito de "todos" — a única leitura que faz
+    // sentido ali.
+    const honorarioLancamentoId = anchor.honorarioLancamentoId;
+    const siblingsWhere =
+      scope === "FOLLOWING" && anchor.installmentNumber != null
+        ? { honorarioLancamentoId, officeId, installmentNumber: { gte: anchor.installmentNumber } }
+        : { honorarioLancamentoId, officeId };
+    await prisma.receivable.updateMany({ where: { ...siblingsWhere, status: "PAGO" }, data: { honorarioLancamentoId: null } });
+    await prisma.receivable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
+    // Cabeçalho órfão (nenhuma parcela mais vinculada, nem as pagas desvinculadas acima) some
+    // junto — mesma limpeza de performDelete/HONORARIO_LANCAMENTO, olhando o lançamento inteiro
+    // (não só o escopo desta exclusão), já que "seguintes" pode ter deixado o cabeçalho vazio.
+    const restantes = await prisma.receivable.count({ where: { honorarioLancamentoId } });
+    if (restantes === 0) {
+      const lancamento = await prisma.honorarioLancamento.findFirst({ where: { id: honorarioLancamentoId } });
+      await prisma.honorarioLancamento.deleteMany({ where: { id: honorarioLancamentoId } });
+      revalidateCaseScoped(lancamento?.caseId);
+    } else {
+      revalidateCaseScoped(anchor.caseId);
+    }
+  } else if (anchor.recurringFeeId) {
+    // Honorário recorrente até o arquivamento — não existem parcelas futuras já criadas no banco
+    // (nascem mês a mês via ensureRecurringFeeReceivables), então "excluir os seguintes"/"todos"
+    // não apaga nada que ainda vai nascer: o que garante que não volta é RecurringFee.active=false,
+    // que o cron respeita (para de gerar competência nova para um fee inativo).
+    const recurringFeeId = anchor.recurringFeeId;
+    const siblings = await prisma.receivable.findMany({ where: { recurringFeeId, officeId } });
+    const alvo =
+      scope === "FOLLOWING" && anchor.competencia
+        ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
+        : siblings;
+    const idsParaExcluir = alvo.filter((s) => s.status !== "PAGO").map((s) => s.id);
+    if (idsParaExcluir.length > 0) {
+      await prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+    }
+    const fee = await prisma.recurringFee.update({ where: { id: recurringFeeId }, data: { active: false } });
+    revalidateCaseScoped(fee.caseId);
+  } else if (anchor.groupId) {
+    // Parcelamento genérico (createReceivable com `parcelado`) — mesma lógica do PAYABLE acima.
+    const siblingsWhere =
+      scope === "FOLLOWING"
+        ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
+        : { groupId: anchor.groupId, officeId };
+    await prisma.receivable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
+    revalidateCaseScoped(anchor.caseId);
+  } else {
+    // Avulso — sem agrupamento nenhum, comporta-se como ONLY.
+    await performDelete(entityType, entityId, officeId);
+    return;
+  }
+
+  revalidateFinanceScoped();
+}
+
 export async function requestDeletion(
   entityType: EntityType,
   entityId: string,
@@ -115,6 +235,36 @@ export async function requestDeletion(
   return { pending: true };
 }
 
+// Igual a requestDeletion, mas para RECEIVABLE/PAYABLE com escolha de escopo ("só este" / "este e
+// os seguintes" / "todos") — ver DeleteEntityButton.tsx (pop-up de confirmação com o texto exato
+// pedido pelo dono do produto para cada opção) e performDeleteScoped acima para a lógica de cada
+// um dos três agrupamentos.
+export async function requestDeletionScoped(
+  entityType: "PAYABLE" | "RECEIVABLE",
+  entityId: string,
+  entityLabel: string,
+  scope: DeletionScope
+): Promise<{ error?: string; pending?: boolean }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  if (user.isAdmin) {
+    await performDeleteScoped(entityType, entityId, user.officeId, scope);
+    return {};
+  }
+
+  const existing = await prisma.deletionRequest.findFirst({
+    where: { entityType, entityId, status: "PENDENTE", officeId: user.officeId },
+  });
+  if (existing) return { pending: true };
+
+  await prisma.deletionRequest.create({
+    data: { entityType, entityId, entityLabel, scope, status: "PENDENTE", requestedById: user.id, officeId: user.officeId },
+  });
+  revalidatePath("/alertas");
+  return { pending: true };
+}
+
 export async function approveDeletion(id: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user?.isAdmin) return { error: "Apenas administradores podem aprovar exclusões." };
@@ -123,7 +273,11 @@ export async function approveDeletion(id: string): Promise<{ error?: string }> {
   if (!req || req.status !== "PENDENTE") return { error: "Solicitação não encontrada ou já resolvida." };
 
   try {
-    await performDelete(req.entityType, req.entityId, user.officeId);
+    if (req.scope && (req.entityType === "RECEIVABLE" || req.entityType === "PAYABLE")) {
+      await performDeleteScoped(req.entityType, req.entityId, user.officeId, req.scope as DeletionScope);
+    } else {
+      await performDelete(req.entityType, req.entityId, user.officeId);
+    }
   } catch {
     // entidade pode já ter sido removida por outro caminho — segue para marcar a solicitação como resolvida
   }

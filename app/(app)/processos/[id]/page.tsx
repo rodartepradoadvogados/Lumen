@@ -34,6 +34,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { financeGroupKind } from "@/lib/financeGroupKind";
 
 export const dynamic = "force-dynamic";
 
@@ -591,7 +592,13 @@ export default async function CaseDetailPage({
                         costCenters={costCenters}
                         responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                       />
-                      <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
+                      <DeleteEntityButton
+                        entityType="RECEIVABLE"
+                        entityId={r.id}
+                        entityLabel={r.description}
+                        confirmMessage={`Excluir o lançamento "${r.description}"?`}
+                        groupKind={financeGroupKind(r)}
+                      />
                     </div>
                   </div>
                   );
@@ -656,7 +663,13 @@ export default async function CaseDetailPage({
                         costCenters={costCenters}
                         responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                       />
-                      <DeleteEntityButton entityType="PAYABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir o lançamento "${p.description}"?`} />
+                      <DeleteEntityButton
+                        entityType="PAYABLE"
+                        entityId={p.id}
+                        entityLabel={p.description}
+                        confirmMessage={`Excluir o lançamento "${p.description}"?`}
+                        groupKind={financeGroupKind(p)}
+                      />
                     </div>
                   </div>
                   );

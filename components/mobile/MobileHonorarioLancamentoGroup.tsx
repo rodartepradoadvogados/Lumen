@@ -105,7 +105,13 @@ export default function MobileHonorarioLancamentoGroup({
               </div>
               <div className="flex items-center justify-between gap-2 mt-1.5">
                 <Badge color={statusBadgeColor(p.status)}>{statusLabel(p.status)}</Badge>
-                <DeleteEntityButton entityType="RECEIVABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir a parcela "${p.description}"?`} />
+                <DeleteEntityButton
+                  entityType="RECEIVABLE"
+                  entityId={p.id}
+                  entityLabel={p.description}
+                  confirmMessage={`Excluir a parcela "${p.description}"?`}
+                  groupKind="HONORARIO"
+                />
               </div>
               {!isApurar && (
                 <div className="mt-2">

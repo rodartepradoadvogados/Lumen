@@ -238,7 +238,13 @@ export default function HonorarioLancamentoCard({
                 {!isApurar && (
                   <SettleButton id={p.id} kind="receivable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />
                 )}
-                <DeleteEntityButton entityType="RECEIVABLE" entityId={p.id} entityLabel={p.description} confirmMessage={`Excluir a parcela "${p.description}"?`} />
+                <DeleteEntityButton
+                  entityType="RECEIVABLE"
+                  entityId={p.id}
+                  entityLabel={p.description}
+                  confirmMessage={`Excluir a parcela "${p.description}"?`}
+                  groupKind="HONORARIO"
+                />
               </div>
             </div>
           );

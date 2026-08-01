@@ -162,6 +162,7 @@ export default async function DespesasPage({
             installmentBoleto: p.installmentBoleto,
             installmentNumber: p.installmentNumber,
             installmentTotal: p.installmentTotal,
+            groupId: p.groupId,
             category: p.category ? { name: p.category.name } : null,
             costCenter: p.costCenter ? { name: p.costCenter.name } : null,
             case: p.case ? { title: p.case.title } : null,

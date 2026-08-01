@@ -10,6 +10,7 @@ import BulkSettleBar from "@/components/BulkSettleBar";
 import { markManyReceivablesPaid } from "@/lib/actions/financeiro";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { financeGroupKind } from "@/lib/financeGroupKind";
 import { DOCUMENT_TYPE_OPTIONS, PAYER_TYPE_LABELS, PERCENTUAL_BASE_LABELS, RECEIVABLE_KIND_LABELS } from "@/lib/honorarioLancamento";
 
 const statusColor: Record<string, "green" | "red" | "amber" | "slate"> = {
@@ -61,6 +62,9 @@ type Receivable = {
   installmentBoleto: string | null;
   installmentNumber: number | null;
   installmentTotal: number | null;
+  groupId: string | null;
+  honorarioLancamentoId: string | null;
+  recurringFeeId: string | null;
   category: { name: string } | null;
   costCenter: { name: string } | null;
   case: { title: string } | null;
@@ -200,7 +204,13 @@ export default function ReceivablesList({
                   costCenters={costCenters}
                   responsibles={responsibles}
                 />
-                <DeleteEntityButton entityType="RECEIVABLE" entityId={r.id} entityLabel={r.description} confirmMessage={`Excluir o lançamento "${r.description}"?`} />
+                <DeleteEntityButton
+                  entityType="RECEIVABLE"
+                  entityId={r.id}
+                  entityLabel={r.description}
+                  confirmMessage={`Excluir o lançamento "${r.description}"?`}
+                  groupKind={financeGroupKind(r)}
+                />
               </div>
             </div>
           );
