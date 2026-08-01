@@ -10,7 +10,7 @@ import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
 import MobileNewReceivableForm from "@/components/mobile/MobileNewReceivableForm";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, HandCoins } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +73,17 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
         <TabLink label="A apurar" href="/m/financeiro/receitas?tab=apurar" active={tab === "apurar"} />
         <TabLink label="Todas" href="/m/financeiro/receitas?tab=todas" active={tab === "todas"} />
       </div>
+
+      {/* Mesmo pedido central da Fase 8: lançar honorários (natureza, forma de cobrança,
+          parcelamento/recorrência, recebimento) sem precisar do computador — aqui fora de um
+          processo específico, por isso pede pra escolher um (ver
+          app/m/financeiro/receitas/honorarios/page.tsx). */}
+      <Link
+        href="/m/financeiro/receitas/honorarios"
+        className="w-full flex items-center justify-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-white/10 dark:hover:bg-white/15 text-white dark:text-cream-50 text-sm font-semibold py-2.5 rounded-lg transition-colors"
+      >
+        <HandCoins size={16} /> Lançar Honorários
+      </Link>
 
       <MobileNewReceivableForm clients={clients} categories={categories} costCenters={costCenters} />
 

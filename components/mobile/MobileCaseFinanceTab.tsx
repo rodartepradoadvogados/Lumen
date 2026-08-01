@@ -1,0 +1,162 @@
+import Link from "next/link";
+import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate } from "@/components/ui";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import RecurringFeeCard from "@/components/RecurringFeeCard";
+import MobileHonorarioLancamentoGroup from "@/components/mobile/MobileHonorarioLancamentoGroup";
+import MobileSettleForm from "@/components/mobile/MobileSettleForm";
+import { HandCoins } from "lucide-react";
+
+type Option = { id: string; name: string };
+
+type Payment = { amount: number };
+
+type ReceivableRow = {
+  id: string;
+  description: string;
+  amount: number;
+  discount: number;
+  surcharge: number;
+  dueDate: string;
+  noDueDate: boolean;
+  status: string;
+  payerType: string;
+  payerName: string | null;
+  honorarioLancamentoId: string | null;
+  payments: Payment[];
+};
+
+type PayableRow = {
+  id: string;
+  description: string;
+  amount: number;
+  discount: number;
+  surcharge: number;
+  dueDate: string;
+  noDueDate: boolean;
+  status: string;
+  payments: Payment[];
+};
+
+// Aba Financeiro do processo, versão mobile — traz o que o dono do produto pediu explicitamente
+// ("no financeiro, não consegui lançar o financeiro como é por dentro do site, dentro de um
+// processo"): Contas a Receber/Pagar deste processo com selo próprio para A_APURAR/PARCIAL,
+// honorário recorrente até o arquivamento, honorários parcelados agrupados, Dar Baixa e o botão
+// Lançar Honorários (página inteira própria, ver app/m/processos/[id]/honorarios/page.tsx).
+export default function MobileCaseFinanceTab({
+  caseId,
+  receivables,
+  payables,
+  recurringFees,
+  honorarioLancamentos,
+  bankAccounts,
+}: {
+  caseId: string;
+  receivables: ReceivableRow[];
+  payables: PayableRow[];
+  recurringFees: { id: string; description: string; amount: number; dueDay: number }[];
+  honorarioLancamentos: Parameters<typeof MobileHonorarioLancamentoGroup>[0]["lancamento"][];
+  bankAccounts: Option[];
+}) {
+  const soltas = receivables.filter((r) => !r.honorarioLancamentoId);
+
+  return (
+    <div className="space-y-4">
+      <Link
+        href={`/m/processos/${caseId}/honorarios`}
+        className="w-full flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+      >
+        <HandCoins size={16} /> Lançar Honorários
+      </Link>
+
+      <Card>
+        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
+          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Contas a Receber</h2>
+        </div>
+        {recurringFees.map((fee) => (
+          <RecurringFeeCard key={fee.id} fee={fee} />
+        ))}
+        {honorarioLancamentos.map((h) => (
+          <MobileHonorarioLancamentoGroup key={h.id} lancamento={h} bankAccounts={bankAccounts} />
+        ))}
+        {soltas.length === 0 && honorarioLancamentos.length === 0 && recurringFees.length === 0 ? (
+          <EmptyState title="Nenhum lançamento" />
+        ) : (
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            {soltas.map((r) => {
+              const isApurar = r.status === "A_APURAR";
+              const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
+              const paidSum = r.payments.reduce((s, x) => s + x.amount, 0);
+              const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, paidSum);
+              return (
+                <div key={r.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm text-navy-900 dark:text-cream-50">{r.description}</p>
+                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                        {r.noDueDate ? "Sem vencimento" : formatCalendarDate(r.dueDate)}
+                        {r.payerType !== "CLIENTE" && (
+                          <> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : r.payerType === "ADVERSA" ? "Parte adversa" : r.payerType}</>
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                      {r.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-1.5">
+                    <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : isApurar ? "slate" : "amber"}>
+                      {isApurar ? "A apurar" : r.status}
+                    </Badge>
+                  </div>
+                  {!isApurar && (
+                    <div className="mt-2">
+                      <MobileSettleForm id={r.id} kind="receivable" liquido={liquido} alreadyPaid={paidSum} status={r.status} bankAccounts={bankAccounts} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
+          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Contas a Pagar (custas etc.)</h2>
+        </div>
+        {payables.length === 0 ? (
+          <EmptyState title="Nenhum lançamento" />
+        ) : (
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            {payables.map((p) => {
+              const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
+              const paidSum = p.payments.reduce((s, x) => s + x.amount, 0);
+              const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, paidSum);
+              return (
+                <div key={p.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
+                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{p.noDueDate ? "Sem vencimento" : formatCalendarDate(p.dueDate)}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(liquido)}</p>
+                      {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-1.5">
+                    <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
+                  </div>
+                  <div className="mt-2">
+                    <MobileSettleForm id={p.id} kind="payable" liquido={liquido} alreadyPaid={paidSum} status={p.status} bankAccounts={bankAccounts} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
