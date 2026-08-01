@@ -71,19 +71,14 @@ async function syncAllEmailAccounts(): Promise<SyncResult> {
   return mergeSyncResults(gmail, outlook);
 }
 
-export async function runJusbrasilSync(): Promise<SyncResult> {
-  const result = await syncAllEmailAccounts();
-  revalidatePath("/publicacoes");
-  revalidatePath("/configuracoes");
-  return result;
-}
-
-export async function runRoboBridgeSync(): Promise<RoboBridgeResult> {
-  const result = await syncRoboParaSite();
-  revalidatePath("/publicacoes");
-  revalidatePath("/configuracoes");
-  return result;
-}
+// runJusbrasilSync/runRoboBridgeSync existiram aqui como ações individuais (uma por fonte) até
+// a reforma "Reorganizar Configurações" (commit 4a34032): o botão separado que as chamava
+// (components/SyncJusbrasilButton.tsx) foi substituído pelo botão único abaixo
+// (SyncPublicationsButton → runFullPublicationsSync, que já soma as duas fontes), e as duas
+// funções ficaram sem nenhum chamador — removidas por serem puro código morto, não por perda de
+// funcionalidade: o acionamento manual (e o automático, via cron — ver app/api/cron/jusbrasil-
+// sync e app/api/cron/robo-bridge, que chamam syncJusbrasilEmails/syncOutlookEmails/
+// syncRoboParaSite diretamente, sem passar por este arquivo) nunca parou de existir.
 
 // Botão único "Sincronizar publicações e andamentos processuais" (Configurações → Modelos &
 // Integrações) — antes eram dois botões separados (um em Publicações, outro implícito no cron

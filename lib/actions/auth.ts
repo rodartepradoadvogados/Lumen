@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { getCurrentUser } from "@/lib/currentUser";
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
@@ -82,9 +83,40 @@ export async function requestPasswordReset(email: string): Promise<{ error?: str
 
   const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } });
   const resetUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
-  const result = await sendPasswordResetEmail(user.email, resetUrl, office?.name || "Lúmen");
-  if (!result.sent) return { error: result.reason || "Não foi possível enviar o e-mail agora." };
+  const result = await sendPasswordResetEmail(user.email, resetUrl, office?.name || "Lúmen", user.officeId);
+  if (!result.sent) {
+    return {
+      error:
+        result.reason ||
+        "Não foi possível enviar agora — peça a um administrador para gerar seu link de acesso em Configurações → Equipe.",
+    };
+  }
   return { sent: true };
+}
+
+// Caminho que NÃO depende de e-mail nenhum: um administrador gera, na hora, um link de
+// redefinição de uso único para qualquer pessoa da equipe (inclusive outro administrador) —
+// mesmo mecanismo de token de requestPasswordReset acima (hash SHA-256 salvo em
+// User.resetTokenHash, expiração de 1h em User.resetTokenExpiry, consumido por
+// resetPasswordWithToken). Pensado para entregar por WhatsApp ou pessoalmente quando nenhum
+// canal de e-mail (SMTP/Google/Microsoft) está disponível — ver sendCriticalEmailCascade em
+// lib/email.ts.
+export async function adminGenerateResetLink(userId: string): Promise<{ error?: string; url?: string; expiresAt?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem gerar link de redefinição." };
+
+  const user = await prisma.user.findFirst({ where: { id: userId, officeId: viewer.officeId } });
+  if (!user) return { error: "Usuário não encontrado." };
+  if (!user.active) return { error: "Não é possível gerar link para um membro inativo." };
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { resetTokenHash: hashToken(rawToken), resetTokenExpiry: expiresAt },
+  });
+
+  return { url: `${getAppUrl()}/redefinir-senha?token=${rawToken}`, expiresAt: expiresAt.toISOString() };
 }
 
 // Passo 3: valida o token (hash + expiração) e define a nova senha.

@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound } from "lucide-react";
+import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, Check } from "lucide-react";
 import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, setUserCredentials } from "@/lib/actions/settings";
+import { adminGenerateResetLink } from "@/lib/actions/auth";
 import { Badge } from "@/components/ui";
 import MaskedInput from "@/components/MaskedInput";
 import { maskPhone } from "@/lib/masks";
@@ -32,6 +33,42 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
   const [credSuccess, setCredSuccess] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // Link de redefinição de senha gerado por um administrador (Configurações → Equipe) — mesmo
+  // mecanismo de token do fluxo "Esqueci minha senha" (ver lib/actions/auth.ts:
+  // adminGenerateResetLink), pensado para entregar por WhatsApp ou pessoalmente quando nenhum
+  // canal de e-mail estiver disponível.
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkResult, setLinkResult] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkPending, startLinkTransition] = useTransition();
+
+  function handleGenerateLink() {
+    setLinkError(null);
+    setLinkCopied(false);
+    startLinkTransition(async () => {
+      const result = await adminGenerateResetLink(user.id);
+      if (result.error || !result.url || !result.expiresAt) {
+        setLinkError(result.error || "Não foi possível gerar o link.");
+        setLinkResult(null);
+      } else {
+        setLinkResult({ url: result.url, expiresAt: result.expiresAt });
+      }
+    });
+  }
+
+  async function handleCopyLink() {
+    if (!linkResult) return;
+    try {
+      await navigator.clipboard.writeText(linkResult.url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // clipboard indisponível (ex.: contexto não seguro) — a pessoa ainda pode selecionar e
+      // copiar manualmente o texto do input.
+    }
+  }
 
   function handleSaveCredentials(formData: FormData) {
     setCredError(null);
@@ -128,6 +165,84 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
     );
   }
 
+  if (linkOpen) {
+    const expiresLabel = linkResult
+      ? new Date(linkResult.expiresAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+      : null;
+    return (
+      <div className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
+        <p className="text-xs font-semibold text-navy-900 dark:text-cream-50">Link de redefinição de senha — {user.name}</p>
+        {!linkResult ? (
+          <>
+            <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60">
+              Gera um link de uso único para {user.name} escolher uma nova senha, sem depender de e-mail — entregue por WhatsApp ou pessoalmente.
+            </p>
+            {linkError && (
+              <p className="text-[11px] text-bordo-700 bg-bordo-100 border border-bordo-100 rounded-lg px-2.5 py-1.5 dark:bg-bordo-900/40 dark:border-bordo-400/20 dark:text-bordo-400">
+                {linkError}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateLink}
+                disabled={linkPending}
+                className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              >
+                {linkPending ? "Gerando..." : "Gerar link"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLinkOpen(false);
+                  setLinkError(null);
+                }}
+                className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex gap-2 items-center">
+              <input
+                readOnly
+                value={linkResult.url}
+                onFocus={(e) => e.currentTarget.select()}
+                className="cfg-input flex-1 text-xs font-mono dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+              />
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                data-tip="Copiar"
+                className="p-2 rounded-lg text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 shrink-0"
+              >
+                {linkCopied ? <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={14} />}
+              </button>
+            </div>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              Válido até {expiresLabel} (expira em 1 hora) e só pode ser usado uma vez.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setLinkOpen(false);
+                  setLinkResult(null);
+                  setLinkError(null);
+                }}
+                className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+              >
+                Fechar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   if (credOpen) {
     return (
       <form action={handleSaveCredentials} className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
@@ -184,6 +299,19 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       {user.isAdmin && <Badge color="gold">Admin</Badge>}
       {!user.isAdmin && user.financeAccess && <Badge color="green">Financeiro</Badge>}
       {credSuccess && <Badge color="green">Acesso definido</Badge>}
+      {canManage && (
+        <button
+          onClick={() => {
+            setLinkResult(null);
+            setLinkError(null);
+            setLinkOpen(true);
+          }}
+          data-tip="Gerar link de redefinição de senha"
+          className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-gold-700 dark:hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
+        >
+          <Link2 size={14} />
+        </button>
+      )}
       {canManage && !user.isAdmin && (
         <div className="flex items-center gap-1">
           <button

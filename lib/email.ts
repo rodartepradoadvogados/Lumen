@@ -1,7 +1,10 @@
 import nodemailer from "nodemailer";
+import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
 import { valorLiquido } from "@/lib/financeCalc";
+import { getOAuthClient } from "@/lib/googleDrive";
+import { getMicrosoftAccessToken } from "@/lib/microsoftGraph";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -17,6 +20,111 @@ function getTransporter() {
   const pass = process.env.EMAIL_PASSWORD;
   if (!host || !user || !pass) return null;
   return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+}
+
+// ============================================================================
+// Cascata de envio para e-mails CRÍTICOS de acesso (hoje só a redefinição de senha, ver
+// sendPasswordResetEmail abaixo) — diferente dos e-mails de aviso acima, que dependem só de
+// SMTP e ficam quietamente "não enviados" se EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD faltarem.
+// Perder o e-mail de redefinição tranca a pessoa fora do sistema, então aqui existe uma
+// cascata de 3 canais antes de desistir:
+//   1) SMTP dedicado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD) — se configurado, é o canal
+//      previsível e sempre tentado primeiro;
+//   2) conta Google conectada do ESCRITÓRIO (GoogleCredential) — reaproveita o escopo
+//      gmail.send já concedido para o Drive (ver lib/googleDrive.ts), sem exigir nenhuma
+//      conexão nova; escolhe a conta isPrimaryDrive quando existir, senão a mais antiga;
+//   3) conta Microsoft conectada do escritório (MicrosoftCredential) — mesma ideia do lado
+//      Outlook (Mail.Send, ver lib/microsoftGraph.ts), última tentativa antes de desistir.
+// Se as três falharem (ou nenhuma existir), devolve `sent:false` com uma explicação e a
+// orientação de usar o link gerado por um administrador (ver adminGenerateResetLink em
+// lib/actions/auth.ts) — o caminho que não depende de e-mail nenhum.
+// ============================================================================
+
+/** Codifica o Subject em MIME encoded-word (UTF-8/Base64) — mesmo truque de lib/gmailSend.ts. */
+function encodeMimeSubject(subject: string): string {
+  return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+}
+
+/** Monta e envia um e-mail HTML através da API do Gmail, usando o refresh_token de uma conta
+ * Google já conectada (GoogleCredential) — variação de lib/gmailSend.ts:buildRawMessage, que só
+ * suporta texto puro; aqui o corpo é HTML (mesmo template dos e-mails de SMTP acima). */
+async function sendViaGmailAccount(refreshToken: string, fromEmail: string, to: string, subject: string, html: string): Promise<void> {
+  const client = getOAuthClient();
+  client.setCredentials({ refresh_token: refreshToken });
+  const gmail = google.gmail({ version: "v1", auth: client });
+
+  const lines = [
+    `From: "Lúmen" <${fromEmail}>`,
+    `To: ${to}`,
+    `Subject: ${encodeMimeSubject(subject)}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    html,
+  ];
+  const raw = Buffer.from(lines.join("\r\n"), "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+}
+
+/** Envia um e-mail HTML pela Microsoft Graph usando o refresh_token de uma conta Microsoft já
+ * conectada (MicrosoftCredential) — variação de lib/microsoftGraph.ts:sendMailOutlook, que busca
+ * a credencial por userId; aqui a credencial já vem escolhida (nível de escritório, não de
+ * pessoa) pela cascata abaixo. */
+async function sendViaOutlookAccount(refreshToken: string, to: string, subject: string, html: string): Promise<void> {
+  const accessToken = await getMicrosoftAccessToken(refreshToken);
+  const res = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: { subject, body: { contentType: "HTML", content: html }, toRecipients: [{ emailAddress: { address: to } }] },
+      saveToSentItems: false,
+    }),
+  });
+  if (!res.ok) throw new Error(`Outlook recusou o envio (${res.status}): ${await res.text()}`);
+}
+
+async function sendCriticalEmailCascade(officeId: string, to: string, subject: string, html: string): Promise<{ sent: boolean; reason?: string }> {
+  const attempts: string[] = [];
+
+  const transporter = getTransporter();
+  if (transporter) {
+    try {
+      await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject, html });
+      return { sent: true };
+    } catch (e) {
+      attempts.push(`SMTP: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    }
+  }
+
+  const googleCred = await prisma.googleCredential.findFirst({ where: { officeId }, orderBy: { isPrimaryDrive: "desc" } });
+  if (googleCred) {
+    try {
+      await sendViaGmailAccount(googleCred.refreshToken, googleCred.accountEmail, to, subject, html);
+      return { sent: true };
+    } catch (e) {
+      attempts.push(`Google (${googleCred.accountEmail}): ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    }
+  }
+
+  const microsoftCred = await prisma.microsoftCredential.findFirst({ where: { officeId }, orderBy: { isPrimaryDrive: "desc" } });
+  if (microsoftCred) {
+    try {
+      await sendViaOutlookAccount(microsoftCred.refreshToken, to, subject, html);
+      return { sent: true };
+    } catch (e) {
+      attempts.push(`Microsoft (${microsoftCred.accountEmail}): ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    }
+  }
+
+  if (attempts.length > 0) {
+    console.error(`[sendCriticalEmailCascade] todas as tentativas falharam para ${to}:`, attempts.join(" | "));
+  }
+  return {
+    sent: false,
+    reason:
+      "Não foi possível enviar o e-mail agora (nenhum canal de envio disponível ou configurado). Peça a um administrador para gerar seu link de acesso em Configurações → Equipe.",
+  };
 }
 
 const typeLabels: Record<string, string> = { TAREFA: "Tarefa", EVENTO: "Evento", AUDIENCIA: "Audiência", PERICIA: "Perícia", PRAZO: "Prazo" };
@@ -104,12 +212,9 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
   </div>`;
 }
 
-export async function sendPasswordResetEmail(to: string, resetUrl: string, officeName: string): Promise<{ sent: boolean; reason?: string }> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
-  }
-
+// officeId é usado só pela cascata (passo 2/3, contas conectadas do escritório) quando o SMTP
+// (passo 1) não estiver configurado ou falhar — ver sendCriticalEmailCascade acima.
+export async function sendPasswordResetEmail(to: string, resetUrl: string, officeName: string, officeId: string): Promise<{ sent: boolean; reason?: string }> {
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
     <div style="background:#0b1730;padding:24px;text-align:center;">
@@ -126,18 +231,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, offic
     </div>
   </div>`;
 
-  try {
-    await transporter.sendMail({
-      from: `"${officeName}" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: "Redefinição de senha — Sistema Interno",
-      html,
-    });
-    return { sent: true };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "erro desconhecido ao enviar";
-    return { sent: false, reason: message };
-  }
+  return sendCriticalEmailCascade(officeId, to, "Redefinição de senha — Sistema Interno", html);
 }
 
 // E-mail diário da agenda: quando chamado sem officeId (uso do cron — ver
