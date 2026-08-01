@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, formatCurrency } from "@/components/ui";
 import NewReceivableModal from "@/components/NewReceivableModal";
+import LancarHonorariosModal from "@/components/honorarios/LancarHonorariosModal";
 import ReceivablesList from "@/components/ReceivablesList";
 import Link from "next/link";
 import { Download } from "lucide-react";
@@ -57,15 +58,35 @@ export default async function ReceitasPage({
         title="Receitas"
         subtitle={`${filtered.length} lançamento(s) · Total ${formatCurrency(total)}`}
         action={
-          <NewReceivableModal
-            categories={categories}
-            cases={cases.map((c) => ({ id: c.id, name: c.title }))}
-            clients={clients}
-            costCenters={costCenters}
-            responsibles={responsibles}
-            bankAccounts={bankAccounts}
-            defaultResponsibleId={viewer.id}
-          />
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <NewReceivableModal
+                categories={categories}
+                cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+                clients={clients}
+                costCenters={costCenters}
+                responsibles={responsibles}
+                bankAccounts={bankAccounts}
+                defaultResponsibleId={viewer.id}
+              />
+              {/* Fase 7 — mesmo modal de Lançar Honorários da aba Financeiro do Processo, só que
+                  sem defaultCaseId: quem entra por aqui escolhe o processo dentro do próprio
+                  formulário (ver LancarHonorariosModal.tsx, seção Identificação). */}
+              <LancarHonorariosModal
+                categories={categories}
+                clients={clients}
+                costCenters={costCenters}
+                responsibles={responsibles}
+                bankAccounts={bankAccounts}
+                cases={cases.map((c) => ({ id: c.id, name: c.title }))}
+                defaultResponsibleId={viewer.id}
+              />
+            </div>
+            <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 max-w-sm text-right">
+              <span className="font-semibold">Nova Conta a Receber</span>: qualquer receita (aluguel, reembolso, venda).{" "}
+              <span className="font-semibold">Lançar Honorários</span>: honorário vinculado a processo, com forma de cobrança e apuração de êxito.
+            </p>
+          </div>
         }
       />
 

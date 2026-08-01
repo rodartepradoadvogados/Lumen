@@ -46,6 +46,42 @@ async function caseValueBases(caseId: string, officeId: string): Promise<CaseVal
   return c;
 }
 
+// Fase 7 — Lançar Honorários passa a poder ser aberto também pelo Financeiro (sem processo fixo
+// vindo de prop): quando o advogado escolhe o processo no próprio formulário, este Server Action
+// devolve as quatro bases de cálculo do percentual (mesmas que a aba Financeiro do Processo já
+// tinha prontas de antemão), o título e o cliente do processo (para pré-selecionar o campo
+// Cliente, sem travar — ver LancarHonorariosModal.tsx) e o total já recebido neste processo (mesmo
+// dado que a entrada pelo Processo mostra na faixa "Já recebido neste processo"). Sempre filtrado
+// por officeId, mesmo padrão de segurança do restante do arquivo.
+export async function getCaseBases(caseId: string): Promise<{
+  error?: string;
+  bases?: CaseValueBases;
+  title?: string;
+  clientId?: string | null;
+  alreadyReceivedForCase?: number;
+}> {
+  const officeId = await requireFinanceOfficeId();
+  const c = await prisma.case.findFirst({
+    where: { id: caseId, officeId },
+    select: {
+      title: true,
+      clientId: true,
+      caseValue: true,
+      economicBenefitValue: true,
+      convictionValue: true,
+      agreementValue: true,
+      receivables: { where: { status: "PAGO" }, select: { amount: true, paidAmount: true } },
+    },
+  });
+  if (!c) return { error: "Processo não encontrado." };
+  return {
+    bases: { caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue },
+    title: c.title,
+    clientId: c.clientId,
+    alreadyReceivedForCase: c.receivables.reduce((s, r) => s + (r.paidAmount ?? r.amount), 0),
+  };
+}
+
 function firstOfNextMonth() {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth() + 1, 1);

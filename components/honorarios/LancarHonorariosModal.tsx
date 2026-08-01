@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createHonorarioLancamento } from "@/lib/actions/honorarioLancamento";
+import { createHonorarioLancamento, getCaseBases } from "@/lib/actions/honorarioLancamento";
 import { createRecurringFee } from "@/lib/actions/financeiro";
 import { createClientQuick } from "@/lib/actions/contatos";
+import { createCaseQuick } from "@/lib/actions/cases";
 import { createCostCenterQuick, createBankAccountQuick } from "@/lib/actions/settings";
 import {
   PERCENTUAL_BASE_LABELS,
@@ -28,9 +29,10 @@ type Cobranca = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
 // checkbox "Lançamento parcelado"); RECORRENTE é o honorário "até o arquivamento" que morava no
 // extinto NewReceivableModal (só aparecia com defaultCaseId) e ficou sem porta de entrada quando
 // a Fase 2 trocou aquele modal por este — chama lib/actions/financeiro.ts:createRecurringFee, que
-// nunca deixou de existir/funcionar. Sempre disponível aqui porque este modal só é montado dentro
-// da aba Financeiro do Processo (defaultCaseId é obrigatório na prop), que é exatamente o
-// requisito do próprio createRecurringFee (honorário recorrente precisa de processo vinculado).
+// nunca deixou de existir/funcionar. Precisa de processo vinculado (é o próprio requisito de
+// createRecurringFee): entrando pelo Processo (defaultCaseId fixo) sempre disponível, como sempre
+// foi; entrando pelo Financeiro (Fase 7 — defaultCaseId ausente) fica desabilitada até o usuário
+// escolher um processo no seletor da seção Identificação, ver `hasCase` abaixo.
 type FormaLancamento = "UNICO" | "PARCELADO" | "RECORRENTE";
 
 function todayStr(): string {
@@ -91,7 +93,9 @@ function Segmented<T extends string>({
 }: {
   value: T;
   onChange: (v: T) => void;
-  options: { value: T; label: string }[];
+  // `disabled` por opção — usado pela "Recorrente até o arquivamento" quando o Lançar Honorários
+  // é aberto pelo Financeiro (Fase 7) e nenhum processo foi escolhido ainda (ver `hasCase`).
+  options: { value: T; label: string; disabled?: boolean }[];
   disabled?: boolean;
 }) {
   return (
@@ -100,7 +104,8 @@ function Segmented<T extends string>({
         <button
           key={opt.value}
           type="button"
-          disabled={disabled}
+          disabled={disabled || opt.disabled}
+          title={opt.disabled ? "Escolha um processo para habilitar" : undefined}
           onClick={() => onChange(opt.value)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
             value === opt.value
@@ -117,12 +122,18 @@ function Segmented<T extends string>({
 
 const labelCls = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
 
+// Bases zeradas — usadas como fallback enquanto ninguém escolheu processo ainda (entrando pelo
+// Financeiro, Fase 7): baseValueFor() devolve null para as quatro, cai no mesmo caminho de "base
+// sem valor" que a entrada pelo Processo já tratava, sem precisar duplicar lógica.
+const EMPTY_BASES: CaseValueBases = { caseValue: null, economicBenefitValue: null, convictionValue: null, agreementValue: null };
+
 export default function LancarHonorariosModal({
   categories,
   clients,
   costCenters = [],
   responsibles,
   bankAccounts,
+  cases,
   defaultCaseId,
   defaultClientId,
   defaultResponsibleId,
@@ -136,10 +147,20 @@ export default function LancarHonorariosModal({
   costCenters?: Option[];
   responsibles: Option[];
   bankAccounts: Option[];
-  defaultCaseId: string;
+  // Só usado quando defaultCaseId está ausente (entrada pelo Financeiro, Fase 7) — vira as opções
+  // do seletor de processo que aparece na seção Identificação. Entrando pelo Processo continua
+  // sem seletor nenhum, exatamente como sempre foi.
+  cases?: Option[];
+  // Opcional a partir da Fase 7: presente = entrada pelo Processo (comportamento de sempre, sem
+  // seletor de processo); ausente = entrada pelo Financeiro, com seletor de processo obrigatório
+  // na seção Identificação (ver estado `caseId` abaixo).
+  defaultCaseId?: string;
   defaultClientId?: string;
   defaultResponsibleId?: string;
-  bases: CaseValueBases;
+  // Também fica opcional a partir da Fase 7: sem defaultCaseId, as bases do processo ainda não são
+  // conhecidas no momento em que o modal é montado — só chegam depois que o usuário escolhe o
+  // processo no seletor (ver getCaseBases, lib/actions/honorarioLancamento.ts).
+  bases?: CaseValueBases;
   alreadyReceivedForCase?: number;
   // Honorário pretendido, vindo da conversão de um Atendimento (Fase 5 — ver
   // convertAttendanceToCase, lib/actions/attendance.ts, e app/(app)/processos/[id]/page.tsx, que
@@ -157,6 +178,39 @@ export default function LancarHonorariosModal({
   const [natureza, setNatureza] = useState<Natureza>("CONTRATUAL");
   const [payerType, setPayerType] = useState<PayerType>("CLIENTE");
   const [payerName, setPayerName] = useState("");
+
+  // ---- Processo (Fase 7) ----
+  // Com defaultCaseId (entrada pelo Processo) nunca muda depois do mount — é exatamente o
+  // comportamento de sempre. Sem defaultCaseId (entrada pelo Financeiro), começa vazio e o
+  // seletor de processo da seção Identificação, abaixo, é quem preenche.
+  const [caseId, setCaseId] = useState(defaultCaseId ?? "");
+  const hasCase = Boolean(caseId);
+  const [caseBases, setCaseBases] = useState<CaseValueBases | null>(bases ?? null);
+  const [caseClientId, setCaseClientId] = useState<string | undefined>(defaultClientId);
+  const [caseAlreadyReceived, setCaseAlreadyReceived] = useState<number | undefined>(alreadyReceivedForCase);
+  const [basesLoading, setBasesLoading] = useState(false);
+
+  // Chamado pelo EntityPicker de processo (só existe quando !defaultCaseId) a cada troca de
+  // seleção — carrega as quatro bases de cálculo do percentual e pré-seleciona o cliente do
+  // processo (sem travar: handleCaseChange só ajusta o default, o usuário continua livre para
+  // trocar o campo Cliente manualmente depois). Ver getCaseBases, lib/actions/honorarioLancamento.ts.
+  async function handleCaseChange(id: string) {
+    setCaseId(id);
+    setCaseBases(null);
+    setCaseClientId(undefined);
+    setCaseAlreadyReceived(undefined);
+    if (!id) return;
+    setBasesLoading(true);
+    const result = await getCaseBases(id);
+    setBasesLoading(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setCaseBases(result.bases ?? null);
+    setCaseClientId(result.clientId ?? undefined);
+    setCaseAlreadyReceived(result.alreadyReceivedForCase);
+  }
 
   // ---- Documento ----
   const [documentType, setDocumentType] = useState("");
@@ -210,6 +264,9 @@ export default function LancarHonorariosModal({
   }
 
   function handleFormaChange(v: FormaLancamento) {
+    // Defesa extra: o botão "Recorrente" já nasce desabilitado (disabled do Segmented) sem
+    // processo escolhido, mas nunca custa checar de novo aqui antes de trocar o estado.
+    if (v === "RECORRENTE" && !hasCase) return;
     setForma(v);
     // "Já foi recebido" só faz sentido em ÚNICO — trocar para Parcelado/Recorrente zera a escolha
     // (a seção nem aparece nesses dois modos, ver JSX abaixo).
@@ -230,10 +287,11 @@ export default function LancarHonorariosModal({
   const discountNum = parseFloat(discount || "0") || 0;
   const surchargeNum = parseFloat(surcharge || "0") || 0;
   const percentualNum = parseFloat(percentual || "0") || 0;
-  const baseValue = baseValueFor(percentualBase, bases);
+  const effectiveBases = caseBases ?? EMPTY_BASES;
+  const baseValue = baseValueFor(percentualBase, effectiveBases);
   const jaPagoEmDinheiro = parcelado ? parcelas.filter((p) => p.pago).reduce((s, p) => s + (parseFloat(p.amount || "0") || 0), 0) : amountNum;
   const percentualApurado = cobrancaHasPercentual
-    ? estimatePercentualLiquido({ percentual: percentualNum, base: percentualBase, values: bases, abaterEntrada, jaPagoEmDinheiro })
+    ? estimatePercentualLiquido({ percentual: percentualNum, base: percentualBase, values: effectiveBases, abaterEntrada, jaPagoEmDinheiro })
     : 0;
   const parcelasSoma = parcelas.reduce((s, p) => s + (parseFloat(p.amount || "0") || 0), 0);
   const bruto = parcelado
@@ -276,6 +334,17 @@ export default function LancarHonorariosModal({
                 const responsibleId = String(formData.get("responsibleId") || "");
                 const bankAccountId = String(formData.get("bankAccountId") || "");
                 const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
+                // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
+                // (entrada pelo Financeiro, Fase 7) — de onde quer que venha, createHonorarioLancamento
+                // continua exigindo caseId obrigatório, então validamos aqui antes de chamá-lo (a
+                // trava de verdade é sempre o Server Action, isto é só para não deixar a tela mandar
+                // uma requisição que o próprio usuário já vê que vai falhar).
+                const effectiveCaseId = defaultCaseId || String(formData.get("caseId") || "");
+                if (!effectiveCaseId) {
+                  setLoading(false);
+                  setError("Selecione um processo — honorário sem processo não faz sentido.");
+                  return;
+                }
 
                 // Recorrente até o arquivamento cai fora do fluxo de createHonorarioLancamento —
                 // vira um RecurringFee (mesma Server Action de sempre, só sem chamador desde a
@@ -289,7 +358,7 @@ export default function LancarHonorariosModal({
                     kind,
                     categoryId: categoryId || undefined,
                     costCenterId: costCenterId || undefined,
-                    caseId: defaultCaseId,
+                    caseId: effectiveCaseId,
                   });
                   setLoading(false);
                   if (recResult.error) {
@@ -303,7 +372,7 @@ export default function LancarHonorariosModal({
 
                 const result = await createHonorarioLancamento({
                   description,
-                  caseId: defaultCaseId,
+                  caseId: effectiveCaseId,
                   clientId: clientId || undefined,
                   costCenterId: costCenterId || undefined,
                   categoryId: categoryId || undefined,
@@ -344,10 +413,10 @@ export default function LancarHonorariosModal({
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {alreadyReceivedForCase !== undefined && (
+                {caseAlreadyReceived !== undefined && (
                   <p className="text-xs text-navy-800/50 dark:text-cream-50/50 bg-cream-50 dark:bg-navy-800 rounded-lg px-3 py-2">
                     Já recebido neste processo:{" "}
-                    <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(alreadyReceivedForCase)}</span>
+                    <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(caseAlreadyReceived)}</span>
                   </p>
                 )}
                 {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
@@ -371,6 +440,27 @@ export default function LancarHonorariosModal({
 
                 <SecaoLancamento title="Identificação" tone="palha">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {!defaultCaseId && (
+                      <div className="sm:col-span-2">
+                        <label className={labelCls}>Processo</label>
+                        <EntityPicker
+                          name="caseId"
+                          options={cases ?? []}
+                          placeholder="Buscar processo..."
+                          emptyLabel="Nenhum"
+                          addLabel="Cadastrar novo processo"
+                          onQuickAdd={(name) => createCaseQuick(name)}
+                          onChange={handleCaseChange}
+                        />
+                        {!hasCase ? (
+                          <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                            Obrigatório — honorário sem processo não faz sentido.
+                          </p>
+                        ) : basesLoading ? (
+                          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">Carregando dados do processo...</p>
+                        ) : null}
+                      </div>
+                    )}
                     <div>
                       <label className={labelCls}>Natureza</label>
                       <div className="mt-1">
@@ -410,9 +500,14 @@ export default function LancarHonorariosModal({
                     <div>
                       <label className={labelCls}>Cliente</label>
                       <EntityPicker
+                        // key força remount quando o processo muda (entrada pelo Financeiro) —
+                        // é assim que o EntityPicker (componente sem estado controlado) adota o
+                        // novo cliente-padrão do processo escolhido sem perder a liberdade do
+                        // usuário de trocar o campo manualmente entre uma troca de processo e outra.
+                        key={defaultCaseId ? "fixed" : caseId || "no-case"}
                         name="clientId"
                         options={clients}
-                        defaultValue={defaultClientId}
+                        defaultValue={defaultCaseId ? defaultClientId : caseClientId}
                         placeholder="Buscar cliente..."
                         emptyLabel="Nenhum"
                         addLabel="Cadastrar novo cliente"
@@ -495,9 +590,14 @@ export default function LancarHonorariosModal({
                     options={[
                       { value: "UNICO", label: "Único" },
                       { value: "PARCELADO", label: "Parcelado" },
-                      { value: "RECORRENTE", label: "Recorrente até o arquivamento" },
+                      { value: "RECORRENTE", label: "Recorrente até o arquivamento", disabled: !hasCase },
                     ]}
                   />
+                  {!hasCase && (
+                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                      &quot;Recorrente até o arquivamento&quot; exige um processo — escolha um na seção Identificação, acima, para habilitar.
+                    </p>
+                  )}
 
                   {parcelado && (
                     <div className="space-y-3">
@@ -719,7 +819,13 @@ export default function LancarHonorariosModal({
                             <label className={labelCls}>Valor da base hoje no processo</label>
                             <input
                               readOnly
-                              value={baseValue ? formatCurrency(baseValue) : "Ainda não informado no processo"}
+                              value={
+                                !hasCase
+                                  ? "Escolha um processo, na seção Identificação, para saber esta base"
+                                  : baseValue
+                                  ? formatCurrency(baseValue)
+                                  : "Ainda não informado no processo"
+                              }
                               className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50/70 cursor-not-allowed"
                             />
                           </div>
@@ -734,7 +840,11 @@ export default function LancarHonorariosModal({
                       )}
 
                       {cobrancaHasPercentual &&
-                        (baseValue ? (
+                        (!hasCase ? (
+                          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                            A base do percentual será conhecida depois de escolher o processo, na seção Identificação, acima.
+                          </p>
+                        ) : baseValue ? (
                           <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
                             {percentualNum || 0}% de {formatCurrency(baseValue)} = {formatCurrency((baseValue * (percentualNum || 0)) / 100)}
                             {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago em dinheiro</>}
@@ -882,7 +992,12 @@ export default function LancarHonorariosModal({
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
+                  <button
+                    type="submit"
+                    disabled={loading || !hasCase}
+                    title={!hasCase ? "Selecione um processo, na seção Identificação" : undefined}
+                    className="bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50"
+                  >
                     {loading ? "Salvando..." : "Salvar lançamento"}
                   </button>
                 </div>

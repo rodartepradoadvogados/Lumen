@@ -19,6 +19,7 @@ export default function EntityPicker({
   emptyLabel = "Nenhum",
   addLabel,
   onQuickAdd,
+  onChange,
 }: {
   name: string;
   options: Option[];
@@ -27,6 +28,9 @@ export default function EntityPicker({
   emptyLabel?: string;
   addLabel?: string;
   onQuickAdd?: (name: string) => Promise<{ id: string; name?: string; title?: string }>;
+  // Opcional — só quem precisa reagir à escolha (ex.: LancarHonorariosModal carregando as bases
+  // do processo escolhido) passa isto; todo uso existente ignora e continua 100% inalterado.
+  onChange?: (id: string) => void;
 }) {
   const [list, setList] = useState(options);
   const [selected, setSelected] = useState(defaultValue ?? "");
@@ -67,6 +71,7 @@ export default function EntityPicker({
     setSelected(id);
     setOpen(false);
     setQuery("");
+    onChange?.(id);
   }
 
   async function handleAdd() {
@@ -80,6 +85,7 @@ export default function EntityPicker({
     setAdding(false);
     setPending(false);
     setOpen(false);
+    onChange?.(created.id);
   }
 
   return (
