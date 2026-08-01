@@ -4,16 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setAttendanceStage } from "@/lib/actions/attendance";
 import AttendanceLostReasonModal from "@/components/AttendanceLostReasonModal";
-
-export const stageOptions = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
-
-export const stageLabels: Record<string, string> = {
-  NOVO: "Novo",
-  QUALIFICACAO: "Qualificação",
-  PROPOSTA: "Proposta",
-  FECHADO: "Fechado",
-  PERDIDO: "Perdido",
-};
+// stageOptions/stageLabels vivem em lib/funil.ts, não aqui: a página do Funil é Server Component
+// e importar constante de um arquivo "use client" quebra em produção — ver lib/funil.ts.
+import { stageOptions, stageLabels } from "@/lib/funil";
 
 const colors: Record<string, string> = {
   NOVO: "bg-amber-100 text-amber-700 border-amber-200",

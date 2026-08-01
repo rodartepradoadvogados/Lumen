@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Badge, formatCurrency } from "@/components/ui";
-import FunnelStageSelect, { stageLabels } from "@/components/FunnelStageSelect";
+import FunnelStageSelect from "@/components/FunnelStageSelect";
+// stageLabels vem do módulo neutro, nunca do componente "use client" — ver lib/funil.ts.
+import { stageLabels } from "@/lib/funil";
 import { List } from "lucide-react";
 
 export const dynamic = "force-dynamic";
