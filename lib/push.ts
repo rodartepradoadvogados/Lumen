@@ -31,15 +31,33 @@ function sanitizeVapidKey(raw: string): string {
   return raw.replace(/["'\s]/g, "");
 }
 
+// A validação detalhada da VAPID_PUBLIC_KEY (formato/tamanho) acontece só em
+// lib/actions/push.ts, na hora de ativar notificações no navegador — aqui não há como avisar
+// ninguém na hora, então setVapidDetails só pode ser chamado dentro de um try/catch: uma
+// VAPID_PRIVATE_KEY corrompida (que a sanitização de espaço/aspas não resolve) faria essa
+// linha lançar, e como broadcastPushIfEnabled é chamado em vários lugares sem await/.catch
+// (ex.: lib/outlookEmailSync.ts, lib/roboBridge.ts, lib/jusbrasilEmailSync.ts), isso viraria
+// unhandled rejection — quebrando a promessa deste arquivo de nunca lançar.
 let vapidConfigured = false;
-function ensureVapidConfigured() {
-  if (vapidConfigured || !isPushConfigured()) return;
-  webpush.setVapidDetails(
-    "mailto:contato@lumen.adv.br",
-    sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY!),
-    sanitizeVapidKey(process.env.VAPID_PRIVATE_KEY!)
-  );
-  vapidConfigured = true;
+let vapidConfigFailed = false;
+function ensureVapidConfigured(): boolean {
+  if (vapidConfigured) return true;
+  if (vapidConfigFailed || !isPushConfigured()) return false;
+  try {
+    webpush.setVapidDetails(
+      "mailto:contato@lumen.adv.br",
+      sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY!),
+      sanitizeVapidKey(process.env.VAPID_PRIVATE_KEY!)
+    );
+    vapidConfigured = true;
+    return true;
+  } catch (e) {
+    // Não tenta de novo a cada chamada (evita logar o mesmo erro em loop) — só recadastrando
+    // a variável de ambiente (o que reinicia o processo) resolve.
+    vapidConfigFailed = true;
+    console.error("[push] VAPID_PRIVATE_KEY inválida — notificações push desativadas até a variável ser corrigida:", e);
+    return false;
+  }
 }
 
 export type PushPayload = { title: string; body: string; url?: string };
@@ -56,7 +74,7 @@ export type PushPayload = { title: string; body: string; url?: string };
  */
 export async function sendPushIfEnabled(userId: string, officeId: string, type: NotificationType, payload: PushPayload): Promise<{ sent: number }> {
   if (!isPushConfigured()) return { sent: 0 };
-  ensureVapidConfigured();
+  if (!ensureVapidConfigured()) return { sent: 0 };
 
   const user = await prisma.user.findFirst({
     where: { id: userId, officeId },
