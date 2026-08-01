@@ -22,7 +22,7 @@ import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 
 type Option = { id: string; name: string };
-type Natureza = "CONTRATUAL" | "SUCUMBENCIAL";
+type Natureza = "CONTRATUAL" | "SUCUMBENCIAL" | "ACORDO";
 type PayerType = "CLIENTE" | "ADVERSA" | "OUTRO";
 type Cobranca = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
 // "Forma de lançamento" (restaurado — Fase 4): ÚNICO e PARCELADO já existiam (como o antigo
@@ -255,7 +255,10 @@ export default function LancarHonorariosModal({
   function handleNaturezaChange(v: Natureza) {
     setNatureza(v);
     // Regra do enunciado: ao escolher Sucumbencial o pagador default vira Parte adversa (o
-    // devedor da verba sucumbencial normalmente é a parte contrária, não o cliente).
+    // devedor da verba sucumbencial normalmente é a parte contrária, não o cliente). Acordo
+    // (Fase 9) continua com o default Cliente, igual Contratual — honorário de acordo
+    // normalmente ainda é pago pelo cliente do processo, salvo estipulação em contrário no
+    // próprio acordo (aí o advogado troca o Pagador manualmente no campo logo abaixo).
     setPayerType(v === "SUCUMBENCIAL" ? "ADVERSA" : "CLIENTE");
   }
 
@@ -350,7 +353,12 @@ export default function LancarHonorariosModal({
                 // vira um RecurringFee (mesma Server Action de sempre, só sem chamador desde a
                 // Fase 2/3), que o cron mantém gerando mês a mês até o processo ser arquivado.
                 if (recorrente) {
-                  const kind = natureza === "SUCUMBENCIAL" ? "HONORARIOS_SUCUMBENCIAIS" : "HONORARIOS_CONTRATUAIS";
+                  const kind =
+                    natureza === "SUCUMBENCIAL"
+                      ? "HONORARIOS_SUCUMBENCIAIS"
+                      : natureza === "ACORDO"
+                      ? "HONORARIOS_ACORDO"
+                      : "HONORARIOS_CONTRATUAIS";
                   const recResult = await createRecurringFee({
                     description,
                     amount: amountMensal,
@@ -470,6 +478,7 @@ export default function LancarHonorariosModal({
                           options={[
                             { value: "CONTRATUAL", label: "Contratual" },
                             { value: "SUCUMBENCIAL", label: "Sucumbencial" },
+                            { value: "ACORDO", label: "Acordo" },
                           ]}
                         />
                       </div>

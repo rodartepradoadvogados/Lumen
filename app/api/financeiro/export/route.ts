@@ -5,15 +5,11 @@ import { getFilteredPayables, getFilteredReceivables, FinanceSearchParams } from
 import { formatDate } from "@/components/ui";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { RECEIVABLE_KIND_LABELS } from "@/lib/honorarioLancamento";
 
 export const dynamic = "force-dynamic";
 
-const kindLabels: Record<string, string> = {
-  HONORARIOS_CONTRATUAIS: "Honorários Contratuais",
-  HONORARIOS_SUCUMBENCIAIS: "Honorários Sucumbenciais",
-  REEMBOLSO: "Reembolso",
-  OUTROS: "Outros",
-};
+const kindLabels = RECEIVABLE_KIND_LABELS;
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();

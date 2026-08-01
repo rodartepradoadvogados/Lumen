@@ -7,7 +7,7 @@ import { getFilteredReceivables } from "@/lib/financeQuery";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
-import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
+import { PERCENTUAL_BASE_LABELS, RECEIVABLE_KIND_LABELS } from "@/lib/honorarioLancamento";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
 import MobileNewReceivableForm from "@/components/mobile/MobileNewReceivableForm";
 import { ArrowLeft, HandCoins } from "lucide-react";
@@ -27,12 +27,7 @@ function statusLabel(status: string): string {
   return status === "A_APURAR" ? "A apurar" : status;
 }
 
-const kindLabels: Record<string, string> = {
-  HONORARIOS_CONTRATUAIS: "Honorários Contratuais",
-  HONORARIOS_SUCUMBENCIAIS: "Honorários Sucumbenciais",
-  REEMBOLSO: "Reembolso",
-  OUTROS: "Outros",
-};
+const kindLabels = RECEIVABLE_KIND_LABELS;
 
 export default async function MobileReceitas({ searchParams }: { searchParams: { tab?: string } }) {
   const viewer = await getCurrentUser();

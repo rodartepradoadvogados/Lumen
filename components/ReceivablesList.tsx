@@ -10,7 +10,7 @@ import BulkSettleBar from "@/components/BulkSettleBar";
 import { markManyReceivablesPaid } from "@/lib/actions/financeiro";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
-import { DOCUMENT_TYPE_OPTIONS, PAYER_TYPE_LABELS, PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
+import { DOCUMENT_TYPE_OPTIONS, PAYER_TYPE_LABELS, PERCENTUAL_BASE_LABELS, RECEIVABLE_KIND_LABELS } from "@/lib/honorarioLancamento";
 
 const statusColor: Record<string, "green" | "red" | "amber" | "slate"> = {
   PAGO: "green",
@@ -27,12 +27,7 @@ function statusLabel(status: string): string {
 
 const documentTypeLabels: Record<string, string> = Object.fromEntries(DOCUMENT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
-const kindLabels: Record<string, string> = {
-  HONORARIOS_CONTRATUAIS: "Honorários Contratuais",
-  HONORARIOS_SUCUMBENCIAIS: "Honorários Sucumbenciais",
-  REEMBOLSO: "Reembolso",
-  OUTROS: "Outros",
-};
+const kindLabels = RECEIVABLE_KIND_LABELS;
 
 type Receivable = {
   id: string;

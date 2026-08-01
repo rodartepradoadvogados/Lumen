@@ -1039,7 +1039,7 @@ model HonorarioLancamento {
   // divergência. Nulo quando o próprio lançamento já nasce só com parcela(s) percentual(is)
   // sem nenhum valor total declarado.
   valorTotalIndicado Float?
-  kind               String  @default("HONORARIOS_CONTRATUAIS") // mesmo catálogo de Receivable.kind
+  kind               String  @default("HONORARIOS_CONTRATUAIS") // mesmo catálogo de Receivable.kind (ver comentário lá, inclui HONORARIOS_ACORDO desde a Fase 9)
 
   createdAt DateTime @default(now())
 
@@ -1383,7 +1383,12 @@ model Receivable {
   // ESTIMATIVA, nunca soma como receita prevista de verdade — ver lib/financeQuery.ts e todo
   // ponto que soma "a receber", que precisam ignorar este status).
   status               String    @default("PENDENTE")
-  kind                 String    @default("HONORARIOS_CONTRATUAIS") // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | REEMBOLSO | OUTROS
+  // HONORARIOS_CONTRATUAIS | HONORARIOS_SUCUMBENCIAIS | HONORARIOS_ACORDO (Fase 9 — natureza
+  // "Acordo", ver lib/honorarioLancamento.ts:NATUREZA_LABELS; não confundir com a base de
+  // cálculo percentual "ACORDO" de PERCENTUAL_BASE_LABELS, conceito totalmente diferente) |
+  // REEMBOLSO | OUTROS — string livre, sem enum; catálogo de opções/rótulos centralizado em
+  // lib/honorarioLancamento.ts:RECEIVABLE_KIND_OPTIONS.
+  kind                 String    @default("HONORARIOS_CONTRATUAIS")
   notes                String?
   noDueDate            Boolean   @default(false)
   groupId              String?
@@ -1493,7 +1498,7 @@ model RecurringFee {
   description  String
   amount       Float
   dueDay       Int // dia do mês de vencimento (clampado 1-28, mesmo padrão do dueDay de Assessoria)
-  kind         String   @default("HONORARIOS_CONTRATUAIS")
+  kind         String   @default("HONORARIOS_CONTRATUAIS") // mesmo catálogo de Receivable.kind (ver comentário lá, inclui HONORARIOS_ACORDO desde a Fase 9)
   categoryId   String?
   costCenterId String?
   active       Boolean  @default(true)

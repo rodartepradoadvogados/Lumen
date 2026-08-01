@@ -18,7 +18,7 @@ import MobileSecaoLancamento from "@/components/mobile/MobileSecaoLancamento";
 import { Send } from "lucide-react";
 
 type Option = { id: string; name: string };
-type Natureza = "CONTRATUAL" | "SUCUMBENCIAL";
+type Natureza = "CONTRATUAL" | "SUCUMBENCIAL" | "ACORDO";
 type PayerType = "CLIENTE" | "ADVERSA" | "OUTRO";
 type Cobranca = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
 type FormaLancamento = "UNICO" | "PARCELADO" | "RECORRENTE";
@@ -204,6 +204,9 @@ export default function MobileLancarHonorariosForm({
 
   function handleNaturezaChange(v: Natureza) {
     setNatureza(v);
+    // Mesma regra do modal desktop (components/honorarios/LancarHonorariosModal.tsx): só
+    // Sucumbencial troca o pagador padrão para Parte adversa; Acordo mantém Cliente, como
+    // Contratual (honorário de acordo normalmente ainda é pago pelo cliente do processo).
     setPayerType(v === "SUCUMBENCIAL" ? "ADVERSA" : "CLIENTE");
   }
 
@@ -255,7 +258,12 @@ export default function MobileLancarHonorariosForm({
     const responsibleId = String(formData.get("responsibleId") || "");
 
     if (recorrente) {
-      const kind = natureza === "SUCUMBENCIAL" ? "HONORARIOS_SUCUMBENCIAIS" : "HONORARIOS_CONTRATUAIS";
+      const kind =
+        natureza === "SUCUMBENCIAL"
+          ? "HONORARIOS_SUCUMBENCIAIS"
+          : natureza === "ACORDO"
+          ? "HONORARIOS_ACORDO"
+          : "HONORARIOS_CONTRATUAIS";
       const recResult = await createRecurringFee({
         description,
         amount: amountMensal,
@@ -359,6 +367,7 @@ export default function MobileLancarHonorariosForm({
               options={[
                 { value: "CONTRATUAL", label: "Contratual" },
                 { value: "SUCUMBENCIAL", label: "Sucumbencial" },
+                { value: "ACORDO", label: "Acordo" },
               ]}
             />
           </div>

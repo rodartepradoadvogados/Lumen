@@ -6,7 +6,7 @@ import { updateReceivable } from "@/lib/actions/financeiro";
 import { createClientQuick } from "@/lib/actions/contatos";
 import { createCaseQuick } from "@/lib/actions/cases";
 import { createCostCenterQuick } from "@/lib/actions/settings";
-import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
+import { DOCUMENT_TYPE_OPTIONS, RECEIVABLE_KIND_OPTIONS } from "@/lib/honorarioLancamento";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido } from "@/lib/financeCalc";
 import { formatCurrency, formatDate } from "@/components/ui";
@@ -153,10 +153,11 @@ export default function EditReceivableModal({
                     <div>
                       <label className={labelCls}>Tipo de Honorário</label>
                       <select name="kind" defaultValue={receivable.kind} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
-                        <option value="HONORARIOS_CONTRATUAIS">Honorários Contratuais</option>
-                        <option value="HONORARIOS_SUCUMBENCIAIS">Honorários Sucumbenciais</option>
-                        <option value="OUTROS">Outros</option>
-                        <option value="REEMBOLSO">Reembolso</option>
+                        {RECEIVABLE_KIND_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>

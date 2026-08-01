@@ -20,9 +20,17 @@ export const COBRANCA_LABELS: Record<string, string> = {
   AMBOS: "Dinheiro + Percentual",
 };
 
+// Natureza/origem do honorário — CONTRATUAL (cláusula do contrato) | SUCUMBENCIAL (verba fixada
+// pelo juiz, paga pela parte vencida) | ACORDO (honorário decorrente de um acordo no processo,
+// Fase 9). NÃO CONFUNDIR com a base de cálculo percentual "ACORDO" de PERCENTUAL_BASE_LABELS
+// abaixo ("Valor do Acordo", ligada a Case.agreementValue): aquela é o VALOR usado para apurar um
+// percentual; esta é a ORIGEM do honorário. Um honorário de natureza Acordo pode ser cobrado em
+// dinheiro fixo, sem nenhum percentual — as duas coisas não têm relação obrigatória, mesmo
+// coincidindo no nome.
 export const NATUREZA_LABELS: Record<string, string> = {
   CONTRATUAL: "Contratual",
   SUCUMBENCIAL: "Sucumbencial",
+  ACORDO: "Acordo",
 };
 
 export const PAYER_TYPE_LABELS: Record<string, string> = {
@@ -39,6 +47,25 @@ export const PERCENTUAL_BASE_LABELS: Record<string, string> = {
   CONDENACAO: "Valor da Condenação",
   ACORDO: "Valor do Acordo",
 };
+
+// Catálogo do campo Receivable.kind ("Tipo de Honorário") — mesmo catálogo aberto descrito no
+// comentário de Receivable.kind/HonorarioLancamento.kind/RecurringFee.kind no schema (Prisma
+// guarda como string livre, sem enum). Centralizado aqui porque as telas GENÉRICAS de Contas a
+// Receber (NewReceivableModal, EditReceivableModal, MobileNewReceivableForm) e a listagem/export
+// (ReceivablesList, app/api/financeiro/export) precisam da mesma lista de opções/rótulos — antes
+// da Fase 9 ela vivia repetida em cada um desses arquivos; a próxima natureza de honorário só
+// precisa ser acrescentada aqui.
+export const RECEIVABLE_KIND_OPTIONS: { value: string; label: string }[] = [
+  { value: "HONORARIOS_CONTRATUAIS", label: "Honorários Contratuais" },
+  { value: "HONORARIOS_SUCUMBENCIAIS", label: "Honorários Sucumbenciais" },
+  { value: "HONORARIOS_ACORDO", label: "Honorários de Acordo" },
+  { value: "REEMBOLSO", label: "Reembolso" },
+  { value: "OUTROS", label: "Outros" },
+];
+
+export const RECEIVABLE_KIND_LABELS: Record<string, string> = Object.fromEntries(
+  RECEIVABLE_KIND_OPTIONS.map((o) => [o.value, o.label])
+);
 
 // Mesma lista fechada do comentário de schema de Payable.documentType/Receivable.documentType
 // (Fase 1) — centralizada aqui porque tanto o Lançamento de Honorários (Fase 2) quanto Contas a

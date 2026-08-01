@@ -3,16 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReceivable } from "@/lib/actions/financeiro";
+import { RECEIVABLE_KIND_OPTIONS } from "@/lib/honorarioLancamento";
 import { Plus, X } from "lucide-react";
 
 type Option = { id: string; name: string };
-
-const KIND_OPTIONS = [
-  { value: "HONORARIOS_CONTRATUAIS", label: "Honorários Contratuais" },
-  { value: "HONORARIOS_SUCUMBENCIAIS", label: "Honorários Sucumbenciais" },
-  { value: "REEMBOLSO", label: "Reembolso" },
-  { value: "OUTROS", label: "Outros" },
-];
 
 // Versão compacta do NewReceivableModal do desktop: sem parcelamento, sem divisão em
 // êxito/agora e sem vínculo a processo — usa <select> simples em vez do EntityPicker com
@@ -91,7 +85,7 @@ export default function MobileNewReceivableForm({
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo de Honorário</label>
           <select name="kind" defaultValue="HONORARIOS_CONTRATUAIS" className="mobile-input">
-            {KIND_OPTIONS.map((k) => (
+            {RECEIVABLE_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
                 {k.label}
               </option>

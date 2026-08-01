@@ -108,7 +108,7 @@ export type CreateHonorarioInput = {
   clientId?: string;
   costCenterId?: string;
   categoryId?: string;
-  natureza: "CONTRATUAL" | "SUCUMBENCIAL";
+  natureza: "CONTRATUAL" | "SUCUMBENCIAL" | "ACORDO";
   payerType: "CLIENTE" | "ADVERSA" | "OUTRO";
   payerName?: string;
   responsibleId?: string;
@@ -186,7 +186,16 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
   const recebido = data.recebido && !parcelado;
 
   const bases = await caseValueBases(data.caseId, officeId);
-  const kind = data.natureza === "SUCUMBENCIAL" ? "HONORARIOS_SUCUMBENCIAIS" : "HONORARIOS_CONTRATUAIS";
+  // Natureza → kind (Fase 9 acrescenta ACORDO): honorário decorrente de acordo no processo, para
+  // não se confundir com a base de cálculo percentual "ACORDO" (Valor do Acordo, ver
+  // lib/honorarioLancamento.ts:PERCENTUAL_BASE_LABELS) — são conceitos independentes que só
+  // coincidem no nome.
+  const kind =
+    data.natureza === "SUCUMBENCIAL"
+      ? "HONORARIOS_SUCUMBENCIAIS"
+      : data.natureza === "ACORDO"
+      ? "HONORARIOS_ACORDO"
+      : "HONORARIOS_CONTRATUAIS";
 
   const cobrancaHasDinheiro = data.cobranca !== "PERCENTUAL";
   const cobrancaHasPercentual = data.cobranca !== "DINHEIRO";
