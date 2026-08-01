@@ -4,7 +4,7 @@ import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import RecurringFeeCard from "@/components/RecurringFeeCard";
 import MobileHonorarioLancamentoGroup from "@/components/mobile/MobileHonorarioLancamentoGroup";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
-import { HandCoins } from "lucide-react";
+import { HandCoins, Receipt } from "lucide-react";
 
 type Option = { id: string; name: string };
 
@@ -61,12 +61,20 @@ export default function MobileCaseFinanceTab({
 
   return (
     <div className="space-y-4">
-      <Link
-        href={`/m/processos/${caseId}/honorarios`}
-        className="w-full flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
-      >
-        <HandCoins size={16} /> Lançar Honorários
-      </Link>
+      <div className="flex gap-2">
+        <Link
+          href={`/m/processos/${caseId}/honorarios`}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        >
+          <HandCoins size={16} /> Lançar Honorários
+        </Link>
+        <Link
+          href={`/m/processos/${caseId}/despesa`}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        >
+          <Receipt size={16} /> Lançar Despesa
+        </Link>
+      </div>
 
       <Card>
         <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">

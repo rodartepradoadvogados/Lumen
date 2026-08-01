@@ -8,6 +8,7 @@ import LancarHonorariosModal from "@/components/honorarios/LancarHonorariosModal
 import ApurarHonorarioModal from "@/components/honorarios/ApurarHonorarioModal";
 import HonorarioLancamentoCard from "@/components/honorarios/HonorarioLancamentoCard";
 import EditPayableModal from "@/components/EditPayableModal";
+import NewPayableModal from "@/components/NewPayableModal";
 import SettleButton from "@/components/SettleButton";
 import CommentBox from "@/components/CommentBox";
 import CaseStatusSelect from "@/components/CaseStatusSelect";
@@ -607,8 +608,18 @@ export default async function CaseDetailPage({
             )}
           </Card>
           <Card>
-            <div className="px-5 py-3 border-b border-navy-800/8 dark:border-white/10">
+            <div className="px-5 py-3 border-b border-navy-800/8 dark:border-white/10 flex items-center justify-between gap-2">
               <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Contas a Pagar (custas etc.)</h4>
+              <NewPayableModal
+                categories={payableCategories}
+                cases={cases.map((x) => ({ id: x.id, name: x.title }))}
+                suppliers={suppliers}
+                costCenters={costCenters}
+                responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
+                bankAccounts={bankAccounts}
+                defaultResponsibleId={viewer.id}
+                defaultCaseId={c.id}
+              />
             </div>
             {c.payables.length === 0 ? (
               <EmptyState title="Nenhum lançamento" />

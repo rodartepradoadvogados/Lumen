@@ -97,6 +97,21 @@ export const DEFAULT_CHART_OF_ACCOUNTS: CatNode[] = [
           { code: "2.8.1", name: "Ajuste", kind: "DESPESA" },
         ],
       },
+      // 2.9 — Despesas do Processo (Fase 10, aba Financeiro do Processo → "Lançar Despesa"):
+      // espelha 1:1 as 6 naturezas de lib/despesaProcesso.ts:PAYABLE_KIND_OPTIONS. Código NOVO
+      // (2.1 a 2.8 nunca são renumerados) — só um Office criado depois desta mudança já nasce
+      // com este grupo; escritório já existente é migrado pelo endpoint idempotente
+      // /api/admin/setup-plano-contas-despesas-processo.
+      {
+        code: "2.9", name: "Despesas de Processo", kind: "DESPESA", children: [
+          { code: "2.9.1", name: "Honorários de Advogado Parceiro", kind: "DESPESA" },
+          { code: "2.9.2", name: "Honorários de Advogado do Escritório", kind: "DESPESA" },
+          { code: "2.9.3", name: "Reembolso ao Cliente", kind: "DESPESA" },
+          { code: "2.9.4", name: "Indenização/Responsabilidade Civil", kind: "DESPESA" },
+          { code: "2.9.5", name: "Custas Processuais e Periciais", kind: "DESPESA" },
+          { code: "2.9.6", name: "Diligências e Despesas Operacionais", kind: "DESPESA" },
+        ],
+      },
     ],
   },
 ];

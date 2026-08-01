@@ -7,6 +7,7 @@ import { createCaseQuick } from "@/lib/actions/cases";
 import { createSupplierQuick } from "@/lib/actions/suppliers";
 import { createCostCenterQuick, createBankAccountQuick } from "@/lib/actions/settings";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
+import { PAYABLE_KIND_OPTIONS, EXPENSE_PAYER_LABELS } from "@/lib/despesaProcesso";
 import { valorLiquido } from "@/lib/financeCalc";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { formatCurrency } from "@/components/ui";
@@ -36,6 +37,40 @@ type ParcelaRow = {
   installmentBoleto: string;
   pago: boolean;
 };
+
+type ExpensePayer = "ESCRITORIO" | "CLIENTE";
+
+// Mesmo componente (copiado, não importado — cada tela de lançamento mantém sua própria cópia
+// local, ver comentário equivalente em LancarHonorariosModal.tsx) usado para a Natureza da
+// despesa e para "Quem arca com o custo", abaixo — só aparece quando há processo vinculado.
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+            value === opt.value
+              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
+              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // Idêntica à regenerateParcelas de LancarHonorariosModal.tsx — as três telas de lançamento
 // (Honorários, Conta a Pagar, Conta a Receber) reaproveitam a MESMA regra de regeneração da
@@ -74,6 +109,7 @@ export default function NewPayableModal({
   responsibles = [],
   bankAccounts = [],
   defaultResponsibleId,
+  defaultCaseId,
 }: {
   categories: Option[];
   cases: Option[];
@@ -82,11 +118,26 @@ export default function NewPayableModal({
   responsibles?: Option[];
   bankAccounts?: Option[];
   defaultResponsibleId?: string;
+  // Presente = entrada pelo Processo (aba Financeiro → "+ Lançar Despesa"): pré-seleciona e trava
+  // o processo, exatamente como LancarHonorariosModal.tsx faz. Ausente = entrada pelo Financeiro
+  // central (Contas a Pagar), comportamento de sempre — processo opcional, escolhido à mão.
+  defaultCaseId?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ---- Processo / Despesa do Processo (Fase 10) ----
+  // Com defaultCaseId (entrada pelo Processo) nunca muda depois do mount. Sem defaultCaseId
+  // (entrada pelo Financeiro), começa vazio e só é preenchido se o usuário escolher um processo
+  // no seletor genérico da seção Identificação — nos dois casos, é isto que decide se a Natureza
+  // da despesa/"Quem arca com o custo" aparecem (não fazem sentido para despesa sem processo).
+  const [caseId, setCaseId] = useState(defaultCaseId ?? "");
+  const hasCase = Boolean(caseId);
+  const [kind, setKind] = useState("OUTROS");
+  const [expensePayer, setExpensePayer] = useState<ExpensePayer>("ESCRITORIO");
+  const [createReimbursement, setCreateReimbursement] = useState(true);
 
   // ---- Documento ----
   const [documentType, setDocumentType] = useState("");
@@ -149,19 +200,24 @@ export default function NewPayableModal({
     setOpen(false);
   }
 
+  // Rótulo muda conforme a entrada (mesma ideia de LancarHonorariosModal, que sempre mostra
+  // "Lançar Honorários" — aqui o texto reflete o que a Fase 10 pediu: dentro do Processo isto é
+  // "Lançar Despesa"; no Financeiro central continua "Nova Conta a Pagar", como sempre foi.
+  const title = defaultCaseId ? "Lançar Despesa" : "Nova Conta a Pagar";
+
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
-        <Plus size={16} /> Nova Conta a Pagar
+        <Plus size={16} /> {title}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Nova Conta a Pagar</h3>
+              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">{title}</h3>
               <button onClick={resetAndClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
                 <X size={18} />
               </button>
@@ -175,7 +231,9 @@ export default function NewPayableModal({
                 const supplierId = String(formData.get("supplierId") || "");
                 const costCenterId = String(formData.get("costCenterId") || "");
                 const categoryId = String(formData.get("categoryId") || "");
-                const caseId = String(formData.get("caseId") || "");
+                // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
+                // (entrada pelo Financeiro central) — mesma convenção de LancarHonorariosModal.tsx.
+                const effectiveCaseId = defaultCaseId || caseId;
                 const responsibleId = String(formData.get("responsibleId") || "");
                 const bankAccountId = String(formData.get("bankAccountId") || "");
                 const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
@@ -195,7 +253,10 @@ export default function NewPayableModal({
                   supplierId: supplierId || undefined,
                   costCenterId: costCenterId || undefined,
                   categoryId: categoryId || undefined,
-                  caseId: caseId || undefined,
+                  caseId: effectiveCaseId || undefined,
+                  kind: effectiveCaseId ? kind : undefined,
+                  expensePayer: effectiveCaseId ? expensePayer : undefined,
+                  createReimbursement: effectiveCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
                   responsibleId: responsibleId || undefined,
                   documentType: documentType || undefined,
                   documentNumber: documentNumber || undefined,
@@ -256,17 +317,20 @@ export default function NewPayableModal({
                       <label className={labelCls}>Categoria</label>
                       <EntityPicker name="categoryId" options={categories} placeholder="Buscar categoria..." emptyLabel="Sem categoria" />
                     </div>
-                    <div>
-                      <label className={labelCls}>Processo vinculado (opcional)</label>
-                      <EntityPicker
-                        name="caseId"
-                        options={cases}
-                        placeholder="Buscar processo..."
-                        emptyLabel="Nenhum"
-                        addLabel="Cadastrar novo processo"
-                        onQuickAdd={(name) => createCaseQuick(name)}
-                      />
-                    </div>
+                    {!defaultCaseId && (
+                      <div>
+                        <label className={labelCls}>Processo vinculado (opcional)</label>
+                        <EntityPicker
+                          name="caseId"
+                          options={cases}
+                          placeholder="Buscar processo..."
+                          emptyLabel="Nenhum"
+                          addLabel="Cadastrar novo processo"
+                          onQuickAdd={(name) => createCaseQuick(name)}
+                          onChange={setCaseId}
+                        />
+                      </div>
+                    )}
                     <div className="sm:col-span-2">
                       <label className={labelCls}>Responsável pelo lançamento</label>
                       <select
@@ -281,6 +345,53 @@ export default function NewPayableModal({
                         ))}
                       </select>
                     </div>
+
+                    {/* Natureza da despesa e "Quem arca com o custo" só fazem sentido com processo
+                        vinculado (defaultCaseId, entrada pelo Processo, ou escolhido acima na
+                        entrada pelo Financeiro central) — ver lib/despesaProcesso.ts. */}
+                    {hasCase && (
+                      <>
+                        <div>
+                          <label className={labelCls}>Natureza da despesa</label>
+                          <div className="mt-1">
+                            <Segmented
+                              value={kind}
+                              onChange={setKind}
+                              options={PAYABLE_KIND_OPTIONS}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={labelCls}>Quem arca com o custo</label>
+                          <div className="mt-1">
+                            <Segmented<ExpensePayer>
+                              value={expensePayer}
+                              onChange={setExpensePayer}
+                              options={[
+                                { value: "ESCRITORIO", label: EXPENSE_PAYER_LABELS.ESCRITORIO },
+                                { value: "CLIENTE", label: EXPENSE_PAYER_LABELS.CLIENTE },
+                              ]}
+                            />
+                          </div>
+                        </div>
+                        {expensePayer === "CLIENTE" && (
+                          <div className="sm:col-span-2 rounded-lg bg-gold-500/10 px-3 py-2.5">
+                            <label className="flex items-center gap-2 text-xs font-medium text-navy-800/80 dark:text-cream-50/80">
+                              <input
+                                type="checkbox"
+                                checked={createReimbursement}
+                                onChange={(e) => setCreateReimbursement(e.target.checked)}
+                              />
+                              Criar conta a receber vinculada para reembolso deste valor pelo cliente?
+                            </label>
+                            <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1 ml-6">
+                              Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor líquido total desta
+                              despesa{parcelado ? " (parcelada ou não, o reembolso nasce como um único lançamento pelo total)" : ""}.
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </SecaoLancamento>
 

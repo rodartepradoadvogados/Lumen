@@ -1345,6 +1345,21 @@ model Payable {
   surcharge         Float     @default(0) // acréscimo (juros/multa) — ver lib/financeCalc.ts:valorLiquido
   installmentBoleto String? // nº do boleto desta parcela específica (distinto de paymentReceiptNumber, que é do comprovante de pagamento)
 
+  // Natureza da despesa do PROCESSO ("Despesas do Processo", Fase 10) — só faz sentido quando
+  // caseId está preenchido; despesa geral do escritório (sem processo) fica com o default
+  // "OUTROS" e nunca aparece na tela. String livre, sem enum, mesmo padrão de Receivable.kind —
+  // catálogo de opções/rótulos centralizado em lib/despesaProcesso.ts:PAYABLE_KIND_OPTIONS (não
+  // confundir com categoryId/FinancialCategory, que é o plano de contas — dimensão separada,
+  // ver comentário em lib/despesaProcesso.ts).
+  kind String @default("OUTROS")
+
+  // "Quem arca com o custo" (Fase 10, pedido do usuário): ESCRITORIO (despesa própria do
+  // escritório, comportamento de sempre — default, nada muda) | CLIENTE (o escritório está
+  // ADIANTANDO um valor que é do cliente — ex.: custas, perícia, cópia — e vai cobrar de volta).
+  // Quando CLIENTE, o formulário oferece criar automaticamente um Receivable de reembolso
+  // vinculado (ver reimbursementReceivable abaixo e createPayable em lib/actions/financeiro.ts).
+  expensePayer String @default("ESCRITORIO") // ESCRITORIO | CLIENTE
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
@@ -1368,6 +1383,12 @@ model Payable {
   // Histórico de pagamentos desta conta (ver model FinancePayment mais abaixo) — permite
   // pagamento PARCIAL: a soma de payments decide entre PENDENTE/PARCIAL/PAGO.
   payments FinancePayment[]
+
+  // Presente só quando esta despesa foi adiantada pelo escritório em nome do cliente
+  // (expensePayer = CLIENTE) e o usuário pediu para criar a conta a receber de reembolso —
+  // ver Receivable.reimbursesPayableId/kind "REEMBOLSO". Rastreável nos dois sentidos: olhando
+  // a despesa dá pra ver se já existe reembolso vinculado (nunca duplicar por engano).
+  reimbursementReceivable Receivable? @relation("PayableReimbursement")
 
   @@index([officeId])
   @@index([officeId, dueDate])
@@ -1486,6 +1507,15 @@ model Receivable {
   recurringFeeId String?
   recurringFee   RecurringFee? @relation(fields: [recurringFeeId], references: [id])
   competencia    String?
+
+  // Presente só quando esta Receivable NASCEU como o reembolso de uma Payable adiantada pelo
+  // escritório em nome do cliente (Payable.expensePayer = CLIENTE, checkbox "Criar conta a
+  // receber vinculada" marcado — ver createPayable, lib/actions/financeiro.ts). @unique garante
+  // no banco que uma mesma despesa nunca gera dois reembolsos por engano; a relação nomeada dá
+  // a via de volta (Payable.reimbursementReceivable) para quem olha a despesa saber, sem
+  // precisar buscar, que já existe (ou não) um reembolso ligado a ela.
+  reimbursesPayableId String?  @unique
+  reimbursesPayable   Payable? @relation("PayableReimbursement", fields: [reimbursesPayableId], references: [id])
 
   @@unique([recurringFeeId, competencia])
   @@index([officeId])

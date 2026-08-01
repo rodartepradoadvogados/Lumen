@@ -461,6 +461,13 @@ export type CreatePayableInput = {
   parcelas?: ParcelaInput[];
   pago: boolean;
   pagamento?: PagamentoInput;
+  // ---- Despesas do Processo (Fase 10) — só usados quando caseId está preenchido; ver
+  // lib/despesaProcesso.ts. Ignorados (ficam no default) para despesa sem processo vinculado. ----
+  kind?: string; // ver lib/despesaProcesso.ts:PAYABLE_KIND_OPTIONS
+  expensePayer?: string; // ESCRITORIO (default) | CLIENTE
+  // Só relevante quando expensePayer = CLIENTE: cria, na mesma operação, um Receivable de
+  // reembolso vinculado (kind "REEMBOLSO") para o cliente do processo — ver bloco abaixo.
+  createReimbursement?: boolean;
 };
 
 export async function createPayable(data: CreatePayableInput): Promise<{ error?: string }> {
@@ -478,6 +485,12 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
   const parcelado = data.parcelado;
   const pago = data.pago && !parcelado;
   const noDueDate = data.noDueDate ?? false;
+  const kind = data.kind || "OUTROS";
+  const expensePayer = data.expensePayer === "CLIENTE" ? "CLIENTE" : "ESCRITORIO";
+  // Reembolso só faz sentido com despesa de processo adiantada pelo escritório em nome do
+  // cliente — sem caseId (despesa geral) ou com expensePayer ESCRITORIO, nunca cria nada além
+  // da Payable, mesmo que createReimbursement venha true por engano do chamador.
+  const wantsReimbursement = Boolean(data.createReimbursement) && expensePayer === "CLIENTE" && Boolean(data.caseId);
 
   const supplierName = await supplierDisplayName(data.supplierId, officeId);
   const shared = {
@@ -491,7 +504,22 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
     documentType: data.documentType || null,
     documentNumber: data.documentNumber || null,
     issueDate: data.issueDate ? new Date(data.issueDate) : null,
+    kind,
+    expensePayer,
   };
+
+  // Soma do valor líquido total desta despesa (parcelada ou não) — usada só para o Receivable de
+  // reembolso, quando pedido. Decisão de produto (parcelamento de despesa + reembolso): o
+  // reembolso nasce sempre como valor ÚNICO pelo TOTAL, mesmo quando a despesa original é
+  // parcelada — cobrar o cliente parcela a parcela, na mesma cadência do adiantamento do
+  // escritório, teria pouco valor prático (o cliente não "sente" o parcelamento interno do
+  // escritório) e complicaria a rastreabilidade 1:1 pedida (Receivable.reimbursesPayableId é
+  // @unique, isto é, uma Payable só pode gerar UM Receivable de reembolso — não uma por parcela).
+  // Simples e suficiente para o caso de uso descrito (adiantar custas/perícia/cópia e cobrar de
+  // volta em um único lançamento).
+  let reimbursementTotal = 0;
+  let reimbursementDueDate: Date | null = null;
+  let firstPayableId: string | null = null;
 
   if (parcelado) {
     const rows = data.parcelas ?? [];
@@ -515,6 +543,11 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
           installmentBoleto: row.installmentBoleto || null,
         },
       });
+      if (i === 0) {
+        firstPayableId = payable.id;
+        reimbursementDueDate = rowDueDate;
+      }
+      reimbursementTotal += rowAmount;
       if (row.pago) {
         // Único caminho para lançamento retroativo parcelado: a parcela já quitada antes do
         // cadastro se marca na própria linha da tabela (mesma regra da Fase 2).
@@ -537,10 +570,36 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
     const payable = await prisma.payable.create({
       data: { ...shared, description: data.description, amount, discount, surcharge, dueDate, noDueDate },
     });
+    firstPayableId = payable.id;
+    reimbursementDueDate = dueDate;
+    reimbursementTotal = valorLiquido(amount, discount, surcharge);
     if (pago && data.pagamento) {
       await registrarPagamentoPayable(payable.id, data.pagamento, officeId);
     } else if (!noDueDate) {
       await createInstallmentReminder(officeId, "pagar", data.description, dueDate, data.caseId);
+    }
+  }
+
+  if (wantsReimbursement && firstPayableId) {
+    // Cliente principal do processo (Case.clientId — o mesmo campo legado que HonorarioLancamento
+    // e o resto do financeiro usam como default) — sem cliente cadastrado no processo, não dá pra
+    // montar o reembolso (fica só a despesa, sem quebrar o lançamento inteiro por causa disso).
+    const caseInfo = await prisma.case.findFirst({ where: { id: data.caseId!, officeId }, select: { clientId: true } });
+    if (caseInfo?.clientId) {
+      await prisma.receivable.create({
+        data: {
+          officeId,
+          caseId: data.caseId!,
+          clientId: caseInfo.clientId,
+          kind: "REEMBOLSO",
+          description: `Reembolso — ${data.description}`,
+          amount: reimbursementTotal,
+          dueDate: reimbursementDueDate ?? firstOfNextMonth(),
+          noDueDate: true,
+          status: "PENDENTE",
+          reimbursesPayableId: firstPayableId,
+        },
+      });
     }
   }
 
