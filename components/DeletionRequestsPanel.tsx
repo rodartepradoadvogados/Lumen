@@ -10,6 +10,7 @@ type Req = {
   entityType: string;
   entityLabel: string;
   scope?: string | null;
+  alsoDeleteLinked?: boolean;
   createdAt: string;
   requestedBy: { name: string };
 };
@@ -52,6 +53,9 @@ export default function DeletionRequestsPanel({ requests }: { requests: Req[] })
             <p className="text-sm font-medium text-navy-900 mt-0.5 truncate">{r.entityLabel}</p>
             {r.scope && scopeLabels[r.scope] && (
               <p className="text-xs font-semibold text-bordo-600 mt-0.5">Escopo: {scopeLabels[r.scope]}</p>
+            )}
+            {r.alsoDeleteLinked && (
+              <p className="text-xs font-semibold text-bordo-600 mt-0.5">Vai excluir também o reembolso/despesa vinculada</p>
             )}
             <p className="text-xs text-navy-800/45 mt-0.5">Solicitado por {r.requestedBy.name}</p>
           </div>

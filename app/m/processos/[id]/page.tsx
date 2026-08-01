@@ -80,8 +80,14 @@ export default async function MobileCaseDetail({
           take: 20,
         },
         comments: { include: { author: true }, orderBy: { createdAt: "desc" }, take: 15 },
-        receivables: { orderBy: { dueDate: "asc" }, include: { payments: { select: { amount: true } } } },
-        payables: { orderBy: { dueDate: "asc" }, include: { payments: { select: { amount: true } } } },
+        receivables: {
+          orderBy: { dueDate: "asc" },
+          include: { payments: { select: { amount: true } }, reimbursesPayable: { select: { id: true, description: true } } },
+        },
+        payables: {
+          orderBy: { dueDate: "asc" },
+          include: { payments: { select: { amount: true } }, reimbursementReceivable: { select: { id: true, amount: true, status: true } } },
+        },
         attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
         protocoloLotes: {
           orderBy: { createdAt: "desc" },
@@ -437,6 +443,7 @@ export default async function MobileCaseDetail({
             payerName: r.payerName,
             honorarioLancamentoId: r.honorarioLancamentoId,
             payments: r.payments,
+            reimbursesPayable: r.reimbursesPayable ? { description: r.reimbursesPayable.description } : null,
           }))}
           payables={c.payables.map((p) => ({
             id: p.id,
@@ -448,6 +455,9 @@ export default async function MobileCaseDetail({
             noDueDate: p.noDueDate,
             status: p.status,
             payments: p.payments,
+            reimbursementReceivable: p.reimbursementReceivable
+              ? { amount: p.reimbursementReceivable.amount, status: p.reimbursementReceivable.status }
+              : null,
           }))}
           recurringFees={recurringFees.map((f) => ({ id: f.id, description: f.description, amount: f.amount, dueDay: f.dueDay }))}
           honorarioLancamentos={serializedHonorarioLancamentos}

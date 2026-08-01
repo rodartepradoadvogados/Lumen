@@ -48,6 +48,12 @@ type Payable = {
   category: { name: string } | null;
   costCenter: { name: string } | null;
   case: { title: string } | null;
+  // ---- Despesas do Processo (Fase 10) — ver lib/despesaProcesso.ts ----
+  kind: string;
+  expensePayer: string;
+  // Presente só quando esta despesa já tem um reembolso vinculado — ver
+  // Payable.reimbursementReceivable em prisma/schema.prisma.
+  reimbursementReceivable: { id: string; amount: number; status: string } | null;
 };
 
 type Option = { id: string; name: string };
@@ -122,6 +128,15 @@ export default function PayablesList({
                   {p.status === "PAGO" && p.paymentMethod && <span> · {paymentMethodLabels[p.paymentMethod] ?? p.paymentMethod}</span>}
                   {p.status === "PAGO" && p.paymentReceiptNumber && <span> · Comprovante: {p.paymentReceiptNumber}</span>}
                 </p>
+                {/* Problema 2 (autoavaliação Fase 10) — sem isto, nada na lista denunciava que esta
+                    despesa já tinha um reembolso vinculado, abrindo espaço para duplicar por engano. */}
+                {p.reimbursementReceivable && (
+                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">
+                    <Badge color={statusColor[p.reimbursementReceivable.status] ?? "slate"}>
+                      ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {p.reimbursementReceivable.status}
+                    </Badge>
+                  </p>
+                )}
               </div>
               <div className="flex items-center justify-between sm:contents">
                 <div className="text-left sm:text-right shrink-0 sm:w-32">
@@ -162,6 +177,9 @@ export default function PayablesList({
                     paidDate: p.paidDate,
                     paymentMethod: p.paymentMethod,
                     paymentReceiptNumber: p.paymentReceiptNumber,
+                    kind: p.kind,
+                    expensePayer: p.expensePayer,
+                    reimbursementReceivable: p.reimbursementReceivable,
                   }}
                   categories={categories}
                   cases={cases}
@@ -175,6 +193,11 @@ export default function PayablesList({
                   entityLabel={p.description}
                   confirmMessage={`Excluir o lançamento "${p.description}"?`}
                   groupKind={financeGroupKind(p)}
+                  linkedReimbursement={
+                    p.reimbursementReceivable
+                      ? { direction: "payableHasReimbursement", amount: p.reimbursementReceivable.amount, status: p.reimbursementReceivable.status }
+                      : null
+                  }
                 />
               </div>
             </div>

@@ -23,6 +23,9 @@ type ReceivableRow = {
   payerName: string | null;
   honorarioLancamentoId: string | null;
   payments: Payment[];
+  // Presente só quando esta receita nasceu como o reembolso de uma despesa — ver Problema 2
+  // (autoavaliação Fase 10) e a contraparte em PayablesList.tsx/ReceivablesList.tsx no site.
+  reimbursesPayable: { description: string } | null;
 };
 
 type PayableRow = {
@@ -35,6 +38,7 @@ type PayableRow = {
   noDueDate: boolean;
   status: string;
   payments: Payment[];
+  reimbursementReceivable: { amount: number; status: string } | null;
 };
 
 // Aba Financeiro do processo, versão mobile — traz o que o dono do produto pediu explicitamente
@@ -106,6 +110,11 @@ export default function MobileCaseFinanceTab({
                           <> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : r.payerType === "ADVERSA" ? "Parte adversa" : r.payerType}</>
                         )}
                       </p>
+                      {r.reimbursesPayable && (
+                        <p className="mt-1">
+                          <Badge color="gold">↳ Reembolso de despesa · {r.reimbursesPayable.description}</Badge>
+                        </p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
@@ -147,6 +156,13 @@ export default function MobileCaseFinanceTab({
                     <div className="min-w-0">
                       <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
                       <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{p.noDueDate ? "Sem vencimento" : formatCalendarDate(p.dueDate)}</p>
+                      {p.reimbursementReceivable && (
+                        <p className="mt-1">
+                          <Badge color={p.reimbursementReceivable.status === "PAGO" ? "green" : p.reimbursementReceivable.status === "ATRASADO" ? "red" : "amber"}>
+                            ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {p.reimbursementReceivable.status}
+                          </Badge>
+                        </p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(liquido)}</p>

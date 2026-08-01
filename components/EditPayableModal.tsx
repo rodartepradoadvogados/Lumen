@@ -7,6 +7,7 @@ import { createCaseQuick } from "@/lib/actions/cases";
 import { createSupplierQuick } from "@/lib/actions/suppliers";
 import { createCostCenterQuick } from "@/lib/actions/settings";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
+import { PAYABLE_KIND_OPTIONS, EXPENSE_PAYER_LABELS } from "@/lib/despesaProcesso";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido } from "@/lib/financeCalc";
 import { formatCurrency, formatDate } from "@/components/ui";
@@ -16,7 +17,41 @@ import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 
 type Option = { id: string; name: string };
 
+type ExpensePayer = "ESCRITORIO" | "CLIENTE";
+
 const labelCls = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+
+// Mesmo componente (copiado, não importado — ver comentário equivalente em NewPayableModal.tsx/
+// LancarHonorariosModal.tsx: cada tela de lançamento mantém sua própria cópia local) usado para a
+// Natureza da despesa e para "Quem arca com o custo" — só aparece quando há processo vinculado.
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+            value === opt.value
+              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
+              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function EditPayableModal({
   payable,
@@ -54,6 +89,16 @@ export default function EditPayableModal({
     paidDate?: string | null;
     paymentMethod?: string | null;
     paymentReceiptNumber?: string | null;
+    // ---- Despesas do Processo (Fase 10) — ver lib/despesaProcesso.ts. Opcionais aqui pelo mesmo
+    // motivo dos demais campos "novos" deste tipo: telas mais antigas que ainda não foram
+    // adaptadas a passá-los continuam funcionando (nasce em OUTROS/ESCRITORIO, igual ao default
+    // do banco). ----
+    kind?: string;
+    expensePayer?: string;
+    // Presente só quando esta despesa já tem um reembolso vinculado (ver
+    // Payable.reimbursementReceivable) — amount/status bastam para a informação exibida aqui
+    // (nunca navega para o reembolso em si, ver Problema 2 do pedido original).
+    reimbursementReceivable?: { id: string; amount: number; status: string } | null;
   };
   categories: Option[];
   cases: Option[];
@@ -69,6 +114,20 @@ export default function EditPayableModal({
   const [amount, setAmount] = useState(String(payable.amount));
   const [discount, setDiscount] = useState(String(payable.discount ?? 0));
   const [surcharge, setSurcharge] = useState(String(payable.surcharge ?? 0));
+
+  // ---- Processo / Despesa do Processo (Fase 10 — mesma ideia de NewPayableModal.tsx) ----
+  const [caseId, setCaseId] = useState(payable.caseId ?? "");
+  const hasCase = Boolean(caseId);
+  const hasReimbursement = Boolean(payable.reimbursementReceivable);
+  const [kind, setKind] = useState(payable.kind || "OUTROS");
+  const [expensePayer, setExpensePayer] = useState<ExpensePayer>(
+    hasReimbursement ? "CLIENTE" : payable.expensePayer === "CLIENTE" ? "CLIENTE" : "ESCRITORIO"
+  );
+  // Reembolso retroativo (Problema 1): default desmarcado — diferente de NewPayableModal.tsx
+  // (onde o default é true), aqui o usuário está editando uma despesa que já existe por outro
+  // motivo qualquer; marcar reembolso por padrão criaria um lançamento novo sem o usuário pedir
+  // de propósito, só porque ele salvou uma edição em outro campo.
+  const [createReimbursement, setCreateReimbursement] = useState(false);
 
   const amountNum = parseFloat(amount || "0") || 0;
   const discountNum = parseFloat(discount || "0") || 0;
@@ -94,12 +153,17 @@ export default function EditPayableModal({
               action={async (formData) => {
                 setLoading(true);
                 setError("");
+                // Mesma trava do lado do servidor (updatePayable, lib/actions/financeiro.ts): com
+                // reembolso já vinculado, o processo desta despesa não muda mais por aqui — o
+                // seletor abaixo fica desabilitado, então formData sempre traz o mesmo caseId
+                // atual nesse caso.
+                const submittedCaseId = hasReimbursement ? (payable.caseId ?? "") : String(formData.get("caseId") || "");
                 const result = await updatePayable(payable.id, {
                   description: String(formData.get("description")),
                   supplierId: String(formData.get("supplierId") || ""),
                   costCenterId: String(formData.get("costCenterId") || ""),
                   categoryId: String(formData.get("categoryId") || ""),
-                  caseId: String(formData.get("caseId") || ""),
+                  caseId: submittedCaseId,
                   responsibleId: String(formData.get("responsibleId") || ""),
                   documentType: String(formData.get("documentType") || ""),
                   documentNumber: String(formData.get("documentNumber") || ""),
@@ -110,6 +174,9 @@ export default function EditPayableModal({
                   surcharge,
                   dueDate: String(formData.get("dueDate") || ""),
                   noDueDate: semVencimento,
+                  kind: submittedCaseId ? kind : undefined,
+                  expensePayer: submittedCaseId ? expensePayer : undefined,
+                  createReimbursement: submittedCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
                 });
                 setLoading(false);
                 if (result.error) {
@@ -161,15 +228,27 @@ export default function EditPayableModal({
                     </div>
                     <div>
                       <label className={labelCls}>Processo vinculado</label>
-                      <EntityPicker
-                        name="caseId"
-                        options={cases}
-                        defaultValue={payable.caseId ?? undefined}
-                        placeholder="Buscar processo..."
-                        emptyLabel="Nenhum"
-                        addLabel="Cadastrar novo processo"
-                        onQuickAdd={(name) => createCaseQuick(name)}
-                      />
+                      {hasReimbursement ? (
+                        <>
+                          <div className="fin-input dark:bg-navy-800 dark:border-white/15 bg-cream-100/60 text-navy-800/70 dark:text-cream-50/70">
+                            {cases.find((c) => c.id === payable.caseId)?.name ?? "—"}
+                          </div>
+                          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">
+                            Travado — esta despesa já tem um reembolso vinculado. Para mudar o processo, exclua primeiro o reembolso vinculado.
+                          </p>
+                        </>
+                      ) : (
+                        <EntityPicker
+                          name="caseId"
+                          options={cases}
+                          defaultValue={payable.caseId ?? undefined}
+                          placeholder="Buscar processo..."
+                          emptyLabel="Nenhum"
+                          addLabel="Cadastrar novo processo"
+                          onQuickAdd={(name) => createCaseQuick(name)}
+                          onChange={setCaseId}
+                        />
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelCls}>Responsável pelo lançamento</label>
@@ -182,6 +261,66 @@ export default function EditPayableModal({
                         ))}
                       </select>
                     </div>
+
+                    {/* Natureza da despesa e "Quem arca com o custo" só fazem sentido com processo
+                        vinculado — mesma regra de NewPayableModal.tsx, ver lib/despesaProcesso.ts. */}
+                    {hasCase && (
+                      <>
+                        <div>
+                          <label className={labelCls}>Natureza da despesa</label>
+                          <div className="mt-1">
+                            <Segmented value={kind} onChange={setKind} options={PAYABLE_KIND_OPTIONS} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={labelCls}>Quem arca com o custo</label>
+                          {hasReimbursement ? (
+                            <div className="mt-1">
+                              <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{EXPENSE_PAYER_LABELS.CLIENTE}</p>
+                              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">
+                                Travado — já existe um reembolso vinculado a esta despesa. Para voltar a &quot;Escritório&quot;, exclua primeiro o
+                                reembolso vinculado.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-1">
+                              <Segmented<ExpensePayer>
+                                value={expensePayer}
+                                onChange={setExpensePayer}
+                                options={[
+                                  { value: "ESCRITORIO", label: EXPENSE_PAYER_LABELS.ESCRITORIO },
+                                  { value: "CLIENTE", label: EXPENSE_PAYER_LABELS.CLIENTE },
+                                ]}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        {hasReimbursement && payable.reimbursementReceivable && (
+                          <div className="sm:col-span-2 rounded-lg bg-gold-500/10 px-3 py-2.5">
+                            <p className="text-xs font-medium text-navy-800/80 dark:text-cream-50/80">
+                              Reembolso vinculado: {formatCurrency(payable.reimbursementReceivable.amount)} · status{" "}
+                              {payable.reimbursementReceivable.status}
+                            </p>
+                          </div>
+                        )}
+                        {!hasReimbursement && expensePayer === "CLIENTE" && (
+                          <div className="sm:col-span-2 rounded-lg bg-gold-500/10 px-3 py-2.5">
+                            <label className="flex items-center gap-2 text-xs font-medium text-navy-800/80 dark:text-cream-50/80">
+                              <input
+                                type="checkbox"
+                                checked={createReimbursement}
+                                onChange={(e) => setCreateReimbursement(e.target.checked)}
+                              />
+                              Criar conta a receber vinculada para reembolso deste valor pelo cliente?
+                            </label>
+                            <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1 ml-6">
+                              Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor líquido atual desta despesa
+                              (lançamento retroativo — a despesa já existia sem reembolso).
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </SecaoLancamento>
 

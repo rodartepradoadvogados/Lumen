@@ -1169,6 +1169,12 @@ model DeletionRequest {
   // lib/actions/deletion.ts). Nulo para os demais entityType e para RECEIVABLE/PAYABLE avulsos —
   // nesses casos a aprovação segue o fluxo antigo (performDelete), sem escopo nenhum.
   scope       String?
+  // Só relevante para RECEIVABLE/PAYABLE com um reembolso vinculado (ver Payable.
+  // reimbursementReceivable/Receivable.reimbursesPayableId) — se true, aprovar esta solicitação
+  // também exclui o registro vinculado (respeitando a mesma proteção de nunca apagar de fato um
+  // status PAGO; ver performDelete em lib/actions/deletion.ts). Default false: comportamento
+  // não-destrutivo — sem marcar, excluir só desvincula, como sempre foi.
+  alsoDeleteLinked Boolean @default(false)
   status      String   @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
   createdAt   DateTime @default(now())
 

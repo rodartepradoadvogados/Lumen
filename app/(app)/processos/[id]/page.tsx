@@ -104,8 +104,14 @@ export default async function CaseDetailPage({
       responsible: true,
       tasks: { include: { responsible: true, _count: { select: { comments: true } } }, orderBy: { dueDate: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
-      receivables: { orderBy: { dueDate: "asc" }, include: { payments: true } },
-      payables: { orderBy: { dueDate: "asc" }, include: { payments: true } },
+      receivables: {
+        orderBy: { dueDate: "asc" },
+        include: { payments: true, reimbursesPayable: { select: { id: true, description: true } } },
+      },
+      payables: {
+        orderBy: { dueDate: "asc" },
+        include: { payments: true, reimbursementReceivable: { select: { id: true, amount: true, status: true } } },
+      },
       publications: {
         include: { client: true, reads: { where: { userId: viewer.id }, select: { id: true } } },
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
@@ -548,6 +554,11 @@ export default async function CaseDetailPage({
                           <> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : r.payerType === "ADVERSA" ? "Parte adversa" : r.payerType}</>
                         )}
                       </p>
+                      {r.reimbursesPayable && (
+                        <p className="mt-1">
+                          <Badge color="gold">↳ Reembolso de despesa · {r.reimbursesPayable.description}</Badge>
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
@@ -599,6 +610,9 @@ export default async function CaseDetailPage({
                         entityLabel={r.description}
                         confirmMessage={`Excluir o lançamento "${r.description}"?`}
                         groupKind={financeGroupKind(r)}
+                        linkedReimbursement={
+                          r.reimbursesPayable ? { direction: "receivableReimbursesPayable", description: r.reimbursesPayable.description } : null
+                        }
                       />
                     </div>
                   </div>
@@ -634,6 +648,13 @@ export default async function CaseDetailPage({
                     <div>
                       <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
                       <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
+                      {p.reimbursementReceivable && (
+                        <p className="mt-1">
+                          <Badge color={p.reimbursementReceivable.status === "PAGO" ? "green" : p.reimbursementReceivable.status === "ATRASADO" ? "red" : "amber"}>
+                            ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {p.reimbursementReceivable.status}
+                          </Badge>
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="text-right">
@@ -667,6 +688,9 @@ export default async function CaseDetailPage({
                           paidDate: p.paidDate ? p.paidDate.toISOString() : null,
                           paymentMethod: p.paymentMethod,
                           paymentReceiptNumber: p.paymentReceiptNumber,
+                          kind: p.kind,
+                          expensePayer: p.expensePayer,
+                          reimbursementReceivable: p.reimbursementReceivable,
                         }}
                         categories={payableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
@@ -680,6 +704,11 @@ export default async function CaseDetailPage({
                         entityLabel={p.description}
                         confirmMessage={`Excluir o lançamento "${p.description}"?`}
                         groupKind={financeGroupKind(p)}
+                        linkedReimbursement={
+                          p.reimbursementReceivable
+                            ? { direction: "payableHasReimbursement", amount: p.reimbursementReceivable.amount, status: p.reimbursementReceivable.status }
+                            : null
+                        }
                       />
                     </div>
                   </div>

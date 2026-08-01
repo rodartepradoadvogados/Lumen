@@ -67,7 +67,17 @@ export async function getFilteredPayables(sp: FinanceSearchParams, officeId: str
       costCenterId: sp.costCenterId || undefined,
       categoryId: sp.categoryId || undefined,
     },
-    include: { category: true, case: true, costCenter: true, responsible: true, payments: true },
+    include: {
+      category: true,
+      case: true,
+      costCenter: true,
+      responsible: true,
+      payments: true,
+      // Problema 2 (autoavaliação Fase 10) — sem isto, PayablesList não tem como avisar que a
+      // despesa já tem um reembolso vinculado. Só os campos mínimos usados no badge, ver
+      // components/PayablesList.tsx.
+      reimbursementReceivable: { select: { id: true, amount: true, status: true } },
+    },
     orderBy: { dueDate: "asc" },
   });
   const q = (sp.q || "").trim().toLowerCase();
@@ -95,7 +105,17 @@ export async function getFilteredReceivables(sp: FinanceSearchParams, officeId: 
       costCenterId: sp.costCenterId || undefined,
       categoryId: sp.categoryId || undefined,
     },
-    include: { client: true, case: true, costCenter: true, category: true, responsible: true, payments: true },
+    include: {
+      client: true,
+      case: true,
+      costCenter: true,
+      category: true,
+      responsible: true,
+      payments: true,
+      // Contraparte do reimbursementReceivable de getFilteredPayables acima — só o campo mínimo
+      // usado no badge de ReceivablesList.tsx.
+      reimbursesPayable: { select: { id: true, description: true } },
+    },
     orderBy: { dueDate: "asc" },
   });
   const q = (sp.q || "").trim().toLowerCase();

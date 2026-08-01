@@ -346,9 +346,23 @@ export async function updatePayable(id: string, data: {
   surcharge?: string;
   dueDate: string;
   noDueDate?: boolean;
+  // ---- Despesas do Processo (Fase 10) — mesmos campos de CreatePayableInput, agora também
+  // editáveis depois que a despesa já existe (ver EditPayableModal.tsx). Só têm efeito quando há
+  // processo vinculado (caseId, vindo deste próprio `data` ou já existente na Payable). ----
+  kind?: string;
+  expensePayer?: string;
+  // Só relevante quando expensePayer = CLIENTE e a Payable AINDA NÃO TEM reembolso vinculado —
+  // reembolso retroativo (a despesa já existia sem reembolso e o usuário decidiu criar um agora),
+  // reaproveitando a mesma createReimbursementReceivable de createPayable abaixo. Se já existe um
+  // reimbursementReceivable, este campo é ignorado (nunca cria um segundo — o @unique de
+  // reimbursesPayableId barra por trás mesmo assim, mas não queremos chegar nele).
+  createReimbursement?: boolean;
 }): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
+  const existing = await prisma.payable.findFirst({
+    where: { id, officeId },
+    include: { reimbursementReceivable: { select: { id: true } } },
+  });
   if (!existing) return { error: "Conta a pagar não encontrada." };
   try {
     await assertFinanceRelationsInOffice(data, officeId);
@@ -360,7 +374,37 @@ export async function updatePayable(id: string, data: {
   if (!noDueDate && isNaN(new Date(data.dueDate).getTime())) {
     return { error: 'Informe a data de vencimento, ou marque "Sem vencimento definido".' };
   }
+
+  const hasReimbursement = Boolean(existing.reimbursementReceivable);
+  // Já existe reembolso vinculado: além de travar a troca de expensePayer de volta pra
+  // ESCRITORIO (ver abaixo), também trava o PROCESSO desta despesa no que já estava — trocar de
+  // processo com um reembolso vinculado deixaria o reembolso "sobrando" ligado a um caseId
+  // diferente do da própria despesa, uma inconsistência que a UI nem oferece (EditPayableModal
+  // não deixa mexer no processo neste caso), mas o servidor garante de qualquer jeito.
+  const effectiveCaseId = hasReimbursement ? (existing.caseId ?? undefined) : (data.caseId || undefined);
+  // kind/expensePayer só existem quando há processo vinculado (mesma regra de createPayable) —
+  // sem caseId, a edição não pode deixar nenhum dos dois "preso" num valor que não faz mais
+  // sentido fora de um processo.
+  const kind = effectiveCaseId ? (data.kind || "OUTROS") : "OUTROS";
+  let expensePayer = effectiveCaseId && data.expensePayer === "CLIENTE" ? "CLIENTE" : "ESCRITORIO";
+  // Já existe reembolso vinculado: a UI (EditPayableModal) já trava a troca de volta pra
+  // ESCRITORIO e nem mostra a opção — o servidor nunca confia só nisso. Se por algum motivo
+  // chegar aqui pedindo ESCRITORIO com reembolso já criado, ignora o pedido: para desfazer, o
+  // usuário precisa excluir o reembolso primeiro (ver DeleteEntityButton.tsx/deletion.ts).
+  if (hasReimbursement) expensePayer = "CLIENTE";
+
+  const wantsReimbursement =
+    !hasReimbursement && Boolean(data.createReimbursement) && expensePayer === "CLIENTE" && Boolean(effectiveCaseId);
+
   const supplierName = await supplierDisplayName(data.supplierId, officeId);
+  const amount = parseFloat(data.amount);
+  const discount = parseFloat(data.discount || "0") || 0;
+  const surcharge = parseFloat(data.surcharge || "0") || 0;
+  // Usada só para o reembolso retroativo, quando pedido — dueDate real do vencimento informado
+  // agora, ou o vencimento que a própria Payable já tinha (nunca null: dueDate é obrigatório no
+  // schema, mesmo quando noDueDate = true, ver createPayable).
+  const reimbursementDueDate = noDueDate ? existing.dueDate : new Date(data.dueDate);
+
   await prisma.payable.update({
     where: { id },
     data: {
@@ -369,20 +413,35 @@ export async function updatePayable(id: string, data: {
       supplier: supplierName,
       costCenterId: data.costCenterId || null,
       categoryId: data.categoryId || null,
-      caseId: data.caseId || null,
+      caseId: effectiveCaseId || null,
       responsibleId: data.responsibleId || null,
       documentType: data.documentType || null,
       documentNumber: data.documentNumber || null,
       issueDate: data.issueDate ? new Date(data.issueDate) : null,
       installmentBoleto: data.installmentBoleto || null,
-      amount: parseFloat(data.amount),
-      discount: parseFloat(data.discount || "0") || 0,
-      surcharge: parseFloat(data.surcharge || "0") || 0,
+      amount,
+      discount,
+      surcharge,
       dueDate: noDueDate ? undefined : new Date(data.dueDate),
       noDueDate,
+      kind,
+      expensePayer,
     },
   });
+
+  if (wantsReimbursement && effectiveCaseId) {
+    await createReimbursementReceivable({
+      officeId,
+      caseId: effectiveCaseId,
+      payableId: id,
+      payableDescription: data.description,
+      amount: valorLiquido(amount, discount, surcharge),
+      dueDate: reimbursementDueDate,
+    });
+  }
+
   revalidateFinance();
+  revalidateCase(effectiveCaseId ?? existing.caseId);
   return {};
 }
 
@@ -440,6 +499,41 @@ export async function updateReceivable(id: string, data: {
   });
   revalidateFinance();
   return {};
+}
+
+// Cria o Receivable de reembolso vinculado a uma Payable — reaproveitado por createPayable
+// (reembolso nascendo junto da despesa) e updatePayable (reembolso retroativo, lançado numa
+// despesa que já existia — ver EditPayableModal.tsx). Quem chama já garante que a Payable ainda
+// não tem nenhum reembolso vinculado (createPayable, porque acabou de nascer; updatePayable,
+// checando existing.reimbursementReceivable antes de chegar aqui) — o @unique de
+// reimbursesPayableId barra por trás mesmo assim, mas não queremos um erro feio de constraint
+// chegando à tela por causa de uma corrida rara (duas abas editando a mesma despesa ao mesmo
+// tempo). Sem cliente cadastrado no processo, não cria nada (a despesa continua existindo
+// normalmente, só sem o reembolso).
+async function createReimbursementReceivable(params: {
+  officeId: string;
+  caseId: string;
+  payableId: string;
+  payableDescription: string;
+  amount: number;
+  dueDate: Date;
+}): Promise<void> {
+  const caseInfo = await prisma.case.findFirst({ where: { id: params.caseId, officeId: params.officeId }, select: { clientId: true } });
+  if (!caseInfo?.clientId) return;
+  await prisma.receivable.create({
+    data: {
+      officeId: params.officeId,
+      caseId: params.caseId,
+      clientId: caseInfo.clientId,
+      kind: "REEMBOLSO",
+      description: `Reembolso — ${params.payableDescription}`,
+      amount: params.amount,
+      dueDate: params.dueDate,
+      noDueDate: true,
+      status: "PENDENTE",
+      reimbursesPayableId: params.payableId,
+    },
+  });
 }
 
 export type CreatePayableInput = {
@@ -581,26 +675,14 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
   }
 
   if (wantsReimbursement && firstPayableId) {
-    // Cliente principal do processo (Case.clientId — o mesmo campo legado que HonorarioLancamento
-    // e o resto do financeiro usam como default) — sem cliente cadastrado no processo, não dá pra
-    // montar o reembolso (fica só a despesa, sem quebrar o lançamento inteiro por causa disso).
-    const caseInfo = await prisma.case.findFirst({ where: { id: data.caseId!, officeId }, select: { clientId: true } });
-    if (caseInfo?.clientId) {
-      await prisma.receivable.create({
-        data: {
-          officeId,
-          caseId: data.caseId!,
-          clientId: caseInfo.clientId,
-          kind: "REEMBOLSO",
-          description: `Reembolso — ${data.description}`,
-          amount: reimbursementTotal,
-          dueDate: reimbursementDueDate ?? firstOfNextMonth(),
-          noDueDate: true,
-          status: "PENDENTE",
-          reimbursesPayableId: firstPayableId,
-        },
-      });
-    }
+    await createReimbursementReceivable({
+      officeId,
+      caseId: data.caseId!,
+      payableId: firstPayableId,
+      payableDescription: data.description,
+      amount: reimbursementTotal,
+      dueDate: reimbursementDueDate ?? firstOfNextMonth(),
+    });
   }
 
   revalidateFinance();

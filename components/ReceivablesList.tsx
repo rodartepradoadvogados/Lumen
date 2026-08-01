@@ -69,6 +69,9 @@ type Receivable = {
   costCenter: { name: string } | null;
   case: { title: string } | null;
   client: { name: string } | null;
+  // Presente só quando esta receita NASCEU como o reembolso de uma despesa (kind "REEMBOLSO") —
+  // ver Receivable.reimbursesPayableId em prisma/schema.prisma.
+  reimbursesPayable: { id: string; description: string } | null;
 };
 
 type Option = { id: string; name: string };
@@ -154,6 +157,13 @@ export default function ReceivablesList({
                     {r.percentual}% de {PERCENTUAL_BASE_LABELS[r.percentualBase ?? ""] ?? "base não definida"} — regra a apurar no desfecho do processo
                   </p>
                 )}
+                {/* Problema 2 (autoavaliação Fase 10) — contraparte do badge de PayablesList.tsx:
+                    sem isto, nada denunciava que esta receita já era o reembolso de uma despesa. */}
+                {r.reimbursesPayable && (
+                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">
+                    <Badge color="gold">↳ Reembolso de despesa · {r.reimbursesPayable.description}</Badge>
+                  </p>
+                )}
               </div>
               <div className="flex items-center justify-between sm:contents">
                 <div className="text-left sm:text-right shrink-0 sm:w-32">
@@ -210,6 +220,9 @@ export default function ReceivablesList({
                   entityLabel={r.description}
                   confirmMessage={`Excluir o lançamento "${r.description}"?`}
                   groupKind={financeGroupKind(r)}
+                  linkedReimbursement={
+                    r.reimbursesPayable ? { direction: "receivableReimbursesPayable", description: r.reimbursesPayable.description } : null
+                  }
                 />
               </div>
             </div>
