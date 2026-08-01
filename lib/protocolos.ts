@@ -93,3 +93,101 @@ function sanitizeDriveName(raw: string): string {
     .trim()
     .slice(0, 120);
 }
+
+// ---------------------------------------------------------------------------
+// Procuração — pré-requisito para marcar um lote como PRONTO/PROTOCOLADO
+// ---------------------------------------------------------------------------
+
+// Tipo de documento (ver lib/documentTypes.ts) que representa a procuração do processo. Extraído
+// para uma constante porque é comparado em mais de um lugar (marcarProtocoloPronto e
+// registrarProtocolo, em lib/actions/protocolos.ts) e porque a mensagem de erro precisa citar o
+// mesmo nome que aparece na tela de Anexos.
+export const DOC_TYPE_PROCURACAO = "PROCURACAO";
+
+// Sem procuração anexada ao processo, protocolar é sério o bastante para BLOQUEAR (não é o padrão
+// "avisar e deixar passar" do resto da aba): é a peça que credencia o escritório a atuar naquele
+// processo perante o tribunal/órgão, e enviar sem ela pode gerar intimação de irregularidade de
+// representação. Mesmo assim o texto do erro é sempre "anexe a procuração e tente de novo" — a
+// trava nunca é permanente, só falta o documento.
+export function procuracaoFaltandoErro(): string {
+  return "Este processo ainda não tem uma Procuração anexada (aba Anexos). Anexe-a antes de marcar o protocolo como pronto ou registrá-lo — é o documento que credencia o escritório a atuar no processo.";
+}
+
+// ---------------------------------------------------------------------------
+// Sugestão de documentos ao montar um lote novo
+// ---------------------------------------------------------------------------
+//
+// Heurística deliberadamente simples (dois sinais, sem aprendizado nenhum):
+//
+// 1. "Kit de partida" quando o processo ainda não tem protocolo nenhum: um primeiro protocolo
+//    quase sempre carrega a peça inicial + os documentos de habilitação (procuração, contrato de
+//    honorários, documento pessoal, hipossuficiência) — DEFAULT_KICKOFF_DOC_TYPES abaixo.
+// 2. Quando já existe histórico: repete os tipos de documento que mais aparecem nos protocolos
+//    anteriores DESTE processo (ex.: se todo protocolo até agora levou uma Petição + o
+//    comprovante de endereço, um tipo de documento que se repete é provavelmente parte da rotina
+//    deste caso específico) — sempre excluindo documentos que JÁ entraram em algum protocolo
+//    (preparo, pronto ou protocolado): reaproveitar o mesmo arquivo de novo é raro, sinal de erro
+//    de seleção mais do que de sugestão útil.
+//
+// Puramente informativo: quem decide a lista final é sempre a pessoa montando o lote.
+
+export const DEFAULT_KICKOFF_DOC_TYPES = [
+  "PETICAO_INICIAL",
+  DOC_TYPE_PROCURACAO,
+  "CONTRATO_HONORARIOS",
+  "DOC_PESSOAL_PF_PJ",
+  "DECLARACAO_HIPOSSUFICIENCIA",
+  "COMPROVANTE_ENDERECO",
+];
+
+// Quantos tipos de documento mais frequentes no histórico entram na sugestão — cauteloso de
+// propósito (poucos tipos, bem repetidos) para não acabar sugerindo "tudo" num processo com
+// poucos protocolos anteriores e pouca variedade de tipo.
+const HISTORICO_TOP_N_TIPOS = 5;
+
+export type SugestaoDocumentoInput = { id: string; docType: string };
+
+export type SugestaoDocumentos = {
+  attachmentIds: string[];
+  motivo: string;
+};
+
+// Função pura (sem Prisma), para poder testar a heurística isolada da leitura do banco — quem lê
+// os dados (anexos do processo, tipos já usados em algum lote, docType mais frequente no
+// histórico de lotes) é sugerirDocumentosProtocolo em lib/actions/protocolos.ts.
+//
+// - attachments: todos os anexos do processo (candidatos).
+// - attachmentIdsJaUsados: ids de anexo que já entraram em QUALQUER lote deste processo (em
+//   qualquer status) — nunca sugeridos de novo.
+// - docTypesHistorico: docTypeSnapshot de cada item de cada lote já criado neste processo, na
+//   ordem em que foram usados — vazio quando é o primeiro protocolo do processo.
+export function sugerirDocumentos(
+  attachments: SugestaoDocumentoInput[],
+  attachmentIdsJaUsados: string[],
+  docTypesHistorico: string[]
+): SugestaoDocumentos {
+  const usados = new Set(attachmentIdsJaUsados);
+  const candidatos = attachments.filter((a) => !usados.has(a.id));
+
+  if (docTypesHistorico.length === 0) {
+    const tipos = new Set(DEFAULT_KICKOFF_DOC_TYPES);
+    return {
+      attachmentIds: candidatos.filter((a) => tipos.has(a.docType)).map((a) => a.id),
+      motivo: "Kit de partida para o primeiro protocolo deste processo (peça inicial + documentos de habilitação).",
+    };
+  }
+
+  const frequencia = new Map<string, number>();
+  for (const docType of docTypesHistorico) frequencia.set(docType, (frequencia.get(docType) ?? 0) + 1);
+  const topTipos = new Set(
+    [...frequencia.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, HISTORICO_TOP_N_TIPOS)
+      .map(([docType]) => docType)
+  );
+
+  return {
+    attachmentIds: candidatos.filter((a) => topTipos.has(a.docType)).map((a) => a.id),
+    motivo: "Tipos de documento mais frequentes nos protocolos anteriores deste processo, ainda não usados em nenhum lote.",
+  };
+}

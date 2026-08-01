@@ -990,6 +990,15 @@ model ProtocoloLote {
 
   itens ProtocoloLoteItem[]
 
+  // Tarefa/prazo vinculado a este lote (ex.: "protocolar até tal data") — ver
+  // criarTarefaDoLote/vincularTaskAoLote em lib/actions/protocolos.ts. De propósito SEM
+  // `@relation` para Task: é uma referência solta (só o id), não uma relação formal do Prisma —
+  // assim o model Task (fora do bloco Protocolos) não precisa ganhar um campo de volta só para
+  // isso. A tarefa em si é lida/gravada à parte (prisma.task), como qualquer outra tarefa comum;
+  // apagar a tarefa não apaga nem trava o lote, só faz este id apontar para um registro que não
+  // existe mais — tratado como "sem tarefa vinculada" na leitura (getVinculoTarefa).
+  taskId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

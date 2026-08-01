@@ -1,9 +1,27 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { X, Plus, ExternalLink, ChevronUp, ChevronDown, FolderOpen, Stamp, Ban, RefreshCw, Search } from "lucide-react";
+import {
+  X,
+  Plus,
+  ExternalLink,
+  ChevronUp,
+  ChevronDown,
+  FolderOpen,
+  Stamp,
+  Ban,
+  RefreshCw,
+  Search,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  Undo2,
+  CalendarClock,
+  Link2,
+  Download,
+} from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 import {
   createProtocoloLote,
@@ -11,6 +29,17 @@ import {
   gerarPastaDoLote,
   registrarProtocolo,
   cancelarProtocoloLote,
+  marcarProtocoloPronto,
+  reabrirProtocoloLote,
+  sugerirDocumentosProtocolo,
+  getDocumentosJaProtocolados,
+  getVinculoTarefa,
+  listarTasksDoCaso,
+  vincularTaskAoLote,
+  criarTarefaDoLote,
+  desvincularTaskDoLote,
+  type DocumentoJaProtocolado,
+  type TarefaVinculada,
 } from "@/lib/actions/protocolos";
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
@@ -60,6 +89,30 @@ export default function ProtocolosTab({
   const [editando, setEditando] = useState<Lote | null>(null);
   const [registrando, setRegistrando] = useState<Lote | null>(null);
 
+  // Tarefa/prazo vinculado a cada lote (ver lib/actions/protocolos.ts) — buscado à parte porque a
+  // lista de lotes vem pronta da página do servidor (app/(app)/processos/[id]/page.tsx, fora do
+  // escopo desta aba) e não inclui esse vínculo; uma única consulta em lote para todos os cards
+  // visíveis, refeita sempre que a lista de lotes muda.
+  const [tarefas, setTarefas] = useState<Record<string, TarefaVinculada>>({});
+  const loteIds = useMemo(() => lotes.map((l) => l.id).join(","), [lotes]);
+  useEffect(() => {
+    let cancelado = false;
+    if (!loteIds) {
+      setTarefas({});
+      return;
+    }
+    getVinculoTarefa(loteIds.split(",")).then((res) => {
+      if (!cancelado) setTarefas(res);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [loteIds]);
+  function refetchTarefas() {
+    if (!loteIds) return;
+    getVinculoTarefa(loteIds.split(",")).then(setTarefas);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-4">
@@ -83,8 +136,11 @@ export default function ProtocolosTab({
           {lotes.map((lote) => (
             <LoteCard
               key={lote.id}
+              caseId={caseId}
               lote={lote}
               driveConnected={driveConnected}
+              tarefa={tarefas[lote.id] ?? null}
+              onTarefaAtualizada={refetchTarefas}
               onEditar={() => setEditando(lote)}
               onRegistrar={() => setRegistrando(lote)}
             />
@@ -107,19 +163,26 @@ export default function ProtocolosTab({
 }
 
 function LoteCard({
+  caseId,
   lote,
   driveConnected,
+  tarefa,
+  onTarefaAtualizada,
   onEditar,
   onRegistrar,
 }: {
+  caseId: string;
   lote: Lote;
   driveConnected: boolean;
+  tarefa: TarefaVinculada | null;
+  onTarefaAtualizada: () => void;
   onEditar: () => void;
   onRegistrar: () => void;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [tarefaModalOpen, setTarefaModalOpen] = useState(false);
   const editavel = lote.status === "EM_PREPARO" || lote.status === "PRONTO";
 
   async function handleGerarPasta() {
@@ -141,6 +204,31 @@ function LoteCard({
     router.refresh();
   }
 
+  async function handleMarcarPronto() {
+    setPending(true);
+    setError("");
+    const res = await marcarProtocoloPronto(lote.id);
+    setPending(false);
+    if (res.error) setError(res.error);
+    router.refresh();
+  }
+
+  async function handleReabrir() {
+    setPending(true);
+    setError("");
+    const res = await reabrirProtocoloLote(lote.id);
+    setPending(false);
+    if (res.error) setError(res.error);
+    router.refresh();
+  }
+
+  async function handleDesvincularTarefa() {
+    setPending(true);
+    await desvincularTaskDoLote(lote.id);
+    setPending(false);
+    onTarefaAtualizada();
+  }
+
   return (
     <div className="border border-navy-800/10 dark:border-white/10 rounded-lg p-4 bg-white dark:bg-navy-900">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -153,6 +241,34 @@ function LoteCard({
           </p>
         </div>
         <Badge color={STATUS_COLOR[lote.status] ?? "slate"}>{STATUS_LABEL[lote.status] ?? lote.status}</Badge>
+      </div>
+
+      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+        {tarefa ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 rounded-full pl-2 pr-1 py-0.5">
+            <CalendarClock size={11} />
+            {tarefa.title} · {formatCalendarDate(tarefa.dueDate)}
+            {editavel && (
+              <button
+                onClick={handleDesvincularTarefa}
+                disabled={pending}
+                title="Desvincular tarefa"
+                className="text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 rounded-full p-0.5"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </span>
+        ) : (
+          editavel && (
+            <button
+              onClick={() => setTarefaModalOpen(true)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-navy-800/45 dark:text-cream-50/45 hover:text-navy-900 dark:hover:text-cream-50 rounded-full px-2 py-0.5 hover:bg-cream-100 dark:hover:bg-white/5"
+            >
+              <Link2 size={11} /> Vincular prazo
+            </button>
+          )
+        )}
       </div>
 
       <div className="mt-3 divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/5 dark:border-white/10">
@@ -192,6 +308,24 @@ function LoteCard({
           >
             <Stamp size={13} /> Registrar protocolo
           </button>
+          {lote.status === "EM_PREPARO" ? (
+            <button
+              onClick={handleMarcarPronto}
+              disabled={pending}
+              title="Exige procuração anexada ao processo (aba Anexos)"
+              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 disabled:opacity-50"
+            >
+              <CheckCircle2 size={13} /> Marcar como pronto
+            </button>
+          ) : (
+            <button
+              onClick={handleReabrir}
+              disabled={pending}
+              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 disabled:opacity-50"
+            >
+              <Undo2 size={13} /> Voltar para em preparo
+            </button>
+          )}
           <button onClick={onEditar} className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5">
             Editar seleção
           </button>
@@ -205,6 +339,14 @@ function LoteCard({
               {pending ? "Gerando..." : lote.driveFolderId ? "Regenerar pasta no Drive" : "Gerar pasta no Drive"}
             </button>
           )}
+          {driveConnected && lote.itens.length > 0 && (
+            <a
+              href={`/api/protocolos/${lote.id}/zip`}
+              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+            >
+              <Download size={13} /> Baixar tudo (.zip)
+            </a>
+          )}
           <button
             onClick={handleCancelar}
             disabled={pending}
@@ -214,6 +356,180 @@ function LoteCard({
           </button>
         </div>
       )}
+
+      {!editavel && lote.status === "PROTOCOLADO" && driveConnected && lote.itens.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-navy-800/5 dark:border-white/10">
+          <a
+            href={`/api/protocolos/${lote.id}/zip`}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+          >
+            <Download size={13} /> Baixar tudo (.zip)
+          </a>
+        </div>
+      )}
+
+      {tarefaModalOpen && (
+        <TarefaModal
+          caseId={caseId}
+          loteId={lote.id}
+          onClose={() => setTarefaModalOpen(false)}
+          onVinculada={() => {
+            setTarefaModalOpen(false);
+            onTarefaAtualizada();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Vincula um prazo/tarefa a um lote (item 5 da Fase 3/4): escolher uma tarefa já existente do
+// processo, ou criar uma nova rapidinho (título + data), sem sair da aba Protocolos.
+function TarefaModal({
+  caseId,
+  loteId,
+  onClose,
+  onVinculada,
+}: {
+  caseId: string;
+  loteId: string;
+  onClose: () => void;
+  onVinculada: () => void;
+}) {
+  const [tasks, setTasks] = useState<{ id: string; title: string; dueDate: string; status: string }[] | null>(null);
+  const [modo, setModo] = useState<"existente" | "nova">("existente");
+  const [taskId, setTaskId] = useState("");
+  const [novoTitulo, setNovoTitulo] = useState("");
+  const [novaData, setNovaData] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    listarTasksDoCaso(caseId).then((res) => {
+      setTasks(res);
+      if (res.length === 0) setModo("nova");
+    });
+  }, [caseId]);
+
+  async function handleConfirm() {
+    setError("");
+    if (modo === "existente") {
+      if (!taskId) {
+        setError("Escolha uma tarefa.");
+        return;
+      }
+      setLoading(true);
+      const res = await vincularTaskAoLote({ loteId, taskId });
+      setLoading(false);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+    } else {
+      if (!novoTitulo.trim() || !novaData) {
+        setError("Dê um título e uma data ao prazo.");
+        return;
+      }
+      setLoading(true);
+      const res = await criarTarefaDoLote({ loteId, title: novoTitulo.trim(), dueDate: novaData });
+      setLoading(false);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+    }
+    onVinculada();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Vincular prazo</h3>
+          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          {tasks && tasks.length > 0 && (
+            <div className="flex gap-1.5 text-xs font-semibold">
+              <button
+                onClick={() => setModo("existente")}
+                className={`px-2.5 py-1 rounded-lg ${modo === "existente" ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5"}`}
+              >
+                Tarefa existente
+              </button>
+              <button
+                onClick={() => setModo("nova")}
+                className={`px-2.5 py-1 rounded-lg ${modo === "nova" ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5"}`}
+              >
+                Criar nova
+              </button>
+            </div>
+          )}
+
+          {modo === "existente" ? (
+            <div>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tarefa do processo</label>
+              {tasks === null ? (
+                <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1">Carregando…</p>
+              ) : tasks.length === 0 ? (
+                <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1">Este processo ainda não tem tarefas. Crie uma nova abaixo.</p>
+              ) : (
+                <select
+                  value={taskId}
+                  onChange={(e) => setTaskId(e.target.value)}
+                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                >
+                  <option value="">Selecione…</option>
+                  {tasks.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title} — {formatCalendarDate(t.dueDate)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do prazo</label>
+                <input
+                  value={novoTitulo}
+                  onChange={(e) => setNovoTitulo(e.target.value)}
+                  placeholder="Ex: Protocolar Petição Inicial"
+                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data limite</label>
+                <input
+                  type="date"
+                  value={novaData}
+                  onChange={(e) => setNovaData(e.target.value)}
+                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                />
+              </div>
+            </>
+          )}
+
+          {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10">
+          <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          >
+            {loading ? "Vinculando..." : "Vincular"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -240,6 +556,25 @@ function SelecaoModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Sugestão de documentos (item 1) — só faz sentido montando um lote NOVO: editando um lote já
+  // existente a pessoa já fez a escolha antes, sugerir de novo em cima disso teria mais chance de
+  // confundir do que ajudar. Ver sugerirDocumentos em lib/protocolos.ts para a heurística.
+  const [sugestao, setSugestao] = useState<{ attachmentIds: string[]; motivo: string } | null>(null);
+  useEffect(() => {
+    if (lote) return;
+    sugerirDocumentosProtocolo(caseId).then((res) => {
+      if (!res.error) setSugestao(res);
+    });
+  }, [caseId, lote]);
+  const sugeridosSet = useMemo(() => new Set(sugestao?.attachmentIds ?? []), [sugestao]);
+  const sugeridosPendentes = useMemo(() => [...sugeridosSet].filter((id) => !selected.includes(id)), [sugeridosSet, selected]);
+
+  // Aviso "já protocolado em outro lote" (item 2) — não-bloqueante, ver getDocumentosJaProtocolados.
+  const [jaProtocolados, setJaProtocolados] = useState<Record<string, DocumentoJaProtocolado>>({});
+  useEffect(() => {
+    getDocumentosJaProtocolados(caseId).then(setJaProtocolados);
+  }, [caseId]);
+
   const disponiveis = useMemo(() => {
     const q = search.trim().toLowerCase();
     return [...attachments]
@@ -254,6 +589,10 @@ function SelecaoModal({
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  function aplicarSugestoes() {
+    setSelected((s) => [...s, ...sugeridosPendentes]);
   }
 
   function move(id: string, dir: -1 | 1) {
@@ -341,7 +680,18 @@ function SelecaoModal({
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">Documentos do processo</p>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Documentos do processo</p>
+              {sugeridosPendentes.length > 0 && (
+                <button
+                  onClick={aplicarSugestoes}
+                  title={sugestao?.motivo}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline shrink-0"
+                >
+                  <Sparkles size={11} /> Usar sugestão ({sugeridosPendentes.length})
+                </button>
+              )}
+            </div>
             <div className="relative mb-2">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
               <input
@@ -356,11 +706,25 @@ function SelecaoModal({
               {disponiveis.map((a) => {
                 const checked = selected.includes(a.id);
                 const Icon = getDocumentTypeIcon(a.docType);
+                const jaProtocolado = jaProtocolados[a.id];
                 return (
                   <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100 dark:hover:bg-white/5">
                     <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-gold-600 focus:ring-gold-500/40 shrink-0" />
                     <Icon size={14} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
+                    {!checked && sugeridosSet.has(a.id) && (
+                      <span title={sugestao?.motivo} className="flex items-center gap-0.5 text-[10px] font-semibold text-gold-700 dark:text-gold-400 shrink-0">
+                        <Sparkles size={10} /> sugerido
+                      </span>
+                    )}
+                    {jaProtocolado && (
+                      <span
+                        title={`Já protocolado em "${jaProtocolado.loteTitulo}"${jaProtocolado.numeroProtocolo ? ` (nº ${jaProtocolado.numeroProtocolo})` : ""}`}
+                        className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 shrink-0"
+                      >
+                        <AlertTriangle size={10} /> já protocolado
+                      </span>
+                    )}
                     <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
                   </label>
                 );

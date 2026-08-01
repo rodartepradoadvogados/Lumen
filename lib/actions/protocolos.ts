@@ -13,13 +13,30 @@ import {
   renameDriveFolder,
   extractDriveFileId,
 } from "@/lib/googleDrive";
-import { formatLoteFolderName, formatLoteFolderNameProtocolado, formatShortcutName, isProtocoloEditavel } from "@/lib/protocolos";
+import {
+  formatLoteFolderName,
+  formatLoteFolderNameProtocolado,
+  formatShortcutName,
+  isProtocoloEditavel,
+  sugerirDocumentos,
+  procuracaoFaltandoErro,
+  DOC_TYPE_PROCURACAO,
+} from "@/lib/protocolos";
 
 // Server actions da aba Protocolos do Processo (ver lib/protocolos.ts para a rotina padrão de
 // nomes/ciclo de vida, e prisma/schema.prisma para ProtocoloLote/ProtocoloLoteItem).
 //
 // A regra que atravessa todo este arquivo: um protocolo só REFERENCIA documentos (attachmentId +,
 // no Drive, um atalho por targetId) — nenhuma função aqui faz upload nem copia arquivo nenhum.
+
+// Checa se o processo tem ao menos um anexo do tipo Procuração — pré-requisito para marcar um
+// lote como pronto/protocolado (ver procuracaoFaltandoErro em lib/protocolos.ts). Não olha
+// status/validade nenhuma (o sistema não guarda isso hoje): só "existe algum anexo desse tipo",
+// o mesmo nível de rigor que qualquer outra checagem de anexo por docType no projeto.
+async function caseTemProcuracao(caseId: string, officeId: string): Promise<boolean> {
+  const count = await prisma.attachment.count({ where: { caseId, officeId, docType: DOC_TYPE_PROCURACAO } });
+  return count > 0;
+}
 
 // Cria o protocolo e já tenta gerar a pasta-espelho no Drive. Falha na parte do Drive não derruba
 // o protocolo: ele fica registrado no site (fonte da verdade) mesmo sem pasta — devolvido em
@@ -190,6 +207,11 @@ export async function registrarProtocolo(data: {
   if (!lote) return { error: "Protocolo não encontrado." };
   if (!isProtocoloEditavel(lote.status)) return { error: "Este protocolo já foi concluído ou cancelado." };
 
+  // Bloqueia (não só avisa, ver lib/protocolos.ts) mesmo que o lote já esteja PRONTO — a
+  // procuração pode ter sido excluída DEPOIS de marcarProtocoloPronto, e concluir um protocolo
+  // sem ela é sério o bastante para checar de novo aqui, na porta de saída.
+  if (!(await caseTemProcuracao(lote.caseId, viewer.officeId))) return { error: procuracaoFaltandoErro() };
+
   if (data.comprovanteAttachmentId) {
     const comprovante = await prisma.attachment.findFirst({
       where: { id: data.comprovanteAttachmentId, officeId: viewer.officeId, caseId: lote.caseId },
@@ -248,6 +270,215 @@ export async function cancelarProtocoloLote(loteId: string): Promise<{ error?: s
   }
 
   await prisma.protocoloLote.update({ where: { id: loteId }, data: { status: "CANCELADO", driveFolderId: null } });
+  revalidatePath(`/processos/${lote.caseId}`);
+  return {};
+}
+
+// Marca o lote como PRONTO (pronto para envio, ainda não protocolado) — passo opcional entre
+// "Em preparo" e "Registrar protocolo". Mesma trava de procuração que registrarProtocolo, aqui na
+// porta de entrada: se falta procuração, é aqui que a pessoa vai esbarrar primeiro na maioria das
+// vezes (registrar só acontece depois, já com o protocolo na mão do tribunal).
+export async function marcarProtocoloPronto(loteId: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+
+  const lote = await prisma.protocoloLote.findFirst({ where: { id: loteId, officeId: viewer.officeId } });
+  if (!lote) return { error: "Protocolo não encontrado." };
+  if (!isProtocoloEditavel(lote.status)) return { error: "Este protocolo já foi concluído ou cancelado." };
+  if (lote.status === "PRONTO") return {};
+
+  if (!(await caseTemProcuracao(lote.caseId, viewer.officeId))) return { error: procuracaoFaltandoErro() };
+
+  await prisma.protocoloLote.update({ where: { id: loteId }, data: { status: "PRONTO" } });
+  revalidatePath(`/processos/${lote.caseId}`);
+  return {};
+}
+
+// Volta um lote PRONTO para EM_PREPARO — para quando marcar como pronto foi engano, ou a lista de
+// documentos precisa mudar de novo (updateProtocoloLoteItens não trava por status ser PRONTO, mas
+// faz sentido dar um jeito explícito de "destravar" o status também).
+export async function reabrirProtocoloLote(loteId: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+
+  const lote = await prisma.protocoloLote.findFirst({ where: { id: loteId, officeId: viewer.officeId } });
+  if (!lote) return { error: "Protocolo não encontrado." };
+  if (lote.status !== "PRONTO") return { error: "Só um protocolo marcado como pronto pode voltar para em preparo." };
+
+  await prisma.protocoloLote.update({ where: { id: loteId }, data: { status: "EM_PREPARO" } });
+  revalidatePath(`/processos/${lote.caseId}`);
+  return {};
+}
+
+// ---------------------------------------------------------------------------
+// Sugestão de documentos (ver sugerirDocumentos em lib/protocolos.ts para a heurística)
+// ---------------------------------------------------------------------------
+
+export async function sugerirDocumentosProtocolo(caseId: string): Promise<{ attachmentIds: string[]; motivo: string; error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { attachmentIds: [], motivo: "", error: "Sessão expirada. Faça login novamente." };
+  if (!(await isCaseInOffice(caseId, viewer.officeId))) return { attachmentIds: [], motivo: "", error: "Processo não encontrado." };
+
+  const [attachments, itens] = await Promise.all([
+    prisma.attachment.findMany({ where: { caseId, officeId: viewer.officeId }, select: { id: true, docType: true } }),
+    prisma.protocoloLoteItem.findMany({
+      where: { lote: { caseId, officeId: viewer.officeId } },
+      select: { attachmentId: true, docTypeSnapshot: true },
+    }),
+  ]);
+
+  const attachmentIdsJaUsados = itens.map((i) => i.attachmentId).filter((id): id is string => Boolean(id));
+  const docTypesHistorico = itens.map((i) => i.docTypeSnapshot);
+
+  const sugestao = sugerirDocumentos(attachments, attachmentIdsJaUsados, docTypesHistorico);
+  return sugestao;
+}
+
+// ---------------------------------------------------------------------------
+// Aviso "já protocolado" (não-bloqueante — ver lib/protocolos.ts)
+// ---------------------------------------------------------------------------
+
+export type DocumentoJaProtocolado = { loteTitulo: string; numeroProtocolo: string | null };
+
+// Documentos deste processo que já entraram em algum lote CONCLUÍDO (status PROTOCOLADO) — usado
+// pela tela para só avisar, nunca impedir, quando alguém monta um lote novo com um documento que
+// já foi enviado ao tribunal antes (situação legítima às vezes: reenvio, novo recurso que
+// referencia a mesma procuração etc.). Lotes em preparo/prontos (ainda não enviados de verdade)
+// não entram aqui — reaproveitar um documento num lote que ainda nem foi protocolado não é o
+// mesmo alerta.
+export async function getDocumentosJaProtocolados(caseId: string): Promise<Record<string, DocumentoJaProtocolado>> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return {};
+
+  const itens = await prisma.protocoloLoteItem.findMany({
+    where: { attachmentId: { not: null }, lote: { caseId, officeId: viewer.officeId, status: "PROTOCOLADO" } },
+    select: { attachmentId: true, lote: { select: { titulo: true, numeroProtocolo: true } } },
+    orderBy: { id: "asc" },
+  });
+
+  const map: Record<string, DocumentoJaProtocolado> = {};
+  for (const item of itens) {
+    if (!item.attachmentId || map[item.attachmentId]) continue; // primeiro protocolo em que apareceu é suficiente pro aviso
+    map[item.attachmentId] = { loteTitulo: item.lote.titulo, numeroProtocolo: item.lote.numeroProtocolo };
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// Tarefa/prazo vinculado ao lote (ProtocoloLote.taskId — ver prisma/schema.prisma)
+// ---------------------------------------------------------------------------
+
+export type TarefaVinculada = { id: string; title: string; dueDate: string; status: string };
+
+// Info da tarefa vinculada a cada lote informado (só os que têm taskId preenchido e cuja tarefa
+// ainda existe) — em lote único de consulta, pra tela buscar de uma vez pra todos os cards
+// visíveis em vez de uma consulta por card.
+export async function getVinculoTarefa(loteIds: string[]): Promise<Record<string, TarefaVinculada>> {
+  const viewer = await getCurrentUser();
+  if (!viewer || loteIds.length === 0) return {};
+
+  const lotes = await prisma.protocoloLote.findMany({
+    where: { id: { in: loteIds }, officeId: viewer.officeId, taskId: { not: null } },
+    select: { id: true, taskId: true },
+  });
+  const taskIds = lotes.map((l) => l.taskId).filter((id): id is string => Boolean(id));
+  if (taskIds.length === 0) return {};
+
+  const tasks = await prisma.task.findMany({
+    where: { id: { in: taskIds }, officeId: viewer.officeId },
+    select: { id: true, title: true, dueDate: true, status: true },
+  });
+  const taskById = new Map(tasks.map((t) => [t.id, t]));
+
+  const result: Record<string, TarefaVinculada> = {};
+  for (const lote of lotes) {
+    const task = lote.taskId ? taskById.get(lote.taskId) : undefined;
+    if (task) result[lote.id] = { id: task.id, title: task.title, dueDate: task.dueDate.toISOString(), status: task.status };
+  }
+  return result;
+}
+
+// Tarefas do processo, para escolher qual vincular a um lote (vincularTaskAoLote) — exclui
+// canceladas (não faz sentido vincular um prazo morto a um protocolo ativo) e ordena pela data,
+// pra quem está procurando "o prazo tal" achar rápido.
+export async function listarTasksDoCaso(caseId: string): Promise<{ id: string; title: string; dueDate: string; status: string }[]> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  if (!(await isCaseInOffice(caseId, viewer.officeId))) return [];
+
+  const tasks = await prisma.task.findMany({
+    where: { caseId, officeId: viewer.officeId, status: { not: "CANCELADO" } },
+    select: { id: true, title: true, dueDate: true, status: true },
+    orderBy: { dueDate: "asc" },
+  });
+  return tasks.map((t) => ({ id: t.id, title: t.title, dueDate: t.dueDate.toISOString(), status: t.status }));
+}
+
+// Vincula uma tarefa JÁ EXISTENTE (do mesmo processo) a um lote.
+export async function vincularTaskAoLote(data: { loteId: string; taskId: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+
+  const lote = await prisma.protocoloLote.findFirst({ where: { id: data.loteId, officeId: viewer.officeId } });
+  if (!lote) return { error: "Protocolo não encontrado." };
+
+  // A tarefa precisa ser do MESMO processo do lote — vincular um prazo de outro processo
+  // confundiria quem olha a Agenda/Kanban depois achando que aquele prazo é sobre este caso.
+  const task = await prisma.task.findFirst({ where: { id: data.taskId, officeId: viewer.officeId, caseId: lote.caseId } });
+  if (!task) return { error: "Tarefa não encontrada neste processo." };
+
+  await prisma.protocoloLote.update({ where: { id: data.loteId }, data: { taskId: task.id } });
+  revalidatePath(`/processos/${lote.caseId}`);
+  return {};
+}
+
+// Cria uma tarefa nova (tipo PRAZO) já vinculada ao lote — atalho de "preciso protocolar isso até
+// tal dia" sem sair da aba Protocolos para a Agenda/Kanban.
+export async function criarTarefaDoLote(data: { loteId: string; title: string; dueDate: string }): Promise<{ error?: string; taskId?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+  if (!data.title.trim()) return { error: "Dê um título à tarefa." };
+  if (!data.dueDate) return { error: "Informe a data do prazo." };
+
+  const lote = await prisma.protocoloLote.findFirst({ where: { id: data.loteId, officeId: viewer.officeId } });
+  if (!lote) return { error: "Protocolo não encontrado." };
+
+  const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
+  const typePoints = await prisma.taskTypePoints.findUnique({ where: { officeId_type: { officeId: viewer.officeId, type: "PRAZO" } } });
+
+  // Data-calendário em meia-noite UTC — mesma convenção usada em registrarProtocolo/Task.dueDate
+  // (ver formatCalendarDate em components/ui.tsx).
+  const task = await prisma.task.create({
+    data: {
+      title: data.title.trim(),
+      type: "PRAZO",
+      dueDate: new Date(`${data.dueDate}T00:00:00Z`),
+      priority: "ALTA",
+      caseId: lote.caseId,
+      responsibleId: viewer.id,
+      columnId: firstColumn?.id ?? null,
+      points: typePoints?.points ?? 10,
+      officeId: viewer.officeId,
+    },
+  });
+
+  await prisma.protocoloLote.update({ where: { id: data.loteId }, data: { taskId: task.id } });
+  revalidatePath(`/processos/${lote.caseId}`);
+  revalidatePath("/kanban");
+  revalidatePath("/agenda");
+  return { taskId: task.id };
+}
+
+// Desfaz o vínculo (não apaga a tarefa — ela continua existindo normalmente na Agenda/Kanban,
+// só deixa de aparecer atrelada a este lote).
+export async function desvincularTaskDoLote(loteId: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
+
+  const lote = await prisma.protocoloLote.findFirst({ where: { id: loteId, officeId: viewer.officeId } });
+  if (!lote) return { error: "Protocolo não encontrado." };
+
+  await prisma.protocoloLote.update({ where: { id: loteId }, data: { taskId: null } });
   revalidatePath(`/processos/${lote.caseId}`);
   return {};
 }
