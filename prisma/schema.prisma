@@ -111,6 +111,7 @@ model Office {
   workflowTemplates    WorkflowTemplate[]
   workflowSteps        WorkflowStep[]
   comments             Comment[]
+  anotacoes            Anotacao[]
   mentions             Mention[]
   attendances          Attendance[]
   whatsappMessages     WhatsappMessage[]
@@ -236,6 +237,7 @@ model User {
   tasksDelegated              Task[]                 @relation("TaskDelegatedBy")
   casesResponsible            Case[]                 @relation("CaseResponsible")
   comments                    Comment[]
+  anotacoes                   Anotacao[]
   mentions                    Mention[]
   publicationReads            PublicationRead[]
   attendances                 Attendance[]           @relation("AttendanceResponsible")
@@ -518,6 +520,11 @@ model Case {
   // Lançamentos de honorários (aba Financeiro) — ver model HonorarioLancamento mais abaixo.
   honorarioLancamentos HonorarioLancamento[]
 
+  // Anotações pessoais (painel global "Anotações", ver model Anotacao mais abaixo) vinculadas a
+  // este Case — cobre os três chips Processo Judicial/Administrativo/Caso, diferenciados só por
+  // Anotacao.linkType (não por uma FK própria, já que os três são o mesmo model Case).
+  anotacoes Anotacao[]
+
   @@index([officeId])
   @@index([officeId, processNumber])
 }
@@ -727,6 +734,51 @@ model Comment {
   @@index([officeId])
 }
 
+// Painel global "Anotações" (faixa retrátil na borda direita, disponível em qualquer página do
+// site — ver components/anotacoes/AnotacoesPanel.tsx). Nota pessoal do usuário, formatada em
+// HTML simples (editor contentEditable com negrito/itálico/sublinhado/listas — sem lib externa),
+// com uma data "consignar em" própria (não é a data de criação: o usuário escolhe a que dia a
+// anotação se refere). "Pessoal" de propósito: só o próprio autor vê/gerencia as suas, mesmo que
+// vinculadas a uma entidade compartilhada pelo escritório todo (ver getCurrentUser + filtro
+// authorId nas consultas que listam anotações).
+//
+// linkType guarda qual dos 7 chips foi escolhido no painel, mesmo quando duas opções resolvem
+// para a MESMA FK: "Processo Judicial", "Processo Administrativo" e "Caso" são todos um Case
+// (diferenciados só por Case.type — ver lib/caseNatureza.ts), então caseId sozinho não bastaria
+// para saber qual chip o usuário realmente clicou (ex.: mostrar de volta o chip certo ao reabrir
+// um rascunho). "Atendimento" aponta para Attendance (model separado — não confundir com o
+// legado Case.type = "ATENDIMENTO"). "Financeiro" e "Outros" não têm entidade específica, ficam
+// só com linkType preenchido e as 3 FKs nulas.
+model Anotacao {
+  id            String   @id @default(cuid())
+  content       String // HTML gerado pelo editor (negrito/itálico/sublinhado/listas), sanitizado
+  // no servidor antes de gravar — ver lib/anotacoes.ts:sanitizeAnotacaoHtml.
+  referenceDate DateTime // "Consignar em" — escolhida pelo usuário, independente de createdAt.
+  linkType      String // PROCESSO_JUDICIAL | PROCESSO_ADMINISTRATIVO | CASO | ASSESSORIA | ATENDIMENTO | FINANCEIRO | OUTROS
+  createdAt     DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
+
+  attendanceId String?
+  attendance   Attendance? @relation(fields: [attendanceId], references: [id])
+
+  assessoriaId String?
+  assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
+
+  @@index([officeId])
+  @@index([authorId])
+  @@index([caseId])
+  @@index([attendanceId])
+  @@index([assessoriaId])
+}
+
 model Mention {
   id        String   @id @default(cuid())
   commentId String
@@ -828,6 +880,9 @@ model Attendance {
   emailMessages    EmailMessage[]
   driveSyncIssues  DriveSyncIssue[]
   pendencias       AtendimentoPendencia[]
+  // Anotações pessoais (painel global "Anotações", chip "Atendimento") vinculadas a este
+  // Attendance — model separado de Case, não confundir com o legado Case.type = "ATENDIMENTO".
+  anotacoes        Anotacao[]
 
   @@index([officeId])
   @@index([officeId, waPhone])
@@ -1685,6 +1740,8 @@ model Assessoria {
   licitacoes  Licitacao[]
   cases       Case[]
   attendances Attendance[]
+  // Anotações pessoais (painel global "Anotações", chip "Assessoria") vinculadas a esta Assessoria.
+  anotacoes   Anotacao[]
 
   @@index([officeId])
 }

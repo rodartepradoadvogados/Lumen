@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card, formatDate } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
+import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
+import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +28,19 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       convertedCase: true,
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
+      anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
     },
   });
   if (!a) notFound();
 
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
   const showEmail = a.emailMessages.length > 0;
+  const serializedAnotacoes = a.anotacoes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    referenceDate: n.referenceDate.toISOString(),
+    createdAt: n.createdAt.toISOString(),
+  }));
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -146,6 +155,14 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
           <p className="mt-3 text-xs italic text-navy-800/40 dark:text-cream-50/40">Para responder, use o computador.</p>
         </Card>
       )}
+
+      <Card className="p-4">
+        <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-2">Anotações pessoais</h4>
+        <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
+        <div className="mt-3 pt-3 border-t border-navy-800/8 dark:border-white/10">
+          <MobileNovaAnotacaoForm linkType="ATENDIMENTO" entityId={a.id} />
+        </div>
+      </Card>
     </div>
   );
 }

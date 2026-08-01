@@ -7,6 +7,8 @@ import AppBadgeSync from "@/components/AppBadgeSync";
 import ActingOfficeBanner from "@/components/ActingOfficeBanner";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
+import { AnotacoesProvider } from "@/components/anotacoes/AnotacoesContext";
+import AnotacoesPanel from "@/components/anotacoes/AnotacoesPanel";
 import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
@@ -67,27 +69,34 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <UndoToastProvider>
-      {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
-          server-side de sempre e repassa como children/props. Guarda também as abas internas
-          (duplo clique num item da Sidebar) — ver components/AppShell.tsx. */}
-      <AppShell
-        sidebarProps={{
-          hasFinanceAccess,
-          isAdmin: user.isAdmin,
-          unreadPublications,
-          totalAlerts,
-          modules,
-        }}
-        topBar={<TopBar />}
-        supportBanner={<SupportAccessBanner />}
-        inactivityNotice={<InactivityNotice />}
-        badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
-        backgroundLayer={<SiteBackgroundLayer />}
-        actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
-        claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
-      >
-        {children}
-      </AppShell>
+      {/* AnotacoesProvider (painel global "Anotações", faixa retrátil na borda direita) precisa
+          envolver tanto o AppShell (que renderiza o próprio painel) quanto o ClaudeAssistantWidget
+          (que lê o contexto só para se deslocar quando o painel está aberto — ver
+          components/anotacoes/AnotacoesContext.tsx). */}
+      <AnotacoesProvider>
+        {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
+            server-side de sempre e repassa como children/props. Guarda também as abas internas
+            (duplo clique num item da Sidebar) — ver components/AppShell.tsx. */}
+        <AppShell
+          sidebarProps={{
+            hasFinanceAccess,
+            isAdmin: user.isAdmin,
+            unreadPublications,
+            totalAlerts,
+            modules,
+          }}
+          topBar={<TopBar />}
+          supportBanner={<SupportAccessBanner />}
+          inactivityNotice={<InactivityNotice />}
+          badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
+          backgroundLayer={<SiteBackgroundLayer />}
+          actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
+          claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
+          anotacoesPanel={<AnotacoesPanel />}
+        >
+          {children}
+        </AppShell>
+      </AnotacoesProvider>
     </UndoToastProvider>
   );
 }

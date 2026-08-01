@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, X, Send } from "lucide-react";
 import clsx from "clsx";
+import { useAnotacoesOptional } from "@/components/anotacoes/AnotacoesContext";
 
 type ChatMessage = {
   role: "user" | "assistant" | "error";
@@ -23,6 +24,15 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
   ]);
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Painel global "Anotações" (faixa retrátil na borda direita, ver AnotacoesContext.tsx) ocupa
+  // a mesma coluna direita onde este widget fica fixo — sem este ajuste, o botão/janela do
+  // Claude ficaria embaixo/atrás do painel quando ele está aberto (256px) ou mesmo só com a
+  // faixa fechada (34px, mais larga que o right-6/24px original). `useAnotacoesOptional` nunca
+  // lança se o provider não existir na árvore (hoje sempre existe onde este widget é montado —
+  // ver app/(app)/layout.tsx — mas fica defensivo para qualquer reuso futuro sem o provider).
+  const anotacoes = useAnotacoesOptional();
+  const rightOffsetPx = 24 + (anotacoes?.panelWidth ?? 0); // 24px = right-6 original
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -77,13 +87,17 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
         type="button"
         onClick={() => setOpen((v) => !v)}
         data-tip="Assistente Claude"
-        className="fixed bottom-5 right-6 z-40 h-14 w-14 rounded-full bg-navy-800 text-gold-400 shadow-pop flex items-center justify-center hover:bg-navy-700 transition-colors"
+        style={{ right: rightOffsetPx }}
+        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-navy-800 text-gold-400 shadow-pop flex items-center justify-center hover:bg-navy-700 transition-[right,background-color] duration-200"
       >
         {open ? <X size={22} /> : <Sparkles size={22} />}
       </button>
 
       {open && (
-        <div className="fixed bottom-20 right-6 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-white z-40 flex flex-col overflow-hidden border border-gold-500/20">
+        <div
+          style={{ right: rightOffsetPx }}
+          className="fixed bottom-20 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-white z-40 flex flex-col overflow-hidden border border-gold-500/20 transition-[right] duration-200"
+        >
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-navy-800 text-white">
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="text-gold-400" />

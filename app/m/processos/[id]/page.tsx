@@ -12,11 +12,14 @@ import MobileCaseFinanceTab from "@/components/mobile/MobileCaseFinanceTab";
 import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsTab";
 import MobileCaseProtocolosTab from "@/components/mobile/MobileCaseProtocolosTab";
 import MobileCaseVigilanciaTab from "@/components/mobile/MobileCaseVigilanciaTab";
+import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
+import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import CopyButton from "@/components/CopyButton";
 import EditCaseModal from "@/components/EditCaseModal";
 import CaseAssessoriaSelect from "@/components/CaseAssessoriaSelect";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
+import type { AnotacaoLinkType } from "@/lib/anotacoes";
 import NaturezaBadge from "@/components/mobile/NaturezaBadge";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
@@ -48,6 +51,11 @@ const TABS = [
   { key: "anexos", label: "Anexos" },
   { key: "protocolos", label: "Protocolos" },
   { key: "vigilancia", label: "Vigilância" },
+  // Anotações pessoais (painel global "Anotações" no site desktop) — no mobile, escopo reduzido
+  // (ver components/mobile/MobileNovaAnotacaoForm.tsx): mostra as já criadas e permite criar UMA
+  // nova por vez, com um formulário simples (textarea, sem editor rico), já vinculada a este
+  // processo (sem chip/seletor — o vínculo já é este Processo/Caso).
+  { key: "anotacoes-pessoais", label: "Anotações pessoais" },
 ];
 
 export default async function MobileCaseDetail({
@@ -97,6 +105,7 @@ export default async function MobileCaseDetail({
           orderBy: { createdAt: "desc" },
           include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: { select: { amount: true } } } } },
         },
+        anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
       },
     }),
     prisma.publication.findMany({
@@ -196,6 +205,16 @@ export default async function MobileCaseDetail({
       payerName: p.payerName,
     })),
   }));
+
+  const serializedAnotacoes = c.anotacoes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    referenceDate: n.referenceDate.toISOString(),
+    createdAt: n.createdAt.toISOString(),
+  }));
+  // Mesmo chip que o painel desktop usaria para este processo, derivado da natureza (ver
+  // lib/caseNatureza.ts) — no mobile não existe seletor de chip, o vínculo já é este item.
+  const anotacaoLinkType: AnotacaoLinkType = natureza === "JUDICIAL" ? "PROCESSO_JUDICIAL" : natureza === "ADMINISTRATIVO" ? "PROCESSO_ADMINISTRATIVO" : "CASO";
 
   const visibleTabs = TABS.filter(
     (t) =>
@@ -484,6 +503,16 @@ export default async function MobileCaseDetail({
       {tab === "protocolos" && natureza !== "CASO" && <MobileCaseProtocolosTab lotes={serializedLotes} />}
 
       {tab === "vigilancia" && natureza === "ADMINISTRATIVO" && <MobileCaseVigilanciaTab termos={serializedTermos} />}
+
+      {tab === "anotacoes-pessoais" && (
+        <div className="space-y-4">
+          <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
+          <Card className="p-4">
+            <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-2">Nova anotação</h4>
+            <MobileNovaAnotacaoForm linkType={anotacaoLinkType} entityId={c.id} />
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -38,6 +38,10 @@ type AppShellProps = {
   backgroundLayer: React.ReactNode;
   actingBanner: React.ReactNode;
   claudeWidget: React.ReactNode;
+  // Painel global "Anotações" (faixa retrátil, ver components/anotacoes/AnotacoesPanel.tsx) —
+  // item de flexbox normal (não overlay) nesta mesma linha, para empurrar o conteúdo central
+  // quando aberto, em vez de cobri-lo.
+  anotacoesPanel: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -61,6 +65,7 @@ function AppShellInner({
   backgroundLayer,
   actingBanner,
   claudeWidget,
+  anotacoesPanel,
   children,
 }: AppShellProps) {
   const searchParams = useSearchParams();
@@ -200,6 +205,7 @@ function AppShellInner({
           ))}
         </div>
         {claudeWidget}
+        {anotacoesPanel}
       </div>
     </div>
   );

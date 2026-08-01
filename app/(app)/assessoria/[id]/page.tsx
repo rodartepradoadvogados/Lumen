@@ -9,6 +9,7 @@ import AssessoriaHonorariosTab from "@/components/assessoria/AssessoriaHonorario
 import AssessoriaLicitacoesTab from "@/components/assessoria/AssessoriaLicitacoesTab";
 import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab";
 import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
+import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
 
@@ -21,6 +22,9 @@ const TABS = [
   { key: "licitacoes", label: "Licitações" },
   { key: "processos-casos", label: "Pareceres, Processos e Casos" },
   { key: "linha-do-tempo", label: "Linha do Tempo" },
+  // Anotações criadas pelo painel global "Anotações" (faixa retrátil na borda direita, ver
+  // components/anotacoes/AnotacoesPanel.tsx) vinculadas a esta Assessoria.
+  { key: "anotacoes-pessoais", label: "Anotações pessoais" },
 ];
 
 const statusColors: Record<string, "green" | "slate" | "bordo"> = {
@@ -45,7 +49,7 @@ export default async function AssessoriaDetailPage({
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [users, availableCasesRaw, driveStatus] = await Promise.all([
+  const [users, availableCasesRaw, driveStatus, anotacoesRaw] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
@@ -53,7 +57,16 @@ export default async function AssessoriaDetailPage({
       orderBy: { title: "asc" },
     }),
     getDriveStatus(viewer.officeId),
+    // Aba "Anotações pessoais" (painel global "Anotações") — mesma regra de filtro por
+    // authorId de app/(app)/processos/[id]/page.tsx e app/(app)/atendimento/[id]/page.tsx.
+    prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
   ]);
+  const serializedAnotacoes = anotacoesRaw.map((n) => ({
+    id: n.id,
+    content: n.content,
+    referenceDate: n.referenceDate.toISOString(),
+    createdAt: n.createdAt.toISOString(),
+  }));
 
   const licitacoesEmAndamento = assessoria.licitacoes.filter((l) => l.status === "EM_ANALISE" || l.status === "PARTICIPANDO").length;
 
@@ -117,6 +130,14 @@ export default async function AssessoriaDetailPage({
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
       {tab === "processos-casos" && <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} />}
       {tab === "linha-do-tempo" && <AssessoriaTimelineTab assessoria={assessoria} />}
+      {tab === "anotacoes-pessoais" && (
+        <div>
+          <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+            Anotações que você criou vinculadas a esta assessoria (painel Anotações, ícone na borda direita da tela) — visíveis só para você.
+          </p>
+          <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
+        </div>
+      )}
     </div>
   );
 }

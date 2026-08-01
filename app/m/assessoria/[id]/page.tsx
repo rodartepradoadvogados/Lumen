@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
+import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
+import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -66,11 +68,20 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
   if (!assessoria) notFound();
 
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const availableCases = await prisma.case.findMany({
-    where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
-    select: { id: true, title: true, processNumber: true },
-    orderBy: { title: "asc" },
-  });
+  const [availableCases, anotacoesRaw] = await Promise.all([
+    prisma.case.findMany({
+      where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
+      select: { id: true, title: true, processNumber: true },
+      orderBy: { title: "asc" },
+    }),
+    prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
+  ]);
+  const serializedAnotacoes = anotacoesRaw.map((n) => ({
+    id: n.id,
+    content: n.content,
+    referenceDate: n.referenceDate.toISOString(),
+    createdAt: n.createdAt.toISOString(),
+  }));
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -207,6 +218,14 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             ))}
           </div>
         )}
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm mb-3">Anotações pessoais</h2>
+        <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
+        <div className="mt-3 pt-3 border-t border-navy-800/8 dark:border-white/10">
+          <MobileNovaAnotacaoForm linkType="ASSESSORIA" entityId={assessoria.id} />
+        </div>
       </Card>
     </div>
   );

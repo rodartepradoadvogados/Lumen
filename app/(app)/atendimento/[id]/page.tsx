@@ -13,6 +13,7 @@ import AttendancePendenciasPanel from "@/components/AttendancePendenciasPanel";
 import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
+import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -36,6 +37,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
       pendencias: { include: { responsible: true }, orderBy: [{ status: "asc" }, { dueDate: "asc" }] },
+      // Anotações pessoais (painel global "Anotações") vinculadas a este Atendimento — filtradas
+      // por authorId, mesma regra de app/(app)/processos/[id]/page.tsx.
+      anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
     },
   });
   if (!a) notFound();
@@ -56,6 +60,13 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
     docType: att.docType,
     createdAt: att.createdAt.toISOString(),
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
+  }));
+
+  const serializedAnotacoes = a.anotacoes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    referenceDate: n.referenceDate.toISOString(),
+    createdAt: n.createdAt.toISOString(),
   }));
 
   const serializedPendencias = a.pendencias.map((p) => ({
@@ -291,6 +302,14 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 <GerarDocumentoButton attendanceId={a.id} />
               </div>
               <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={driveStatus.connected} />
+            </Card>
+
+            <Card className="p-5 mt-5">
+              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-1">Anotações pessoais</h4>
+              <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+                Anotações que você criou vinculadas a este atendimento (painel Anotações, ícone na borda direita da tela) — visíveis só para você.
+              </p>
+              <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
             </Card>
           </div>
         </div>

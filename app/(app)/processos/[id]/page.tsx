@@ -28,6 +28,7 @@ import TaskActivityRow from "@/components/TaskActivityRow";
 import SendCaseEmailModal from "@/components/SendCaseEmailModal";
 import TermosVigilanciaPanel from "@/components/TermosVigilanciaPanel";
 import ProtocolosTab from "@/components/protocolos/ProtocolosTab";
+import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -52,6 +53,10 @@ const TABS = [
   // Só aparece para processos administrativos (ver filtro de TABS mais abaixo) — o setor
   // judicial/casos não usa termo vigiado nenhum.
   { key: "vigilancia", label: "Vigilância" },
+  // Anotações criadas pelo painel global "Anotações" (faixa retrátil na borda direita, ver
+  // components/anotacoes/AnotacoesPanel.tsx) vinculadas a este Processo/Caso — sempre visível,
+  // sem filtro de natureza (os 3 chips Processo Judicial/Administrativo/Caso apontam pra cá).
+  { key: "anotacoes-pessoais", label: "Anotações pessoais" },
 ];
 
 // Cor da etiqueta de natureza — mesmo mapeamento de app/(app)/processos/page.tsx (dourado
@@ -130,6 +135,10 @@ export default async function CaseDetailPage({
         orderBy: { createdAt: "desc" },
         include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: true } } },
       },
+      // Aba "Anotações pessoais" (painel global "Anotações") — sempre filtrada por authorId
+      // (é "pessoal": cada usuário só vê/gerencia as anotações que ele mesmo criou, mesmo dentro
+      // de um Processo compartilhado pelo escritório inteiro).
+      anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
     },
   });
 
@@ -152,6 +161,13 @@ export default async function CaseDetailPage({
     docType: att.docType,
     createdAt: att.createdAt.toISOString(),
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
+  }));
+
+  const serializedAnotacoes = c.anotacoes.map((a) => ({
+    id: a.id,
+    content: a.content,
+    referenceDate: a.referenceDate.toISOString(),
+    createdAt: a.createdAt.toISOString(),
   }));
 
   const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays] = await Promise.all([
@@ -764,6 +780,15 @@ export default async function CaseDetailPage({
         <Card className="p-5">
           <TermosVigilanciaPanel caseId={c.id} termos={serializedTermos} />
         </Card>
+      )}
+
+      {tab === "anotacoes-pessoais" && (
+        <div>
+          <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+            Anotações que você criou vinculadas a este processo (painel Anotações, ícone na borda direita da tela) — visíveis só para você.
+          </p>
+          <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
+        </div>
       )}
     </div>
   );
