@@ -10,22 +10,25 @@ const statusColors: Record<string, "green" | "amber" | "bordo" | "slate"> = {
   PENDENTE: "amber",
   PAGO: "green",
   ATRASADO: "bordo",
+  PARCIAL: "amber",
   CANCELADO: "slate",
 };
-const statusLabels: Record<string, string> = { PENDENTE: "Pendente", PAGO: "Pago", ATRASADO: "Atrasado", CANCELADO: "Cancelado" };
+const statusLabels: Record<string, string> = { PENDENTE: "Pendente", PAGO: "Pago", ATRASADO: "Atrasado", PARCIAL: "Parcial", CANCELADO: "Cancelado" };
 
 export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: Assessoria }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payDate, setPayDate] = useState("");
 
   const currentYear = new Date().getFullYear();
   const recebidoNoAno = assessoria.honorarios
     .filter((h) => h.receivable.status === "PAGO" && new Date(h.receivable.paidDate!).getFullYear() === currentYear)
     .reduce((sum, h) => sum + (h.receivable.paidAmount || 0), 0);
   const emAberto = assessoria.honorarios
-    .filter((h) => h.receivable.status === "PENDENTE" || h.receivable.status === "ATRASADO")
-    .reduce((sum, h) => sum + h.receivable.amount, 0);
+    .filter((h) => h.receivable.status === "PENDENTE" || h.receivable.status === "ATRASADO" || h.receivable.status === "PARCIAL")
+    .reduce((sum, h) => sum + Math.max(0, h.receivable.amount - (h.receivable.paidAmount || 0)), 0);
 
   function saveFee(formData: FormData) {
     startTransition(async () => {
@@ -37,10 +40,17 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
     });
   }
 
-  function payHonorario(honorarioId: string, amount: number) {
-    const paidDate = new Date().toISOString().slice(0, 10);
+  function startPayHonorario(honorarioId: string, expectedAmount: number) {
+    setPayingId(honorarioId);
+    setPayAmount(String(expectedAmount));
+    setPayDate(new Date().toISOString().slice(0, 10));
+  }
+
+  function confirmPayHonorario(honorarioId: string) {
+    const amount = parseFloat(payAmount.replace(",", "."));
+    if (!amount || amount <= 0 || !payDate) return;
     startTransition(async () => {
-      await markHonorarioPaid(honorarioId, amount, paidDate);
+      await markHonorarioPaid(honorarioId, amount, payDate);
       setPayingId(null);
     });
   }
@@ -98,20 +108,44 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
                     <td className="py-2.5 pr-3"><Badge color={statusColors[h.receivable.status] || "slate"}>{statusLabels[h.receivable.status] || h.receivable.status}</Badge></td>
                     <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{h.receivable.paidDate ? formatDate(h.receivable.paidDate) : "—"}</td>
                     <td className="py-2.5">
-                      {h.receivable.status === "PENDENTE" || h.receivable.status === "ATRASADO" ? (
+                      {h.receivable.status === "PENDENTE" || h.receivable.status === "ATRASADO" || h.receivable.status === "PARCIAL" ? (
                         payingId === h.id ? (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              disabled={pending}
-                              onClick={() => payHonorario(h.id, h.receivable.amount)}
-                              className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg disabled:opacity-50"
-                            >
-                              Confirmar
-                            </button>
-                            <button onClick={() => setPayingId(null)} className="text-xs text-navy-800/45 dark:text-cream-50/45">Cancelar</button>
+                          <div className="flex flex-col gap-1.5 py-1 min-w-[15rem]">
+                            <div className="flex items-center gap-1.5">
+                              <div>
+                                <label className="block text-[10px] font-medium text-navy-800/45 dark:text-cream-50/45 mb-0.5">Data pgto.</label>
+                                <input
+                                  type="date"
+                                  value={payDate}
+                                  onChange={(e) => setPayDate(e.target.value)}
+                                  className="w-32 text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-medium text-navy-800/45 dark:text-cream-50/45 mb-0.5">Valor pago (R$)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  value={payAmount}
+                                  onChange={(e) => setPayAmount(e.target.value)}
+                                  className="w-24 text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                disabled={pending}
+                                onClick={() => confirmPayHonorario(h.id)}
+                                className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg disabled:opacity-50"
+                              >
+                                {pending ? "Confirmando..." : "Confirmar"}
+                              </button>
+                              <button onClick={() => setPayingId(null)} className="text-xs text-navy-800/45 dark:text-cream-50/45">Cancelar</button>
+                            </div>
                           </div>
                         ) : (
-                          <button onClick={() => setPayingId(h.id)} className="text-xs font-semibold text-gold-700 dark:text-gold-400">
+                          <button onClick={() => startPayHonorario(h.id, Math.max(0, h.receivable.amount - (h.receivable.paidAmount || 0)))} className="text-xs font-semibold text-gold-700 dark:text-gold-400">
                             Marcar como pago
                           </button>
                         )
