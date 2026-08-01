@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTask } from "@/lib/actions/tasks";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
+import ModalShell from "@/components/ModalShell";
 
 type Option = { id: string; name: string };
 
@@ -67,168 +68,169 @@ export default function NewTaskModal({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div
-            className="bg-white rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-thin animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
-              <h3 className="font-serif font-bold text-navy-900">Nova Tarefa / Evento / Prazo</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 hover:text-navy-900">
-                <X size={18} />
-              </button>
-            </div>
-            <form action={handleSubmit} className="p-5 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Título</label>
-                <input name="title" required className="input" placeholder="Ex: Audiência de instrução" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Tipo</label>
-                  <select name="type" className="input" value={type} onChange={(e) => setType(e.target.value)}>
-                    <option value="TAREFA">Tarefa</option>
-                    <option value="EVENTO">Evento / Reunião</option>
-                    <option value="AUDIENCIA">Audiência</option>
-                    <option value="PERICIA">Perícia</option>
-                    <option value="PRAZO">Prazo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Prioridade</label>
-                  <select name="priority" className="input" defaultValue="MEDIA">
-                    <option value="BAIXA">Baixa</option>
-                    <option value="MEDIA">Média</option>
-                    <option value="ALTA">Alta</option>
-                    <option value="URGENTE">Urgente</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Data</label>
-                  <input type="date" name="dueDate" required defaultValue={defaultDate} className="input" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Hora (opcional)</label>
-                  <input type="time" name="dueTime" className="input" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Processo/Caso vinculado</label>
-                <select name="caseId" className="input" defaultValue={defaultCaseId ?? ""}>
-                  <option value="">Nenhum</option>
-                  {cases.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Responsável</label>
-                  <select name="responsibleId" className="input">
-                    <option value="">Não definido</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Coluna do Kanban</label>
-                  <select name="columnId" className="input" defaultValue={defaultColumnId}>
-                    {columns.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Pontos (opcional)</label>
-                <input
-                  type="number"
-                  name="points"
-                  min={0}
-                  step={1}
-                  className="input"
-                  placeholder="Padrão do tipo de tarefa"
-                />
-                <p className="text-[11px] text-navy-800/40 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
-              </div>
-
-              {(type === "EVENTO" || type === "AUDIENCIA") && (
-                <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 p-3 space-y-3">
-                  <p className="text-xs font-semibold text-gold-800 uppercase tracking-wide">
-                    {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
-                  </p>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-1.5 text-sm text-navy-800">
-                      <input
-                        type="radio"
-                        name="meetingType"
-                        value="PRESENCIAL"
-                        checked={meetingType === "PRESENCIAL"}
-                        onChange={() => setMeetingType("PRESENCIAL")}
-                      />
-                      Presencial
-                    </label>
-                    <label className="flex items-center gap-1.5 text-sm text-navy-800">
-                      <input
-                        type="radio"
-                        name="meetingType"
-                        value="ONLINE"
-                        checked={meetingType === "ONLINE"}
-                        onChange={() => setMeetingType("ONLINE")}
-                      />
-                      Online
-                    </label>
+        <ModalShell size="cheio" title="Nova Tarefa / Evento / Prazo" onClose={() => setOpen(false)}>
+          <form action={handleSubmit} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
+              {/* Duas colunas a partir de md — a janela agora tem 80% da tela de largura, então
+                  os campos se distribuem lado a lado em vez de ficarem esticados de ponta a ponta. */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título</label>
+                    <input name="title" required className="input" placeholder="Ex: Audiência de instrução" />
                   </div>
-                  {meetingType === "PRESENCIAL" ? (
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60">Endereço (opcional)</label>
-                      <input name="location" className="input" placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO" />
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                      <select name="type" className="input" value={type} onChange={(e) => setType(e.target.value)}>
+                        <option value="TAREFA">Tarefa</option>
+                        <option value="EVENTO">Evento / Reunião</option>
+                        <option value="AUDIENCIA">Audiência</option>
+                        <option value="PERICIA">Perícia</option>
+                        <option value="PRAZO">Prazo</option>
+                      </select>
                     </div>
-                  ) : (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60">{type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}</label>
-                      <input name="meetingUrl" type="url" className="input" placeholder="https://meet.google.com/..." />
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prioridade</label>
+                      <select name="priority" className="input" defaultValue="MEDIA">
+                        <option value="BAIXA">Baixa</option>
+                        <option value="MEDIA">Média</option>
+                        <option value="ALTA">Alta</option>
+                        <option value="URGENTE">Urgente</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
+                      <input type="date" name="dueDate" required defaultValue={defaultDate} className="input" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora (opcional)</label>
+                      <input type="time" name="dueTime" className="input" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Processo/Caso vinculado</label>
+                    <select name="caseId" className="input" defaultValue={defaultCaseId ?? ""}>
+                      <option value="">Nenhum</option>
+                      {cases.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Responsável</label>
+                      <select name="responsibleId" className="input">
+                        <option value="">Não definido</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Coluna do Kanban</label>
+                      <select name="columnId" className="input" defaultValue={defaultColumnId}>
+                        {columns.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Pontos (opcional)</label>
+                    <input
+                      type="number"
+                      name="points"
+                      min={0}
+                      step={1}
+                      className="input"
+                      placeholder="Padrão do tipo de tarefa"
+                    />
+                    <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {(type === "EVENTO" || type === "AUDIENCIA") && (
+                    <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 p-3 space-y-3">
+                      <p className="text-xs font-semibold text-gold-800 dark:text-gold-400 uppercase tracking-wide">
+                        {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
+                      </p>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                          <input
+                            type="radio"
+                            name="meetingType"
+                            value="PRESENCIAL"
+                            checked={meetingType === "PRESENCIAL"}
+                            onChange={() => setMeetingType("PRESENCIAL")}
+                          />
+                          Presencial
+                        </label>
+                        <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                          <input
+                            type="radio"
+                            name="meetingType"
+                            value="ONLINE"
+                            checked={meetingType === "ONLINE"}
+                            onChange={() => setMeetingType("ONLINE")}
+                          />
+                          Online
+                        </label>
+                      </div>
+                      {meetingType === "PRESENCIAL" ? (
+                        <div>
+                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço (opcional)</label>
+                          <input name="location" className="input" placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO" />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}</label>
+                          <input name="meetingUrl" type="url" className="input" placeholder="https://meet.google.com/..." />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
+                    <textarea name="description" rows={type === "AUDIENCIA" ? 3 : 6} className="input" />
+                  </div>
+
+                  {type === "AUDIENCIA" && (
+                    <div>
+                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+                      <textarea name="strategy" rows={4} className="input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
                     </div>
                   )}
                 </div>
-              )}
-
-              <div>
-                <label className="text-xs font-medium text-navy-800/60">Descrição (opcional)</label>
-                <textarea name="description" rows={2} className="input" />
               </div>
+            </div>
 
-              {type === "AUDIENCIA" && (
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60">Estratégia (opcional)</label>
-                  <textarea name="strategy" rows={2} className="input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
-                </div>
-              )}
-
+            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-gold-600 hover:bg-gold-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Criar"}
               </button>
-            </form>
-          </div>
-        </div>
+            </div>
+          </form>
+        </ModalShell>
       )}
 
       <style jsx global>{`

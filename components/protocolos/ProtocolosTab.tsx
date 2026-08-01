@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { X, Plus, ExternalLink, ChevronUp, ChevronDown, FolderOpen, Stamp, Ban, RefreshCw, Search } from "lucide-react";
+import ModalShell from "@/components/ModalShell";
 import {
   createProtocoloLote,
   updateProtocoloLoteItens,
@@ -290,57 +291,54 @@ function SelecaoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-      <div
-        className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">{lote ? "Editar seleção" : "Novo protocolo"}</h3>
-          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-3 overflow-y-auto scrollbar-thin flex-1">
-          {!lote && (
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do protocolo</label>
-              <input
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Ex: Petição Inicial + documentos"
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
-              />
-            </div>
-          )}
-
-          {selectedAttachments.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
-                Ordem de envio ({selectedAttachments.length})
-              </p>
-              <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10">
-                {selectedAttachments.map((a, idx) => (
-                  <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                    <span className="font-mono text-xs text-navy-800/40 dark:text-cream-50/40 w-6">{String(idx + 1).padStart(2, "0")}</span>
-                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
-                    <div className="flex items-center shrink-0">
-                      <button onClick={() => move(a.id, -1)} disabled={idx === 0} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
-                        <ChevronUp size={14} />
-                      </button>
-                      <button onClick={() => move(a.id, 1)} disabled={idx === selectedAttachments.length - 1} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
-                        <ChevronDown size={14} />
-                      </button>
-                      <button onClick={() => toggle(a.id)} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+    // "cheio": a lista de documentos disponíveis e a lista de ordem de envio se beneficiam de
+    // mais altura/largura visível ao mesmo tempo — daí as duas colunas a partir de md, em vez de
+    // empilhar tudo numa coluna estreita.
+    <ModalShell size="cheio" title={lote ? "Editar seleção" : "Novo protocolo"} onClose={onClose}>
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
+          <div className="space-y-3">
+            {!lote && (
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do protocolo</label>
+                <input
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="Ex: Petição Inicial + documentos"
+                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                />
               </div>
-            </div>
-          )}
+            )}
+
+            {selectedAttachments.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
+                  Ordem de envio ({selectedAttachments.length})
+                </p>
+                <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10">
+                  {selectedAttachments.map((a, idx) => (
+                    <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+                      <span className="font-mono text-xs text-navy-800/40 dark:text-cream-50/40 w-6">{String(idx + 1).padStart(2, "0")}</span>
+                      <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
+                      <div className="flex items-center shrink-0">
+                        <button onClick={() => move(a.id, -1)} disabled={idx === 0} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
+                          <ChevronUp size={14} />
+                        </button>
+                        <button onClick={() => move(a.id, 1)} disabled={idx === selectedAttachments.length - 1} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
+                          <ChevronDown size={14} />
+                        </button>
+                        <button onClick={() => toggle(a.id)} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+          </div>
 
           <div>
             <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">Documentos do processo</p>
@@ -353,7 +351,7 @@ function SelecaoModal({
                 className="w-full text-xs border border-navy-800/12 dark:border-white/15 rounded-lg pl-7 pr-2.5 py-1.5 bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
               />
             </div>
-            <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10 max-h-56 overflow-y-auto scrollbar-thin">
+            <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10 max-h-[50vh] overflow-y-auto scrollbar-thin">
               {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-navy-800/40 dark:text-cream-50/40">Nenhum documento encontrado.</p>}
               {disponiveis.map((a) => {
                 const checked = selected.includes(a.id);
@@ -369,24 +367,22 @@ function SelecaoModal({
               })}
             </div>
           </div>
-
-          {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
-        </div>
-
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10 shrink-0">
-          <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
-            Cancelar
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={loading}
-            className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
-          >
-            {loading ? "Salvando..." : lote ? "Salvar seleção" : "Criar lote e gerar pasta"}
-          </button>
         </div>
       </div>
-    </div>
+
+      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10 bg-cream-50/60 dark:bg-white/5">
+        <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+          Cancelar
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={loading}
+          className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+        >
+          {loading ? "Salvando..." : lote ? "Salvar seleção" : "Criar lote e gerar pasta"}
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 

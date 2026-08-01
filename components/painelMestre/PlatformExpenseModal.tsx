@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { createPlatformExpense, updatePlatformExpense, deletePlatformExpense } from "@/lib/actions/platformFinanceiro";
+import ModalShell from "@/components/ModalShell";
 
 type Account = { id: string; name: string; group: string | null };
 
@@ -82,39 +83,33 @@ export default function PlatformExpenseModal({
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/60 flex items-center justify-center p-4">
-          <div
-            className="bg-navy-900 border border-white/10 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-thin"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-              <h3 className="font-serif font-bold text-cream-50">{mode === "create" ? "Nova despesa" : "Editar despesa"}</h3>
-              <button onClick={() => setOpen(false)} className="text-cream-50/40 hover:text-cream-50">
-                <X size={18} />
-              </button>
-            </div>
-            <form action={handleSubmit} className="p-5 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-cream-50/60">Conta</label>
-                <select
-                  name="accountId"
-                  required
-                  defaultValue={expense?.accountId ?? ""}
-                  className="pm-input"
-                >
-                  <option value="" disabled>
-                    Selecione uma conta
-                  </option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.group ? `${a.group} — ${a.name}` : a.name}
+        // "medio": 7 campos simples, sem seções — 80% da tela deixaria a janela quase vazia.
+        <ModalShell size="medio" title={mode === "create" ? "Nova despesa" : "Editar despesa"} onClose={() => setOpen(false)}>
+          <form action={handleSubmit} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-cream-50/60">Conta</label>
+                  <select
+                    name="accountId"
+                    required
+                    defaultValue={expense?.accountId ?? ""}
+                    className="pm-input"
+                  >
+                    <option value="" disabled>
+                      Selecione uma conta
                     </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-cream-50/60">Descrição</label>
-                <input name="description" required defaultValue={expense?.description} className="pm-input" placeholder="Ex: Hospedagem Vercel" />
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.group ? `${a.group} — ${a.name}` : a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-cream-50/60">Descrição</label>
+                  <input name="description" required defaultValue={expense?.description} className="pm-input" placeholder="Ex: Hospedagem Vercel" />
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -144,15 +139,17 @@ export default function PlatformExpenseModal({
               </div>
               <div>
                 <label className="text-xs font-medium text-cream-50/60">Observações (opcional)</label>
-                <textarea name="notes" rows={2} defaultValue={expense?.notes ?? ""} className="pm-input resize-none" />
+                <textarea name="notes" rows={3} defaultValue={expense?.notes ?? ""} className="pm-input resize-none" />
               </div>
               {error && <p className="text-xs text-bordo-400">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50">
+            </div>
+            <div className="shrink-0 border-t border-white/10 px-5 py-3 flex justify-end">
+              <button type="submit" disabled={loading} className="bg-gold-600 hover:bg-gold-700 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : mode === "create" ? "Criar" : "Salvar alterações"}
               </button>
-            </form>
-          </div>
-        </div>
+            </div>
+          </form>
+        </ModalShell>
       )}
       <style jsx global>{`
         .pm-input {

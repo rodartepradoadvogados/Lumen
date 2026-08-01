@@ -112,21 +112,21 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
       {pickerPost && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
+            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
               <div className="min-w-0">
-                <h3 className="font-serif font-bold text-navy-900">Trocar foto da matéria</h3>
-                <p className="text-xs text-navy-800/50 mt-0.5 truncate">{pickerPost.title}</p>
+                <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Trocar foto da matéria</h3>
+                <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5 truncate">{pickerPost.title}</p>
               </div>
-              <button onClick={() => setPickerPost(null)} className="text-navy-800/40 hover:text-navy-900 shrink-0 ml-3">
+              <button onClick={() => setPickerPost(null)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 shrink-0 ml-3">
                 <X size={18} />
               </button>
             </div>
             <div className="p-5">
               {photos.length === 0 ? (
-                <p className="text-sm text-navy-800/50">Nenhuma foto cadastrada na biblioteca ainda.</p>
+                <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Nenhuma foto cadastrada na biblioteca ainda.</p>
               ) : (
                 <PhotoPickerGrid photos={photos} imageUrl={pickerPost.imageUrl || ""} onSelect={handlePickImage} />
               )}
