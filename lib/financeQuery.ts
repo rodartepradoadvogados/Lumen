@@ -41,16 +41,29 @@ function resolveTab(tab?: string): FinanceTab {
   return tab === "pagas" || tab === "todas" || tab === "apurar" ? tab : "abertas";
 }
 
+// Intervalo De/Até informado pelo usuário — o CAMPO ao qual ele se aplica muda conforme a aba:
+// em "Recebidas"/"Pagas" (tab === "pagas") o que importa é QUANDO o dinheiro entrou/saiu de
+// verdade (paidDate, regime de caixa — mesmo campo que DRE/Relatórios/Livro Caixa já usam), não
+// o vencimento original da parcela. Filtrar "pagas" por dueDate escondia, por exemplo, uma
+// parcela com vencimento em agosto mas baixada em julho (ou vice-versa) de um filtro "julho" —
+// ela tinha sido paga de verdade, só não aparecia. Nas demais abas (abertas/apurar/todas) o
+// filtro continua por dueDate, que é o que faz sentido para contas ainda não liquidadas.
+function periodWhere(sp: FinanceSearchParams, tab: FinanceTab): { dueDate?: { gte?: Date; lte?: Date }; paidDate?: { gte?: Date; lte?: Date } } {
+  const range = {
+    gte: sp.from ? new Date(sp.from) : undefined,
+    lte: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,
+  };
+  if (!range.gte && !range.lte) return {};
+  return tab === "pagas" ? { paidDate: range } : { dueDate: range };
+}
+
 export async function getFilteredPayables(sp: FinanceSearchParams, officeId: string) {
   const now = new Date();
   const tab = resolveTab(sp.tab);
   const all = await prisma.payable.findMany({
     where: {
       officeId,
-      dueDate: {
-        gte: sp.from ? new Date(sp.from) : undefined,
-        lte: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,
-      },
+      ...periodWhere(sp, tab),
       costCenterId: sp.costCenterId || undefined,
       categoryId: sp.categoryId || undefined,
     },
@@ -78,10 +91,7 @@ export async function getFilteredReceivables(sp: FinanceSearchParams, officeId: 
   const all = await prisma.receivable.findMany({
     where: {
       officeId,
-      dueDate: {
-        gte: sp.from ? new Date(sp.from) : undefined,
-        lte: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,
-      },
+      ...periodWhere(sp, tab),
       costCenterId: sp.costCenterId || undefined,
       categoryId: sp.categoryId || undefined,
     },

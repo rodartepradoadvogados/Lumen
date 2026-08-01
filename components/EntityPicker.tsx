@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, ChevronDown, Plus, X, Check } from "lucide-react";
+import { looseIncludes } from "@/lib/textNormalize";
 
 type Option = { id: string; name: string };
 
@@ -62,9 +63,11 @@ export default function EntityPicker({
 
   const selectedLabel = list.find((o) => o.id === selected)?.name ?? "";
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
+    // Ignora acento/hífen/ponto/caixa na busca local (mesma tolerância da busca no servidor —
+    // ver lib/textNormalize.ts), já que as opções aqui já vêm carregadas no cliente.
     if (!q) return list;
-    return list.filter((o) => o.name.toLowerCase().includes(q));
+    return list.filter((o) => looseIncludes(o.name, q));
   }, [list, query]);
 
   function pick(id: string) {

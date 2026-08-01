@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
+import { findCaseIdsByLooseName } from "@/lib/looseNameSearch";
 import { effectiveCaseClients, joinCaseNames } from "@/lib/caseParties";
 import { naturezaOf, naturezaWhere, parseNaturezaParam, MATERIA_LABELS, type CaseNatureza } from "@/lib/caseNatureza";
 import NaturezaBadge from "@/components/mobile/NaturezaBadge";
@@ -31,10 +32,13 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
   const natureza = parseNaturezaParam(searchParams.natureza);
 
   // officeId entra aqui em baseFilters (não só no `where` abaixo) de propósito: baseFilters é
-  // repassado como extraWhere para findCaseIdsByProcessNumber (lib/processNumberSearch.ts), então
-  // o conjunto candidato da busca por nº de processo já sai escopado por escritório também.
+  // repassado como extraWhere para findCaseIdsByProcessNumber/findCaseIdsByLooseName (lib/
+  // processNumberSearch.ts, lib/looseNameSearch.ts), então os conjuntos candidatos da busca por
+  // nº de processo e por nome (tolerante a acento/hífen/ponto) já saem escopados por escritório.
   const baseFilters: Prisma.CaseWhereInput = { status: "ATIVO", officeId: viewer.officeId };
-  const matchingProcessNumberIds = q ? await findCaseIdsByProcessNumber(q, baseFilters) : [];
+  const [matchingProcessNumberIds, matchingLooseNameIds] = q
+    ? await Promise.all([findCaseIdsByProcessNumber(q, baseFilters), findCaseIdsByLooseName(q, baseFilters)])
+    : [[], []];
 
   // where SEM natureza — base tanto da lista (com a pílula ativa aplicada por cima) quanto da
   // contagem de cada pílula (cada pílula conta dentro do MESMO filtro de busca já aplicado, pra
@@ -49,6 +53,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
             { clients: { some: { client: { name: { contains: q, mode: "insensitive" } } } } },
             { parties: { some: { name: { contains: q, mode: "insensitive" } } } },
             ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
+            ...(matchingLooseNameIds.length ? [{ id: { in: matchingLooseNameIds } }] : []),
           ],
         }
       : {}),

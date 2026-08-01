@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { findCaseIdsByProcessNumber } from "@/lib/processNumberSearch";
+import { findCaseIdsByLooseName } from "@/lib/looseNameSearch";
 import { naturezaWhere, type CaseNatureza } from "@/lib/caseNatureza";
 
 export type CasesFilterInput = {
@@ -26,7 +27,11 @@ export async function buildCasesWhere(input: CasesFilterInput): Promise<Prisma.C
     responsibleId: input.responsibleId || undefined,
   };
   // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.
-  const matchingProcessNumberIds = q ? await findCaseIdsByProcessNumber(q, baseFilters) : [];
+  // Busca por nome (título/cliente/parte adversa) ignora acento/hífen/ponto — ver lib/looseNameSearch.ts.
+  // As duas rodam em paralelo sobre o mesmo conjunto candidato já restrito por baseFilters.
+  const [matchingProcessNumberIds, matchingLooseNameIds] = q
+    ? await Promise.all([findCaseIdsByProcessNumber(q, baseFilters), findCaseIdsByLooseName(q, baseFilters)])
+    : [[], []];
 
   return {
     ...baseFilters,
@@ -43,6 +48,7 @@ export async function buildCasesWhere(input: CasesFilterInput): Promise<Prisma.C
             { clients: { some: { client: { name: { contains: q, mode: "insensitive" } } } } },
             { parties: { some: { name: { contains: q, mode: "insensitive" } } } },
             ...(matchingProcessNumberIds.length ? [{ id: { in: matchingProcessNumberIds } }] : []),
+            ...(matchingLooseNameIds.length ? [{ id: { in: matchingLooseNameIds } }] : []),
           ],
         }
       : {}),

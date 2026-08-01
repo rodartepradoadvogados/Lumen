@@ -45,6 +45,17 @@ function firstOfNextMonth() {
   return new Date(d.getFullYear(), d.getMonth() + 1, 1);
 }
 
+// Revalida a aba Financeiro do Processo nas duas versões (site e app) — algumas ações deste
+// arquivo (dar baixa, reabrir) mexem no status/valor pago de uma conta vinculada a um processo
+// mas só revalidavam os caminhos gerais de Financeiro; sem isto, quem estava com o Processo (ou
+// o app mobile) aberto em outra aba/dispositivo podia continuar vendo o status antigo até um F5
+// forçado — ver HonorarioLancamentoCard.tsx (site) e MobileCaseFinanceTab.tsx (app).
+function revalidateCase(caseId: string | null | undefined) {
+  if (!caseId) return;
+  revalidatePath(`/processos/${caseId}`);
+  revalidatePath(`/m/processos/${caseId}`);
+}
+
 // Confere acesso ao módulo Financeiro (requireFinanceAccess) e devolve o officeId do
 // usuário logado, para uso em todo where/data deste arquivo — nunca operar em
 // Payable/Receivable/FinancialCategory/CostCenter sem passar por aqui. Exportado para
@@ -130,7 +141,7 @@ async function syncReceivableStatus(id: string, officeId: string): Promise<void>
 // opcionais deste arquivo: só checado quando informado.
 export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
+  const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true } });
   if (!existing) throw new Error("Conta a pagar não encontrada.");
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
   await prisma.financePayment.create({
@@ -146,11 +157,12 @@ export async function markPayablePaid(id: string, paidAmount: number, paidDate: 
   });
   await syncPayableStatus(id, officeId);
   revalidateFinance();
+  revalidateCase(existing.caseId);
 }
 
 export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
+  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true } });
   if (!existing) throw new Error("Conta a receber não encontrada.");
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
   await prisma.financePayment.create({
@@ -166,6 +178,7 @@ export async function markReceivablePaid(id: string, paidAmount: number, paidDat
   });
   await syncReceivableStatus(id, officeId);
   revalidateFinance();
+  revalidateCase(existing.caseId);
 }
 
 // Baixa em bloco: várias contas quitadas na mesma transferência/pagamento — SEMPRE integral
@@ -198,6 +211,7 @@ export async function markManyPayablesPaid(ids: string[], paidDate: string, rece
     await syncPayableStatus(p.id, officeId);
   }
   revalidateFinance();
+  for (const caseId of new Set(items.map((p) => p.caseId).filter((id): id is string => Boolean(id)))) revalidateCase(caseId);
   return { count: items.length };
 }
 
@@ -225,6 +239,7 @@ export async function markManyReceivablesPaid(ids: string[], paidDate: string, r
     await syncReceivableStatus(r.id, officeId);
   }
   revalidateFinance();
+  for (const caseId of new Set(items.map((r) => r.caseId).filter((id): id is string => Boolean(id)))) revalidateCase(caseId);
   return { count: items.length };
 }
 
@@ -235,24 +250,26 @@ export async function markManyReceivablesPaid(ids: string[], paidDate: string, r
 // estaca zero": quem quiser corrigir só uma baixa específica cancela e lança de novo.
 export async function reopenPayable(id: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true } });
+  const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true } });
   if (!existing) throw new Error("Conta a pagar não encontrada.");
   await prisma.$transaction([
     prisma.financePayment.deleteMany({ where: { payableId: id, officeId } }),
     prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } }),
   ]);
   revalidateFinance();
+  revalidateCase(existing.caseId);
 }
 
 export async function reopenReceivable(id: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
+  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true } });
   if (!existing) throw new Error("Conta a receber não encontrada.");
   await prisma.$transaction([
     prisma.financePayment.deleteMany({ where: { receivableId: id, officeId } }),
     prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } }),
   ]);
   revalidateFinance();
+  revalidateCase(existing.caseId);
 }
 
 async function supplierDisplayName(supplierId: string | undefined, officeId: string): Promise<string | null> {
@@ -528,7 +545,7 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
   }
 
   revalidateFinance();
-  if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
+  revalidateCase(data.caseId);
   return {};
 }
 
@@ -631,7 +648,7 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
   }
 
   revalidateFinance();
-  if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
+  revalidateCase(data.caseId);
   return {};
 }
 
@@ -687,7 +704,7 @@ export async function createRecurringFee(data: {
   // Caixa reflete o novo honorário recorrente assim que ele é criado.
   await ensureRecurringFeeReceivables();
   revalidateFinance();
-  revalidatePath(`/processos/${data.caseId}`);
+  revalidateCase(data.caseId);
   return {};
 }
 
@@ -754,6 +771,6 @@ export async function deactivateRecurringFee(id: string): Promise<{ error?: stri
   if (!existing) return { error: "Honorário recorrente não encontrado." };
   await prisma.recurringFee.update({ where: { id }, data: { active: false } });
   revalidateFinance();
-  revalidatePath(`/processos/${existing.caseId}`);
+  revalidateCase(existing.caseId);
   return {};
 }

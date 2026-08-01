@@ -94,11 +94,15 @@ export default async function DespesasPage({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">De</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">
+              De {tab === "pagas" ? "(pago em)" : "(vencimento)"}
+            </label>
             <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Até</label>
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">
+              Até {tab === "pagas" ? "(pago em)" : "(vencimento)"}
+            </label>
             <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
           </div>
           <div>

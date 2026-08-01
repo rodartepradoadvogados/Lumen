@@ -37,6 +37,14 @@ function revalidateFinance() {
   revalidatePath("/kanban");
 }
 
+// Cópia local de lib/actions/financeiro.ts:revalidateCase (mesmo motivo acima) — revalida a aba
+// Financeiro do Processo nas duas versões (site e app), não só o caminho geral do Financeiro.
+function revalidateCase(caseId: string | null | undefined) {
+  if (!caseId) return;
+  revalidatePath(`/processos/${caseId}`);
+  revalidatePath(`/m/processos/${caseId}`);
+}
+
 async function caseValueBases(caseId: string, officeId: string): Promise<CaseValueBases> {
   const c = await prisma.case.findFirst({
     where: { id: caseId, officeId },
@@ -249,7 +257,7 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
       await createInstallmentReminder(officeId, "receber", data.description, dueDate, data.caseId);
     }
     revalidateFinance();
-    revalidatePath(`/processos/${data.caseId}`);
+    revalidateCase(data.caseId);
     return {};
   }
 
@@ -438,7 +446,7 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
   }
 
   revalidateFinance();
-  revalidatePath(`/processos/${data.caseId}`);
+  revalidateCase(data.caseId);
   return {};
 }
 
@@ -521,6 +529,6 @@ export async function updateHonorarioLancamentoParcelas(
   });
 
   revalidateFinance();
-  revalidatePath(`/processos/${lancamento.caseId}`);
+  revalidateCase(lancamento.caseId);
   return {};
 }

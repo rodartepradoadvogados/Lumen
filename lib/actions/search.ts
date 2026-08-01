@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
+import { looseIncludes } from "@/lib/textNormalize";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export type SearchResult = {
@@ -21,67 +22,85 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const officeId = viewer.officeId;
 
   const contains = { contains: q, mode: "insensitive" as const };
-  // A busca por nº de processo ignora qualquer máscara (pontos, hífen, barra) — como isso não dá
-  // pra fazer direto no banco, busca-se o conjunto candidato (só id + nº) e compara normalizado
-  // em código; só roda quando o termo tem pelo menos um caractere alfanumérico útil.
+  // A busca por nº de processo ignora qualquer máscara (pontos, hífen, barra), e a busca por nome
+  // (título, parte adversa, cliente, atendimento) ignora acento/hífen/ponto/caixa — como nenhuma
+  // das duas dá pra fazer direto no banco (Postgres ILIKE não tira acento nem pontuação), busca-se
+  // um conjunto candidato (só os campos relevantes) por officeId e compara normalizado em código
+  // (ver lib/processNumber.ts e lib/textNormalize.ts). q já tem pelo menos 2 caracteres aqui.
   const normalizedQuery = normalizeProcessNumber(q);
 
-  const [cases, clients, tasks, attendances, publications, caseNumberCandidates, publicationNumberCandidates] = await Promise.all([
-    prisma.case.findMany({
-      where: {
-        officeId,
-        OR: [{ title: contains }, { opposingPartyName: contains }],
-      },
-      select: { id: true, title: true, processNumber: true, type: true },
-      take: 5,
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.client.findMany({
-      where: { officeId, OR: [{ name: contains }, { document: contains }] },
-      select: { id: true, name: true, document: true, type: true },
-      take: 5,
-      orderBy: { name: "asc" },
-    }),
-    prisma.task.findMany({
-      where: { officeId, title: contains },
-      select: { id: true, title: true, type: true, dueDate: true },
-      take: 4,
-      orderBy: { dueDate: "desc" },
-    }),
-    prisma.attendance.findMany({
-      where: { officeId, OR: [{ clientName: contains }, { subject: contains }] },
-      select: { id: true, clientName: true, subject: true },
-      take: 3,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.publication.findMany({
-      where: { officeId, content: contains },
-      select: { id: true, content: true, processNumberRaw: true, source: true },
-      take: 3,
-      orderBy: { publishedAt: "desc" },
-    }),
-    normalizedQuery
-      ? prisma.case.findMany({
-          where: { officeId, processNumber: { not: null } },
-          select: { id: true, title: true, processNumber: true, type: true },
-        })
-      : Promise.resolve([]),
-    normalizedQuery
-      ? prisma.publication.findMany({
-          where: { officeId, processNumberRaw: { not: null } },
-          select: { id: true, content: true, processNumberRaw: true, source: true },
-          orderBy: { publishedAt: "desc" },
-        })
-      : Promise.resolve([]),
-  ]);
+  const [cases, clients, tasks, attendances, publications, caseCandidates, publicationNumberCandidates, clientCandidates, attendanceCandidates] =
+    await Promise.all([
+      prisma.case.findMany({
+        where: {
+          officeId,
+          OR: [{ title: contains }, { opposingPartyName: contains }],
+        },
+        select: { id: true, title: true, processNumber: true, type: true },
+        take: 5,
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.client.findMany({
+        where: { officeId, OR: [{ name: contains }, { document: contains }] },
+        select: { id: true, name: true, document: true, type: true },
+        take: 5,
+        orderBy: { name: "asc" },
+      }),
+      prisma.task.findMany({
+        where: { officeId, title: contains },
+        select: { id: true, title: true, type: true, dueDate: true },
+        take: 4,
+        orderBy: { dueDate: "desc" },
+      }),
+      prisma.attendance.findMany({
+        where: { officeId, OR: [{ clientName: contains }, { subject: contains }] },
+        select: { id: true, clientName: true, subject: true },
+        take: 3,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.publication.findMany({
+        where: { officeId, content: contains },
+        select: { id: true, content: true, processNumberRaw: true, source: true },
+        take: 3,
+        orderBy: { publishedAt: "desc" },
+      }),
+      // Candidatos p/ nº de processo (ex.: "5027823-91") e p/ nome tolerante a acento/pontuação
+      // (ex.: "edina", "jose-carlos") — mesma consulta serve às duas comparações abaixo.
+      prisma.case.findMany({
+        where: { officeId },
+        select: { id: true, title: true, processNumber: true, opposingPartyName: true, type: true },
+      }),
+      normalizedQuery
+        ? prisma.publication.findMany({
+            where: { officeId, processNumberRaw: { not: null } },
+            select: { id: true, content: true, processNumberRaw: true, source: true },
+            orderBy: { publishedAt: "desc" },
+          })
+        : Promise.resolve([]),
+      prisma.client.findMany({ where: { officeId }, select: { id: true, name: true, document: true, type: true } }),
+      prisma.attendance.findMany({ where: { officeId }, select: { id: true, clientName: true, subject: true } }),
+    ]);
 
-  for (const c of caseNumberCandidates) {
+  for (const c of caseCandidates) {
     if (cases.some((existing) => existing.id === c.id)) continue;
-    if (processNumberIncludes(c.processNumber, q) && cases.length < 5) cases.push(c);
+    if (
+      (processNumberIncludes(c.processNumber, q) || looseIncludes(c.title, q) || looseIncludes(c.opposingPartyName, q)) &&
+      cases.length < 5
+    ) {
+      cases.push(c);
+    }
   }
   for (const p of publicationNumberCandidates) {
     if (publications.some((existing) => existing.id === p.id)) continue;
     if (processNumberIncludes(p.processNumberRaw, q) && publications.length < 3) publications.push(p);
+  }
+  for (const c of clientCandidates) {
+    if (clients.some((existing) => existing.id === c.id)) continue;
+    if ((looseIncludes(c.name, q) || looseIncludes(c.document, q)) && clients.length < 5) clients.push(c);
+  }
+  for (const a of attendanceCandidates) {
+    if (attendances.some((existing) => existing.id === a.id)) continue;
+    if ((looseIncludes(a.clientName, q) || looseIncludes(a.subject, q)) && attendances.length < 3) attendances.push(a);
   }
 
   const results: SearchResult[] = [];
