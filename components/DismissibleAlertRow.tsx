@@ -11,7 +11,14 @@ import clsx from "clsx";
 // verdade. Repetido aqui (em vez de dentro de AlertRow) porque AlertRow decide entre <button>/
 // <Link> para o clique principal — aninhar outro elemento interativo lá dentro quebraria o HTML
 // (mesmo motivo do fix em ProcessNumberChip/AlertRow).
-const DISMISSIBLE_ALERT_KINDS = new Set(["MENCAO", "FOLLOWUP_ATRASADO", "PARCELA_SEM_VENCIMENTO", "DRIVE_INCONSISTENCIA"]);
+const DISMISSIBLE_ALERT_KINDS = new Set([
+  "MENCAO",
+  "FOLLOWUP_ATRASADO",
+  "PARCELA_SEM_VENCIMENTO",
+  "DRIVE_INCONSISTENCIA",
+  "HONORARIO_APURAR_DECISAO",
+  "HONORARIO_APURAR_PARADO",
+]);
 
 export default function DismissibleAlertRow({
   kind,

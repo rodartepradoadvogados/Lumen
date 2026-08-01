@@ -9,7 +9,14 @@ import { getAlertsCount } from "@/lib/alerts";
 // por usuário, igual PublicationRead: dispensar não afeta os outros advogados do escritório.
 // entityId é o mesmo AlertItem.entityId (comment.id/attendance.id/payable-ou-receivable.id/
 // driveSyncIssue.id, conforme o kind).
-const DISMISSIBLE_ALERT_KINDS = new Set(["MENCAO", "FOLLOWUP_ATRASADO", "PARCELA_SEM_VENCIMENTO", "DRIVE_INCONSISTENCIA"]);
+const DISMISSIBLE_ALERT_KINDS = new Set([
+  "MENCAO",
+  "FOLLOWUP_ATRASADO",
+  "PARCELA_SEM_VENCIMENTO",
+  "DRIVE_INCONSISTENCIA",
+  "HONORARIO_APURAR_DECISAO",
+  "HONORARIO_APURAR_PARADO",
+]);
 
 export async function dismissAlert(kind: string, entityId: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();

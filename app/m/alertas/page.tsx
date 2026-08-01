@@ -24,6 +24,8 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
   TAREFA_DELEGADA: { label: "Tarefa Delegada", icon: UserPlus },
   DRIVE_INCONSISTENCIA: { label: "Inconsistência no Drive", icon: FolderSync },
+  HONORARIO_APURAR_DECISAO: { label: "Honorário a Apurar — Decisão", icon: Gavel },
+  HONORARIO_APURAR_PARADO: { label: "Honorário a Apurar — Parado", icon: Gavel },
 };
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {

@@ -40,11 +40,12 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
 
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" || searchParams.tab === "apurar" ? searchParams.tab : "abertas";
 
-  const [receivables, categories, clients, costCenters] = await Promise.all([
+  const [receivables, categories, clients, costCenters, bankAccounts] = await Promise.all([
     getFilteredReceivables({ tab }, viewer.officeId),
     getLeafCategoryOptions("RECEITA", viewer.officeId),
     prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
@@ -123,7 +124,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
                   </div>
                   {!isApurar && (
                     <div className="mt-2">
-                      <MobileSettleForm id={r.id} kind="receivable" amount={saldo} status={r.status} />
+                      <MobileSettleForm id={r.id} kind="receivable" liquido={liquido} alreadyPaid={r.paidSum} status={r.status} bankAccounts={bankAccounts} />
                     </div>
                   )}
                 </div>

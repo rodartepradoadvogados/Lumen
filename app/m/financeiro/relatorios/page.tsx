@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
+import { valorLiquido } from "@/lib/financeCalc";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -33,16 +34,18 @@ export default async function MobileRelatoriosFinanceiro() {
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } } }),
     prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { not: "CANCELADO" } }, select: { amount: true } }),
+    // A_APURAR fora do denominador de inadimplência — é provisão sem valor real ainda (Fase 1),
+    // não "a receber" de verdade (nem CANCELADO, que já estava de fora).
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] } }, select: { amount: true, discount: true, surcharge: true } }),
   ]);
 
   const financeMonthly = months.map((m) => {
     const receita = paidReceivables
       .filter((r) => r.paidDate && monthKey(r.paidDate) === m.key)
-      .reduce((s, r) => s + (r.paidAmount ?? r.amount), 0);
+      .reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0);
     const despesa = paidPayables
       .filter((p) => p.paidDate && monthKey(p.paidDate) === m.key)
-      .reduce((s, p) => s + (p.paidAmount ?? p.amount), 0);
+      .reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0);
     return { ...m, receita, despesa, saldo: receita - despesa };
   });
 
@@ -53,16 +56,16 @@ export default async function MobileRelatoriosFinanceiro() {
   const expenseByCat: Record<string, number> = {};
   for (const p of paidPayables) {
     const key = p.category?.name ?? "Sem categoria";
-    expenseByCat[key] = (expenseByCat[key] ?? 0) + (p.paidAmount ?? p.amount);
+    expenseByCat[key] = (expenseByCat[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
   }
   const topExpenses = Object.entries(expenseByCat)
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
-  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + r.amount, 0);
+  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
   const inadimplenciaCount = overdueReceivables.length;
-  const totalReceivablesAmount = allReceivables.reduce((s, r) => s + r.amount, 0);
+  const totalReceivablesAmount = allReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
   const inadimplenciaRate = totalReceivablesAmount > 0 ? (inadimplenciaTotal / totalReceivablesAmount) * 100 : 0;
 
   return (

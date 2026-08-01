@@ -21,11 +21,12 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
 
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
 
-  const [payables, categories, suppliers, costCenters] = await Promise.all([
+  const [payables, categories, suppliers, costCenters, bankAccounts] = await Promise.all([
     getFilteredPayables({ tab }, viewer.officeId),
     getLeafCategoryOptions("DESPESA", viewer.officeId),
     prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
@@ -94,7 +95,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
                     <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
                   </div>
                   <div className="mt-2">
-                    <MobileSettleForm id={p.id} kind="payable" amount={saldo} status={p.status} />
+                    <MobileSettleForm id={p.id} kind="payable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />
                   </div>
                 </div>
               );

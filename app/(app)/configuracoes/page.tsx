@@ -31,6 +31,7 @@ import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
 import BankAccountsManager from "@/components/BankAccountsManager";
+import HolidaysManager from "@/components/HolidaysManager";
 import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
@@ -141,6 +142,7 @@ export default async function ConfiguracoesPage({
     categories,
     costCenters,
     bankAccounts,
+    holidaysRaw,
     driveStatus,
     documentTemplates,
     taskTypePoints,
@@ -166,6 +168,10 @@ export default async function ConfiguracoesPage({
       prisma.financialCategory.findMany({ where: { officeId } }),
       prisma.costCenter.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
       prisma.bankAccount.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
+      // Feriados locais (Fase 4 — apuração do êxito) usados por lib/prazos.ts:addDiasUteis no
+      // cálculo do trânsito em julgado presumido; os nacionais não ficam aqui (calculados em
+      // código, ver HolidaysManager).
+      prisma.holiday.findMany({ where: { officeId }, orderBy: { date: "asc" } }),
       getDriveStatus(officeId),
       prisma.documentTemplate.findMany({ where: { officeId }, orderBy: { name: "asc" } }),
       prisma.taskTypePoints.findMany({ where: { officeId } }),
@@ -202,6 +208,8 @@ export default async function ConfiguracoesPage({
     displayNumber: b.displayNumber,
     createdAt: b.createdAt.toISOString(),
   }));
+
+  const holidays = holidaysRaw.map((h) => ({ id: h.id, date: h.date.toISOString().slice(0, 10), name: h.name, scope: h.scope }));
 
   const photos = photosRaw.map((p) => ({
     id: p.id,
@@ -1027,6 +1035,14 @@ export default async function ConfiguracoesPage({
             active: b.active,
           }))}
         />
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Feriados"
+          subtitle="Feriados locais (estadual, municipal ou forense) usados no cálculo do trânsito em julgado presumido, na apuração do êxito"
+        />
+        <HolidaysManager holidays={holidays} />
       </Card>
       </>
       )}

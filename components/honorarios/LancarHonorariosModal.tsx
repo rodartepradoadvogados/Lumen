@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createHonorarioLancamento } from "@/lib/actions/honorarioLancamento";
+import { createRecurringFee } from "@/lib/actions/financeiro";
 import { createClientQuick } from "@/lib/actions/contatos";
 import { createCostCenterQuick, createBankAccountQuick } from "@/lib/actions/settings";
 import {
@@ -23,6 +24,14 @@ type Option = { id: string; name: string };
 type Natureza = "CONTRATUAL" | "SUCUMBENCIAL";
 type PayerType = "CLIENTE" | "ADVERSA" | "OUTRO";
 type Cobranca = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
+// "Forma de lançamento" (restaurado — Fase 4): ÚNICO e PARCELADO já existiam (como o antigo
+// checkbox "Lançamento parcelado"); RECORRENTE é o honorário "até o arquivamento" que morava no
+// extinto NewReceivableModal (só aparecia com defaultCaseId) e ficou sem porta de entrada quando
+// a Fase 2 trocou aquele modal por este — chama lib/actions/financeiro.ts:createRecurringFee, que
+// nunca deixou de existir/funcionar. Sempre disponível aqui porque este modal só é montado dentro
+// da aba Financeiro do Processo (defaultCaseId é obrigatório na prop), que é exatamente o
+// requisito do próprio createRecurringFee (honorário recorrente precisa de processo vinculado).
+type FormaLancamento = "UNICO" | "PARCELADO" | "RECORRENTE";
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -159,12 +168,18 @@ export default function LancarHonorariosModal({
   const [dueDate, setDueDate] = useState("");
   const [semVencimento, setSemVencimento] = useState(false);
 
-  // ---- Parcelamento ----
-  const [parcelado, setParcelado] = useState(false);
+  // ---- Forma de lançamento (Único / Parcelado / Recorrente até o arquivamento) ----
+  const [forma, setForma] = useState<FormaLancamento>("UNICO");
+  const parcelado = forma === "PARCELADO";
+  const recorrente = forma === "RECORRENTE";
   const [valorTotalIndicado, setValorTotalIndicado] = useState("");
   const [installmentCount, setInstallmentCount] = useState("2");
   const [installmentIntervalDays, setInstallmentIntervalDays] = useState("30");
   const [parcelas, setParcelas] = useState<ParcelaRow[]>([]);
+
+  // ---- Recorrente até o arquivamento (só estes dois campos — ver createRecurringFee) ----
+  const [amountMensal, setAmountMensal] = useState("");
+  const [dueDay, setDueDay] = useState("10");
 
   // ---- Recebimento ----
   const [recebido, setRecebido] = useState(false);
@@ -186,17 +201,16 @@ export default function LancarHonorariosModal({
     setParcelas((prev) => regenerateParcelas(prev, parseInt(count || "1") || 1, parseInt(interval || "1") || 1, dueDate || todayStr(), total));
   }
 
-  function handleParceladoToggle(checked: boolean) {
-    setParcelado(checked);
-    if (checked) {
-      setRecebido(false);
-      if (parcelas.length === 0) regenerate(installmentCount, installmentIntervalDays, valorTotalIndicado);
-    }
+  function handleFormaChange(v: FormaLancamento) {
+    setForma(v);
+    // "Já foi recebido" só faz sentido em ÚNICO — trocar para Parcelado/Recorrente zera a escolha
+    // (a seção nem aparece nesses dois modos, ver JSX abaixo).
+    if (v !== "UNICO") setRecebido(false);
+    if (v === "PARCELADO" && parcelas.length === 0) regenerate(installmentCount, installmentIntervalDays, valorTotalIndicado);
   }
 
   function handleRecebidoToggle(checked: boolean) {
     setRecebido(checked);
-    if (checked) setParcelado(false);
   }
 
   function updateParcela(key: string, patch: Partial<ParcelaRow>) {
@@ -254,6 +268,30 @@ export default function LancarHonorariosModal({
                 const responsibleId = String(formData.get("responsibleId") || "");
                 const bankAccountId = String(formData.get("bankAccountId") || "");
                 const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
+
+                // Recorrente até o arquivamento cai fora do fluxo de createHonorarioLancamento —
+                // vira um RecurringFee (mesma Server Action de sempre, só sem chamador desde a
+                // Fase 2/3), que o cron mantém gerando mês a mês até o processo ser arquivado.
+                if (recorrente) {
+                  const kind = natureza === "SUCUMBENCIAL" ? "HONORARIOS_SUCUMBENCIAIS" : "HONORARIOS_CONTRATUAIS";
+                  const recResult = await createRecurringFee({
+                    description,
+                    amount: amountMensal,
+                    dueDay,
+                    kind,
+                    categoryId: categoryId || undefined,
+                    costCenterId: costCenterId || undefined,
+                    caseId: defaultCaseId,
+                  });
+                  setLoading(false);
+                  if (recResult.error) {
+                    setError(recResult.error);
+                    return;
+                  }
+                  setOpen(false);
+                  router.refresh();
+                  return;
+                }
 
                 const result = await createHonorarioLancamento({
                   description,
@@ -430,143 +468,16 @@ export default function LancarHonorariosModal({
                   </div>
                 </SecaoLancamento>
 
-                <SecaoLancamento title="Forma de cobrança" tone="ouro">
-                  <Segmented<Cobranca>
-                    value={cobranca}
-                    onChange={setCobranca}
+                <SecaoLancamento title="Forma de lançamento" tone="rosa">
+                  <Segmented<FormaLancamento>
+                    value={forma}
+                    onChange={handleFormaChange}
                     options={[
-                      { value: "DINHEIRO", label: "Dinheiro" },
-                      { value: "PERCENTUAL", label: "Percentual" },
-                      { value: "AMBOS", label: "Dinheiro + Percentual" },
+                      { value: "UNICO", label: "Único" },
+                      { value: "PARCELADO", label: "Parcelado" },
+                      { value: "RECORRENTE", label: "Recorrente até o arquivamento" },
                     ]}
                   />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {cobrancaHasDinheiro && (
-                      <div>
-                        <label className={labelCls}>Valor em dinheiro (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          disabled={parcelado}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
-                        />
-                        {parcelado && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
-                      </div>
-                    )}
-                    <div>
-                      <label className={labelCls}>Desconto (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={discount}
-                        onChange={(e) => setDiscount(e.target.value)}
-                        disabled={parcelado}
-                        className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Acréscimo (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={surcharge}
-                        onChange={(e) => setSurcharge(e.target.value)}
-                        disabled={parcelado}
-                        className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  {cobrancaHasPercentual && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelCls}>Percentual (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={percentual}
-                          onChange={(e) => setPercentual(e.target.value)}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Base</label>
-                        <select
-                          value={percentualBase}
-                          onChange={(e) => setPercentualBase(e.target.value)}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
-                        >
-                          {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>Valor da base hoje no processo</label>
-                        <input
-                          readOnly
-                          value={baseValue ? formatCurrency(baseValue) : "Ainda não informado no processo"}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50/70 cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {cobranca === "AMBOS" && (
-                    <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
-                      <input type="checkbox" checked={abaterEntrada} onChange={(e) => setAbaterEntrada(e.target.checked)} />
-                      Abater do percentual o que já foi pago em dinheiro
-                    </label>
-                  )}
-
-                  {cobrancaHasPercentual &&
-                    (baseValue ? (
-                      <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
-                        {percentualNum || 0}% de {formatCurrency(baseValue)} = {formatCurrency((baseValue * (percentualNum || 0)) / 100)}
-                        {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago em dinheiro</>}
-                        {" "}= <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(percentualApurado)}</span> líquido de honorário
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
-                        A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão a apurar (status
-                        &quot;A apurar&quot;), fora do fluxo de caixa e do DRE, até alguém registrar o desfecho do processo.
-                      </p>
-                    ))}
-                </SecaoLancamento>
-
-                <SecaoLancamento title="Vencimento" tone="azul">
-                  <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
-                    <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
-                    Sem vencimento definido
-                  </label>
-                  {!semVencimento ? (
-                    <div>
-                      <label className={labelCls}>Data de vencimento</label>
-                      <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        required={!semVencimento}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
-                      Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
-                    </p>
-                  )}
-                </SecaoLancamento>
-
-                <SecaoLancamento title="Parcelamento" tone="rosa">
-                  <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
-                    <input type="checkbox" checked={parcelado} disabled={recebido} onChange={(e) => handleParceladoToggle(e.target.checked)} />
-                    Lançamento parcelado
-                  </label>
-                  {recebido && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40">Indisponível com &quot;Já foi recebido&quot; marcado, abaixo.</p>}
 
                   {parcelado && (
                     <div className="space-y-3">
@@ -671,98 +582,277 @@ export default function LancarHonorariosModal({
                       </p>
                     </div>
                   )}
-                </SecaoLancamento>
 
-                <SecaoLancamento title="Recebimento" tone="verde">
-                  <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
-                    <input type="checkbox" checked={recebido} disabled={parcelado} onChange={(e) => handleRecebidoToggle(e.target.checked)} />
-                    Já foi recebido
-                  </label>
-                  {parcelado && (
-                    <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40">
-                      Indisponível com &quot;Lançamento parcelado&quot; marcado, acima — quite parcelas retroativas na própria tabela de parcelas.
-                    </p>
-                  )}
-
-                  {recebido && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelCls}>Data do pagamento</label>
-                        <input
-                          type="date"
-                          value={paidDate}
-                          onChange={(e) => setPaidDate(e.target.value)}
-                          required={recebido}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
-                        />
+                  {recorrente && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelCls}>Valor mensal (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={amountMensal}
+                            onChange={(e) => setAmountMensal(e.target.value)}
+                            required={recorrente}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Dia do mês de vencimento</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={28}
+                            value={dueDay}
+                            onChange={(e) => setDueDay(e.target.value)}
+                            required={recorrente}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className={labelCls}>Valor pago (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={paidAmount}
-                          onChange={(e) => setPaidAmount(e.target.value)}
-                          required={recebido}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Conta bancária</label>
-                        <EntityPicker
-                          name="bankAccountId"
-                          options={bankAccounts}
-                          placeholder="Buscar conta..."
-                          emptyLabel="Nenhuma"
-                          addLabel="Cadastrar nova conta bancária"
-                          onQuickAdd={createBankAccountQuick}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Nº do documento de pagamento</label>
-                        <input name="paymentDocumentNumber" className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>Forma de pagamento</label>
-                        <select
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
-                        >
-                          {PAYMENT_METHOD_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                        Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado — sem precisar
+                        definir quantas parcelas.
+                      </p>
                     </div>
                   )}
                 </SecaoLancamento>
+
+                {!recorrente && (
+                  <>
+                    <SecaoLancamento title="Forma de cobrança" tone="ouro">
+                      <Segmented<Cobranca>
+                        value={cobranca}
+                        onChange={setCobranca}
+                        options={[
+                          { value: "DINHEIRO", label: "Dinheiro" },
+                          { value: "PERCENTUAL", label: "Percentual" },
+                          { value: "AMBOS", label: "Dinheiro + Percentual" },
+                        ]}
+                      />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {cobrancaHasDinheiro && (
+                          <div>
+                            <label className={labelCls}>Valor em dinheiro (R$)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              disabled={parcelado}
+                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
+                            />
+                            {parcelado && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
+                          </div>
+                        )}
+                        <div>
+                          <label className={labelCls}>Desconto (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={discount}
+                            onChange={(e) => setDiscount(e.target.value)}
+                            disabled={parcelado}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Acréscimo (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={surcharge}
+                            onChange={(e) => setSurcharge(e.target.value)}
+                            disabled={parcelado}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+
+                      {cobrancaHasPercentual && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className={labelCls}>Percentual (%)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={percentual}
+                              onChange={(e) => setPercentual(e.target.value)}
+                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Base</label>
+                            <select
+                              value={percentualBase}
+                              onChange={(e) => setPercentualBase(e.target.value)}
+                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            >
+                              {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className={labelCls}>Valor da base hoje no processo</label>
+                            <input
+                              readOnly
+                              value={baseValue ? formatCurrency(baseValue) : "Ainda não informado no processo"}
+                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50/70 cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {cobranca === "AMBOS" && (
+                        <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                          <input type="checkbox" checked={abaterEntrada} onChange={(e) => setAbaterEntrada(e.target.checked)} />
+                          Abater do percentual o que já foi pago em dinheiro
+                        </label>
+                      )}
+
+                      {cobrancaHasPercentual &&
+                        (baseValue ? (
+                          <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                            {percentualNum || 0}% de {formatCurrency(baseValue)} = {formatCurrency((baseValue * (percentualNum || 0)) / 100)}
+                            {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago em dinheiro</>}
+                            {" "}= <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(percentualApurado)}</span> líquido de honorário
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                            A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão a apurar (status
+                            &quot;A apurar&quot;), fora do fluxo de caixa e do DRE, até alguém registrar o desfecho do processo.
+                          </p>
+                        ))}
+                    </SecaoLancamento>
+
+                    <SecaoLancamento title="Vencimento" tone="azul">
+                      <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                        <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
+                        Sem vencimento definido
+                      </label>
+                      {!semVencimento ? (
+                        <div>
+                          <label className={labelCls}>Data de vencimento</label>
+                          <input
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            required={!semVencimento}
+                            className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                          Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
+                        </p>
+                      )}
+                    </SecaoLancamento>
+                  </>
+                )}
+
+                {/* Não faz sentido nem em Parcelado (quita parcela retroativa direto na tabela)
+                    nem em Recorrente (nunca "já recebido" — é gerado mês a mês pelo cron). */}
+                {forma === "UNICO" && (
+                  <SecaoLancamento title="Recebimento" tone="verde">
+                    <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                      <input type="checkbox" checked={recebido} onChange={(e) => handleRecebidoToggle(e.target.checked)} />
+                      Já foi recebido
+                    </label>
+
+                    {recebido && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelCls}>Data do pagamento</label>
+                          <input
+                            type="date"
+                            value={paidDate}
+                            onChange={(e) => setPaidDate(e.target.value)}
+                            required={recebido}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Valor pago (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={paidAmount}
+                            onChange={(e) => setPaidAmount(e.target.value)}
+                            required={recebido}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Conta bancária</label>
+                          <EntityPicker
+                            name="bankAccountId"
+                            options={bankAccounts}
+                            placeholder="Buscar conta..."
+                            emptyLabel="Nenhuma"
+                            addLabel="Cadastrar nova conta bancária"
+                            onQuickAdd={createBankAccountQuick}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Nº do documento de pagamento</label>
+                          <input name="paymentDocumentNumber" className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className={labelCls}>Forma de pagamento</label>
+                          <select
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          >
+                            {PAYMENT_METHOD_OPTIONS.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </SecaoLancamento>
+                )}
               </div>
 
               <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-cream-50/60 dark:bg-white/5">
                 <div className="flex items-center gap-4">
-                  <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Bruto</span>
-                    <span className="text-sm font-semibold tabular-nums text-navy-900 dark:text-cream-50">{formatCurrency(bruto)}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Desconto</span>
-                    <span className="text-sm font-semibold tabular-nums text-bordo-600 dark:text-bordo-400">
-                      -{formatCurrency(parcelado ? 0 : discountNum)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Acréscimo</span>
-                    <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
-                      +{formatCurrency(parcelado ? 0 : surchargeNum)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Líquido</span>
-                    <span className="font-serif text-lg font-bold tabular-nums text-gold-700 dark:text-gold-400">{formatCurrency(liquido)}</span>
-                  </div>
+                  {recorrente ? (
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Valor mensal</span>
+                      <span className="font-serif text-lg font-bold tabular-nums text-gold-700 dark:text-gold-400">
+                        {formatCurrency(parseFloat(amountMensal || "0") || 0)}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Bruto</span>
+                        <span className="text-sm font-semibold tabular-nums text-navy-900 dark:text-cream-50">{formatCurrency(bruto)}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Desconto</span>
+                        <span className="text-sm font-semibold tabular-nums text-bordo-600 dark:text-bordo-400">
+                          -{formatCurrency(parcelado ? 0 : discountNum)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Acréscimo</span>
+                        <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                          +{formatCurrency(parcelado ? 0 : surchargeNum)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Líquido</span>
+                        <span className="font-serif text-lg font-bold tabular-nums text-gold-700 dark:text-gold-400">{formatCurrency(liquido)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button

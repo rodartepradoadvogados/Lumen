@@ -415,3 +415,44 @@ export async function deleteCostCenter(id: string): Promise<{ error?: string }> 
   revalidatePath("/configuracoes");
   return {};
 }
+
+// ============ FERIADOS (Fase 4) ============
+// Cadastro em Configurações → Geral do Holiday da Fase 1 (lib/prazos.ts) — feriado LOCAL do
+// escritório (estadual, municipal ou forense). Os feriados NACIONAIS (fixos e móveis) nunca
+// entram aqui: são calculados em código por feriadosNacionais() e só aparecem na tela como lista
+// de leitura, para o usuário conferir que não precisa cadastrar Natal/Independência/Carnaval etc.
+export async function createHoliday(data: { date: string; name: string; scope: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  if (!data.name.trim()) return { error: "Informe o nome do feriado." };
+  const date = new Date(`${data.date}T00:00:00Z`);
+  if (isNaN(date.getTime())) return { error: "Informe a data do feriado." };
+  await prisma.holiday.create({
+    data: { officeId: viewer.officeId, date, name: data.name.trim(), scope: data.scope || "FORENSE" },
+  });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
+export async function updateHoliday(id: string, data: { date: string; name: string; scope: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const holiday = await prisma.holiday.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!holiday) return { error: "Feriado não encontrado." };
+  if (!data.name.trim()) return { error: "Informe o nome do feriado." };
+  const date = new Date(`${data.date}T00:00:00Z`);
+  if (isNaN(date.getTime())) return { error: "Informe a data do feriado." };
+  await prisma.holiday.update({ where: { id }, data: { date, name: data.name.trim(), scope: data.scope || "FORENSE" } });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
+export async function deleteHoliday(id: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão expirada." };
+  const holiday = await prisma.holiday.findFirst({ where: { id, officeId: viewer.officeId } });
+  if (!holiday) return { error: "Feriado não encontrado." };
+  await prisma.holiday.delete({ where: { id } });
+  revalidatePath("/configuracoes");
+  return {};
+}

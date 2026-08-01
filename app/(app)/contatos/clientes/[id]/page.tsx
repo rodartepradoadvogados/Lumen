@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import EditClientModal from "@/components/EditClientModal";
+import { valorLiquido } from "@/lib/financeCalc";
 import { ArrowLeft, Scale, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,14 @@ const caseStatusColors: Record<string, "green" | "amber" | "slate" | "red"> = {
   ARQUIVADO: "red",
 };
 
-const recStatusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", CANCELADO: "red" };
+const recStatusColor: Record<string, "green" | "red" | "amber" | "slate"> = {
+  PAGO: "green",
+  ATRASADO: "red",
+  PENDENTE: "amber",
+  PARCIAL: "amber",
+  CANCELADO: "red",
+  A_APURAR: "slate",
+};
 
 function field(label: string, value: string | null | undefined) {
   if (!value) return null;
@@ -59,7 +67,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
   const receivables = hasFinanceAccess
     ? await prisma.receivable.findMany({ where: { clientId: client.id, officeId: viewer.officeId }, orderBy: { dueDate: "asc" } })
     : [];
-  const totalReceivable = receivables.reduce((s, r) => s + r.amount, 0);
+  // A_APURAR fica fora da soma — é uma provisão sem valor real ainda (Fase 1), não dinheiro "a
+  // receber" de verdade; o valor de cada conta considera desconto/acréscimo (valorLiquido).
+  const totalReceivable = receivables
+    .filter((r) => r.status !== "A_APURAR")
+    .reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-5">
@@ -131,15 +143,17 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           ) : (
             <div className="divide-y divide-navy-800/5 dark:divide-white/10">
               {receivables.map((r) => {
+                const isApurar = r.status === "A_APURAR";
                 const effectiveStatus = r.status === "PENDENTE" && r.dueDate < now && !r.noDueDate ? "ATRASADO" : r.status;
+                const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
                 return (
                   <div key={r.id} className="flex items-center gap-4 px-5 py-3.5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{r.description}</p>
                       <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                     </div>
-                    <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{formatCurrency(r.amount)}</p>
-                    <Badge color={recStatusColor[effectiveStatus]}>{effectiveStatus}</Badge>
+                    <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                    <Badge color={recStatusColor[effectiveStatus] ?? "amber"}>{isApurar ? "A apurar" : effectiveStatus}</Badge>
                   </div>
                 );
               })}

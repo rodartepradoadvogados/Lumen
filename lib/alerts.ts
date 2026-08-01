@@ -11,7 +11,13 @@ export type AlertItem = {
     | "PARCELA_SEM_VENCIMENTO"
     | "FOLLOWUP_ATRASADO"
     | "TAREFA_DELEGADA"
-    | "DRIVE_INCONSISTENCIA";
+    | "DRIVE_INCONSISTENCIA"
+    // Porta 1 (Fase 4 — apuração do êxito): processo com parcela A_APURAR que recebeu publicação/
+    // andamento cujo conteúdo casa com termo de decisão (ver contemPalavraDecisao abaixo).
+    | "HONORARIO_APURAR_DECISAO"
+    // Alerta de acompanhamento (Fase 4): parcela A_APURAR parada há mais de 90 dias, mesmo sem
+    // nenhuma publicação nova — para o sócio não esquecer de cobrar/consultar o andamento.
+    | "HONORARIO_APURAR_PARADO";
   title: string;
   subtitle?: string;
   date: Date;
@@ -61,6 +67,36 @@ function computeDueStatus(dueDate: Date, now: Date): "atrasado" | "hoje" | undef
   return undefined;
 }
 
+// Sem acento/case, só para comparar substring — o projeto não tinha um helper de normalização de
+// texto compartilhado (o mais parecido, normalizeForCompare em lib/driveSync.ts, compara nome de
+// pasta, não vale a pena importar de lá para um assunto totalmente diferente). Usado só pela Porta
+// 1 da apuração do êxito (contemPalavraDecisao), abaixo.
+function normalizarTexto(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+// Termos que indicam decisão/desfecho num andamento ou publicação — casa com "sentença",
+// "acórdão", "julgo procedente", "condeno", "trânsito em julgado" ou "homologo" (acordo
+// homologado), sem acento e case-insensitive. Não tenta ser exaustivo (não substitui a leitura de
+// quem recebe o alerta) — é só o gatilho que traz o processo para a Central de Alertas assim que
+// há parcela percentual a apurar E algo que parece decisão.
+const DECISAO_KEYWORDS = ["sentenca", "acordao", "julgo procedente", "condeno", "transito em julgado", "homologo"];
+
+function contemPalavraDecisao(content: string): boolean {
+  const normalizado = normalizarTexto(content);
+  return DECISAO_KEYWORDS.some((k) => normalizado.includes(k));
+}
+
+// Janela de "publicação recente" para a Porta 1 — decisão publicada há mais tempo que isso já não
+// conta como "acabou de sair"; o processo continua coberto pelo alerta de acompanhamento
+// (HONORARIO_APURAR_PARADO, 90 dias parado) de qualquer forma. Escolha própria, documentada no
+// relatório da Fase 4: nenhum requisito do produto fixou um número.
+const DECISAO_JANELA_DIAS = 30;
+
+// Quantos dias parada uma parcela A_APURAR precisa estar para virar alerta de acompanhamento —
+// mesma lógica (escolha própria, sem requisito explícito do produto).
+const APURAR_PARADO_DIAS = 90;
+
 // Prazos vencidos, contas a pagar/receber vencidas, parcelas sem vencimento e menções —
 // ficam visíveis até serem tratados (diferente de publicações, que somem da própria aba ao serem lidas).
 // Toda consulta de Payable/Receivable abaixo filtra status por LISTA EXPLÍCITA (["PENDENTE",
@@ -101,6 +137,8 @@ export async function getAlerts(
   const dismissedFollowupIds = Array.from(dismissedByKind.get("FOLLOWUP_ATRASADO") ?? []);
   const dismissedParcelaIds = Array.from(dismissedByKind.get("PARCELA_SEM_VENCIMENTO") ?? []);
   const dismissedDriveIds = Array.from(dismissedByKind.get("DRIVE_INCONSISTENCIA") ?? []);
+  const dismissedApurarDecisaoIds = dismissedByKind.get("HONORARIO_APURAR_DECISAO") ?? new Set<string>();
+  const dismissedApurarParadoIds = dismissedByKind.get("HONORARIO_APURAR_PARADO") ?? new Set<string>();
 
   const [
     overdueTasks,
@@ -112,6 +150,7 @@ export async function getAlerts(
     overdueFollowups,
     delegatedTasks,
     driveSyncIssues,
+    apurarReceivables,
   ] = await Promise.all([
       prisma.task.findMany({
         where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -160,7 +199,30 @@ export async function getAlerts(
             orderBy: { detectedAt: "desc" },
           })
         : Promise.resolve([]),
+      // Base para as duas Portas de apuração do êxito (1 — decisão publicada; acompanhamento —
+      // parada há mais de 90 dias): toda parcela A_APURAR do escritório, com o processo (para
+      // título/link) — filtrada de novo por caseId != null porque, embora o Server Action sempre
+      // vincule esta parcela a um Case, o campo é opcional no schema.
+      includeFinance
+        ? prisma.receivable.findMany({
+            where: { officeId, status: "A_APURAR", caseId: { not: null } },
+            select: { id: true, createdAt: true, caseId: true, case: { select: { id: true, title: true, processNumber: true } } },
+          })
+        : Promise.resolve([]),
     ]);
+
+  // Publicações recentes dos processos com parcela a apurar (Porta 1) — consulta separada porque
+  // depende do resultado de apurarReceivables (lista de caseId), então não dá para entrar no
+  // Promise.all acima sem duplicar a query de apurarReceivables só para extrair os ids antes.
+  const apurarCaseIds = Array.from(new Set(apurarReceivables.map((r) => r.caseId).filter((id): id is string => Boolean(id))));
+  const decisaoCutoff = new Date(now.getTime() - DECISAO_JANELA_DIAS * 86400000);
+  const publicacoesRecentes = apurarCaseIds.length
+    ? await prisma.publication.findMany({
+        where: { officeId, caseId: { in: apurarCaseIds }, publishedAt: { gte: decisaoCutoff } },
+        select: { caseId: true, content: true, publishedAt: true },
+        orderBy: { publishedAt: "desc" },
+      })
+    : [];
 
   const alerts: AlertItem[] = [];
 
@@ -300,6 +362,59 @@ export async function getAlerts(
     });
   }
 
+  // Porta 1 (automática, por publicação) — um alerta por PROCESSO (não por parcela): junta as
+  // publicações recentes de cada caso com parcela A_APURAR e sinaliza o primeiro casamento com
+  // termo de decisão encontrado. entityId aqui é o caseId (não uma Receivable/Payable) — de
+  // propósito, sem entityKind: assim AlertRow (components/AlertRow.tsx) cai no <Link> padrão
+  // (href = aba Financeiro do processo) em vez de tentar abrir o card de baixa de uma parcela que
+  // ainda nem tem valor real.
+  const publicacoesPorCaso = new Map<string, { content: string; publishedAt: Date }[]>();
+  for (const p of publicacoesRecentes) {
+    if (!p.caseId) continue;
+    if (!publicacoesPorCaso.has(p.caseId)) publicacoesPorCaso.set(p.caseId, []);
+    publicacoesPorCaso.get(p.caseId)!.push(p);
+  }
+  for (const [caseId, pubs] of publicacoesPorCaso) {
+    if (dismissedApurarDecisaoIds.has(caseId)) continue;
+    const decisao = pubs.find((p) => contemPalavraDecisao(p.content));
+    if (!decisao) continue;
+    const kase = apurarReceivables.find((r) => r.caseId === caseId)?.case;
+    alerts.push({
+      id: `honorario-apurar-decisao-${caseId}`,
+      kind: "HONORARIO_APURAR_DECISAO",
+      title: `Honorário percentual a apurar — houve decisão em ${kase?.title ?? "processo"}`,
+      subtitle: decisao.content.slice(0, 100),
+      date: decisao.publishedAt,
+      href: `/processos/${caseId}?tab=financeiro`,
+      severity: "media",
+      entityId: caseId,
+      processNumber: kase?.processNumber ?? undefined,
+    });
+  }
+
+  // Acompanhamento — parcela A_APURAR parada há mais de 90 dias, mesmo sem publicação nova (o
+  // processo pode nunca gerar uma publicação identificável, ou o robô pode ter perdido uma) —
+  // rede de segurança para o sócio não esquecer de consultar/cobrar o andamento. Um processo que
+  // já disparou a Porta 1 acima também pode cair aqui (as duas não são mutuamente exclusivas: uma
+  // é "aconteceu algo", a outra é "faz tempo que nada aconteceu"), o sócio só vê os dois cards.
+  for (const r of apurarReceivables) {
+    if (!r.caseId || !r.case) continue;
+    if (dismissedApurarParadoIds.has(r.id)) continue;
+    const diasParada = Math.floor((now.getTime() - r.createdAt.getTime()) / 86400000);
+    if (diasParada < APURAR_PARADO_DIAS) continue;
+    alerts.push({
+      id: `honorario-apurar-parado-${r.id}`,
+      kind: "HONORARIO_APURAR_PARADO",
+      title: `Honorário a apurar parado há ${diasParada} dias — ${r.case.title}`,
+      subtitle: "Sem desfecho registrado ainda — considere consultar o andamento do processo.",
+      date: r.createdAt,
+      href: `/processos/${r.caseId}?tab=financeiro`,
+      severity: "baixa",
+      entityId: r.id,
+      processNumber: r.case.processNumber ?? undefined,
+    });
+  }
+
   return alerts.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
@@ -326,6 +441,8 @@ export async function getAlertsCount(
   const dismissedFollowupIds = Array.from(dismissedByKind.get("FOLLOWUP_ATRASADO") ?? []);
   const dismissedParcelaIds = Array.from(dismissedByKind.get("PARCELA_SEM_VENCIMENTO") ?? []);
   const dismissedDriveIds = Array.from(dismissedByKind.get("DRIVE_INCONSISTENCIA") ?? []);
+  const dismissedApurarDecisaoIds = dismissedByKind.get("HONORARIO_APURAR_DECISAO") ?? new Set<string>();
+  const dismissedApurarParadoIds = dismissedByKind.get("HONORARIO_APURAR_PARADO") ?? new Set<string>();
 
   const [
     overdueTasks,
@@ -337,6 +454,7 @@ export async function getAlertsCount(
     overdueFollowups,
     delegatedTasks,
     driveSyncIssues,
+    apurarReceivables,
   ] = await Promise.all([
     prisma.task.count({
       where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
@@ -363,7 +481,29 @@ export async function getAlertsCount(
       ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
       : Promise.resolve(0),
     includeDriveSync ? prisma.driveSyncIssue.count({ where: { officeId, resolvedAt: null, id: { notIn: dismissedDriveIds } } }) : Promise.resolve(0),
+    includeFinance
+      ? prisma.receivable.findMany({ where: { officeId, status: "A_APURAR", caseId: { not: null } }, select: { id: true, createdAt: true, caseId: true } })
+      : Promise.resolve([]),
   ]);
+
+  // Mesma lógica de getAlerts() acima para as duas Portas de apuração do êxito, só contando em
+  // vez de montar o AlertItem inteiro — ver os comentários lá para o porquê de cada critério.
+  const apurarCaseIds = Array.from(new Set(apurarReceivables.map((r) => r.caseId).filter((id): id is string => Boolean(id))));
+  const decisaoCutoff = new Date(now.getTime() - DECISAO_JANELA_DIAS * 86400000);
+  const publicacoesRecentes = apurarCaseIds.length
+    ? await prisma.publication.findMany({
+        where: { officeId, caseId: { in: apurarCaseIds }, publishedAt: { gte: decisaoCutoff } },
+        select: { caseId: true, content: true },
+      })
+    : [];
+  const casosComDecisaoNaoDispensados = new Set(
+    publicacoesRecentes
+      .filter((p) => p.caseId && !dismissedApurarDecisaoIds.has(p.caseId) && contemPalavraDecisao(p.content))
+      .map((p) => p.caseId as string)
+  );
+  const parcelasParadas = apurarReceivables.filter(
+    (r) => !dismissedApurarParadoIds.has(r.id) && now.getTime() - r.createdAt.getTime() >= APURAR_PARADO_DIAS * 86400000
+  ).length;
 
   return (
     overdueTasks +
@@ -374,7 +514,9 @@ export async function getAlertsCount(
     undatedReceivables +
     overdueFollowups +
     delegatedTasks +
-    driveSyncIssues
+    driveSyncIssues +
+    casosComDecisaoNaoDispensados.size +
+    parcelasParadas
   );
 }
 
@@ -390,11 +532,21 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
       include: { case: true },
       orderBy: { dueTime: "asc" },
     }),
+    // PARCIAL entra também (reforço "vence hoje" — Fase 4: antes só PENDENTE/ATRASADO apareciam
+    // aqui, então uma conta que já recebeu baixa parcial mas ainda vence hoje simplesmente sumia
+    // do reforço do dia) — payments incluído para mostrar o SALDO EM ABERTO, não o valor cheio,
+    // mesmo padrão do alerta de conta vencida acima.
     includeFinance
-      ? prisma.payable.findMany({ where: { officeId, dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
+      ? prisma.payable.findMany({
+          where: { officeId, dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false },
+          include: { payments: true },
+        })
       : Promise.resolve([]),
     includeFinance
-      ? prisma.receivable.findMany({ where: { officeId, dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false } })
+      ? prisma.receivable.findMany({
+          where: { officeId, dueDate: { gte: start, lte: end }, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false },
+          include: { payments: true },
+        })
       : Promise.resolve([]),
   ]);
 
@@ -412,20 +564,24 @@ export async function getTodayItems(officeId: string, includeFinance: boolean = 
     });
   }
   for (const p of payablesToday) {
+    const somaPaga = p.payments.reduce((s, x) => s + x.amount, 0);
+    const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, somaPaga);
     items.push({
       id: `payable-today-${p.id}`,
       kind: "CONTA_PAGAR",
       title: p.description,
-      subtitle: `R$ ${valorLiquido(p.amount, p.discount, p.surcharge).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${p.status === "PARCIAL" ? " (saldo em aberto)" : ""}`,
       href: "/financeiro/despesas",
     });
   }
   for (const r of receivablesToday) {
+    const somaPaga = r.payments.reduce((s, x) => s + x.amount, 0);
+    const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, somaPaga);
     items.push({
       id: `receivable-today-${r.id}`,
       kind: "CONTA_RECEBER",
       title: r.description,
-      subtitle: `R$ ${valorLiquido(r.amount, r.discount, r.surcharge).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      subtitle: `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${r.status === "PARCIAL" ? " (saldo em aberto)" : ""}`,
       href: "/financeiro/receitas",
     });
   }

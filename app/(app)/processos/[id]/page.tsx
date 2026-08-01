@@ -5,6 +5,7 @@ import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/component
 import NewTaskModal from "@/components/NewTaskModal";
 import EditReceivableModal from "@/components/EditReceivableModal";
 import LancarHonorariosModal from "@/components/honorarios/LancarHonorariosModal";
+import ApurarHonorarioModal from "@/components/honorarios/ApurarHonorarioModal";
 import HonorarioLancamentoCard from "@/components/honorarios/HonorarioLancamentoCard";
 import EditPayableModal from "@/components/EditPayableModal";
 import SettleButton from "@/components/SettleButton";
@@ -125,7 +126,7 @@ export default async function CaseDetailPage({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -154,8 +155,34 @@ export default async function CaseDetailPage({
     // sem tela de gestão própria (Fase 3); cadastradas por aqui mesmo, via EntityPicker/
     // createBankAccountQuick (ver lib/actions/settings.ts).
     prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    // Feriados locais cadastrados pelo escritório (Configurações → Feriados) — usados pela janela
+    // de apuração do êxito (ApurarHonorarioModal) para calcular o trânsito em julgado presumido
+    // com lib/prazos.ts:addDiasUteis, junto dos feriados nacionais (calculados em código).
+    prisma.holiday.findMany({ where: { officeId: viewer.officeId }, select: { date: true } }),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
+  const holidayDates = holidays.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
+  // Parcelas percentuais "a apurar" deste processo, juntando todos os HonorarioLancamento (pode
+  // haver mais de um sobre a mesma base — contratual e sucumbencial, por exemplo) — alimenta tanto
+  // o botão "Registrar desfecho" (Porta 2) quanto o aviso ao arquivar (Porta 3, via
+  // CaseStatusSelect). jaPagoEmDinheiro é a soma real de FinancePayment das parcelas FIXO do MESMO
+  // cabeçalho, mesma conta que o Server Action (lib/actions/apuracao.ts) refaz na apuração de
+  // verdade — aqui é só para a prévia ao vivo dentro do modal.
+  const pendentesApurar = c.honorarioLancamentos.flatMap((h) => {
+    const jaPagoEmDinheiro = h.parcelas
+      .filter((x) => x.valueType === "FIXO")
+      .reduce((s, x) => s + x.payments.reduce((s2, pm) => s2 + pm.amount, 0), 0);
+    return h.parcelas
+      .filter((p) => p.status === "A_APURAR")
+      .map((p) => ({
+        id: p.id,
+        description: p.description,
+        percentual: p.percentual ?? 0,
+        percentualBase: p.percentualBase ?? "VALOR_CAUSA",
+        abaterEntrada: p.abaterEntrada,
+        jaPagoEmDinheiro,
+      }));
+  });
   const caseClients = effectiveCaseClients(c);
   const caseParties = effectiveCaseParties(c);
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
@@ -225,7 +252,7 @@ export default async function CaseDetailPage({
           <PeticionarButton compact caseId={c.id} />
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
           <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
-          <CaseStatusSelect caseId={c.id} status={c.status} />
+          <CaseStatusSelect caseId={c.id} status={c.status} hasPendingApuracao={pendentesApurar.length > 0} />
           <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
         </div>
       </div>
@@ -420,7 +447,10 @@ export default async function CaseDetailPage({
 
       {tab === "financeiro" && (
         <div>
-          <div className="flex justify-end mb-3">
+          <div className="flex justify-end gap-2 mb-3">
+            {pendentesApurar.length > 0 && (
+              <ApurarHonorarioModal caseId={c.id} caseTitle={c.title} pendentes={pendentesApurar} holidays={holidayDates} />
+            )}
             <LancarHonorariosModal
               categories={receivableCategories}
               clients={caseClients.map((cc) => ({ id: cc.id, name: cc.name }))}

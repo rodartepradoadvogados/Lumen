@@ -4,26 +4,41 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markPayablePaid, markReceivablePaid, reopenPayable, reopenReceivable } from "@/lib/actions/financeiro";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
+import { formatCurrency } from "@/components/ui";
 import { Check, RotateCcw, X } from "lucide-react";
+
+type Option = { id: string; name: string };
 
 // Versão mobile compacta do fluxo SettleButton/SettleModal do desktop: em vez de um modal
 // sobreposto, abre um formulário inline logo abaixo do item da lista (mesmos campos e mesmas
-// server actions do desktop — valor pago, data, forma de pagamento, nº do comprovante).
+// server actions do desktop — valor pago, data, conta bancária, forma de pagamento, nº do
+// comprovante — Fase 4: antes só tinha baixa integral, sem conta nem prévia de saldo).
+// `liquido`/`alreadyPaid` (em vez de um único `amount` já resolvido) para poder mostrar a MESMA
+// prévia de saldo em aberto/PARCIAL do desktop (ver SettleModal.tsx) — quem chama já tem os dois
+// valores calculados (ver app/m/financeiro/despesas|receitas/page.tsx).
 export default function MobileSettleForm({
   id,
   kind,
-  amount,
+  liquido,
+  alreadyPaid,
   status,
+  bankAccounts,
 }: {
   id: string;
   kind: "payable" | "receivable";
-  amount: number;
+  liquido: number;
+  alreadyPaid: number;
   status: string;
+  bankAccounts: Option[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useTransition();
+  const saldoAtual = Math.max(0, liquido - alreadyPaid);
+  const [paidAmount, setPaidAmount] = useState(saldoAtual > 0 ? saldoAtual.toFixed(2) : "");
+  const paidAmountNum = parseFloat(paidAmount || "0") || 0;
+  const ficaParcial = paidAmountNum > 0 && paidAmountNum < saldoAtual - 0.004;
 
   if (status === "PAGO") {
     return (
@@ -65,16 +80,22 @@ export default function MobileSettleForm({
           <X size={14} />
         </button>
       </div>
+      {alreadyPaid > 0 && (
+        <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60 bg-white/60 dark:bg-white/5 rounded-lg px-2.5 py-1.5">
+          Já pago: <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
+          <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(saldoAtual)}</span>
+        </p>
+      )}
       <form
         action={async (formData) => {
           setLoading(true);
-          const paidAmount = parseFloat(String(formData.get("paidAmount")));
           const paidDate = String(formData.get("paidDate"));
           const receiptNumber = String(formData.get("receiptNumber") || "");
           const paymentMethod = String(formData.get("paymentMethod") || "");
+          const bankAccountId = String(formData.get("bankAccountId") || "");
           await (kind === "payable"
-            ? markPayablePaid(id, paidAmount, paidDate, receiptNumber, paymentMethod)
-            : markReceivablePaid(id, paidAmount, paidDate, receiptNumber, paymentMethod));
+            ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
+            : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
           setLoading(false);
           setOpen(false);
           router.refresh();
@@ -84,12 +105,37 @@ export default function MobileSettleForm({
         <div className="grid grid-cols-2 gap-2.5">
           <div>
             <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Valor pago (R$)</label>
-            <input name="paidAmount" type="number" step="0.01" defaultValue={amount} required className="mobile-input" />
+            <input
+              name="paidAmount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={paidAmount}
+              onChange={(e) => setPaidAmount(e.target.value)}
+              required
+              className="mobile-input"
+            />
           </div>
           <div>
             <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
             <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="mobile-input" />
           </div>
+        </div>
+        {ficaParcial && (
+          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-2.5 py-1.5">
+            Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>.
+          </p>
+        )}
+        <div>
+          <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Conta bancária</label>
+          <select name="bankAccountId" defaultValue="" className="mobile-input">
+            <option value="">Nenhuma</option>
+            {bankAccounts.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Forma de pagamento</label>
@@ -110,7 +156,7 @@ export default function MobileSettleForm({
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || paidAmountNum <= 0}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2 rounded-lg disabled:opacity-50"
         >
           {loading ? "Confirmando..." : "Confirmar Baixa"}
