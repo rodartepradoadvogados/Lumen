@@ -24,9 +24,16 @@ export const DEFAULT_CHART_OF_ACCOUNTS: CatNode[] = [
       { code: "1.1", name: "Honorários Contratuais", kind: "RECEITA" },
       { code: "1.2", name: "Honorários Sucumbenciais", kind: "RECEITA" },
       { code: "1.3", name: "Honorários de Consultoria", kind: "RECEITA" },
-      { code: "1.4", name: "Reembolso", kind: "RECEITA" },
-      { code: "1.5", name: "Rendimentos Financeiros", kind: "RECEITA" },
-      { code: "1.6", name: "Outras Receitas", kind: "RECEITA" },
+      // 1.4-1.6 acrescentados junto da natureza "Acordo" em honorários (Fase 9) — Acordo
+      // judicial/extrajudicial como categorias irmãs de Contratual/Sucumbencial acima, e
+      // Assessoria Jurídica como categoria própria pro módulo de Assessoria (lib/actions/
+      // assessoria.ts), que até aqui não tinha nenhuma categoria de receita dedicada.
+      { code: "1.4", name: "Acordo Judicial", kind: "RECEITA" },
+      { code: "1.5", name: "Acordo Extrajudicial", kind: "RECEITA" },
+      { code: "1.6", name: "Assessoria Jurídica", kind: "RECEITA" },
+      { code: "1.7", name: "Reembolso", kind: "RECEITA" },
+      { code: "1.8", name: "Rendimentos Financeiros", kind: "RECEITA" },
+      { code: "1.9", name: "Outras Receitas", kind: "RECEITA" },
     ],
   },
   {
