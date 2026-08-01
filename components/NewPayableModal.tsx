@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPayable, type ParcelaInput, type PagamentoInput } from "@/lib/actions/financeiro";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import { createCaseQuick } from "@/lib/actions/cases";
 import { createSupplierQuick } from "@/lib/actions/suppliers";
 import { createCostCenterQuick, createBankAccountQuick } from "@/lib/actions/settings";
@@ -200,6 +201,8 @@ export default function NewPayableModal({
     setOpen(false);
   }
 
+  useEscapeToClose(open, resetAndClose);
+
   // Rótulo muda conforme a entrada (mesma ideia de LancarHonorariosModal, que sempre mostra
   // "Lançar Honorários" — aqui o texto reflete o que a Fase 10 pediu: dentro do Processo isto é
   // "Lançar Despesa"; no Financeiro central continua "Nova Conta a Pagar", como sempre foi.
@@ -227,57 +230,62 @@ export default function NewPayableModal({
               action={async (formData) => {
                 setLoading(true);
                 setError("");
-                const description = String(formData.get("description") || "");
-                const supplierId = String(formData.get("supplierId") || "");
-                const costCenterId = String(formData.get("costCenterId") || "");
-                const categoryId = String(formData.get("categoryId") || "");
-                // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
-                // (entrada pelo Financeiro central) — mesma convenção de LancarHonorariosModal.tsx.
-                const effectiveCaseId = defaultCaseId || caseId;
-                const responsibleId = String(formData.get("responsibleId") || "");
-                const bankAccountId = String(formData.get("bankAccountId") || "");
-                const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
+                try {
+                  const description = String(formData.get("description") || "");
+                  const supplierId = String(formData.get("supplierId") || "");
+                  const costCenterId = String(formData.get("costCenterId") || "");
+                  const categoryId = String(formData.get("categoryId") || "");
+                  // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
+                  // (entrada pelo Financeiro central) — mesma convenção de LancarHonorariosModal.tsx.
+                  const effectiveCaseId = defaultCaseId || caseId;
+                  const responsibleId = String(formData.get("responsibleId") || "");
+                  const bankAccountId = String(formData.get("bankAccountId") || "");
+                  const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
 
-                const parcelasInput: ParcelaInput[] = parcelas.map((p) => ({
-                  dueDate: p.dueDate,
-                  amount: p.amount,
-                  installmentBoleto: p.installmentBoleto || undefined,
-                  pago: p.pago,
-                }));
-                const pagamentoInput: PagamentoInput | undefined = pago
-                  ? { paidDate, paidAmount, bankAccountId: bankAccountId || undefined, documentNumber: paymentDocumentNumber || undefined, paymentMethod }
-                  : undefined;
+                  const parcelasInput: ParcelaInput[] = parcelas.map((p) => ({
+                    dueDate: p.dueDate,
+                    amount: p.amount,
+                    installmentBoleto: p.installmentBoleto || undefined,
+                    pago: p.pago,
+                  }));
+                  const pagamentoInput: PagamentoInput | undefined = pago
+                    ? { paidDate, paidAmount, bankAccountId: bankAccountId || undefined, documentNumber: paymentDocumentNumber || undefined, paymentMethod }
+                    : undefined;
 
-                const result = await createPayable({
-                  description,
-                  supplierId: supplierId || undefined,
-                  costCenterId: costCenterId || undefined,
-                  categoryId: categoryId || undefined,
-                  caseId: effectiveCaseId || undefined,
-                  kind: effectiveCaseId ? kind : undefined,
-                  expensePayer: effectiveCaseId ? expensePayer : undefined,
-                  createReimbursement: effectiveCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
-                  responsibleId: responsibleId || undefined,
-                  documentType: documentType || undefined,
-                  documentNumber: documentNumber || undefined,
-                  issueDate: issueDate || undefined,
-                  amount: parcelado ? undefined : amount,
-                  discount: parcelado ? undefined : discount,
-                  surcharge: parcelado ? undefined : surcharge,
-                  dueDate: semVencimento ? undefined : dueDate,
-                  noDueDate: semVencimento,
-                  parcelado,
-                  parcelas: parcelado ? parcelasInput : undefined,
-                  pago,
-                  pagamento: pagamentoInput,
-                });
-                setLoading(false);
-                if (result.error) {
-                  setError(result.error);
-                  return;
+                  const result = await createPayable({
+                    description,
+                    supplierId: supplierId || undefined,
+                    costCenterId: costCenterId || undefined,
+                    categoryId: categoryId || undefined,
+                    caseId: effectiveCaseId || undefined,
+                    kind: effectiveCaseId ? kind : undefined,
+                    expensePayer: effectiveCaseId ? expensePayer : undefined,
+                    createReimbursement: effectiveCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
+                    responsibleId: responsibleId || undefined,
+                    documentType: documentType || undefined,
+                    documentNumber: documentNumber || undefined,
+                    issueDate: issueDate || undefined,
+                    amount: parcelado ? undefined : amount,
+                    discount: parcelado ? undefined : discount,
+                    surcharge: parcelado ? undefined : surcharge,
+                    dueDate: semVencimento ? undefined : dueDate,
+                    noDueDate: semVencimento,
+                    parcelado,
+                    parcelas: parcelado ? parcelasInput : undefined,
+                    pago,
+                    pagamento: pagamentoInput,
+                  });
+                  setLoading(false);
+                  if (result.error) {
+                    setError(result.error);
+                    return;
+                  }
+                  setOpen(false);
+                  router.refresh();
+                } catch (err) {
+                  setLoading(false);
+                  setError(err instanceof Error ? err.message : "Não foi possível salvar o lançamento. Tente novamente.");
                 }
-                setOpen(false);
-                router.refresh();
               }}
               className="flex-1 flex flex-col min-h-0"
             >

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReceivable, type ParcelaInput, type PagamentoInput } from "@/lib/actions/financeiro";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import { createClientQuick } from "@/lib/actions/contatos";
 import { createCaseQuick } from "@/lib/actions/cases";
 import { createCostCenterQuick, createBankAccountQuick } from "@/lib/actions/settings";
@@ -158,6 +159,8 @@ export default function NewReceivableModal({
     setOpen(false);
   }
 
+  useEscapeToClose(open, resetAndClose);
+
   return (
     <>
       <button
@@ -180,53 +183,58 @@ export default function NewReceivableModal({
               action={async (formData) => {
                 setLoading(true);
                 setError("");
-                const description = String(formData.get("description") || "");
-                const clientId = String(formData.get("clientId") || "");
-                const costCenterId = String(formData.get("costCenterId") || "");
-                const categoryId = String(formData.get("categoryId") || "");
-                const caseId = defaultCaseId || String(formData.get("caseId") || "");
-                const responsibleId = String(formData.get("responsibleId") || "");
-                const bankAccountId = String(formData.get("bankAccountId") || "");
-                const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
+                try {
+                  const description = String(formData.get("description") || "");
+                  const clientId = String(formData.get("clientId") || "");
+                  const costCenterId = String(formData.get("costCenterId") || "");
+                  const categoryId = String(formData.get("categoryId") || "");
+                  const caseId = defaultCaseId || String(formData.get("caseId") || "");
+                  const responsibleId = String(formData.get("responsibleId") || "");
+                  const bankAccountId = String(formData.get("bankAccountId") || "");
+                  const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
 
-                const parcelasInput: ParcelaInput[] = parcelas.map((p) => ({
-                  dueDate: p.dueDate,
-                  amount: p.amount,
-                  installmentBoleto: p.installmentBoleto || undefined,
-                  pago: p.pago,
-                }));
-                const pagamentoInput: PagamentoInput | undefined = recebido
-                  ? { paidDate, paidAmount, bankAccountId: bankAccountId || undefined, documentNumber: paymentDocumentNumber || undefined, paymentMethod }
-                  : undefined;
+                  const parcelasInput: ParcelaInput[] = parcelas.map((p) => ({
+                    dueDate: p.dueDate,
+                    amount: p.amount,
+                    installmentBoleto: p.installmentBoleto || undefined,
+                    pago: p.pago,
+                  }));
+                  const pagamentoInput: PagamentoInput | undefined = recebido
+                    ? { paidDate, paidAmount, bankAccountId: bankAccountId || undefined, documentNumber: paymentDocumentNumber || undefined, paymentMethod }
+                    : undefined;
 
-                const result = await createReceivable({
-                  description,
-                  clientId: clientId || undefined,
-                  costCenterId: costCenterId || undefined,
-                  categoryId: categoryId || undefined,
-                  caseId: caseId || undefined,
-                  responsibleId: responsibleId || undefined,
-                  kind,
-                  documentType: documentType || undefined,
-                  documentNumber: documentNumber || undefined,
-                  issueDate: issueDate || undefined,
-                  amount: parcelado ? undefined : amount,
-                  discount: parcelado ? undefined : discount,
-                  surcharge: parcelado ? undefined : surcharge,
-                  dueDate: semVencimento ? undefined : dueDate,
-                  noDueDate: semVencimento,
-                  parcelado,
-                  parcelas: parcelado ? parcelasInput : undefined,
-                  recebido,
-                  pagamento: pagamentoInput,
-                });
-                setLoading(false);
-                if (result.error) {
-                  setError(result.error);
-                  return;
+                  const result = await createReceivable({
+                    description,
+                    clientId: clientId || undefined,
+                    costCenterId: costCenterId || undefined,
+                    categoryId: categoryId || undefined,
+                    caseId: caseId || undefined,
+                    responsibleId: responsibleId || undefined,
+                    kind,
+                    documentType: documentType || undefined,
+                    documentNumber: documentNumber || undefined,
+                    issueDate: issueDate || undefined,
+                    amount: parcelado ? undefined : amount,
+                    discount: parcelado ? undefined : discount,
+                    surcharge: parcelado ? undefined : surcharge,
+                    dueDate: semVencimento ? undefined : dueDate,
+                    noDueDate: semVencimento,
+                    parcelado,
+                    parcelas: parcelado ? parcelasInput : undefined,
+                    recebido,
+                    pagamento: pagamentoInput,
+                  });
+                  setLoading(false);
+                  if (result.error) {
+                    setError(result.error);
+                    return;
+                  }
+                  setOpen(false);
+                  router.refresh();
+                } catch (err) {
+                  setLoading(false);
+                  setError(err instanceof Error ? err.message : "Não foi possível salvar o lançamento. Tente novamente.");
                 }
-                setOpen(false);
-                router.refresh();
               }}
               className="flex-1 flex flex-col min-h-0"
             >

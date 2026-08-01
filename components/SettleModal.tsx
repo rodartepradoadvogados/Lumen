@@ -8,6 +8,7 @@ import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { formatCurrency } from "@/components/ui";
 import { X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 type Option = { id: string; name: string };
 
@@ -34,12 +35,19 @@ export default function SettleModal({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const saldoAtual = Math.max(0, liquido - alreadyPaid);
   const [paidAmount, setPaidAmount] = useState(saldoAtual > 0 ? saldoAtual.toFixed(2) : "");
 
   const valorNum = parseFloat(paidAmount || "0") || 0;
   const ficaParcial = valorNum > 0 && valorNum < saldoAtual - 0.004;
   const saldoResultante = Math.max(0, saldoAtual - valorNum);
+
+  // Sempre montado só quando aberto (o pai decide renderizar <SettleModal /> ou não), então o
+  // hook fica sempre "ativo" enquanto este componente existe — mesma convenção de
+  // components/ClientQualificationModal.tsx e components/AttendanceLostReasonModal.tsx, que
+  // também recebem `onClose` do pai em vez de ter seu próprio estado `open`.
+  useEscapeToClose(true, onClose);
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
@@ -53,17 +61,23 @@ export default function SettleModal({
         <form
           action={async (formData) => {
             setLoading(true);
+            setError("");
             const paidAmountNum = parseFloat(String(formData.get("paidAmount")));
             const paidDate = String(formData.get("paidDate"));
             const receiptNumber = String(formData.get("receiptNumber") || "");
             const paymentMethod = String(formData.get("paymentMethod") || "");
             const bankAccountId = String(formData.get("bankAccountId") || "");
-            await (kind === "payable"
-              ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
-              : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
-            setLoading(false);
-            router.refresh();
-            onClose();
+            try {
+              await (kind === "payable"
+                ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
+                : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
+              router.refresh();
+              onClose();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Erro ao confirmar a baixa. Tente novamente.");
+            } finally {
+              setLoading(false);
+            }
           }}
           className="p-5 space-y-3"
         >
@@ -124,6 +138,7 @@ export default function SettleModal({
               após esta baixa.
             </p>
           )}
+          {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={loading || valorNum <= 0}

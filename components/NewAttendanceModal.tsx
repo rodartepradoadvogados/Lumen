@@ -17,6 +17,7 @@ import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEditor";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 type ClientHit = { id: string; name: string; phone: string | null; email: string | null };
 type AssessoriaOption = { id: string; clientName: string };
@@ -223,6 +224,13 @@ export default function NewAttendanceModal({
     setConfirmClose(true);
   }
 
+  // Esc passa pelo mesmo caminho do X (handleCloseAttempt) — respeita o aviso de "alteração não
+  // salva" em vez de fechar direto. Quando o próprio aviso já está aberto (confirmClose), Esc
+  // cancela SÓ o aviso (mesmo destino do botão "Cancelar" dele, abaixo) em vez de acionar
+  // handleCloseAttempt de novo por cima.
+  useEscapeToClose(open && !confirmClose, handleCloseAttempt);
+  useEscapeToClose(confirmClose, () => setConfirmClose(false));
+
   function pickClient(c: ClientHit) {
     setSelectedClient(c);
     setContactPhone(c.phone || "");
@@ -308,12 +316,19 @@ export default function NewAttendanceModal({
   async function handleSaveDraft() {
     setLoading(true);
     setProgressText("Salvando rascunho...");
-    await saveAttendanceDraft({ ...collectFieldsFromForm(), ...collectFeeAndPendencias() });
-    setLoading(false);
-    setProgressText("");
-    setOpen(false);
-    resetForm();
-    router.refresh();
+    setFormError("");
+    try {
+      await saveAttendanceDraft({ ...collectFieldsFromForm(), ...collectFeeAndPendencias() });
+      setLoading(false);
+      setProgressText("");
+      setOpen(false);
+      resetForm();
+      router.refresh();
+    } catch (err) {
+      setLoading(false);
+      setProgressText("");
+      setFormError(err instanceof Error ? err.message : "Não foi possível salvar o rascunho. Tente novamente.");
+    }
   }
 
   function handleDiscard() {

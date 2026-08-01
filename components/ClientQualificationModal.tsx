@@ -6,6 +6,7 @@ import ConvertAttendanceForm from "@/components/ConvertAttendanceForm";
 import MaskedInput from "@/components/MaskedInput";
 import { maskCpfCnpj } from "@/lib/masks";
 import { X } from "lucide-react";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 export default function ClientQualificationModal({
   clientId,
@@ -18,23 +19,31 @@ export default function ClientQualificationModal({
 }) {
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   function handleSubmit(formData: FormData) {
     setSaved(false);
+    setError("");
     startTransition(async () => {
-      await updateClientQualification(clientId, {
-        type: String(formData.get("type") || ""),
-        document: String(formData.get("document") || ""),
-        rg: String(formData.get("rg") || ""),
-        nationality: String(formData.get("nationality") || ""),
-        maritalStatus: String(formData.get("maritalStatus") || ""),
-        profession: String(formData.get("profession") || ""),
-        address: String(formData.get("address") || ""),
-        notes: String(formData.get("notes") || ""),
-      });
-      setSaved(true);
+      try {
+        await updateClientQualification(clientId, {
+          type: String(formData.get("type") || ""),
+          document: String(formData.get("document") || ""),
+          rg: String(formData.get("rg") || ""),
+          nationality: String(formData.get("nationality") || ""),
+          maritalStatus: String(formData.get("maritalStatus") || ""),
+          profession: String(formData.get("profession") || ""),
+          address: String(formData.get("address") || ""),
+          notes: String(formData.get("notes") || ""),
+        });
+        setSaved(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Não foi possível salvar o cadastro. Tente novamente.");
+      }
     });
   }
+
+  useEscapeToClose(true, onClose);
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
@@ -103,6 +112,9 @@ export default function ClientQualificationModal({
                 {pending ? "Salvando..." : "Salvar"}
               </button>
               {saved && !pending && <span className="text-xs font-semibold text-green-700 dark:text-emerald-400">Cadastro atualizado.</span>}
+              {error && !pending && (
+                <span className="text-xs font-semibold text-bordo-700 dark:text-bordo-400">{error}</span>
+              )}
             </div>
           </form>
 

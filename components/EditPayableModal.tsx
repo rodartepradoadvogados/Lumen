@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updatePayable } from "@/lib/actions/financeiro";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import { createCaseQuick } from "@/lib/actions/cases";
 import { createSupplierQuick } from "@/lib/actions/suppliers";
 import { createCostCenterQuick } from "@/lib/actions/settings";
@@ -134,6 +135,8 @@ export default function EditPayableModal({
   const surchargeNum = parseFloat(surcharge || "0") || 0;
   const liquido = valorLiquido(amountNum, discountNum, surchargeNum);
 
+  useEscapeToClose(open, () => setOpen(false));
+
   return (
     <>
       <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors">
@@ -153,38 +156,43 @@ export default function EditPayableModal({
               action={async (formData) => {
                 setLoading(true);
                 setError("");
-                // Mesma trava do lado do servidor (updatePayable, lib/actions/financeiro.ts): com
-                // reembolso já vinculado, o processo desta despesa não muda mais por aqui — o
-                // seletor abaixo fica desabilitado, então formData sempre traz o mesmo caseId
-                // atual nesse caso.
-                const submittedCaseId = hasReimbursement ? (payable.caseId ?? "") : String(formData.get("caseId") || "");
-                const result = await updatePayable(payable.id, {
-                  description: String(formData.get("description")),
-                  supplierId: String(formData.get("supplierId") || ""),
-                  costCenterId: String(formData.get("costCenterId") || ""),
-                  categoryId: String(formData.get("categoryId") || ""),
-                  caseId: submittedCaseId,
-                  responsibleId: String(formData.get("responsibleId") || ""),
-                  documentType: String(formData.get("documentType") || ""),
-                  documentNumber: String(formData.get("documentNumber") || ""),
-                  issueDate: String(formData.get("issueDate") || ""),
-                  installmentBoleto: String(formData.get("installmentBoleto") || ""),
-                  amount,
-                  discount,
-                  surcharge,
-                  dueDate: String(formData.get("dueDate") || ""),
-                  noDueDate: semVencimento,
-                  kind: submittedCaseId ? kind : undefined,
-                  expensePayer: submittedCaseId ? expensePayer : undefined,
-                  createReimbursement: submittedCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
-                });
-                setLoading(false);
-                if (result.error) {
-                  setError(result.error);
-                  return;
+                try {
+                  // Mesma trava do lado do servidor (updatePayable, lib/actions/financeiro.ts): com
+                  // reembolso já vinculado, o processo desta despesa não muda mais por aqui — o
+                  // seletor abaixo fica desabilitado, então formData sempre traz o mesmo caseId
+                  // atual nesse caso.
+                  const submittedCaseId = hasReimbursement ? (payable.caseId ?? "") : String(formData.get("caseId") || "");
+                  const result = await updatePayable(payable.id, {
+                    description: String(formData.get("description")),
+                    supplierId: String(formData.get("supplierId") || ""),
+                    costCenterId: String(formData.get("costCenterId") || ""),
+                    categoryId: String(formData.get("categoryId") || ""),
+                    caseId: submittedCaseId,
+                    responsibleId: String(formData.get("responsibleId") || ""),
+                    documentType: String(formData.get("documentType") || ""),
+                    documentNumber: String(formData.get("documentNumber") || ""),
+                    issueDate: String(formData.get("issueDate") || ""),
+                    installmentBoleto: String(formData.get("installmentBoleto") || ""),
+                    amount,
+                    discount,
+                    surcharge,
+                    dueDate: String(formData.get("dueDate") || ""),
+                    noDueDate: semVencimento,
+                    kind: submittedCaseId ? kind : undefined,
+                    expensePayer: submittedCaseId ? expensePayer : undefined,
+                    createReimbursement: submittedCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
+                  });
+                  setLoading(false);
+                  if (result.error) {
+                    setError(result.error);
+                    return;
+                  }
+                  setOpen(false);
+                  router.refresh();
+                } catch (err) {
+                  setLoading(false);
+                  setError(err instanceof Error ? err.message : "Não foi possível salvar as alterações. Tente novamente.");
                 }
-                setOpen(false);
-                router.refresh();
               }}
               className="flex-1 flex flex-col min-h-0"
             >

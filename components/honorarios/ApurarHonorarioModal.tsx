@@ -14,6 +14,7 @@ import { valorPercentualApurado } from "@/lib/financeCalc";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { formatCurrency, formatCalendarDate } from "@/components/ui";
 import { Gavel, X } from "lucide-react";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 export type PendenteApurar = {
   id: string;
@@ -95,23 +96,30 @@ export default function ApurarHonorarioModal({
   async function handleSubmit() {
     setLoading(true);
     setError("");
-    const result = await apurarHonorario({
-      caseId,
-      percentualBase: base,
-      desfecho,
-      valorApurado: semExito ? undefined : valorApurado,
-      decisionDate,
-      transitoDate: semExito ? decisionDate : transitoDateStr,
-      transitoPresumido: usarPresuncao,
-    });
-    setLoading(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await apurarHonorario({
+        caseId,
+        percentualBase: base,
+        desfecho,
+        valorApurado: semExito ? undefined : valorApurado,
+        decisionDate,
+        transitoDate: semExito ? decisionDate : transitoDateStr,
+        transitoPresumido: usarPresuncao,
+      });
+      setLoading(false);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Não foi possível registrar a apuração. Tente novamente.");
     }
-    setOpen(false);
-    router.refresh();
   }
+
+  useEscapeToClose(open, resetAndClose);
 
   if (pendentes.length === 0) return null;
 

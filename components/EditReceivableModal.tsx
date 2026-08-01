@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateReceivable } from "@/lib/actions/financeiro";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import { createClientQuick } from "@/lib/actions/contatos";
 import { createCaseQuick } from "@/lib/actions/cases";
 import { createCostCenterQuick } from "@/lib/actions/settings";
@@ -75,6 +76,8 @@ export default function EditReceivableModal({
   const liquido = valorLiquido(amountNum, discountNum, surchargeNum);
   const isApurar = receivable.status === "A_APURAR";
 
+  useEscapeToClose(open, () => setOpen(false));
+
   return (
     <>
       <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors">
@@ -94,31 +97,36 @@ export default function EditReceivableModal({
               action={async (formData) => {
                 setLoading(true);
                 setError("");
-                const result = await updateReceivable(receivable.id, {
-                  description: String(formData.get("description")),
-                  amount,
-                  discount,
-                  surcharge,
-                  dueDate: String(formData.get("dueDate") || ""),
-                  kind: String(formData.get("kind")),
-                  categoryId: String(formData.get("categoryId") || ""),
-                  costCenterId: String(formData.get("costCenterId") || ""),
-                  clientId: String(formData.get("clientId") || ""),
-                  caseId: String(formData.get("caseId") || ""),
-                  responsibleId: String(formData.get("responsibleId") || ""),
-                  documentType: String(formData.get("documentType") || ""),
-                  documentNumber: String(formData.get("documentNumber") || ""),
-                  issueDate: String(formData.get("issueDate") || ""),
-                  installmentBoleto: String(formData.get("installmentBoleto") || ""),
-                  noDueDate: semVencimento,
-                });
-                setLoading(false);
-                if (result.error) {
-                  setError(result.error);
-                  return;
+                try {
+                  const result = await updateReceivable(receivable.id, {
+                    description: String(formData.get("description")),
+                    amount,
+                    discount,
+                    surcharge,
+                    dueDate: String(formData.get("dueDate") || ""),
+                    kind: String(formData.get("kind")),
+                    categoryId: String(formData.get("categoryId") || ""),
+                    costCenterId: String(formData.get("costCenterId") || ""),
+                    clientId: String(formData.get("clientId") || ""),
+                    caseId: String(formData.get("caseId") || ""),
+                    responsibleId: String(formData.get("responsibleId") || ""),
+                    documentType: String(formData.get("documentType") || ""),
+                    documentNumber: String(formData.get("documentNumber") || ""),
+                    issueDate: String(formData.get("issueDate") || ""),
+                    installmentBoleto: String(formData.get("installmentBoleto") || ""),
+                    noDueDate: semVencimento,
+                  });
+                  setLoading(false);
+                  if (result.error) {
+                    setError(result.error);
+                    return;
+                  }
+                  setOpen(false);
+                  router.refresh();
+                } catch (err) {
+                  setLoading(false);
+                  setError(err instanceof Error ? err.message : "Não foi possível salvar as alterações. Tente novamente.");
                 }
-                setOpen(false);
-                router.refresh();
               }}
               className="flex-1 flex flex-col min-h-0"
             >

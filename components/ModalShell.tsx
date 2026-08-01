@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 // Casca padrão das janelas de lançamento/edição do site — extraída da tela de Lançar
 // Honorários e de Contas a Pagar/Receber (Fases 1-4 do Financeiro), que virou a referência do
@@ -51,6 +52,10 @@ export default function ModalShell({
   children: ReactNode;
   className?: string;
 }) {
+  // Sempre montado com `active=true`: quem chama ModalShell só o renderiza quando o modal está
+  // aberto (`{open && <ModalShell ... />}`), então não há um "fechado" para o hook distinguir aqui.
+  useEscapeToClose(true, onClose);
+
   return (
     <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
       <div

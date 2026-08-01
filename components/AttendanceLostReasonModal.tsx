@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 // Opções fechadas do motivo da perda (Fase 5) — item que alimenta o relatório de captação.
 // "Outro" exige um texto livre além da caixinha, para o motivo nunca ficar vazio.
@@ -23,6 +24,8 @@ export default function AttendanceLostReasonModal({
     if (!canConfirm) return;
     onConfirm(isOther ? otherText.trim() : selected);
   }
+
+  useEscapeToClose(true, onCancel);
 
   return (
     <div className="fixed inset-0 z-[70] bg-navy-950/40 flex items-center justify-center p-4">

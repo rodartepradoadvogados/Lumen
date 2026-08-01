@@ -23,6 +23,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [type, setType] = useState("TAREFA");
   const [meetingType, setMeetingType] = useState("PRESENCIAL");
 
@@ -52,30 +53,42 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
 
   async function handleSubmit(formData: FormData) {
     setSaving(true);
-    await updateTask(taskId, {
-      title: String(formData.get("title")),
-      type: String(formData.get("type")),
-      dueDate: String(formData.get("dueDate")),
-      dueTime: String(formData.get("dueTime") || ""),
-      priority: String(formData.get("priority")),
-      responsibleId: String(formData.get("responsibleId") || ""),
-      description: String(formData.get("description") || ""),
-      meetingType: String(formData.get("meetingType") || ""),
-      location: String(formData.get("location") || ""),
-      meetingUrl: String(formData.get("meetingUrl") || ""),
-      strategy: String(formData.get("strategy") || ""),
-    });
-    setSaving(false);
-    router.refresh();
-    onClose();
+    setError("");
+    try {
+      await updateTask(taskId, {
+        title: String(formData.get("title")),
+        type: String(formData.get("type")),
+        dueDate: String(formData.get("dueDate")),
+        dueTime: String(formData.get("dueTime") || ""),
+        priority: String(formData.get("priority")),
+        responsibleId: String(formData.get("responsibleId") || ""),
+        description: String(formData.get("description") || ""),
+        meetingType: String(formData.get("meetingType") || ""),
+        location: String(formData.get("location") || ""),
+        meetingUrl: String(formData.get("meetingUrl") || ""),
+        strategy: String(formData.get("strategy") || ""),
+      });
+      setSaving(false);
+      router.refresh();
+      onClose();
+    } catch (err) {
+      setSaving(false);
+      setError(err instanceof Error ? err.message : "Não foi possível salvar o compromisso. Tente novamente.");
+    }
   }
 
   async function handleToggleDone() {
     setSaving(true);
-    await toggleTaskDone(taskId);
-    setSaving(false);
-    router.refresh();
-    onClose();
+    setError("");
+    try {
+      await toggleTaskDone(taskId);
+      setSaving(false);
+      router.refresh();
+      onClose();
+    } catch (err) {
+      setSaving(false);
+      setError(err instanceof Error ? err.message : "Não foi possível atualizar o status. Tente novamente.");
+    }
   }
 
   return (
@@ -236,6 +249,9 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           </div>
 
           <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center gap-2 flex-wrap bg-cream-50/60 dark:bg-white/5">
+            {error && (
+              <p className="w-full text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>
+            )}
             <button
               type="submit"
               form="task-detail-form"

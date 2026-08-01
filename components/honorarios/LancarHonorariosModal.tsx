@@ -18,6 +18,7 @@ import { valorLiquido } from "@/lib/financeCalc";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { formatCurrency } from "@/components/ui";
 import { Plus, X } from "lucide-react";
+import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 
@@ -308,6 +309,8 @@ export default function LancarHonorariosModal({
     setOpen(false);
   }
 
+  useEscapeToClose(open, resetAndClose);
+
   return (
     <>
       <button
@@ -330,93 +333,98 @@ export default function LancarHonorariosModal({
               action={async (formData) => {
                 setLoading(true);
                 setError("");
-                const description = String(formData.get("description") || "");
-                const clientId = String(formData.get("clientId") || "");
-                const costCenterId = String(formData.get("costCenterId") || "");
-                const categoryId = String(formData.get("categoryId") || "");
-                const responsibleId = String(formData.get("responsibleId") || "");
-                const bankAccountId = String(formData.get("bankAccountId") || "");
-                const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
-                // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
-                // (entrada pelo Financeiro, Fase 7) — de onde quer que venha, createHonorarioLancamento
-                // continua exigindo caseId obrigatório, então validamos aqui antes de chamá-lo (a
-                // trava de verdade é sempre o Server Action, isto é só para não deixar a tela mandar
-                // uma requisição que o próprio usuário já vê que vai falhar).
-                const effectiveCaseId = defaultCaseId || String(formData.get("caseId") || "");
-                if (!effectiveCaseId) {
-                  setLoading(false);
-                  setError("Selecione um processo — honorário sem processo não faz sentido.");
-                  return;
-                }
+                try {
+                  const description = String(formData.get("description") || "");
+                  const clientId = String(formData.get("clientId") || "");
+                  const costCenterId = String(formData.get("costCenterId") || "");
+                  const categoryId = String(formData.get("categoryId") || "");
+                  const responsibleId = String(formData.get("responsibleId") || "");
+                  const bankAccountId = String(formData.get("bankAccountId") || "");
+                  const paymentDocumentNumber = String(formData.get("paymentDocumentNumber") || "");
+                  // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
+                  // (entrada pelo Financeiro, Fase 7) — de onde quer que venha, createHonorarioLancamento
+                  // continua exigindo caseId obrigatório, então validamos aqui antes de chamá-lo (a
+                  // trava de verdade é sempre o Server Action, isto é só para não deixar a tela mandar
+                  // uma requisição que o próprio usuário já vê que vai falhar).
+                  const effectiveCaseId = defaultCaseId || String(formData.get("caseId") || "");
+                  if (!effectiveCaseId) {
+                    setLoading(false);
+                    setError("Selecione um processo — honorário sem processo não faz sentido.");
+                    return;
+                  }
 
-                // Recorrente até o arquivamento cai fora do fluxo de createHonorarioLancamento —
-                // vira um RecurringFee (mesma Server Action de sempre, só sem chamador desde a
-                // Fase 2/3), que o cron mantém gerando mês a mês até o processo ser arquivado.
-                if (recorrente) {
-                  const kind =
-                    natureza === "SUCUMBENCIAL"
-                      ? "HONORARIOS_SUCUMBENCIAIS"
-                      : natureza === "ACORDO"
-                      ? "HONORARIOS_ACORDO"
-                      : "HONORARIOS_CONTRATUAIS";
-                  const recResult = await createRecurringFee({
+                  // Recorrente até o arquivamento cai fora do fluxo de createHonorarioLancamento —
+                  // vira um RecurringFee (mesma Server Action de sempre, só sem chamador desde a
+                  // Fase 2/3), que o cron mantém gerando mês a mês até o processo ser arquivado.
+                  if (recorrente) {
+                    const kind =
+                      natureza === "SUCUMBENCIAL"
+                        ? "HONORARIOS_SUCUMBENCIAIS"
+                        : natureza === "ACORDO"
+                        ? "HONORARIOS_ACORDO"
+                        : "HONORARIOS_CONTRATUAIS";
+                    const recResult = await createRecurringFee({
+                      description,
+                      amount: amountMensal,
+                      dueDay,
+                      kind,
+                      categoryId: categoryId || undefined,
+                      costCenterId: costCenterId || undefined,
+                      caseId: effectiveCaseId,
+                    });
+                    setLoading(false);
+                    if (recResult.error) {
+                      setError(recResult.error);
+                      return;
+                    }
+                    setOpen(false);
+                    router.refresh();
+                    return;
+                  }
+
+                  const result = await createHonorarioLancamento({
                     description,
-                    amount: amountMensal,
-                    dueDay,
-                    kind,
-                    categoryId: categoryId || undefined,
-                    costCenterId: costCenterId || undefined,
                     caseId: effectiveCaseId,
+                    clientId: clientId || undefined,
+                    costCenterId: costCenterId || undefined,
+                    categoryId: categoryId || undefined,
+                    natureza,
+                    payerType,
+                    payerName: payerType === "OUTRO" ? payerName : undefined,
+                    responsibleId: responsibleId || undefined,
+                    documentType: documentType || undefined,
+                    documentNumber: documentNumber || undefined,
+                    issueDate: issueDate || undefined,
+                    cobranca,
+                    amount: cobrancaHasDinheiro ? amount : undefined,
+                    discount: parcelado ? undefined : discount,
+                    surcharge: parcelado ? undefined : surcharge,
+                    percentual: cobrancaHasPercentual ? percentual : undefined,
+                    percentualBase: cobrancaHasPercentual ? percentualBase : undefined,
+                    abaterEntrada: cobranca === "AMBOS" ? abaterEntrada : false,
+                    dueDate: semVencimento ? undefined : dueDate,
+                    noDueDate: semVencimento,
+                    parcelado,
+                    valorTotalIndicado: parcelado ? valorTotalIndicado : undefined,
+                    parcelas: parcelado
+                      ? parcelas.map((p) => ({ dueDate: p.dueDate, amount: p.amount, installmentBoleto: p.installmentBoleto || undefined, pago: p.pago }))
+                      : undefined,
+                    recebido,
+                    pagamento: recebido
+                      ? { paidDate, paidAmount, bankAccountId: bankAccountId || undefined, documentNumber: paymentDocumentNumber || undefined, paymentMethod }
+                      : undefined,
                   });
                   setLoading(false);
-                  if (recResult.error) {
-                    setError(recResult.error);
+                  if (result.error) {
+                    setError(result.error);
                     return;
                   }
                   setOpen(false);
                   router.refresh();
-                  return;
+                } catch (err) {
+                  setLoading(false);
+                  setError(err instanceof Error ? err.message : "Não foi possível salvar o lançamento. Tente novamente.");
                 }
-
-                const result = await createHonorarioLancamento({
-                  description,
-                  caseId: effectiveCaseId,
-                  clientId: clientId || undefined,
-                  costCenterId: costCenterId || undefined,
-                  categoryId: categoryId || undefined,
-                  natureza,
-                  payerType,
-                  payerName: payerType === "OUTRO" ? payerName : undefined,
-                  responsibleId: responsibleId || undefined,
-                  documentType: documentType || undefined,
-                  documentNumber: documentNumber || undefined,
-                  issueDate: issueDate || undefined,
-                  cobranca,
-                  amount: cobrancaHasDinheiro ? amount : undefined,
-                  discount: parcelado ? undefined : discount,
-                  surcharge: parcelado ? undefined : surcharge,
-                  percentual: cobrancaHasPercentual ? percentual : undefined,
-                  percentualBase: cobrancaHasPercentual ? percentualBase : undefined,
-                  abaterEntrada: cobranca === "AMBOS" ? abaterEntrada : false,
-                  dueDate: semVencimento ? undefined : dueDate,
-                  noDueDate: semVencimento,
-                  parcelado,
-                  valorTotalIndicado: parcelado ? valorTotalIndicado : undefined,
-                  parcelas: parcelado
-                    ? parcelas.map((p) => ({ dueDate: p.dueDate, amount: p.amount, installmentBoleto: p.installmentBoleto || undefined, pago: p.pago }))
-                    : undefined,
-                  recebido,
-                  pagamento: recebido
-                    ? { paidDate, paidAmount, bankAccountId: bankAccountId || undefined, documentNumber: paymentDocumentNumber || undefined, paymentMethod }
-                    : undefined,
-                });
-                setLoading(false);
-                if (result.error) {
-                  setError(result.error);
-                  return;
-                }
-                setOpen(false);
-                router.refresh();
               }}
               className="flex-1 flex flex-col min-h-0"
             >

@@ -78,50 +78,55 @@ export default function EditCaseModal({
             action={async (formData) => {
               setLoading(true);
               setError(null);
-              const parsedClients = formData
-                .getAll("clientEntries")
-                .map((raw) => {
-                  try {
-                    return JSON.parse(String(raw));
-                  } catch {
-                    return null;
-                  }
-                })
-                .filter(Boolean);
-              const parsedParties = formData
-                .getAll("partyEntries")
-                .map((raw) => {
-                  try {
-                    return JSON.parse(String(raw));
-                  } catch {
-                    return null;
-                  }
-                })
-                .filter(Boolean);
-              const result = await updateCase(caseData.id, {
-                clients: parsedClients,
-                parties: parsedParties,
-                responsibleId: String(formData.get("responsibleId") || ""),
-                court: String(formData.get("court") || ""),
-                caseValue: String(formData.get("caseValue") || ""),
-                convictionValue: String(formData.get("convictionValue") || ""),
-                economicBenefitValue: String(formData.get("economicBenefitValue") || ""),
-                tribunalSigla: String(formData.get("tribunalSigla") || ""),
-                tribunalNome: String(formData.get("tribunalNome") || ""),
-                tribunalSistema: String(formData.get("tribunalSistema") || ""),
-                tribunalLink: String(formData.get("tribunalLink") || ""),
-                // updateCase só grava esses dois quando o type EFETIVO (o já salvo, já que este
-                // modal não edita natureza) é ADMINISTRATIVO — enviar sempre é inofensivo.
-                adminEsfera: String(formData.get("adminEsfera") || ""),
-                adminMateria: String(formData.get("adminMateria") || ""),
-              });
-              setLoading(false);
-              if (result?.error) {
-                setError(result.error);
-                return;
+              try {
+                const parsedClients = formData
+                  .getAll("clientEntries")
+                  .map((raw) => {
+                    try {
+                      return JSON.parse(String(raw));
+                    } catch {
+                      return null;
+                    }
+                  })
+                  .filter(Boolean);
+                const parsedParties = formData
+                  .getAll("partyEntries")
+                  .map((raw) => {
+                    try {
+                      return JSON.parse(String(raw));
+                    } catch {
+                      return null;
+                    }
+                  })
+                  .filter(Boolean);
+                const result = await updateCase(caseData.id, {
+                  clients: parsedClients,
+                  parties: parsedParties,
+                  responsibleId: String(formData.get("responsibleId") || ""),
+                  court: String(formData.get("court") || ""),
+                  caseValue: String(formData.get("caseValue") || ""),
+                  convictionValue: String(formData.get("convictionValue") || ""),
+                  economicBenefitValue: String(formData.get("economicBenefitValue") || ""),
+                  tribunalSigla: String(formData.get("tribunalSigla") || ""),
+                  tribunalNome: String(formData.get("tribunalNome") || ""),
+                  tribunalSistema: String(formData.get("tribunalSistema") || ""),
+                  tribunalLink: String(formData.get("tribunalLink") || ""),
+                  // updateCase só grava esses dois quando o type EFETIVO (o já salvo, já que este
+                  // modal não edita natureza) é ADMINISTRATIVO — enviar sempre é inofensivo.
+                  adminEsfera: String(formData.get("adminEsfera") || ""),
+                  adminMateria: String(formData.get("adminMateria") || ""),
+                });
+                setLoading(false);
+                if (result?.error) {
+                  setError(result.error);
+                  return;
+                }
+                setOpen(false);
+                router.refresh();
+              } catch (err) {
+                setLoading(false);
+                setError(err instanceof Error ? err.message : "Não foi possível salvar as alterações. Tente novamente.");
               }
-              setOpen(false);
-              router.refresh();
             }}
             className="flex-1 flex flex-col min-h-0"
           >
