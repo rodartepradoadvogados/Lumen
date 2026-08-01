@@ -11,13 +11,13 @@ type AttachmentData = {
   uploadedBy: { name: string } | null;
 };
 
-// Aba Anexos do processo, versão mobile — só leitura (lista com tipo de documento e link pro
-// Drive). Enviar/organizar anexo continua no site: nenhuma outra tela mobile de um processo já
-// existente sobe arquivo hoje (o único upload que o app já faz é ao CRIAR um caso novo, ver
+// Lista de Anexos mobile — só leitura (nome, tipo de documento e link pro Drive). Reaproveitada
+// tanto no Processo (aba Anexos) quanto no Atendimento (seção Anexos): enviar/organizar anexo de
+// um registro já existente continua no site (components/AttachmentList.tsx, com upload de
+// verdade). O único upload que o app mobile já faz é ao CRIAR um caso novo (ver
 // components/NewCaseAttachmentsField.tsx dentro de MobileNewCaseForm — um estágio antes do caso
-// existir, mecanismo diferente do upload direto de components/AttachmentList.tsx usado aqui no
-// desktop). Replicar aquele fluxo de upload para um processo já existente é tarefa maior, fora do
-// pedido desta fase (lançar honorários por dentro do processo).
+// existir). Replicar o fluxo de upload direto para um registro já existente é tarefa maior, fora
+// do escopo deste componente.
 export default function MobileCaseAttachmentsTab({ attachments }: { attachments: AttachmentData[] }) {
   return (
     <div className="space-y-3">

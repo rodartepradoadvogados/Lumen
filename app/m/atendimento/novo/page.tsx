@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getDriveStatus } from "@/lib/googleDrive";
 import { Card } from "@/components/ui";
 import MobileNewAttendanceForm from "@/components/mobile/MobileNewAttendanceForm";
 import ModuleDisabledNotice from "@/components/ModuleDisabledNotice";
@@ -17,11 +18,14 @@ export default async function MobileNewAttendancePage() {
   if (!modules.atendimento) {
     return <ModuleDisabledNotice moduleName="Atendimento" />;
   }
-  const users = await prisma.user.findMany({
-    where: { active: true, officeId: viewer.officeId },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const [users, driveStatus] = await Promise.all([
+    prisma.user.findMany({
+      where: { active: true, officeId: viewer.officeId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    getDriveStatus(viewer.officeId),
+  ]);
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -38,7 +42,7 @@ export default async function MobileNewAttendancePage() {
       </div>
 
       <Card className="p-4">
-        <MobileNewAttendanceForm users={users} />
+        <MobileNewAttendanceForm users={users} driveConnected={driveStatus.connected} />
       </Card>
     </div>
   );

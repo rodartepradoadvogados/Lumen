@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card, formatDate } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
+import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import { ArrowLeft } from "lucide-react";
@@ -29,6 +30,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       whatsappMessages: { orderBy: { createdAt: "asc" } },
       emailMessages: { orderBy: { createdAt: "asc" } },
       anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
+      attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
     },
   });
   if (!a) notFound();
@@ -40,6 +42,14 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
     content: n.content,
     referenceDate: n.referenceDate.toISOString(),
     createdAt: n.createdAt.toISOString(),
+  }));
+  const serializedAttachments = a.attachments.map((att) => ({
+    id: att.id,
+    name: att.name,
+    driveUrl: att.driveUrl,
+    docType: att.docType,
+    createdAt: att.createdAt.toISOString(),
+    uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
   return (
@@ -80,6 +90,11 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
         <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>
         <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
       </Card>
+
+      <div>
+        <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Anexos</h4>
+        <MobileCaseAttachmentsTab attachments={serializedAttachments} />
+      </div>
 
       {!a.convertedCaseId && (
         <Card className="p-4">
