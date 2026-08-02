@@ -7,6 +7,7 @@
 // automática (que ainda vai gravar em Publication, como o Jusbrasil por e-mail).
 
 import { prisma } from "@/lib/prisma";
+import { ProxyAgent, type Dispatcher } from "undici";
 
 const DJEN_PUBLIC_PAGE = "https://comunica.pje.jus.br/consulta";
 const DJEN_API_BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
@@ -52,12 +53,22 @@ export type DjenTestResult = {
   cookieObtained?: boolean;
 };
 
+// O CNJ bloqueia por padrão requisições vindas de IPs de datacenter/nuvem (Vercel incluso,
+// mesmo bloqueio já documentado para o robô Python em robo-publicacoes/README.md). Reaproveita
+// o mesmo proxy residencial contratado para o robô — DJEN_PROXY_URL precisa estar configurada
+// tanto no Railway (robô) quanto aqui (Vercel), com o mesmo valor.
+function djenDispatcher(): Dispatcher | undefined {
+  const proxyUrl = process.env.DJEN_PROXY_URL;
+  return proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+}
+
 // Visita a página pública de consulta primeiro (como um navegador faria) para capturar
 // eventuais cookies de sessão/anti-bot antes de chamar a API — a API sozinha responde 403.
 async function getSessionCookie(): Promise<string | null> {
   const res = await fetch(DJEN_PUBLIC_PAGE, {
     headers: { ...BROWSER_HEADERS, Accept: "text/html" },
-  });
+    dispatcher: djenDispatcher(),
+  } as RequestInit & { dispatcher?: Dispatcher });
   const setCookie = res.headers.get("set-cookie");
   return setCookie ? setCookie.split(";")[0] : null;
 }
@@ -72,7 +83,8 @@ async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | n
       Origin: "https://comunica.pje.jus.br",
       ...(cookie ? { Cookie: cookie } : {}),
     },
-  });
+    dispatcher: djenDispatcher(),
+  } as RequestInit & { dispatcher?: Dispatcher });
   const status = res.status;
   let body: unknown;
   let parseFailed = false;
