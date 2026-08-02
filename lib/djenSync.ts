@@ -7,7 +7,11 @@
 // automática (que ainda vai gravar em Publication, como o Jusbrasil por e-mail).
 
 import { prisma } from "@/lib/prisma";
-import { ProxyAgent, type Dispatcher } from "undici";
+// Precisa ser o `fetch` deste mesmo pacote, não o `fetch` global do Node — o global usa a
+// cópia interna do undici embutida no runtime, que não é necessariamente compatível com o
+// Dispatcher/ProxyAgent de uma versão diferente do pacote instalado via npm (erro visto:
+// "invalid onRequestStart method (UND_ERR_INVALID_ARG)" ao misturar as duas).
+import { fetch as undiciFetch, ProxyAgent, type Dispatcher } from "undici";
 
 const DJEN_PUBLIC_PAGE = "https://comunica.pje.jus.br/consulta";
 const DJEN_API_BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
@@ -87,17 +91,17 @@ function describeFetchError(e: unknown): string {
 // Visita a página pública de consulta primeiro (como um navegador faria) para capturar
 // eventuais cookies de sessão/anti-bot antes de chamar a API — a API sozinha responde 403.
 async function getSessionCookie(): Promise<string | null> {
-  const res = await fetch(DJEN_PUBLIC_PAGE, {
+  const res = await undiciFetch(DJEN_PUBLIC_PAGE, {
     headers: { ...BROWSER_HEADERS, Accept: "text/html" },
     dispatcher: djenDispatcher(),
-  } as RequestInit & { dispatcher?: Dispatcher });
+  });
   const setCookie = res.headers.get("set-cookie");
   return setCookie ? setCookie.split(";")[0] : null;
 }
 
 async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | null): Promise<{ status: number; body: unknown; parseFailed: boolean }> {
   const url = `${DJEN_API_BASE}?numeroOab=${encodeURIComponent(numeroOab)}&ufOab=${encodeURIComponent(ufOab)}&itensPorPagina=5`;
-  const res = await fetch(url, {
+  const res = await undiciFetch(url, {
     headers: {
       ...BROWSER_HEADERS,
       Accept: "application/json",
@@ -106,7 +110,7 @@ async function fetchDjenRaw(numeroOab: string, ufOab: string, cookie: string | n
       ...(cookie ? { Cookie: cookie } : {}),
     },
     dispatcher: djenDispatcher(),
-  } as RequestInit & { dispatcher?: Dispatcher });
+  });
   const status = res.status;
   let body: unknown;
   let parseFailed = false;
