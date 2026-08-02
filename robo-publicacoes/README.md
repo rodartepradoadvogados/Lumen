@@ -394,10 +394,12 @@ python scripts/export_historico.py --formato csv \
    - `LOG_LEVEL` (ex.: `INFO`)
 4. **Configurar o servico como Cron Job**: em Settings > Cron Schedule,
    habilite o cron e defina a expressao. Sugestao (a cada 2h em horario
-   comercial, dias uteis):
+   comercial de Brasilia, dias uteis) — **atencao: a expressao do Railway e
+   avaliada em UTC**, entao para cobrir 8h-18h em Brasilia (UTC-3) o campo
+   de hora precisa estar 3h a frente:
 
    ```
-   0 8-18/2 * * 1-5
+   0 11-21/2 * * 1-5
    ```
 
    O **comando de start** do servico deve ser (ja definido em
