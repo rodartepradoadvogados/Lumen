@@ -62,6 +62,28 @@ function djenDispatcher(): Dispatcher | undefined {
   return proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 }
 
+// `fetch` (undici) lança só "TypeError: fetch failed" no erro principal — o motivo real
+// (timeout, DNS, proxy recusou conexão, etc.) fica em `.cause`, às vezes em mais de um nível.
+// Sem isso, todo problema de rede/proxy aparece igual na tela, sem pista nenhuma pra debugar.
+function describeFetchError(e: unknown): string {
+  if (!(e instanceof Error)) return "erro desconhecido ao conectar no DJEN";
+  const parts: string[] = [e.message];
+  let cause: unknown = (e as { cause?: unknown }).cause;
+  let depth = 0;
+  while (cause && depth < 3) {
+    if (cause instanceof Error) {
+      const code = (cause as { code?: string }).code;
+      parts.push(code ? `${cause.message} (${code})` : cause.message);
+      cause = (cause as { cause?: unknown }).cause;
+    } else {
+      parts.push(String(cause));
+      cause = undefined;
+    }
+    depth += 1;
+  }
+  return parts.join(" — causa: ");
+}
+
 // Visita a página pública de consulta primeiro (como um navegador faria) para capturar
 // eventuais cookies de sessão/anti-bot antes de chamar a API — a API sozinha responde 403.
 async function getSessionCookie(): Promise<string | null> {
@@ -138,7 +160,7 @@ export async function testDjenConnection(officeId: string): Promise<DjenTestResu
         numeroOab: target.numeroOab,
         ufOab: target.ufOab,
         ok: false,
-        error: e instanceof Error ? e.message : "erro desconhecido ao conectar no DJEN",
+        error: describeFetchError(e),
         cookieObtained: Boolean(cookie),
       });
     }
