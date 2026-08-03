@@ -101,8 +101,11 @@ export default function AttachmentList({
         setStagedFile(null);
         router.refresh();
       }
-    } catch {
-      setError("Erro ao enviar arquivo. Verifique sua conexão.");
+    } catch (e) {
+      // Mostra a causa real (ex.: erro do próprio Vercel Blob, token expirado, tipo de arquivo
+      // rejeitado) em vez de um texto genérico — sem isso não dá para diferenciar problema de
+      // rede de uma falha específica do upload.
+      setError(e instanceof Error ? `Erro ao enviar arquivo: ${e.message}` : "Erro ao enviar arquivo. Verifique sua conexão.");
     } finally {
       setUploading(false);
     }

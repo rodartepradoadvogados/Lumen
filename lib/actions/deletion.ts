@@ -84,6 +84,12 @@ async function performDelete(entityType: string, entityId: string, officeId: str
         deletedReimbursedPayable = true;
       }
     }
+    // Receita gerada pelo cron mensal de honorários de Assessoria (lib/actions/assessoria.ts:
+    // generateAllMonthlyHonorarios) tem um registro Honorario apontando pra cá sem onDelete
+    // Cascade — apagar a receita direto batia em violação de chave estrangeira e derrubava a
+    // página com erro genérico. Remove o vínculo primeiro (não é um registro financeiro em si,
+    // só a marcação de qual receita é a mensalidade de qual competência).
+    await prisma.honorario.deleteMany({ where: { receivableId: entityId } });
     await prisma.receivable.delete({ where: { id: entityId } });
     // Se esta era a última parcela de um lançamento de honorários parcelado, o cabeçalho fica
     // órfão (sem nenhuma parcela) — apaga junto para não sobrar um HonorarioLancamento vazio.
