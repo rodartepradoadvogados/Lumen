@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
+import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { naturezaWhere } from "@/lib/caseNatureza";
 import { Card, formatCurrency } from "@/components/ui";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
@@ -61,7 +62,7 @@ export default async function MobileHome() {
   const user = await getCurrentUser();
   const [unreadPublicationsRaw, totalAlerts, assessoriaCount, activeCasesCount, activeJudicialCount, activeAdministrativoCount, blockedSet] = await Promise.all([
     user
-      ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { processNumberRaw: true } })
+      ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { id: true, processNumberRaw: true } })
       : Promise.resolve([]),
     // Total de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas — ver
     // lib/alerts.ts) — alimenta o atalho "Central de Alertas" abaixo.
@@ -75,8 +76,9 @@ export default async function MobileHome() {
     user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO", ...naturezaWhere("ADMINISTRATIVO") } }) : Promise.resolve(0),
     user ? getBlockedProcessNumberSet(user.id) : Promise.resolve(new Set<string>()),
   ]);
-  // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou.
-  const unreadCount = unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)).length;
+  // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou. Contagem por
+  // GRUPO (mesmo processo), não por linha — ver lib/publicationGrouping.ts.
+  const unreadCount = countUnreadPublicationGroups(unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)));
 
   const firstName = user?.name.split(" ")[0] ?? "";
   const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };

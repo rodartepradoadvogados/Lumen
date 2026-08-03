@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  markPublicationRead,
-  markPublicationUnread,
+  markPublicationsRead,
+  markPublicationsUnread,
   setPublicationTriageStatus,
 } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
@@ -14,9 +14,10 @@ import DelegateTaskForm from "@/components/DelegateTaskForm";
 import LinkPublicationMenu from "@/components/LinkPublicationMenu";
 import CopyButton from "@/components/CopyButton";
 import { useUndoToast } from "@/components/UndoToastProvider";
-import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, UserPlus } from "lucide-react";
+import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, Layers, UserPlus } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import type { PublicationGroup } from "@/lib/publicationGrouping";
 
 type Pub = {
   id: string;
@@ -55,13 +56,26 @@ const actionButtons = [
   { type: "EVENTO", label: "Gerar Evento", icon: CalendarPlus },
 ];
 
-export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: { id: string; name: string }[] }) {
+// Recebe o GRUPO inteiro (uma ou mais publicações do mesmo processo, ver
+// lib/publicationGrouping.ts) — todas as ações (marcar como lida, badges de estado) usam o item
+// "primary" (fonte de maior prioridade: DJEN > Datajud > e-mail do Jusbrasil > demais) como
+// representante do card, mas "marcar como lida" afeta TODOS os itens do grupo, não só o
+// principal. Ações que fazem sentido só para uma publicação específica (vincular a processo,
+// delegar, mudar status de triagem) continuam operando sobre o "primary" — vincular/delegar as
+// demais fontes do mesmo processo, se necessário, continua possível abrindo cada uma via o
+// expandir "+N outras fontes".
+export default function PublicationRow({ group, users = [] }: { group: PublicationGroup<Pub>; users?: { id: string; name: string }[] }) {
   const router = useRouter();
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailClosing, setDetailClosing] = useState(false);
-  const [detailEntered, setDetailEntered] = useState(false);
-  const detailClickPoint = useRef({ x: 0.5, y: 0.5 });
-  const detailBoxRef = useRef<HTMLDivElement>(null);
+  const pub = group.primary;
+  const groupIds = group.items.map((i) => i.id);
+  const hasMultiple = group.items.length > 1;
+
+  // Expansão é INLINE, na mesma posição do card — sem modal separado (padrão já usado no app
+  // mobile para o conteúdo completo da publicação, ver MobilePublicationCard.tsx). Mostra sempre
+  // TODOS os itens do grupo em ordem cronológica (mais recente primeiro), mesmo quando o grupo
+  // tem um item só — evita ter dois jeitos diferentes de olhar o conteúdo completo (expandido com
+  // 1 item vs. expandido com vários).
+  const [expanded, setExpanded] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [delegateOpen, setDelegateOpen] = useState(false);
   // "Gerar Prazo"/"Marcar Audiência"/etc. no menu Agenda pré-selecionam o tipo e abrem o MESMO
@@ -88,16 +102,18 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
     // Desliza 3cm pra esquerda enquanto esmorece (1.5s) antes de sumir de verdade — sem isso,
     // o router.refresh() troca a lista instantaneamente e não dá pra perceber que a ação surtiu
     // efeito. O toast de desfazer só aparece depois da animação, quando o item já saiu da tela.
+    // Marca TODOS os itens do grupo como lidos (não só o principal exibido) — elimina a
+    // duplicidade também na contagem de não lidas, não só na tela.
     setLoading(true);
     setLeaving(true);
     setTimeout(() => {
-      markPublicationRead(pub.id).then(() => {
+      markPublicationsRead(groupIds).then(() => {
         router.refresh();
         setLoading(false);
         showUndo({
-          message: "Publicação marcada como lida.",
+          message: hasMultiple ? `Publicação e mais ${group.items.length - 1} fonte(s) marcadas como lidas.` : "Publicação marcada como lida.",
           onUndo: async () => {
-            await markPublicationUnread(pub.id);
+            await markPublicationsUnread(groupIds);
             router.refresh();
           },
         });
@@ -107,7 +123,7 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
 
   function markUnread() {
     setLoading(true);
-    markPublicationUnread(pub.id).then(() => {
+    markPublicationsUnread(groupIds).then(() => {
       router.refresh();
       setLoading(false);
     });
@@ -117,33 +133,6 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
     setAgendaOpen(false);
     setDelegateType(type);
     setDelegateOpen(true);
-  }
-
-  // Efeito de origem/destino: o modal "nasce" de dentro do ponto clicado e volta pra lá ao
-  // fechar — guarda só o ponto do clique (client X/Y), o useLayoutEffect abaixo converte pra
-  // um transformOrigin relativo à própria caixa do modal assim que ela monta.
-  function openDetail(e: React.MouseEvent) {
-    detailClickPoint.current = { x: e.clientX, y: e.clientY };
-    setDetailOpen(true);
-  }
-
-  useLayoutEffect(() => {
-    if (!detailOpen || !detailBoxRef.current) return;
-    const rect = detailBoxRef.current.getBoundingClientRect();
-    const originX = ((detailClickPoint.current.x - rect.left) / rect.width) * 100;
-    const originY = ((detailClickPoint.current.y - rect.top) / rect.height) * 100;
-    detailBoxRef.current.style.transformOrigin = `${originX}% ${originY}%`;
-    const raf = requestAnimationFrame(() => setDetailEntered(true));
-    return () => cancelAnimationFrame(raf);
-  }, [detailOpen]);
-
-  function closeDetail() {
-    setDetailClosing(true);
-    setDetailEntered(false);
-    setTimeout(() => {
-      setDetailOpen(false);
-      setDetailClosing(false);
-    }, 200);
   }
 
   function handleTriage(status: string) {
@@ -171,12 +160,12 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           {pub.taskCount}
         </Link>
       )}
-      <button onClick={openDetail} className="block w-full text-left relative pr-7">
+      <button onClick={() => setExpanded((o) => !o)} className="block w-full text-left relative pr-7">
         <ChevronDown
           size={16}
           className={clsx(
             "absolute right-0 top-0.5 text-navy-800/30 dark:text-cream-50/30 transition-transform",
-            detailOpen && "rotate-180"
+            expanded && "rotate-180"
           )}
         />
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -186,17 +175,52 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           <Badge color="navy">{pub.source}</Badge>
           <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
           {pub.lawyerTag && <Badge color="gold">{pub.lawyerTag}</Badge>}
-          {!pub.read && <Badge color="gold">Não lida</Badge>}
-          {pub.deadlineGenerated && <Badge color="green">Compromisso gerado</Badge>}
+          {!group.allRead && <Badge color="gold">Não lida</Badge>}
+          {group.items.some((i) => i.deadlineGenerated) && <Badge color="green">Compromisso gerado</Badge>}
           <Badge color={triageColors[pub.triageStatus] || "amber"}>{triageLabels[pub.triageStatus] || pub.triageStatus}</Badge>
+          {/* Indicador de agrupamento: mesmo processo capturado por mais de uma fonte (DJEN,
+              Datajud, e-mail do Jusbrasil...). Clicar no card já expande — este badge só avisa
+              que existe mais coisa lá dentro, sem poluir o layout com outro controle. */}
+          {hasMultiple && (
+            <Badge color="bordo" className="inline-flex items-center gap-1">
+              <Layers size={11} /> +{group.items.length - 1} outra{group.items.length - 1 > 1 ? "s" : ""} fonte{group.items.length - 1 > 1 ? "s" : ""}
+            </Badge>
+          )}
         </div>
         {pub.case && <p className="text-xs font-medium text-gold-700 dark:text-gold-400">{pub.case.title}</p>}
         {!pub.case && pub.client && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cliente compatível: {pub.client.name}</p>}
-        <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-1 line-clamp-2">{pub.content}</p>
+        {!expanded && <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-1 line-clamp-2">{pub.content}</p>}
       </button>
 
+      {expanded && (
+        <div className="mt-2 space-y-2">
+          {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
+          {group.items.map((item) => (
+            <div key={item.id} className="rounded-lg border border-navy-800/8 dark:border-white/10 p-3">
+              <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge color="navy">{item.source}</Badge>
+                  <Badge color="slate">{formatDate(item.publishedAt)}</Badge>
+                  <Badge color={item.kind === "PUBLICACAO" ? "blue" : "gold"}>
+                    {item.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
+                  </Badge>
+                  {!item.read && <Badge color="gold">Não lida</Badge>}
+                </div>
+                <CopyButton
+                  text={item.content}
+                  label="Copiar conteúdo"
+                  showLabel={false}
+                  className="shrink-0 p-1.5 rounded-lg text-navy-800/40 hover:text-navy-900 hover:bg-cream-100 dark:text-cream-50/40 dark:hover:text-cream-50 dark:hover:bg-white/10 transition-colors"
+                />
+              </div>
+              <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{item.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mt-2.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
-        {!pub.read ? (
+        {!group.allRead ? (
           <button
             onClick={markRead}
             disabled={loading}
@@ -291,59 +315,6 @@ export default function PublicationRow({ pub, users = [] }: { pub: Pub; users?: 
           <option value="TRATADA">Tratada</option>
         </select>
       </div>
-
-      {detailOpen && (
-        <div
-          className={clsx(
-            "fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4 transition-opacity duration-200",
-            detailEntered && !detailClosing ? "opacity-100" : "opacity-0"
-          )}
-        >
-          <div
-            ref={detailBoxRef}
-            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-thin transition-transform duration-200 ease-out"
-            style={{ transform: detailEntered && !detailClosing ? "scale(1)" : "scale(0.05)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">
-                {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento Processual"}
-              </h3>
-              <button onClick={closeDetail} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge color="navy">{pub.source}</Badge>
-                <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
-              </div>
-              {pub.case && (
-                <div>
-                  <Link href={`/processos/${pub.case.id}`} className="text-sm font-medium text-gold-700 dark:text-gold-400 hover:underline block">
-                    {pub.case.title}
-                  </Link>
-                  {pub.case.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
-                </div>
-              )}
-              {!pub.case && pub.client && (
-                <Link href={`/contatos/clientes#client-${pub.client.id}`} className="text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline block">
-                  Cliente: {pub.client.name}
-                </Link>
-              )}
-              <div className="flex items-start justify-between gap-2">
-                <p className={clsx("text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap")}>{pub.content}</p>
-                <CopyButton
-                  text={pub.content}
-                  label="Copiar conteúdo"
-                  showLabel={false}
-                  className="shrink-0 p-1.5 rounded-lg text-navy-800/40 hover:text-navy-900 hover:bg-cream-100 dark:text-cream-50/40 dark:hover:text-cream-50 dark:hover:bg-white/10 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {delegateOpen && (
         <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">

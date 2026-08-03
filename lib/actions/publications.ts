@@ -44,6 +44,34 @@ export async function markPublicationUnread(id: string) {
   revalidatePath("/painel");
 }
 
+// Equivalentes a markPublicationRead/markPublicationUnread, mas para VÁRIAS publicações de uma
+// vez — usadas pelo card agrupado por processo (ver lib/publicationGrouping.ts): marcar (ou
+// desfazer) o card como lido precisa afetar TODOS os itens do grupo (DJEN + Datajud + e-mail do
+// Jusbrasil etc. do mesmo processo), não só o item principal exibido, senão a duplicidade
+// continuaria existindo na contagem de não lidas mesmo depois de "resolvida" na tela.
+export async function markPublicationsRead(ids: string[]) {
+  const user = await getCurrentUser();
+  if (!user || ids.length === 0) return;
+  const pubs = await prisma.publication.findMany({ where: { id: { in: ids }, officeId: user.officeId }, select: { id: true } });
+  if (pubs.length === 0) return;
+  await prisma.publicationRead.createMany({
+    data: pubs.map((p) => ({ publicationId: p.id, userId: user.id })),
+    skipDuplicates: true,
+  });
+  revalidatePath("/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/painel");
+}
+
+export async function markPublicationsUnread(ids: string[]) {
+  const user = await getCurrentUser();
+  if (!user || ids.length === 0) return;
+  await prisma.publicationRead.deleteMany({ where: { publicationId: { in: ids }, userId: user.id } });
+  revalidatePath("/publicacoes");
+  revalidatePath("/alertas");
+  revalidatePath("/painel");
+}
+
 export async function markAllPublicationsRead() {
   const user = await getCurrentUser();
   if (!user) return { count: 0 };

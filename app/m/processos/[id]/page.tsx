@@ -19,6 +19,7 @@ import EditCaseModal from "@/components/EditCaseModal";
 import CaseAssessoriaSelect from "@/components/CaseAssessoriaSelect";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
+import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import type { AnotacaoLinkType } from "@/lib/anotacoes";
 import NaturezaBadge from "@/components/mobile/NaturezaBadge";
 import { ArrowLeft, ExternalLink } from "lucide-react";
@@ -110,6 +111,7 @@ export default async function MobileCaseDetail({
     }),
     prisma.publication.findMany({
       where: { caseId: params.id, officeId: viewer.officeId },
+      include: { reads: { where: { userId: viewer.id }, select: { userId: true } } },
       orderBy: { publishedAt: "desc" },
       take: 15,
     }),
@@ -149,9 +151,15 @@ export default async function MobileCaseDetail({
     source: p.source,
     content: p.content,
     publishedAt: p.publishedAt.toISOString(),
+    read: p.reads.length > 0,
     caseId: c.id,
     caseTitle: c.title,
+    processNumberRaw: p.processNumberRaw,
   }));
+  // Mesmo agrupamento por processo da Início/Publicações mobile (ver
+  // lib/publicationGrouping.ts) — junta num só card a mesma publicação/andamento chegada por
+  // mais de uma fonte (DJEN, Datajud, e-mail do Jusbrasil...).
+  const publicationGroups = groupPublicationsByProcess(serializedPublications);
 
   const serializedAttachments = c.attachments.map((att) => ({
     id: att.id,
@@ -486,12 +494,12 @@ export default async function MobileCaseDetail({
 
       {tab === "publicacoes" && (
         <Card>
-          {serializedPublications.length === 0 ? (
+          {publicationGroups.length === 0 ? (
             <EmptyState title="Nenhuma publicação ou andamento" />
           ) : (
             <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-              {serializedPublications.map((p) => (
-                <MobilePublicationCard key={p.id} pub={p} />
+              {publicationGroups.map((g) => (
+                <MobilePublicationCard key={g.key} group={g} />
               ))}
             </div>
           )}

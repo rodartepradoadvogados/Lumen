@@ -10,7 +10,12 @@ export default function MarkAllPublicationsReadButton({ count, caseId }: { count
   const [pending, startTransition] = useTransition();
 
   function handleClick() {
-    if (!window.confirm(`Marcar todas as ${count} publicações não lidas como lidas?`)) return;
+    // "count" agora é número de GRUPOS (por processo) pendentes, não de linhas — a ação por trás
+    // (markAllPublicationsRead/markAllPublicationsReadForCase) continua marcando toda publicação
+    // não lida, inclusive as demais fontes agrupadas dentro de cada card (ver
+    // lib/publicationGrouping.ts) — só a mensagem de confirmação fala em "pendência" em vez de
+    // "publicação" pra não subestimar o que será marcado.
+    if (!window.confirm(`Marcar todas as ${count} pendência(s) não lida(s) como lida(s)?`)) return;
     startTransition(async () => {
       if (caseId) await markAllPublicationsReadForCase(caseId);
       else await markAllPublicationsRead();

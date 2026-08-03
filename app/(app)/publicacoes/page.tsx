@@ -11,6 +11,7 @@ import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadB
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
 import { findPublicationIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
+import { groupPublicationsByProcess, countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +29,14 @@ export default async function PublicacoesPage({
   if (!viewer) redirect("/");
   const resp = (searchParams.resp || "").trim() || undefined;
 
+  // Filtro de lida/não lida NÃO entra mais no "where" do banco: agora ele é decidido depois de
+  // agrupar por processo (ver abaixo), porque "lida" passa a ser uma propriedade do GRUPO (só
+  // conta como lido quando TODOS os itens do grupo estão lidos) — filtrar linha a linha no banco
+  // podia trazer só metade de um grupo (ex.: o item DJEN já lido ficava de fora da aba Não lidas
+  // mesmo quando o item Jusbrasil do mesmo processo ainda estava pendente), o que quebraria a
+  // escolha de qual fonte é a principal e o conteúdo mostrado ao expandir o grupo.
   const baseFilters: Prisma.PublicationWhereInput = {
     officeId: viewer.officeId,
-    reads: isTodos ? undefined : isLidas ? { some: { userId: viewer.id } } : { none: { userId: viewer.id } },
     kind: searchParams.kind || undefined,
     lawyerTag: adv ? { contains: adv } : undefined,
     assignedToId: resp || undefined,
@@ -38,6 +44,13 @@ export default async function PublicacoesPage({
   // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.
   const matchingProcessNumberIds = q ? await findPublicationIdsByProcessNumber(q, baseFilters) : [];
 
+  // Filtros/busca (tipo, advogado, responsável, texto/fonte) continuam operando por PUBLICAÇÃO
+  // individual, não pelo grupo inteiro: cada linha ainda precisa bater com o "where" pra entrar
+  // no resultado. Na prática isso já resolve a dúvida "filtrar por fonte deve olhar só o item
+  // principal do grupo ou qualquer item?" a favor de "qualquer item que bater some no grupo, mas
+  // só ele (e o que mais bater) entra na lista/expansão exibida" — ex.: buscar "esaj" mostra o
+  // grupo com o card principal ESAJ (não DJEN), mesmo que o processo tenha um andamento DJEN mais
+  // antigo que não bateu a busca e por isso não aparece nem no card nem ao expandir.
   const where: Prisma.PublicationWhereInput = {
     ...baseFilters,
     ...(q
@@ -55,21 +68,32 @@ export default async function PublicacoesPage({
       : {}),
   };
 
-  const [publicationsRaw, unreadRaw, users, blockedSet] = await Promise.all([
+  const [publicationsRaw, unreadRowsRaw, users, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where,
       include: { case: true, client: true, reads: { where: { userId: viewer.id }, select: { userId: true } } },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      take: isLidas || isTodos ? 100 : undefined,
+      // Sem "take" fixo pequeno aqui: cortar a query bruta ANTES de agrupar por processo corre o
+      // risco de truncar um grupo no meio. O corte por aba (100 mais recentes em Lidas/Todos)
+      // acontece depois, sobre a lista já agrupada — este limite é só uma rede de segurança bem
+      // folgada contra um escritório com histórico enorme.
+      take: 3000,
     }),
-    prisma.publication.findMany({ where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } }, select: { processNumberRaw: true } }),
+    // Contagem de não lidas do cabeçalho/aba: ignora os filtros de tipo/advogado/responsável/busca
+    // de propósito (mesmo comportamento de antes) — é sempre "quantos grupos têm pendência no
+    // escritório inteiro". Só precisamos do id + processo de cada linha não lida: se a linha está
+    // aqui, o grupo dela já conta como pendente, não precisamos saber o estado dos irmãos dela.
+    prisma.publication.findMany({
+      where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } },
+      select: { id: true, processNumberRaw: true },
+    }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     getBlockedProcessNumberSet(viewer.id),
   ]);
   // Bloqueio de processo é por usuário: esconde completamente da fila de quem bloqueou, em
   // qualquer aba (Não lidas/Lidas/Todos) — os demais advogados do escritório não são afetados.
   const publications = publicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet));
-  const unreadCount = unreadRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)).length;
+  const unreadCount = countUnreadPublicationGroups(unreadRowsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)));
 
   const taskCounts = await prisma.task.groupBy({
     by: ["publicationId"],
@@ -78,7 +102,7 @@ export default async function PublicacoesPage({
   });
   const taskCountMap = new Map(taskCounts.map((t) => [t.publicationId as string, t._count._all]));
 
-  const serialized = publications.map((p) => ({
+  const serializedAll = publications.map((p) => ({
     id: p.id,
     kind: p.kind,
     source: p.source,
@@ -94,6 +118,13 @@ export default async function PublicacoesPage({
     assignedToId: p.assignedToId,
     triageStatus: p.triageStatus,
   }));
+
+  // Agrupa por processo (mesmo CNJ de 20 dígitos normalizado) — um card por grupo, escolhendo a
+  // fonte de maior prioridade como principal (ver lib/publicationGrouping.ts). "allRead" decide a
+  // aba: só sai de Não lidas quando TODOS os itens do grupo já foram lidos pelo viewer.
+  const allGroups = groupPublicationsByProcess(serializedAll);
+  const tabFilteredGroups = isTodos ? allGroups : isLidas ? allGroups.filter((g) => g.allRead) : allGroups.filter((g) => !g.allRead);
+  const groups = isLidas || isTodos ? tabFilteredGroups.slice(0, 100) : tabFilteredGroups;
 
   const qs = (extra: Record<string, string | undefined>) => {
     const merged = { aba: searchParams.aba, kind: searchParams.kind, q: searchParams.q, adv: searchParams.adv, resp: searchParams.resp, ...extra };
@@ -177,7 +208,7 @@ export default async function PublicacoesPage({
       )}
 
       <Card>
-        {serialized.length === 0 ? (
+        {groups.length === 0 ? (
           isTodos ? (
             <EmptyState title="Nenhuma publicação" subtitle="Publicações e andamentos aparecem aqui assim que forem capturados" />
           ) : isLidas ? (
@@ -186,7 +217,7 @@ export default async function PublicacoesPage({
             <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
           )
         ) : (
-          <PublicationsList publications={serialized} highlightNew={!isLidas && !isTodos} users={users} />
+          <PublicationsList groups={groups} highlightNew={!isLidas && !isTodos} users={users} />
         )}
       </Card>
     </div>

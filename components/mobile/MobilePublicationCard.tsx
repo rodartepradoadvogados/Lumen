@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  markPublicationRead,
-  markPublicationUnread,
+  markPublicationsRead,
+  markPublicationsUnread,
 } from "@/lib/actions/publications";
 import { Badge, formatDate } from "@/components/ui";
 import DelegateTaskForm from "@/components/DelegateTaskForm";
@@ -20,9 +20,11 @@ import {
   CalendarPlus,
   ListTodo,
   ChevronDown,
+  Layers,
   UserPlus,
   X,
 } from "lucide-react";
+import type { PublicationGroup } from "@/lib/publicationGrouping";
 
 type Pub = {
   id: string;
@@ -30,11 +32,12 @@ type Pub = {
   source: string;
   content: string;
   publishedAt: string;
+  read: boolean;
   caseId: string | null;
   caseTitle: string | null;
   clientId?: string | null;
   clientName?: string | null;
-  processNumberRaw?: string | null;
+  processNumberRaw: string | null;
   assignedToId?: string | null;
 };
 
@@ -46,8 +49,16 @@ const actionButtons = [
   { type: "EVENTO", label: "Gerar Evento", icon: CalendarPlus },
 ];
 
-export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; users?: { id: string; name: string }[] }) {
+// Mesmo critério do desktop (components/PublicationRow.tsx): recebe o GRUPO inteiro (uma ou mais
+// publicações do mesmo processo — ver lib/publicationGrouping.ts). O card mostra o item
+// "primary" (fonte de maior prioridade), com um selo "+N outras fontes" quando o processo tem
+// mais de uma; marcar como lida afeta TODOS os itens do grupo.
+export default function MobilePublicationCard({ group, users = [] }: { group: PublicationGroup<Pub>; users?: { id: string; name: string }[] }) {
   const router = useRouter();
+  const pub = group.primary;
+  const groupIds = group.items.map((i) => i.id);
+  const hasMultiple = group.items.length > 1;
+
   const [open, setOpen] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [delegateOpen, setDelegateOpen] = useState(false);
@@ -62,16 +73,16 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
 
   function markRead() {
     // Mesmo efeito do desktop: desliza 3cm pra esquerda esmorecendo por 1.5s antes de sumir
-    // de verdade, pra ficar evidente que a ação surtiu efeito.
+    // de verdade, pra ficar evidente que a ação surtiu efeito. Marca TODOS os itens do grupo.
     setLeaving(true);
     setTimeout(() => {
       startTransition(async () => {
-        await markPublicationRead(pub.id);
+        await markPublicationsRead(groupIds);
         router.refresh();
         showUndo({
-          message: "Publicação marcada como lida.",
+          message: hasMultiple ? `Publicação e mais ${group.items.length - 1} fonte(s) marcadas como lidas.` : "Publicação marcada como lida.",
           onUndo: async () => {
-            await markPublicationUnread(pub.id);
+            await markPublicationsUnread(groupIds);
             router.refresh();
           },
         });
@@ -91,6 +102,13 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
         </Badge>
         <Badge color="navy">{pub.source}</Badge>
         <Badge color="slate">{formatDate(pub.publishedAt)}</Badge>
+        {/* Indicador de agrupamento: mesmo processo capturado por mais de uma fonte (DJEN,
+            Datajud, e-mail do Jusbrasil...) — clicar no card já expande e mostra todas. */}
+        {hasMultiple && (
+          <Badge color="bordo" className="inline-flex items-center gap-1">
+            <Layers size={11} /> +{group.items.length - 1} outra{group.items.length - 1 > 1 ? "s" : ""} fonte{group.items.length - 1 > 1 ? "s" : ""}
+          </Badge>
+        )}
       </div>
 
       {pub.caseId && pub.caseTitle && (
@@ -102,9 +120,9 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
         <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">Cliente compatível: {pub.clientName}</p>
       )}
 
-      {/* Cartão recolhido por padrão — clicar no conteúdo expande e revela as ações
-          (marcar como lida, agenda, delegar etc). Evita uma lista longa de andamentos
-          já vir toda aberta com botões. */}
+      {/* Cartão recolhido por padrão — clicar no conteúdo expande INLINE (mesma posição, sem
+          modal) e revela o histórico completo do grupo + as ações (marcar como lida, agenda,
+          delegar etc). Evita uma lista longa de andamentos já vir toda aberta com botões. */}
       <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-start justify-between gap-2 text-left">
         <p className={`text-sm text-navy-800 dark:text-cream-50/85 flex-1 ${open ? "" : "line-clamp-2"}`}>{pub.content}</p>
         <ChevronDown
@@ -115,14 +133,37 @@ export default function MobilePublicationCard({ pub, users = [] }: { pub: Pub; u
 
       {open && (
         <div className="mt-2">
-          <div className="flex justify-end mb-1">
-            <CopyButton
-              text={pub.content}
-              label="Copiar conteúdo"
-              showLabel={false}
-              className="shrink-0 p-1.5 rounded-lg text-navy-800/40 dark:text-cream-50/40 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors"
-            />
-          </div>
+          {hasMultiple ? (
+            <div className="space-y-2 mb-2">
+              {group.items.map((item) => (
+                <div key={item.id} className="rounded-lg border border-navy-800/8 dark:border-white/10 p-2.5">
+                  <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge color="navy">{item.source}</Badge>
+                      <Badge color="slate">{formatDate(item.publishedAt)}</Badge>
+                      {!item.read && <Badge color="gold">Não lida</Badge>}
+                    </div>
+                    <CopyButton
+                      text={item.content}
+                      label="Copiar conteúdo"
+                      showLabel={false}
+                      className="shrink-0 p-1 rounded-lg text-navy-800/40 dark:text-cream-50/40 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors"
+                    />
+                  </div>
+                  <p className="text-sm text-navy-800 dark:text-cream-50/85 whitespace-pre-wrap">{item.content}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-end mb-1">
+              <CopyButton
+                text={pub.content}
+                label="Copiar conteúdo"
+                showLabel={false}
+                className="shrink-0 p-1.5 rounded-lg text-navy-800/40 dark:text-cream-50/40 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors"
+              />
+            </div>
+          )}
 
           <div className="flex items-center gap-2 flex-wrap">
             <button

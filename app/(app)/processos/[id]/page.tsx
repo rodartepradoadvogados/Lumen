@@ -37,6 +37,7 @@ import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/l
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { financeGroupKind } from "@/lib/financeGroupKind";
+import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 
 export const dynamic = "force-dynamic";
 
@@ -253,7 +254,12 @@ export default async function CaseDetailPage({
     ativo: t.ativo,
     ultimoHitAt: t.ultimoHitAt ? t.ultimoHitAt.toISOString() : null,
   }));
-  const unreadPublicationsCount = c.publications.filter((p) => p.reads.length === 0).length;
+  // Mesmo agrupamento por processo da listagem /publicacoes (ver lib/publicationGrouping.ts) —
+  // aqui dentro do Processo, quase todo o grupo já teria o mesmo número normalizado (é a mesma
+  // aba de um único processo), mas ainda vale agrupar: evita o mesmo andamento aparecer 2x
+  // quando chegou tanto pelo DJEN quanto pelo e-mail do Jusbrasil, por exemplo.
+  const publicationGroups = groupPublicationsByProcess(serializedPublications);
+  const unreadPublicationsCount = publicationGroups.filter((g) => !g.allRead).length;
   const serializedLotes = c.protocoloLotes.map((lote) => ({
     id: lote.id,
     titulo: lote.titulo,
@@ -745,10 +751,10 @@ export default async function CaseDetailPage({
             </div>
           )}
           <Card>
-            {serializedPublications.length === 0 ? (
+            {publicationGroups.length === 0 ? (
               <EmptyState title="Nenhuma publicação vinculada" />
             ) : (
-              <PublicationsList publications={serializedPublications} highlightNew={false} />
+              <PublicationsList groups={publicationGroups} highlightNew={false} />
             )}
           </Card>
         </div>

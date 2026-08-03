@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
+import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { Lock } from "lucide-react";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
@@ -54,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [unreadPublicationsRaw, totalAlerts, modules, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
-      select: { processNumberRaw: true },
+      select: { id: true, processNumberRaw: true },
     }),
     // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas
     // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
@@ -64,8 +65,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getOfficeModules(user.officeId),
     getBlockedProcessNumberSet(user.id),
   ]);
-  // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou.
-  const unreadPublications = unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)).length;
+  // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou. Contagem por
+  // GRUPO (mesmo processo), não por linha — ver lib/publicationGrouping.ts: elimina a
+  // duplicidade do badge quando o mesmo evento chega por mais de uma fonte (DJEN + Datajud +
+  // e-mail do Jusbrasil...), mesmo problema resolvido na listagem de /publicacoes.
+  const unreadPublications = countUnreadPublicationGroups(unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)));
 
   return (
     <UndoToastProvider>
