@@ -30,25 +30,35 @@ export default function SettleButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const isPago = status === "PAGO";
   const isParcial = status === "PARCIAL";
 
   return (
     <div className="flex items-center gap-1">
       {(isPago || isParcial) && (
-        <button
-          onClick={async () => {
-            setLoading(true);
-            await (kind === "payable" ? reopenPayable(id) : reopenReceivable(id));
-            router.refresh();
-            setLoading(false);
-          }}
-          disabled={loading}
-          data-tip={isParcial ? "Reabrir e apagar os pagamentos parciais já lançados" : "Reabrir e desfazer a baixa"}
-          className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1 rounded-lg hover:bg-cream-100 dark:hover:bg-white/10 disabled:opacity-50"
-        >
-          <RotateCcw size={12} /> Reabrir
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={async () => {
+              setLoading(true);
+              setError("");
+              try {
+                await (kind === "payable" ? reopenPayable(id) : reopenReceivable(id));
+                router.refresh();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Erro ao reabrir. Tente novamente.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            data-tip={isParcial ? "Reabrir e apagar os pagamentos parciais já lançados" : "Reabrir e desfazer a baixa"}
+            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1 rounded-lg hover:bg-cream-100 dark:hover:bg-white/10 disabled:opacity-50"
+          >
+            <RotateCcw size={12} /> Reabrir
+          </button>
+          {error && <p className="text-[10px] text-bordo-700 dark:text-bordo-400">{error}</p>}
+        </div>
       )}
       {!isPago && (
         <>

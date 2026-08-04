@@ -21,32 +21,39 @@ export default function MobileNewTaskForm({
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [type, setType] = useState(defaultType);
   const [meetingType, setMeetingType] = useState("PRESENCIAL");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
-    await createTask({
-      title: String(formData.get("title")),
-      type: String(formData.get("type")),
-      dueDate: String(formData.get("dueDate")),
-      dueTime: String(formData.get("dueTime") || ""),
-      priority: "MEDIA",
-      caseId,
-      description: String(formData.get("description") || ""),
-      meetingType: String(formData.get("meetingType") || ""),
-      location: String(formData.get("location") || ""),
-      meetingUrl: String(formData.get("meetingUrl") || ""),
-      strategy: String(formData.get("strategy") || ""),
-    });
-    setLoading(false);
-    setOpen(false);
-    setType(defaultType);
-    setMeetingType("PRESENCIAL");
-    if (onCreated) {
-      onCreated();
-    } else {
-      router.refresh();
+    setError("");
+    try {
+      await createTask({
+        title: String(formData.get("title")),
+        type: String(formData.get("type")),
+        dueDate: String(formData.get("dueDate")),
+        dueTime: String(formData.get("dueTime") || ""),
+        priority: "MEDIA",
+        caseId,
+        description: String(formData.get("description") || ""),
+        meetingType: String(formData.get("meetingType") || ""),
+        location: String(formData.get("location") || ""),
+        meetingUrl: String(formData.get("meetingUrl") || ""),
+        strategy: String(formData.get("strategy") || ""),
+      });
+      setOpen(false);
+      setType(defaultType);
+      setMeetingType("PRESENCIAL");
+      if (onCreated) {
+        onCreated();
+      } else {
+        router.refresh();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -155,6 +162,8 @@ export default function MobileNewTaskForm({
             <textarea name="strategy" rows={2} className="mobile-input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
           </div>
         )}
+
+        {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
 
         <button
           type="submit"

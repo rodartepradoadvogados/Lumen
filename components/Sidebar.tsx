@@ -365,7 +365,20 @@ export default function Sidebar({
                 // Sub-abas expandem sozinhas quando a rota atual já pertence a essa
                 // seção — sem exigir um clique extra só pra abrir o submenu.
                 const expanded = active && visibleSubItems.length > 0;
-                const currentSubValue = item.subParam ? searchParams.get(item.subParam) ?? item.subDefaultValue : undefined;
+                // Configurações tem uma exceção ao "subDefaultValue" simples: o retorno do OAuth
+                // do Google/Microsoft/Dropbox (?google=, ?microsoft=, ?dropbox=, sem &secao=) cai
+                // na seção "Modelos & Integrações", não em "Geral" — mesma condição de
+                // `defaultSecao` em app/(app)/configuracoes/page.tsx. Sem isto, o item ativo do
+                // submenu ficava "errado" (destacando Geral) sempre que alguém reconectava uma
+                // integração e o navegador seguia o redirect direto pra cá (deep-link, não clique).
+                const configuracoesIntegracaoDefault =
+                  item.href === "/configuracoes" &&
+                  (searchParams.get("google") || searchParams.get("microsoft") || searchParams.get("dropbox"))
+                    ? "modelos"
+                    : undefined;
+                const currentSubValue = item.subParam
+                  ? searchParams.get(item.subParam) ?? configuracoesIntegracaoDefault ?? item.subDefaultValue
+                  : undefined;
 
                 return (
                   <div key={item.href}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 // Rótulo do botão reage ao campo "type" do mesmo <form> (ouvindo "change" no DOM em vez de virar
 // o formulário inteiro num client component): "Salvar Processo" quando o tipo é Judicial ou
@@ -19,6 +20,11 @@ export default function SaveCaseButton({ defaultType }: { defaultType: string })
   const [type, setType] = useState(defaultType);
   const [attachmentsUploading, setAttachmentsUploading] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // useFormStatus só funciona em componente descendente do <form> (que este botão sempre é) —
+  // cobre o pending do submit "de verdade" (criação do caso, pasta no Drive etc.), que antes só
+  // tinha o bloqueio de anexos abaixo: sem isso, o botão ficava clicável de novo durante a
+  // submissão inteira, permitindo duplo clique/duplo submit acidental (criar o processo 2x).
+  const { pending } = useFormStatus();
 
   useEffect(() => {
     const form = buttonRef.current?.closest("form");
@@ -43,13 +49,19 @@ export default function SaveCaseButton({ defaultType }: { defaultType: string })
     <button
       ref={buttonRef}
       type="submit"
-      disabled={attachmentsUploading}
+      disabled={attachmentsUploading || pending}
       onClick={(e) => {
         if (attachmentsUploading) e.preventDefault();
       }}
       className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
     >
-      {attachmentsUploading ? "Enviando anexos..." : type === "JUDICIAL" || type === "ADMINISTRATIVO" ? "Salvar Processo" : "Salvar Caso"}
+      {attachmentsUploading
+        ? "Enviando anexos..."
+        : pending
+        ? "Salvando..."
+        : type === "JUDICIAL" || type === "ADMINISTRATIVO"
+        ? "Salvar Processo"
+        : "Salvar Caso"}
     </button>
   );
 }

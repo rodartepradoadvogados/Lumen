@@ -34,6 +34,7 @@ export default function MobileSettleForm({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const saldoAtual = Math.max(0, liquido - alreadyPaid);
   const [paidAmount, setPaidAmount] = useState(saldoAtual > 0 ? saldoAtual.toFixed(2) : "");
@@ -42,21 +43,29 @@ export default function MobileSettleForm({
 
   if (status === "PAGO") {
     return (
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            await (kind === "payable" ? reopenPayable(id) : reopenReceivable(id));
-            router.refresh();
-          })
-        }
-        className={`flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 ${
-          pending ? "opacity-50" : ""
-        }`}
-      >
-        <RotateCcw size={12} /> Reabrir
-      </button>
+      <div className="flex flex-col items-end gap-1">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              setError("");
+              try {
+                await (kind === "payable" ? reopenPayable(id) : reopenReceivable(id));
+                router.refresh();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Erro ao reabrir. Tente novamente.");
+              }
+            })
+          }
+          className={`flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 ${
+            pending ? "opacity-50" : ""
+          }`}
+        >
+          <RotateCcw size={12} /> Reabrir
+        </button>
+        {error && <p className="text-[10px] text-bordo-700 dark:text-bordo-400">{error}</p>}
+      </div>
     );
   }
 
@@ -89,16 +98,22 @@ export default function MobileSettleForm({
       <form
         action={async (formData) => {
           setLoading(true);
+          setError("");
           const paidDate = String(formData.get("paidDate"));
           const receiptNumber = String(formData.get("receiptNumber") || "");
           const paymentMethod = String(formData.get("paymentMethod") || "");
           const bankAccountId = String(formData.get("bankAccountId") || "");
-          await (kind === "payable"
-            ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
-            : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
-          setLoading(false);
-          setOpen(false);
-          router.refresh();
+          try {
+            await (kind === "payable"
+              ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
+              : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
+            setOpen(false);
+            router.refresh();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Erro ao confirmar a baixa. Tente novamente.");
+          } finally {
+            setLoading(false);
+          }
         }}
         className="space-y-2.5"
       >
@@ -154,6 +169,7 @@ export default function MobileSettleForm({
           <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional)</label>
           <input name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
+        {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}
