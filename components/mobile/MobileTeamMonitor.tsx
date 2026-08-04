@@ -17,6 +17,10 @@ function formatDateTime(iso: string | null) {
   return `${d.toLocaleDateString("pt-BR")}, às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 // Versão mobile de components/TeamMonitorPanel.tsx — mesmo dado (fetchTeamSummaries/
 // fetchUserHistory), mas como bloco sempre visível na página (não um popover flutuante, ruim
 // de usar em tela pequena).
@@ -73,11 +77,25 @@ export default function MobileTeamMonitor() {
               {!history[s.id] && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 py-1">Carregando histórico...</p>}
               {history[s.id]?.length === 0 && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 py-1">Sem registros recentes.</p>}
               {history[s.id]?.map((h) => (
-                <div key={h.date} className="flex justify-between text-[11px] py-1 border-b border-navy-800/5 dark:border-white/10 last:border-0">
-                  <span className="text-navy-800/60 dark:text-cream-50/60">
-                    {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")} · primeiro login {new Date(h.firstLogin).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="font-semibold text-navy-900 dark:text-cream-50">{formatHMS(h.seconds)}</span>
+                <div key={h.date} className="py-1.5 border-b border-navy-800/5 dark:border-white/10 last:border-0">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-navy-800/60 dark:text-cream-50/60">
+                      {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")} · primeiro login {formatTime(h.firstLogin)}
+                    </span>
+                    <span className="font-semibold text-navy-900 dark:text-cream-50">{formatHMS(h.seconds)}</span>
+                  </div>
+                  {/* Mais de um segmento no dia = sessão nova no meio do dia (voltou de
+                      inatividade ou logou de novo), com uma pausa sem contar entre um segmento
+                      e o outro — é o que permite enxergar se a pessoa ficou fora. */}
+                  {h.sessions.length > 1 && (
+                    <div className="mt-1 pl-2 border-l-2 border-navy-800/10 dark:border-white/10 space-y-0.5">
+                      {h.sessions.map((seg, i) => (
+                        <p key={i} className="text-[10px] text-navy-800/45 dark:text-cream-50/45 font-mono">
+                          {formatTime(seg.loginAt)}–{formatTime(seg.lastPingAt)} ({formatHMS(seg.seconds)})
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

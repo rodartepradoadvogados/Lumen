@@ -48,7 +48,7 @@ export default function InactivityNotice() {
       const result = await resumeAfterInactivity();
       window.dispatchEvent(
         new CustomEvent("rp-timesheet-resume", {
-          detail: "todaySeconds" in result ? { todaySeconds: result.todaySeconds } : {},
+          detail: "sessionSeconds" in result ? { sessionSeconds: result.sessionSeconds } : {},
         })
       );
       // A troca de idle para false reexecuta o efeito acima, que já reinicia a

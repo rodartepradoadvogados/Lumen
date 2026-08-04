@@ -9,7 +9,7 @@ import PeticionarButton from "@/components/PeticionarButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import TimesheetTimer from "@/components/TimesheetTimer";
 import TeamMonitorPanel from "@/components/TeamMonitorPanel";
-import { getTodayElapsedSeconds } from "@/lib/timesheet";
+import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
 
 export default async function TopBar() {
   const user = await getCurrentUser();
@@ -18,7 +18,7 @@ export default async function TopBar() {
   const initials = user
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")
     : "??";
-  const todaySeconds = user ? await getTodayElapsedSeconds(user.id) : 0;
+  const sessionSeconds = user ? await getCurrentSessionElapsedSeconds(user.id) : 0;
 
   return (
     <header className="relative z-30 h-16 shrink-0 bg-cream-50/80 dark:bg-navy-950/90 backdrop-blur border-b border-gold-500/20 dark:border-gold-400/10 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
@@ -28,7 +28,7 @@ export default async function TopBar() {
         <PeticionarButton />
         <NewEntityMenu />
 
-        {user && <TimesheetTimer initialSeconds={todaySeconds} />}
+        {user && <TimesheetTimer initialSeconds={sessionSeconds} />}
 
         <ThemeToggle />
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getTodayElapsedSeconds } from "@/lib/timesheet";
+import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
 import { prisma } from "@/lib/prisma";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import InstallPrompt from "@/components/mobile/InstallPrompt";
@@ -50,9 +50,9 @@ export default async function MobileLayout({ children }: { children: React.React
   // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
-  const [totalAlerts, todaySeconds, office] = await Promise.all([
+  const [totalAlerts, sessionSeconds, office] = await Promise.all([
     user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin) : Promise.resolve(0),
-    user ? getTodayElapsedSeconds(user.id) : Promise.resolve(0),
+    user ? getCurrentSessionElapsedSeconds(user.id) : Promise.resolve(0),
     user ? prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } }) : Promise.resolve(null),
   ]);
 
@@ -107,7 +107,7 @@ export default async function MobileLayout({ children }: { children: React.React
             {/* Ping silencioso de timesheet: o componente fica "hidden lg:flex" (nunca visível
                 na largura do app mobile), mas mantém o mecanismo de contagem de sessão do dia
                 rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
-            {user && <TimesheetTimer initialSeconds={todaySeconds} />}
+            {user && <TimesheetTimer initialSeconds={sessionSeconds} />}
           </div>
         </header>
       </div>

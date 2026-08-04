@@ -10,6 +10,13 @@ function formatHMS(totalSeconds: number) {
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}min`;
 }
 
+// Mostra o tempo decorrido da SESSÃO ATUAL (não o total do dia) — cada sessão nova (primeiro
+// login do dia ou retomada após o aviso de inatividade) volta a contar visivelmente a partir de
+// 0. É de propósito: o número zerando é o próprio sinal, tanto pra quem está usando quanto pra
+// quem audita depois (Monitoramento da Equipe → Histórico, que lista os segmentos), de que houve
+// uma pausa — antes o widget mostrava o total do dia, que praticamente não mudava ao voltar da
+// inatividade (o tempo parado já não entrava na conta), dando a impressão de que nada tinha
+// acontecido. O total do dia continua disponível pra quem audita, em Monitoramento da Equipe.
 export default function TimesheetTimer({ initialSeconds }: { initialSeconds: number }) {
   const [seconds, setSeconds] = useState(initialSeconds);
   const hasPinged = useRef(false);
@@ -22,13 +29,13 @@ export default function TimesheetTimer({ initialSeconds }: { initialSeconds: num
     function handlePause() {
       pausedRef.current = true;
     }
-    // O aviso de inatividade manda o total correto (já recontado a partir da sessão nova,
-    // sem o período parado) junto com o evento — aplicamos direto, sem esperar o próximo
-    // ping (até 25s depois), senão o número mostrado fica errado por um tempo.
+    // O aviso de inatividade manda o tempo da sessão nova (0, ou muito perto disso) junto com
+    // o evento — aplicamos direto, sem esperar o próximo ping (até 25s depois), senão o widget
+    // continua mostrando o número antigo por um tempo depois de já ter clicado em Continuar.
     function handleResume(e: Event) {
       pausedRef.current = false;
-      const detail = (e as CustomEvent<{ todaySeconds?: number }>).detail;
-      if (detail && typeof detail.todaySeconds === "number") setSeconds(detail.todaySeconds);
+      const detail = (e as CustomEvent<{ sessionSeconds?: number }>).detail;
+      setSeconds(typeof detail?.sessionSeconds === "number" ? detail.sessionSeconds : 0);
     }
     window.addEventListener("rp-timesheet-pause", handlePause);
     window.addEventListener("rp-timesheet-resume", handleResume);
@@ -49,7 +56,7 @@ export default function TimesheetTimer({ initialSeconds }: { initialSeconds: num
     async function ping() {
       if (pausedRef.current) return;
       const result = await pingSession();
-      if ("todaySeconds" in result) setSeconds(result.todaySeconds);
+      if ("sessionSeconds" in result) setSeconds(result.sessionSeconds);
     }
     if (!hasPinged.current) {
       hasPinged.current = true;
@@ -64,7 +71,7 @@ export default function TimesheetTimer({ initialSeconds }: { initialSeconds: num
   }, []);
 
   return (
-    <span title="Tempo de sessão hoje" className="hidden lg:flex items-center gap-1 text-[11px] text-navy-800/40 dark:text-cream-50/40 font-medium tabular-nums">
+    <span title="Tempo desta sessão (reinicia após um período de inatividade)" className="hidden lg:flex items-center gap-1 text-[11px] text-navy-800/40 dark:text-cream-50/40 font-medium tabular-nums">
       <Clock size={12} /> {formatHMS(seconds)}
     </span>
   );
