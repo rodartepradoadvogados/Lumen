@@ -59,7 +59,7 @@ export default async function AgendaPage({
   const [tasks, cases, users, columns] = await Promise.all([
     prisma.task.findMany({
       where,
-      include: { case: true, responsible: true },
+      include: { case: true, responsible: true, completedBy: true },
       orderBy: { dueDate: "asc" },
     }),
     prisma.case.findMany({ where: { status: "ATIVO", officeId: viewer.officeId }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
@@ -76,6 +76,8 @@ export default async function AgendaPage({
     dueDate: t.dueDate.toISOString(),
     dueTime: t.dueTime,
     safetyDueDate: t.safetyDueDate ? t.safetyDueDate.toISOString() : null,
+    completedAt: t.completedAt ? t.completedAt.toISOString() : null,
+    completedBy: t.completedBy ? { id: t.completedBy.id, name: t.completedBy.name } : null,
     case: t.case ? { id: t.case.id, title: t.case.title } : null,
     responsible: t.responsible ? { id: t.responsible.id, name: t.responsible.name, color: t.responsible.color } : null,
     meetingType: t.meetingType,

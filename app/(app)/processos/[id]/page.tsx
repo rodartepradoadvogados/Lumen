@@ -108,7 +108,7 @@ export default async function CaseDetailPage({
       clients: { include: { client: true } },
       parties: true,
       responsible: true,
-      tasks: { include: { responsible: true, _count: { select: { comments: true } } }, orderBy: { dueDate: "asc" } },
+      tasks: { include: { responsible: true, completedBy: true, _count: { select: { comments: true } } }, orderBy: { dueDate: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
       receivables: {
         orderBy: { dueDate: "asc" },
@@ -461,6 +461,8 @@ export default async function CaseDetailPage({
                       status: t.status,
                       dueDate: t.dueDate.toISOString(),
                       responsibleId: t.responsibleId,
+                      completedAt: t.completedAt ? t.completedAt.toISOString() : null,
+                      completedBy: t.completedBy ? { id: t.completedBy.id, name: t.completedBy.name } : null,
                       commentCount: t._count.comments,
                     }}
                     users={users.map((u) => ({ id: u.id, name: u.name }))}

@@ -20,6 +20,8 @@ export type TaskCardData = {
   columnId: string | null;
   case: { id: string; title: string } | null;
   responsible: { id: string; name: string; color: string } | null;
+  completedAt: string | null;
+  completedBy: { id: string; name: string } | null;
   _count: { comments: number };
 };
 
@@ -97,6 +99,10 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
   const overdue = new Date(task.dueDate) < new Date() && task.status !== "CONCLUIDO";
   const done = task.status === "CONCLUIDO";
   const [open, setOpen] = useState(false);
+  const completedTip =
+    done && task.completedBy && task.completedAt
+      ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+      : null;
 
   return (
     <div
@@ -112,7 +118,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         <div className="flex items-center gap-1">
           <button
             onClick={onToggle}
-            data-tip={done ? "Reabrir" : "Concluir"}
+            data-tip={done ? completedTip || "Reabrir" : "Concluir"}
             className={clsx(
               "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
               done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 text-transparent hover:border-emerald-500"

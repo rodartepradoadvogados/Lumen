@@ -19,7 +19,7 @@ export default async function KanbanPage() {
         tasks: {
           where: { status: { not: "CANCELADO" }, officeId: viewer.officeId },
           orderBy: { columnOrder: "asc" },
-          include: { case: true, responsible: true, _count: { select: { comments: true } } },
+          include: { case: true, responsible: true, completedBy: true, _count: { select: { comments: true } } },
         },
       },
     }),
@@ -46,6 +46,8 @@ export default async function KanbanPage() {
       columnId: t.columnId,
       case: t.case ? { id: t.case.id, title: t.case.title } : null,
       responsible: t.responsible ? { id: t.responsible.id, name: t.responsible.name, color: t.responsible.color } : null,
+      completedAt: t.completedAt ? t.completedAt.toISOString() : null,
+      completedBy: t.completedBy ? { id: t.completedBy.id, name: t.completedBy.name } : null,
       _count: t._count,
     })),
   }));

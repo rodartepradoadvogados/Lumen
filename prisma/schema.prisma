@@ -235,6 +235,7 @@ model User {
   pushSubscriptions           PushSubscription[]
   tasksResponsible            Task[]                 @relation("TaskResponsible")
   tasksDelegated              Task[]                 @relation("TaskDelegatedBy")
+  tasksCompleted               Task[]                @relation("TaskCompletedBy")
   casesResponsible            Case[]                 @relation("CaseResponsible")
   comments                    Comment[]
   anotacoes                   Anotacao[]
@@ -616,6 +617,9 @@ model Task {
   priority      String    @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
   status        String    @default("PENDENTE") // PENDENTE | EM_ANDAMENTO | CONCLUIDO | CANCELADO
   completedAt   DateTime?
+  // Auditoria de conclusão: quem marcou o compromisso como CONCLUIDO. Limpo (volta a null)
+  // se o status for revertido/reaberto, junto com completedAt.
+  completedById String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -644,6 +648,8 @@ model Task {
 
   responsibleId String?
   responsible   User?   @relation("TaskResponsible", fields: [responsibleId], references: [id])
+
+  completedBy   User?   @relation("TaskCompletedBy", fields: [completedById], references: [id])
 
   // Delegação: quando preenchido, indica que a tarefa foi atribuída por outra pessoa
   // (não criada pelo próprio responsável) — usado para gerar alerta/notificação só

@@ -47,6 +47,9 @@ export async function toggleTaskDone(taskId: string) {
     data: {
       status: isDone ? "PENDENTE" : "CONCLUIDO",
       completedAt: isDone ? null : new Date(),
+      // Auditoria: registra quem concluiu; ao reabrir, limpa para não deixar
+      // informação errada de uma conclusão que foi desfeita.
+      completedById: isDone ? null : viewer.id,
       columnId: !isDone && doneColumn ? doneColumn.id : task.columnId,
     },
   });
@@ -278,6 +281,8 @@ export type TaskDetail = {
   meetingUrl: string | null;
   strategy: string | null;
   responsibleId: string | null;
+  completedAt: string | null;
+  completedBy: { id: string; name: string } | null;
   case: { id: string; title: string; processNumber: string | null } | null;
   comments: { id: string; content: string; createdAt: string; authorName: string }[];
 };
@@ -295,6 +300,7 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
       where: { id, officeId: viewer.officeId },
       include: {
         case: { select: { id: true, title: true, processNumber: true } },
+        completedBy: { select: { id: true, name: true } },
         comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
       },
     }),
@@ -316,6 +322,8 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
       meetingUrl: task.meetingUrl,
       strategy: task.strategy,
       responsibleId: task.responsibleId,
+      completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+      completedBy: task.completedBy,
       case: task.case,
       comments: task.comments.map((cm) => ({
         id: cm.id,

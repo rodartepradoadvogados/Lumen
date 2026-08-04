@@ -10,6 +10,13 @@ import CommentBox from "@/components/CommentBox";
 import { formatDate } from "@/components/ui";
 import ModalShell from "@/components/ModalShell";
 
+// Rótulo discreto de auditoria (tooltip) exibido no botão de concluir/reabrir quando a
+// tarefa já está concluída — mesmo formato usado na Agenda (components/AgendaView.tsx).
+function completedLabel(name: string, completedAt: string): string {
+  const d = new Date(completedAt);
+  return `Concluído por ${name} em ${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
 // "Card do compromisso": mostra e permite editar uma tarefa/evento/audiência/perícia/prazo, com
 // uma conversa em comentários dentro do próprio card (estilo Trello) — reaproveita o mesmo
 // Comment/CommentBox já usado na aba Comentários do processo, só que ligado à tarefa (taskId) em
@@ -264,6 +271,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               type="button"
               onClick={handleToggleDone}
               disabled={saving}
+              data-tip={task.status === "CONCLUIDO" && task.completedBy && task.completedAt ? completedLabel(task.completedBy.name, task.completedAt) : undefined}
               className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3.5 py-2.5 rounded-lg disabled:opacity-50"
             >
               <Check size={14} /> {task.status === "CONCLUIDO" ? "Reabrir" : "Marcar como concluída"}

@@ -19,6 +19,8 @@ type TaskData = {
   dueDate: string;
   dueTime: string | null;
   safetyDueDate: string | null;
+  completedAt: string | null;
+  completedBy: { id: string; name: string } | null;
   case: { id: string; title: string } | null;
   responsible: { id: string; name: string; color: string } | null;
   meetingType: string | null;
@@ -50,6 +52,16 @@ const typeMeta: Record<string, { dot: string; chip: string }> = {
 
 function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Rótulo discreto de auditoria (tooltip/texto pequeno) exibido nos itens já concluídos —
+// null quando falta responsável ou data (ex.: dado legado de antes deste campo existir).
+function completedLabel(t: TaskData): string | null {
+  if (!t.completedBy || !t.completedAt) return null;
+  const d = new Date(t.completedAt);
+  const date = d.toLocaleDateString("pt-BR");
+  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `Concluído por ${t.completedBy.name} em ${date} às ${time}`;
 }
 
 export default function AgendaView({
@@ -223,9 +235,10 @@ function EventChip({ t }: { t: TaskData }) {
   const done = t.status === "CONCLUIDO";
   const isSafety = t.entryKind === "seguranca";
   const meta = typeMeta[t.type] || typeMeta.TAREFA;
+  const doneTip = done ? completedLabel(t) : null;
   return (
     <div
-      data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : undefined}
+      data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : doneTip || undefined}
       className={clsx(
         "text-[10px] px-1 py-0.5 rounded truncate font-medium flex items-center gap-1",
         isSafety ? safetyChip : meta.chip,
@@ -457,6 +470,9 @@ function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
                         </Link>
                       )}
                       {t.responsible && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">Responsável: {t.responsible.name}</p>}
+                      {done && completedLabel(t) && (
+                        <p className="text-[11px] text-navy-800/35 dark:text-cream-50/35 mt-0.5">{completedLabel(t)}</p>
+                      )}
                     </div>
                   </div>
                 );
@@ -506,6 +522,7 @@ function DayPanel({
             <div key={`${t.id}-${t.entryKind}`} className="px-5 py-3.5 flex gap-3">
               <button
                 onClick={() => onToggle(t.id)}
+                data-tip={done ? completedLabel(t) || undefined : undefined}
                 className={clsx(
                   "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
                   done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 text-transparent hover:border-emerald-500"

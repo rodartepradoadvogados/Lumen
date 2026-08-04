@@ -77,7 +77,7 @@ async function DayView({
 
   const tasks = await prisma.task.findMany({
     where: { officeId, dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
-    include: { case: true, responsible: true },
+    include: { case: true, responsible: true, completedBy: true },
     orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
   });
 
@@ -157,6 +157,12 @@ async function DayView({
                     {t.case && <p className="text-xs text-gold-700 dark:text-gold-400 mt-0.5 truncate">{t.case.title}</p>}
                     {t.responsible && (
                       <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{t.responsible.name}</p>
+                    )}
+                    {done && t.completedBy && t.completedAt && (
+                      <p className="text-[11px] text-navy-800/35 dark:text-cream-50/35 mt-0.5">
+                        Concluído por {t.completedBy.name} em {t.completedAt.toLocaleDateString("pt-BR")} às{" "}
+                        {t.completedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
                     )}
                   </div>
                 </div>

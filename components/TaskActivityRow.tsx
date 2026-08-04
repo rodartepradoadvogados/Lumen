@@ -25,6 +25,8 @@ export default function TaskActivityRow({
     status: string;
     dueDate: string;
     responsibleId: string | null;
+    completedAt: string | null;
+    completedBy: { id: string; name: string } | null;
     commentCount: number;
   };
   users: { id: string; name: string }[];
@@ -32,12 +34,18 @@ export default function TaskActivityRow({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const done = task.status === "CONCLUIDO";
+  const doneTip =
+    done && task.completedBy && task.completedAt
+      ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+      : undefined;
 
   return (
     <div className="flex items-center gap-3 px-5 py-3.5">
       <button
         type="button"
         disabled={loading}
+        data-tip={doneTip}
         onClick={async () => {
           setLoading(true);
           await toggleTaskDone(task.id);
@@ -45,7 +53,7 @@ export default function TaskActivityRow({
           setLoading(false);
         }}
         className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center disabled:opacity-50 ${
-          task.status === "CONCLUIDO" ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 hover:border-emerald-500"
+          done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 hover:border-emerald-500"
         }`}
       >
         <Check size={12} strokeWidth={3} />
