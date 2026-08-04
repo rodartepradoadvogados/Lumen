@@ -132,6 +132,15 @@ export default async function CaseDetailPage({
           itens: { orderBy: { ordem: "asc" }, include: { attachment: { select: { driveUrl: true } } } },
         },
       },
+      // Histórico do botão "Enviar E-mail/WhatsApp" (mesma aba Protocolos) — ver model
+      // DocumentoEnvio em prisma/schema.prisma.
+      documentoEnvios: {
+        orderBy: { enviadoEm: "desc" },
+        include: {
+          enviadoPor: { select: { name: true } },
+          itens: true,
+        },
+      },
       honorarioLancamentos: {
         orderBy: { createdAt: "desc" },
         include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: true } } },
@@ -278,6 +287,20 @@ export default async function CaseDetailPage({
       nomeSnapshot: item.nomeSnapshot,
       docTypeSnapshot: item.docTypeSnapshot,
       driveUrl: item.attachment?.driveUrl ?? null,
+    })),
+  }));
+  const serializedEnvios = c.documentoEnvios.map((envio) => ({
+    id: envio.id,
+    metodo: envio.metodo,
+    destinatarioNome: envio.destinatarioNome,
+    destinatarioContato: envio.destinatarioContato,
+    enviadoEm: envio.enviadoEm.toISOString(),
+    enviadoPor: envio.enviadoPor ? { name: envio.enviadoPor.name } : null,
+    itens: envio.itens.map((item) => ({
+      id: item.id,
+      attachmentId: item.attachmentId,
+      nomeSnapshot: item.nomeSnapshot,
+      docTypeSnapshot: item.docTypeSnapshot,
     })),
   }));
 
@@ -777,8 +800,10 @@ export default async function CaseDetailPage({
         <Card className="p-5">
           <ProtocolosTab
             caseId={c.id}
+            caseTitle={c.title}
             attachments={serializedAttachments.map((a) => ({ id: a.id, name: a.name, docType: a.docType }))}
             lotes={serializedLotes}
+            envios={serializedEnvios}
             driveConnected={driveStatus.connected}
           />
         </Card>

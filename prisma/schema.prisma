@@ -159,6 +159,9 @@ model Office {
   // Protocolos dos processos deste escritório — ver model ProtocoloLote mais abaixo.
   protocoloLotes ProtocoloLote[]
 
+  // Envios de documentos (E-mail/WhatsApp) deste escritório — ver model DocumentoEnvio mais abaixo.
+  documentoEnvios DocumentoEnvio[]
+
   // Lançamentos de honorários deste escritório — ver model HonorarioLancamento mais abaixo.
   honorarioLancamentos HonorarioLancamento[]
 
@@ -266,6 +269,10 @@ model User {
   // distintos de propósito: quem prepara o lote muitas vezes não é quem envia ao tribunal.
   protocoloLotesCriados      ProtocoloLote[] @relation("ProtocoloLoteCriadoPor")
   protocoloLotesProtocolados ProtocoloLote[] @relation("ProtocoloLoteProtocoladoPor")
+
+  // Envios de documentos (E-mail/WhatsApp) que esta pessoa registrou — ver model DocumentoEnvio
+  // mais abaixo.
+  documentoEnvios DocumentoEnvio[]
 
   // Lúmen (Passo 1) — capacidade de plataforma, separada de isPlatformOwner (ver PlatformMember).
   platformMember PlatformMember?
@@ -517,6 +524,10 @@ model Case {
 
   // Protocolos deste processo (aba Protocolos) — ver model ProtocoloLote mais abaixo.
   protocoloLotes ProtocoloLote[]
+
+  // Envios de documentos por E-mail/WhatsApp deste processo (mesma aba Protocolos) — ver model
+  // DocumentoEnvio mais abaixo.
+  documentoEnvios DocumentoEnvio[]
 
   // Lançamentos de honorários (aba Financeiro) — ver model HonorarioLancamento mais abaixo.
   honorarioLancamentos HonorarioLancamento[]
@@ -1007,6 +1018,10 @@ model Attachment {
   protocoloItens         ProtocoloLoteItem[] @relation("ProtocoloLoteItemAttachment")
   protocoloComprovanteDe ProtocoloLote[]     @relation("ProtocoloLoteComprovante")
 
+  // Envios (E-mail/WhatsApp) que REFERENCIAM este anexo — ver DocumentoEnvioItem, mesmo espírito
+  // de protocoloItens acima: nunca uma cópia, só a referência.
+  documentoEnvioItens DocumentoEnvioItem[] @relation("DocumentoEnvioItemAttachment")
+
   @@index([officeId])
 }
 
@@ -1093,6 +1108,65 @@ model ProtocoloLoteItem {
 
   @@unique([loteId, attachmentId])
   @@index([loteId])
+}
+
+// ============ ENVIOS DE DOCUMENTOS (E-mail/WhatsApp — mesma aba Protocolos) ============
+
+// Registro de que um conjunto de documentos deste processo foi ENVIADO a alguém por e-mail ou
+// WhatsApp — não é um protocolo (não vai a tribunal/órgão, não tem número oficial), é o rastro de
+// "mandei o Parecer X e a Procuração Y para fulano, por e-mail, no dia tal". Mesmo espírito de
+// ProtocoloLote acima: NUNCA guarda arquivo, só referencia Attachment (ver DocumentoEnvioItem). O
+// envio de verdade (redigir e mandar o e-mail/mensagem) acontece fora do sistema — o botão que
+// cria este registro só abre um mailto:/wa.me pré-preenchido como conveniência; nenhuma integração
+// de envio real é feita por aqui.
+model DocumentoEnvio {
+  id     String @id @default(cuid())
+  metodo String // EMAIL | WHATSAPP — ver DOCUMENTO_ENVIO_METODOS em lib/documentoEnvios.ts
+
+  // Nome de quem recebeu, sempre preenchido (cadastrado ou digitado na hora) — é o que aparece no
+  // histórico, já que destinatarioContato sozinho (um e-mail ou telefone) diria pouco por si.
+  destinatarioNome String
+  // E-mail ou telefone conforme `metodo` — pode vir de Client/Lawyer/Supplier já cadastrado ou ser
+  // digitado na hora (a pessoa nem sempre está cadastrada); nenhuma FK para não travar o registro
+  // à existência contínua do cadastro de origem.
+  destinatarioContato String
+
+  enviadoEm DateTime @default(now())
+
+  enviadoPorId String?
+  enviadoPor   User?   @relation(fields: [enviadoPorId], references: [id])
+
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id])
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  itens DocumentoEnvioItem[]
+
+  createdAt DateTime @default(now())
+
+  @@index([officeId])
+  @@index([caseId])
+}
+
+// Uma linha da lista de um envio: o anexo referenciado, com snapshot do nome/tipo — mesmo motivo
+// de ProtocoloLoteItem.nomeSnapshot/docTypeSnapshot: um envio é registro histórico, e continua
+// mostrando o que foi mandado mesmo que o anexo original seja renomeado ou apagado depois
+// (attachmentId fica nulo via onDelete: SetNull, a linha permanece).
+model DocumentoEnvioItem {
+  id String @id @default(cuid())
+
+  envioId String
+  envio   DocumentoEnvio @relation(fields: [envioId], references: [id], onDelete: Cascade)
+
+  attachmentId String?
+  attachment   Attachment? @relation("DocumentoEnvioItemAttachment", fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  nomeSnapshot    String
+  docTypeSnapshot String
+
+  @@index([envioId])
 }
 
 // Cabeçalho de um lançamento de honorários "parcelado" (aba Financeiro do Processo) — agrupa as

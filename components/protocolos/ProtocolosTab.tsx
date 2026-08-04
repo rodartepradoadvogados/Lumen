@@ -44,6 +44,7 @@ import {
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { Badge, formatCalendarDate } from "@/components/ui";
+import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/protocolos/DocumentoEnvios";
 
 type AttachmentOption = { id: string; name: string; docType: string };
 type LoteItem = { id: string; ordem: number; attachmentId: string | null; nomeSnapshot: string; docTypeSnapshot: string; driveUrl: string | null };
@@ -76,13 +77,17 @@ const STATUS_COLOR: Record<string, "slate" | "gold" | "green" | "red"> = {
 
 export default function ProtocolosTab({
   caseId,
+  caseTitle,
   attachments,
   lotes,
+  envios,
   driveConnected,
 }: {
   caseId: string;
+  caseTitle: string;
   attachments: AttachmentOption[];
   lotes: Lote[];
+  envios: Envio[];
   driveConnected: boolean;
 }) {
   const [novoOpen, setNovoOpen] = useState(false);
@@ -119,12 +124,15 @@ export default function ProtocolosTab({
         <p className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 font-mono">
           {lotes.length === 0 ? "Nenhum protocolo ainda" : `${lotes.length} protocolo${lotes.length > 1 ? "s" : ""}`}
         </p>
-        <button
-          onClick={() => setNovoOpen(true)}
-          className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
-        >
-          <Plus size={16} /> Novo protocolo
-        </button>
+        <div className="flex items-center gap-2">
+          <EnviarDocumentosButton caseId={caseId} caseTitle={caseTitle} attachments={attachments} />
+          <button
+            onClick={() => setNovoOpen(true)}
+            className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={16} /> Novo protocolo
+          </button>
+        </div>
       </div>
 
       {lotes.length === 0 ? (
@@ -147,6 +155,8 @@ export default function ProtocolosTab({
           ))}
         </div>
       )}
+
+      <HistoricoEnvios caseTitle={caseTitle} envios={envios} />
 
       {novoOpen && <SelecaoModal caseId={caseId} attachments={attachments} onClose={() => setNovoOpen(false)} />}
       {editando && (

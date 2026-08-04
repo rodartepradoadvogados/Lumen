@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Badge, EmptyState, formatCalendarDate } from "@/components/ui";
-import { ExternalLink, FolderOpen, CalendarClock } from "lucide-react";
+import { Card, Badge, EmptyState, formatCalendarDate, formatDate } from "@/components/ui";
+import { ExternalLink, FolderOpen, CalendarClock, Mail, MessageCircle } from "lucide-react";
 import { getVinculoTarefa, type TarefaVinculada } from "@/lib/actions/protocolos";
 
 type Lote = {
@@ -16,6 +16,22 @@ type Lote = {
   createdAt: string;
   itens: { id: string; nomeSnapshot: string; driveUrl: string | null }[];
 };
+
+type Envio = {
+  id: string;
+  metodo: string;
+  destinatarioNome: string;
+  destinatarioContato: string;
+  enviadoEm: string;
+  enviadoPor: { name: string } | null;
+  itens: { id: string; nomeSnapshot: string; docTypeSnapshot: string }[];
+};
+
+// enviadoEm é timestamp de verdade — mesmo padrão de components/protocolos/DocumentoEnvios.tsx
+// (versão desktop), aqui reduzido só à data (sem hora) para caber melhor na tela estreita.
+function formatEnviadoEm(iso: string): string {
+  return formatDate(iso);
+}
 
 const STATUS_LABEL: Record<string, string> = {
   EM_PREPARO: "Em preparo",
@@ -40,7 +56,7 @@ const STATUS_COLOR: Record<string, "slate" | "gold" | "green" | "red"> = {
 // lib/actions/protocolos.ts) — a página do processo no mobile não inclui esse vínculo na consulta
 // que monta `lotes` (fora do escopo desta aba), então é buscado à parte, ainda em modo leitura:
 // nenhuma ação de escrita é oferecida aqui, só o texto do prazo.
-export default function MobileCaseProtocolosTab({ lotes }: { lotes: Lote[] }) {
+export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote[]; envios: Envio[] }) {
   const [tarefas, setTarefas] = useState<Record<string, TarefaVinculada>>({});
   const loteIds = useMemo(() => lotes.map((l) => l.id).join(","), [lotes]);
   useEffect(() => {
@@ -101,6 +117,38 @@ export default function MobileCaseProtocolosTab({ lotes }: { lotes: Lote[] }) {
                     )}
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mt-4 px-1">Documentos enviados</p>
+      <Card>
+        {envios.length === 0 ? (
+          <EmptyState title="Nenhum envio registrado ainda" />
+        ) : (
+          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            {envios.map((envio) => (
+              <div key={envio.id} className="px-4 py-3">
+                <div className="flex items-start gap-2">
+                  {envio.metodo === "EMAIL" ? (
+                    <Mail size={13} className="text-navy-800/40 dark:text-cream-50/40 shrink-0 mt-0.5" />
+                  ) : (
+                    <MessageCircle size={13} className="text-navy-800/40 dark:text-cream-50/40 shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">
+                      Para {envio.destinatarioNome} <span className="text-navy-800/45 dark:text-cream-50/45 font-normal">({envio.destinatarioContato})</span>
+                    </p>
+                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                      {formatEnviadoEm(envio.enviadoEm)} · {envio.itens.length} documento{envio.itens.length === 1 ? "" : "s"} · {envio.enviadoPor?.name ?? "—"}
+                    </p>
+                    <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1 truncate">
+                      {envio.itens.map((i) => i.nomeSnapshot).join(", ")}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

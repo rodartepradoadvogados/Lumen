@@ -102,6 +102,12 @@ export default async function MobileCaseDetail({
           orderBy: { createdAt: "desc" },
           include: { comprovante: { select: { id: true, name: true, driveUrl: true } }, itens: { orderBy: { ordem: "asc" }, select: { id: true, nomeSnapshot: true, attachment: { select: { driveUrl: true } } } } },
         },
+        // Histórico do botão "Enviar E-mail/WhatsApp" (aba Protocolos) — só leitura no mobile,
+        // mesma ideia de protocoloLotes acima (ver components/mobile/MobileCaseProtocolosTab.tsx).
+        documentoEnvios: {
+          orderBy: { enviadoEm: "desc" },
+          include: { enviadoPor: { select: { name: true } }, itens: { select: { id: true, nomeSnapshot: true, docTypeSnapshot: true } } },
+        },
         honorarioLancamentos: {
           orderBy: { createdAt: "desc" },
           include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: { select: { amount: true } } } } },
@@ -180,6 +186,16 @@ export default async function MobileCaseDetail({
     comprovante: lote.comprovante ? { id: lote.comprovante.id, name: lote.comprovante.name, driveUrl: lote.comprovante.driveUrl } : null,
     createdAt: lote.createdAt.toISOString(),
     itens: lote.itens.map((item) => ({ id: item.id, nomeSnapshot: item.nomeSnapshot, driveUrl: item.attachment?.driveUrl ?? null })),
+  }));
+
+  const serializedEnvios = c.documentoEnvios.map((envio) => ({
+    id: envio.id,
+    metodo: envio.metodo,
+    destinatarioNome: envio.destinatarioNome,
+    destinatarioContato: envio.destinatarioContato,
+    enviadoEm: envio.enviadoEm.toISOString(),
+    enviadoPor: envio.enviadoPor ? { name: envio.enviadoPor.name } : null,
+    itens: envio.itens.map((item) => ({ id: item.id, nomeSnapshot: item.nomeSnapshot, docTypeSnapshot: item.docTypeSnapshot })),
   }));
 
   const serializedTermos = termosVigilancia.map((t) => ({
@@ -508,7 +524,7 @@ export default async function MobileCaseDetail({
 
       {tab === "anexos" && <MobileCaseAttachmentsTab attachments={serializedAttachments} />}
 
-      {tab === "protocolos" && natureza !== "CASO" && <MobileCaseProtocolosTab lotes={serializedLotes} />}
+      {tab === "protocolos" && natureza !== "CASO" && <MobileCaseProtocolosTab lotes={serializedLotes} envios={serializedEnvios} />}
 
       {tab === "vigilancia" && natureza === "ADMINISTRATIVO" && <MobileCaseVigilanciaTab termos={serializedTermos} />}
 
