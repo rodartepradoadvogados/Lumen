@@ -1,12 +1,14 @@
-// Domínio dos Envios de Documentos (botão "Enviar E-mail/WhatsApp" na aba Protocolos) — ver
-// models DocumentoEnvio e DocumentoEnvioItem em prisma/schema.prisma.
+// Domínio dos Envios de Documentos (botão "Enviar E-mail/WhatsApp" — aba Protocolos de um
+// Processo, ou aba "Pareceres, Processos e Casos" de uma Assessoria) — ver models DocumentoEnvio
+// e DocumentoEnvioItem em prisma/schema.prisma.
 //
 // Diferença central para um ProtocoloLote (lib/protocolos.ts): um envio não é dirigido a um
 // tribunal/órgão, não tem número oficial e não representa nenhum ato processual — é só o rastro
 // de "mandei estes documentos para fulano, por e-mail/WhatsApp, no dia tal". Por isso não tem
 // ciclo de vida (status EM_PREPARO/PRONTO/...): o registro nasce pronto, no momento da confirmação.
 //
-// Mesma regra de sempre: nunca guarda arquivo, só referencia Attachment (DocumentoEnvioItem).
+// Mesma regra de sempre: nunca guarda arquivo, só referencia Attachment (Processo) ou
+// AssessoriaDocumento (Assessoria) — ver DocumentoEnvioItem.
 //
 // EMAIL e WHATSAPP têm mecanismos bem diferentes por trás, cada um limitado pela própria
 // plataforma que usa:
@@ -48,13 +50,15 @@ export function buildWhatsAppLink(phone: string, text: string): string {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
-// Texto padrão da mensagem — lista cada documento com o respectivo link (Attachment.driveUrl),
-// não só o nome, para o destinatário conseguir abrir o arquivo a partir da própria mensagem
-// (essencial no WhatsApp, que não anexa arquivo de verdade; inofensivo/redundante no e-mail, que
-// já leva o arquivo anexado de verdade — mas serve de referência mesmo assim, e a mensagem é
-// editável antes de confirmar em ambos os métodos). `url` pode ser um aviso textual em vez de um
-// link de verdade quando o documento original já foi excluído (ver HistoricoEnvios).
-export function formatEnvioMensagem(caseTitle: string, documentos: { nome: string; url: string }[]): string {
+// Texto padrão da mensagem — lista cada documento com o respectivo link (Attachment.driveUrl ou
+// AssessoriaDocumento.driveUrl), não só o nome, para o destinatário conseguir abrir o arquivo a
+// partir da própria mensagem (essencial no WhatsApp, que não anexa arquivo de verdade;
+// inofensivo/redundante no e-mail, que já leva o arquivo anexado de verdade — mas serve de
+// referência mesmo assim, e a mensagem é editável antes de confirmar em ambos os métodos). `url`
+// pode ser um aviso textual em vez de um link de verdade quando o documento original já foi
+// excluído (ver HistoricoEnvios). `titulo` é neutro de propósito (nome do processo ou da empresa
+// da assessoria) — funciona para as duas origens sem precisar saber qual é.
+export function formatEnvioMensagem(titulo: string, documentos: { nome: string; url: string }[]): string {
   const lista = documentos.map((d) => `- ${d.nome}: ${d.url}`).join("\n");
-  return `Segue(m) o(s) documento(s) referente(s) ao processo "${caseTitle}":\n\n${lista}`;
+  return `Segue(m) o(s) documento(s) referente(s) a "${titulo}":\n\n${lista}`;
 }

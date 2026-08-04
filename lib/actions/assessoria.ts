@@ -109,6 +109,15 @@ export async function getAssessoriaDetail(id: string) {
       documents: { orderBy: { date: "desc" }, include: { uploadedBy: true, case: true } },
       honorarios: { orderBy: { competencia: "desc" }, include: { receivable: true } },
       licitacoes: { orderBy: { createdAt: "desc" }, include: { tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } } } },
+      // Histórico do botão "Enviar E-mail/WhatsApp" (aba "Pareceres, Processos e Casos") — mesmo
+      // padrão de app/(app)/processos/[id]/page.tsx para o Processo. Ver model DocumentoEnvio.
+      documentoEnvios: {
+        orderBy: { enviadoEm: "desc" },
+        include: {
+          enviadoPor: { select: { name: true } },
+          itens: true,
+        },
+      },
     },
   });
   if (!assessoria) return null;

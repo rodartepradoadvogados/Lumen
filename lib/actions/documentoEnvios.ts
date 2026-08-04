@@ -3,20 +3,35 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isCaseInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { isDocumentoEnvioMetodo } from "@/lib/documentoEnvios";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { downloadDriveFile, inferMimeTypeFromFileName, type StorageProvider } from "@/lib/storageProvider";
 import { extractDriveFileId } from "@/lib/googleDrive";
 
-// Server actions do botão "Enviar E-mail/WhatsApp" da aba Protocolos (ver lib/documentoEnvios.ts
-// para a rotina de domínio e prisma/schema.prisma para DocumentoEnvio/DocumentoEnvioItem).
+// Server actions do botão "Enviar E-mail/WhatsApp" — hoje usado na aba Protocolos de um Processo
+// e na aba "Pareceres, Processos e Casos" de uma Assessoria (ver lib/documentoEnvios.ts para a
+// rotina de domínio e prisma/schema.prisma para DocumentoEnvio/DocumentoEnvioItem).
 //
-// Um envio só REFERENCIA documentos (attachmentId) — nenhuma função aqui faz upload nem copia
-// arquivo. Mas, diferente de antes, o método EMAIL agora manda o e-mail de verdade, com o
-// conteúdo real dos documentos anexado (ver enviarDocumentosPorEmail abaixo) — só o método
-// WHATSAPP continua sendo "registro + link de conveniência" (wa.me), sem nenhum envio real (ver
-// lib/documentoEnvios.ts).
+// Um envio só REFERENCIA documentos (attachmentId de Processo OU assessoriaDocumentoId de
+// Assessoria — nunca os dois) — nenhuma função aqui faz upload nem copia arquivo. O método EMAIL
+// manda o e-mail de verdade, com o conteúdo real dos documentos anexado (ver
+// enviarDocumentosPorEmail abaixo) — só o método WHATSAPP continua sendo "registro + link de
+// conveniência" (wa.me), sem nenhum envio real (ver lib/documentoEnvios.ts).
+
+// Quem é o "dono" do envio: um Processo ou uma Assessoria. Toda função abaixo que antes recebia
+// só `caseId` agora recebe esta origem — o tipo escolhe, em cada função, se busca em
+// prisma.attachment (CASE) ou prisma.assessoriaDocumento (ASSESSORIA), e qual FK preencher em
+// DocumentoEnvio/DocumentoEnvioItem.
+export type EnvioOrigem = { tipo: "CASE"; id: string } | { tipo: "ASSESSORIA"; id: string };
+
+async function origemPertenceAoEscritorio(origem: EnvioOrigem, officeId: string): Promise<boolean> {
+  return origem.tipo === "CASE" ? isCaseInOffice(origem.id, officeId) : isAssessoriaInOffice(origem.id, officeId);
+}
+
+function revalidateOrigem(origem: EnvioOrigem) {
+  revalidatePath(origem.tipo === "CASE" ? `/processos/${origem.id}` : `/assessoria/${origem.id}`);
+}
 
 // ---------------------------------------------------------------------------
 // Contatos sugeridos (Client/Lawyer/Supplier do escritório) para preencher o destinatário
@@ -29,15 +44,15 @@ export type ContatoEnvio = {
   contato: string; // e-mail ou telefone, conforme o método pedido
 };
 
-// Contatos do escritório (não só deste processo — um documento pode ir para qualquer cliente,
-// advogado da parte contrária/parceiro ou fornecedor cadastrado) que têm o campo pedido
-// preenchido. Filtragem por nome fica a cargo do cliente (lista pequena o bastante para não
-// precisar de busca no servidor a cada tecla — mesmo padrão de EntityPicker).
-export async function listarContatosEnvio(caseId: string, metodo: string): Promise<ContatoEnvio[]> {
+// Contatos do escritório (não só do Processo/Assessoria de origem — um documento pode ir para
+// qualquer cliente, advogado da parte contrária/parceiro ou fornecedor cadastrado) que têm o
+// campo pedido preenchido. Filtragem por nome fica a cargo do cliente (lista pequena o bastante
+// para não precisar de busca no servidor a cada tecla — mesmo padrão de EntityPicker).
+export async function listarContatosEnvio(origem: EnvioOrigem, metodo: string): Promise<ContatoEnvio[]> {
   const viewer = await getCurrentUser();
   if (!viewer) return [];
   if (!isDocumentoEnvioMetodo(metodo)) return [];
-  if (!(await isCaseInOffice(caseId, viewer.officeId))) return [];
+  if (!(await origemPertenceAoEscritorio(origem, viewer.officeId))) return [];
 
   // Prisma não aceita chave de campo dinâmica no tipo de `where` (o nome da coluna precisa ser
   // literal para o TypeScript resolver o tipo certo) — daí o `where` completo variar por `metodo`
@@ -81,17 +96,51 @@ function ordenarPelosIds<T extends { id: string }>(ids: string[], items: T[]): T
   return ids.map((id) => byId.get(id)).filter((item): item is T => Boolean(item));
 }
 
+// Busca os documentos selecionados (Attachment de Processo OU AssessoriaDocumento de Assessoria,
+// conforme a origem) já na ordem em que os ids chegaram — os dois models têm campos equivalentes
+// o bastante (id/name/docType/driveUrl/storageProvider/storageFileId) para alimentar a mesma
+// lógica de montagem de item de envio.
+type DocumentoParaEnvio = {
+  id: string;
+  name: string;
+  docType: string;
+  driveUrl: string;
+  storageProvider: string;
+  storageFileId: string | null;
+};
+
+async function buscarDocumentosDaOrigem(origem: EnvioOrigem, officeId: string, ids: string[]): Promise<DocumentoParaEnvio[]> {
+  if (origem.tipo === "CASE") {
+    const attachments = await prisma.attachment.findMany({
+      where: { id: { in: ids }, officeId, caseId: origem.id },
+      select: { id: true, name: true, docType: true, driveUrl: true, storageProvider: true, storageFileId: true },
+    });
+    return ordenarPelosIds(ids, attachments);
+  }
+  const documentos = await prisma.assessoriaDocumento.findMany({
+    where: { id: { in: ids }, officeId, assessoriaId: origem.id },
+    select: { id: true, name: true, docType: true, driveUrl: true, storageProvider: true, storageFileId: true },
+  });
+  return ordenarPelosIds(ids, documentos);
+}
+
+// Monta o campo de FK certo (attachmentId ou assessoriaDocumentoId) para um item de
+// DocumentoEnvioItem, conforme a origem do envio.
+function itemFkDaOrigem(origem: EnvioOrigem, documentoId: string): { attachmentId?: string; assessoriaDocumentoId?: string } {
+  return origem.tipo === "CASE" ? { attachmentId: documentoId } : { assessoriaDocumentoId: documentoId };
+}
+
 // ---------------------------------------------------------------------------
 // Registrar o envio por WHATSAPP (o ato de "deixar rastro" — não envia nada de verdade, ver
 // comentário no topo do arquivo e em lib/documentoEnvios.ts).
 // ---------------------------------------------------------------------------
 
 export async function registrarEnvioDocumentos(data: {
-  caseId: string;
+  origem: EnvioOrigem;
   metodo: string;
   destinatarioNome: string;
   destinatarioContato: string;
-  attachmentIds: string[];
+  documentoIds: string[];
 }): Promise<{ id?: string; error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
@@ -101,92 +150,97 @@ export async function registrarEnvioDocumentos(data: {
   if (data.metodo !== "WHATSAPP") return { error: "Método inválido para este registro — use o envio por e-mail." };
   if (!data.destinatarioNome.trim()) return { error: "Informe o nome do destinatário." };
   if (!data.destinatarioContato.trim()) return { error: "Informe o telefone do destinatário." };
-  if (data.attachmentIds.length === 0) return { error: "Selecione ao menos um documento." };
-  if (!(await isCaseInOffice(data.caseId, viewer.officeId))) return { error: "Processo não encontrado." };
+  if (data.documentoIds.length === 0) return { error: "Selecione ao menos um documento." };
+  if (!(await origemPertenceAoEscritorio(data.origem, viewer.officeId))) {
+    return { error: data.origem.tipo === "CASE" ? "Processo não encontrado." : "Assessoria não encontrada." };
+  }
 
-  const attachments = await prisma.attachment.findMany({
-    where: { id: { in: data.attachmentIds }, officeId: viewer.officeId, caseId: data.caseId },
-    select: { id: true, name: true, docType: true },
-  });
-  const ordered = ordenarPelosIds(data.attachmentIds, attachments);
-  if (ordered.length === 0) return { error: "Nenhum dos documentos selecionados foi encontrado." };
+  const documentos = await buscarDocumentosDaOrigem(data.origem, viewer.officeId, data.documentoIds);
+  if (documentos.length === 0) return { error: "Nenhum dos documentos selecionados foi encontrado." };
 
   const envio = await prisma.documentoEnvio.create({
     data: {
       metodo: "WHATSAPP",
       destinatarioNome: data.destinatarioNome.trim(),
       destinatarioContato: data.destinatarioContato.trim(),
-      caseId: data.caseId,
+      caseId: data.origem.tipo === "CASE" ? data.origem.id : null,
+      assessoriaId: data.origem.tipo === "ASSESSORIA" ? data.origem.id : null,
       officeId: viewer.officeId,
       enviadoPorId: viewer.id,
       itens: {
-        create: ordered.map((a) => ({
-          attachmentId: a.id,
-          nomeSnapshot: a.name,
-          docTypeSnapshot: a.docType,
+        create: documentos.map((d) => ({
+          ...itemFkDaOrigem(data.origem, d.id),
+          nomeSnapshot: d.name,
+          docTypeSnapshot: d.docType,
         })),
       },
     },
   });
 
-  revalidatePath(`/processos/${data.caseId}`);
+  revalidateOrigem(data.origem);
   return { id: envio.id };
 }
 
 // ---------------------------------------------------------------------------
-// Enviar por EMAIL (a correção pedida): baixa o conteúdo real de cada documento do provedor de
-// armazenamento onde ele está guardado, monta os anexos e manda o e-mail de verdade pela conta
-// Google/Microsoft que a pessoa conectou em Configurações (ver lib/gmailSend.ts:sendEmailReply).
-// Só grava o registro DocumentoEnvio/DocumentoEnvioItem se o e-mail REALMENTE saiu — diferente do
-// WHATSAPP (que grava sempre, já que ali o registro é o único "envio" que de fato acontece por
-// aqui), um registro de "documento enviado" só faz sentido quando o envio de verdade teve
-// sucesso; em caso de erro, nada é gravado, para a pessoa poder corrigir e tentar de novo sem
-// duplicar o histórico.
+// Enviar por EMAIL: baixa o conteúdo real de cada documento do provedor de armazenamento onde
+// ele está guardado, monta os anexos e manda o e-mail de verdade pela conta Google/Microsoft que
+// a pessoa conectou em Configurações (ver lib/gmailSend.ts:sendEmailReply). Só grava o registro
+// DocumentoEnvio/DocumentoEnvioItem se o e-mail REALMENTE saiu — diferente do WHATSAPP (que grava
+// sempre, já que ali o registro é o único "envio" que de fato acontece por aqui), um registro de
+// "documento enviado" só faz sentido quando o envio de verdade teve sucesso; em caso de erro,
+// nada é gravado, para a pessoa poder corrigir e tentar de novo sem duplicar o histórico.
 // ---------------------------------------------------------------------------
 
 const LIMITE_ANEXO_EMAIL_BYTES = 20 * 1024 * 1024; // 20MB — folga em relação ao limite prático de ~25MB do envio "raw" do Gmail (a codificação base64 infla o payload em ~33%).
 
 export async function enviarDocumentosPorEmail(data: {
-  caseId: string;
+  origem: EnvioOrigem;
   destinatarioNome: string;
   destinatarioContato: string;
-  attachmentIds: string[];
+  documentoIds: string[];
   mensagem: string;
 }): Promise<{ id?: string; error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
   if (!data.destinatarioNome.trim()) return { error: "Informe o nome do destinatário." };
   if (!data.destinatarioContato.trim()) return { error: "Informe o e-mail do destinatário." };
-  if (data.attachmentIds.length === 0) return { error: "Selecione ao menos um documento." };
+  if (data.documentoIds.length === 0) return { error: "Selecione ao menos um documento." };
   if (!data.mensagem.trim()) return { error: "Escreva uma mensagem para o e-mail." };
 
-  const c = await prisma.case.findFirst({ where: { id: data.caseId, officeId: viewer.officeId }, select: { id: true, title: true } });
-  if (!c) return { error: "Processo não encontrado." };
+  let tituloOrigem: string;
+  if (data.origem.tipo === "CASE") {
+    const c = await prisma.case.findFirst({ where: { id: data.origem.id, officeId: viewer.officeId }, select: { id: true, title: true } });
+    if (!c) return { error: "Processo não encontrado." };
+    tituloOrigem = c.title;
+  } else {
+    const a = await prisma.assessoria.findFirst({
+      where: { id: data.origem.id, officeId: viewer.officeId },
+      select: { id: true, client: { select: { name: true } } },
+    });
+    if (!a) return { error: "Assessoria não encontrada." };
+    tituloOrigem = a.client.name;
+  }
 
-  const attachments = await prisma.attachment.findMany({
-    where: { id: { in: data.attachmentIds }, officeId: viewer.officeId, caseId: data.caseId },
-    select: { id: true, name: true, docType: true, driveUrl: true, storageProvider: true, storageFileId: true },
-  });
-  const ordered = ordenarPelosIds(data.attachmentIds, attachments);
-  if (ordered.length === 0) return { error: "Nenhum dos documentos selecionados foi encontrado." };
+  const documentos = await buscarDocumentosDaOrigem(data.origem, viewer.officeId, data.documentoIds);
+  if (documentos.length === 0) return { error: "Nenhum dos documentos selecionados foi encontrado." };
 
   // Baixa o conteúdo de todos em paralelo, mas a falha de UM documento aborta o envio inteiro —
   // um e-mail "incompleto" (faltando um dos documentos pedidos) não deve sair silenciosamente.
   const downloads = await Promise.allSettled(
-    ordered.map(async (a) => {
-      const provider: StorageProvider = a.storageProvider === "ONEDRIVE" || a.storageProvider === "DROPBOX" ? a.storageProvider : "GOOGLE_DRIVE";
-      let fileId = a.storageFileId;
-      if (!fileId && provider === "GOOGLE_DRIVE") fileId = extractDriveFileId(a.driveUrl);
+    documentos.map(async (d) => {
+      const provider: StorageProvider = d.storageProvider === "ONEDRIVE" || d.storageProvider === "DROPBOX" ? d.storageProvider : "GOOGLE_DRIVE";
+      let fileId = d.storageFileId;
+      if (!fileId && provider === "GOOGLE_DRIVE") fileId = extractDriveFileId(d.driveUrl);
       if (!fileId) {
-        throw new Error(`"${a.name}": não foi possível identificar o arquivo no armazenamento (registro antigo sem id salvo — reenvie o documento pela aba Anexos).`);
+        throw new Error(`"${d.name}": não foi possível identificar o arquivo no armazenamento (registro antigo sem id salvo — reenvie o documento).`);
       }
       try {
         const { content, mimeType } = await downloadDriveFile(fileId, viewer.officeId, provider);
-        const resolvedMimeType = !mimeType || mimeType === "application/octet-stream" ? inferMimeTypeFromFileName(a.name) : mimeType;
-        return { attachmentId: a.id, name: a.name, docType: a.docType, content, mimeType: resolvedMimeType };
+        const resolvedMimeType = !mimeType || mimeType === "application/octet-stream" ? inferMimeTypeFromFileName(d.name) : mimeType;
+        return { documentoId: d.id, name: d.name, docType: d.docType, content, mimeType: resolvedMimeType };
       } catch (e) {
         const msg = e instanceof Error ? e.message : "erro desconhecido";
-        throw new Error(`"${a.name}": ${msg}`);
+        throw new Error(`"${d.name}": ${msg}`);
       }
     })
   );
@@ -199,21 +253,23 @@ export async function enviarDocumentosPorEmail(data: {
     };
   }
   const baixados = downloads.map(
-    (d) => (d as PromiseFulfilledResult<{ attachmentId: string; name: string; docType: string; content: Buffer; mimeType: string }>).value
+    (d) => (d as PromiseFulfilledResult<{ documentoId: string; name: string; docType: string; content: Buffer; mimeType: string }>).value
   );
 
   const totalBytes = baixados.reduce((sum, d) => sum + d.content.length, 0);
   if (totalBytes > LIMITE_ANEXO_EMAIL_BYTES) {
     const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
     return {
-      error: `Os documentos selecionados somam ${totalMb}MB — o limite de anexo por e-mail é 20MB. Use o Protocolo (que gera link do Drive) para arquivos grandes.`,
+      error: `Os documentos selecionados somam ${totalMb}MB — o limite de anexo por e-mail é 20MB. ${
+        data.origem.tipo === "CASE" ? "Use o Protocolo (que gera link do Drive) para arquivos grandes." : "Use um link do Drive/Dropbox/OneDrive para arquivos grandes."
+      }`,
     };
   }
 
   const result = await sendEmailReply(
     viewer.id,
     data.destinatarioContato.trim(),
-    `Documentos — ${c.title}`,
+    `Documentos — ${tituloOrigem}`,
     data.mensagem.trim(),
     baixados.map((d) => ({ filename: d.name, mimeType: d.mimeType, content: d.content }))
   );
@@ -224,12 +280,13 @@ export async function enviarDocumentosPorEmail(data: {
       metodo: "EMAIL",
       destinatarioNome: data.destinatarioNome.trim(),
       destinatarioContato: data.destinatarioContato.trim(),
-      caseId: data.caseId,
+      caseId: data.origem.tipo === "CASE" ? data.origem.id : null,
+      assessoriaId: data.origem.tipo === "ASSESSORIA" ? data.origem.id : null,
       officeId: viewer.officeId,
       enviadoPorId: viewer.id,
       itens: {
         create: baixados.map((d) => ({
-          attachmentId: d.attachmentId,
+          ...itemFkDaOrigem(data.origem, d.documentoId),
           nomeSnapshot: d.name,
           docTypeSnapshot: d.docType,
         })),
@@ -237,17 +294,17 @@ export async function enviarDocumentosPorEmail(data: {
     },
   });
 
-  revalidatePath(`/processos/${data.caseId}`);
+  revalidateOrigem(data.origem);
   return { id: envio.id };
 }
 
 // ---------------------------------------------------------------------------
-// Links atuais dos anexos de um envio já registrado (histórico) — usado ao "Reabrir" um envio
-// WHATSAPP: DocumentoEnvioItem só guarda nomeSnapshot/docTypeSnapshot (snapshot proposital, para
-// sobreviver à exclusão do Attachment original), nunca a URL, porque ela pode mudar/expirar; a
-// URL de verdade é sempre buscada aqui, na hora, a partir do attachmentId. Um id que não resolver
-// mais (Attachment excluído) simplesmente não aparece no mapa devolvido — o chamador trata como
-// "documento excluído".
+// Links atuais dos documentos de um envio já registrado (histórico) — usado ao "Reabrir" um
+// envio WHATSAPP: DocumentoEnvioItem só guarda nomeSnapshot/docTypeSnapshot (snapshot
+// proposital, para sobreviver à exclusão do documento original), nunca a URL, porque ela pode
+// mudar/expirar; a URL de verdade é sempre buscada aqui, na hora, a partir do id. Um id que não
+// resolver mais (documento excluído) simplesmente não aparece no mapa devolvido — o chamador
+// trata como "documento excluído".
 // ---------------------------------------------------------------------------
 
 export async function buscarUrlsDeAnexos(attachmentIds: string[]): Promise<Record<string, string>> {
@@ -261,6 +318,19 @@ export async function buscarUrlsDeAnexos(attachmentIds: string[]): Promise<Recor
   return Object.fromEntries(attachments.map((a) => [a.id, a.driveUrl]));
 }
 
+// Irmã de buscarUrlsDeAnexos, mas para AssessoriaDocumento — usada pelo "Reabrir WhatsApp" do
+// histórico de Assessoria.
+export async function buscarUrlsDeDocumentosAssessoria(documentoIds: string[]): Promise<Record<string, string>> {
+  const viewer = await getCurrentUser();
+  if (!viewer || documentoIds.length === 0) return {};
+
+  const documentos = await prisma.assessoriaDocumento.findMany({
+    where: { id: { in: documentoIds }, officeId: viewer.officeId },
+    select: { id: true, driveUrl: true },
+  });
+  return Object.fromEntries(documentos.map((d) => [d.id, d.driveUrl]));
+}
+
 // Apaga um registro de envio feito por engano (destinatário errado, documento errado etc.) — não
 // existe edição: como é um registro histórico simples (sem ciclo de vida, ao contrário do
 // protocolo), refazer do zero é mais simples e menos arriscado que um fluxo de edição parcial.
@@ -272,6 +342,7 @@ export async function excluirEnvioDocumentos(envioId: string): Promise<{ error?:
   if (!envio) return { error: "Registro não encontrado." };
 
   await prisma.documentoEnvio.delete({ where: { id: envioId } });
-  revalidatePath(`/processos/${envio.caseId}`);
+  if (envio.caseId) revalidatePath(`/processos/${envio.caseId}`);
+  if (envio.assessoriaId) revalidatePath(`/assessoria/${envio.assessoriaId}`);
   return {};
 }

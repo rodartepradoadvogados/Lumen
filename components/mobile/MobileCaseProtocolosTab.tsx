@@ -27,7 +27,7 @@ type Envio = {
   itens: { id: string; nomeSnapshot: string; docTypeSnapshot: string }[];
 };
 
-// enviadoEm é timestamp de verdade — mesmo padrão de components/protocolos/DocumentoEnvios.tsx
+// enviadoEm é timestamp de verdade — mesmo padrão de components/DocumentoEnvios.tsx
 // (versão desktop), aqui reduzido só à data (sem hora) para caber melhor na tela estreita.
 function formatEnviadoEm(iso: string): string {
   return formatDate(iso);

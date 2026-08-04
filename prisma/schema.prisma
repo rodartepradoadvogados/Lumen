@@ -1136,8 +1136,16 @@ model DocumentoEnvio {
   enviadoPorId String?
   enviadoPor   User?   @relation(fields: [enviadoPorId], references: [id])
 
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id])
+  // Dono do envio: Processo OU Assessoria — exatamente um dos dois preenchido (validado na
+  // aplicação, ver lib/actions/documentoEnvios.ts). caseId era obrigatório antes de a Assessoria
+  // ganhar este mesmo botão "Enviar E-mail/WhatsApp"; virou opcional de forma aditiva, sem
+  // quebrar nenhum envio de Processo já existente (todos continuam com caseId preenchido e
+  // assessoriaId nulo).
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id])
+
+  assessoriaId String?
+  assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1148,6 +1156,7 @@ model DocumentoEnvio {
 
   @@index([officeId])
   @@index([caseId])
+  @@index([assessoriaId])
 }
 
 // Uma linha da lista de um envio: o anexo referenciado, com snapshot do nome/tipo — mesmo motivo
@@ -1160,8 +1169,14 @@ model DocumentoEnvioItem {
   envioId String
   envio   DocumentoEnvio @relation(fields: [envioId], references: [id], onDelete: Cascade)
 
+  // Referencia exatamente um entre attachmentId (Processo) e assessoriaDocumentoId (Assessoria) —
+  // qual dos dois depende de quem é o dono do DocumentoEnvio (envio.caseId vs envio.assessoriaId),
+  // validado na aplicação (ver lib/actions/documentoEnvios.ts).
   attachmentId String?
   attachment   Attachment? @relation("DocumentoEnvioItemAttachment", fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  assessoriaDocumentoId String?
+  assessoriaDocumento   AssessoriaDocumento? @relation("DocumentoEnvioItemAssessoriaDocumento", fields: [assessoriaDocumentoId], references: [id], onDelete: SetNull)
 
   nomeSnapshot    String
   docTypeSnapshot String
@@ -1822,6 +1837,8 @@ model Assessoria {
   attendances Attendance[]
   // Anotações pessoais (painel global "Anotações", chip "Assessoria") vinculadas a esta Assessoria.
   anotacoes   Anotacao[]
+  // Envios de documentos (E-mail/WhatsApp) desta assessoria — ver model DocumentoEnvio.
+  documentoEnvios DocumentoEnvio[]
 
   @@index([officeId])
 }
@@ -1853,6 +1870,10 @@ model AssessoriaDocumento {
 
   uploadedById String?
   uploadedBy   User?   @relation("AssessoriaDocumentoUploadedBy", fields: [uploadedById], references: [id])
+
+  // Envios (E-mail/WhatsApp) que REFERENCIAM este documento — ver DocumentoEnvioItem, mesmo
+  // espírito de Attachment.documentoEnvioItens: nunca uma cópia, só a referência.
+  documentoEnvioItens DocumentoEnvioItem[] @relation("DocumentoEnvioItemAssessoriaDocumento")
 
   @@index([officeId])
 }

@@ -128,7 +128,9 @@ export default async function AssessoriaDetailPage({
       {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={driveStatus.connected} />}
       {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
-      {tab === "processos-casos" && <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} />}
+      {tab === "processos-casos" && (
+        <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} driveConnected={driveStatus.connected} />
+      )}
       {tab === "linha-do-tempo" && <AssessoriaTimelineTab assessoria={assessoria} />}
       {tab === "anotacoes-pessoais" && (
         <div>

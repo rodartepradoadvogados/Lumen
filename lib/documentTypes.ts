@@ -80,6 +80,9 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "COMPROVANTE_PROTOCOLO", label: "Comprovante de Protocolo", icon: BadgeCheck },
       { key: "PARECER", label: "Parecer", icon: ScrollText },
       { key: "REQUERIMENTO_CLIENTE", label: "Requerimento ao Cliente", icon: Mail },
+      { key: "NOTIFICACAO_EXTRAJUDICIAL", label: "Notificação Extrajudicial", icon: FileWarning },
+      { key: "NOTIFICACAO", label: "Notificação", icon: BellRing },
+      { key: "TERMO_DECLARACAO", label: "Termo de Declaração", icon: FileSignature },
     ],
   },
   {

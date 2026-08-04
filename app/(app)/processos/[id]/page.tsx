@@ -299,6 +299,7 @@ export default async function CaseDetailPage({
     itens: envio.itens.map((item) => ({
       id: item.id,
       attachmentId: item.attachmentId,
+      assessoriaDocumentoId: item.assessoriaDocumentoId,
       nomeSnapshot: item.nomeSnapshot,
       docTypeSnapshot: item.docTypeSnapshot,
     })),

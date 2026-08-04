@@ -44,7 +44,7 @@ import {
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { Badge, formatCalendarDate } from "@/components/ui";
-import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/protocolos/DocumentoEnvios";
+import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
 
 type AttachmentOption = { id: string; name: string; docType: string; driveUrl: string };
 type LoteItem = { id: string; ordem: number; attachmentId: string | null; nomeSnapshot: string; docTypeSnapshot: string; driveUrl: string | null };
@@ -125,7 +125,7 @@ export default function ProtocolosTab({
           {lotes.length === 0 ? "Nenhum protocolo ainda" : `${lotes.length} protocolo${lotes.length > 1 ? "s" : ""}`}
         </p>
         <div className="flex items-center gap-2">
-          <EnviarDocumentosButton caseId={caseId} caseTitle={caseTitle} attachments={attachments} />
+          <EnviarDocumentosButton entity={{ tipo: "CASE", id: caseId, titulo: caseTitle }} attachments={attachments} />
           <button
             onClick={() => setNovoOpen(true)}
             className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
@@ -156,7 +156,7 @@ export default function ProtocolosTab({
         </div>
       )}
 
-      <HistoricoEnvios caseTitle={caseTitle} envios={envios} />
+      <HistoricoEnvios entity={{ tipo: "CASE", id: caseId, titulo: caseTitle }} envios={envios} />
 
       {novoOpen && <SelecaoModal caseId={caseId} attachments={attachments} onClose={() => setNovoOpen(false)} />}
       {editando && (

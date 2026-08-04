@@ -10,12 +10,19 @@ import {
   listarContatosEnvio,
   excluirEnvioDocumentos,
   buscarUrlsDeAnexos,
+  buscarUrlsDeDocumentosAssessoria,
   type ContatoEnvio,
+  type EnvioOrigem,
 } from "@/lib/actions/documentoEnvios";
 import { DOCUMENTO_ENVIO_METODO_LABELS, buildWhatsAppLink, formatEnvioMensagem, type DocumentoEnvioMetodo } from "@/lib/documentoEnvios";
 import { looseIncludes } from "@/lib/textNormalize";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { formatDate } from "@/components/ui";
+
+// Botão + modal + histórico "Enviar E-mail/WhatsApp" — genérico o bastante para servir tanto a
+// aba Protocolos de um Processo quanto a aba "Pareceres, Processos e Casos" de uma Assessoria
+// (ver `entity` abaixo). Antes vivia em components/protocolos/, mas o nome do diretório ficaria
+// enganoso agora que também serve Assessoria — por isso foi movido para cá.
 
 // enviadoEm é timestamp de verdade (não data-calendário de <input type="date">, ao contrário de
 // ProtocoloLote.protocoladoEm) — formata com hora local, mesmo padrão de TaskDetailModal.tsx.
@@ -24,7 +31,17 @@ function formatEnviadoEm(iso: string): string {
   return `${formatDate(d)} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+// Serve tanto Attachment (Processo) quanto AssessoriaDocumento (Assessoria) — os dois models têm
+// esses quatro campos em comum, o bastante para esta UI não precisar saber qual é.
 type AttachmentOption = { id: string; name: string; docType: string; driveUrl: string };
+
+// Quem é o dono deste envio — decide para qual server action/endpoint apontar e qual rótulo usar
+// na UI ("Documentos do processo" vs "Documentos da assessoria").
+export type EnvioEntity = { tipo: "CASE"; id: string; titulo: string } | { tipo: "ASSESSORIA"; id: string; titulo: string };
+
+function entityOrigem(entity: EnvioEntity): EnvioOrigem {
+  return { tipo: entity.tipo, id: entity.id };
+}
 
 export type Envio = {
   id: string;
@@ -33,7 +50,7 @@ export type Envio = {
   destinatarioContato: string;
   enviadoEm: string;
   enviadoPor: { name: string } | null;
-  itens: { id: string; attachmentId: string | null; nomeSnapshot: string; docTypeSnapshot: string }[];
+  itens: { id: string; attachmentId: string | null; assessoriaDocumentoId: string | null; nomeSnapshot: string; docTypeSnapshot: string }[];
 };
 
 const CONTATO_TIPO_LABEL: Record<ContatoEnvio["tipo"], string> = {
@@ -42,37 +59,37 @@ const CONTATO_TIPO_LABEL: Record<ContatoEnvio["tipo"], string> = {
   FORNECEDOR: "Fornecedor",
 };
 
-const DOCUMENTO_EXCLUIDO_TEXTO = "(documento excluído do processo)";
+const DOCUMENTO_EXCLUIDO_TEXTO = "(documento excluído)";
 
 // Reabre o WhatsApp (wa.me) para um envio já registrado no histórico — SÓ existe para WHATSAPP:
 // um envio EMAIL já saiu de verdade, reabrir/reenviar sozinho geraria duplicidade sem intenção
 // clara da pessoa (ver HistoricoEnvios). DocumentoEnvioItem só guarda nomeSnapshot (snapshot
-// proposital, para sobreviver à exclusão do Attachment), nunca a URL — por isso busca a URL
-// ATUAL de cada anexo agora, via attachmentId; um anexo já excluído simplesmente não tem link.
-async function reabrirWhatsApp(envio: Envio, caseTitle: string) {
-  const attachmentIds = envio.itens.map((i) => i.attachmentId).filter((id): id is string => Boolean(id));
-  const urlById = attachmentIds.length > 0 ? await buscarUrlsDeAnexos(attachmentIds) : {};
-  const documentos = envio.itens.map((i) => ({
-    nome: i.nomeSnapshot,
-    url: (i.attachmentId && urlById[i.attachmentId]) || DOCUMENTO_EXCLUIDO_TEXTO,
-  }));
-  const mensagem = formatEnvioMensagem(caseTitle, documentos);
+// proposital, para sobreviver à exclusão do documento original), nunca a URL — por isso busca a
+// URL ATUAL de cada documento agora, via attachmentId/assessoriaDocumentoId conforme a origem; um
+// documento já excluído simplesmente não tem link.
+async function reabrirWhatsApp(envio: Envio, entity: EnvioEntity) {
+  let urlById: Record<string, string> = {};
+  if (entity.tipo === "CASE") {
+    const ids = envio.itens.map((i) => i.attachmentId).filter((id): id is string => Boolean(id));
+    if (ids.length > 0) urlById = await buscarUrlsDeAnexos(ids);
+  } else {
+    const ids = envio.itens.map((i) => i.assessoriaDocumentoId).filter((id): id is string => Boolean(id));
+    if (ids.length > 0) urlById = await buscarUrlsDeDocumentosAssessoria(ids);
+  }
+  const documentos = envio.itens.map((i) => {
+    const docId = entity.tipo === "CASE" ? i.attachmentId : i.assessoriaDocumentoId;
+    return { nome: i.nomeSnapshot, url: (docId && urlById[docId]) || DOCUMENTO_EXCLUIDO_TEXTO };
+  });
+  const mensagem = formatEnvioMensagem(entity.titulo, documentos);
   window.open(buildWhatsAppLink(envio.destinatarioContato, mensagem), "_blank", "noopener,noreferrer");
 }
 
-// Botão "Enviar E-mail/WhatsApp" (ao lado de "Novo protocolo") + o modal de seleção — para EMAIL,
-// manda o e-mail de verdade (com os documentos anexados) na hora da confirmação; para WHATSAPP,
-// registra o envio e abre o wa.me com a mensagem pronta (link de conveniência, sem envio real —
-// ver lib/documentoEnvios.ts para o porquê de cada método funcionar de um jeito).
-export function EnviarDocumentosButton({
-  caseId,
-  caseTitle,
-  attachments,
-}: {
-  caseId: string;
-  caseTitle: string;
-  attachments: AttachmentOption[];
-}) {
+// Botão "Enviar E-mail/WhatsApp" (ao lado de "Novo protocolo" no Processo, ou "Adicionar parecer"
+// na Assessoria) + o modal de seleção — para EMAIL, manda o e-mail de verdade (com os documentos
+// anexados) na hora da confirmação; para WHATSAPP, registra o envio e abre o wa.me com a mensagem
+// pronta (link de conveniência, sem envio real — ver lib/documentoEnvios.ts para o porquê de cada
+// método funcionar de um jeito).
+export function EnviarDocumentosButton({ entity, attachments }: { entity: EnvioEntity; attachments: AttachmentOption[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -82,22 +99,12 @@ export function EnviarDocumentosButton({
       >
         <Send size={15} /> Enviar E-mail/WhatsApp
       </button>
-      {open && <EnvioModal caseId={caseId} caseTitle={caseTitle} attachments={attachments} onClose={() => setOpen(false)} />}
+      {open && <EnvioModal entity={entity} attachments={attachments} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function EnvioModal({
-  caseId,
-  caseTitle,
-  attachments,
-  onClose,
-}: {
-  caseId: string;
-  caseTitle: string;
-  attachments: AttachmentOption[];
-  onClose: () => void;
-}) {
+function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; attachments: AttachmentOption[]; onClose: () => void }) {
   const router = useRouter();
   const [metodo, setMetodo] = useState<DocumentoEnvioMetodo>("EMAIL");
   const [nome, setNome] = useState("");
@@ -117,8 +124,8 @@ function EnvioModal({
   // método escolhido (ver listarContatosEnvio em lib/actions/documentoEnvios.ts).
   useEffect(() => {
     setContatos(null);
-    listarContatosEnvio(caseId, metodo).then(setContatos);
-  }, [caseId, metodo]);
+    listarContatosEnvio(entityOrigem(entity), metodo).then(setContatos);
+  }, [entity, metodo]);
 
   const sugeridos = useMemo(() => {
     if (!contatos || !nome.trim()) return [];
@@ -142,18 +149,17 @@ function EnvioModal({
     [selected, attachments]
   );
 
-  // Mensagem padrão (mesmo texto que a versão anterior deste modal só usava para o corpo do
-  // mailto:/wa.me) — agora um ponto de partida editável, já que para EMAIL ela sai de verdade e a
+  // Mensagem padrão — um ponto de partida editável, já que para EMAIL ela sai de verdade e a
   // pessoa perde a chance de revisar no próprio cliente de e-mail. Só recalcula enquanto a pessoa
   // não editou o texto à mão (mesmo padrão de contatoTocado acima).
   useEffect(() => {
     if (mensagemTocada) return;
     setMensagem(
       selectedAttachments.length > 0
-        ? formatEnvioMensagem(caseTitle, selectedAttachments.map((a) => ({ nome: a.name, url: a.driveUrl })))
+        ? formatEnvioMensagem(entity.titulo, selectedAttachments.map((a) => ({ nome: a.name, url: a.driveUrl })))
         : ""
     );
-  }, [selectedAttachments, caseTitle, mensagemTocada]);
+  }, [selectedAttachments, entity.titulo, mensagemTocada]);
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -173,10 +179,10 @@ function EnvioModal({
       // lib/actions/documentoEnvios.ts:enviarDocumentosPorEmail). Só grava o histórico se o envio
       // realmente funcionou.
       const res = await enviarDocumentosPorEmail({
-        caseId,
+        origem: entityOrigem(entity),
         destinatarioNome: nome.trim(),
         destinatarioContato: contato.trim(),
-        attachmentIds: selected,
+        documentoIds: selected,
         mensagem: mensagem.trim(),
       });
       setLoading(false);
@@ -192,11 +198,11 @@ function EnvioModal({
     // WHATSAPP: continua sendo registro + link de conveniência (wa.me) — nunca envia nada de
     // verdade (ver lib/documentoEnvios.ts).
     const res = await registrarEnvioDocumentos({
-      caseId,
+      origem: entityOrigem(entity),
       metodo,
       destinatarioNome: nome.trim(),
       destinatarioContato: contato.trim(),
-      attachmentIds: selected,
+      documentoIds: selected,
     });
     setLoading(false);
     if (res.error) {
@@ -339,7 +345,9 @@ function EnvioModal({
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">Documentos do processo</p>
+            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
+              {entity.tipo === "CASE" ? "Documentos do processo" : "Documentos da assessoria"}
+            </p>
             <div className="relative mb-2">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
               <input
@@ -394,7 +402,7 @@ function EnvioModal({
 
 // Histórico "Documentos enviados" — mesma ideia visual do histórico de protocolos (LoteCard em
 // ProtocolosTab.tsx), só que sem ciclo de vida: um envio já nasce concluído.
-export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envios: Envio[] }) {
+export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envios: Envio[] }) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [reabrindoId, setReabrindoId] = useState<string | null>(null);
@@ -410,7 +418,7 @@ export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envi
   async function handleReabrir(envio: Envio) {
     setReabrindoId(envio.id);
     try {
-      await reabrirWhatsApp(envio, caseTitle);
+      await reabrirWhatsApp(envio, entity);
     } finally {
       setReabrindoId(null);
     }
@@ -424,7 +432,9 @@ export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envi
       </p>
       {envios.length === 0 ? (
         <p className="text-sm text-navy-800/45 dark:text-cream-50/45 py-2">
-          Use &ldquo;Enviar E-mail/WhatsApp&rdquo; acima para mandar documentos a um cliente, advogado ou fornecedor fora do protocolo judicial/administrativo.
+          {entity.tipo === "CASE"
+            ? 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos a um cliente, advogado ou fornecedor fora do protocolo judicial/administrativo.'
+            : 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos desta empresa a um cliente, advogado ou fornecedor.'}
         </p>
       ) : (
         <div className="space-y-3">
@@ -471,15 +481,18 @@ export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envi
               </div>
 
               <div className="mt-2 divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/5 dark:border-white/10">
-                {envio.itens.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
-                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50" title={item.nomeSnapshot}>
-                      {item.nomeSnapshot}
-                      {!item.attachmentId && <span className="text-[10px] text-bordo-600 dark:text-bordo-400 ml-1.5">(excluído do processo)</span>}
-                    </span>
-                    <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
-                  </div>
-                ))}
+                {envio.itens.map((item) => {
+                  const excluido = entity.tipo === "CASE" ? !item.attachmentId : !item.assessoriaDocumentoId;
+                  return (
+                    <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
+                      <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50" title={item.nomeSnapshot}>
+                        {item.nomeSnapshot}
+                        {excluido && <span className="text-[10px] text-bordo-600 dark:text-bordo-400 ml-1.5">(excluído)</span>}
+                      </span>
+                      <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
