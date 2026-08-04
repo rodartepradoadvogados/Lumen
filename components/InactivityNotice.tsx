@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { AlarmClock } from "lucide-react";
 import { resumeAfterInactivity } from "@/lib/actions/timesheet";
+import { logout } from "@/lib/actions/auth";
 
 // 15 minutos sem nenhuma interação (mouse, teclado, toque ou scroll) não faz mais logout —
 // só mostra um aviso bloqueante. O timesheet (components/TimesheetTimer.tsx) é avisado via
@@ -66,15 +67,26 @@ export default function InactivityNotice() {
         </div>
         <div className="space-y-1">
           <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Você ficou inativo por um tempo</h3>
-          <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Toque em continuar para retomar o uso do sistema.</p>
+          <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Deseja continuar de onde parou ou sair do sistema?</p>
         </div>
-        <button
-          onClick={handleResume}
-          disabled={isPending}
-          className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
-        >
-          {isPending ? "Retomando..." : "Continuar"}
-        </button>
+        <div className="flex gap-2">
+          <form action={logout} className="flex-1">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full bg-cream-100 dark:bg-navy-800 hover:bg-cream-200 dark:hover:bg-navy-700 text-navy-900 dark:text-cream-50 font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Sair
+            </button>
+          </form>
+          <button
+            onClick={handleResume}
+            disabled={isPending}
+            className="flex-1 bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isPending ? "Retomando..." : "Continuar"}
+          </button>
+        </div>
       </div>
     </div>
   );
