@@ -62,7 +62,7 @@ export default async function MobileHome() {
   const user = await getCurrentUser();
   const [unreadPublicationsRaw, totalAlerts, assessoriaCount, activeCasesCount, activeJudicialCount, activeAdministrativoCount, blockedSet] = await Promise.all([
     user
-      ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { id: true, processNumberRaw: true } })
+      ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { id: true, processNumberRaw: true, publishedAt: true } })
       : Promise.resolve([]),
     // Total de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas — ver
     // lib/alerts.ts) — alimenta o atalho "Central de Alertas" abaixo.

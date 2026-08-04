@@ -1,9 +1,16 @@
-// Agrupamento de Publication (publicações/andamentos) pelo mesmo processo, para a listagem em
-// app/(app)/publicacoes/page.tsx e app/m/publicacoes/page.tsx. O mesmo evento processual hoje
-// pode chegar por mais de uma fonte (DJEN direto, Datajud, e-mail do Jusbrasil...) e virava um
-// card duplicado por fonte — este módulo faz o agrupamento em nível de apresentação/query, sem
-// tabela nova no banco (o critério é 100% determinístico a partir de Publication.processNumberRaw
-// + source, não precisa persistir nada).
+// Agrupamento de Publication (publicações/andamentos) pelo mesmo processo NO MESMO DIA, para a
+// listagem em app/(app)/publicacoes/page.tsx e app/m/publicacoes/page.tsx. O mesmo evento
+// processual hoje pode chegar por mais de uma fonte (DJEN direto, Datajud, e-mail do
+// Jusbrasil...) e virava um card duplicado por fonte — este módulo faz o agrupamento em nível de
+// apresentação/query, sem tabela nova no banco (o critério é 100% determinístico a partir de
+// Publication.processNumberRaw + source + data, não precisa persistir nada).
+//
+// O agrupamento é por processo + dia (não só por processo): duas movimentações reais e
+// diferentes do mesmo processo, em dias diferentes, são eventos distintos e cada uma merece seu
+// próprio card — só o reenvio do MESMO evento por outra fonte (mesmo dia) deve virar um card só.
+// O dia é calculado no fuso de Brasília (America/Sao_Paulo), o mesmo que a badge de data mostra
+// ao usuário (formatDate, client-side, no fuso do navegador) — sem isso, uma publicação perto da
+// meia-noite podia cair num "dia" diferente do que aparece escrito no card.
 //
 // Fica em lib/ (puro, sem depender de Prisma nem de "use client"/"use server") porque é usado
 // tanto pela página desktop quanto pela mobile, e também por qualquer contador de "não lidas"
@@ -28,6 +35,14 @@ function sourceRank(source: string): number {
   return SOURCE_PRIORITY[source] ?? 3;
 }
 
+// América/São_Paulo não observa mais horário de verão desde 2019 — sempre UTC-3, sem
+// ambiguidade de data ao redor de troca de horário. Formato en-CA devolve AAAA-MM-DD direto.
+const SP_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" });
+
+function saoPauloDayKey(date: string | Date): string {
+  return SP_DAY_FORMATTER.format(new Date(date));
+}
+
 export type GroupableItem = {
   id: string;
   source: string;
@@ -49,11 +64,12 @@ export type PublicationGroup<T extends GroupableItem> = {
   allRead: boolean;
 };
 
-// Agrupa por número de processo normalizado (CNJ de 20 dígitos, via normalizarNumeroProcesso).
-// Publicações sem número reconhecido (ou que não batem com nenhuma outra do mesmo processo)
-// viram grupos de 1 item só — nunca são forçadas a agrupar com outra coisa.
+// Agrupa por número de processo normalizado (CNJ de 20 dígitos, via normalizarNumeroProcesso) +
+// dia (fuso de Brasília) de publicação. Publicações sem número reconhecido (ou que não batem com
+// nenhuma outra do mesmo processo no mesmo dia) viram grupos de 1 item só — nunca são forçadas a
+// agrupar com outra coisa.
 export function groupPublicationsByProcess<T extends GroupableItem>(pubs: T[]): PublicationGroup<T>[] {
-  const byProcess = new Map<string, T[]>();
+  const byProcessAndDay = new Map<string, T[]>();
   const singles: T[] = [];
 
   for (const pub of pubs) {
@@ -62,13 +78,14 @@ export function groupPublicationsByProcess<T extends GroupableItem>(pubs: T[]): 
       singles.push(pub);
       continue;
     }
-    const bucket = byProcess.get(normalized);
+    const bucketKey = `${normalized}|${saoPauloDayKey(pub.publishedAt)}`;
+    const bucket = byProcessAndDay.get(bucketKey);
     if (bucket) bucket.push(pub);
-    else byProcess.set(normalized, [pub]);
+    else byProcessAndDay.set(bucketKey, [pub]);
   }
 
   const groups: PublicationGroup<T>[] = [];
-  for (const items of byProcess.values()) groups.push(buildGroup(items));
+  for (const items of byProcessAndDay.values()) groups.push(buildGroup(items));
   for (const single of singles) groups.push(buildGroup([single]));
 
   // Mesmo critério de ordenação que a listagem já usava por publicação individual: data de
@@ -101,11 +118,11 @@ function buildGroup<T extends GroupableItem>(items: T[]): PublicationGroup<T> {
 // tela de Publicações (Sidebar, início mobile), que hoje só buscam `processNumberRaw` das
 // publicações não lidas por custo de query — contar grupos em vez de linhas é só deduplicar por
 // número de processo normalizado (mesma regra do agrupamento acima).
-export function countUnreadPublicationGroups(rows: { id: string; processNumberRaw: string | null }[]): number {
+export function countUnreadPublicationGroups(rows: { id: string; processNumberRaw: string | null; publishedAt: string | Date }[]): number {
   const seen = new Set<string>();
   for (const row of rows) {
     const normalized = normalizarNumeroProcesso(row.processNumberRaw);
-    seen.add(normalized ?? `id:${row.id}`);
+    seen.add(normalized ? `${normalized}|${saoPauloDayKey(row.publishedAt)}` : `id:${row.id}`);
   }
   return seen.size;
 }

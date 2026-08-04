@@ -85,7 +85,7 @@ export default async function PublicacoesPage({
     // aqui, o grupo dela já conta como pendente, não precisamos saber o estado dos irmãos dela.
     prisma.publication.findMany({
       where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } },
-      select: { id: true, processNumberRaw: true },
+      select: { id: true, processNumberRaw: true, publishedAt: true },
     }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     getBlockedProcessNumberSet(viewer.id),

@@ -376,6 +376,33 @@ body {
   border-left-color: var(--secao-rosa-border);
 }
 
+/* Alternância sutil de fundo dos cards da lista de Publicações (ver components/PublicationsList.tsx
+   e app/m/publicacoes/page.tsx), pra facilitar a leitura de onde um card termina e o outro começa
+   sem criar hierarquia nenhuma de informação — por isso o contraste entre as duas variantes (a/b,
+   alternadas por índice) é mínimo de propósito. O destaque de "novo" (dourado) continua tendo
+   prioridade sobre isso quando presente.
+   Precisa de bloco próprio por tema (não só `dark:`) porque Tarde e Noite dividem a classe `dark`
+   do <html> mas têm paletas opostas (claro/bordô x escuro/azul-marinho) — mesma técnica de
+   especificidade `.dark.theme-tarde` usada no resto deste arquivo. */
+.pub-card-a {
+  background-color: #ffffff;
+}
+.pub-card-b {
+  background-color: #faf6ec; /* palha/creme bem leve sobre o branco do modo Dia */
+}
+.dark .pub-card-a {
+  background-color: #0a1128; /* navy-900, igual ao fundo padrão dos cards no Noite */
+}
+.dark .pub-card-b {
+  background-color: #0e1a36; /* azul petróleo — um tom só ligeiramente mais claro/azulado */
+}
+.dark.theme-tarde .pub-card-a {
+  background-color: rgba(154, 44, 67, 0.06); /* bordô bem diluído sobre o fundo claro do Tarde */
+}
+.dark.theme-tarde .pub-card-b {
+  background-color: rgba(199, 63, 138, 0.08); /* magenta/goiaba diluído — tom vizinho ao bordô */
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;

@@ -66,8 +66,10 @@ export default async function MobilePublicacoes() {
           <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {groups.map((g) => (
-              <MobilePublicationCard key={g.key} group={g} users={users} />
+            {groups.map((g, i) => (
+              <div key={g.key} className={i % 2 === 0 ? "pub-card-a" : "pub-card-b"}>
+                <MobilePublicationCard group={g} users={users} />
+              </div>
             ))}
           </div>
         )}

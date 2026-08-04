@@ -63,8 +63,8 @@ export default function PublicationsList({
 
   return (
     <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-      {groups.map((g) => (
-        <div key={g.key} className={newIds.has(g.key) ? "bg-gold-500/10 dark:bg-gold-400/15" : "bg-white dark:bg-navy-900"}>
+      {groups.map((g, i) => (
+        <div key={g.key} className={newIds.has(g.key) ? "bg-gold-500/10 dark:bg-gold-400/15" : i % 2 === 0 ? "pub-card-a" : "pub-card-b"}>
           <PublicationRow group={g} users={users} />
         </div>
       ))}

@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [unreadPublicationsRaw, totalAlerts, modules, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
-      select: { id: true, processNumberRaw: true },
+      select: { id: true, processNumberRaw: true, publishedAt: true },
     }),
     // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas
     // vencidas, publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone
