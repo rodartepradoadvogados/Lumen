@@ -104,36 +104,41 @@ export default function MobileNewPayableForm({
         action={async (formData) => {
           setLoading(true);
           setError("");
-          const result = await createPayable({
-            description: String(formData.get("description")),
-            supplierId: String(formData.get("supplierId") || ""),
-            amount: String(formData.get("amount")),
-            dueDate: String(formData.get("dueDate") || ""),
-            categoryId: String(formData.get("categoryId") || ""),
-            costCenterId: String(formData.get("costCenterId") || ""),
-            noDueDate: semVencimento,
-            caseId: fixedCaseId || undefined,
-            kind: fixedCaseId ? kind : undefined,
-            expensePayer: fixedCaseId ? expensePayer : undefined,
-            createReimbursement: fixedCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
-            // Versão de campo, sem parcelamento nem "já pago" — mesma limitação de sempre (ver
-            // comentário no topo do arquivo), agora explícita pelo novo formato do Server Action
-            // (Fase 3, compartilhado com a tela nova de Contas a Pagar do desktop).
-            parcelado: false,
-            pago: false,
-          });
-          setLoading(false);
-          if (result.error) {
-            setError(result.error);
-            return;
+          try {
+            const result = await createPayable({
+              description: String(formData.get("description")),
+              supplierId: String(formData.get("supplierId") || ""),
+              amount: String(formData.get("amount")),
+              dueDate: String(formData.get("dueDate") || ""),
+              categoryId: String(formData.get("categoryId") || ""),
+              costCenterId: String(formData.get("costCenterId") || ""),
+              noDueDate: semVencimento,
+              caseId: fixedCaseId || undefined,
+              kind: fixedCaseId ? kind : undefined,
+              expensePayer: fixedCaseId ? expensePayer : undefined,
+              createReimbursement: fixedCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
+              // Versão de campo, sem parcelamento nem "já pago" — mesma limitação de sempre (ver
+              // comentário no topo do arquivo), agora explícita pelo novo formato do Server Action
+              // (Fase 3, compartilhado com a tela nova de Contas a Pagar do desktop).
+              parcelado: false,
+              pago: false,
+            });
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            if (afterSaveHref) {
+              router.push(afterSaveHref);
+              return;
+            }
+            setOpen(false);
+            setSemVencimento(false);
+            router.refresh();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Erro ao salvar. Tente novamente.");
+          } finally {
+            setLoading(false);
           }
-          if (afterSaveHref) {
-            router.push(afterSaveHref);
-            return;
-          }
-          setOpen(false);
-          setSemVencimento(false);
-          router.refresh();
         }}
         className="space-y-3"
       >

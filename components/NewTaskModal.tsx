@@ -30,32 +30,39 @@ export default function NewTaskModal({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [type, setType] = useState("TAREFA");
   const [meetingType, setMeetingType] = useState("PRESENCIAL");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
+    setError("");
     const pointsRaw = String(formData.get("points") || "").trim();
-    await createTask({
-      title: String(formData.get("title")),
-      type: String(formData.get("type")),
-      dueDate: String(formData.get("dueDate")),
-      dueTime: String(formData.get("dueTime") || ""),
-      priority: String(formData.get("priority")),
-      caseId: String(formData.get("caseId") || ""),
-      attendanceId: defaultAttendanceId,
-      responsibleId: String(formData.get("responsibleId") || ""),
-      columnId: String(formData.get("columnId") || ""),
-      description: String(formData.get("description") || ""),
-      meetingType: String(formData.get("meetingType") || ""),
-      location: String(formData.get("location") || ""),
-      meetingUrl: String(formData.get("meetingUrl") || ""),
-      strategy: String(formData.get("strategy") || ""),
-      points: pointsRaw === "" ? undefined : Number(pointsRaw),
-    });
-    setLoading(false);
-    setOpen(false);
-    router.refresh();
+    try {
+      await createTask({
+        title: String(formData.get("title")),
+        type: String(formData.get("type")),
+        dueDate: String(formData.get("dueDate")),
+        dueTime: String(formData.get("dueTime") || ""),
+        priority: String(formData.get("priority")),
+        caseId: String(formData.get("caseId") || ""),
+        attendanceId: defaultAttendanceId,
+        responsibleId: String(formData.get("responsibleId") || ""),
+        columnId: String(formData.get("columnId") || ""),
+        description: String(formData.get("description") || ""),
+        meetingType: String(formData.get("meetingType") || ""),
+        location: String(formData.get("location") || ""),
+        meetingUrl: String(formData.get("meetingUrl") || ""),
+        strategy: String(formData.get("strategy") || ""),
+        points: pointsRaw === "" ? undefined : Number(pointsRaw),
+      });
+      setOpen(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -220,7 +227,8 @@ export default function NewTaskModal({
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
+            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-end gap-3 bg-cream-50/60 dark:bg-white/5">
+              {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2 flex-1">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}

@@ -30,6 +30,7 @@ export default function BulkSettleBar({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   return (
     <>
@@ -65,14 +66,20 @@ export default function BulkSettleBar({
             <form
               action={async (formData) => {
                 setLoading(true);
+                setError("");
                 const paidDate = String(formData.get("paidDate"));
                 const receiptNumber = String(formData.get("receiptNumber") || "");
                 const paymentMethod = String(formData.get("paymentMethod") || "");
                 const bankAccountId = String(formData.get("bankAccountId") || "");
-                await onConfirm(paidDate, receiptNumber, paymentMethod, bankAccountId || undefined);
-                setLoading(false);
-                setOpen(false);
-                router.refresh();
+                try {
+                  await onConfirm(paidDate, receiptNumber, paymentMethod, bankAccountId || undefined);
+                  setOpen(false);
+                  router.refresh();
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Erro ao confirmar a baixa em bloco. Tente novamente.");
+                } finally {
+                  setLoading(false);
+                }
               }}
               className="p-5 space-y-3"
             >
@@ -110,6 +117,7 @@ export default function BulkSettleBar({
                 <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional, único para todos)</label>
                 <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
               </div>
+              {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}

@@ -226,8 +226,13 @@ export default async function ConfiguracoesPage({
     return { type, points: found?.points ?? 10 };
   });
 
-  // Se houver retorno da conexão do Google Drive, o card fica na aba "Modelos & Integrações"
-  const defaultSecao = searchParams.google ? "modelos" : "geral";
+  // Se houver retorno da conexão do Google Drive/Outlook/Dropbox, o card fica na aba "Modelos &
+  // Integrações" (onde os 3 cartões de confirmação vivem — ver mais abaixo) — os 3 provedores
+  // contam aqui, não só o Google: a Sidebar (components/Sidebar.tsx) espelha esta mesma condição
+  // para o submenu "Configurações" acender "Modelos & Integrações" em vez de "Geral" nesse
+  // retorno (bug real: reconectar Outlook/Dropbox mostrava o card de sucesso na aba certa, mas o
+  // menu lateral continuava destacando "Geral").
+  const defaultSecao = searchParams.google || searchParams.microsoft || searchParams.dropbox ? "modelos" : "geral";
   const requestedSecao = searchParams.secao || defaultSecao;
   const availableSecoes = SECOES.filter((s) => (!s.adminOnly || isAdmin) && (s.key !== "blog" || blogAccess));
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
