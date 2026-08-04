@@ -134,6 +134,44 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
 // momento do upload. Isso importa porque um escritório pode trocar de provedor DEPOIS de já ter
 // anexos no outro — apagar teria que continuar indo pro provedor correto de cada arquivo, não pro
 // provedor atual do escritório.
+// Mesmo espírito de deleteDriveFile logo abaixo: recebe o provider EXPLICITAMENTE (não resolve
+// por Office.storageProvider) porque quem chama (lib/actions/documentoEnvios.ts, no envio de
+// documentos por e-mail) já sabe, por Attachment.storageProvider, onde aquele arquivo específico
+// foi guardado — pode ser diferente do provedor ATUAL do escritório, se ele trocou depois.
+export async function downloadDriveFile(fileId: string, officeId: string, provider: StorageProvider): Promise<{ content: Buffer; mimeType: string }> {
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.downloadFileFromOneDrive(fileId, officeId);
+    case "DROPBOX":
+      return dropboxStorage.downloadFileFromDropbox(fileId, officeId);
+    default:
+      return googleDrive.downloadFileFromDrive(fileId, officeId);
+  }
+}
+
+// Mapa simples extensão → mime type, usado como rede de segurança quando o provedor de
+// armazenamento não devolve um Content-Type confiável no download (comum no Dropbox, ver
+// lib/dropboxStorage.ts:downloadFileFromDropbox) — não precisa ser exaustivo, só cobrir os tipos
+// comuns de documento jurídico que passam pelos Anexos do processo.
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  txt: "text/plain",
+  zip: "application/zip",
+};
+
+export function inferMimeTypeFromFileName(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  return (ext && EXTENSION_MIME_TYPES[ext]) || "application/octet-stream";
+}
+
 export async function deleteDriveFile(fileId: string, officeId: string, provider: StorageProvider): Promise<void> {
   switch (provider) {
     case "ONEDRIVE":

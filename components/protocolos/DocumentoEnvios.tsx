@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Send, Search, Mail, MessageCircle, Trash2, UserRound } from "lucide-react";
+import { X, Send, Search, Mail, MessageCircle, Trash2, UserRound, Loader2 } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 import {
   registrarEnvioDocumentos,
+  enviarDocumentosPorEmail,
   listarContatosEnvio,
   excluirEnvioDocumentos,
+  buscarUrlsDeAnexos,
   type ContatoEnvio,
 } from "@/lib/actions/documentoEnvios";
-import { DOCUMENTO_ENVIO_METODO_LABELS, buildMailtoLink, buildWhatsAppLink, formatEnvioMensagem, type DocumentoEnvioMetodo } from "@/lib/documentoEnvios";
+import { DOCUMENTO_ENVIO_METODO_LABELS, buildWhatsAppLink, formatEnvioMensagem, type DocumentoEnvioMetodo } from "@/lib/documentoEnvios";
 import { looseIncludes } from "@/lib/textNormalize";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { formatDate } from "@/components/ui";
@@ -22,7 +24,7 @@ function formatEnviadoEm(iso: string): string {
   return `${formatDate(d)} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-type AttachmentOption = { id: string; name: string; docType: string };
+type AttachmentOption = { id: string; name: string; docType: string; driveUrl: string };
 
 export type Envio = {
   id: string;
@@ -40,18 +42,28 @@ const CONTATO_TIPO_LABEL: Record<ContatoEnvio["tipo"], string> = {
   FORNECEDOR: "Fornecedor",
 };
 
-function abrirLink(envio: { metodo: string; destinatarioNome: string; destinatarioContato: string; itens: { nomeSnapshot: string }[] }, caseTitle: string) {
-  const mensagem = formatEnvioMensagem(caseTitle, envio.itens.map((i) => i.nomeSnapshot));
-  if (envio.metodo === "EMAIL") {
-    window.location.href = buildMailtoLink(envio.destinatarioContato, `Documentos — ${caseTitle}`, mensagem);
-  } else {
-    window.open(buildWhatsAppLink(envio.destinatarioContato, mensagem), "_blank", "noopener,noreferrer");
-  }
+const DOCUMENTO_EXCLUIDO_TEXTO = "(documento excluído do processo)";
+
+// Reabre o WhatsApp (wa.me) para um envio já registrado no histórico — SÓ existe para WHATSAPP:
+// um envio EMAIL já saiu de verdade, reabrir/reenviar sozinho geraria duplicidade sem intenção
+// clara da pessoa (ver HistoricoEnvios). DocumentoEnvioItem só guarda nomeSnapshot (snapshot
+// proposital, para sobreviver à exclusão do Attachment), nunca a URL — por isso busca a URL
+// ATUAL de cada anexo agora, via attachmentId; um anexo já excluído simplesmente não tem link.
+async function reabrirWhatsApp(envio: Envio, caseTitle: string) {
+  const attachmentIds = envio.itens.map((i) => i.attachmentId).filter((id): id is string => Boolean(id));
+  const urlById = attachmentIds.length > 0 ? await buscarUrlsDeAnexos(attachmentIds) : {};
+  const documentos = envio.itens.map((i) => ({
+    nome: i.nomeSnapshot,
+    url: (i.attachmentId && urlById[i.attachmentId]) || DOCUMENTO_EXCLUIDO_TEXTO,
+  }));
+  const mensagem = formatEnvioMensagem(caseTitle, documentos);
+  window.open(buildWhatsAppLink(envio.destinatarioContato, mensagem), "_blank", "noopener,noreferrer");
 }
 
-// Botão "Enviar E-mail/WhatsApp" (ao lado de "Novo protocolo") + o modal de seleção — registra
-// que um conjunto de documentos do processo foi mandado a alguém (não é protocolo: não vai a
-// tribunal/órgão). Ver lib/documentoEnvios.ts para o porquê de não haver envio de verdade daqui.
+// Botão "Enviar E-mail/WhatsApp" (ao lado de "Novo protocolo") + o modal de seleção — para EMAIL,
+// manda o e-mail de verdade (com os documentos anexados) na hora da confirmação; para WHATSAPP,
+// registra o envio e abre o wa.me com a mensagem pronta (link de conveniência, sem envio real —
+// ver lib/documentoEnvios.ts para o porquê de cada método funcionar de um jeito).
 export function EnviarDocumentosButton({
   caseId,
   caseTitle,
@@ -95,6 +107,8 @@ function EnvioModal({
   const [contatos, setContatos] = useState<ContatoEnvio[] | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [mensagem, setMensagem] = useState("");
+  const [mensagemTocada, setMensagemTocada] = useState(false); // mesma ideia de contatoTocado: depois de editada à mão, parar de sobrescrever ao trocar a seleção de documentos
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -128,6 +142,19 @@ function EnvioModal({
     [selected, attachments]
   );
 
+  // Mensagem padrão (mesmo texto que a versão anterior deste modal só usava para o corpo do
+  // mailto:/wa.me) — agora um ponto de partida editável, já que para EMAIL ela sai de verdade e a
+  // pessoa perde a chance de revisar no próprio cliente de e-mail. Só recalcula enquanto a pessoa
+  // não editou o texto à mão (mesmo padrão de contatoTocado acima).
+  useEffect(() => {
+    if (mensagemTocada) return;
+    setMensagem(
+      selectedAttachments.length > 0
+        ? formatEnvioMensagem(caseTitle, selectedAttachments.map((a) => ({ nome: a.name, url: a.driveUrl })))
+        : ""
+    );
+  }, [selectedAttachments, caseTitle, mensagemTocada]);
+
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   }
@@ -136,9 +163,34 @@ function EnvioModal({
     if (!nome.trim()) return setError("Informe o nome do destinatário.");
     if (!contato.trim()) return setError(metodo === "EMAIL" ? "Informe o e-mail do destinatário." : "Informe o telefone do destinatário.");
     if (selected.length === 0) return setError("Selecione ao menos um documento.");
+    if (!mensagem.trim()) return setError("Escreva uma mensagem.");
 
     setLoading(true);
     setError("");
+
+    if (metodo === "EMAIL") {
+      // Envio de verdade — a partir daqui o e-mail JÁ SAI, com os documentos anexados (ver
+      // lib/actions/documentoEnvios.ts:enviarDocumentosPorEmail). Só grava o histórico se o envio
+      // realmente funcionou.
+      const res = await enviarDocumentosPorEmail({
+        caseId,
+        destinatarioNome: nome.trim(),
+        destinatarioContato: contato.trim(),
+        attachmentIds: selected,
+        mensagem: mensagem.trim(),
+      });
+      setLoading(false);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      onClose();
+      router.refresh();
+      return;
+    }
+
+    // WHATSAPP: continua sendo registro + link de conveniência (wa.me) — nunca envia nada de
+    // verdade (ver lib/documentoEnvios.ts).
     const res = await registrarEnvioDocumentos({
       caseId,
       metodo,
@@ -151,22 +203,17 @@ function EnvioModal({
       setError(res.error);
       return;
     }
-
-    // Registro (o requisito central) já está gravado — a partir daqui é só a conveniência de
-    // abrir o cliente de e-mail/WhatsApp com o texto pronto, sem travar o fluxo se o navegador
-    // bloquear o popup/redirect por qualquer motivo.
     try {
-      abrirLink({ metodo, destinatarioNome: nome.trim(), destinatarioContato: contato.trim(), itens: selectedAttachments.map((a) => ({ nomeSnapshot: a.name })) }, caseTitle);
+      window.open(buildWhatsAppLink(contato.trim(), mensagem.trim()), "_blank", "noopener,noreferrer");
     } catch {
       // silencioso — o registro já foi salvo, o link é só conveniência
     }
-
     onClose();
     router.refresh();
   }
 
   return (
-    <ModalShell size="cheio" title="Enviar E-mail/WhatsApp" subtitle="Registra que estes documentos foram enviados a alguém — não é um protocolo." onClose={onClose}>
+    <ModalShell size="cheio" title="Enviar E-mail/WhatsApp" subtitle="Registra que estes documentos foram enviados a alguém." onClose={onClose}>
       <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
           <div className="space-y-3">
@@ -192,6 +239,11 @@ function EnvioModal({
                   </button>
                 ))}
               </div>
+              <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1.5">
+                {metodo === "EMAIL"
+                  ? "Os documentos selecionados são anexados de verdade e o e-mail sai imediatamente ao confirmar."
+                  : "O WhatsApp não permite anexar arquivo por link direto — a mensagem vai incluir o link de cada documento para o destinatário abrir. Isto abre o WhatsApp da própria pessoa; nada sai do sistema sozinho."}
+              </p>
             </div>
 
             <div className="relative">
@@ -245,6 +297,23 @@ function EnvioModal({
               />
               <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">
                 Não encontrou o contato na busca acima? Pode digitar o {metodo === "EMAIL" ? "e-mail" : "telefone"} direto aqui.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Mensagem</label>
+              <textarea
+                value={mensagem}
+                onChange={(e) => {
+                  setMensagem(e.target.value);
+                  setMensagemTocada(true);
+                }}
+                rows={5}
+                placeholder="Selecione os documentos ao lado para gerar um texto inicial, ou escreva a sua própria mensagem"
+                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y"
+              />
+              <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">
+                {metodo === "EMAIL" ? "Vira o corpo do e-mail — revise antes de confirmar." : "Vira o texto da mensagem do WhatsApp — revise antes de confirmar."}
               </p>
             </div>
 
@@ -308,7 +377,15 @@ function EnvioModal({
           disabled={loading}
           className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
         >
-          <Send size={14} /> {loading ? "Registrando..." : "Registrar e abrir " + (metodo === "EMAIL" ? "e-mail" : "WhatsApp")}
+          {loading ? (
+            <>
+              <Loader2 size={14} className="animate-spin" /> {metodo === "EMAIL" ? "Enviando e-mail..." : "Registrando..."}
+            </>
+          ) : (
+            <>
+              <Send size={14} /> {metodo === "EMAIL" ? "Enviar e-mail" : "Registrar e abrir WhatsApp"}
+            </>
+          )}
         </button>
       </div>
     </ModalShell>
@@ -320,6 +397,7 @@ function EnvioModal({
 export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envios: Envio[] }) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [reabrindoId, setReabrindoId] = useState<string | null>(null);
 
   async function handleExcluir(id: string) {
     if (!window.confirm("Excluir este registro de envio? Isso não desfaz o e-mail/mensagem já mandado, só apaga o rastro dele aqui no sistema.")) return;
@@ -327,6 +405,15 @@ export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envi
     await excluirEnvioDocumentos(id);
     setPendingId(null);
     router.refresh();
+  }
+
+  async function handleReabrir(envio: Envio) {
+    setReabrindoId(envio.id);
+    try {
+      await reabrirWhatsApp(envio, caseTitle);
+    } finally {
+      setReabrindoId(null);
+    }
   }
 
   return (
@@ -337,7 +424,7 @@ export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envi
       </p>
       {envios.length === 0 ? (
         <p className="text-sm text-navy-800/45 dark:text-cream-50/45 py-2">
-          Use &ldquo;Enviar E-mail/WhatsApp&rdquo; acima para registrar quando enviar documentos a um cliente, advogado ou fornecedor fora do protocolo judicial/administrativo.
+          Use &ldquo;Enviar E-mail/WhatsApp&rdquo; acima para mandar documentos a um cliente, advogado ou fornecedor fora do protocolo judicial/administrativo.
         </p>
       ) : (
         <div className="space-y-3">
@@ -360,13 +447,18 @@ export function HistoricoEnvios({ caseTitle, envios }: { caseTitle: string; envi
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => abrirLink(envio, caseTitle)}
-                    title={envio.metodo === "EMAIL" ? "Abrir e-mail de novo" : "Abrir WhatsApp de novo"}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline px-2 py-1"
-                  >
-                    <Send size={11} /> Reabrir
-                  </button>
+                  {/* Reabrir só existe para WHATSAPP — um envio EMAIL já saiu de verdade, e
+                      reabrir/reenviar sozinho geraria duplicidade sem intenção clara da pessoa. */}
+                  {envio.metodo === "WHATSAPP" && (
+                    <button
+                      onClick={() => handleReabrir(envio)}
+                      disabled={reabrindoId === envio.id}
+                      title="Abrir WhatsApp de novo"
+                      className="flex items-center gap-1 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline px-2 py-1 disabled:opacity-50"
+                    >
+                      <Send size={11} /> {reabrindoId === envio.id ? "Abrindo..." : "Reabrir"}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleExcluir(envio.id)}
                     disabled={pendingId === envio.id}

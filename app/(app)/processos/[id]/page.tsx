@@ -801,7 +801,7 @@ export default async function CaseDetailPage({
           <ProtocolosTab
             caseId={c.id}
             caseTitle={c.title}
-            attachments={serializedAttachments.map((a) => ({ id: a.id, name: a.name, docType: a.docType }))}
+            attachments={serializedAttachments.map((a) => ({ id: a.id, name: a.name, docType: a.docType, driveUrl: a.driveUrl }))}
             lotes={serializedLotes}
             envios={serializedEnvios}
             driveConnected={driveStatus.connected}

@@ -258,6 +258,21 @@ export async function uploadFileToOneDrive(
   return uploadBufferToFolder(fileName, mimeType, buffer, rootId, officeId);
 }
 
+// Baixa o conteúdo real de um arquivo do OneDrive — usado pelo envio de documentos por e-mail
+// com anexo de verdade (ver lib/storageProvider.ts:downloadDriveFile). GET .../content redireciona
+// para o blob de armazenamento real; fetch segue o redirect sozinho. O Graph normalmente devolve
+// um Content-Type confiável nesse endpoint (ao contrário do Dropbox); mesmo assim o chamador
+// (lib/actions/documentoEnvios.ts) tem uma inferência por extensão de arquivo como rede de
+// segurança caso venha genérico.
+export async function downloadFileFromOneDrive(fileId: string, officeId: string): Promise<{ content: Buffer; mimeType: string }> {
+  const accessToken = await getAccessTokenForOffice(officeId);
+  const res = await graphFetch(`/me/drive/items/${fileId}/content`, accessToken);
+  if (!res.ok) throw new Error(`Falha ao baixar arquivo do OneDrive (${res.status}): ${await res.text()}`);
+  const content = Buffer.from(await res.arrayBuffer());
+  const mimeType = res.headers.get("content-type") || "application/octet-stream";
+  return { content, mimeType };
+}
+
 export async function deleteOneDriveFile(fileId: string, officeId: string): Promise<void> {
   const accessToken = await getAccessTokenForOffice(officeId);
   const res = await graphFetch(`/me/drive/items/${fileId}`, accessToken, { method: "DELETE" });

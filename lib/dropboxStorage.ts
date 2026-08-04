@@ -202,6 +202,28 @@ async function createOrGetSharedLink(fileId: string, accessToken: string): Promi
   return existingUrl;
 }
 
+// Baixa o conteúdo real de um arquivo do Dropbox — usado pelo envio de documentos por e-mail com
+// anexo de verdade (ver lib/storageProvider.ts:downloadDriveFile). Endpoint próprio
+// (content.dropboxapi.com, igual ao upload) que recebe o `path` (aqui, o id normalizado) via
+// header Dropbox-API-Arg em vez de no corpo/query. O Content-Type devolvido pelo Dropbox nesse
+// endpoint costuma vir genérico (application/octet-stream) — o chamador
+// (lib/actions/documentoEnvios.ts) tem uma inferência por extensão de arquivo como rede de
+// segurança para esse caso.
+export async function downloadFileFromDropbox(fileId: string, officeId: string): Promise<{ content: Buffer; mimeType: string }> {
+  const accessToken = await getAccessTokenForOffice(officeId);
+  const res = await fetch(`${CONTENT_BASE}/files/download`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Dropbox-API-Arg": JSON.stringify({ path: asIdPath(fileId) }),
+    },
+  });
+  if (!res.ok) throw new Error(`Falha ao baixar arquivo do Dropbox (${res.status}): ${await res.text()}`);
+  const content = Buffer.from(await res.arrayBuffer());
+  const mimeType = res.headers.get("content-type") || "application/octet-stream";
+  return { content, mimeType };
+}
+
 async function uploadBufferToFolder(
   fileName: string,
   mimeType: string,

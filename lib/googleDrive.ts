@@ -270,6 +270,31 @@ export function extractDriveFileId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Baixa o conteúdo real de um arquivo do Drive — usado pelo envio de documentos por e-mail com
+// anexo de verdade (ver lib/actions/documentoEnvios.ts:enviarDocumentosPorEmail via o roteador
+// lib/storageProvider.ts:downloadDriveFile). Documento nativo do Google (Docs/Planilhas/
+// Apresentações) não tem conteúdo binário para baixar direto (a API recusa alt=media nesses
+// casos) — só o caso real hoje (documento gerado a partir de modelo, ver
+// lib/actions/generateDocument.ts) é tratado, via export para PDF; Planilha/Apresentação nativa
+// lança um erro claro em vez de tentar (não existe hoje nenhum fluxo que gere esses tipos como
+// Attachment).
+export async function downloadFileFromDrive(fileId: string, officeId: string): Promise<{ content: Buffer; mimeType: string }> {
+  const { drive } = await getDriveClient(officeId);
+  const meta = await drive.files.get({ fileId, fields: "mimeType" });
+  const mimeType = meta.data.mimeType || "application/octet-stream";
+
+  if (mimeType.startsWith("application/vnd.google-apps.")) {
+    if (mimeType !== GOOGLE_DOC_MIME) {
+      throw new Error("Este documento é um arquivo nativo do Google (Planilha/Apresentação) e não pode ser baixado como anexo de e-mail.");
+    }
+    const exported = await drive.files.export({ fileId, mimeType: "application/pdf" }, { responseType: "arraybuffer" });
+    return { content: Buffer.from(exported.data as ArrayBuffer), mimeType: "application/pdf" };
+  }
+
+  const res = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+  return { content: Buffer.from(res.data as ArrayBuffer), mimeType };
+}
+
 // Copia um Google Docs modelo, substitui placeholders {{CHAVE}} pelos valores informados
 // e devolve o link do novo documento preenchido (Google Docs + export em PDF), além de quantas
 // substituições realmente aconteceram — `matchedCount === 0` sinaliza que o modelo provavelmente

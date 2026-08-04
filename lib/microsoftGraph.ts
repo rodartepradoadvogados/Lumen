@@ -170,9 +170,24 @@ export async function getOutlookMessagesForOffice(cred: { refreshToken: string }
 
 export type SendMailResult = { ok: boolean; error?: string };
 
+// Mesmo tipo de lib/gmailSend.ts:EmailAttachment (conteúdo já baixado em memória) — duplicado em
+// vez de importado para não criar uma dependência circular entre os dois arquivos (gmailSend.ts
+// já importa sendMailOutlook daqui); a forma estrutural idêntica ({filename,mimeType,content}) é
+// o que importa, não o nome do tipo.
+export type MailAttachment = { filename: string; mimeType: string; content: Buffer };
+
 // Envia e-mail pela caixa Outlook do próprio usuário — equivalente a lib/gmailSend.ts, usado
-// pelo Atendimento quando a pessoa conectou Outlook em vez de (ou além de) Gmail.
-export async function sendMailOutlook(userId: string, to: string, subject: string, body: string): Promise<SendMailResult> {
+// pelo Atendimento quando a pessoa conectou Outlook em vez de (ou além de) Gmail. `attachments`
+// é opcional (mesma razão de lib/gmailSend.ts:sendEmailReply): quem não passa nada continua com
+// o comportamento de sempre; lib/actions/documentoEnvios.ts passa o conteúdo real dos documentos
+// selecionados, via o campo `attachments` (fileAttachment/contentBytes) da Graph API.
+export async function sendMailOutlook(
+  userId: string,
+  to: string,
+  subject: string,
+  body: string,
+  attachments: MailAttachment[] = []
+): Promise<SendMailResult> {
   const cred = await prisma.microsoftCredential.findFirst({ where: { userId } });
   if (!cred) return { ok: false, error: "Você ainda não conectou sua conta Microsoft (Outlook)." };
 
@@ -186,6 +201,16 @@ export async function sendMailOutlook(userId: string, to: string, subject: strin
           subject,
           body: { contentType: "Text", content: body },
           toRecipients: [{ emailAddress: { address: to } }],
+          ...(attachments.length > 0
+            ? {
+                attachments: attachments.map((a) => ({
+                  "@odata.type": "#microsoft.graph.fileAttachment",
+                  name: a.filename,
+                  contentType: a.mimeType,
+                  contentBytes: a.content.toString("base64"),
+                })),
+              }
+            : {}),
         },
         saveToSentItems: true,
       }),

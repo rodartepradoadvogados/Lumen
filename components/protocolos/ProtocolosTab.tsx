@@ -46,7 +46,7 @@ import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { Badge, formatCalendarDate } from "@/components/ui";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/protocolos/DocumentoEnvios";
 
-type AttachmentOption = { id: string; name: string; docType: string };
+type AttachmentOption = { id: string; name: string; docType: string; driveUrl: string };
 type LoteItem = { id: string; ordem: number; attachmentId: string | null; nomeSnapshot: string; docTypeSnapshot: string; driveUrl: string | null };
 type Lote = {
   id: string;
