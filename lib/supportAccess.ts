@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifySession, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getPlatformMember } from "@/lib/platformMember";
 import { ACCESS_REASONS, SESSION_MINUTES, type AccessReasonCode } from "@/lib/supportAccessConstants";
+import { isRecordScopeType, resolveRecordLabel } from "@/lib/recordScope";
+import { RECORD_SCOPE_LABEL, type RecordScopeType } from "@/lib/recordScopeMeta";
 
 // Passo 2 da fundação de dados da Lúmen: este módulo é o ÚNICO caminho de elevação pra "atuar
 // como" outro escritório. Se um dia existir um segundo caminho que grave AccessSession sem
@@ -247,6 +249,19 @@ export type PendingAccessRequest = {
   reasonNote: string | null;
   requestedAt: Date;
   expiresAt: Date;
+  // Fase B (quebra-vidro POR REGISTRO): scopeType/scopeId sempre vêm do banco (nunca nulos no
+  // schema — ver AccessRequest.scopeType/scopeId), mas só os 4 valores de RECORD_SCOPE_TYPES
+  // (ver lib/recordScopeMeta.ts) identificam um registro de verdade. O valor histórico
+  // "CONFIGURACAO" (entrada normal de suporte, Fase A) continua existindo e não é um registro —
+  // por isso scopeLabel fica null nesse caso, e a UI (components/AccessRequestQueue.tsx) trata
+  // os dois casos separadamente.
+  scopeType: string;
+  scopeId: string;
+  // Rótulo do registro (ex.: título do processo), resolvido AQUI — do lado do escritório, sem
+  // máscara nenhuma (ver lib/recordScope.ts:resolveRecordLabel) — para a fila de aprovação dizer
+  // exatamente o que está sendo pedido. Null quando scopeType não é um dos 4 tipos de registro,
+  // ou quando o registro já não existe mais.
+  scopeLabel: string | null;
 };
 
 // Pedidos PENDENTE e ainda não expirados daquele escritório — alimenta a fila de aprovação da
@@ -261,15 +276,20 @@ export async function listPendingAccessRequests(officeId: string): Promise<Pendi
     },
   });
 
-  return requests.map((r) => ({
-    id: r.id,
-    requesterName: r.requester.user?.name ?? r.requester.name ?? "Suporte Lúmen",
-    reasonLabel: (r.reasonCode && ACCESS_REASONS[r.reasonCode as AccessReasonCode]) || r.reasonCode || "—",
-    ticketSubject: r.ticket.subject,
-    reasonNote: r.reasonNote,
-    requestedAt: r.requestedAt,
-    expiresAt: r.expiresAt,
-  }));
+  return Promise.all(
+    requests.map(async (r) => ({
+      id: r.id,
+      requesterName: r.requester.user?.name ?? r.requester.name ?? "Suporte Lúmen",
+      reasonLabel: (r.reasonCode && ACCESS_REASONS[r.reasonCode as AccessReasonCode]) || r.reasonCode || "—",
+      ticketSubject: r.ticket.subject,
+      reasonNote: r.reasonNote,
+      requestedAt: r.requestedAt,
+      expiresAt: r.expiresAt,
+      scopeType: r.scopeType,
+      scopeId: r.scopeId,
+      scopeLabel: isRecordScopeType(r.scopeType) ? await resolveRecordLabel(r.scopeType, r.scopeId, officeId) : null,
+    }))
+  );
 }
 
 // approveAccessRequest e denyAccessRequest são o mesmo fluxo de validação (pedido existe, é
@@ -422,6 +442,10 @@ export type OfficeAccessLogEntry = {
   action: string;
   outOfBand: boolean;
   durationMinutes: number | null;
+  // Fase B: só preenchido em linhas LEITURA (quebra-vidro) — "processo: <título>", já pronto para
+  // a UI, em vez do scopeType/scopeId crus. Resolvido NO MOMENTO da consulta (o log em si nunca
+  // muda), então some se o registro for excluído depois — nesse caso vira "<tipo> (excluído)".
+  scopeDescription: string | null;
 };
 
 // Histórico para a página de transparência do escritório (app/(app)/configuracoes/acessos).
@@ -446,12 +470,35 @@ export async function listOfficeAccessLog(officeId: string, days = 90): Promise<
     : [];
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
 
+  // Rótulo do registro visto, só para linhas LEITURA com um scopeType de registro de verdade
+  // (CONFIGURACAO — a entrada normal — nunca vira LEITURA, então na prática isto só filtra por
+  // segurança). Resolvido uma vez por par scopeType+scopeId, mesmo que apareça em várias linhas
+  // (mesmo registro revelado mais de uma vez).
+  const readLogs = logs.filter(
+    (l): l is typeof l & { scopeType: string; scopeId: string } =>
+      l.action === "LEITURA" && Boolean(l.scopeType) && Boolean(l.scopeId) && isRecordScopeType(l.scopeType!)
+  );
+  const scopeLabelByKey = new Map<string, string | null>();
+  await Promise.all(
+    [...new Set(readLogs.map((l) => `${l.scopeType}:${l.scopeId}`))].map(async (key) => {
+      const [scopeType, scopeId] = key.split(":") as [RecordScopeType, string];
+      scopeLabelByKey.set(key, await resolveRecordLabel(scopeType, scopeId, officeId));
+    })
+  );
+
   return logs.map((log) => {
     const session = log.sessionId ? sessionById.get(log.sessionId) : undefined;
     const durationMinutes =
       log.action === "ENTRADA" && session
         ? Math.max(0, Math.round(((session.endedAt ?? session.expiresAt).getTime() - session.startedAt.getTime()) / 60_000))
         : null;
+
+    let scopeDescription: string | null = null;
+    if (log.action === "LEITURA" && log.scopeType && isRecordScopeType(log.scopeType)) {
+      const kind = RECORD_SCOPE_LABEL[log.scopeType];
+      const label = scopeLabelByKey.get(`${log.scopeType}:${log.scopeId}`) ?? null;
+      scopeDescription = label ? `${kind}: ${label}` : `${kind} (excluído)`;
+    }
 
     return {
       id: log.id,
@@ -461,6 +508,7 @@ export async function listOfficeAccessLog(officeId: string, days = 90): Promise<
       action: log.action,
       outOfBand: log.outOfBand,
       durationMinutes,
+      scopeDescription,
     };
   });
 }

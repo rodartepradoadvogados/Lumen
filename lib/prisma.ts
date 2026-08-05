@@ -70,8 +70,35 @@ export type AppPrismaTx = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-const globalForPrisma = global as unknown as { prisma: AppPrismaClient };
+const globalForPrisma = global as unknown as { prisma: AppPrismaClient; prismaBase: PrismaClient };
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// ---------------------------------------------------------------------------------------------
+// `prismaBase` — client BASE, SEM a extensão "Vidro Fosco". USO EXCLUSIVO do fluxo de
+// quebra-vidro POR REGISTRO (Fase B): lib/breakGlass.ts, e mais especificamente só a função
+// `revelarRegistro` de lá.
+//
+// QUALQUER outra leitura feita com este client sai SEM máscara, mesmo dentro de uma sessão de
+// suporte mascarada — porque é exatamente isso que ele é: o Prisma cru, sem a extensão que
+// aplica maskReadResult (ver createPrismaClient acima). Se você chegou aqui pensando em importar
+// `prismaBase` de qualquer outro arquivo, pare: use `prisma` (o client mascarado, a exportação
+// de cima). Precisar ver o dado real é, por definição, um caso de quebra-vidro — e quebra-vidro
+// só existe através de lib/breakGlass.ts, com AccessSession + AccessRequest APROVADO conferidos
+// e AccessAuditLog (action: "LEITURA") gravado na mesma transação da leitura, "falha fecha".
+//
+// Por que um client SEPARADO em vez de reaproveitar o `base` de dentro de createPrismaClient():
+// createPrismaClient() é a fábrica usada também por scripts de linha de comando (prisma/seed.ts,
+// scripts/migrate-from-legacy.ts) que quase sempre querem SÓ o client mascarado (que fora de
+// requisição já é um no-op, ver comentário acima) — não vale a pena mexer nessa fábrica para
+// expor o `base` interno dela só para os pouquíssimos chamadores do quebra-vidro. Uma conexão a
+// mais no pool é custo aceitável pelo isolamento: fica impossível confundir os dois clients por
+// engano, porque são dois objetos exportados com nomes diferentes, não dois estados do mesmo
+// objeto.
+export const prismaBase: PrismaClient =
+  globalForPrisma.prismaBase ||
+  new PrismaClient({ log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"] });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prismaBase = prismaBase;

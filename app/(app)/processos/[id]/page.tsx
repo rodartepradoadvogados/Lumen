@@ -29,6 +29,7 @@ import SendCaseEmailModal from "@/components/SendCaseEmailModal";
 import TermosVigilanciaPanel from "@/components/TermosVigilanciaPanel";
 import ProtocolosTab from "@/components/protocolos/ProtocolosTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
+import BreakGlassReveal from "@/components/BreakGlassReveal";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -344,6 +345,15 @@ export default async function CaseDetailPage({
         {c.area && <span>{c.area} · </span>}
         {c.type}
       </p>
+
+      {viewer.supportMasked && (
+        <div className="mb-5">
+          {/* Quebra-vidro POR REGISTRO (Fase B) — só existe pro suporte, nunca pro escritório
+              vendo os próprios dados. Ver lib/breakGlass.ts para as confirmações que precisam
+              passar antes de qualquer dado real sair daqui. */}
+          <BreakGlassReveal scopeType="CASE" scopeId={c.id} />
+        </div>
+      )}
 
       <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-6 overflow-x-auto">
         {TABS.filter(

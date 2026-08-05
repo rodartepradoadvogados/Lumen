@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const ACTION_LABEL: Record<string, string> = {
   ENTRADA: "Entrada",
   SAIDA: "Saída",
+  LEITURA: "Viu dados reais",
   PEDIDO: "Pedido",
   APROVACAO: "Aprovação",
   NEGACAO: "Negação",
@@ -143,7 +144,14 @@ export default async function AcessosPage() {
                         </Badge>
                       )}
                     </td>
-                    <td className="px-5 py-2.5">{ACTION_LABEL[entry.action] ?? entry.action}</td>
+                    <td className="px-5 py-2.5">
+                      {ACTION_LABEL[entry.action] ?? entry.action}
+                      {entry.scopeDescription && (
+                        <p className="text-[11px] font-normal text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+                          {entry.scopeDescription}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-5 py-2.5">{entry.durationMinutes !== null ? `${entry.durationMinutes} min` : "—"}</td>
                   </tr>
                 ))}

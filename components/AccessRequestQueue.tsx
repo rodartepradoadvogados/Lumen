@@ -4,7 +4,20 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { approveAccessRequestAsOffice, denyAccessRequestAsOffice } from "@/lib/actions/supportAccess";
 import type { PendingAccessRequest } from "@/lib/supportAccess";
-import { Check, X } from "lucide-react";
+import { RECORD_SCOPE_LABEL, isRecordScopeType } from "@/lib/recordScopeMeta";
+import { Check, X, Eye } from "lucide-react";
+
+// Fase B: descreve em português claro O QUE está sendo pedido, a partir de scopeType/scopeLabel
+// (resolvido do lado do servidor em lib/supportAccess.ts:listPendingAccessRequests). scopeType
+// "CONFIGURACAO" é o pedido de entrada normal (Fase A, acesso mascarado ao escritório inteiro) —
+// não é um registro específico, então não tenta descrever um.
+function describeScope(req: PendingAccessRequest): string | null {
+  if (!isRecordScopeType(req.scopeType)) return null;
+  const kind = RECORD_SCOPE_LABEL[req.scopeType];
+  return req.scopeLabel
+    ? `quer ver os dados reais do ${kind} "${req.scopeLabel}".`
+    : `quer ver os dados reais de um(a) ${kind} que não foi encontrado(a) (pode ter sido excluído).`;
+}
 
 // Formata "há Xh"/"há X min" — mesmo cálculo usado em app/(app)/configuracoes/page.tsx
 // (formatRelativeTime), duplicado aqui porque aquele é um helper de página, não exportado.
@@ -47,6 +60,11 @@ export default function AccessRequestQueue({ requests }: { requests: PendingAcce
               <strong>{req.requesterName}</strong> — {req.reasonLabel}
             </p>
             <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mt-0.5">Chamado: {req.ticketSubject}</p>
+            {describeScope(req) && (
+              <p className="text-xs font-semibold text-gold-700 dark:text-gold-400 mt-1 flex items-center gap-1">
+                <Eye size={12} className="shrink-0" /> Suporte Lúmen {describeScope(req)}
+              </p>
+            )}
             {req.reasonNote && (
               <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5 italic">“{req.reasonNote}”</p>
             )}
