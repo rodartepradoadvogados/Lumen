@@ -177,7 +177,7 @@ async function main() {
   check("fatura PENDENTE sem boleto emitido ainda → ATENCAO", r7.nivel === "ATENCAO");
   check("motivo menciona boleto", r7.motivos.some((m) => m.toLowerCase().includes("boleto")));
 
-  // Fatura gerada, boleto emitido, vencimento próximo (2 dias) e nenhum lembrete enviado → ATENCAO.
+  // Fatura gerada, boleto emitido, vencimento próximo (2 dias) e nenhum e-mail enviado → ATENCAO.
   const faturaSemLembrete: UltimaFaturaSaude = {
     status: "PENDENTE",
     dueDate: diasAPartir(2),
@@ -187,7 +187,15 @@ async function main() {
     remindersSent: [],
   };
   const r8 = avaliarSaudeCobranca(subOkBoleto, officeComEmail, faturaSemLembrete, 0, AGORA);
-  check("vencimento em 2 dias sem nenhum lembrete enviado → ATENCAO", r8.nivel === "ATENCAO");
+  check("vencimento em 2 dias sem nenhum e-mail de cobrança enviado → ATENCAO", r8.nivel === "ATENCAO");
+
+  // MESMO cenário, mas com o e-mail INICIAL da fatura já entregue ("FATURA_INICIAL", gravado por
+  // generateAndSendInvoice) e nenhum lembrete do cron ainda. Antes, remindersSent só era escrito
+  // pelo cron, então o dia em que a fatura era gerada e enviada aparecia como "nada enviado" —
+  // este caso trava essa regressão: envio inicial JÁ conta como cobrança entregue.
+  const faturaComEnvioInicial: UltimaFaturaSaude = { ...faturaSemLembrete, remindersSent: ["FATURA_INICIAL"] };
+  const r8b = avaliarSaudeCobranca(subOkBoleto, officeComEmail, faturaComEnvioInicial, 0, AGORA);
+  check("vencimento em 2 dias mas com e-mail inicial já enviado → OK", r8b.nivel === "OK");
 
   // Mesmo cenário mas vencimento distante (20 dias) — ainda não é hora de se preocupar → OK.
   const faturaVencimentoDistante: UltimaFaturaSaude = { ...faturaSemLembrete, dueDate: diasAPartir(20) };

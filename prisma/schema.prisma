@@ -2261,8 +2261,13 @@ model TenantInvoice {
   // que o resto do sistema já lê.
   externalStatus String?
 
-  // Lembretes já enviados por esta fatura (Fase 2 — cron de cobrança) — evita reenviar o
-  // mesmo e-mail toda vez que o cron roda. Valores: "ANTES_VENCIMENTO" | "VENCIDA" | "SUSPENSAO".
+  // E-mails de cobrança já enviados por esta fatura — evita reenviar o mesmo e-mail toda vez
+  // que o cron roda (Fase 2) e serve de prova de que a cobrança CHEGOU ao escritório (é o que
+  // a coluna "Entrega da cobrança" de /painel-mestre/assinaturas lê para distinguir boleto/QR
+  // Code apenas GERADO de efetivamente ENVIADO). Valores:
+  //   "FATURA_INICIAL"   — e-mail com o boleto/QR Code (generateAndSendInvoice)
+  //   "ANTES_VENCIMENTO" | "VENCIDA" | "SUSPENSAO" — lembretes do cron (lib/actions/billing.ts)
+  // Só entra aqui depois do envio ter dado certo, nunca na tentativa.
   remindersSent String[] @default([])
 
   @@unique([officeId, competencia])

@@ -134,9 +134,12 @@ export function avaliarSaudeCobranca(
     } else if (subscription.paymentMethod === "PIX_QRCODE" && !ultimaFatura.pixQrCodePayload) {
       atencoes.push("A fatura do mês já existe, mas o QR Code ainda não foi gerado.");
     } else if (subscription.paymentMethod !== "PIX_AUTOMATICO" && ultimaFatura.remindersSent.length === 0) {
+      // remindersSent vazio = NENHUM e-mail de cobrança saiu por esta fatura — nem o inicial
+      // (generateAndSendInvoice grava "FATURA_INICIAL" só depois do envio dar certo) nem os
+      // lembretes do cron. Ver prisma/schema.prisma:TenantInvoice.remindersSent.
       const diasParaVencer = Math.floor((paraData(ultimaFatura.dueDate).getTime() - now.getTime()) / 86400000);
       if (diasParaVencer >= 0 && diasParaVencer <= DIAS_VENCIMENTO_PROXIMO) {
-        atencoes.push("Vencimento próximo e nenhum lembrete de cobrança foi enviado ao escritório ainda.");
+        atencoes.push("Vencimento próximo e a cobrança ainda não foi enviada por e-mail ao escritório.");
       }
     }
   }

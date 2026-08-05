@@ -136,14 +136,19 @@ function entregaCobranca(paymentMethod: string | null, fatura: UltimaFatura, pix
 
   if (!fatura) return "Nenhuma fatura gerada ainda.";
 
+  // remindersSent guarda TODO e-mail de cobrança que saiu de verdade por esta fatura, não só os
+  // lembretes do cron: "FATURA_INICIAL" é gravado por generateAndSendInvoice assim que o e-mail
+  // com o boleto/QR Code é entregue (ver prisma/schema.prisma:TenantInvoice.remindersSent). Por
+  // isso o texto fala em "enviado por e-mail" e não em "lembrete" — no dia em que a fatura é
+  // gerada, o envio já conta.
   const enviado = fatura.remindersSent.length > 0;
   if (paymentMethod === "BOLETO") {
     if (!fatura.boletoUrl) return "Fatura gerada, mas o boleto ainda não foi emitido.";
-    return enviado ? "Boleto emitido e lembrete de cobrança já enviado ao escritório." : "Boleto emitido, mas nenhum lembrete de cobrança foi enviado ainda.";
+    return enviado ? "Boleto emitido e já enviado por e-mail ao escritório." : "Boleto emitido, mas ainda não foi enviado por e-mail ao escritório.";
   }
   if (paymentMethod === "PIX_QRCODE") {
     if (!fatura.pixQrCodePayload) return "Fatura gerada, mas o QR Code ainda não foi gerado.";
-    return enviado ? "QR Code gerado e lembrete de cobrança já enviado ao escritório." : "QR Code gerado, mas nenhum lembrete de cobrança foi enviado ainda.";
+    return enviado ? "QR Code gerado e já enviado por e-mail ao escritório." : "QR Code gerado, mas ainda não foi enviado por e-mail ao escritório.";
   }
   return "";
 }

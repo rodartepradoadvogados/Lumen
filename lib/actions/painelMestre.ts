@@ -294,7 +294,28 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
     pixPayload: invoice.pixQrCodePayload,
     pixImage: invoice.pixQrCodeImage,
   });
+
+  // Registra que a cobrança CHEGOU ao escritório. Antes, só o cron (lib/actions/billing.ts)
+  // gravava em remindersSent, então este e-mail — que é justamente o PRIMEIRO a sair, com o
+  // boleto/QR Code — não deixava rastro nenhum: a coluna "Entrega da cobrança" em
+  // /painel-mestre/assinaturas dizia "nenhum e-mail enviado ainda" no mesmo dia em que a
+  // fatura foi gerada e enviada, até o cron rodar (3 dias antes do vencimento).
+  //
+  // Só grava se o e-mail REALMENTE saiu (emailResult.sent) — a tela existe pra distinguir
+  // "gerado" de "enviado", e marcar entrega numa falha de envio destruiria essa distinção.
+  // Guardado por includes() porque este botão pode ser clicado de novo na mesma competência
+  // (reenvio legítimo, a fatura já existe): sem o guarda, a mesma marca se acumularia na
+  // lista a cada clique. Os guardas do cron são por tipo (ANTES_VENCIMENTO/VENCIDA/SUSPENSAO),
+  // então este valor novo não interfere em nenhum deles.
+  if (emailResult.sent && !invoice.remindersSent.includes("FATURA_INICIAL")) {
+    await prisma.tenantInvoice.update({
+      where: { id: invoice.id },
+      data: { remindersSent: { push: "FATURA_INICIAL" } },
+    });
+  }
+
   revalidatePath("/painel-mestre");
+  revalidatePath("/painel-mestre/assinaturas");
   if (!emailResult.sent) return { error: `Fatura registrada, mas o e-mail não saiu: ${emailResult.reason}`, btgWarning, asaasWarning };
   return { btgWarning, asaasWarning };
 }
