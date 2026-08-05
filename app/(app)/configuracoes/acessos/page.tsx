@@ -2,25 +2,16 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getActiveSupportSession, listOfficeAccessLog, listPendingAccessRequests } from "@/lib/supportAccess";
-import { ACCESS_REASONS, type AccessReasonCode } from "@/lib/supportAccessConstants";
-import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
+import { ACCESS_REASONS, ACCESS_ACTION_LABEL, type AccessReasonCode } from "@/lib/supportAccessConstants";
+import { PageHeader, Card, CardHeader, Badge, ButtonSecondary } from "@/components/ui";
 import EndSupportAccessButton from "@/components/EndSupportAccessButton";
 import SupportAccessPolicyPicker from "@/components/SupportAccessPolicyPicker";
 import AccessRequestQueue from "@/components/AccessRequestQueue";
-import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Eye, Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const ACTION_LABEL: Record<string, string> = {
-  ENTRADA: "Entrada",
-  SAIDA: "Saída",
-  LEITURA: "Viu dados reais",
-  PEDIDO: "Pedido",
-  APROVACAO: "Aprovação",
-  NEGACAO: "Negação",
-  REVOGACAO: "Revogação",
-  SELAGEM: "Selagem",
-};
+const ACTION_LABEL = ACCESS_ACTION_LABEL;
 
 // Página de transparência do escritório (Passo 2): visível a QUALQUER usuário do escritório,
 // não só admin — é justamente o ponto. Só leitura: ninguém apaga nada por aqui, e não existe
@@ -52,6 +43,22 @@ export default async function AcessosPage() {
       <PageHeader
         title="Acessos da Lúmen"
         subtitle="Toda vez que o suporte da Lúmen precisa entrar nos dados do seu escritório, fica registrado aqui — com motivo, chamado e prazo curto."
+        action={
+          <div className="flex items-center gap-2 flex-wrap">
+            {viewer.isAdmin && (
+              <Link href="/configuracoes/acessos/previa">
+                <ButtonSecondary>
+                  <Eye size={14} /> Ver como o suporte vê este escritório
+                </ButtonSecondary>
+              </Link>
+            )}
+            <a href="/api/configuracoes/acessos/exportar" download>
+              <ButtonSecondary>
+                <Download size={14} /> Baixar extrato de acessos (CSV)
+              </ButtonSecondary>
+            </a>
+          </div>
+        }
       />
 
       <Card>
