@@ -1,4 +1,5 @@
-import type { Prisma, PrismaClient, KanbanColumn, FinancialCategory } from "@prisma/client";
+import type { KanbanColumn, FinancialCategory } from "@prisma/client";
+import type { AppPrismaTx } from "@/lib/prisma";
 
 // ============================================================================
 // Dados padrão de um Office novo (Fase 2) — colunas de Kanban e plano de contas
@@ -7,7 +8,11 @@ import type { Prisma, PrismaClient, KanbanColumn, FinancialCategory } from "@pri
 // base de trabalho pronta em vez de telas vazias.
 // ============================================================================
 
-type Db = PrismaClient | Prisma.TransactionClient;
+// AppPrismaTx e não PrismaClient: o client da aplicação passou a ser estendido
+// (lib/prisma.ts, "Vidro Fosco") e o tipo estendido não é atribuível a PrismaClient. AppPrismaTx
+// cobre de uma vez o client completo e o `tx` de dentro de um $transaction, que são os dois
+// jeitos como estes helpers são chamados.
+type Db = AppPrismaTx;
 
 export const DEFAULT_KANBAN_COLUMNS: { name: string; color: string; isDoneCol?: boolean }[] = [
   { name: "A Fazer", color: "#94a3b8" },

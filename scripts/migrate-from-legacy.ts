@@ -14,7 +14,7 @@
  *   TARGET_OFFICE_SLUG (default "rodarte-prado-advogados")
  */
 
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/prisma";
 import { migrarDadosLegado } from "../lib/legacyMigration";
 
 const SOURCE_URL = process.env.SOURCE_DATABASE_URL;
@@ -30,7 +30,9 @@ if (!DEST_URL) {
 }
 
 async function main() {
-  const destDb = new PrismaClient({ datasources: { db: { url: DEST_URL } } });
+  // Mesma fábrica do app (ver lib/prisma.ts): fora de requisição a máscara é no-op, e usar a
+  // fábrica evita ter dois formatos de client diferentes circulando pelo projeto.
+  const destDb = createPrismaClient({ datasources: { db: { url: DEST_URL } } });
   try {
     const result = await migrarDadosLegado({
       sourceUrl: SOURCE_URL!,

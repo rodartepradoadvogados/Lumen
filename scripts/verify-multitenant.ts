@@ -1,11 +1,12 @@
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/prisma";
 import { seedDefaultOfficeData } from "../lib/defaultOfficeData";
 import { getFilteredPayables, getFilteredReceivables } from "../lib/financeQuery";
 import { getAlerts, getTodayItems } from "../lib/alerts";
 import { isCaseInOffice, isClientInOffice, isUserInOffice } from "../lib/officeScope";
 import { getOfficeModules, hasBlogAccess } from "../lib/officeModules";
 
-const prisma = new PrismaClient();
+// Mesma fábrica do app (lib/prisma.ts). Fora de requisição a máscara do "Vidro Fosco" é no-op.
+const prisma = createPrismaClient();
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error("FALHOU: " + msg);

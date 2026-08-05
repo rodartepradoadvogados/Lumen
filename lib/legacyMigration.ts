@@ -16,6 +16,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import type { AppPrismaClient } from "@/lib/prisma";
 
 // Ordem topológica calculada a partir das relações do schema.prisma (pais antes de filhos).
 export const TABELAS_POR_OFFICE = [
@@ -78,7 +79,7 @@ const PK_COLUMN: Record<string, string> = {
 
 export type MigrationLog = { line: string }[];
 
-async function limparDadosPlaceholderSeForPrimeiraVez(destDb: PrismaClient, officeId: string, log: (msg: string) => void) {
+async function limparDadosPlaceholderSeForPrimeiraVez(destDb: AppPrismaClient, officeId: string, log: (msg: string) => void) {
   // O cadastro público (lib/actions/signup.ts) já cria, na hora, um usuário admin + Kanban e
   // Plano de Contas padrão (lib/defaultOfficeData.ts) pro escritório recém-criado. Antes da
   // primeira cópia de dados reais, esse placeholder precisa sair, senão duplica Kanban/Plano
@@ -108,7 +109,7 @@ async function limparDadosPlaceholderSeForPrimeiraVez(destDb: PrismaClient, offi
 
 async function copiarTabela(
   sourceDb: PrismaClient,
-  destDb: PrismaClient,
+  destDb: AppPrismaClient,
   tableName: string,
   officeId: string | null,
   pkColumn: string
@@ -135,7 +136,7 @@ async function copiarTabela(
 
 export async function migrarDadosLegado(options: {
   sourceUrl: string;
-  destDb: PrismaClient;
+  destDb: AppPrismaClient;
   officeSlug: string;
   officeName: string;
 }): Promise<{ lines: string[]; totalPorOffice: number; totalGlobais: number }> {

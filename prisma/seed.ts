@@ -1,8 +1,10 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { createDefaultKanbanColumns, createDefaultChartOfAccounts } from "../lib/defaultOfficeData";
+import { createPrismaClient } from "../lib/prisma";
 
-const prisma = new PrismaClient();
+// Mesma fábrica do app (lib/prisma.ts). Fora de requisição a máscara do "Vidro Fosco" é
+// no-op, então o seed continua lendo e gravando dado cru.
+const prisma = createPrismaClient();
 
 function daysFromNow(days: number, hour = 9, minute = 0) {
   const d = new Date();
