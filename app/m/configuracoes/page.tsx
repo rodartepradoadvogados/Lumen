@@ -20,6 +20,7 @@ import {
   User,
   KeyRound,
   Bell,
+  ShieldCheck,
   Plug,
   Users,
   SlidersHorizontal,
@@ -151,6 +152,19 @@ export default async function MobileConfiguracoes() {
         </div>
         <NotificationPreferences />
       </Card>
+
+      {/* Visível a QUALQUER usuário do escritório, não só admin — mesmo critério da versão
+          desktop (app/(app)/configuracoes/acessos/page.tsx): transparência sobre o acesso do
+          suporte da Lúmen não é um privilégio de administrador. */}
+      <Link href="/m/configuracoes/acessos" className="block">
+        <Card className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={16} className="text-gold-600" />
+            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Acessos da Lúmen</h3>
+          </div>
+          <ChevronRight size={14} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
+        </Card>
+      </Link>
 
       {canConfig && driveStatus && (
         <>

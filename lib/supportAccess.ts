@@ -406,7 +406,13 @@ export async function getActiveSupportSession(officeId: string): Promise<{
 // chamar de novo numa sessão já encerrada não faz nada (nem lança erro) — quem chama (botão
 // "Encerrar agora" do escritório, ou stopActingAsOffice do membro) não deveria travar por causa
 // de uma corrida entre os dois lados encerrando ao mesmo tempo.
-export async function closeSupportAccess(sessionId: string, endedBy: string): Promise<void> {
+//
+// `endedAt` é opcional e por padrão é "agora" — o caso normal de MEMBRO/ESCRITORIO, um
+// encerramento voluntário que acontece no instante em que é chamado. O único chamador que passa
+// um valor explícito é o cron de expiração (expireSupportAccess, abaixo): ele passa
+// `session.expiresAt`, porque ali o acesso já tinha deixado de valer antes do cron rodar — ver o
+// comentário em expireSupportAccess sobre por quê.
+export async function closeSupportAccess(sessionId: string, endedBy: string, endedAt: Date = new Date()): Promise<void> {
   const session = await prisma.accessSession.findUnique({
     where: { id: sessionId },
     include: { request: true },
@@ -416,7 +422,7 @@ export async function closeSupportAccess(sessionId: string, endedBy: string): Pr
   await prisma.$transaction([
     prisma.accessSession.update({
       where: { id: sessionId },
-      data: { endedAt: new Date(), endedBy },
+      data: { endedAt, endedBy },
     }),
     // AccessAuditLog é só inclusão — nunca update/delete. Este INSERT é o registro de saída.
     prisma.accessAuditLog.create({
@@ -432,6 +438,73 @@ export async function closeSupportAccess(sessionId: string, endedBy: string): Pr
       },
     }),
   ]);
+}
+
+export type ExpireSupportAccessResult = {
+  sessionsExpired: number;
+  requestsExpired: number;
+};
+
+// Fase D: cron (app/api/cron/expirar-acessos/route.ts) que faz "morrer" de verdade o que hoje só
+// morre logicamente. Duas responsabilidades independentes na mesma função porque são baratas e
+// rodam juntas no mesmo agendamento — não porque dependam uma da outra.
+export async function expireSupportAccess(): Promise<ExpireSupportAccessResult> {
+  const now = new Date();
+
+  // 1) AccessSession vencidas que ainda não foram encerradas. getActiveSupportSession já as
+  // ignora (filtra expiresAt > now, ver acima), então sem este cron elas nunca recebem
+  // endedAt/endedBy — a página de transparência do escritório (app/(app)/configuracoes/acessos)
+  // mostraria uma ENTRADA sem SAIDA correspondente para sempre, como se o suporte "ainda
+  // estivesse lá" ou o registro estivesse incompleto.
+  //
+  // `endedAt: session.expiresAt` (não `now`): o acesso de verdade deixou de valer no instante do
+  // prazo, não no instante em que este cron passou a rodar — que pode ser minutos depois,
+  // dependendo da frequência do agendamento em vercel.json. Usar `now` infla a duração calculada
+  // por listOfficeAccessLog (que usa `endedAt ?? expiresAt` para medir a sessão): uma sessão de
+  // 30 min pegada 7 min depois de vencer apareceria como "37 min" no extrato que o cliente baixa,
+  // o que é simplesmente falso. `expiresAt` é o valor honesto.
+  const expiredSessions = await prisma.accessSession.findMany({
+    where: { endedAt: null, expiresAt: { lte: now } },
+    select: { id: true, expiresAt: true },
+  });
+
+  for (const session of expiredSessions) {
+    // closeSupportAccess já é idempotente (confere `session.endedAt` antes de escrever) — se duas
+    // execuções deste cron rodarem em paralelo (nada nas Vercel Cron Jobs garante exclusão mútua
+    // entre invocações), a segunda encontra `endedAt` já preenchido pela primeira e não duplica o
+    // AccessAuditLog SAIDA. Mesmo formato de SAIDA que um encerramento manual grava — só muda
+    // `endedBy` ("EXPIRACAO" em vez de "MEMBRO"/"ESCRITORIO") e `detail`, que fica igual a
+    // `endedBy` (mesma convenção já usada nos outros dois casos).
+    await closeSupportAccess(session.id, "EXPIRACAO", session.expiresAt);
+  }
+
+  // 2) AccessRequest PENDENTE cujo prazo passou sem decisão do sócio. Sem isto, ficam "PENDENTE"
+  // fantasma para sempre — listPendingAccessRequests já os esconde da fila filtrando
+  // expiresAt > now, mas a LINHA no banco nunca reflete que o prazo passou; EXPIRADO já existe na
+  // lista de status prevista pelo schema (ver comentário de AccessRequest.status) e já é exibido
+  // pelo Cofre do platform owner (app/painel-mestre/cofre/page.tsx), só nunca era escrito.
+  //
+  // `updateMany` em vez de buscar e decidir um por um: a condição do WHERE já garante que só pega
+  // quem ainda está PENDENTE e vencido, então rodar duas vezes em paralelo é seguro por
+  // construção — a segunda chamada não encontra mais linhas PENDENTE+vencidas para mudar (já
+  // viraram EXPIRADO na primeira), sem erro nem efeito duplicado.
+  //
+  // Sem AccessAuditLog aqui, por decisão consciente: a criação do próprio AccessRequest PENDENTE
+  // (openSupportAccess, caso "política APROVACAO") também não grava nenhuma entrada no log hoje —
+  // o pedido só existe na tabela AccessRequest, visível na fila de aprovação e no Cofre. As ações
+  // fechadas do log (ACCESS_ACTION_LABEL) são ENTRADA/SAIDA/LEITURA/PEDIDO/APROVACAO/NEGACAO/
+  // REVOGACAO/SELAGEM; a mais próxima seria NEGACAO, mas decideAccessRequest já usa exatamente
+  // essa action para dizer "um sócio decidiu negar" e grava o NOME de quem decidiu em `detail`
+  // (ver acima). Reaproveitar NEGACAO aqui faria o extrato de auditoria — o documento que o
+  // compliance do cliente baixa e confia — parecer que um sócio revisou e recusou um pedido que,
+  // na verdade, ninguém chegou a ver. Isso seria pior do que não logar nada: o status EXPIRADO na
+  // própria linha de AccessRequest (visível no Cofre) já é o registro fiel do que aconteceu.
+  const { count: requestsExpired } = await prisma.accessRequest.updateMany({
+    where: { status: "PENDENTE", expiresAt: { lte: now } },
+    data: { status: "EXPIRADO" },
+  });
+
+  return { sessionsExpired: expiredSessions.length, requestsExpired };
 }
 
 export type OfficeAccessLogEntry = {
