@@ -6,14 +6,26 @@
 // updateSubscriptionBilling aceita, e os botões de Pix (autorização/teste) aparecem condicionados
 // à forma de pagamento já salva. Estilo segue components/painelMestre/LumenUi.tsx (sempre navy +
 // cream, sem variantes dark:, porque LumenPanel nunca muda de tema).
+//
+// Pedido do dono da plataforma ("bater o olho e saber se a cobrança está saudável, sem abrir
+// cada escritório nem consultar o Asaas"): três acréscimos por escritório, todos calculados a
+// partir da fatura mais recente que app/painel-mestre/assinaturas/page.tsx já carrega —
+//   1. Vencimento + Situação do pagamento (Pago/Em aberto/Vencida/Cancelada/"sem fatura gerada");
+//   2. Entrega da cobrança — texto CONDICIONAL à forma de pagamento (boleto/QR Code vs. Pix
+//      Automático, que não tem nada pra "enviar" a cada fatura — só uma autorização única);
+//   3. Selo "Cobrança" com o nível devolvido por lib/billingHealth.ts:avaliarSaudeCobranca
+//      (já calculado no server, em app/painel-mestre/assinaturas/page.tsx) + a lista de motivos
+//      em português, sempre visível abaixo do selo (não escondida atrás de hover), porque o
+//      objetivo é o dono da plataforma saber o que fazer, não só que "tem algo errado".
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateSubscriptionBilling, triggerPixAutomaticoAuthorization, previewPixQrCode } from "@/lib/actions/subscriptionBilling";
-import { formatCurrency } from "@/components/ui";
+import { formatCurrency, formatDate } from "@/components/ui";
 import { LumenStatusDot } from "@/components/painelMestre/LumenUi";
 import CopyButton from "@/components/CopyButton";
-import { Pencil, X, QrCode } from "lucide-react";
+import { Pencil, X, QrCode, CheckCircle2, AlertTriangle, AlertCircle, HelpCircle } from "lucide-react";
+import type { NivelSaudeCobranca } from "@/lib/billingHealth";
 
 const STATUS_LABEL: Record<string, string> = { ATIVA: "Ativa", TESTE: "Teste", SUSPENSA: "Suspensa", CANCELADA: "Cancelada" };
 const STATUS_TONE: Record<string, "ok" | "warn" | "risk" | "slate"> = {
@@ -34,6 +46,25 @@ const PIX_AUTH_STATUS_LABEL: Record<string, string> = {
   REJEITADA: "rejeitada",
 };
 
+const NIVEL_LABEL: Record<NivelSaudeCobranca, string> = {
+  OK: "Cobrança OK",
+  ATENCAO: "Atenção",
+  PROBLEMA: "Problema",
+  NAO_CONFIGURADA: "Não configurada",
+};
+const NIVEL_ICON: Record<NivelSaudeCobranca, typeof CheckCircle2> = {
+  OK: CheckCircle2,
+  ATENCAO: AlertTriangle,
+  PROBLEMA: AlertCircle,
+  NAO_CONFIGURADA: HelpCircle,
+};
+const NIVEL_TEXT_CLASS: Record<NivelSaudeCobranca, string> = {
+  OK: "text-emerald-400",
+  ATENCAO: "text-gold-400",
+  PROBLEMA: "text-bordo-400",
+  NAO_CONFIGURADA: "text-cream-50/50",
+};
+
 type SubscriptionInfo = {
   monthlyFee: number;
   status: string;
@@ -43,13 +74,79 @@ type SubscriptionInfo = {
   pixAuthorizationStatus: string | null;
 };
 
-type OfficeRow = { id: string; name: string; isInternal: boolean; subscription: SubscriptionInfo | null };
+type UltimaFatura = {
+  competencia: string;
+  amount: number;
+  dueDate: string;
+  status: string; // PENDENTE | PAGO | CANCELADO
+  paidAt: string | null;
+  boletoUrl: string | null;
+  pixQrCodePayload: string | null;
+  remindersSent: string[];
+} | null;
+
+type Saude = { nivel: NivelSaudeCobranca; motivos: string[] } | null;
+
+type OfficeRow = {
+  id: string;
+  name: string;
+  isInternal: boolean;
+  subscription: SubscriptionInfo | null;
+  ultimaFatura: UltimaFatura;
+  faturasVencidasAbertas: number;
+  saude: Saude;
+};
 
 type PaymentMethodOption = "" | "PIX_AUTOMATICO" | "PIX_QRCODE" | "BOLETO";
 
 type FormState = { billingCycle: "MENSAL" | "SEMESTRAL"; paymentMethod: PaymentMethodOption; discountPercent: string };
 
 type QrResult = { officeId: string; image: string | null; payload: string | null };
+
+// Deriva a situação do pagamento a partir da fatura mais recente — puramente de exibição (não
+// precisa ser testada isoladamente como avaliarSaudeCobranca; usa o relógio do navegador, mesmo
+// padrão já usado em components/painelMestre/OfficeDetailPanel.tsx pro histórico de faturas).
+function situacaoPagamento(fatura: UltimaFatura, faturasVencidasAbertas: number): { label: string; tone: "ok" | "warn" | "risk" | "slate" } {
+  if (!fatura) return { label: "Sem fatura gerada", tone: "slate" };
+  if (fatura.status === "CANCELADO") return { label: "Cancelada", tone: "slate" };
+  if (fatura.status === "PAGO") return { label: `Pago em ${fatura.paidAt ? formatDate(fatura.paidAt) : "—"}`, tone: "ok" };
+  // PENDENTE — vencida a partir do próprio dia do vencimento, mesmo critério de
+  // lib/actions/billing.ts (diasParaVencer <= 0 dispara o lembrete "VENCIDA").
+  const venceu = new Date(fatura.dueDate).getTime() <= Date.now();
+  if (venceu) {
+    return { label: faturasVencidasAbertas > 1 ? `Vencida (${faturasVencidasAbertas} em aberto)` : "Vencida", tone: "risk" };
+  }
+  return { label: "Em aberto", tone: "warn" };
+}
+
+// Texto de "entrega da cobrança" — a parte que o dono da plataforma disse não saber como
+// mostrar pro Pix Automático ("não sei como seria"): não existe boleto nem QR Code pra enviar a
+// cada fatura, é um débito autorizado uma única vez, então o texto explica isso em vez de
+// deixar a célula vazia.
+function entregaCobranca(paymentMethod: string | null, fatura: UltimaFatura, pixAuthStatus: string | null): string {
+  if (!paymentMethod) return "Forma de cobrança ainda não configurada.";
+
+  if (paymentMethod === "PIX_AUTOMATICO") {
+    if (pixAuthStatus === "ATIVA") return "Débito automático autorizado pelo cliente — não há boleto nem QR Code pra enviar a cada fatura.";
+    if (pixAuthStatus === "PENDENTE") return "Autorização enviada ao cliente; aguardando confirmação no aplicativo do banco.";
+    if (pixAuthStatus === "REJEITADA") return "Autorização foi rejeitada pelo banco do cliente — gere uma nova autorização.";
+    if (pixAuthStatus === "CANCELADA") return "Autorização foi cancelada pelo cliente — o débito automático parou.";
+    return "Autorização de Pix Automático ainda não foi gerada — use o botão abaixo.";
+  }
+
+  if (!fatura) return "Nenhuma fatura gerada ainda.";
+
+  const enviado = fatura.remindersSent.length > 0;
+  if (paymentMethod === "BOLETO") {
+    if (!fatura.boletoUrl) return "Fatura gerada, mas o boleto ainda não foi emitido.";
+    return enviado ? "Boleto emitido e lembrete de cobrança já enviado ao escritório." : "Boleto emitido, mas nenhum lembrete de cobrança foi enviado ainda.";
+  }
+  if (paymentMethod === "PIX_QRCODE") {
+    if (!fatura.pixQrCodePayload) return "Fatura gerada, mas o QR Code ainda não foi gerado.";
+    return enviado ? "QR Code gerado e lembrete de cobrança já enviado ao escritório." : "QR Code gerado, mas nenhum lembrete de cobrança foi enviado ainda.";
+  }
+  return "";
+}
 
 export default function AssinaturasTable({ offices, asaasConfigured }: { offices: OfficeRow[]; asaasConfigured: boolean }) {
   const router = useRouter();
@@ -136,7 +233,10 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
               <th className="px-3 py-2.5 font-semibold">Ciclo</th>
               <th className="px-3 py-2.5 font-semibold">Valor</th>
               <th className="px-3 py-2.5 font-semibold">Forma de pagamento</th>
-              <th className="px-3 py-2.5 font-semibold">Status</th>
+              <th className="px-3 py-2.5 font-semibold">Vencimento</th>
+              <th className="px-3 py-2.5 font-semibold">Situação do pagamento</th>
+              <th className="px-3 py-2.5 font-semibold">Assinatura</th>
+              <th className="px-3 py-2.5 font-semibold">Cobrança</th>
               <th className="px-3 py-2.5 font-semibold" />
             </tr>
           </thead>
@@ -144,10 +244,14 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
             {offices.map((o) => {
               const s = o.subscription;
               const isEditing = editingId === o.id;
+              const situacao = situacaoPagamento(o.ultimaFatura, o.faturasVencidasAbertas);
+              const entrega = s ? entregaCobranca(s.paymentMethod, o.ultimaFatura, s.pixAuthorizationStatus) : "";
+              const NivelIcon = o.saude ? NIVEL_ICON[o.saude.nivel] : null;
+
               return (
                 <Fragment key={o.id}>
                   <tr>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3 align-top">
                       <span className="text-cream-50 font-medium">{o.name}</span>
                       {o.isInternal && (
                         <span className="ml-2 inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-cream-50/40 border border-white/15 rounded px-1.5 py-0.5">
@@ -155,14 +259,22 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-cream-50/80">
+                    <td className="px-3 py-3 align-top text-cream-50/80">
                       {s ? (s.billingCycle === "SEMESTRAL" ? (s.discountPercent ? `Semestral (${s.discountPercent}% desc.)` : "Semestral") : "Mensal") : "—"}
                     </td>
-                    <td className="px-3 py-3 font-mono tabular-nums text-cream-50">{s ? formatCurrency(s.monthlyFee) : "—"}</td>
-                    <td className="px-3 py-3 text-cream-50/80">
-                      {s?.paymentMethod ? PAYMENT_METHOD_LABEL[s.paymentMethod] ?? s.paymentMethod : "Não configurado"}
+                    <td className="px-3 py-3 align-top font-mono tabular-nums text-cream-50">{s ? formatCurrency(s.monthlyFee) : "—"}</td>
+                    <td className="px-3 py-3 align-top text-cream-50/80">
+                      {s?.paymentMethod ? PAYMENT_METHOD_LABEL[s.paymentMethod] ?? s.paymentMethod : "Não configurada"}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 align-top font-mono tabular-nums text-cream-50/80 whitespace-nowrap">
+                      {o.ultimaFatura ? formatDate(o.ultimaFatura.dueDate) : <span className="text-cream-50/40 font-sans">sem fatura gerada</span>}
+                    </td>
+                    <td className="px-3 py-3 align-top whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cream-50/80">
+                        <LumenStatusDot tone={situacao.tone} /> {situacao.label}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-top">
                       {s ? (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cream-50/80">
                           <LumenStatusDot tone={STATUS_TONE[s.status] ?? "slate"} /> {STATUS_LABEL[s.status] ?? s.status}
@@ -171,7 +283,17 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                         <span className="text-xs text-cream-50/40">sem assinatura</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-right">
+                    <td className="px-3 py-3 align-top whitespace-nowrap">
+                      {o.isInternal || !o.saude ? (
+                        <span className="text-xs text-cream-50/40">— interno —</span>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${NIVEL_TEXT_CLASS[o.saude.nivel]}`}>
+                          {NivelIcon && <NivelIcon size={13} />}
+                          {NIVEL_LABEL[o.saude.nivel]}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 align-top text-right">
                       <button
                         type="button"
                         onClick={() => (isEditing ? setEditingId(null) : openEdit(o))}
@@ -183,9 +305,40 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                     </td>
                   </tr>
 
+                  {/* Linha de detalhe — entrega da cobrança (condicional à forma) + motivos do selo
+                      "Cobrança", sempre visível (não escondida atrás de hover/tooltip): o objetivo
+                      é o dono da plataforma saber O QUE FAZER, não só que existe um problema. */}
+                  {!isEditing && !o.isInternal && s?.paymentMethod && (
+                    <tr>
+                      <td colSpan={9} className="px-5 py-2.5 bg-white/[0.02]">
+                        <p className="text-[11px] text-cream-50/60">
+                          <span className="font-semibold text-cream-50/70">Entrega da cobrança: </span>
+                          {entrega}
+                        </p>
+                        {o.saude && o.saude.nivel !== "OK" && o.saude.motivos.length > 0 && (
+                          <ul className="mt-1 space-y-0.5">
+                            {o.saude.motivos.map((motivo, i) => (
+                              <li key={i} className={`text-[11px] flex items-start gap-1.5 ${NIVEL_TEXT_CLASS[o.saude!.nivel]}`}>
+                                <span className="mt-1 h-1 w-1 rounded-full bg-current shrink-0" />
+                                {motivo}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  {!isEditing && !o.isInternal && !s?.paymentMethod && o.saude && (
+                    <tr>
+                      <td colSpan={9} className="px-5 py-2.5 bg-white/[0.02]">
+                        <p className="text-[11px] text-cream-50/60">{o.saude.motivos[0]}</p>
+                      </td>
+                    </tr>
+                  )}
+
                   {isEditing && (
                     <tr>
-                      <td colSpan={6} className="px-5 py-4 bg-white/5">
+                      <td colSpan={9} className="px-5 py-4 bg-white/5">
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                           <div>
                             <label className="text-[11px] text-cream-50/50">Ciclo</label>
@@ -244,7 +397,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
 
                   {!isEditing && s?.paymentMethod === "PIX_AUTOMATICO" && (
                     <tr>
-                      <td colSpan={6} className="px-5 py-3 bg-white/[0.02]">
+                      <td colSpan={9} className="px-5 py-3 bg-white/[0.02]">
                         <div className="flex items-center gap-3 flex-wrap">
                           <button
                             type="button"
@@ -270,7 +423,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
 
                   {!isEditing && s?.paymentMethod === "PIX_QRCODE" && (
                     <tr>
-                      <td colSpan={6} className="px-5 py-3 bg-white/[0.02]">
+                      <td colSpan={9} className="px-5 py-3 bg-white/[0.02]">
                         <div className="flex items-center gap-3 flex-wrap">
                           <button
                             type="button"
@@ -293,7 +446,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
             })}
             {offices.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-cream-50/40 text-sm">
+                <td colSpan={9} className="px-5 py-8 text-center text-cream-50/40 text-sm">
                   Nenhum escritório cadastrado ainda.
                 </td>
               </tr>
