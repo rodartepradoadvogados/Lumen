@@ -204,6 +204,103 @@ export const SUPPORT_MASK_MAP: Record<string, Record<string, MaskKind>> = {
     // `bank` (Itaú, BB, ...) fica visível de propósito: não identifica ninguém e é exatamente o
     // que o suporte precisa saber para diagnosticar integração bancária.
   },
+
+  // ---------- SEGREDOS DE INTEGRAÇÃO ----------
+  // Estes não estavam no levantamento e são o achado mais grave da varredura: são CREDENCIAIS
+  // VIVAS. Um refresh token do Drive/OneDrive/Dropbox, o access token do WhatsApp ou o token do
+  // BTG dão acesso duradouro à conta do escritório FORA do Lúmen — sem passar por sessão de
+  // suporte, sem prazo de 30 minutos e sem nenhum registro em AccessAuditLog. Ler um nome de
+  // cliente é um vazamento pontual; ler um refresh token é entregar a chave da casa.
+  //
+  // Consequência aceita: enquanto uma sessão de suporte estiver ativa, código que leia o token
+  // para chamar a API do provedor recebe o valor redigido e falha. Isso é falha-fecha e é o
+  // comportamento desejado. Cron e rotas de robô rodam SEM o cookie de "atuar como", então
+  // continuam lendo o token real e as integrações seguem funcionando normalmente.
+  GoogleCredential: {
+    accountEmail: "email",
+    refreshToken: "freeText",
+  },
+  MicrosoftCredential: {
+    accountEmail: "email",
+    refreshToken: "freeText",
+  },
+  DropboxCredential: {
+    accountEmail: "email",
+    refreshToken: "freeText",
+  },
+  WhatsappConfig: {
+    accessToken: "freeText",
+    phoneNumberId: "document",
+    displayPhone: "phone",
+  },
+  BtgConnection: {
+    accessToken: "freeText",
+    refreshToken: "freeText",
+  },
+
+  // ---------- OUTROS CONTEÚDOS SIGILOSOS ENCONTRADOS NA VARREDURA ----------
+  // Nenhum destes estava na lista do levantamento, mas todos carregam teor ou identidade.
+  Notice: { content: "freeText" }, // recados internos do escritório
+  AtendimentoPendencia: { description: "freeText" },
+  Assessoria: {
+    planningNotes: "freeText",
+    monthlyFee: "money",
+  },
+  RecurringFee: {
+    description: "freeText",
+    amount: "money",
+  },
+  Licitacao: {
+    objeto: "freeText",
+    orgao: "freeText",
+    valorEstimado: "money",
+    editalUrl: "url",
+  },
+  // `termo` é literalmente o nome do cliente/parte sob vigilância no Radar de Publicações.
+  TermoVigilancia: { termo: "personName" },
+  BlockedProcessNumber: {
+    processNumber: "processNumber",
+    displayNumber: "processNumber",
+  },
+  // `entityLabel` guarda o rótulo legível do que se quer excluir — costuma ser o nome do
+  // cliente ou o título do processo.
+  DeletionRequest: { entityLabel: "freeText" },
+  DriveSyncIssue: {
+    description: "freeText",
+    suggestedFix: "freeText",
+    driveUrl: "url",
+  },
+  DocumentTemplate: {
+    name: "freeText",
+    driveUrl: "url",
+  },
+  // Tabelas de captura dos robôs (DJEN, DOU, PNCP). Não têm officeId — são globais — mas o teor
+  // capturado é conteúdo processual e o nome/OAB identificam o advogado.
+  RoboPublicacao: {
+    teor: "freeText",
+    nomeAdvogado: "personName",
+    numeroProcesso: "processNumber",
+    oab: "document",
+  },
+  RoboAndamento: {
+    numeroProcesso: "processNumber",
+    descricaoMovimento: "freeText",
+  },
+  RoboDouItem: {
+    titulo: "freeText",
+    ementa: "freeText",
+    textoResumo: "freeText",
+    termoEncontrado: "personName",
+    payloadBruto: "freeText",
+  },
+  RoboLicitacao: {
+    objeto: "freeText",
+    orgaoNome: "freeText",
+    orgaoCnpj: "document",
+    valorEstimado: "money",
+    linkSistemaOrigem: "url",
+    payloadBruto: "freeText",
+  },
 };
 
 // Models que passam INTEIROS de propósito, para ficar registrado que foram considerados e não
@@ -227,4 +324,11 @@ export const DELIBERATELY_UNMASKED_MODELS = [
   "CostCenter",
   "KanbanColumn",
   "Holiday",
+  // Cobrança do escritório PARA a plataforma. É dado comercial da própria Lúmen sobre o
+  // tenant (mensalidade, boleto, Pix), não segredo do cliente do escritório — e é o que o
+  // Painel Mestre precisa mostrar.
+  "TenantInvoice",
+  // Saúde das fontes do Radar: só nome de fonte, status e detalhe de execução. É diagnóstico
+  // puro, sem dado de cliente.
+  "FonteAdministrativa",
 ] as const;

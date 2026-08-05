@@ -245,7 +245,38 @@ const catalog = maskReadResult("FinancialCategory", { id: "cat1", name: "Honorá
 check("model conhecido fora do mapa passa intacto", catalog, { id: "cat1", name: "Honorários", kind: "RECEITA" });
 
 // ---------------------------------------------------------------------------------------------
-section("6. Integridade do mapa contra o schema real");
+section("6. Segredos de integração nunca saem em claro");
+// ---------------------------------------------------------------------------------------------
+// Um refresh token vazado dá acesso duradouro à conta do escritório FORA do Lúmen, sem prazo e
+// sem auditoria — é o pior vazamento possível desta tela, pior que ver um nome.
+const gcred = maskReadResult("GoogleCredential", {
+  id: "g1",
+  accountEmail: "financeiro@escritorio.com.br",
+  refreshToken: "1//0gAbCdEfGhIjKlMnOpQrStUvWxYz",
+  isPrimaryDrive: true,
+  officeId: "off_1",
+}) as Record<string, unknown>;
+check("GoogleCredential.refreshToken não sai em claro", gcred.refreshToken, "[conteúdo protegido — 31 caracteres]");
+check("GoogleCredential.accountEmail mascarado, domínio preservado", gcred.accountEmail, "f•••••••••@escritorio.com.br");
+check("GoogleCredential.isPrimaryDrive intacto (flag)", gcred.isPrimaryDrive, true);
+
+const wcfg = maskReadResult("WhatsappConfig", { accessToken: "EAAG1234567890", displayPhone: "(62) 99999-1234" }) as Record<string, unknown>;
+check("WhatsappConfig.accessToken não sai em claro", wcfg.accessToken, "[conteúdo protegido — 14 caracteres]");
+check("WhatsappConfig.displayPhone mascarado", wcfg.displayPhone, "(62) •••••-••34");
+
+const btg = maskReadResult("BtgConnection", { accessToken: "tok_abc", refreshToken: "ref_xyz" }) as Record<string, unknown>;
+check("BtgConnection tokens não saem em claro", [btg.accessToken, btg.refreshToken], [
+  "[conteúdo protegido — 7 caracteres]",
+  "[conteúdo protegido — 7 caracteres]",
+]);
+
+// TermoVigilancia.termo é literalmente o nome vigiado no Radar de Publicações.
+const termo = maskReadResult("TermoVigilancia", { termo: "Maria Aparecida da Silva", ativo: true }) as Record<string, unknown>;
+check("TermoVigilancia.termo mascarado", termo.termo, "M•••• A•••••••• d• S••••");
+check("TermoVigilancia.ativo intacto", termo.ativo, true);
+
+// ---------------------------------------------------------------------------------------------
+section("7. Integridade do mapa contra o schema real");
 // ---------------------------------------------------------------------------------------------
 const unknownFields = findUnknownMappedFields();
 check("todo campo do mapa existe no schema (DMMF)", unknownFields, []);
