@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getOfficeModules } from "@/lib/officeModules";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 
 export async function saveWhatsappConfig(data: {
   phoneNumberId: string;
@@ -11,7 +12,7 @@ export async function saveWhatsappConfig(data: {
   displayPhone?: string;
 }): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas administradores podem configurar o WhatsApp do escritório." };
+  if (!canConfigureIntegrations(viewer)) return { error: "Apenas administradores podem configurar o WhatsApp do escritório." };
   if (!(await getOfficeModules(viewer.officeId)).whatsapp) {
     return { error: "O módulo WhatsApp não está incluído no plano deste escritório." };
   }
@@ -37,7 +38,7 @@ export async function saveWhatsappConfig(data: {
 
 export async function deleteWhatsappConfig(): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas administradores podem desconectar o WhatsApp." };
+  if (!canConfigureIntegrations(viewer)) return { error: "Apenas administradores podem desconectar o WhatsApp." };
   await prisma.whatsappConfig.deleteMany({ where: { officeId: viewer.officeId } });
   revalidatePath("/configuracoes");
   return {};

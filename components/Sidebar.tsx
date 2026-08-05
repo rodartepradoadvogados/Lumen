@@ -41,6 +41,11 @@ type SubNavItem = {
   // Só aparece quando o usuário tem acesso ao Financeiro (isAdmin OU financeAccess
   // — mesmo critério de `hasFinanceAccess` usado pros itens de topo do menu).
   financeOnly?: boolean;
+  // Exceção pontual a adminOnly: além de isAdmin, também libera pro suporte da plataforma em
+  // sessão mascarada (ver lib/supportCapabilities.ts:canConfigureIntegrations) — só usado no
+  // sub-item "Modelos & Integrações". Mutuamente exclusivo com adminOnly na prática (nunca os
+  // dois juntos no mesmo item).
+  configOnly?: boolean;
 };
 
 type NavItem = {
@@ -179,7 +184,7 @@ const navGroups: { label: string | null; items: NavItem[] }[] = [
         subParam: "secao",
         subDefaultValue: "geral",
         subItems: [
-          { label: "Modelos & Integrações", value: "modelos", adminOnly: true },
+          { label: "Modelos & Integrações", value: "modelos", configOnly: true },
           { label: "Equipe", value: "equipe", adminOnly: true },
           { label: "Financeiro", value: "financeiro", adminOnly: true },
           { label: "Geral", value: "geral" },
@@ -196,6 +201,7 @@ const ALL_MODULES_ON: OfficeModules = { financeiro: true, whatsapp: true, atendi
 export default function Sidebar({
   hasFinanceAccess = true,
   isAdmin = false,
+  canConfigureIntegrations = false,
   unreadPublications = 0,
   totalAlerts = 0,
   modules = ALL_MODULES_ON,
@@ -204,6 +210,10 @@ export default function Sidebar({
 }: {
   hasFinanceAccess?: boolean;
   isAdmin?: boolean;
+  // Suporte da plataforma em sessão mascarada também recebe isto como true (ver
+  // lib/supportCapabilities.ts) — só libera o sub-item "Modelos & Integrações" (configOnly),
+  // nunca os demais adminOnly.
+  canConfigureIntegrations?: boolean;
   unreadPublications?: number;
   totalAlerts?: number;
   modules?: OfficeModules;
@@ -361,7 +371,12 @@ export default function Sidebar({
                 const active = pathname?.startsWith(item.href);
                 const Icon = item.icon;
                 const visibleSubItems =
-                  item.subItems?.filter((sub) => (!sub.adminOnly || isAdmin) && (!sub.financeOnly || hasFinanceAccess)) ?? [];
+                  item.subItems?.filter(
+                    (sub) =>
+                      (!sub.adminOnly || isAdmin) &&
+                      (!sub.configOnly || canConfigureIntegrations) &&
+                      (!sub.financeOnly || hasFinanceAccess)
+                  ) ?? [];
                 // Sub-abas expandem sozinhas quando a rota atual já pertence a essa
                 // seção — sem exigir um clique extra só pra abrir o submenu.
                 const expanded = active && visibleSubItems.length > 0;

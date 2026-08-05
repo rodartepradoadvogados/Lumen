@@ -27,6 +27,7 @@ type AppShellProps = {
   sidebarProps: {
     hasFinanceAccess: boolean;
     isAdmin: boolean;
+    canConfigureIntegrations: boolean;
     unreadPublications: number;
     totalAlerts: number;
     modules: OfficeModules;

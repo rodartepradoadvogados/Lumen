@@ -11,6 +11,7 @@ import { AnotacoesProvider } from "@/components/anotacoes/AnotacoesContext";
 import AnotacoesPanel from "@/components/anotacoes/AnotacoesPanel";
 import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/currentUser";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount } from "@/lib/alerts";
@@ -85,6 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           sidebarProps={{
             hasFinanceAccess,
             isAdmin: user.isAdmin,
+            canConfigureIntegrations: canConfigureIntegrations(user),
             unreadPublications,
             totalAlerts,
             modules,

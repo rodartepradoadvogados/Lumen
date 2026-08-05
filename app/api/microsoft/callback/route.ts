@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { saveMicrosoftTokensFromCode } from "@/lib/microsoftGraph";
 import { saveOneDriveTokensFromCode } from "@/lib/oneDriveStorage";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -13,9 +14,9 @@ export async function GET(request: NextRequest) {
 
   try {
     if (state === "onedrive") {
-      // Conexão de armazenamento (OneDrive) é do ESCRITÓRIO — só admin, mesmo padrão da conexão
-      // principal do Google Drive.
-      if (!user?.isAdmin) return NextResponse.redirect(new URL("/configuracoes", request.url));
+      // Conexão de armazenamento (OneDrive) é do ESCRITÓRIO — admin ou suporte mascarado, mesmo
+      // padrão da conexão principal do Google Drive.
+      if (!canConfigureIntegrations(user)) return NextResponse.redirect(new URL("/configuracoes", request.url));
       await saveOneDriveTokensFromCode(code, user.officeId);
       return NextResponse.redirect(new URL("/configuracoes?microsoft=onedrive-conectado", request.url));
     }

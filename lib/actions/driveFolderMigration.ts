@@ -17,6 +17,7 @@
 // aparecer na Central de Alertas) e fica intocado até um humano resolver manualmente no Drive.
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import {
   hasPrimaryDriveCredential,
   getProcessosRootFolderId,
@@ -303,7 +304,7 @@ async function processarEntidade(
 
 export async function migrarPastasLegadasDoDrive(simulacao: boolean): Promise<DriveFolderMigrationResult | { error: string }> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { error: "Apenas administradores podem rodar esta ação." };
+  if (!canConfigureIntegrations(user)) return { error: "Apenas administradores podem rodar esta ação." };
 
   const officeId = user.officeId;
   const connected = await hasPrimaryDriveCredential(officeId);

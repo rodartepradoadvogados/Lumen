@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { extractDriveFileId } from "@/lib/googleDrive";
 import {
   getOrCreateCaseFolder,
@@ -21,7 +22,7 @@ export type ReorgResult = { moved: number; skipped: number; errors: string[] };
 // sem problema, arquivos já na pasta certa só têm o parent reafirmado.
 export async function reorganizeExistingAttachments(): Promise<ReorgResult> {
   const user = await getCurrentUser();
-  if (!user?.isAdmin) return { moved: 0, skipped: 0, errors: ["Apenas administradores podem rodar esta ação."] };
+  if (!canConfigureIntegrations(user)) return { moved: 0, skipped: 0, errors: ["Apenas administradores podem rodar esta ação."] };
 
   const attachments = await prisma.attachment.findMany({
     where: { officeId: user.officeId, OR: [{ caseId: { not: null } }, { attendanceId: { not: null } }] },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getMicrosoftAuthUrl } from "@/lib/microsoftGraph";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -8,8 +9,8 @@ export async function GET(request: NextRequest) {
 
   if (mode === "onedrive") {
     // Conexão de armazenamento (OneDrive) é do ESCRITÓRIO, não da pessoa — mesmo padrão de
-    // /api/google/connect (conexão principal do Drive): só admin inicia.
-    if (!user?.isAdmin) {
+    // /api/google/connect (conexão principal do Drive): admin ou suporte mascarado inicia.
+    if (!canConfigureIntegrations(user)) {
       return NextResponse.redirect(new URL("/configuracoes", request.url));
     }
     return NextResponse.redirect(getMicrosoftAuthUrl("onedrive"));

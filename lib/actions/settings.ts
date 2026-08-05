@@ -9,6 +9,7 @@ import { syncOutlookEmails } from "@/lib/outlookEmailSync";
 import { testDjenConnection, type DjenTestResult } from "@/lib/djenSync";
 import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   const viewer = await getCurrentUser();
@@ -44,7 +45,7 @@ export async function setEmailSendProvider(provider: "GOOGLE" | "MICROSOFT" | nu
 export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE" | "DROPBOX"): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
-  if (!viewer.isAdmin) return { error: "Apenas administradores podem alterar o provedor de armazenamento." };
+  if (!canConfigureIntegrations(viewer)) return { error: "Apenas administradores podem alterar o provedor de armazenamento." };
 
   await prisma.office.update({ where: { id: viewer.officeId }, data: { storageProvider: provider } });
   revalidatePath("/configuracoes");
@@ -96,7 +97,7 @@ export async function runFullPublicationsSync(): Promise<FullSyncResult> {
 
 export async function runDjenConnectionTest(): Promise<{ error?: string; results?: DjenTestResult[] }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) {
+  if (!canConfigureIntegrations(viewer)) {
     return { error: "Apenas administradores podem testar essa integração." };
   }
   const results = await testDjenConnection(viewer.officeId);

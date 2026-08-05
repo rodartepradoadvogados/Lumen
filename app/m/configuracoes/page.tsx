@@ -14,6 +14,7 @@ import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess, type OfficeModules } from "@/lib/officeModules";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import {
   ArrowLeft,
   User,
@@ -53,6 +54,11 @@ export default async function MobileConfiguracoes() {
   if (!viewer) return null;
   const officeId = viewer.officeId;
   const isAdmin = viewer.isAdmin;
+  // Distinto de isAdmin: também true para o suporte da plataforma em sessão mascarada — só abre
+  // o grupo "Modelos & Integrações" abaixo (motivo nº 1 pelo qual o suporte entra, ver
+  // lib/supportCapabilities.ts). Todos os outros grupos deste bloco (Equipe, Geral, Workflows,
+  // Blog, Cobrança) continuam exigindo isAdmin puro.
+  const canConfig = canConfigureIntegrations(viewer);
 
   const [
     modules,
@@ -68,7 +74,7 @@ export default async function MobileConfiguracoes() {
     roboExecucaoLogs,
     processosMonitoradosCount,
     ownBilling,
-  ] = isAdmin
+  ] = canConfig
     ? await Promise.all([
         getOfficeModules(officeId),
         hasBlogAccess(officeId),
@@ -146,7 +152,7 @@ export default async function MobileConfiguracoes() {
         <NotificationPreferences />
       </Card>
 
-      {isAdmin && driveStatus && (
+      {canConfig && driveStatus && (
         <>
           <p className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide px-1 pt-2">
             Administração
@@ -246,6 +252,7 @@ export default async function MobileConfiguracoes() {
             </Group>
           </details>
 
+          {isAdmin && (
           <details className="group">
             <Group icon={Users} title="Equipe" meta={`${users.length} pessoas`}>
               <Card className="!rounded-t-none border-t-0">
@@ -263,7 +270,9 @@ export default async function MobileConfiguracoes() {
               </Card>
             </Group>
           </details>
+          )}
 
+          {isAdmin && (
           <details className="group">
             <Group icon={SlidersHorizontal} title="Geral" meta="3 itens">
               <Card className="!rounded-t-none border-t-0">
@@ -307,7 +316,9 @@ export default async function MobileConfiguracoes() {
               </Card>
             </Group>
           </details>
+          )}
 
+          {isAdmin && (
           <details className="group">
             <Group icon={Workflow} title="Workflows" meta={`${workflowTemplates.length} modelos`}>
               <Card className="!rounded-t-none border-t-0">
@@ -336,8 +347,9 @@ export default async function MobileConfiguracoes() {
               </Card>
             </Group>
           </details>
+          )}
 
-          {blogAccess && (
+          {isAdmin && blogAccess && (
             <details className="group">
               <Group icon={Newspaper} title="Blog Jurídico" meta={`${blogPending} pendente(s)`}>
                 <Card className="!rounded-t-none border-t-0">
@@ -349,6 +361,7 @@ export default async function MobileConfiguracoes() {
             </details>
           )}
 
+          {isAdmin && (
           <details className="group">
             <Group
               icon={CreditCard}
@@ -362,9 +375,10 @@ export default async function MobileConfiguracoes() {
               </Card>
             </Group>
           </details>
+          )}
 
           <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 px-1">
-            Só administradores veem este bloco.
+            {isAdmin ? "Só administradores veem este bloco." : "Bloco liberado apenas para configurar integrações."}
           </p>
         </>
       )}

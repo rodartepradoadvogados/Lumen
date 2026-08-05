@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getAuthUrl } from "@/lib/googleDrive";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -14,8 +15,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(getAuthUrl("jusbrasil"));
   }
 
-  // Conexão principal (Drive/Docs) — só sócios administram.
-  if (!user?.isAdmin) {
+  // Conexão principal (Drive/Docs) — sócios administram, e também o suporte em sessão
+  // mascarada (motivo CONFIG_INTEGRACAO — ver lib/supportCapabilities.ts).
+  if (!canConfigureIntegrations(user)) {
     return NextResponse.redirect(new URL("/configuracoes", request.url));
   }
   return NextResponse.redirect(getAuthUrl("drive"));

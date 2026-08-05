@@ -43,6 +43,7 @@ import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import ModulesManager from "@/components/ModulesManager";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
+import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -99,17 +100,23 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
   );
 }
 
+// `requires` substitui o antigo `adminOnly: boolean` para permitir uma exceção pontual: a aba
+// "modelos" (Modelos & Integrações) é o motivo nº 1 pelo qual o suporte da plataforma entra em
+// modo "atuar como" (CONFIG_INTEGRACAO — ver lib/supportAccessConstants.ts), então ela também
+// libera para sessão de suporte mascarada, não só para isAdmin (ver
+// lib/supportCapabilities.ts:canConfigureIntegrations). As demais seções continuam exigindo
+// isAdmin puro — NÃO estender "admin-ou-suporte" para elas.
 const SECOES = [
-  { key: "modelos", label: "Modelos & Integrações", adminOnly: true },
-  { key: "equipe", label: "Equipe", adminOnly: true },
-  { key: "financeiro", label: "Financeiro", adminOnly: true },
-  { key: "geral", label: "Geral", adminOnly: false },
-  { key: "workflows", label: "Workflows", adminOnly: true },
-  { key: "blog", label: "Blog Jurídico", adminOnly: true },
+  { key: "modelos", label: "Modelos & Integrações", requires: "admin-ou-suporte" },
+  { key: "equipe", label: "Equipe", requires: "admin" },
+  { key: "financeiro", label: "Financeiro", requires: "admin" },
+  { key: "geral", label: "Geral", requires: "none" },
+  { key: "workflows", label: "Workflows", requires: "admin" },
+  { key: "blog", label: "Blog Jurídico", requires: "admin" },
   // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
   // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
   // exige ser platform owner — quem configura isso é o Painel Mestre (/painel-mestre/assinaturas).
-  { key: "cobranca", label: "Cobrança", adminOnly: true },
+  { key: "cobranca", label: "Cobrança", requires: "admin" },
 ] as const;
 
 const SECAO_ICONS = {
@@ -220,6 +227,10 @@ export default async function ConfiguracoesPage({
     createdAt: p.createdAt.toISOString(),
   }));
   const isAdmin = viewer?.isAdmin ?? false;
+  // Distinto de isAdmin: também true para o suporte da plataforma em sessão mascarada ("atuar
+  // como" — ver lib/currentUser.ts). Só abre a aba "Modelos & Integrações" (e as ações de
+  // integração dentro dela) — nunca as demais seções, que continuam checando `isAdmin` puro.
+  const canConfig = canConfigureIntegrations(viewer);
 
   const taskTypePointsRows = TASK_TYPES_ORDER.map((type) => {
     const found = taskTypePoints.find((p) => p.type === type);
@@ -234,7 +245,10 @@ export default async function ConfiguracoesPage({
   // menu lateral continuava destacando "Geral").
   const defaultSecao = searchParams.google || searchParams.microsoft || searchParams.dropbox ? "modelos" : "geral";
   const requestedSecao = searchParams.secao || defaultSecao;
-  const availableSecoes = SECOES.filter((s) => (!s.adminOnly || isAdmin) && (s.key !== "blog" || blogAccess));
+  const availableSecoes = SECOES.filter((s) => {
+    const allowed = s.requires === "none" ? true : s.requires === "admin-ou-suporte" ? canConfig : isAdmin;
+    return allowed && (s.key !== "blog" || blogAccess);
+  });
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
   const viewerInitials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const ultimoLogDatajud = roboExecucaoLogs.find((l) => l.fonte === "DATAJUD");
@@ -282,7 +296,7 @@ export default async function ConfiguracoesPage({
         subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}
       />
 
-      {isAdmin && (
+      {canConfig && (
         <div className="flex lg:hidden gap-2 flex-wrap">
           {availableSecoes.map((s) => (
             <Link
@@ -306,7 +320,7 @@ export default async function ConfiguracoesPage({
           modo Tarde o CSS de app/globals.css (.dark.theme-tarde) reescreve dark:bg-navy-900/950
           para um bordô quase transparente, mas não mexe em texto sem o prefixo dark:, deixando
           texto cream sobre fundo agora claro. Mesmo padrão do menu lateral principal (Sidebar.tsx). */}
-      {isAdmin && (
+      {canConfig && (
         <aside className="hidden lg:block w-56 shrink-0 bg-navy-900 rounded-2xl overflow-hidden sticky top-6">
           <nav className="p-3 space-y-1">
             {availableSecoes.map((s) => {
@@ -374,8 +388,9 @@ export default async function ConfiguracoesPage({
       )}
 
       {/* Visível a QUALQUER pessoa do escritório, não só admin — é o ponto da transparência
-          (ver especificação do Passo 2). Por isso fica na seção "geral" (sem adminOnly), e não
-          na navegação lateral (que só aparece para admin — ver `isAdmin &&` no <aside> acima). */}
+          (ver especificação do Passo 2). Por isso fica na seção "geral" (requires: "none"), e
+          não na navegação lateral (que só aparece para admin/suporte — ver `canConfig &&` no
+          <aside> acima). */}
       {secao === "geral" && (
       <Card>
         <CardHeader title="Acessos da Lúmen" subtitle="Veja quando e por quê o suporte da Lúmen acessou os dados do seu escritório" />
@@ -479,7 +494,7 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
-      {isAdmin && secao === "modelos" && (
+      {canConfig && secao === "modelos" && (
         <Card>
           <CardHeader
             title="Sincronizar publicações e andamentos processuais"
@@ -491,7 +506,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
+      {canConfig && secao === "modelos" && (
         <Card>
           <CardHeader
             title="Integração com Drive e e-mail"
@@ -529,7 +544,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && viewer && (() => {
+      {canConfig && secao === "modelos" && viewer && (() => {
         const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
         return (
           <Card>
@@ -592,7 +607,7 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
-      {isAdmin && secao === "modelos" && viewer && (() => {
+      {canConfig && secao === "modelos" && viewer && (() => {
         const minhaConexaoMs = microsoftAccounts.find((a) => a.userId === viewer.id);
         return (
           <Card>
@@ -651,7 +666,7 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
-      {isAdmin && secao === "modelos" && (
+      {canConfig && secao === "modelos" && (
         <Card>
           <CardHeader
             title="Armazenamento de anexos"
@@ -681,7 +696,7 @@ export default async function ConfiguracoesPage({
             )}
             <StorageProviderPicker
               current={storageProvider}
-              isAdmin={isAdmin}
+              isAdmin={canConfig}
               oneDriveConnected={oneDriveStatus.connected}
               dropboxConnected={dropboxStatus.connected}
             />
@@ -725,7 +740,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && viewer && (
+      {canConfig && secao === "modelos" && viewer && (
         <Card>
           <CardHeader
             title="Envio de e-mail no Atendimento"
@@ -741,7 +756,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
+      {canConfig && secao === "modelos" && (
         <Card>
           <CardHeader
             title="DJEN — Diário de Justiça Eletrônico Nacional (CNJ)"
@@ -762,7 +777,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
+      {canConfig && secao === "modelos" && (
         <Card>
           <CardHeader
             title="Datajud — Andamentos Processuais (CNJ)"
@@ -797,7 +812,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
+      {canConfig && secao === "modelos" && (
         <Card>
           <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para os administradores do escritório — inclui as tarefas do dia e as publicações/andamentos capturados no dia" />
           <div className="p-5">
@@ -806,7 +821,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && modules.whatsapp && (
+      {canConfig && secao === "modelos" && modules.whatsapp && (
         <Card>
           <CardHeader
             title="WhatsApp"
@@ -824,7 +839,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && driveStatus.connected && (
+      {canConfig && secao === "modelos" && driveStatus.connected && (
         <Card>
           <CardHeader
             title="Organização de anexos no Drive"
@@ -836,7 +851,7 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && driveStatus.connected && (
+      {canConfig && secao === "modelos" && driveStatus.connected && (
         <Card>
           <CardHeader
             title="Pastas de processo fora do lugar no Drive"
