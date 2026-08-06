@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getOrCreateAssessoriaCompanyFolder } from "@/lib/storageProvider";
+import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder } from "@/lib/storageProvider";
 import { markReceivablePaid } from "@/lib/actions/financeiro";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
@@ -107,6 +107,14 @@ export async function getAssessoriaDetail(id: string) {
       client: true,
       responsible: true,
       documents: { orderBy: { date: "desc" }, include: { uploadedBy: true, case: true } },
+      // Pareceres (pastas de documentos, ver model Parecer) desta assessoria, com os documentos
+      // de dentro de cada um — usado pela aba "Pareceres, Processos e Casos"
+      // (AssessoriaProcessosCasosTab.tsx). Documentos PARECER antigos, ainda sem pasta
+      // (parecerId nulo), continuam em `documents` acima e são tratados à parte na tela.
+      pareceres: {
+        orderBy: { date: "desc" },
+        include: { documents: { orderBy: { date: "desc" } } },
+      },
       honorarios: { orderBy: { competencia: "desc" }, include: { receivable: true } },
       licitacoes: { orderBy: { createdAt: "desc" }, include: { tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } } } },
       // Histórico do botão "Enviar E-mail/WhatsApp" (aba "Pareceres, Processos e Casos") — mesmo
@@ -189,6 +197,96 @@ export async function addDocumento(
     },
   });
   revalidatePath(`/assessoria/${assessoriaId}`);
+  return {};
+}
+
+// ============ PARECERES (pastas de documentos — ver model Parecer) ============
+//
+// Um Parecer é um agrupador: nasce com nome/data/descrição e pasta própria no armazenamento
+// (Drive/OneDrive/Dropbox), e os documentos entram nele um a um depois, cada um com sua própria
+// categoria (ver app/api/assessoria/documentos/upload/route.ts, que aceita parecerId). Substitui
+// o comportamento antigo de addDocumento com docType="PARECER" (um arquivo = um parecer) — esse
+// caminho continua existindo e intacto para as demais categorias.
+
+// Cria a pasta do Parecer (nome + data + descrição) e, best-effort, já a pasta correspondente no
+// armazenamento — mesmo padrão de createAssessoria: se o provedor não estiver conectado ou a
+// chamada falhar, o Parecer é criado normalmente mesmo assim (getOrCreateParecerFolder é chamado
+// de novo, com o mesmo resultado idempotente, no primeiro upload de documento).
+export async function createParecer(
+  assessoriaId: string,
+  data: { name: string; date?: string; description?: string }
+): Promise<{ error?: string; id?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+  if (!data.name.trim()) return { error: "Preencha o nome do parecer." };
+
+  const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId }, include: { client: true } });
+  if (!assessoria) return { error: "Assessoria não encontrada." };
+
+  const created = await prisma.parecer.create({
+    data: {
+      officeId: user.officeId,
+      assessoriaId,
+      name: data.name.trim(),
+      date: data.date ? new Date(data.date) : new Date(),
+      description: data.description?.trim() || null,
+      createdById: user.id,
+    },
+  });
+
+  try {
+    await getOrCreateParecerFolder(created.id, assessoria.client.name, created.name, user.officeId);
+  } catch {
+    // Sem Drive conectado (ou falha pontual) — a pasta é criada/retomada no primeiro upload.
+  }
+
+  revalidatePath(`/assessoria/${assessoriaId}`);
+  return { id: created.id };
+}
+
+export async function updateParecer(
+  id: string,
+  data: { name?: string; date?: string; description?: string }
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const existing = await prisma.parecer.findFirst({ where: { id, officeId: user.officeId } });
+  if (!existing) return { error: "Parecer não encontrado." };
+  if (data.name !== undefined && !data.name.trim()) return { error: "Preencha o nome do parecer." };
+
+  await prisma.parecer.update({
+    where: { id },
+    data: {
+      name: data.name !== undefined ? data.name.trim() : undefined,
+      date: data.date ? new Date(data.date) : undefined,
+      description: data.description !== undefined ? data.description.trim() || null : undefined,
+    },
+  });
+  revalidatePath(`/assessoria/${existing.assessoriaId}`);
+  return {};
+}
+
+// Só permite excluir um Parecer vazio — apagar a pasta inteira com documentos dentro apagaria
+// referências que podem estar em envios (DocumentoEnvioItem.assessoriaDocumentoId) e arriscaria
+// levar arquivo de verdade do Drive/OneDrive/Dropbox junto sem confirmação explícita por
+// documento (mesmo cuidado que deleteAttachment tem, ver lib/actions/attachments.ts). Não apaga a
+// pasta no armazenamento — fica vazia lá, sem custo, até alguém reaproveitar ou apagar à mão.
+export async function deleteParecer(id: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const existing = await prisma.parecer.findFirst({
+    where: { id, officeId: user.officeId },
+    include: { _count: { select: { documents: true } } },
+  });
+  if (!existing) return { error: "Parecer não encontrado." };
+  if (existing._count.documents > 0) {
+    return { error: "Este parecer tem documentos dentro — remova ou mova os documentos antes de excluir a pasta." };
+  }
+
+  await prisma.parecer.delete({ where: { id } });
+  revalidatePath(`/assessoria/${existing.assessoriaId}`);
   return {};
 }
 

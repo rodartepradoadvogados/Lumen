@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createCaseMobile } from "@/lib/actions/cases";
 import { FilePlus2, Scale, Landmark } from "lucide-react";
 import ClientPicker from "@/components/ClientPicker";
@@ -59,6 +59,12 @@ export default function MobileNewCaseForm({
   driveConnected: boolean;
 }) {
   const router = useRouter();
+  // Publicação de origem (ver LinkPublicationMenu / MobilePublicationCard.tsx): quando o
+  // cadastro foi aberto a partir de "Cadastrar novo processo" dentro de uma publicação, a URL
+  // traz ?publicationId=... — lido aqui (client component) em vez de recebido como prop porque
+  // app/m/processos/novo/page.tsx é arquivo de outro agente e não pode ser tocado nesta tarefa.
+  const searchParams = useSearchParams();
+  const publicationId = searchParams.get("publicationId") || undefined;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   // Pílula de natureza escolhida no topo do formulário. Se a tela foi aberta com
@@ -175,6 +181,7 @@ export default function MobileNewCaseForm({
         adminEsfera: isAdministrativo ? adminEsfera || undefined : undefined,
         adminMateria: isAdministrativo ? adminMateria || undefined : undefined,
         stagedAttachments,
+        publicationId,
       });
       router.push(`/m/processos/${result.id}${result.anexosComErro ? `?anexosFalhos=${result.anexosComErro}` : ""}`);
     } catch {
@@ -184,7 +191,11 @@ export default function MobileNewCaseForm({
   }
 
   const isAdministrativo = natureza === "ADMINISTRATIVO";
-  const salvarLabel = attachmentsUploading ? "Enviando anexos..." : loading ? "Salvando..." : isAdministrativo || type === "JUDICIAL" ? "Salvar Processo" : "Salvar Caso";
+  // "Processo" (número, vara, tribunal/órgão, valor da causa) x "Caso" — mesma distinção de
+  // app/(app)/processos/novo/page.tsx (isProcessoFlow lá), só que aqui derivada de estado
+  // reativo em vez de searchParams, porque o Tipo já é um <select> controlado.
+  const isProcessoFlow = isAdministrativo || type === "JUDICIAL";
+  const salvarLabel = attachmentsUploading ? "Enviando anexos..." : loading ? "Salvando..." : isProcessoFlow ? "Salvar Processo" : "Salvar Caso";
 
   return (
     <form ref={formRef} action={handleSubmit} className="space-y-3">
@@ -254,19 +265,29 @@ export default function MobileNewCaseForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Número do Processo</label>
-              <input name="processNumber" defaultValue={defaultProcessNumber} className={inputClass} placeholder="0000000-00.0000..." />
-            </div>
-            <div>
-              <label className={labelClass}>Vara/Comarca</label>
-              <input name="court" className={inputClass} />
-            </div>
-          </div>
+          {/* Número do processo/vara/tribunal só fazem sentido quando o Tipo escolhido acima
+              também é Judicial — Extrajudicial/Atendimento/Consultivo (mesma pílula "Judicial",
+              ver comentário no topo do arquivo) não tramitam em processo nenhum. Diferente do
+              formulário desktop (onde o ramo é fixado no primeiro render, a partir da URL), aqui
+              o <select> "Tipo" já é estado reativo — então basta condicionar ao "type" atual em
+              vez de precisar tirar "Judicial" da lista de opções. */}
+          {type === "JUDICIAL" && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Número do Processo</label>
+                  <input name="processNumber" defaultValue={defaultProcessNumber} className={inputClass} placeholder="0000000-00.0000..." />
+                </div>
+                <div>
+                  <label className={labelClass}>Vara/Comarca</label>
+                  <input name="court" className={inputClass} />
+                </div>
+              </div>
 
-          {/* Mesma posição relativa do formulário desktop: logo após Vara/Comarca */}
-          <TribunalFields tribunais={tribunais} inputClassName={inputClass} />
+              {/* Mesma posição relativa do formulário desktop: logo após Vara/Comarca */}
+              <TribunalFields tribunais={tribunais} inputClassName={inputClass} />
+            </>
+          )}
         </>
       ) : (
         <>
@@ -336,11 +357,16 @@ export default function MobileNewCaseForm({
         </>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>Valor da Causa (R$)</label>
-          <input name="caseValue" type="number" step="0.01" className={inputClass} />
-        </div>
+      {/* Valor da Causa só faz sentido para uma demanda judicial (Judicial ou Administrativo) —
+          some quando o Tipo escolhido é Extrajudicial/Atendimento/Consultivo. Sem isProcessoFlow,
+          o grid fica com um item só (Responsável ocupa a largura). */}
+      <div className={isProcessoFlow ? "grid grid-cols-2 gap-3" : ""}>
+        {isProcessoFlow && (
+          <div>
+            <label className={labelClass}>Valor da Causa (R$)</label>
+            <input name="caseValue" type="number" step="0.01" className={inputClass} />
+          </div>
+        )}
         <div>
           <label className={labelClass}>Responsável</label>
           <select name="responsibleId" defaultValue="" className={inputClass}>
@@ -352,7 +378,10 @@ export default function MobileNewCaseForm({
         </div>
       </div>
 
-      <ClientPicker clients={clients} inputClassName={inputClass} />
+      {/* No ramo CASO some o "Papel do cliente no processo": Autor/Réu/Recorrente só fazem
+          sentido dentro de uma relação processual, e num caso extrajudicial/consultivo não há
+          processo nenhum. Mesma regra do desktop — ver hideRole em components/ClientPicker.tsx. */}
+      <ClientPicker clients={clients} inputClassName={inputClass} hideRole={!isProcessoFlow} />
 
       <OpposingPartyFields inputClassName={inputClass} />
 

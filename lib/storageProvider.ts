@@ -128,6 +128,19 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
   }
 }
 
+// Pasta de um Parecer (Assessoria/{empresa}/Pareceres/{nome do parecer}) — ver model Parecer.
+export async function getOrCreateParecerFolder(parecerId: string, companyName: string, parecerName: string, officeId: string): Promise<string> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.getOrCreateParecerFolder(parecerId, companyName, parecerName, officeId);
+    case "DROPBOX":
+      return dropboxStorage.getOrCreateParecerFolder(parecerId, companyName, parecerName, officeId);
+    default:
+      return googleDrive.getOrCreateParecerFolder(parecerId, companyName, parecerName, officeId);
+  }
+}
+
 // Diferente das demais funções deste dispatcher, recebe o provider EXPLICITAMENTE em vez de
 // resolvê-lo por Office.storageProvider — quem chama (lib/actions/attachments.ts:deleteAttachment)
 // já sabe qual provedor foi usado no upload original (Attachment.storageProvider), gravado no

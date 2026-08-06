@@ -189,7 +189,10 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
             {!pub.caseId && (
               <LinkPublicationMenu
                 publicationId={pub.id}
-                newCaseHref={`/m/processos/novo?type=JUDICIAL${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
+                // publicationId na query: MobileNewCaseForm lê direto (useSearchParams) e repassa a
+                // createCaseMobile, que vincula automaticamente esta publicação ao processo recém-
+                // criado (ver linkOriginPublicationBestEffort em lib/actions/cases.ts).
+                newCaseHref={`/m/processos/novo?type=JUDICIAL&publicationId=${encodeURIComponent(pub.id)}${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
                 processNumberRaw={pub.processNumberRaw}
               />
             )}

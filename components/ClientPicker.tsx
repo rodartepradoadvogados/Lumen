@@ -16,14 +16,21 @@ const CLIENT_ROLE_OPTIONS = ["Autor", "Réu", "Terceiro Interessado", "Recorrent
 // (server action ou handler client-side) lê todos via formData.getAll("clientEntries") e faz
 // JSON.parse de cada um. Suporta litisconsórcio: "+ Adicionar outro cliente" acrescenta mais uma
 // entrada independente, cada uma com seu próprio modo (selecionar/novo) e papel.
+// hideRole: esconde o seletor "Papel do cliente no processo". Autor/Réu/Recorrente só existem
+// dentro de uma relação processual — num Caso (extrajudicial, consultivo, atendimento) não há
+// processo, e perguntar o papel ali é pedir um dado que não existe. O campo `role` continua
+// saindo no JSON (vazio), porque createCase já trata "" como não informado: assim o formato do
+// hidden input não muda conforme a tela, e nenhum consumidor precisa saber deste modo.
 export default function ClientPicker({
   clients,
   inputClassName,
   initial,
+  hideRole = false,
 }: {
   clients: Client[];
   inputClassName: string;
   initial?: ClientPickerInitial;
+  hideRole?: boolean;
 }) {
   const counter = useRef(0);
   const [entries, setEntries] = useState<Entry[]>(() => {
@@ -114,17 +121,19 @@ export default function ClientPicker({
             />
           )}
 
-          <div className="mt-2">
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Papel do cliente no processo</label>
-            <select value={entry.role} onChange={(e) => update(entry.key, { role: e.target.value })} className={inputClassName}>
-              <option value="">Não definido</option>
-              {CLIENT_ROLE_OPTIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!hideRole && (
+            <div className="mt-2">
+              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Papel do cliente no processo</label>
+              <select value={entry.role} onChange={(e) => update(entry.key, { role: e.target.value })} className={inputClassName}>
+                <option value="">Não definido</option>
+                {CLIENT_ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <input
             type="hidden"
@@ -132,7 +141,9 @@ export default function ClientPicker({
             value={JSON.stringify({
               clientId: entry.mode === "selecionar" ? entry.clientId : "",
               newClientName: entry.mode === "novo" ? entry.newClientName : "",
-              role: entry.role,
+              // Com hideRole, manda vazio em vez do que estivesse em `entry.role`: sem isso, um
+              // papel escolhido antes de alternar para o fluxo de Caso viajaria escondido.
+              role: hideRole ? "" : entry.role,
             })}
           />
         </div>

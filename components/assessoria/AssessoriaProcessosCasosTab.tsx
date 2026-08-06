@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setCaseAssessoria, addDocumento, type getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { setCaseAssessoria, createParecer, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
-import { Plus, Search, ExternalLink, Link2, X, UploadCloud } from "lucide-react";
+import { getDocumentTypeLabel } from "@/lib/documentTypes";
+import { Plus, Search, ExternalLink, Link2, X, FolderOpen } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
+import ParecerFolderRow from "@/components/assessoria/ParecerFolderRow";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type CaseOption = { id: string; title: string; processNumber: string | null };
@@ -41,20 +43,11 @@ export default function AssessoriaProcessosCasosTab({
   const [parecerError, setParecerError] = useState<string | null>(null);
   const [parecerPending, startParecerTransition] = useTransition();
 
-  // Upload de arquivo (arrastar/soltar ou selecionar do computador) para a pasta da empresa no
-  // Drive/OneDrive/Dropbox — mesmo padrão de estado de AssessoriaDocumentosTab.tsx, só que aqui o
-  // docType já sai fixo em "PARECER" (sem seletor, igual o formulário de link acima). O formulário
-  // de link continua existindo do lado disso, como alternativa para quem só quer colar um link já
-  // pronto em vez de subir um arquivo novo.
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [stagedFile, setStagedFile] = useState<File | null>(null);
-  const [stagedName, setStagedName] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const pareceres = assessoria.documents.filter((d) => d.docType === "PARECER");
+  // Pareceres antigos, cadastrados ANTES de Parecer virar pasta (docType="PARECER" com um único
+  // arquivo, ver migração no schema): continuam com parecerId nulo até o backfill rodar (ver
+  // scripts/backfill-pareceres.ts) — listados soltos, sem sumir da tela, exatamente como estavam
+  // antes desta entrega.
+  const pareceresSoltos = assessoria.documents.filter((d) => d.docType === "PARECER" && !d.parecerId);
 
   // Botão "Enviar E-mail/WhatsApp" desta aba deixa escolher entre TODOS os documentos da
   // assessoria (não só os pareceres) — a pessoa pode querer mandar um contrato, uma notificação
@@ -76,17 +69,17 @@ export default function AssessoriaProcessosCasosTab({
     })),
   }));
 
-  // Parecer é um campo próprio da Assessoria: não usa o seletor genérico de tipo de
-  // documento (esse tipo só existe para Anexos de Processo) — aqui o docType "PARECER" é
-  // fixo e o formulário só pede nome, link e data.
-  function handleAddParecer(formData: FormData) {
+  // Parecer virou uma PASTA de documentos (ver model Parecer, prisma/schema.prisma): este
+  // formulário só cria o agrupador (nome + data + descrição opcional) e a pasta correspondente no
+  // armazenamento — os documentos entram depois, um a um, dentro de cada linha (ver
+  // components/assessoria/ParecerFolderRow.tsx), cada um com sua própria categoria.
+  function handleCreateParecer(formData: FormData) {
     setParecerError(null);
     startParecerTransition(async () => {
-      const result = await addDocumento(assessoria.id, {
+      const result = await createParecer(assessoria.id, {
         name: String(formData.get("name") || ""),
-        docType: "PARECER",
-        driveUrl: String(formData.get("driveUrl") || ""),
         date: String(formData.get("date") || ""),
+        description: String(formData.get("description") || ""),
       });
       if (result.error) setParecerError(result.error);
       else {
@@ -94,46 +87,6 @@ export default function AssessoriaProcessosCasosTab({
         router.refresh();
       }
     });
-  }
-
-  function stageFile(file: File) {
-    setUploadError(null);
-    setStagedFile(file);
-    setStagedName(file.name);
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) stageFile(file);
-  }
-
-  async function confirmStagedFile() {
-    if (!stagedFile) return;
-    setUploadError(null);
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", stagedFile);
-    formData.append("name", stagedName.trim() || stagedFile.name);
-    formData.append("docType", "PARECER");
-    formData.append("assessoriaId", assessoria.id);
-
-    try {
-      const res = await fetch("/api/assessoria/documentos/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        setUploadError(data.error || "Erro ao enviar arquivo.");
-      } else {
-        setStagedFile(null);
-        setUploadOpen(false);
-        router.refresh();
-      }
-    } catch {
-      setUploadError("Erro ao enviar arquivo. Verifique sua conexão.");
-    } finally {
-      setUploading(false);
-    }
   }
 
   // availableCases já vem sem os processos vinculados (ver app/(app)/assessoria/[id]/page.tsx),
@@ -174,17 +127,6 @@ export default function AssessoriaProcessosCasosTab({
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Pareceres</h4>
           <div className="flex items-center gap-2 flex-wrap">
             <EnviarDocumentosButton entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} attachments={todosDocumentos} />
-            {driveConnected && (
-              <button
-                onClick={() => {
-                  setUploadOpen((v) => !v);
-                  setUploadError(null);
-                }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
-              >
-                <UploadCloud size={13} /> Enviar arquivo
-              </button>
-            )}
             <button
               onClick={() => setParecerFormOpen((v) => !v)}
               className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
@@ -194,75 +136,16 @@ export default function AssessoriaProcessosCasosTab({
           </div>
         </div>
 
-        {uploadOpen && !stagedFile && (
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors mb-3 ${
-              dragOver ? "border-gold-500 bg-gold-500/5" : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-cream-50 dark:hover:bg-white/5"
-            }`}
-          >
-            <UploadCloud size={20} className="text-navy-800/40 dark:text-cream-50/40" />
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/60 text-center">
-              Arraste um arquivo aqui, ou clique para selecionar do computador
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) stageFile(file);
-                e.target.value = "";
-              }}
-            />
-          </div>
-        )}
-
-        {stagedFile && (
-          <div className="p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2 mb-3">
-            <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Este parecer é:</p>
-            <input
-              value={stagedName}
-              onChange={(e) => setStagedName(e.target.value)}
-              placeholder="Nome do parecer"
-              className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
-            />
-            {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
-            <div className="flex gap-2">
-              <button
-                onClick={confirmStagedFile}
-                disabled={uploading}
-                className="flex-1 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
-              >
-                {uploading ? "Enviando..." : "Enviar para o Drive"}
-              </button>
-              <button
-                onClick={() => setStagedFile(null)}
-                disabled={uploading}
-                className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
         {parecerFormOpen && (
           <form
-            action={handleAddParecer}
+            action={handleCreateParecer}
             className="mb-3 p-3 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 space-y-2.5"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <input name="name" required placeholder="Nome do parecer" className="doc-input" />
               <input name="date" type="date" className="doc-input" />
             </div>
-            <input name="driveUrl" required type="url" placeholder="Link do Drive, Dropbox, OneDrive..." className="doc-input" />
+            <textarea name="description" placeholder="Descrição (opcional)" rows={2} className="doc-input" />
             {parecerError && <p className="text-xs text-red-600">{parecerError}</p>}
             <div className="flex gap-2">
               <button
@@ -270,7 +153,7 @@ export default function AssessoriaProcessosCasosTab({
                 disabled={parecerPending}
                 className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                {parecerPending ? "Salvando..." : "Adicionar"}
+                {parecerPending ? "Salvando..." : "Criar pasta"}
               </button>
               <button type="button" onClick={() => setParecerFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
                 Cancelar
@@ -280,20 +163,31 @@ export default function AssessoriaProcessosCasosTab({
           </form>
         )}
 
-        {pareceres.length === 0 ? (
+        {assessoria.pareceres.length === 0 && pareceresSoltos.length === 0 ? (
           <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum parecer cadastrado ainda.</p>
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {pareceres.map((d) => (
+          <div className="space-y-2">
+            {assessoria.pareceres.map((p) => (
+              <ParecerFolderRow key={p.id} parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} />
+            ))}
+
+            {/* Pareceres antigos (um arquivo = um parecer), ainda sem pasta — ver comentário em
+                pareceresSoltos acima. Listados soltos, com o mesmo visual de antes desta entrega,
+                até o backfill rodar. */}
+            {pareceresSoltos.map((d) => (
               <a
                 key={d.id}
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex justify-between items-center gap-3 py-2 text-sm hover:bg-cream-50 dark:hover:bg-white/5 -mx-1 px-1 rounded"
+                className="flex justify-between items-center gap-3 py-2 px-3 text-sm border border-navy-800/8 dark:border-white/10 rounded-lg hover:bg-cream-50 dark:hover:bg-white/5"
               >
-                <span className="font-medium text-navy-900 dark:text-cream-50">{d.name}</span>
-                <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap text-xs">{formatDate(d.date)}</span>
+                <span className="flex items-center gap-2 min-w-0">
+                  <FolderOpen size={14} className="shrink-0 text-navy-800/30 dark:text-cream-50/30" />
+                  <span className="font-medium text-navy-900 dark:text-cream-50 truncate">{d.name}</span>
+                  <span className="shrink-0 text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono">{getDocumentTypeLabel(d.docType)}</span>
+                </span>
+                <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap text-xs shrink-0">{formatDate(d.date)}</span>
               </a>
             ))}
           </div>
@@ -317,6 +211,12 @@ export default function AssessoriaProcessosCasosTab({
               className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
             >
               <Plus size={13} /> Novo processo
+            </Link>
+            <Link
+              href={`/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
+              className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
+            >
+              <Plus size={13} /> Novo caso
             </Link>
           </div>
         </div>

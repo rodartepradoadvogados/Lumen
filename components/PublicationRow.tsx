@@ -251,7 +251,10 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         {!pub.case && (
           <LinkPublicationMenu
             publicationId={pub.id}
-            newCaseHref={`/processos/novo?type=JUDICIAL${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
+            // publicationId na query: quando o processo nascer, createCase vincula automaticamente
+            // esta publicação a ele (ver linkOriginPublicationBestEffort em lib/actions/cases.ts) —
+            // sem isso o usuário teria que voltar aqui e vincular à mão.
+            newCaseHref={`/processos/novo?type=JUDICIAL&publicationId=${encodeURIComponent(pub.id)}${pub.processNumberRaw ? `&processNumber=${encodeURIComponent(pub.processNumberRaw)}` : ""}`}
             processNumberRaw={pub.processNumberRaw}
           />
         )}

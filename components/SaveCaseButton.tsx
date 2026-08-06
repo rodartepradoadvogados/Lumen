@@ -26,6 +26,18 @@ export default function SaveCaseButton({ defaultType }: { defaultType: string })
   // submissão inteira, permitindo duplo clique/duplo submit acidental (criar o processo 2x).
   const { pending } = useFormStatus();
 
+  // Publicação de origem (ver LinkPublicationMenu / PublicationRow.tsx): quando o cadastro foi
+  // aberto a partir de "Cadastrar novo processo" dentro de uma publicação, a URL traz
+  // ?publicationId=... — repassado aqui como campo oculto DENTRO do <form> para que a server
+  // action "submit" de app/(app)/processos/novo/page.tsx (arquivo de outro agente) consiga lê-lo
+  // via formData.get("publicationId"). Lido de window.location em vez de useSearchParams (que
+  // exigiria um <Suspense> ao redor de <SaveCaseButton> na própria page.tsx, também fora de
+  // alcance aqui) — só precisa estar pronto a tempo do submit, não da primeira renderização.
+  const [publicationId, setPublicationId] = useState("");
+  useEffect(() => {
+    setPublicationId(new URLSearchParams(window.location.search).get("publicationId") || "");
+  }, []);
+
   useEffect(() => {
     const form = buttonRef.current?.closest("form");
     const select = form?.elements.namedItem("type") as HTMLSelectElement | null;
@@ -46,22 +58,25 @@ export default function SaveCaseButton({ defaultType }: { defaultType: string })
   }, []);
 
   return (
-    <button
-      ref={buttonRef}
-      type="submit"
-      disabled={attachmentsUploading || pending}
-      onClick={(e) => {
-        if (attachmentsUploading) e.preventDefault();
-      }}
-      className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-    >
-      {attachmentsUploading
-        ? "Enviando anexos..."
-        : pending
-        ? "Salvando..."
-        : type === "JUDICIAL" || type === "ADMINISTRATIVO"
-        ? "Salvar Processo"
-        : "Salvar Caso"}
-    </button>
+    <>
+      {publicationId && <input type="hidden" name="publicationId" value={publicationId} />}
+      <button
+        ref={buttonRef}
+        type="submit"
+        disabled={attachmentsUploading || pending}
+        onClick={(e) => {
+          if (attachmentsUploading) e.preventDefault();
+        }}
+        className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {attachmentsUploading
+          ? "Enviando anexos..."
+          : pending
+          ? "Salvando..."
+          : type === "JUDICIAL" || type === "ADMINISTRATIVO"
+          ? "Salvar Processo"
+          : "Salvar Caso"}
+      </button>
+    </>
   );
 }

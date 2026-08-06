@@ -135,6 +135,15 @@ export const SUPPORT_MASK_MAP: Record<string, Record<string, MaskKind>> = {
     driveUrl: "url",
     storageFileId: "freeText",
   },
+  // Pasta de parecer da Assessoria. O nome costuma dizer exatamente o que está sendo consultado
+  // ("Parecer — rescisão do contrato com a Prefeitura de X"), e a descrição idem: é teor, não
+  // metadado. driveFolderId entra pelo mesmo motivo de storageFileId acima — com ele em mãos dá
+  // para abrir a pasta direto no provedor, fora do Lúmen e fora de qualquer trilha de auditoria.
+  Parecer: {
+    name: "freeText",
+    description: "freeText",
+    driveFolderId: "freeText",
+  },
   ProtocoloLote: {
     titulo: "freeText",
     observacao: "freeText",

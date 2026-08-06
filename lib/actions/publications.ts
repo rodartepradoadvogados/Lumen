@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
 import { delegateTask, acknowledgeDelegation } from "@/lib/actions/tasks";
+import { collectPublicationGroupIds } from "@/lib/publicationResolution";
 
 // Usado pelo AppBadgeSync (badge no ícone do PWA instalado, via Badging API) para saber se o
 // número mudou desde a última checagem, sem precisar recarregar a página inteira.
@@ -295,12 +296,23 @@ export async function searchCasesForLinking(query: string): Promise<{ id: string
   return [...byTitle, ...byNumber].slice(0, 15);
 }
 
+// Vincula a publicação ao processo — pelo GRUPO inteiro (mesmo processo, mesmo dia de Brasília),
+// não só pela linha clicada.
+//
+// O motivo é o mesmo do agrupamento da listagem: quando o mesmo ato chega por DJEN, Datajud e
+// e-mail do Jusbrasil, o usuário vê UM card e é ele que está vinculando. Vinculando só a linha
+// principal, as irmãs ficavam com caseId nulo e sumiam da aba Publicações do processo — o
+// processo exibia uma das três fontes e escondia as outras duas, sem nada na tela explicando a
+// diferença. Vale tanto para "vincular a processo existente" quanto para o processo recém-criado
+// a partir da própria publicação (ver linkOriginPublicationBestEffort em lib/actions/cases.ts).
 export async function linkPublicationToCase(publicationId: string, caseId: string) {
   const user = await getCurrentUser();
   if (!user) return;
   const targetCase = await prisma.case.findFirst({ where: { id: caseId, officeId: user.officeId }, select: { id: true } });
   if (!targetCase) return;
-  await prisma.publication.updateMany({ where: { id: publicationId, officeId: user.officeId }, data: { caseId } });
+  const ids = await collectPublicationGroupIds(publicationId, user.officeId);
+  if (ids.length === 0) return;
+  await prisma.publication.updateMany({ where: { id: { in: ids }, officeId: user.officeId }, data: { caseId } });
   revalidatePath("/publicacoes");
   revalidatePath("/m/publicacoes");
   revalidatePath("/alertas");

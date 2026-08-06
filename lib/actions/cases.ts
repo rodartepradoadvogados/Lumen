@@ -12,6 +12,7 @@ import { isClientInOffice, isUserInOffice, isCaseInOffice, isAssessoriaInOffice 
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { renameDriveFolder } from "@/lib/storageProvider";
 import { sendEmailReply } from "@/lib/gmailSend";
+import { linkPublicationToCase } from "@/lib/actions/publications";
 
 // Convenção de nomenclatura: sempre que o(s) NOSSO(s) cliente(s) e a(s) parte(s) do outro lado
 // estiverem cadastrados, o título do processo é "{Clientes} x {Partes}" — nunca um meio-termo
@@ -125,6 +126,33 @@ function legacyOpposingPartyRole(role: string | null | undefined): string | null
 // só dá pra fazer agora que o caso tem um id real.
 type StagedAttachment = { blobUrl: string; name: string; contentType: string; docType?: string };
 
+// Publicação de origem: quando "Cadastrar novo processo" é aberto de dentro de uma publicação
+// (LinkPublicationMenu, dentro de PublicationRow.tsx/MobilePublicationCard.tsx), o link carrega
+// ?publicationId=... e o formulário repassa esse id até aqui — vincula automaticamente a
+// publicação ao processo recém-criado, sem o usuário precisar voltar à tela de Publicações pra
+// vincular à mão (pedido do dono do escritório). Reaproveita linkPublicationToCase (mesma ação
+// usada por "Vincular a processo já existente"), que já confere no servidor que a publicação
+// pertence ao escritório do usuário — nenhuma checagem paralela é feita aqui.
+//
+// Só opera sobre UMA publicação (o item "primary" do card/grupo, ver lib/publicationGrouping.ts)
+// porque linkPublicationToCase em si só vincula uma publicação por chamada — mesmo comportamento
+// que "Vincular a processo já existente" já tinha antes desta função existir; as demais fontes do
+// mesmo processo (DJEN/Datajud/e-mail do Jusbrasil), se houver, continuam vinculáveis abrindo cada
+// uma via o "+N outras fontes" do card.
+//
+// Nunca lança: o processo acabou de ser criado com todos os dados que o usuário digitou — uma
+// falha ao vincular a publicação (id inválido, publicação de outro escritório, publicação já
+// vinculada a outro processo etc.) não pode derrubar a criação do processo, só fica sem o vínculo
+// automático (o usuário ainda pode vincular à mão pela tela de Publicações).
+async function linkOriginPublicationBestEffort(publicationId: string | undefined, caseId: string): Promise<void> {
+  if (!publicationId) return;
+  try {
+    await linkPublicationToCase(publicationId, caseId);
+  } catch (e) {
+    console.error(`[cases] falha ao vincular a publicação de origem ${publicationId} ao processo recém-criado ${caseId}:`, e);
+  }
+}
+
 // Cada item isolado no seu próprio try/catch: sem isso, um item que falhasse no meio da lista
 // (Drive lento, rate limit, timeout da function) derrubava a promise inteira e abortava TODOS os
 // itens seguintes sem processar — bug real relatado ("juntei vários documentos... só subiram 3").
@@ -179,6 +207,8 @@ export async function createCase(data: {
   adminEsfera?: string;
   adminMateria?: string;
   stagedAttachments?: StagedAttachment[];
+  // Ver linkOriginPublicationBestEffort acima.
+  publicationId?: string;
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
@@ -218,6 +248,7 @@ export async function createCase(data: {
   });
   await writeCaseClientsAndParties(created.id, resolvedClients, resolvedParties);
   const anexosComErro = await finalizeStagedAttachments(data.stagedAttachments, created.id);
+  await linkOriginPublicationBestEffort(data.publicationId, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
   redirect(`/processos/${created.id}${anexosComErro > 0 ? `?anexosFalhos=${anexosComErro}` : ""}`);
@@ -411,6 +442,8 @@ export async function createCaseMobile(data: {
   adminEsfera?: string;
   adminMateria?: string;
   stagedAttachments?: StagedAttachment[];
+  // Ver linkOriginPublicationBestEffort acima.
+  publicationId?: string;
 }): Promise<{ id: string; anexosComErro?: number }> {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão inválida.");
@@ -450,6 +483,7 @@ export async function createCaseMobile(data: {
   });
   await writeCaseClientsAndParties(created.id, resolvedClients, resolvedParties);
   const anexosComErro = await finalizeStagedAttachments(data.stagedAttachments, created.id);
+  await linkOriginPublicationBestEffort(data.publicationId, created.id);
   revalidatePath("/processos");
   revalidatePath("/contatos/clientes");
   return { id: created.id, anexosComErro: anexosComErro > 0 ? anexosComErro : undefined };

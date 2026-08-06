@@ -187,6 +187,21 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
   return companyFolderId;
 }
 
+// Pasta de um Parecer (ver model Parecer, prisma/schema.prisma) em
+// "Lúmen/Lúmen - Assessoria/{empresa}/Pareceres/{nome do parecer}" — mesmo padrão de cache do
+// lado Google (getOrCreateParecerFolder em lib/googleDrive.ts).
+export async function getOrCreateParecerFolder(parecerId: string, companyName: string, parecerName: string, officeId: string): Promise<string> {
+  const existing = await prisma.parecer.findFirst({ where: { id: parecerId, officeId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) return existing.driveFolderId;
+
+  const rootId = await getOrCreateNamedRootFolder(ASSESSORIA_ROOT_NAME, officeId);
+  const companyFolderId = await getOrCreateChildFolder(rootId, companyName, officeId);
+  const pareceresFolderId = await getOrCreateChildFolder(companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER, officeId);
+  const folderId = await getOrCreateChildFolder(pareceresFolderId, parecerName, officeId);
+  await prisma.parecer.updateMany({ where: { id: parecerId, officeId }, data: { driveFolderId: folderId, storageProvider: "ONEDRIVE" } });
+  return folderId;
+}
+
 // Subpasta de categoria dentro da pasta de um processo/atendimento (ex: "Petição", "Procuração").
 export async function getOrCreateCategoryFolder(parentFolderId: string, categoryLabel: string, officeId: string): Promise<string> {
   return getOrCreateChildFolder(parentFolderId, categoryLabel, officeId);

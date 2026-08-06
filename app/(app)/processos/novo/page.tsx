@@ -12,7 +12,6 @@ import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
 import SaveCaseButton from "@/components/SaveCaseButton";
-import TribunalFields from "@/components/TribunalFields";
 import NewCaseAttachmentsField from "@/components/NewCaseAttachmentsField";
 import NovoCaseNaturezaSection from "@/components/NovoCaseNaturezaSection";
 
@@ -110,6 +109,11 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       adminEsfera: String(formData.get("adminEsfera") || ""),
       adminMateria: String(formData.get("adminMateria") || ""),
       stagedAttachments,
+      // Preenchido quando o cadastro nasceu do botão "Cadastrar novo processo" de uma publicação
+      // (o link carrega ?publicationId=..., e SaveCaseButton emite o hidden input dentro deste
+      // form). createCase vincula a publicação ao processo recém-criado, para o usuário não ter
+      // que voltar em Publicações e vincular à mão o que ele já pediu ali.
+      publicationId: String(formData.get("publicationId") || ""),
     });
   }
 
@@ -144,50 +148,47 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
               </div>
             </>
           ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
-                  <select name="type" defaultValue={defaultType} className="input">
-                    <option value="JUDICIAL">Judicial</option>
-                    <option value="EXTRAJUDICIAL">Extrajudicial</option>
-                    <option value="ATENDIMENTO">Atendimento</option>
-                    <option value="CONSULTIVO">Consultivo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
-                  <select name="area" defaultValue="" className="input">
-                    <option value="">Não definida</option>
-                    {AREA_OPTIONS.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            // Ramo CASO (Extrajudicial/Atendimento/Consultivo): não existe número de processo,
+            // vara/comarca, tribunal nem valor da causa — isso tudo é conceito de demanda
+            // judicial, e aqui não há uma. "Judicial" foi removido do <select> de Tipo de
+            // propósito: isProcessoFlow acima é decidido a partir do type da URL (searchParams,
+            // no primeiro render do server component), não do valor corrente deste <select> — se
+            // "Judicial" continuasse como opção aqui, dava pra escolher Judicial e enviar o
+            // formulário sem nenhum campo judicial na tela (o ramo renderizado não muda). Pra
+            // cadastrar um Judicial de verdade, o usuário entra por "Novo Processo" (NewEntityMenu.tsx),
+            // não trocando o Tipo dentro de "Novo Caso".
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                <select name="type" defaultValue={defaultType} className="input">
+                  <option value="EXTRAJUDICIAL">Extrajudicial</option>
+                  <option value="ATENDIMENTO">Atendimento</option>
+                  <option value="CONSULTIVO">Consultivo</option>
+                </select>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do Processo</label>
-                  <input name="processNumber" defaultValue={searchParams.processNumber} className="input" placeholder="0000000-00.0000.0.00.0000" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vara/Comarca</label>
-                  <input name="court" className="input" />
-                </div>
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
+                <select name="area" defaultValue="" className="input">
+                  <option value="">Não definida</option>
+                  {AREA_OPTIONS.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
               </div>
-
-              <TribunalFields tribunais={tribunais} inputClassName="input" />
-            </>
+            </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor da Causa (R$)</label>
-              <input name="caseValue" type="number" step="0.01" className="input" />
-            </div>
+          {/* Valor da Causa só faz sentido para uma demanda judicial — some no ramo CASO. Sem
+              isProcessoFlow, o grid fica com um item só (Advogado Responsável ocupa a largura). */}
+          <div className={isProcessoFlow ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : ""}>
+            {isProcessoFlow && (
+              <div>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor da Causa (R$)</label>
+                <input name="caseValue" type="number" step="0.01" className="input" />
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Advogado Responsável</label>
               <select name="responsibleId" className="input">
@@ -201,7 +202,10 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             </div>
           </div>
 
-          <ClientPicker clients={clients} inputClassName="input" />
+          {/* No ramo CASO some o "Papel do cliente no processo": Autor/Réu/Recorrente só fazem
+              sentido dentro de uma relação processual, e num caso extrajudicial/consultivo não
+              há processo nenhum. Ver hideRole em components/ClientPicker.tsx. */}
+          <ClientPicker clients={clients} inputClassName="input" hideRole={!isProcessoFlow} />
 
           <OpposingPartyFields inputClassName="input" />
 

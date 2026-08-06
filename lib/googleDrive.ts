@@ -401,6 +401,23 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
   return companyFolderId;
 }
 
+// Pasta de um Parecer (ver model Parecer, prisma/schema.prisma) dentro de
+// "Lúmen - Assessoria/{empresa}/Pareceres/{nome do parecer}" — mesmo padrão de cache de
+// getOrCreateCaseFolder logo abaixo: primeiro consulta Parecer.driveFolderId já salvo, só
+// caminha o Drive de novo (raiz → empresa → Pareceres → nome do parecer) se ainda não existir.
+export async function getOrCreateParecerFolder(parecerId: string, companyName: string, parecerName: string, officeId: string): Promise<string> {
+  const existing = await prisma.parecer.findFirst({ where: { id: parecerId, officeId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) return existing.driveFolderId;
+
+  const { drive } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, ASSESSORIA_ROOT_NAME);
+  const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
+  const pareceresFolderId = await findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER);
+  const folderId = await findOrCreateChildFolder(drive, pareceresFolderId, parecerName);
+  await prisma.parecer.updateMany({ where: { id: parecerId, officeId }, data: { driveFolderId: folderId, storageProvider: "GOOGLE_DRIVE" } });
+  return folderId;
+}
+
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
 const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 

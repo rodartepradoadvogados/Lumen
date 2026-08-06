@@ -80,6 +80,19 @@ export async function resolvePublicationGroupForOffice(
   return { publications: ids.length, users: members.length };
 }
 
+// Ids do grupo a partir de UMA publicação, já com o escopo de escritório conferido. Existe
+// porque vincular publicação a processo (lib/actions/publications.ts) precisa da MESMA noção de
+// grupo usada aqui: o usuário age sobre o que ele vê, e o que ele vê é o card inteiro. Devolve
+// lista vazia quando a publicação não é do escritório — o chamador não precisa checar de novo.
+export async function collectPublicationGroupIds(publicationId: string, officeId: string): Promise<string[]> {
+  const pub = await prisma.publication.findFirst({
+    where: { id: publicationId, officeId },
+    select: { id: true, processNumberRaw: true, publishedAt: true },
+  });
+  if (!pub) return [];
+  return collectGroupIds(pub, officeId);
+}
+
 // Ids do grupo (a publicação + as irmãs do mesmo processo no mesmo dia de Brasília).
 async function collectGroupIds(
   pub: { id: string; processNumberRaw: string | null; publishedAt: Date },

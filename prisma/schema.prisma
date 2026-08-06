@@ -128,6 +128,7 @@ model Office {
   recurringFees        RecurringFee[]
   assessorias          Assessoria[]
   assessoriaDocumentos AssessoriaDocumento[]
+  pareceres            Parecer[]
   honorarios           Honorario[]
   licitacoes           Licitacao[]
   publications         Publication[]
@@ -258,6 +259,7 @@ model User {
   emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
   assessoriasResponsible      Assessoria[]           @relation("AssessoriaResponsible")
   assessoriaDocumentsUploaded AssessoriaDocumento[]  @relation("AssessoriaDocumentoUploadedBy")
+  pareceresCriados            Parecer[]              @relation("ParecerCreatedBy")
   blockedProcessNumbers       BlockedProcessNumber[]
   alertDismissals             AlertDismissal[]
 
@@ -1839,6 +1841,8 @@ model Assessoria {
   anotacoes   Anotacao[]
   // Envios de documentos (E-mail/WhatsApp) desta assessoria — ver model DocumentoEnvio.
   documentoEnvios DocumentoEnvio[]
+  // Pareceres (pastas de documentos) desta assessoria — ver model Parecer mais abaixo.
+  pareceres Parecer[]
 
   @@index([officeId])
 }
@@ -1871,11 +1875,63 @@ model AssessoriaDocumento {
   uploadedById String?
   uploadedBy   User?   @relation("AssessoriaDocumentoUploadedBy", fields: [uploadedById], references: [id])
 
+  // Pasta de Parecer (ver model Parecer mais abaixo) à qual este documento pertence — opcional
+  // porque documentos PARECER cadastrados ANTES desta entrega não têm pasta (ver
+  // scripts/backfill-pareceres.ts, que amarra cada um a uma Parecer nova). Documentos de
+  // qualquer outra categoria (CONTRATO, LICITACAO...) nunca preenchem este campo — só existe
+  // para o caso específico de um documento estar dentro de um Parecer.
+  parecerId String?
+  parecer   Parecer? @relation(fields: [parecerId], references: [id])
+
   // Envios (E-mail/WhatsApp) que REFERENCIAM este documento — ver DocumentoEnvioItem, mesmo
   // espírito de Attachment.documentoEnvioItens: nunca uma cópia, só a referência.
   documentoEnvioItens DocumentoEnvioItem[] @relation("DocumentoEnvioItemAssessoriaDocumento")
 
   @@index([officeId])
+  @@index([parecerId])
+}
+
+// Um Parecer é um AGRUPADOR de documentos, não um arquivo — decisão tomada com o escritório
+// (2026-08) depois de reportarem que "adicionar parecer" só permitia um único arquivo por
+// parecer. Na prática um parecer raramente nasce como um arquivo só: é comum reunir minuta,
+// anexos e pesquisa em vários documentos separados, cada um com sua própria categoria — o mesmo
+// conceito da aba Anexos de um Processo, só que vivendo dentro da Assessoria. Por isso Parecer
+// ganha pasta própria no armazenamento (Drive/OneDrive/Dropbox, ver getOrCreateParecerFolder em
+// lib/googleDrive.ts / lib/oneDriveStorage.ts / lib/dropboxStorage.ts) dentro de
+// "Lúmen - Assessoria/{empresa}/Pareceres/{nome do parecer}", e cada AssessoriaDocumento
+// enviado para dentro dele aponta pra cá via AssessoriaDocumento.parecerId.
+//
+// Documentos AssessoriaDocumento com docType="PARECER" cadastrados ANTES desta entrega continuam
+// existindo soltos, com parecerId nulo, até o backfill rodar (ver scripts/backfill-pareceres.ts)
+// — a tela trata esse caso à parte (ver AssessoriaProcessosCasosTab.tsx), nunca escondendo um
+// parecer antigo da lista.
+model Parecer {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime @default(now())
+  description String?
+  // Pasta "Lúmen - Assessoria/{empresa}/Pareceres/{nome}" no provedor de armazenamento deste
+  // escritório — nula até o primeiro documento ser enviado para dentro do parecer (mesma
+  // filosofia preguiçosa de Case.driveFolderId/Attendance.driveFolderId: só cria pasta quando
+  // alguém realmente for usar).
+  driveFolderId   String?
+  storageProvider String  @default("GOOGLE_DRIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  assessoriaId String
+  assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("ParecerCreatedBy", fields: [createdById], references: [id])
+
+  documents AssessoriaDocumento[]
+
+  @@index([officeId])
+  @@index([assessoriaId])
 }
 
 // Deliberadamente sem amount/dueDate/status/paidDate próprios — esses dados vivem só no
