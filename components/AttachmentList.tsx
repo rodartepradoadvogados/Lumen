@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil, LayoutGrid, List as ListIcon, Table2 } from "lucide-react";
@@ -8,21 +8,14 @@ import { createAttachment, deleteAttachment, finalizeAttachmentUpload, updateAtt
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { formatDate } from "@/components/ui";
-
-type SortOption = "recent" | "oldest" | "name_asc" | "name_desc" | "type";
-type ViewMode = "icons" | "list" | "details";
+import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
 
 // Mesma convenção de chave de outras preferências client-side do site (ver THEME_KEY em
-// lib/theme.ts) — guarda só o modo de visualização escolhido, não afeta nada no banco.
+// lib/theme.ts) — guarda só o modo de visualização escolhido, não afeta nada no banco. Chave
+// preservada tal e qual (não mexer) para não perder a preferência já salva no navegador de quem
+// já usa esta tela — ver lib/attachmentControls.ts para o hook compartilhado com a aba Documentos
+// da Assessoria.
 const VIEW_MODE_KEY = "rp-attachment-view";
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "recent", label: "Mais recente primeiro" },
-  { value: "oldest", label: "Mais antigo primeiro" },
-  { value: "name_asc", label: "Nome (A→Z)" },
-  { value: "name_desc", label: "Nome (Z→A)" },
-  { value: "type", label: "Tipo de documento" },
-];
 
 type AttachmentData = {
   id: string;
@@ -64,28 +57,7 @@ export default function AttachmentList({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
-  const [viewMode, setViewMode] = useState<ViewMode>("icons");
-
-  // Lê a preferência de visualização salva do último acesso (o padrão em ícones fica no primeiro
-  // render, servidor e cliente batendo, e só troca depois de montado — evita divergência de
-  // hidratação por causa do localStorage não existir no servidor).
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(VIEW_MODE_KEY);
-      if (stored === "icons" || stored === "list" || stored === "details") setViewMode(stored);
-    } catch {
-      // localStorage indisponível (modo privado etc.) — segue com "icons".
-    }
-  }, []);
-
-  function changeViewMode(mode: ViewMode) {
-    setViewMode(mode);
-    try {
-      localStorage.setItem(VIEW_MODE_KEY, mode);
-    } catch {
-      // Sem persistência nesse navegador — a escolha ainda vale pra sessão atual.
-    }
-  }
+  const [viewMode, changeViewMode] = useViewModePreference(VIEW_MODE_KEY);
 
   // "Parecer" só faz sentido como anexo de Processo — Atendimento não tem esse conceito.
   const excludeParecer = !caseId ? ["PARECER"] : undefined;
@@ -101,29 +73,15 @@ export default function AttachmentList({
     });
   }, [attachments, search, typeFilter, dateFrom, dateTo]);
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    switch (sortBy) {
-      case "recent":
-        arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        break;
-      case "oldest":
-        arr.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-        break;
-      case "name_asc":
-        arr.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-        break;
-      case "name_desc":
-        arr.sort((a, b) => b.name.localeCompare(a.name, "pt-BR"));
-        break;
-      case "type":
-        arr.sort(
-          (a, b) => getDocumentTypeLabel(a.docType).localeCompare(getDocumentTypeLabel(b.docType), "pt-BR") || a.name.localeCompare(b.name, "pt-BR")
-        );
-        break;
-    }
-    return arr;
-  }, [filtered, sortBy]);
+  const sorted = useMemo(
+    () =>
+      sortByOption(filtered, sortBy, {
+        dateKey: (a) => a.createdAt,
+        name: (a) => a.name,
+        typeLabel: (a) => getDocumentTypeLabel(a.docType),
+      }),
+    [filtered, sortBy]
+  );
 
   function stageFile(file: File) {
     setError(null);

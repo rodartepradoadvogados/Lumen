@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
+import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -25,15 +26,6 @@ const honorarioStatusColors: Record<string, "green" | "amber" | "bordo" | "slate
   CANCELADO: "slate",
 };
 const honorarioStatusLabels: Record<string, string> = { PENDENTE: "Pendente", PAGO: "Pago", ATRASADO: "Atrasado", CANCELADO: "Cancelado" };
-
-const docTypeLabels: Record<string, string> = {
-  CONTRATO: "Contrato",
-  PARECER: "Parecer",
-  ACAO_VINCULADA: "Ação vinculada",
-  LICITACAO: "Licitação",
-  REGIMENTO_INTERNO: "Regimento Interno",
-  OUTRO: "Outro",
-};
 
 const licitacaoStatusColors: Record<string, "slate" | "amber" | "green" | "bordo"> = {
   EM_ANALISE: "slate",
@@ -129,35 +121,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
         )}
       </Card>
 
-      <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Documentos</h2>
-        </div>
-        {assessoria.documents.length === 0 ? (
-          <EmptyState title="Nenhum documento cadastrado" />
-        ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {assessoria.documents.map((d) => (
-              <a
-                key={d.id}
-                href={d.driveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-cream-50 dark:hover:bg-white/5"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{d.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge color="slate">{docTypeLabels[d.docType] || d.docType}</Badge>
-                    <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(d.date)}</span>
-                  </div>
-                </div>
-                <ExternalLink size={15} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
-              </a>
-            ))}
-          </div>
-        )}
-      </Card>
+      <MobileAssessoriaDocumentsSection pareceres={assessoria.pareceres} documents={assessoria.documents} />
 
       <Card>
         <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">

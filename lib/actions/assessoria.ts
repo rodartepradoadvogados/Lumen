@@ -106,7 +106,15 @@ export async function getAssessoriaDetail(id: string) {
     include: {
       client: true,
       responsible: true,
-      documents: { orderBy: { date: "desc" }, include: { uploadedBy: true, case: true } },
+      // `parecer` vem junto para as telas que listam documento a documento (aba "Documentos" do
+      // site e a seção Documentos do app) conseguirem dizer a QUE PASTA cada arquivo pertence.
+      // Sem isso, um documento dentro de um parecer aparece nessas telas idêntico a um documento
+      // solto — o mesmo arquivo tem organização numa aba e nenhuma na outra, e a pessoa não tem
+      // como saber que existe uma pasta reunindo aquilo.
+      documents: {
+        orderBy: { date: "desc" },
+        include: { uploadedBy: true, case: true, parecer: { select: { id: true, name: true } } },
+      },
       // Pareceres (pastas de documentos, ver model Parecer) desta assessoria, com os documentos
       // de dentro de cada um — usado pela aba "Pareceres, Processos e Casos"
       // (AssessoriaProcessosCasosTab.tsx). Documentos PARECER antigos, ainda sem pasta
