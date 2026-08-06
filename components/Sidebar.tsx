@@ -204,6 +204,7 @@ export default function Sidebar({
   canConfigureIntegrations = false,
   unreadPublications = 0,
   totalAlerts = 0,
+  todayAgendaCount = 0,
   modules = ALL_MODULES_ON,
   onOpenTab,
   onNavigate,
@@ -216,6 +217,7 @@ export default function Sidebar({
   canConfigureIntegrations?: boolean;
   unreadPublications?: number;
   totalAlerts?: number;
+  todayAgendaCount?: number;
   modules?: OfficeModules;
   // Duplo clique num item/sub-item abre a rota como uma nova aba interna (ver
   // components/AppShell.tsx) em vez de navegar a view "Principal"; clique simples continua
@@ -421,6 +423,14 @@ export default function Sidebar({
                       {item.href === "/alertas" && totalAlerts > 0 && (
                         <span className="bg-bordo-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center">
                           {totalAlerts > 99 ? "99+" : totalAlerts}
+                        </span>
+                      )}
+                      {item.href === "/agenda" && todayAgendaCount > 0 && (
+                        <span
+                          data-tip={`${todayAgendaCount} compromisso${todayAgendaCount === 1 ? "" : "s"} hoje`}
+                          className="bg-bordo-600 text-white rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] text-center"
+                        >
+                          {todayAgendaCount > 99 ? "99+" : todayAgendaCount}
                         </span>
                       )}
                     </Link>

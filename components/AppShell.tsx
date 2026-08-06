@@ -30,6 +30,7 @@ type AppShellProps = {
     canConfigureIntegrations: boolean;
     unreadPublications: number;
     totalAlerts: number;
+    todayAgendaCount: number;
     modules: OfficeModules;
   };
   topBar: React.ReactNode;

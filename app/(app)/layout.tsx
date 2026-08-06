@@ -14,7 +14,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
-import { getAlertsCount } from "@/lib/alerts";
+import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { Lock } from "lucide-react";
@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const hasFinanceAccess = user.isAdmin || user.financeAccess;
-  const [unreadPublicationsRaw, totalAlerts, modules, blockedSet] = await Promise.all([
+  const [unreadPublicationsRaw, totalAlerts, todayAgendaCount, modules, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where: { officeId: user.officeId, reads: { none: { userId: user.id } } },
       select: { id: true, processNumberRaw: true, publishedAt: true },
@@ -63,6 +63,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // do PWA (AppBadgeSync) e o badge do item "Alertas" na Sidebar, diferente de
     // `unreadPublications` acima, que é específico da aba/menu Publicações.
     getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
+    // Quantos compromissos vencem HOJE (mesmo critério do reforço "Hoje" do Painel, ver
+    // getTodayItems) — alimenta a bolinha do item "Agenda" na Sidebar. Escritório inteiro, não
+    // só do usuário: os outros badges da Sidebar (Publicações, Alertas) também são do escritório,
+    // e a Agenda em si já lista os compromissos de todo mundo por padrão.
+    getTodayAgendaCount(user.officeId),
     getOfficeModules(user.officeId),
     getBlockedProcessNumberSet(user.id),
   ]);
@@ -89,6 +94,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             canConfigureIntegrations: canConfigureIntegrations(user),
             unreadPublications,
             totalAlerts,
+            todayAgendaCount,
             modules,
           }}
           topBar={<TopBar />}

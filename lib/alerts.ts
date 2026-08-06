@@ -586,6 +586,18 @@ export async function getAlertsCount(
   );
 }
 
+// Só a CONTAGEM de compromissos de hoje (tarefas/eventos/audiências/perícias/prazos, sem
+// financeiro) — usada pela bolinha do item "Agenda" no menu (Sidebar e MobileBottomNav). Mesmo
+// critério de tasksToday em getTodayItems logo abaixo (dueDate de hoje, sem concluído/cancelado),
+// mas sem trazer o registro inteiro: a Sidebar renderiza em toda navegação, então um count() é
+// bem mais barato que buscar case/responsible junto só para descartar depois.
+export async function getTodayAgendaCount(officeId: string): Promise<number> {
+  const now = new Date();
+  return prisma.task.count({
+    where: { officeId, dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+  });
+}
+
 // Tudo que vence HOJE: tarefas/eventos/audiências/perícias/prazos + contas a pagar/receber — reforço do dia.
 export async function getTodayItems(officeId: string, includeFinance: boolean = true): Promise<TodayItem[]> {
   const now = new Date();

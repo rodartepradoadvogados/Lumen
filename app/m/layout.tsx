@@ -12,7 +12,7 @@ import AppBadgeSync from "@/components/AppBadgeSync";
 import LumenMark from "@/components/LumenMark";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
-import { getAlertsCount } from "@/lib/alerts";
+import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +50,11 @@ export default async function MobileLayout({ children }: { children: React.React
   // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
-  const [totalAlerts, sessionSeconds, office] = await Promise.all([
+  const [totalAlerts, todayAgendaCount, sessionSeconds, office] = await Promise.all([
     user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin) : Promise.resolve(0),
+    // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
+    // bolinha da aba "Agenda" no menu inferior, separada da bolinha de Alertas.
+    user ? getTodayAgendaCount(user.officeId) : Promise.resolve(0),
     user ? getCurrentSessionElapsedSeconds(user.id) : Promise.resolve(0),
     user ? prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } }) : Promise.resolve(null),
   ]);
@@ -114,7 +117,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen">{children}</main>
 
-      <MobileBottomNav alertsCount={totalAlerts} />
+      <MobileBottomNav alertsCount={totalAlerts} todayAgendaCount={todayAgendaCount} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>
