@@ -14,6 +14,7 @@
 // claro em vez de falhar silenciosamente quando o Graph recusar por tamanho.
 import { prisma } from "@/lib/prisma";
 import { getMicrosoftAuthUrl, exchangeMicrosoftCodeForTokens, getMicrosoftAccessToken } from "@/lib/microsoftGraph";
+import { naturezaOf } from "@/lib/caseNatureza";
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 const ROOT_FOLDER_NAME = "Lúmen";
@@ -135,6 +136,9 @@ export async function getOrCreateChildFolder(parentFolderId: string, name: strin
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
 const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
+// Raiz nova para Case cuja natureza é "CASO" (ver lib/caseNatureza.ts e o mesmo ponto em
+// lib/googleDrive.ts) — mesma regra, mesmo comentário de fundo, só o provedor muda.
+const CASOS_ROOT_NAME = "Lúmen - Casos";
 
 // Mesmo mapa de subpasta por tipo de documento do lado Google (lib/googleDrive.ts) — reexportado
 // em vez de duplicado, já que o catálogo de tipos (AssessoriaDocumento.docType) é o mesmo
@@ -151,15 +155,22 @@ async function getOrCreateNamedRootFolder(rootName: string, officeId: string): P
   return getOrCreateChildFolder(lumenRootId, rootName, officeId);
 }
 
-// Pasta própria de um processo no OneDrive ("Lúmen/Lúmen - Processos/{título}"), criada sob
-// demanda no primeiro anexo — persiste no MESMO campo Case.driveFolderId que o Google usa (esse
-// campo já é só um id de pasta em texto livre, agnóstico de provedor). officeId garante que só se
+// Pasta própria de um processo/caso no OneDrive ("Lúmen/Lúmen - Processos/{título}" ou
+// "Lúmen/Lúmen - Casos/{título}", conforme Case.type — ver naturezaOf), criada sob demanda no
+// primeiro anexo — persiste no MESMO campo Case.driveFolderId que o Google usa (esse campo já é
+// só um id de pasta em texto livre, agnóstico de provedor). officeId garante que só se
 // busca/atualiza um Case do PRÓPRIO escritório.
+//
+// Mesmo ponto crítico documentado em lib/googleDrive.ts:getOrCreateCaseFolder — a escolha de raiz
+// só roda quando existing.driveFolderId ainda é nulo; um Case que já tem pasta devolve ela direto,
+// sem olhar pra type. Mover pasta de caso já existente é trabalho de
+// scripts/migrar-pastas-casos.ts, não desta função.
 export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, officeId: string): Promise<string> {
-  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true } });
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true, type: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const rootId = await getOrCreateNamedRootFolder(PROCESSOS_ROOT_NAME, officeId);
+  const rootName = existing && naturezaOf(existing.type) === "CASO" ? CASOS_ROOT_NAME : PROCESSOS_ROOT_NAME;
+  const rootId = await getOrCreateNamedRootFolder(rootName, officeId);
   const folderId = await getOrCreateChildFolder(rootId, caseTitle, officeId);
   await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -174,6 +185,35 @@ export async function getOrCreateAttendanceFolder(attendanceId: string, subject:
   const folderId = await getOrCreateChildFolder(rootId, subject, officeId);
   await prisma.attendance.updateMany({ where: { id: attendanceId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
+}
+
+// Ids das raízes "Lúmen - Processos"/"Lúmen - Casos" deste escritório (cria se ainda não existir)
+// — exportados para scripts/migrar-pastas-casos.ts (Tarefa B) resolver origem/destino da migração
+// sem precisar de um Case específico em mãos. Mesmo papel de getProcessosRootFolderId/
+// getCasosRootFolderId em lib/googleDrive.ts.
+export async function getProcessosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(PROCESSOS_ROOT_NAME, officeId);
+}
+
+export async function getCasosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(CASOS_ROOT_NAME, officeId);
+}
+
+// Lê id + nome + id do pai atual de um item do OneDrive (arquivo ou pasta) — usado só por
+// scripts/migrar-pastas-casos.ts para descobrir em qual raiz uma pasta de caso está de verdade
+// antes de decidir se precisa mover. Devolve null (em vez de lançar) quando o item não existe mais
+// (404) — mesmo espírito de getDriveFileInfo em lib/googleDrive.ts, embora o OneDrive não exponha
+// aqui um campo "trashed" equivalente: um item na Lixeira do OneDrive também costuma responder 404
+// pelo id antigo, então o efeito prático (pular a pasta, sem tentar recriá-la) é o mesmo.
+export type OneDriveItemInfo = { id: string; name: string; parentId: string | null };
+
+export async function getOneDriveItemInfo(fileId: string, officeId: string): Promise<OneDriveItemInfo | null> {
+  const accessToken = await getAccessTokenForOffice(officeId);
+  const res = await graphFetch(`/me/drive/items/${fileId}?$select=id,name,parentReference`, accessToken);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Falha ao buscar item no OneDrive (${res.status}): ${await res.text()}`);
+  const data = (await res.json()) as { id: string; name: string; parentReference?: { id?: string } };
+  return { id: data.id, name: data.name, parentId: data.parentReference?.id ?? null };
 }
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:

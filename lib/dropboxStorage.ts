@@ -23,6 +23,7 @@
 import { prisma } from "@/lib/prisma";
 import { getDropboxAccessToken, exchangeDropboxCodeForTokens } from "@/lib/dropbox";
 import { ASSESSORIA_DOC_TYPE_FOLDERS } from "@/lib/oneDriveStorage";
+import { naturezaOf } from "@/lib/caseNatureza";
 
 const API_BASE = "https://api.dropboxapi.com/2";
 const CONTENT_BASE = "https://content.dropboxapi.com/2";
@@ -129,20 +130,30 @@ export async function getOrCreateChildFolder(parentFolderId: string, name: strin
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
 const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
+// Raiz nova para Case cuja natureza é "CASO" (ver lib/caseNatureza.ts e o mesmo ponto em
+// lib/googleDrive.ts) — mesma regra, mesmo comentário de fundo, só o provedor muda.
+const CASOS_ROOT_NAME = "Lúmen - Casos";
 
 async function getOrCreateNamedRootFolder(rootName: string, officeId: string): Promise<string> {
   const lumenRootId = await getOrCreateRootFolder(officeId);
   return getOrCreateChildFolder(lumenRootId, rootName, officeId);
 }
 
-// Pasta própria de um processo no Dropbox ("Lúmen/Lúmen - Processos/{título}"), criada sob
-// demanda no primeiro anexo — persiste no MESMO campo Case.driveFolderId que Google/OneDrive
-// usam. officeId garante que só se busca/atualiza um Case do PRÓPRIO escritório.
+// Pasta própria de um processo/caso no Dropbox ("Lúmen/Lúmen - Processos/{título}" ou
+// "Lúmen/Lúmen - Casos/{título}", conforme Case.type — ver naturezaOf), criada sob demanda no
+// primeiro anexo — persiste no MESMO campo Case.driveFolderId que Google/OneDrive usam. officeId
+// garante que só se busca/atualiza um Case do PRÓPRIO escritório.
+//
+// Mesmo ponto crítico documentado em lib/googleDrive.ts:getOrCreateCaseFolder — a escolha de raiz
+// só roda quando existing.driveFolderId ainda é nulo; um Case que já tem pasta devolve ela direto,
+// sem olhar pra type. Mover pasta de caso já existente é trabalho de
+// scripts/migrar-pastas-casos.ts, não desta função.
 export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, officeId: string): Promise<string> {
-  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true } });
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true, type: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const rootId = await getOrCreateNamedRootFolder(PROCESSOS_ROOT_NAME, officeId);
+  const rootName = existing && naturezaOf(existing.type) === "CASO" ? CASOS_ROOT_NAME : PROCESSOS_ROOT_NAME;
+  const rootId = await getOrCreateNamedRootFolder(rootName, officeId);
   const folderId = await getOrCreateChildFolder(rootId, caseTitle, officeId);
   await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -157,6 +168,38 @@ export async function getOrCreateAttendanceFolder(attendanceId: string, subject:
   const folderId = await getOrCreateChildFolder(rootId, subject, officeId);
   await prisma.attendance.updateMany({ where: { id: attendanceId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
+}
+
+// Ids das raízes "Lúmen - Processos"/"Lúmen - Casos" deste escritório (cria se ainda não existir)
+// — exportados para scripts/migrar-pastas-casos.ts (Tarefa B), mesmo papel de
+// getProcessosRootFolderId/getCasosRootFolderId em lib/googleDrive.ts e lib/oneDriveStorage.ts.
+export async function getProcessosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(PROCESSOS_ROOT_NAME, officeId);
+}
+
+export async function getCasosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(CASOS_ROOT_NAME, officeId);
+}
+
+// Lê id + nome + caminho do PAI atual de um item do Dropbox (arquivo ou pasta) — usado só por
+// scripts/migrar-pastas-casos.ts para descobrir em qual raiz uma pasta de caso está de verdade
+// antes de decidir se precisa mover. Devolve null (em vez de lançar) quando o item não existe mais
+// (get_metadata sem include_deleted não enxerga item apagado — mesmo efeito prático do 404 do
+// Google/OneDrive: pula a pasta, sem tentar recriá-la).
+export type DropboxItemInfo = { id: string; name: string; pathDisplay: string; parentPath: string };
+
+export async function getDropboxItemInfo(fileId: string, officeId: string): Promise<DropboxItemInfo | null> {
+  const accessToken = await getAccessTokenForOffice(officeId);
+  const res = await dbxFetch("/files/get_metadata", accessToken, { path: asIdPath(fileId) });
+  if (!res.ok) {
+    const bodyText = await res.text();
+    if (bodyIndicates(bodyText, "not_found")) return null;
+    throw new Error(`Falha ao buscar metadados no Dropbox (${res.status}): ${bodyText}`);
+  }
+  const data = (await res.json()) as { id: string; name: string; path_display: string };
+  const idx = data.path_display.lastIndexOf("/");
+  const parentPath = idx > 0 ? data.path_display.slice(0, idx) : "/";
+  return { id: asIdPath(data.id), name: data.name, pathDisplay: data.path_display, parentPath };
 }
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:

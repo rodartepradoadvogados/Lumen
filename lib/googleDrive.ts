@@ -2,6 +2,7 @@ import { google } from "googleapis";
 import { Readable } from "stream";
 import { prisma } from "@/lib/prisma";
 import { PROTOCOLOS_FOLDER_NAME } from "@/lib/protocolos";
+import { naturezaOf } from "@/lib/caseNatureza";
 
 // "drive" (acesso completo), não "drive.file" + "drive.readonly" como antes: drive.file só
 // permite ESCREVER (mover, renomear, mandar pra Lixeira) em arquivos que o próprio app criou via
@@ -420,17 +421,36 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
 
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
 const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
+// Raiz nova (separada de "Lúmen - Processos") para Case cuja natureza é "CASO" — ver
+// lib/caseNatureza.ts: qualquer type que não seja JUDICIAL nem ADMINISTRATIVO (EXTRAJUDICIAL, e os
+// legados ATENDIMENTO/CONSULTIVO). Antes desta mudança, TODO Case (processo ou caso) caía em
+// PROCESSOS_ROOT_NAME; pastas que já existiam lá antes desta entrega só migram para cá através de
+// scripts/migrar-pastas-casos.ts (nunca automaticamente) — ver getOrCreateCaseFolder abaixo, que
+// só decide a raiz para pasta NOVA (Case.driveFolderId ainda nulo).
+const CASOS_ROOT_NAME = "Lúmen - Casos";
 
-// Pasta própria de um processo no Drive ("Lúmen - Processos/{título}"), criada sob demanda no
-// primeiro anexo — o id fica salvo em Case.driveFolderId pra nunca precisar refazer essa busca
-// depois (mesmo padrão de Assessoria.driveFolderId). officeId garante que só se busca/atualiza
-// um Case do PRÓPRIO escritório (evita que alguém force um caseId de outro tenant).
+// Pasta própria de um processo/caso no Drive ("Lúmen - Processos/{título}" ou "Lúmen -
+// Casos/{título}", conforme Case.type — ver naturezaOf), criada sob demanda no primeiro anexo — o
+// id fica salvo em Case.driveFolderId pra nunca precisar refazer essa busca depois (mesmo padrão
+// de Assessoria.driveFolderId). officeId garante que só se busca/atualiza um Case do PRÓPRIO
+// escritório (evita que alguém force um caseId de outro tenant).
+//
+// PONTO CRÍTICO: a escolha de raiz abaixo só roda quando existing.driveFolderId ainda é nulo — um
+// Case que JÁ tem pasta (criada antes desta mudança, possivelmente ainda dentro de "Lúmen -
+// Processos") devolve essa pasta direto, na linha seguinte, sem olhar pra type nem para raiz
+// nenhuma. Isso é o que garante que este código nunca cria uma pasta duplicada para um Case que já
+// tinha uma: mover uma pasta de caso já existente para a raiz nova é trabalho exclusivo de
+// scripts/migrar-pastas-casos.ts (Tarefa B), não desta função.
 export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, officeId: string): Promise<string> {
-  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true } });
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true, type: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
   const { drive } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, PROCESSOS_ROOT_NAME);
+  // Fallback conservador (existing null, ex.: caseId inválido — não deveria acontecer, pois quem
+  // chama já validou o caseId antes) mantém o comportamento anterior a esta mudança: raiz de
+  // Processos.
+  const rootName = existing && naturezaOf(existing.type) === "CASO" ? CASOS_ROOT_NAME : PROCESSOS_ROOT_NAME;
+  const rootId = await getOrCreateRootFolder(drive, rootName);
   const folderId = await findOrCreateChildFolder(drive, rootId, caseTitle);
   await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -576,6 +596,14 @@ export async function getProcessosRootFolderId(officeId: string): Promise<string
 export async function getAtendimentosRootFolderId(officeId: string): Promise<string> {
   const { drive } = await getDriveClient(officeId);
   return getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
+}
+
+// Id da raiz "Lúmen - Casos" deste escritório (cria se ainda não existir) — exportado para o sync
+// reverso (lib/driveSync.ts) varrer o conteúdo da raiz nova, e para scripts/migrar-pastas-casos.ts
+// resolver o destino das pastas de caso movidas.
+export async function getCasosRootFolderId(officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, CASOS_ROOT_NAME);
 }
 
 // ============ MIGRAÇÃO DE PASTAS LEGADAS (ver lib/actions/driveFolderMigration.ts) ============

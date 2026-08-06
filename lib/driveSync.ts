@@ -1,7 +1,7 @@
 // Sync reverso do Google Drive: cobre o sentido contrário do upload normal (site -> Drive).
 // Roda uma vez por dia (app/api/cron/drive-sync/route.ts) e, para cada escritório com o Drive
-// conectado (GoogleCredential.isPrimaryDrive), varre "Lúmen - Processos" e "Lúmen -
-// Atendimentos" no Drive e:
+// conectado (GoogleCredential.isPrimaryDrive), varre "Lúmen - Processos", "Lúmen - Casos" e
+// "Lúmen - Atendimentos" no Drive e:
 //   1) registra como Attachment de verdade qualquer arquivo que já esteja no lugar certo
 //      (pasta do processo/atendimento + subpasta do tipo de documento) mas que ninguém subiu
 //      pelo site — o caso "alguém arrastou o arquivo direto pro Drive";
@@ -17,6 +17,7 @@ import {
   hasPrimaryDriveCredential,
   listDriveChildren,
   getProcessosRootFolderId,
+  getCasosRootFolderId,
   getAtendimentosRootFolderId,
 } from "@/lib/googleDrive";
 import { DOCUMENT_TYPES } from "@/lib/documentTypes";
@@ -191,14 +192,24 @@ async function syncContainerFolder(
   return { issues, seenFileIds, registered };
 }
 
-// Varre um dos dois roots ("Lúmen - Processos" -> Case, "Lúmen - Atendimentos" -> Attendance):
-// resolve cada subpasta de 1º nível contra o banco (por driveFolderId já salvo, ou por nome
-// exato quando ainda não há id salvo) e processa o que resolver; o que não resolver vira
-// PASTA_PROCESSO_SEM_CORRESPONDENCIA.
+// Varre um dos três roots ("Lúmen - Processos" -> Case processo, "Lúmen - Casos" -> Case caso,
+// "Lúmen - Atendimentos" -> Attendance): resolve cada subpasta de 1º nível contra o banco (por
+// driveFolderId já salvo, ou por nome exato quando ainda não há id salvo) e processa o que
+// resolver; o que não resolver vira PASTA_PROCESSO_SEM_CORRESPONDENCIA.
+//
+// "Lúmen - Processos" e "Lúmen - Casos" resolvem contra o MESMO conjunto de Case (kind="case"),
+// sem filtrar por type — de propósito: enquanto scripts/migrar-pastas-casos.ts (Tarefa B) não
+// tiver movido a pasta de um caso antigo para a raiz nova, essa pasta ainda está fisicamente em
+// "Lúmen - Processos" e precisa continuar resolvendo normalmente ali, ou o sync passaria a acusar
+// PASTA_PROCESSO_SEM_CORRESPONDENCIA nela (falso positivo) até alguém rodar a migração. rootLabel/
+// tipoLabel só existem para o TEXTO do alerta (raiz e substantivo corretos em cada chamada) — não
+// mudam a lógica de resolução, que é idêntica nos dois roots de "case".
 async function syncRoot(
   officeId: string,
   kind: ContainerKind,
-  rootFolderId: string
+  rootFolderId: string,
+  rootLabel: string,
+  tipoLabel: string
 ): Promise<{ issues: PendingIssue[]; seenFileIds: Set<string>; registered: number }> {
   const allIssues: PendingIssue[] = [];
   const allSeenFileIds = new Set<string>();
@@ -228,12 +239,11 @@ async function syncRoot(
     }
 
     if (!container) {
-      const tipo = kind === "case" ? "processo" : "atendimento";
       allIssues.push({
         driveFileId: folder.id,
         issueType: "PASTA_PROCESSO_SEM_CORRESPONDENCIA",
-        description: `A pasta "${folder.name}" em "Lúmen - ${kind === "case" ? "Processos" : "Atendimentos"}" não corresponde a nenhum ${tipo} deste escritório.`,
-        suggestedFix: `Renomeie a pasta "${folder.name}" no Drive para o título exato de um ${tipo} existente, ou verifique se este ${tipo} foi excluído do sistema.`,
+        description: `A pasta "${folder.name}" em "${rootLabel}" não corresponde a nenhum ${tipoLabel} deste escritório.`,
+        suggestedFix: `Renomeie a pasta "${folder.name}" no Drive para o título exato de um ${tipoLabel} existente, ou verifique se este ${tipoLabel} foi excluído do sistema.`,
         driveUrl: folder.webViewLink,
       });
       continue;
@@ -255,19 +265,26 @@ export async function syncOfficeDrive(officeId: string): Promise<SyncOfficeResul
   const connected = await hasPrimaryDriveCredential(officeId);
   if (!connected) return { registered: 0, issuesFound: 0, issuesResolved: 0 };
 
-  const [processosRootId, atendimentosRootId] = await Promise.all([
+  const [processosRootId, casosRootId, atendimentosRootId] = await Promise.all([
     getProcessosRootFolderId(officeId),
+    getCasosRootFolderId(officeId),
     getAtendimentosRootFolderId(officeId),
   ]);
 
-  const [casesResult, attendancesResult] = await Promise.all([
-    syncRoot(officeId, "case", processosRootId),
-    syncRoot(officeId, "attendance", atendimentosRootId),
-  ]);
+  // Os dois roots de "case" (Processos e Casos) rodam em SEQUÊNCIA, não em Promise.all: os dois
+  // resolvem contra o mesmo Case por título quando driveFolderId ainda é nulo (linha
+  // "driveFolderId: null, title: folder.name" acima) — em paralelo, duas pastas homônimas (uma em
+  // cada raiz, caso raríssimo mas possível durante a janela de transição) poderiam "reivindicar" o
+  // mesmo Case ao mesmo tempo, e as duas escritas de driveFolderId corririam entre si. Atendimento
+  // não compartilha esse risco com nenhum dos dois (tabela diferente), então continua sem custo
+  // extra de esperar por eles.
+  const processosResult = await syncRoot(officeId, "case", processosRootId, "Lúmen - Processos", "processo");
+  const casosResult = await syncRoot(officeId, "case", casosRootId, "Lúmen - Casos", "caso");
+  const attendancesResult = await syncRoot(officeId, "attendance", atendimentosRootId, "Lúmen - Atendimentos", "atendimento");
 
-  const issues = [...casesResult.issues, ...attendancesResult.issues];
-  const seenFileIds = new Set<string>([...casesResult.seenFileIds, ...attendancesResult.seenFileIds]);
-  const registered = casesResult.registered + attendancesResult.registered;
+  const issues = [...processosResult.issues, ...casosResult.issues, ...attendancesResult.issues];
+  const seenFileIds = new Set<string>([...processosResult.seenFileIds, ...casosResult.seenFileIds, ...attendancesResult.seenFileIds]);
+  const registered = processosResult.registered + casosResult.registered + attendancesResult.registered;
 
   // Bonus: Attachment do Google Drive já registrado cujo arquivo não apareceu em NENHUM lugar
   // varrido acima — foi apagado ou movido pra fora da estrutura esperada direto no Drive.
