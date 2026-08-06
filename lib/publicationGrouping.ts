@@ -39,8 +39,19 @@ function sourceRank(source: string): number {
 // ambiguidade de data ao redor de troca de horário. Formato en-CA devolve AAAA-MM-DD direto.
 const SP_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" });
 
-function saoPauloDayKey(date: string | Date): string {
+export function saoPauloDayKey(date: string | Date): string {
   return SP_DAY_FORMATTER.format(new Date(date));
+}
+
+// Intervalo em UTC que corresponde ao DIA de Brasília em que `date` caiu — para consultar no
+// banco "as outras publicações do mesmo dia" sem varrer a tabela inteira. Só é correto porque o
+// fuso é fixo em UTC-3 (ver acima): o dia D de Brasília começa em D 03:00Z e termina em
+// D+1 03:00Z. Deriva do MESMO formatador que decide o agrupamento, então não existe como as duas
+// regras divergirem — se um dia o Brasil voltar a ter horário de verão, os dois quebram juntos e
+// de forma visível, em vez de silenciosamente discordarem um do outro.
+export function saoPauloDayRangeUtc(date: string | Date): { start: Date; end: Date } {
+  const start = new Date(`${saoPauloDayKey(date)}T03:00:00.000Z`);
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
 }
 
 export type GroupableItem = {

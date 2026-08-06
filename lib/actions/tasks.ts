@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendPushIfEnabled } from "@/lib/push";
 import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice } from "@/lib/officeScope";
+import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 
 async function assertTaskRelationsInOffice(
   data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
@@ -206,7 +207,14 @@ export async function delegateTask(data: {
 
   if (data.publicationId) {
     await prisma.publication.updateMany({ where: { id: data.publicationId, officeId: viewer.officeId }, data: { assignedToId: responsibleIds[0] } });
+    // Compromisso criado (prazo, audiência ou tarefa delegada) = alguém ASSUMIU. A partir daqui a
+    // publicação sai da fila do escritório inteiro, não só de quem clicou — ver
+    // lib/publicationResolution.ts para a regra e para o motivo de ela valer só neste caminho
+    // (marcar como lida continua sendo pessoal, porque significa "não é comigo").
+    await resolvePublicationGroupForOffice(data.publicationId, viewer.officeId);
     revalidatePath("/publicacoes");
+    revalidatePath("/m/publicacoes");
+    revalidatePath("/m");
   }
 
   revalidatePath("/agenda");

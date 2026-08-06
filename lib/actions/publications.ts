@@ -18,6 +18,11 @@ export async function getUnreadPublicationsCount(): Promise<number> {
 
 // Leitura é por usuário — marcar como lida só afeta a visão de quem clicou, nunca a dos
 // colegas (diferente de anexar/agendar/delegar/triagem, que continuam compartilhados).
+//
+// Isso é regra deliberada, não limitação: marcar como lida quer dizer "não é comigo", e ninguém
+// deve conseguir sumir com uma pendência do escritório inteiro só por tê-la lido. A ÚNICA ação
+// que baixa o item para todo mundo é criar compromisso na agenda / delegar tarefa — porque aí
+// existe responsável, prazo e tarefa na agenda de alguém. Ver lib/publicationResolution.ts.
 export async function markPublicationRead(id: string) {
   const user = await getCurrentUser();
   if (!user) return;

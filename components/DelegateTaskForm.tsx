@@ -211,6 +211,16 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
           . {success.responsibleNames.length > 1 ? "Cada pessoa recebe seu próprio" : "A pessoa vai receber um"} alerta na Central de Alertas e o
           compromisso já aparece na Agenda.
         </p>
+        {/* Só quando a delegação nasceu de uma publicação: aí ela sai da fila de TODO MUNDO do
+            escritório, não só de quem clicou (ver lib/publicationResolution.ts). É uma
+            consequência que passa despercebida se não for dita — quem delega precisa saber que
+            acabou de baixar o item para os colegas também. */}
+        {initial?.publicationId && (
+          <p className="text-sm text-navy-800/60 dark:text-cream-50/60 max-w-sm">
+            Como agora existe responsável, a publicação sai da lista de pendências de <span className="font-semibold">todo o escritório</span> —
+            continua acessível na aba <span className="font-semibold">Lidas</span> e dentro do processo.
+          </p>
+        )}
         <button
           onClick={resetAll}
           className="mt-2 inline-flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2"
