@@ -153,13 +153,20 @@ function revalidateCaseScoped(caseId: string | null | undefined) {
 }
 
 // Exclusão em lote de RECEIVABLE/PAYABLE por escopo ("este e os seguintes" / "todos") — só chamada
-// para os três agrupamentos que existem hoje (ver comentário de cada ramo abaixo); fora deles cai
-// de volta em performDelete (comportamento de sempre, sem lote nenhum). Regra que vale para TODO
-// agrupamento aqui: uma parcela/linha já PAGA nunca é apagada de fato — ou é desvinculada do
-// cabeçalho (honorário parcelado) ou simplesmente pulada (parcelamento genérico e recorrente), pra
-// nunca sumir um registro financeiro definitivo de dentro de uma exclusão em lote.
+// para os agrupamentos que existem hoje (ver comentário de cada ramo abaixo); fora deles cai de
+// volta em performDelete (comportamento de sempre, sem lote nenhum).
+//
+// Regra de escopo (pedido explícito do dono do produto): FOLLOWING ("este e os seguintes") nunca
+// apaga uma parcela/linha já PAGA de fato — ou desvincula do cabeçalho (honorário parcelado) ou
+// simplesmente pula (parcelamento genérico e recorrente), preservando o histórico. ALL ("todos os
+// lançamentos") é a exceção: apaga a série INTEIRA, PAGAS incluídas — o usuário está lixando o
+// agrupamento inteiro de propósito, e como FinancePayment tem onDelete Cascade a partir de
+// Payable/Receivable (ver schema), o histórico de baixa some junto automaticamente, então Livro
+// Caixa/DRE (que leem Payable/Receivable.status="PAGO" direto, não via FinancePayment solto)
+// refletem a exclusão sem sobrar nada órfão.
+//
 // alsoDeleteLinked (ver performDelete acima) só tem efeito no ramo ONLY/avulso — quando o
-// lançamento pertence de fato a um dos três agrupamentos abaixo, a exclusão em lote continua sem
+// lançamento pertence de fato a um dos agrupamentos abaixo, a exclusão em lote continua sem
 // olhar para reembolso vinculado nenhum: na prática a UI (DeleteEntityButton) nunca mostra o
 // checkbox de "excluir também o vinculado" junto com a escolha de escopo FOLLOWING/ALL, então este
 // parâmetro chega como false/undefined nesses ramos.
@@ -167,19 +174,41 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
   if (scope === "ONLY") {
     return performDelete(entityType, entityId, officeId, alsoDeleteLinked);
   }
+  const includePago = scope === "ALL";
 
   if (entityType === "PAYABLE") {
     const anchor = await prisma.payable.findFirst({ where: { id: entityId, officeId } });
     if (!anchor) return {};
-    if (!anchor.groupId) {
-      // Avulso (sem parcelamento) — "seguintes"/"todos" não têm o que agrupar, comporta-se como ONLY.
+
+    if (anchor.recurringExpenseId) {
+      // Despesa recorrente sem data de fim (ver RecurringExpense, lib/actions/financeiro.ts) —
+      // não existem parcelas futuras já criadas no banco (nascem mês a mês via
+      // ensureRecurringExpensePayables), então FOLLOWING/ALL não apagam nada que ainda vai
+      // nascer: o que garante que não volta é RecurringExpense.active=false, desligado aqui
+      // independente do escopo — excluir "este e os seguintes" (ou "todos") da série implica
+      // parar de gerar as próximas competências também, não só apagar o que já existe.
+      const recurringExpenseId = anchor.recurringExpenseId;
+      const siblings = await prisma.payable.findMany({ where: { recurringExpenseId, officeId } });
+      const alvo =
+        scope === "FOLLOWING" && anchor.competencia
+          ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
+          : siblings;
+      const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.status !== "PAGO")).map((s) => s.id);
+      if (idsParaExcluir.length > 0) {
+        await prisma.payable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+      }
+      await prisma.recurringExpense.update({ where: { id: recurringExpenseId }, data: { active: false } });
+    } else if (anchor.groupId) {
+      const siblingsWhere =
+        scope === "FOLLOWING"
+          ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
+          : { groupId: anchor.groupId, officeId };
+      await prisma.payable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, status: { not: "PAGO" } } });
+    } else {
+      // Avulso (sem parcelamento nem recorrência) — "seguintes"/"todos" não têm o que agrupar,
+      // comporta-se como ONLY.
       return performDelete(entityType, entityId, officeId, alsoDeleteLinked);
     }
-    const siblingsWhere =
-      scope === "FOLLOWING"
-        ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
-        : { groupId: anchor.groupId, officeId };
-    await prisma.payable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
     revalidateFinanceScoped();
     revalidateCaseScoped(anchor.caseId);
     return {};
@@ -190,23 +219,29 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
   if (!anchor) return {};
 
   if (anchor.honorarioLancamentoId) {
-    // Honorário parcelado (Fase 2) — mesma proteção do entityType HONORARIO_LANCAMENTO em
-    // performDelete: parcela PAGA nunca é apagada, só desvinculada (vira Receivable solta,
-    // preservando a baixa). "Seguintes" só faz sentido quando a parcela tem installmentNumber
-    // (nasceu de um parcelamento de verdade, ver createHonorarioLancamento); nos lançamentos
-    // "dinheiro + percentual" sem parcelamento (installmentNumber nulo) não existe ordem nenhuma
-    // entre as linhas, então "seguintes" cai no mesmo efeito de "todos" — a única leitura que faz
-    // sentido ali.
+    // Honorário parcelado (Fase 2). "Seguintes" só faz sentido quando a parcela tem
+    // installmentNumber (nasceu de um parcelamento de verdade, ver createHonorarioLancamento);
+    // nos lançamentos "dinheiro + percentual" sem parcelamento (installmentNumber nulo) não
+    // existe ordem nenhuma entre as linhas, então "seguintes" cai no mesmo efeito de "todos" — a
+    // única leitura que faz sentido ali.
     const honorarioLancamentoId = anchor.honorarioLancamentoId;
     const siblingsWhere =
       scope === "FOLLOWING" && anchor.installmentNumber != null
         ? { honorarioLancamentoId, officeId, installmentNumber: { gte: anchor.installmentNumber } }
         : { honorarioLancamentoId, officeId };
-    await prisma.receivable.updateMany({ where: { ...siblingsWhere, status: "PAGO" }, data: { honorarioLancamentoId: null } });
-    await prisma.receivable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
-    // Cabeçalho órfão (nenhuma parcela mais vinculada, nem as pagas desvinculadas acima) some
-    // junto — mesma limpeza de performDelete/HONORARIO_LANCAMENTO, olhando o lançamento inteiro
-    // (não só o escopo desta exclusão), já que "seguintes" pode ter deixado o cabeçalho vazio.
+    if (includePago) {
+      // "Excluir todos" apaga a série inteira, pagas incluídas — diferente do "excluir
+      // lançamento inteiro" pelo próprio HonorarioLancamento (entityType HONORARIO_LANCAMENTO em
+      // performDelete, acima), que continua preservando parcelas pagas (motivo de produto
+      // diferente: lá é "apaguei sem querer o cabeçalho", aqui é "quero mesmo excluir tudo").
+      await prisma.receivable.deleteMany({ where: siblingsWhere });
+    } else {
+      await prisma.receivable.updateMany({ where: { ...siblingsWhere, status: "PAGO" }, data: { honorarioLancamentoId: null } });
+      await prisma.receivable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
+    }
+    // Cabeçalho órfão (nenhuma parcela mais vinculada) some junto — mesma limpeza de
+    // performDelete/HONORARIO_LANCAMENTO, olhando o lançamento inteiro (não só o escopo desta
+    // exclusão), já que "seguintes" pode ter deixado o cabeçalho vazio.
     const restantes = await prisma.receivable.count({ where: { honorarioLancamentoId } });
     if (restantes === 0) {
       const lancamento = await prisma.honorarioLancamento.findFirst({ where: { id: honorarioLancamentoId } });
@@ -216,17 +251,15 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       revalidateCaseScoped(anchor.caseId);
     }
   } else if (anchor.recurringFeeId) {
-    // Honorário recorrente até o arquivamento — não existem parcelas futuras já criadas no banco
-    // (nascem mês a mês via ensureRecurringFeeReceivables), então "excluir os seguintes"/"todos"
-    // não apaga nada que ainda vai nascer: o que garante que não volta é RecurringFee.active=false,
-    // que o cron respeita (para de gerar competência nova para um fee inativo).
+    // Honorário recorrente até o arquivamento — mesmo raciocínio do PAYABLE.recurringExpenseId
+    // acima: RecurringFee.active=false sempre, independente do escopo.
     const recurringFeeId = anchor.recurringFeeId;
     const siblings = await prisma.receivable.findMany({ where: { recurringFeeId, officeId } });
     const alvo =
       scope === "FOLLOWING" && anchor.competencia
         ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
         : siblings;
-    const idsParaExcluir = alvo.filter((s) => s.status !== "PAGO").map((s) => s.id);
+    const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.status !== "PAGO")).map((s) => s.id);
     if (idsParaExcluir.length > 0) {
       await prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } });
     }
@@ -238,7 +271,7 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       scope === "FOLLOWING"
         ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
         : { groupId: anchor.groupId, officeId };
-    await prisma.receivable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
+    await prisma.receivable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, status: { not: "PAGO" } } });
     revalidateCaseScoped(anchor.caseId);
   } else {
     // Avulso — sem agrupamento nenhum, comporta-se como ONLY.

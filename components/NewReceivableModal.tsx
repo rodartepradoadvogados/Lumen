@@ -19,6 +19,9 @@ import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
 
+// Mesmo mapeamento {value,label} -> {id,name} de NewPayableModal.tsx (ver comentário lá).
+const documentTypeOptions: Option[] = DOCUMENT_TYPE_OPTIONS.map((o) => ({ id: o.value, name: o.label }));
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -100,8 +103,8 @@ export default function NewReceivableModal({
   // ---- Identificação ----
   const [kind, setKind] = useState("HONORARIOS_CONTRATUAIS");
 
-  // ---- Documento ----
-  const [documentType, setDocumentType] = useState("");
+  // ---- Documento ---- documentType não é state controlado (ver EntityPicker.tsx, não aceita
+  // `value` externo) — lido via formData no submit, mesmo padrão de caseId/clientId/categoryId.
   const [documentNumber, setDocumentNumber] = useState("");
   const [issueDate, setIssueDate] = useState("");
 
@@ -217,7 +220,7 @@ export default function NewReceivableModal({
                     caseId: caseId || undefined,
                     responsibleId: responsibleId || undefined,
                     kind,
-                    documentType: documentType || undefined,
+                    documentType: String(formData.get("documentType") || "") || undefined,
                     documentNumber: documentNumber || undefined,
                     issueDate: issueDate || undefined,
                     amount: parcelado ? undefined : amount,
@@ -318,17 +321,14 @@ export default function NewReceivableModal({
                     )}
                     <div>
                       <label className={labelCls}>Responsável pelo lançamento</label>
-                      <select
+                      <EntityPicker
                         name="responsibleId"
+                        title="Responsável pelo lançamento"
+                        options={responsibles}
                         defaultValue={defaultResponsibleId}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
-                      >
-                        {responsibles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Buscar responsável..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
                   </div>
                 </SecaoLancamento>
@@ -337,18 +337,13 @@ export default function NewReceivableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Tipo de documento</label>
-                      <select
-                        value={documentType}
-                        onChange={(e) => setDocumentType(e.target.value)}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
-                      >
-                        <option value="">Não informado</option>
-                        {DOCUMENT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                      <EntityPicker
+                        name="documentType"
+                        title="Tipo de documento"
+                        options={documentTypeOptions}
+                        placeholder="Buscar tipo de documento..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
                     <div>
                       <label className={labelCls}>Número do documento</label>

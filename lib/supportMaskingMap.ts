@@ -259,6 +259,10 @@ export const SUPPORT_MASK_MAP: Record<string, Record<string, MaskKind>> = {
     description: "freeText",
     amount: "money",
   },
+  RecurringExpense: {
+    description: "freeText",
+    amount: "money",
+  },
   Licitacao: {
     objeto: "freeText",
     orgao: "freeText",

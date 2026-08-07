@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createPayable, type ParcelaInput, type PagamentoInput } from "@/lib/actions/financeiro";
+import { createPayable, createRecurringExpense, type ParcelaInput, type PagamentoInput } from "@/lib/actions/financeiro";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import { createCaseQuick } from "@/lib/actions/cases";
-import { createSupplierQuick } from "@/lib/actions/suppliers";
 import { createCostCenterQuick, createBankAccountQuick } from "@/lib/actions/settings";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
 import { PAYABLE_KIND_OPTIONS, EXPENSE_PAYER_LABELS } from "@/lib/despesaProcesso";
@@ -16,9 +15,14 @@ import { Plus, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import ContraparteField from "@/components/financeiro/ContraparteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
+
+// DOCUMENT_TYPE_OPTIONS é {value,label} (mesmo catálogo usado por um <select> comum) — EntityPicker
+// espera {id,name}, ver components/EntityPicker.tsx. Só o formato muda, o catálogo é o mesmo.
+const documentTypeOptions: Option[] = DOCUMENT_TYPE_OPTIONS.map((o) => ({ id: o.value, name: o.label }));
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -111,6 +115,7 @@ export default function NewPayableModal({
   costCenters = [],
   responsibles = [],
   bankAccounts = [],
+  teamMembers = [],
   defaultResponsibleId,
   defaultCaseId,
 }: {
@@ -120,6 +125,8 @@ export default function NewPayableModal({
   costCenters?: Option[];
   responsibles?: Option[];
   bankAccounts?: Option[];
+  // Pago a um membro da equipe em vez de a um Fornecedor — ver components/financeiro/ContraparteField.tsx.
+  teamMembers?: Option[];
   defaultResponsibleId?: string;
   // Presente = entrada pelo Processo (aba Financeiro → "+ Lançar Despesa"): pré-seleciona e trava
   // o processo, exatamente como LancarHonorariosModal.tsx faz. Ausente = entrada pelo Financeiro
@@ -142,8 +149,8 @@ export default function NewPayableModal({
   const [expensePayer, setExpensePayer] = useState<ExpensePayer>("ESCRITORIO");
   const [createReimbursement, setCreateReimbursement] = useState(true);
 
-  // ---- Documento ----
-  const [documentType, setDocumentType] = useState("");
+  // ---- Documento ---- documentType não é state controlado (ver EntityPicker.tsx, não aceita
+  // `value` externo) — lido via formData no submit, mesmo padrão de caseId/supplierId/categoryId.
   const [documentNumber, setDocumentNumber] = useState("");
   const [issueDate, setIssueDate] = useState("");
 
@@ -169,6 +176,13 @@ export default function NewPayableModal({
   const [paidAmount, setPaidAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
 
+  // ---- Despesa recorrente, sem data de fim (ver RecurringExpense, prisma/schema.prisma) ----
+  // Mutuamente exclusivo com parcelado/pago (ver handlers abaixo) — quando marcado, o submit vai
+  // inteiro para createRecurringExpense em vez de createPayable, e as seções Vencimento/
+  // Parcelamento/Pagamento somem da tela (não fazem sentido para um "molde" mensal indefinido).
+  const [recorrente, setRecorrente] = useState(false);
+  const [recorrenteDueDay, setRecorrenteDueDay] = useState("10");
+
   // ---- Comprovante ---- a conta ainda não existe neste ponto (o id só nasce depois do
   // createPayable abaixo) — o arquivo fica em memória e só é enviado depois do create ter
   // sucesso, ver o "action" do form.
@@ -182,13 +196,25 @@ export default function NewPayableModal({
     setParcelado(checked);
     if (checked) {
       setPago(false);
+      setRecorrente(false);
       if (parcelas.length === 0) regenerate(installmentCount, installmentIntervalDays, valorTotalIndicado);
     }
   }
 
   function handlePagoToggle(checked: boolean) {
     setPago(checked);
-    if (checked) setParcelado(false);
+    if (checked) {
+      setParcelado(false);
+      setRecorrente(false);
+    }
+  }
+
+  function handleRecorrenteToggle(checked: boolean) {
+    setRecorrente(checked);
+    if (checked) {
+      setParcelado(false);
+      setPago(false);
+    }
   }
 
   function updateParcela(key: string, patch: Partial<ParcelaRow>) {
@@ -240,8 +266,34 @@ export default function NewPayableModal({
                 try {
                   const description = String(formData.get("description") || "");
                   const supplierId = String(formData.get("supplierId") || "");
+                  const payeeUserId = String(formData.get("payeeUserId") || "");
                   const costCenterId = String(formData.get("costCenterId") || "");
                   const categoryId = String(formData.get("categoryId") || "");
+
+                  // Despesa recorrente é um "molde" mensal indefinido — não é um Payable em si
+                  // (não tem vencimento único, parcelamento nem baixa própria), vai inteiro para
+                  // createRecurringExpense e sai daqui sem tocar em nada do resto do formulário
+                  // (parcelas/pagamento/comprovante não fazem sentido pra ela).
+                  if (recorrente) {
+                    const recResult = await createRecurringExpense({
+                      description,
+                      amount,
+                      dueDay: recorrenteDueDay,
+                      categoryId: categoryId || undefined,
+                      costCenterId: costCenterId || undefined,
+                      supplierId: supplierId || undefined,
+                      payeeUserId: payeeUserId || undefined,
+                    });
+                    setLoading(false);
+                    if (recResult.error) {
+                      setError(recResult.error);
+                      return;
+                    }
+                    setOpen(false);
+                    router.refresh();
+                    return;
+                  }
+
                   // Vem da prop fixa (entrada pelo Processo) ou do seletor da seção Identificação
                   // (entrada pelo Financeiro central) — mesma convenção de LancarHonorariosModal.tsx.
                   const effectiveCaseId = defaultCaseId || caseId;
@@ -262,6 +314,7 @@ export default function NewPayableModal({
                   const result = await createPayable({
                     description,
                     supplierId: supplierId || undefined,
+                    payeeUserId: payeeUserId || undefined,
                     costCenterId: costCenterId || undefined,
                     categoryId: categoryId || undefined,
                     caseId: effectiveCaseId || undefined,
@@ -269,7 +322,7 @@ export default function NewPayableModal({
                     expensePayer: effectiveCaseId ? expensePayer : undefined,
                     createReimbursement: effectiveCaseId && expensePayer === "CLIENTE" ? createReimbursement : undefined,
                     responsibleId: responsibleId || undefined,
-                    documentType: documentType || undefined,
+                    documentType: String(formData.get("documentType") || "") || undefined,
                     documentNumber: documentNumber || undefined,
                     issueDate: issueDate || undefined,
                     amount: parcelado ? undefined : amount,
@@ -313,15 +366,7 @@ export default function NewPayableModal({
                 <SecaoLancamento title="Identificação" tone="palha">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>Fornecedor</label>
-                      <EntityPicker
-                        name="supplierId"
-                        options={suppliers}
-                        placeholder="Buscar fornecedor..."
-                        emptyLabel="Nenhum"
-                        addLabel="Cadastrar novo fornecedor"
-                        onQuickAdd={createSupplierQuick}
-                      />
+                      <ContraparteField suppliers={suppliers} teamMembers={teamMembers} />
                     </div>
                     <div>
                       <label className={labelCls}>Centro de custo</label>
@@ -354,17 +399,14 @@ export default function NewPayableModal({
                     )}
                     <div className="sm:col-span-2">
                       <label className={labelCls}>Responsável pelo lançamento</label>
-                      <select
+                      <EntityPicker
                         name="responsibleId"
+                        title="Responsável pelo lançamento"
+                        options={responsibles}
                         defaultValue={defaultResponsibleId}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
-                      >
-                        {responsibles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Buscar responsável..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
 
                     {/* Natureza da despesa e "Quem arca com o custo" só fazem sentido com processo
@@ -420,18 +462,13 @@ export default function NewPayableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Tipo de documento</label>
-                      <select
-                        value={documentType}
-                        onChange={(e) => setDocumentType(e.target.value)}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
-                      >
-                        <option value="">Não informado</option>
-                        {DOCUMENT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                      <EntityPicker
+                        name="documentType"
+                        title="Tipo de documento"
+                        options={documentTypeOptions}
+                        placeholder="Buscar tipo de documento..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
                     <div>
                       <label className={labelCls}>Número do documento</label>
@@ -475,7 +512,7 @@ export default function NewPayableModal({
                         step="0.01"
                         value={discount}
                         onChange={(e) => setDiscount(e.target.value)}
-                        disabled={parcelado}
+                        disabled={parcelado || recorrente}
                         className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
                       />
                     </div>
@@ -486,36 +523,71 @@ export default function NewPayableModal({
                         step="0.01"
                         value={surcharge}
                         onChange={(e) => setSurcharge(e.target.value)}
-                        disabled={parcelado}
+                        disabled={parcelado || recorrente}
                         className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
                       />
                     </div>
                   </div>
                 </SecaoLancamento>
 
-                <SecaoLancamento title="Vencimento" tone="azul">
-                  <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
-                    <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
-                    Sem vencimento definido
-                  </label>
-                  {!semVencimento ? (
-                    <div>
-                      <label className={labelCls}>Data de vencimento</label>
-                      <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        required={!semVencimento && !parcelado}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
-                      />
-                    </div>
+                <SecaoLancamento title={recorrente ? "Recorrência" : "Vencimento"} tone="azul">
+                  {/* Despesa recorrente é sempre do escritório como um todo (RecurringExpense não
+                      tem caseId) — some daqui quando a entrada é pelo Processo (defaultCaseId),
+                      pra não deixar o usuário marcar algo que silenciosamente ignoraria o
+                      processo escolhido. */}
+                  {!defaultCaseId && (
+                    <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                      <input type="checkbox" checked={recorrente} onChange={(e) => handleRecorrenteToggle(e.target.checked)} />
+                      Despesa recorrente (sem data de fim)
+                    </label>
+                  )}
+                  {recorrente ? (
+                    <>
+                      <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                        Ex.: honorário de advogado contratado, salário de funcionário/estagiário, assinatura de software (Claude, Jusbrasil,
+                        T.I....) — gera a conta automaticamente todo mês, sem precisar lançar de novo. Encerre quando o contrato/assinatura
+                        acabar (fica um card &quot;Despesa recorrente&quot; no topo da listagem, com o botão Encerrar).
+                      </p>
+                      <div>
+                        <label className={labelCls}>Dia do vencimento (todo mês)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={28}
+                          value={recorrenteDueDay}
+                          onChange={(e) => setRecorrenteDueDay(e.target.value)}
+                          required
+                          className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        />
+                      </div>
+                    </>
                   ) : (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
-                      Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
-                    </p>
+                    <>
+                      <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                        <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
+                        Sem vencimento definido
+                      </label>
+                      {!semVencimento ? (
+                        <div>
+                          <label className={labelCls}>Data de vencimento</label>
+                          <input
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            required={!semVencimento && !parcelado}
+                            className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                          Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
+                        </p>
+                      )}
+                    </>
                   )}
                 </SecaoLancamento>
 
+                {!recorrente && (
                 <SecaoLancamento title="Parcelamento" tone="rosa">
                   <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                     <input type="checkbox" checked={parcelado} disabled={pago} onChange={(e) => handleParceladoToggle(e.target.checked)} />
@@ -627,7 +699,9 @@ export default function NewPayableModal({
                     </div>
                   )}
                 </SecaoLancamento>
+                )}
 
+                {!recorrente && (
                 <SecaoLancamento title="Pagamento" tone="verde">
                   <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
                   <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
@@ -695,6 +769,7 @@ export default function NewPayableModal({
                     </div>
                   )}
                 </SecaoLancamento>
+                )}
               </div>
 
               <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-cream-50/60 dark:bg-white/5">

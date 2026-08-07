@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { updatePayable } from "@/lib/actions/financeiro";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import { createCaseQuick } from "@/lib/actions/cases";
-import { createSupplierQuick } from "@/lib/actions/suppliers";
 import { createCostCenterQuick } from "@/lib/actions/settings";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
 import { PAYABLE_KIND_OPTIONS, EXPENSE_PAYER_LABELS } from "@/lib/despesaProcesso";
@@ -14,11 +13,15 @@ import { valorLiquido } from "@/lib/financeCalc";
 import { formatCurrency, formatDate } from "@/components/ui";
 import { Pencil, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import ContraparteField from "@/components/financeiro/ContraparteField";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
+
+// Mesmo mapeamento {value,label} -> {id,name} de NewPayableModal.tsx (ver comentário lá).
+const documentTypeOptions: Option[] = DOCUMENT_TYPE_OPTIONS.map((o) => ({ id: o.value, name: o.label }));
 
 type ExpensePayer = "ESCRITORIO" | "CLIENTE";
 
@@ -63,11 +66,15 @@ export default function EditPayableModal({
   suppliers,
   costCenters = [],
   responsibles = [],
+  teamMembers = [],
 }: {
   payable: {
     id: string;
     description: string;
     supplierId: string | null;
+    // Pago a um membro da equipe em vez de a um Fornecedor — opcional pelo mesmo motivo dos
+    // demais campos "novos" abaixo (telas mais antigas que ainda não passam este campo).
+    payeeUserId?: string | null;
     amount: number;
     // Os campos abaixo são da Fase 3 (documento/desconto/acréscimo/responsável/parcela/
     // pagamento) — opcionais aqui para telas mais antigas (ex.: aba Financeiro do Processo) que
@@ -113,6 +120,9 @@ export default function EditPayableModal({
   suppliers: Option[];
   costCenters?: Option[];
   responsibles?: Option[];
+  // Pago a um membro da equipe (ver payable.payeeUserId acima) — mesma lista de usuários ativos
+  // do escritório usada em `responsibles`, ver comentário equivalente em PayablesList.tsx.
+  teamMembers?: Option[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -176,6 +186,7 @@ export default function EditPayableModal({
                   const result = await updatePayable(payable.id, {
                     description: String(formData.get("description")),
                     supplierId: String(formData.get("supplierId") || ""),
+                    payeeUserId: String(formData.get("payeeUserId") || ""),
                     costCenterId: String(formData.get("costCenterId") || ""),
                     categoryId: String(formData.get("categoryId") || ""),
                     caseId: submittedCaseId,
@@ -224,15 +235,11 @@ export default function EditPayableModal({
                 <SecaoLancamento title="Identificação" tone="palha">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>Fornecedor</label>
-                      <EntityPicker
-                        name="supplierId"
-                        options={suppliers}
-                        defaultValue={payable.supplierId ?? undefined}
-                        placeholder="Buscar fornecedor..."
-                        emptyLabel="Nenhum"
-                        addLabel="Cadastrar novo fornecedor"
-                        onQuickAdd={createSupplierQuick}
+                      <ContraparteField
+                        suppliers={suppliers}
+                        teamMembers={teamMembers}
+                        defaultSupplierId={payable.supplierId}
+                        defaultPayeeUserId={payable.payeeUserId}
                       />
                     </div>
                     <div>
@@ -277,14 +284,14 @@ export default function EditPayableModal({
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelCls}>Responsável pelo lançamento</label>
-                      <select name="responsibleId" defaultValue={payable.responsibleId ?? ""} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
-                        <option value="">Não informado</option>
-                        {responsibles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                      <EntityPicker
+                        name="responsibleId"
+                        title="Responsável pelo lançamento"
+                        options={responsibles}
+                        defaultValue={payable.responsibleId ?? undefined}
+                        placeholder="Buscar responsável..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
 
                     {/* Natureza da despesa e "Quem arca com o custo" só fazem sentido com processo
@@ -353,14 +360,14 @@ export default function EditPayableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Tipo de documento</label>
-                      <select name="documentType" defaultValue={payable.documentType ?? ""} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
-                        <option value="">Não informado</option>
-                        {DOCUMENT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                      <EntityPicker
+                        name="documentType"
+                        title="Tipo de documento"
+                        options={documentTypeOptions}
+                        defaultValue={payable.documentType ?? undefined}
+                        placeholder="Buscar tipo de documento..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
                     <div>
                       <label className={labelCls}>Número do documento</label>

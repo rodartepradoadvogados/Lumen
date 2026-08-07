@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice, isUserInOffice } from "@/lib/officeScope";
 import { valorLiquido, statusPorPagamentos } from "@/lib/financeCalc";
 import { renameDriveFile } from "@/lib/storageProvider";
 import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceiptNaming";
@@ -15,7 +15,7 @@ import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceip
 // Recebimento do Lançamento de Honorários) é opcional pelo mesmo motivo dos demais: só é checado
 // quando o chamador de fato manda um valor.
 export async function assertFinanceRelationsInOffice(
-  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string; bankAccountId?: string },
+  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string; bankAccountId?: string; payeeUserId?: string },
   officeId: string
 ): Promise<void> {
   if (data.caseId && !(await isCaseInOffice(data.caseId, officeId))) throw new Error("Processo não encontrado.");
@@ -24,6 +24,7 @@ export async function assertFinanceRelationsInOffice(
   if (data.costCenterId && !(await isCostCenterInOffice(data.costCenterId, officeId))) throw new Error("Centro de custo não encontrado.");
   if (data.supplierId && !(await isSupplierInOffice(data.supplierId, officeId))) throw new Error("Fornecedor não encontrado.");
   if (data.bankAccountId && !(await isBankAccountInOffice(data.bankAccountId, officeId))) throw new Error("Conta bancária não encontrada.");
+  if (data.payeeUserId && !(await isUserInOffice(data.payeeUserId, officeId))) throw new Error("Membro da equipe não encontrado.");
 }
 
 // Não pode ser exportada (todo export de um arquivo "use server" precisa ser função async) —
@@ -339,6 +340,19 @@ async function supplierDisplayName(supplierId: string | undefined, officeId: str
   return supplier?.name ?? null;
 }
 
+// Nome de exibição/busca de QUEM RECEBE uma Payable (Payable.supplier, campo de texto — ver
+// comentário no schema) — Fornecedor OU membro da equipe (payeeUserId), NUNCA os dois ao mesmo
+// tempo: payeeUserId sempre vence quando os dois vierem preenchidos por engano (a UI, ver
+// components/financeiro/ContraparteField.tsx, só manda um dos dois por vez — o servidor nunca
+// confia só nisso).
+async function payablePayeeDisplayName(supplierId: string | undefined, payeeUserId: string | undefined, officeId: string): Promise<string | null> {
+  if (payeeUserId) {
+    const user = await prisma.user.findFirst({ where: { id: payeeUserId, officeId }, select: { name: true } });
+    return user?.name ?? null;
+  }
+  return supplierDisplayName(supplierId, officeId);
+}
+
 // ---- Fase 3 — Contas a Pagar/Receber com a mesma casca de Lançar Honorários -----------------
 // Tipos compartilhados entre createPayable/createReceivable, no mesmo formato de
 // lib/actions/honorarioLancamento.ts:ParcelaInput/PagamentoInput — duplicados aqui (não
@@ -394,6 +408,8 @@ async function registrarPagamentoReceivable(receivableId: string, pagamento: Pag
 export async function updatePayable(id: string, data: {
   description: string;
   supplierId?: string;
+  // Mesma ideia de CreatePayableInput.payeeUserId — vence sobre supplierId.
+  payeeUserId?: string;
   costCenterId?: string;
   categoryId?: string;
   caseId?: string;
@@ -457,7 +473,10 @@ export async function updatePayable(id: string, data: {
   const wantsReimbursement =
     !hasReimbursement && Boolean(data.createReimbursement) && expensePayer === "CLIENTE" && Boolean(effectiveCaseId);
 
-  const supplierName = await supplierDisplayName(data.supplierId, officeId);
+  // payeeUserId sempre vence sobre supplierId — mesma regra de createPayable.
+  const payeeUserId = data.payeeUserId || undefined;
+  const supplierId = payeeUserId ? undefined : data.supplierId || undefined;
+  const payeeName = await payablePayeeDisplayName(supplierId, payeeUserId, officeId);
   const amount = parseFloat(data.amount);
   const discount = parseFloat(data.discount || "0") || 0;
   const surcharge = parseFloat(data.surcharge || "0") || 0;
@@ -470,8 +489,9 @@ export async function updatePayable(id: string, data: {
     where: { id },
     data: {
       description: data.description,
-      supplierId: data.supplierId || null,
-      supplier: supplierName,
+      supplierId: supplierId || null,
+      payeeUserId: payeeUserId || null,
+      supplier: payeeName,
       costCenterId: data.costCenterId || null,
       categoryId: data.categoryId || null,
       caseId: effectiveCaseId || null,
@@ -605,6 +625,9 @@ async function createReimbursementReceivable(params: {
 export type CreatePayableInput = {
   description: string;
   supplierId?: string;
+  // Pago a um membro da equipe (advogado contratado, estagiário, funcionário) em vez de a um
+  // Fornecedor — mutuamente exclusivo com supplierId, ver payablePayeeDisplayName acima.
+  payeeUserId?: string;
   costCenterId?: string;
   categoryId?: string;
   caseId?: string;
@@ -652,14 +675,19 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
   // da Payable, mesmo que createReimbursement venha true por engano do chamador.
   const wantsReimbursement = Boolean(data.createReimbursement) && expensePayer === "CLIENTE" && Boolean(data.caseId);
 
-  const supplierName = await supplierDisplayName(data.supplierId, officeId);
+  // payeeUserId sempre vence sobre supplierId quando os dois vierem preenchidos — mesma regra
+  // de createRecurringExpense/updatePayable (ver payablePayeeDisplayName acima).
+  const payeeUserId = data.payeeUserId || undefined;
+  const supplierId = payeeUserId ? undefined : data.supplierId || undefined;
+  const payeeName = await payablePayeeDisplayName(supplierId, payeeUserId, officeId);
   const shared = {
     officeId,
     categoryId: data.categoryId || null,
     costCenterId: data.costCenterId || null,
     caseId: data.caseId || null,
-    supplierId: data.supplierId || null,
-    supplier: supplierName,
+    supplierId: supplierId || null,
+    payeeUserId: payeeUserId || null,
+    supplier: payeeName,
     responsibleId: data.responsibleId || null,
     documentType: data.documentType || null,
     documentNumber: data.documentNumber || null,
@@ -870,12 +898,13 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
   return { id: firstReceivableId ?? undefined };
 }
 
-// Quantos meses (mês corrente + à frente) o RecurringFee sempre mantém materializados em
-// Receivable — precisa cobrir a janela do Fluxo de Caixa (hoje: 3 meses à frente, ver
-// app/(app)/financeiro/fluxo-de-caixa/page.tsx), senão os meses futuros aparecem zerados na
-// projeção até o dia em que cada um "chegar" e o cron gerar a linha. Gerando com antecedência,
-// a página de projeção não precisa de nenhuma lógica própria de extrapolação — ela já soma linhas
-// reais como sempre fez.
+// Quantos meses (mês corrente + à frente) RecurringFee/RecurringExpense sempre mantêm
+// materializados em Receivable/Payable — precisa cobrir a janela do Fluxo de Caixa (hoje: 3
+// meses à frente, ver app/(app)/financeiro/fluxo-de-caixa/page.tsx), senão os meses futuros
+// aparecem zerados na projeção até o dia em que cada um "chegar" e o cron gerar a linha. Gerando
+// com antecedência, a página de projeção não precisa de nenhuma lógica própria de extrapolação —
+// ela já soma linhas reais como sempre fez. Nome mantido do tempo em que só RecurringFee
+// existia — reaproveitado por ensureRecurringExpensePayables abaixo, não vale a pena renomear.
 const RECURRING_FEE_MONTHS_AHEAD = 4;
 
 function competenciaFor(year: number, month0: number): string {
@@ -990,5 +1019,111 @@ export async function deactivateRecurringFee(id: string): Promise<{ error?: stri
   await prisma.recurringFee.update({ where: { id }, data: { active: false } });
   revalidateFinance();
   revalidateCase(existing.caseId);
+  return {};
+}
+
+// ---- Despesa recorrente, SEM DATA DE FIM (advogado contratado, funcionário, assinatura de
+// software, etc.) — mesmo mecanismo de RecurringFee acima (materializa mês a mês, cron próprio
+// mantém a janela adiante), mas do lado das Despesas e sem vínculo a processo nenhum: ao
+// contrário do honorário "até o arquivamento" (que existe dentro de um Case e para sozinho
+// quando ele é arquivado), esta despesa é do escritório como um todo e só para quando o usuário
+// encerra manualmente (deactivateRecurringExpense) — nunca sozinha. Criada como um modo dentro
+// de "Nova Conta a Pagar" (NewPayableModal.tsx), ao lado de "Parcelado"/"Já foi pago". ----
+export async function createRecurringExpense(data: {
+  description: string;
+  amount: string;
+  dueDay: string;
+  categoryId?: string;
+  costCenterId?: string;
+  supplierId?: string;
+  payeeUserId?: string;
+}): Promise<{ error?: string }> {
+  const officeId = await requireFinanceOfficeId();
+  if (!data.description.trim()) return { error: "Informe a descrição." };
+  try {
+    await assertFinanceRelationsInOffice(data, officeId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+
+  // payeeUserId sempre vence sobre supplierId quando os dois vierem preenchidos — mesma regra
+  // de createPayable/updatePayable (ver payablePayeeDisplayName acima).
+  const payeeUserId = data.payeeUserId || undefined;
+  const supplierId = payeeUserId ? undefined : data.supplierId || undefined;
+
+  await prisma.recurringExpense.create({
+    data: {
+      officeId,
+      description: data.description,
+      amount: parseFloat(data.amount) || 0,
+      dueDay: Math.min(28, Math.max(1, parseInt(data.dueDay) || 10)),
+      categoryId: data.categoryId || null,
+      costCenterId: data.costCenterId || null,
+      supplierId: supplierId || null,
+      payeeUserId: payeeUserId || null,
+    },
+  });
+  // Materializa já os próximos meses (não espera o cron rodar amanhã) — mesmo raciocínio de
+  // createRecurringFee acima.
+  await ensureRecurringExpensePayables();
+  revalidateFinance();
+  return {};
+}
+
+// Roda diariamente via cron (app/api/cron/recurring-expenses/route.ts) — idempotente, mesma
+// constraint única (recurringExpenseId, competencia) em Payable que RecurringFee usa do lado das
+// Receivable. Diferente de ensureRecurringFeeReceivables: NUNCA desativa sozinha (não existe
+// processo pra arquivar aqui) — só para quando o usuário encerra manualmente.
+export async function ensureRecurringExpensePayables(): Promise<{ created: number }> {
+  const now = new Date();
+  const expenses = await prisma.recurringExpense.findMany({ where: { active: true } });
+
+  let created = 0;
+  for (const expense of expenses) {
+    const supplierName = await payablePayeeDisplayName(expense.supplierId ?? undefined, expense.payeeUserId ?? undefined, expense.officeId);
+    for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
+      const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const year = target.getFullYear();
+      const month0 = target.getMonth();
+      const competencia = competenciaFor(year, month0);
+      const exists = await prisma.payable.findUnique({
+        where: { recurringExpenseId_competencia: { recurringExpenseId: expense.id, competencia } },
+      });
+      if (exists) continue;
+
+      const dueDate = dueDateFor(year, month0, expense.dueDay);
+      const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      await prisma.payable.create({
+        data: {
+          officeId: expense.officeId,
+          description: `${expense.description} — ${monthLabel}`,
+          amount: expense.amount,
+          dueDate,
+          categoryId: expense.categoryId,
+          costCenterId: expense.costCenterId,
+          supplierId: expense.supplierId,
+          payeeUserId: expense.payeeUserId,
+          supplier: supplierName,
+          recurringExpenseId: expense.id,
+          competencia,
+        },
+      });
+      created++;
+    }
+  }
+
+  revalidateFinance();
+  return { created };
+}
+
+// Encerra manualmente uma despesa recorrente (ex.: contrato do advogado/estagiário terminou,
+// cancelou a assinatura do software) — as parcelas já geradas continuam existindo normalmente em
+// Contas a Pagar, só para de gerar as futuras.
+export async function deactivateRecurringExpense(id: string): Promise<{ error?: string }> {
+  const officeId = await requireFinanceOfficeId();
+  const existing = await prisma.recurringExpense.findFirst({ where: { id, officeId } });
+  if (!existing) return { error: "Despesa recorrente não encontrada." };
+  await prisma.recurringExpense.update({ where: { id }, data: { active: false } });
+  revalidateFinance();
   return {};
 }

@@ -8,9 +8,12 @@ export function financeGroupKind(entity: {
   groupId?: string | null;
   honorarioLancamentoId?: string | null;
   recurringFeeId?: string | null;
+  // Só em Payable (ver RecurringExpense, lib/actions/financeiro.ts) — despesa recorrente sem
+  // data de fim, mesmo grupo visual "RECORRENTE" do honorário até o arquivamento acima.
+  recurringExpenseId?: string | null;
 }): FinanceGroupKind | undefined {
   if (entity.honorarioLancamentoId) return "HONORARIO";
-  if (entity.recurringFeeId) return "RECORRENTE";
+  if (entity.recurringFeeId || entity.recurringExpenseId) return "RECORRENTE";
   if (entity.groupId) return "PARCELAMENTO";
   return undefined;
 }

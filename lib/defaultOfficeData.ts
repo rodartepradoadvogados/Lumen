@@ -65,6 +65,7 @@ export const DEFAULT_CHART_OF_ACCOUNTS: CatNode[] = [
           { code: "2.2.1", name: "Salário", kind: "DESPESA" },
           { code: "2.2.2", name: "Pró-labore", kind: "DESPESA" },
           { code: "2.2.3", name: "Pagamento de Advogado Parceiro", kind: "DESPESA" },
+          { code: "2.2.4", name: "Honorários de Estagiário", kind: "DESPESA" },
         ],
       },
       {

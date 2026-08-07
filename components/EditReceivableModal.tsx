@@ -19,6 +19,9 @@ import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
 
+// Mesmo mapeamento {value,label} -> {id,name} de NewPayableModal.tsx (ver comentário lá).
+const documentTypeOptions: Option[] = DOCUMENT_TYPE_OPTIONS.map((o) => ({ id: o.value, name: o.label }));
+
 const labelCls = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
 
 export default function EditReceivableModal({
@@ -214,14 +217,14 @@ export default function EditReceivableModal({
                     </div>
                     <div>
                       <label className={labelCls}>Responsável pelo lançamento</label>
-                      <select name="responsibleId" defaultValue={receivable.responsibleId ?? ""} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
-                        <option value="">Não informado</option>
-                        {responsibles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
+                      <EntityPicker
+                        name="responsibleId"
+                        title="Responsável pelo lançamento"
+                        options={responsibles}
+                        defaultValue={receivable.responsibleId ?? undefined}
+                        placeholder="Buscar responsável..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
                   </div>
                 </SecaoLancamento>
@@ -230,14 +233,14 @@ export default function EditReceivableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Tipo de documento</label>
-                      <select name="documentType" defaultValue={receivable.documentType ?? ""} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
-                        <option value="">Não informado</option>
-                        {DOCUMENT_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                      <EntityPicker
+                        name="documentType"
+                        title="Tipo de documento"
+                        options={documentTypeOptions}
+                        defaultValue={receivable.documentType ?? undefined}
+                        placeholder="Buscar tipo de documento..."
+                        emptyLabel="Não informado"
+                      />
                     </div>
                     <div>
                       <label className={labelCls}>Número do documento</label>

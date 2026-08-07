@@ -22,6 +22,8 @@ type Payable = {
   description: string;
   supplier: string | null;
   supplierId: string | null;
+  // Pago a um membro da equipe em vez de a um Fornecedor — ver Payable.payeeUserId.
+  payeeUserId: string | null;
   amount: number;
   discount: number;
   surcharge: number;
@@ -45,6 +47,9 @@ type Payable = {
   installmentNumber: number | null;
   installmentTotal: number | null;
   groupId: string | null;
+  // Despesa recorrente sem data de fim (ver RecurringExpense, prisma/schema.prisma) — usado por
+  // financeGroupKind para o mesmo agrupamento visual "RECORRENTE" do honorário até o arquivamento.
+  recurringExpenseId: string | null;
   category: { name: string } | null;
   costCenter: { name: string } | null;
   case: { title: string } | null;
@@ -69,6 +74,7 @@ export default function PayablesList({
   costCenters,
   responsibles = [],
   bankAccounts = [],
+  teamMembers = [],
 }: {
   payables: Payable[];
   categories: Option[];
@@ -77,6 +83,10 @@ export default function PayablesList({
   costCenters: Option[];
   responsibles?: Option[];
   bankAccounts?: Option[];
+  // Pago a um membro da equipe (ver Payable.payeeUserId/EditPayableModal.tsx) — mesma lista de
+  // usuários ativos do escritório usada em `responsibles`, passada solta pra deixar explícito
+  // que os dois papéis (quem lançou vs. quem é pago) podem divergir.
+  teamMembers?: Option[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -160,6 +170,7 @@ export default function PayablesList({
                     id: p.id,
                     description: p.description,
                     supplierId: p.supplierId,
+                    payeeUserId: p.payeeUserId,
                     amount: p.amount,
                     discount: p.discount,
                     surcharge: p.surcharge,
@@ -189,6 +200,7 @@ export default function PayablesList({
                   categories={categories}
                   cases={cases}
                   suppliers={suppliers}
+                  teamMembers={teamMembers}
                   costCenters={costCenters}
                   responsibles={responsibles}
                 />

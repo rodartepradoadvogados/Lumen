@@ -126,6 +126,7 @@ model Office {
   payables             Payable[]
   receivables          Receivable[]
   recurringFees        RecurringFee[]
+  recurringExpenses    RecurringExpense[]
   assessorias          Assessoria[]
   assessoriaDocumentos AssessoriaDocumento[]
   pareceres            Parecer[]
@@ -285,6 +286,10 @@ model User {
   // parcial (FinancePayment.createdById). Papéis distintos entre si de propósito: quem lança a
   // conta muitas vezes não é quem depois dá baixa ou apura o êxito.
   payablesResponsible            Payable[]             @relation("PayableResponsible")
+  // Contas a Pagar em que este User é quem RECEBE o pagamento (honorário de advogado contratado,
+  // estagiário, funcionário — ver Payable.payeeUserId), distinto de payablesResponsible acima
+  // (quem lançou a conta, não quem é pago por ela).
+  payablesAsPayee                Payable[]             @relation("PayablePayee")
   receivablesResponsible         Receivable[]          @relation("ReceivableResponsible")
   receivablesApuradas            Receivable[]          @relation("ReceivableApuradoPor")
   honorarioLancamentosResponsible HonorarioLancamento[] @relation("HonorarioLancamentoResponsible")
@@ -1542,6 +1547,16 @@ model Payable {
   supplierId  String?
   supplierRef Supplier? @relation(fields: [supplierId], references: [id])
 
+  // Pagamento a um MEMBRO DA EQUIPE (advogado contratado, estagiário, funcionário) em vez de a
+  // um Fornecedor — mutuamente exclusivo com supplierId (a Server Action garante isso, não o
+  // schema). Existe porque cadastrar colega/estagiário como "Fornecedor" misturaria folha de
+  // pagamento com gasto de terceiro na mesma lista, e o usuário não deveria precisar de um
+  // cadastro extra para pagar alguém que já é User do próprio escritório. `supplier` (acima)
+  // continua sendo o nome de exibição/busca nos dois casos — populado com Supplier.name OU
+  // User.name conforme qual dos dois foi escolhido (ver createPayable/updatePayable).
+  payeeUserId String?
+  payeeUser   User?   @relation("PayablePayee", fields: [payeeUserId], references: [id])
+
   // Quem lançou esta conta — só para exibição ("lançado por"), não afeta quem enxerga
   // (isso é por officeId, como sempre).
   responsibleId String?
@@ -1567,6 +1582,14 @@ model Payable {
   receiptStorageFileId   String?
   receiptFileName        String?
 
+  // Preenchidos só quando esta linha foi gerada por um RecurringExpense ("despesa recorrente,
+  // sem data de fim") — mesmo desenho de Receivable.recurringFeeId/competencia (ver comentário
+  // lá e ensureRecurringExpensePayables em lib/actions/financeiro.ts), do lado das Despesas.
+  recurringExpenseId String?
+  recurringExpense   RecurringExpense? @relation(fields: [recurringExpenseId], references: [id])
+  competencia        String?
+
+  @@unique([recurringExpenseId, competencia])
   @@index([officeId])
   @@index([officeId, dueDate])
 }
@@ -1733,6 +1756,36 @@ model RecurringFee {
 
   @@index([officeId])
   @@index([caseId])
+}
+
+// Despesa recorrente SEM DATA DE FIM (ex.: honorário de advogado contratado, salário de
+// funcionário/estagiário, assinatura do Claude, Jusbrasil, T.I.) — mesmo mecanismo de
+// materialização mês a mês de RecurringFee acima (ensureRecurringExpensePayables, lib/actions/
+// financeiro.ts, cron próprio em app/api/cron/recurring-expenses/route.ts), mas do lado das
+// Despesas e SEM vínculo a processo: ao contrário do honorário "até o arquivamento" (que existe
+// só dentro de um Case e para sozinho quando ele é arquivado), esta é uma despesa do escritório
+// como um todo, criada como um modo dentro de "Nova Conta a Pagar" (NewPayableModal) — projeta
+// indefinidamente até o usuário encerrar manualmente (active vira false), nunca sozinha.
+// supplierId/payeeUserId espelham os mesmos dois campos de Payable (ver comentário lá) — exatamente
+// UM dos dois preenchido, nunca os dois, validado pela Server Action.
+model RecurringExpense {
+  id           String   @id @default(cuid())
+  description  String
+  amount       Float
+  dueDay       Int // dia do mês de vencimento (clampado 1-28, mesmo padrão de RecurringFee.dueDay)
+  categoryId   String?
+  costCenterId String?
+  supplierId   String?
+  payeeUserId  String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  payables Payable[]
+
+  @@index([officeId])
 }
 
 // ============ FUNDAÇÃO DE DADOS — FINANCEIRO AVANÇADO (Fase 1, aditiva e dormente) ============

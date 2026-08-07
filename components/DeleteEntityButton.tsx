@@ -31,7 +31,8 @@ export type LinkedReimbursement =
   | { direction: "receivableReimbursesPayable"; description: string };
 
 const FOLLOWING_CONFIRM = "Tem certeza que deseja excluir esse evento e todos os outros seguintes?";
-const ALL_CONFIRM = "Tem certeza que deseja excluir todos os lançamentos? Essa ação impactará em todo o financeiro relativo a essa conta.";
+const ALL_CONFIRM =
+  "Tem certeza que deseja excluir todos os lançamentos dessa série, incluindo os já pagos/recebidos? Essa ação impactará em todo o financeiro relativo a essa conta (Livro Caixa, DRE e outros) e não pode ser desfeita.";
 
 export default function DeleteEntityButton({
   entityType,
