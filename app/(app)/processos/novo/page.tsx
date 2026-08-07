@@ -14,20 +14,8 @@ import AssessoriaSelect from "@/components/AssessoriaSelect";
 import SaveCaseButton from "@/components/SaveCaseButton";
 import NewCaseAttachmentsField from "@/components/NewCaseAttachmentsField";
 import NovoCaseNaturezaSection from "@/components/NovoCaseNaturezaSection";
-
-const AREA_OPTIONS = [
-  "Cível",
-  "Trabalhista",
-  "Tributário",
-  "Família",
-  "Sucessões",
-  "Criminal",
-  "Previdenciário",
-  "Empresarial",
-  "Consumidor",
-  "Administrativo",
-  "Outra",
-];
+import CaseMateriaField from "@/components/processo/CaseMateriaField";
+import AssuntosField from "@/components/processo/AssuntosField";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +79,9 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
     await createCase({
       title: String(formData.get("title")),
       type: String(formData.get("type")),
-      area: String(formData.get("area") || ""),
+      materias: formData.getAll("materias").map(String),
+      assuntos: formData.getAll("assuntos").map(String),
+      distributedAt: String(formData.get("distributedAt") || ""),
       processNumber: String(formData.get("processNumber") || ""),
       court: String(formData.get("court") || ""),
       caseValue: String(formData.get("caseValue") || ""),
@@ -135,16 +125,10 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
                 defaultProcessNumber={searchParams.processNumber}
                 inputClassName="input"
               />
+              <CaseMateriaField />
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
-                <select name="area" defaultValue="" className="input">
-                  <option value="">Não definida</option>
-                  {AREA_OPTIONS.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </select>
+                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data da distribuição</label>
+                <input name="distributedAt" type="date" className="input" />
               </div>
             </>
           ) : (
@@ -166,17 +150,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
                   <option value="CONSULTIVO">Consultivo</option>
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Área</label>
-                <select name="area" defaultValue="" className="input">
-                  <option value="">Não definida</option>
-                  {AREA_OPTIONS.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CaseMateriaField />
             </div>
           )}
 
@@ -211,9 +185,11 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
 
           <AssessoriaSelect assessorias={assessorias} inputClassName="input" defaultValue={searchParams.assessoriaId} />
 
+          <AssuntosField inputClassName="input" />
+
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição / Observações</label>
-            <textarea name="description" rows={3} className="input" />
+            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (observações livres)</label>
+            <textarea name="description" rows={2} className="input" />
           </div>
 
           <NewCaseAttachmentsField driveConnected={driveStatus.connected} />

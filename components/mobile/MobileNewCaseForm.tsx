@@ -12,24 +12,12 @@ import NewCaseAttachmentsField from "@/components/NewCaseAttachmentsField";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 import { ORGAOS_ADMINISTRATIVOS, CATEGORIA_ORDER_ADMIN, findOrgaoBySigla } from "@/lib/orgaosAdministrativos";
 import { ESFERAS, MATERIAS_ADMIN } from "@/lib/caseNatureza";
+import CaseMateriaField from "@/components/processo/CaseMateriaField";
+import AssuntosField from "@/components/processo/AssuntosField";
 
 const inputClass =
   "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
 const labelClass = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
-
-const AREA_OPTIONS = [
-  "Cível",
-  "Trabalhista",
-  "Tributário",
-  "Família",
-  "Sucessões",
-  "Criminal",
-  "Previdenciário",
-  "Empresarial",
-  "Consumidor",
-  "Administrativo",
-  "Outra",
-];
 
 // Duas naturezas de cadastro possíveis neste formulário — a terceira ("Caso", ver
 // lib/caseNatureza.ts) nunca é uma opção de cadastro direta, só existe como leitura do que já
@@ -165,7 +153,9 @@ export default function MobileNewCaseForm({
         // Administrativo tem um único type possível (ADMINISTRATIVO) — o <select> "Tipo" nem
         // aparece nesse ramo. Judicial mantém exatamente o comportamento de sempre.
         type: isAdministrativo ? "ADMINISTRATIVO" : String(formData.get("type") || "JUDICIAL"),
-        area: String(formData.get("area") || "") || undefined,
+        materias: formData.getAll("materias").map(String),
+        assuntos: formData.getAll("assuntos").map(String),
+        distributedAt: String(formData.get("distributedAt") || "") || undefined,
         processNumber: String(formData.get("processNumber") || "") || undefined,
         court: String(formData.get("court") || "") || undefined,
         caseValue: String(formData.get("caseValue") || "") || undefined,
@@ -242,28 +232,24 @@ export default function MobileNewCaseForm({
 
       {natureza === "JUDICIAL" ? (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Tipo</label>
-              <select name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
-                <option value="JUDICIAL">Judicial</option>
-                <option value="EXTRAJUDICIAL">Extrajudicial</option>
-                <option value="ATENDIMENTO">Atendimento</option>
-                <option value="CONSULTIVO">Consultivo</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Área</label>
-              <select name="area" defaultValue="" className={inputClass}>
-                <option value="">Não definida</option>
-                {AREA_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className={labelClass}>Tipo</label>
+            <select name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
+              <option value="JUDICIAL">Judicial</option>
+              <option value="EXTRAJUDICIAL">Extrajudicial</option>
+              <option value="ATENDIMENTO">Atendimento</option>
+              <option value="CONSULTIVO">Consultivo</option>
+            </select>
           </div>
+
+          <CaseMateriaField />
+
+          {type === "JUDICIAL" && (
+            <div>
+              <label className={labelClass}>Data da distribuição</label>
+              <input name="distributedAt" type="date" className={inputClass} />
+            </div>
+          )}
 
           {/* Número do processo/vara/tribunal só fazem sentido quando o Tipo escolhido acima
               também é Judicial — Extrajudicial/Atendimento/Consultivo (mesma pílula "Judicial",
@@ -291,17 +277,7 @@ export default function MobileNewCaseForm({
         </>
       ) : (
         <>
-          <div>
-            <label className={labelClass}>Área</label>
-            <select name="area" defaultValue="" className={inputClass}>
-              <option value="">Não definida</option>
-              {AREA_OPTIONS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CaseMateriaField />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -387,9 +363,11 @@ export default function MobileNewCaseForm({
 
       <AssessoriaSelect assessorias={assessorias} inputClassName={inputClass} />
 
+      <AssuntosField inputClassName={inputClass} />
+
       <div>
-        <label className={labelClass}>Descrição / Observações</label>
-        <textarea name="description" rows={3} className={inputClass} />
+        <label className={labelClass}>Descrição (observações livres)</label>
+        <textarea name="description" rows={2} className={inputClass} />
       </div>
 
       <NewCaseAttachmentsField driveConnected={driveConnected} />
