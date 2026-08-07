@@ -225,6 +225,24 @@ export function getDocumentTypeIcon(key: string): LucideIcon {
   return getDocumentType(key).icon;
 }
 
+// Tipos do grupo "Recursos" que NÃO fazem o processo subir de instância — ficam no mesmo juízo
+// (Embargos de Declaração é sempre julgado por quem proferiu a decisão) ou, no caso de
+// Contrarrazões/Contraminuta, são resposta ao recurso do OUTRO lado, não iniciativa nossa; Embargos
+// Infringentes normalmente são julgados pelo mesmo tribunal, só muda a composição do colegiado.
+// Pedido de Reconsideração já não está no grupo "Recursos" (fica em "Processual"), por isso nem
+// precisa entrar aqui. Ver proposta aprovada em 2026-08-07, pop-up "vincular a tribunal superior"
+// ao anexar um recurso (components/processo/RecursoEscalaPrompt.tsx).
+const RECURSOS_QUE_NAO_ESCALAM = new Set(["EMBARGOS_DECLARACAO", "EMBARGOS_INFRINGENTES", "CONTRARRAZOES"]);
+
+// true quando o tipo de documento anexado é um recurso que tipicamente faz o processo subir de
+// instância — dispara o pop-up "vincular a um tribunal superior?" (ver F em AttachmentList.tsx).
+export function isRecursoQueEscalaInstancia(docTypeKey: string): boolean {
+  const grupo = DOCUMENT_TYPE_GROUPS.find((g) => g.group === "Recursos");
+  if (!grupo) return false;
+  if (!grupo.types.some((t) => t.key === docTypeKey)) return false;
+  return !RECURSOS_QUE_NAO_ESCALAM.has(docTypeKey);
+}
+
 // Detecta a origem do link colado (Drive, Dropbox, OneDrive...) só para exibir uma etiqueta —
 // não interfere no armazenamento, o link em si pode ser de qualquer serviço que gere um link.
 export function getLinkSourceLabel(url: string): string {

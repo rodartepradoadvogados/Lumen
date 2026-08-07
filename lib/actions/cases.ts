@@ -13,6 +13,8 @@ import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { renameDriveFolder } from "@/lib/storageProvider";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { linkPublicationToCase } from "@/lib/actions/publications";
+import { deriveArea } from "@/lib/caseMaterias";
+import { instanciaLabel } from "@/lib/caseInstance";
 
 // Convenção de nomenclatura: sempre que o(s) NOSSO(s) cliente(s) e a(s) parte(s) do outro lado
 // estiverem cadastrados, o título do processo é "{Clientes} x {Partes}" — nunca um meio-termo
@@ -196,6 +198,13 @@ export async function createCase(data: {
   parties?: PartyInput[];
   responsibleId?: string;
   description?: string;
+  // Matérias (multi-select, ver lib/caseMaterias.ts) — `area` (acima) segue aceito por
+  // compatibilidade (chamadores antigos), mas quando materias vem preenchido ele manda: area
+  // final = deriveArea(materias). Ambos preenchidos ao mesmo tempo não deveria acontecer nas
+  // telas atuais (só uma delas manda o campo), mas se acontecer materias vence.
+  materias?: string[];
+  assuntos?: string[];
+  distributedAt?: string;
   assessoriaId?: string;
   tribunalSigla?: string;
   tribunalNome?: string;
@@ -219,12 +228,17 @@ export async function createCase(data: {
   const primaryClient = resolvedClients[0];
   const primaryParty = resolvedParties[0];
   const isAdministrativo = data.type === "ADMINISTRATIVO";
+  const materias = (data.materias || []).filter(Boolean);
+  const assuntos = (data.assuntos || []).filter(Boolean);
 
   const created = await prisma.case.create({
     data: {
       title: computeCaseTitle(resolvedClients.map((c) => c.name), resolvedParties.map((p) => p.name), data.title),
       type: data.type,
-      area: data.area || null,
+      area: materias.length > 0 ? deriveArea(materias) : data.area || null,
+      materias,
+      assuntos,
+      distributedAt: data.distributedAt ? new Date(data.distributedAt) : null,
       processNumber: data.processNumber || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
@@ -279,6 +293,19 @@ export async function updateCase(
     type?: string;
     adminEsfera?: string;
     adminMateria?: string;
+    // Classificação (ver proposta aprovada em 2026-08-07) — description já existia no schema mas
+    // nunca foi editável por aqui (só no cadastro); materias/assuntos/distributedAt são novos.
+    description?: string;
+    materias?: string[];
+    assuntos?: string[];
+    distributedAt?: string;
+    // Instância atual (ver lib/caseInstance.ts) e câmara/turma — a troca de TRIBUNAL em si
+    // continua só pelos 4 campos tribunalSigla/Nome/Sistema/Link acima; escalar/retornar de
+    // verdade (com o par origem/atual) é feito por escalarTribunalSuperior/
+    // retornarInstanciaAnterior, não por aqui, mas o <select> de instância/câmara-turma fica
+    // dentro do MESMO form de edição, por isso os dois campos entram no updateCase comum.
+    currentInstance?: string;
+    currentInstanceDetail?: string;
   }
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
@@ -339,6 +366,12 @@ export async function updateCase(
       tribunalLink: data.tribunalLink || null,
       adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
       adminMateria: isAdministrativo ? data.adminMateria || null : null,
+      description: data.description || null,
+      ...(data.materias ? { materias: data.materias.filter(Boolean), area: deriveArea(data.materias.filter(Boolean)) } : {}),
+      ...(data.assuntos ? { assuntos: data.assuntos.filter(Boolean) } : {}),
+      distributedAt: data.distributedAt ? new Date(data.distributedAt) : null,
+      ...(data.currentInstance !== undefined ? { currentInstance: data.currentInstance || null } : {}),
+      ...(data.currentInstanceDetail !== undefined ? { currentInstanceDetail: data.currentInstanceDetail || null } : {}),
     },
   });
   await writeCaseClientsAndParties(caseId, resolvedClients, resolvedParties);
@@ -434,6 +467,9 @@ export async function createCaseMobile(data: {
   parties?: PartyInput[];
   responsibleId?: string;
   description?: string;
+  materias?: string[];
+  assuntos?: string[];
+  distributedAt?: string;
   assessoriaId?: string;
   tribunalSigla?: string;
   tribunalNome?: string;
@@ -454,12 +490,17 @@ export async function createCaseMobile(data: {
   const primaryClient = resolvedClients[0];
   const primaryParty = resolvedParties[0];
   const isAdministrativo = data.type === "ADMINISTRATIVO";
+  const materiasMobile = (data.materias || []).filter(Boolean);
+  const assuntosMobile = (data.assuntos || []).filter(Boolean);
 
   const created = await prisma.case.create({
     data: {
       title: computeCaseTitle(resolvedClients.map((c) => c.name), resolvedParties.map((p) => p.name), data.title),
       type: data.type,
-      area: data.area || null,
+      area: materiasMobile.length > 0 ? deriveArea(materiasMobile) : data.area || null,
+      materias: materiasMobile,
+      assuntos: assuntosMobile,
+      distributedAt: data.distributedAt ? new Date(data.distributedAt) : null,
       processNumber: data.processNumber || null,
       court: data.court || null,
       caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
@@ -555,5 +596,130 @@ export async function sendCaseEmail(caseId: string, to: string, subject: string,
   revalidatePath(`/processos/${caseId}`);
 
   if (!result.ok) return { error: result.error || "Não foi possível enviar o e-mail." };
+  return {};
+}
+
+// Faz o processo "subir" para um tribunal superior — disparado pelo pop-up ao anexar um recurso
+// (components/processo/RecursoEscalaPrompt.tsx) ou editado à mão a qualquer momento em Editar
+// Processo. Na PRIMEIRA escalada (tribunalOrigemSigla ainda vazio) guarda o tribunal/instância de
+// ANTES em tribunalOrigem*/instance, pra dar pra "retornar" depois (ver retornarInstanciaAnterior
+// abaixo); numa escalada seguinte sem ter retornado ainda, só atualiza o "atual" — a origem
+// continua sendo a mesma (não empilha histórico de mais de uma subida, ver comentário no schema).
+export async function escalarTribunalSuperior(
+  caseId: string,
+  data: {
+    tribunalSigla: string;
+    tribunalNome: string;
+    tribunalSistema?: string;
+    tribunalLink?: string;
+    currentInstance: string;
+    currentInstanceDetail?: string;
+  }
+): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  const existing = await prisma.case.findFirst({
+    where: { id: caseId, officeId: viewer.officeId },
+    select: {
+      tribunalSigla: true,
+      tribunalNome: true,
+      tribunalSistema: true,
+      tribunalLink: true,
+      currentInstance: true,
+      tribunalOrigemSigla: true,
+    },
+  });
+  if (!existing) return { error: "Processo não encontrado." };
+  if (!data.tribunalSigla.trim()) return { error: "Selecione o tribunal superior." };
+
+  const jaTinhaOrigem = Boolean(existing.tribunalOrigemSigla);
+
+  await prisma.case.update({
+    where: { id: caseId },
+    data: {
+      ...(jaTinhaOrigem
+        ? {}
+        : {
+            tribunalOrigemSigla: existing.tribunalSigla,
+            tribunalOrigemNome: existing.tribunalNome,
+            tribunalOrigemSistema: existing.tribunalSistema,
+            tribunalOrigemLink: existing.tribunalLink,
+            instance: existing.currentInstance || "PRIMEIRO_GRAU",
+          }),
+      tribunalSigla: data.tribunalSigla,
+      tribunalNome: data.tribunalNome,
+      tribunalSistema: data.tribunalSistema || null,
+      tribunalLink: data.tribunalLink || null,
+      currentInstance: data.currentInstance,
+      currentInstanceDetail: data.currentInstanceDetail || null,
+    },
+  });
+
+  const origemLabel = existing.tribunalSigla
+    ? `${instanciaLabel(existing.currentInstance)} (${existing.tribunalSigla})`
+    : instanciaLabel(existing.currentInstance);
+  const destinoLabel = `${instanciaLabel(data.currentInstance)} (${data.tribunalSigla})`;
+  await prisma.comment.create({
+    data: {
+      content: `↑ Processo subiu de instância: ${origemLabel} → ${destinoLabel}${data.currentInstanceDetail ? ` — ${data.currentInstanceDetail}` : ""}`,
+      authorId: viewer.id,
+      caseId,
+      officeId: viewer.officeId,
+    },
+  });
+
+  revalidatePath(`/processos/${caseId}`);
+  return {};
+}
+
+// Reverte a última escalada (ver escalarTribunalSuperior acima) — "autos retornaram à instância
+// anterior". Volta tribunal/instância para o que estava guardado em tribunalOrigem*/instance, e
+// LIMPA os dois (ficam vazios de novo), pra uma escalada futura registrar um par origem/atual
+// limpo, sem misturar com este ciclo que já terminou.
+export async function retornarInstanciaAnterior(caseId: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  const existing = await prisma.case.findFirst({
+    where: { id: caseId, officeId: viewer.officeId },
+    select: {
+      tribunalSigla: true,
+      currentInstance: true,
+      tribunalOrigemSigla: true,
+      tribunalOrigemNome: true,
+      tribunalOrigemSistema: true,
+      tribunalOrigemLink: true,
+      instance: true,
+    },
+  });
+  if (!existing) return { error: "Processo não encontrado." };
+  if (!existing.tribunalOrigemSigla) return { error: "Este processo não tem uma instância anterior registrada." };
+
+  await prisma.case.update({
+    where: { id: caseId },
+    data: {
+      tribunalSigla: existing.tribunalOrigemSigla,
+      tribunalNome: existing.tribunalOrigemNome,
+      tribunalSistema: existing.tribunalOrigemSistema,
+      tribunalLink: existing.tribunalOrigemLink,
+      currentInstance: existing.instance,
+      currentInstanceDetail: null,
+      tribunalOrigemSigla: null,
+      tribunalOrigemNome: null,
+      tribunalOrigemSistema: null,
+      tribunalOrigemLink: null,
+      instance: null,
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      content: `↓ Autos retornaram: ${instanciaLabel(existing.currentInstance)}${existing.tribunalSigla ? ` (${existing.tribunalSigla})` : ""} → ${instanciaLabel(existing.instance)}${existing.tribunalOrigemSigla ? ` (${existing.tribunalOrigemSigla})` : ""}`,
+      authorId: viewer.id,
+      caseId,
+      officeId: viewer.officeId,
+    },
+  });
+
+  revalidatePath(`/processos/${caseId}`);
   return {};
 }

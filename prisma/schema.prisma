@@ -127,6 +127,7 @@ model Office {
   receivables          Receivable[]
   recurringFees        RecurringFee[]
   recurringExpenses    RecurringExpense[]
+  caseLinks            CaseLink[]
   assessorias          Assessoria[]
   assessoriaDocumentos AssessoriaDocumento[]
   pareceres            Parecer[]
@@ -457,11 +458,38 @@ model Case {
   // preenchidas ao longo do tempo; qual delas vale para uma parcela específica é escolha de quem
   // lança o honorário, não automática).
   agreementValue Float?
+  // instance = "Instância Original": só passa a ser preenchido na PRIMEIRA vez que um recurso faz
+  // o processo subir de instância (ver escalarTribunalSuperior, lib/actions/cases.ts) — antes
+  // disso, um processo só tem "instância atual" (currentInstance), sem par origem/atual pra
+  // mostrar. tribunalOrigem* abaixo é o par equivalente do lado do tribunal — os dois são
+  // gravados e limpos JUNTOS (ver retornarInstanciaAnterior): ao marcar "autos retornaram", volta
+  // tudo pro que estava aqui e os dois pares são zerados, prontos para uma escalada futura nova
+  // registrar um par limpo outra vez. Não guarda histórico de mais de uma escalada — cobre o caso
+  // comum (1º ↔ 2º grau, eventualmente STJ/STF), não uma pilha arbitrária de subidas e descidas.
   instance        String? // Instância Original
-  currentInstance String? // Instância Atual
+  currentInstance String? // Instância Atual — valores: PRIMEIRO_GRAU | SEGUNDO_GRAU | TERCEIRO_GRAU (ver lib/caseInstance.ts)
+  // Seção/Câmara/Turma do tribunal ATUAL (ex.: "3ª Câmara Cível do TJGO") — texto livre e
+  // opcional, preenchido junto da escalada por recurso ou editável a qualquer momento; não tem
+  // catálogo por trás (câmara/turma varia demais entre tribunais para valer a pena catalogar).
+  currentInstanceDetail String?
+  // Tribunal ANTES da última escalada por recurso — ver comentário de `instance` acima sobre o
+  // par origem/atual. tribunalSigla/Nome/Sistema/Link (abaixo) passam a representar o tribunal
+  // ATUAL a partir do momento em que isto é preenchido.
+  tribunalOrigemSigla   String?
+  tribunalOrigemNome    String?
+  tribunalOrigemSistema String?
+  tribunalOrigemLink    String?
   distributedAt   DateTime?
   closedAt        DateTime?
   description     String?
+  // Matérias do processo (multi-select, ex.: ["Cível", "Consumidor"]) — ver lib/caseMaterias.ts.
+  // `area` (acima) continua sendo gravado também, sempre igual a materias[0] (ou null se vazio):
+  // é o que todo filtro/relatório/busca existente já lê, e continuar escrevendo os dois evita ter
+  // que migrar essas telas agora só para habilitar múltipla escolha no cadastro.
+  materias String[] @default([])
+  // Assuntos livres do processo (hoje 2 campos na tela, guardado como lista pra não precisar de
+  // migração nova se um dia virar 3+) — ver lib/assuntosCatalog.ts para o pop-up de exemplos.
+  assuntos String[] @default([])
   clientRole      String? // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
   actionType      String? // Ação (ex: Execução Fiscal)
 
@@ -544,8 +572,35 @@ model Case {
   // Anotacao.linkType (não por uma FK própria, já que os três são o mesmo model Case).
   anotacoes Anotacao[]
 
+  // Vínculos com outros processos, por qualquer motivo (não registrado, ver model CaseLink) —
+  // um Case pode aparecer como caseA de um vínculo e caseB de outro, daí as duas relações.
+  linksAsA CaseLink[] @relation("CaseLinkA")
+  linksAsB CaseLink[] @relation("CaseLinkB")
+
   @@index([officeId])
   @@index([officeId, processNumber])
+}
+
+// Vínculo entre dois processos — por qualquer motivo (não perguntado nem guardado, ver proposta
+// aprovada em 2026-08-07). Bidirecional: para listar os vínculos de um Case, buscar por caseAId
+// OU caseBId (ver getCaseLinks, lib/actions/caseLinks.ts). principalCaseId aponta para caseAId,
+// para caseBId, ou fica nulo (nenhum dos dois é principal) — é uma propriedade do VÍNCULO, não
+// do processo: um processo pode ser principal num vínculo e não-principal em outro, se tiver
+// mais de um.
+model CaseLink {
+  id              String   @id @default(cuid())
+  caseAId         String
+  caseA           Case     @relation("CaseLinkA", fields: [caseAId], references: [id])
+  caseBId         String
+  caseB           Case     @relation("CaseLinkB", fields: [caseBId], references: [id])
+  principalCaseId String?
+  createdAt       DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([caseAId, caseBId])
+  @@index([officeId])
 }
 
 // Um dos nossos clientes vinculados a um processo — existe em paralelo a Case.clientId (que
