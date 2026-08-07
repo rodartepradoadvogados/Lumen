@@ -23,6 +23,8 @@ import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import type { AnotacaoLinkType } from "@/lib/anotacoes";
 import NaturezaBadge from "@/components/mobile/NaturezaBadge";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { instanciaLabel } from "@/lib/caseInstance";
+import { getCaseLinks } from "@/lib/actions/caseLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +77,7 @@ export default async function MobileCaseDetail({
   // EditCaseModal; os demais (receivables/payables/publications/attachments/protocoloLotes/
   // honorarioLancamentos) são as quatro seções novas desta fase — mesmas queries da versão
   // desktop (app/(app)/processos/[id]/page.tsx).
-  const [c, publications, users, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, assessoriasRaw] = await Promise.all([
+  const [c, publications, users, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, assessoriasRaw, caseLinks] = await Promise.all([
     prisma.case.findFirst({
       where: { id: params.id, officeId: viewer.officeId },
       include: {
@@ -132,6 +134,9 @@ export default async function MobileCaseDetail({
     prisma.termoVigilancia.findMany({ where: { caseId: params.id, officeId: viewer.officeId }, orderBy: { createdAt: "desc" } }),
     prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.assessoria.findMany({ where: { officeId: viewer.officeId, status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
+    // Vínculos com outros processos (ver components/processo/CaseLinkField.tsx) — usa params.id
+    // direto em vez de c.id porque c só resolve depois deste Promise.all (mesmo id de qualquer forma).
+    getCaseLinks(params.id),
   ]);
 
   if (!c) notFound();
@@ -345,10 +350,21 @@ export default async function MobileCaseDetail({
                 adminMateria: c.adminMateria,
                 clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
                 parties: caseParties,
+                description: c.description,
+                materias: c.materias,
+                assuntos: c.assuntos,
+                distributedAt: c.distributedAt ? c.distributedAt.toISOString() : null,
+                createdAt: c.createdAt.toISOString(),
+                currentInstance: c.currentInstance,
+                currentInstanceDetail: c.currentInstanceDetail,
+                tribunalOrigemSigla: c.tribunalOrigemSigla,
+                tribunalOrigemNome: c.tribunalOrigemNome,
+                instance: c.instance,
               }}
               clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
               users={users}
               tribunais={tribunais}
+              caseLinks={caseLinks}
             />
           </div>
           {caseClients.length === 0 ? (
@@ -404,9 +420,51 @@ export default async function MobileCaseDetail({
               <ExternalLink size={12} /> Acessar sistema do {natureza === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
             </a>
           )}
+          {/* Instância atual — só aparece quando preenchida (ver InstanciaTribunalPanel.tsx no
+              Editar Processo, onde fica editável). Tribunal de origem só existe depois de a
+              primeira escalada por recurso acontecer (ver escalarTribunalSuperior). */}
+          {c.currentInstance && <Field label="Instância atual" value={instanciaLabel(c.currentInstance)} />}
+          {c.currentInstanceDetail && <Field label="Seção/Câmara/Turma" value={c.currentInstanceDetail} />}
+          {c.tribunalOrigemSigla && (
+            <Field label="Veio de" value={`${instanciaLabel(c.instance)} (${c.tribunalOrigemSigla} — ${c.tribunalOrigemNome ?? ""})`} />
+          )}
           <div className="pt-1">
             <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1">Descrição</p>
             <p className="text-sm text-navy-800 dark:text-cream-50/85 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
+          </div>
+        </Card>
+      )}
+
+      {tab === "visao-geral" && (c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
+        <Card className="p-4 space-y-2.5">
+          <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Classificação</h4>
+          {c.materias.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {c.materias.map((m) => (
+                <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-400">
+                  {m}
+                </span>
+              ))}
+            </div>
+          )}
+          <Field label="Data da distribuição" value={c.distributedAt ? formatDate(c.distributedAt) : undefined} />
+          <Field label="Criado no Lúmen" value={formatDate(c.createdAt)} />
+          {c.assuntos.filter(Boolean).length > 0 && <Field label="Assuntos" value={c.assuntos.filter(Boolean).join(", ")} />}
+        </Card>
+      )}
+
+      {tab === "visao-geral" && caseLinks.length > 0 && (
+        <Card className="p-4 space-y-2">
+          <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Processos vinculados</h4>
+          <div className="space-y-1.5">
+            {caseLinks.map((l) => (
+              <div key={l.linkId} className="flex items-center justify-between gap-2">
+                <Link href={`/m/processos/${l.other.id}`} className="text-sm text-navy-900 dark:text-cream-50 hover:underline truncate">
+                  {l.other.title}
+                </Link>
+                {l.role === "PRINCIPAL" && <Badge color="gold">Principal</Badge>}
+              </div>
+            ))}
           </div>
         </Card>
       )}
