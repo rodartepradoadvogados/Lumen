@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { markPayablePaid, markReceivablePaid } from "@/lib/actions/financeiro";
 import { createBankAccountQuick } from "@/lib/actions/settings";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { formatCurrency } from "@/components/ui";
 import { X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 type Option = { id: string; name: string };
@@ -24,6 +26,8 @@ export default function SettleModal({
   liquido,
   alreadyPaid,
   bankAccounts,
+  existingReceiptUrl,
+  existingReceiptName,
   onClose,
 }: {
   id: string;
@@ -31,6 +35,10 @@ export default function SettleModal({
   liquido: number;
   alreadyPaid: number;
   bankAccounts: Option[];
+  // Comprovante já anexado antes da baixa (ex.: pelo Editar) — opcional, pode não vir de toda
+  // listagem antiga que ainda não foi adaptada a passar (ver ReceivablesList.tsx/PayablesList.tsx).
+  existingReceiptUrl?: string | null;
+  existingReceiptName?: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -38,6 +46,11 @@ export default function SettleModal({
   const [error, setError] = useState("");
   const saldoAtual = Math.max(0, liquido - alreadyPaid);
   const [paidAmount, setPaidAmount] = useState(saldoAtual > 0 ? saldoAtual.toFixed(2) : "");
+  // Anexar o comprovante junto da própria baixa (pedido explícito — antes só dava pra anexar
+  // reabrindo o Editar depois, um passo a mais desnecessário no momento em que a pessoa já está
+  // com o comprovante em mãos). Upload roda só depois da baixa confirmar (o id já existe, então
+  // não precisa do encadeamento create->upload dos modais de Novo).
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const valorNum = parseFloat(paidAmount || "0") || 0;
   const ficaParcial = valorNum > 0 && valorNum < saldoAtual - 0.004;
@@ -71,6 +84,12 @@ export default function SettleModal({
               await (kind === "payable"
                 ? markPayablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined)
                 : markReceivablePaid(id, paidAmountNum, paidDate, receiptNumber, paymentMethod, bankAccountId || undefined));
+              if (receiptFile) {
+                const uploadResult = await uploadFinanceReceipt(kind === "payable" ? "PAYABLE" : "RECEIVABLE", id, receiptFile);
+                if (uploadResult.error) {
+                  alert(`Baixa confirmada, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nTente anexá-lo novamente pelo Editar.`);
+                }
+              }
               router.refresh();
               onClose();
             } catch (err) {
@@ -132,6 +151,7 @@ export default function SettleModal({
             <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional)</label>
             <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
           </div>
+          <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} existingUrl={existingReceiptUrl} existingName={existingReceiptName} />
           {ficaParcial && (
             <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
               Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>, com saldo em aberto de {formatCurrency(saldoResultante)}{" "}

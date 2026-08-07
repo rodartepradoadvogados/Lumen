@@ -19,6 +19,8 @@ export default function SettleButton({
   alreadyPaid,
   status,
   bankAccounts,
+  existingReceiptUrl,
+  existingReceiptName,
 }: {
   id: string;
   kind: "payable" | "receivable";
@@ -26,6 +28,10 @@ export default function SettleButton({
   alreadyPaid: number;
   status: string;
   bankAccounts: Option[];
+  // Repassado ao SettleModal (ver comentário lá) — opcional pelo mesmo motivo de sempre: telas
+  // mais antigas que ainda não foram adaptadas a passar continuam funcionando.
+  existingReceiptUrl?: string | null;
+  existingReceiptName?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -69,7 +75,16 @@ export default function SettleButton({
             <Check size={12} /> Dar Baixa
           </button>
           {open && (
-            <SettleModal id={id} kind={kind} liquido={liquido} alreadyPaid={alreadyPaid} bankAccounts={bankAccounts} onClose={() => setOpen(false)} />
+            <SettleModal
+              id={id}
+              kind={kind}
+              liquido={liquido}
+              alreadyPaid={alreadyPaid}
+              bankAccounts={bankAccounts}
+              existingReceiptUrl={existingReceiptUrl}
+              existingReceiptName={existingReceiptName}
+              onClose={() => setOpen(false)}
+            />
           )}
         </>
       )}

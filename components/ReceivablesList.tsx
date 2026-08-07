@@ -182,7 +182,16 @@ export default function ReceivablesList({
               </div>
               <div className="shrink-0 flex items-center gap-1">
                 {!isApurar && (
-                  <SettleButton id={r.id} kind="receivable" liquido={liquido} alreadyPaid={r.paidSum} status={r.status} bankAccounts={bankAccounts} />
+                  <SettleButton
+                    id={r.id}
+                    kind="receivable"
+                    liquido={liquido}
+                    alreadyPaid={r.paidSum}
+                    status={r.status}
+                    bankAccounts={bankAccounts}
+                    existingReceiptUrl={r.receiptDriveUrl}
+                    existingReceiptName={r.receiptFileName}
+                  />
                 )}
                 <EditReceivableModal
                   receivable={{

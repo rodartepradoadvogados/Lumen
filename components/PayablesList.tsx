@@ -164,7 +164,16 @@ export default function PayablesList({
                 </div>
               </div>
               <div className="shrink-0 flex items-center gap-1">
-                <SettleButton id={p.id} kind="payable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />
+                <SettleButton
+                  id={p.id}
+                  kind="payable"
+                  liquido={liquido}
+                  alreadyPaid={p.paidSum}
+                  status={p.status}
+                  bankAccounts={bankAccounts}
+                  existingReceiptUrl={p.receiptDriveUrl}
+                  existingReceiptName={p.receiptFileName}
+                />
                 <EditPayableModal
                   payable={{
                     id: p.id,
