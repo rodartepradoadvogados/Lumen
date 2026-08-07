@@ -25,6 +25,7 @@ import NaturezaBadge from "@/components/mobile/NaturezaBadge";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { instanciaLabel } from "@/lib/caseInstance";
 import { getCaseLinks } from "@/lib/actions/caseLinks";
+import { getCaseInstanceHistory } from "@/lib/actions/cases";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ export default async function MobileCaseDetail({
   // EditCaseModal; os demais (receivables/payables/publications/attachments/protocoloLotes/
   // honorarioLancamentos) são as quatro seções novas desta fase — mesmas queries da versão
   // desktop (app/(app)/processos/[id]/page.tsx).
-  const [c, publications, users, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, assessoriasRaw, caseLinks] = await Promise.all([
+  const [c, publications, users, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, assessoriasRaw, caseLinks, instanceHistory] = await Promise.all([
     prisma.case.findFirst({
       where: { id: params.id, officeId: viewer.officeId },
       include: {
@@ -137,6 +138,7 @@ export default async function MobileCaseDetail({
     // Vínculos com outros processos (ver components/processo/CaseLinkField.tsx) — usa params.id
     // direto em vez de c.id porque c só resolve depois deste Promise.all (mesmo id de qualquer forma).
     getCaseLinks(params.id),
+    getCaseInstanceHistory(params.id),
   ]);
 
   if (!c) notFound();
@@ -365,6 +367,7 @@ export default async function MobileCaseDetail({
               users={users}
               tribunais={tribunais}
               caseLinks={caseLinks}
+              instanceHistory={instanceHistory}
             />
           </div>
           {caseClients.length === 0 ? (

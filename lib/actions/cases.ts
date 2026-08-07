@@ -601,10 +601,11 @@ export async function sendCaseEmail(caseId: string, to: string, subject: string,
 
 // Faz o processo "subir" para um tribunal superior — disparado pelo pop-up ao anexar um recurso
 // (components/processo/RecursoEscalaPrompt.tsx) ou editado à mão a qualquer momento em Editar
-// Processo. Na PRIMEIRA escalada (tribunalOrigemSigla ainda vazio) guarda o tribunal/instância de
-// ANTES em tribunalOrigem*/instance, pra dar pra "retornar" depois (ver retornarInstanciaAnterior
-// abaixo); numa escalada seguinte sem ter retornado ainda, só atualiza o "atual" — a origem
-// continua sendo a mesma (não empilha histórico de mais de uma subida, ver comentário no schema).
+// Processo. Toda escalada empilha um registro em CaseInstanceEscalation com o estado ANTES (from*)
+// e DEPOIS (to*), e os campos "origem" do Case (instance/tribunalOrigem*) são recalculados pra
+// sempre espelhar o topo da pilha — ver retornarInstanciaAnterior abaixo e o comentário de
+// `instance` no schema. Isso permite múltiplas escaladas em sequência (1º → 2º → STJ) sem perder
+// os hops intermediários: cada uma vira um "retorno" possível, um de cada vez.
 export async function escalarTribunalSuperior(
   caseId: string,
   data: {
@@ -626,32 +627,51 @@ export async function escalarTribunalSuperior(
       tribunalSistema: true,
       tribunalLink: true,
       currentInstance: true,
-      tribunalOrigemSigla: true,
+      currentInstanceDetail: true,
     },
   });
   if (!existing) return { error: "Processo não encontrado." };
   if (!data.tribunalSigla.trim()) return { error: "Selecione o tribunal superior." };
 
-  const jaTinhaOrigem = Boolean(existing.tribunalOrigemSigla);
+  const fromInstance = existing.currentInstance || "PRIMEIRO_GRAU";
+  const previousCount = await prisma.caseInstanceEscalation.count({ where: { caseId } });
+
+  await prisma.caseInstanceEscalation.create({
+    data: {
+      caseId,
+      officeId: viewer.officeId,
+      order: previousCount + 1,
+      fromInstance,
+      fromTribunalSigla: existing.tribunalSigla,
+      fromTribunalNome: existing.tribunalNome,
+      fromTribunalSistema: existing.tribunalSistema,
+      fromTribunalLink: existing.tribunalLink,
+      fromInstanceDetail: existing.currentInstanceDetail,
+      toInstance: data.currentInstance,
+      toTribunalSigla: data.tribunalSigla,
+      toTribunalNome: data.tribunalNome,
+      toTribunalSistema: data.tribunalSistema || null,
+      toTribunalLink: data.tribunalLink || null,
+      toInstanceDetail: data.currentInstanceDetail || null,
+    },
+  });
 
   await prisma.case.update({
     where: { id: caseId },
     data: {
-      ...(jaTinhaOrigem
-        ? {}
-        : {
-            tribunalOrigemSigla: existing.tribunalSigla,
-            tribunalOrigemNome: existing.tribunalNome,
-            tribunalOrigemSistema: existing.tribunalSistema,
-            tribunalOrigemLink: existing.tribunalLink,
-            instance: existing.currentInstance || "PRIMEIRO_GRAU",
-          }),
       tribunalSigla: data.tribunalSigla,
       tribunalNome: data.tribunalNome,
       tribunalSistema: data.tribunalSistema || null,
       tribunalLink: data.tribunalLink || null,
       currentInstance: data.currentInstance,
       currentInstanceDetail: data.currentInstanceDetail || null,
+      // Origem passa a espelhar o registro que acabamos de empilhar — é o que um próximo
+      // "retorno dos autos" desfaria.
+      instance: fromInstance,
+      tribunalOrigemSigla: existing.tribunalSigla,
+      tribunalOrigemNome: existing.tribunalNome,
+      tribunalOrigemSistema: existing.tribunalSistema,
+      tribunalOrigemLink: existing.tribunalLink,
     },
   });
 
@@ -669,51 +689,55 @@ export async function escalarTribunalSuperior(
   });
 
   revalidatePath(`/processos/${caseId}`);
+  revalidatePath(`/m/processos/${caseId}`);
   return {};
 }
 
-// Reverte a última escalada (ver escalarTribunalSuperior acima) — "autos retornaram à instância
-// anterior". Volta tribunal/instância para o que estava guardado em tribunalOrigem*/instance, e
-// LIMPA os dois (ficam vazios de novo), pra uma escalada futura registrar um par origem/atual
-// limpo, sem misturar com este ciclo que já terminou.
+// Desfaz a escalada mais recente ainda ativa (topo da pilha de CaseInstanceEscalation — ver
+// escalarTribunalSuperior acima) — "autos retornaram à instância anterior". Restaura tribunal/
+// instância pro estado from* daquele registro, marca returnedAt nele, e recalcula os campos de
+// origem do Case a partir do que sobrou na pilha: se havia uma escalada anterior a esta ainda sem
+// retorno, ela vira o novo topo (outro "retorno dos autos" a desfaria em seguida); se não sobrou
+// nenhuma, os campos de origem voltam a ficar vazios.
 export async function retornarInstanciaAnterior(caseId: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
-  const existing = await prisma.case.findFirst({
-    where: { id: caseId, officeId: viewer.officeId },
-    select: {
-      tribunalSigla: true,
-      currentInstance: true,
-      tribunalOrigemSigla: true,
-      tribunalOrigemNome: true,
-      tribunalOrigemSistema: true,
-      tribunalOrigemLink: true,
-      instance: true,
-    },
-  });
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId: viewer.officeId }, select: { id: true } });
   if (!existing) return { error: "Processo não encontrado." };
-  if (!existing.tribunalOrigemSigla) return { error: "Este processo não tem uma instância anterior registrada." };
+
+  const topFrame = await prisma.caseInstanceEscalation.findFirst({
+    where: { caseId, returnedAt: null },
+    orderBy: { escalatedAt: "desc" },
+  });
+  if (!topFrame) return { error: "Este processo não tem uma instância anterior registrada." };
+
+  await prisma.caseInstanceEscalation.update({ where: { id: topFrame.id }, data: { returnedAt: new Date() } });
+
+  const previousFrame = await prisma.caseInstanceEscalation.findFirst({
+    where: { caseId, returnedAt: null },
+    orderBy: { escalatedAt: "desc" },
+  });
 
   await prisma.case.update({
     where: { id: caseId },
     data: {
-      tribunalSigla: existing.tribunalOrigemSigla,
-      tribunalNome: existing.tribunalOrigemNome,
-      tribunalSistema: existing.tribunalOrigemSistema,
-      tribunalLink: existing.tribunalOrigemLink,
-      currentInstance: existing.instance,
-      currentInstanceDetail: null,
-      tribunalOrigemSigla: null,
-      tribunalOrigemNome: null,
-      tribunalOrigemSistema: null,
-      tribunalOrigemLink: null,
-      instance: null,
+      tribunalSigla: topFrame.fromTribunalSigla,
+      tribunalNome: topFrame.fromTribunalNome,
+      tribunalSistema: topFrame.fromTribunalSistema,
+      tribunalLink: topFrame.fromTribunalLink,
+      currentInstance: topFrame.fromInstance,
+      currentInstanceDetail: topFrame.fromInstanceDetail,
+      instance: previousFrame ? previousFrame.fromInstance : null,
+      tribunalOrigemSigla: previousFrame ? previousFrame.fromTribunalSigla : null,
+      tribunalOrigemNome: previousFrame ? previousFrame.fromTribunalNome : null,
+      tribunalOrigemSistema: previousFrame ? previousFrame.fromTribunalSistema : null,
+      tribunalOrigemLink: previousFrame ? previousFrame.fromTribunalLink : null,
     },
   });
 
   await prisma.comment.create({
     data: {
-      content: `↓ Autos retornaram: ${instanciaLabel(existing.currentInstance)}${existing.tribunalSigla ? ` (${existing.tribunalSigla})` : ""} → ${instanciaLabel(existing.instance)}${existing.tribunalOrigemSigla ? ` (${existing.tribunalOrigemSigla})` : ""}`,
+      content: `↓ Autos retornaram: ${instanciaLabel(topFrame.toInstance)} (${topFrame.toTribunalSigla}) → ${instanciaLabel(topFrame.fromInstance)}${topFrame.fromTribunalSigla ? ` (${topFrame.fromTribunalSigla})` : ""}`,
       authorId: viewer.id,
       caseId,
       officeId: viewer.officeId,
@@ -721,5 +745,32 @@ export async function retornarInstanciaAnterior(caseId: string): Promise<{ error
   });
 
   revalidatePath(`/processos/${caseId}`);
+  revalidatePath(`/m/processos/${caseId}`);
   return {};
+}
+
+// Histórico completo de escaladas (ativas e já revertidas) pra exibir no Processo — mais recente
+// primeiro. Puramente leitura, usado pelo bloco "Histórico de instância" em
+// InstanciaTribunalPanel.tsx.
+export async function getCaseInstanceHistory(caseId: string) {
+  const viewer = await getCurrentUser();
+  if (!viewer) return [];
+  const existing = await prisma.case.findFirst({ where: { id: caseId, officeId: viewer.officeId }, select: { id: true } });
+  if (!existing) return [];
+
+  const frames = await prisma.caseInstanceEscalation.findMany({
+    where: { caseId },
+    orderBy: { escalatedAt: "desc" },
+  });
+  return frames.map((f) => ({
+    id: f.id,
+    order: f.order,
+    fromInstance: f.fromInstance,
+    fromTribunalSigla: f.fromTribunalSigla,
+    toInstance: f.toInstance,
+    toTribunalSigla: f.toTribunalSigla,
+    toInstanceDetail: f.toInstanceDetail,
+    escalatedAt: f.escalatedAt.toISOString(),
+    returnedAt: f.returnedAt ? f.returnedAt.toISOString() : null,
+  }));
 }

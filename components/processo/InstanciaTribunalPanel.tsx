@@ -4,13 +4,27 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { retornarInstanciaAnterior } from "@/lib/actions/cases";
 import { INSTANCIA_OPTIONS, instanciaLabel } from "@/lib/caseInstance";
-import { Undo2 } from "lucide-react";
+import { formatDate } from "@/components/ui";
+import { Undo2, History } from "lucide-react";
+
+export type CaseInstanceHistoryEntry = {
+  id: string;
+  order: number;
+  fromInstance: string | null;
+  fromTribunalSigla: string | null;
+  toInstance: string;
+  toTribunalSigla: string;
+  toInstanceDetail: string | null;
+  escalatedAt: string;
+  returnedAt: string | null;
+};
 
 // Instância atual + seção/câmara/turma (dentro do form principal do EditCaseModal, por isso os
-// dois <select>/<input> daqui têm name= e são lidos junto do resto) + o par origem/atual e o
-// botão de retorno (ação própria, fora do form principal — mesmo motivo do SettleButton/
-// SettleModal não ficarem dentro do form de Editar Processo: mexe num histórico à parte, não faz
-// sentido competir com "Salvar").
+// dois <select>/<input> daqui têm name= e são lidos junto do resto) + o par origem/atual, o botão
+// de retorno (ação própria, fora do form principal — mesmo motivo do SettleButton/SettleModal não
+// ficarem dentro do form de Editar Processo: mexe num histórico à parte, não faz sentido competir
+// com "Salvar") e o histórico completo de escaladas (ver getCaseInstanceHistory, lib/actions/
+// cases.ts — cada escalada empilha um registro, "retorno dos autos" desempilha um de cada vez).
 export default function InstanciaTribunalPanel({
   caseId,
   currentInstance,
@@ -18,6 +32,7 @@ export default function InstanciaTribunalPanel({
   tribunalOrigemSigla,
   tribunalOrigemNome,
   origemInstance,
+  history = [],
   inputClassName,
 }: {
   caseId: string;
@@ -26,10 +41,12 @@ export default function InstanciaTribunalPanel({
   tribunalOrigemSigla: string | null;
   tribunalOrigemNome: string | null;
   origemInstance: string | null;
+  history?: CaseInstanceHistoryEntry[];
   inputClassName: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const temOrigem = Boolean(tribunalOrigemSigla);
 
@@ -89,6 +106,34 @@ export default function InstanciaTribunalPanel({
           >
             <Undo2 size={12} /> {loading ? "Retornando..." : "Marcar retorno dos autos"}
           </button>
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+          >
+            <History size={12} /> {showHistory ? "Ocultar" : "Ver"} histórico de instância ({history.length})
+          </button>
+          {showHistory && (
+            <ul className="mt-1.5 space-y-1">
+              {history.map((h) => (
+                <li key={h.id} className="flex items-center justify-between gap-2 text-[11px] text-navy-800/60 dark:text-cream-50/60 border-b border-navy-800/5 dark:border-white/10 pb-1 last:border-0">
+                  <span>
+                    {h.order}ª: {instanciaLabel(h.fromInstance)} → {instanciaLabel(h.toInstance)} ({h.toTribunalSigla})
+                    {h.toInstanceDetail && ` — ${h.toInstanceDetail}`}
+                    <span className="text-navy-800/40 dark:text-cream-50/40"> · {formatDate(h.escalatedAt)}</span>
+                  </span>
+                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${h.returnedAt ? "bg-cream-200 dark:bg-white/10 text-navy-800/50 dark:text-cream-50/50" : "bg-gold-500/15 text-gold-700 dark:text-gold-400"}`}>
+                    {h.returnedAt ? `Revertida em ${formatDate(h.returnedAt)}` : "Ativa"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

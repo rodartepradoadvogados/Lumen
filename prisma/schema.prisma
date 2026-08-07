@@ -128,6 +128,7 @@ model Office {
   recurringFees        RecurringFee[]
   recurringExpenses    RecurringExpense[]
   caseLinks            CaseLink[]
+  caseInstanceEscalations CaseInstanceEscalation[]
   assessorias          Assessoria[]
   assessoriaDocumentos AssessoriaDocumento[]
   pareceres            Parecer[]
@@ -461,20 +462,22 @@ model Case {
   // instance = "Instância Original": só passa a ser preenchido na PRIMEIRA vez que um recurso faz
   // o processo subir de instância (ver escalarTribunalSuperior, lib/actions/cases.ts) — antes
   // disso, um processo só tem "instância atual" (currentInstance), sem par origem/atual pra
-  // mostrar. tribunalOrigem* abaixo é o par equivalente do lado do tribunal — os dois são
-  // gravados e limpos JUNTOS (ver retornarInstanciaAnterior): ao marcar "autos retornaram", volta
-  // tudo pro que estava aqui e os dois pares são zerados, prontos para uma escalada futura nova
-  // registrar um par limpo outra vez. Não guarda histórico de mais de uma escalada — cobre o caso
-  // comum (1º ↔ 2º grau, eventualmente STJ/STF), não uma pilha arbitrária de subidas e descidas.
-  instance        String? // Instância Original
+  // mostrar. tribunalOrigem* abaixo é o par equivalente do lado do tribunal. Os dois SEMPRE
+  // espelham o topo da pilha de CaseInstanceEscalation ainda não desfeita (a escalada que um
+  // próximo "retorno dos autos" reverteria) — cada escalada empilha um novo registro em
+  // CaseInstanceEscalation (histórico completo, com order/escalatedAt/returnedAt), e um retorno
+  // desempilha só a mais recente ainda ativa, recalculando instance/tribunalOrigem* a partir do
+  // que sobrou na pilha (ou zerando os dois se não sobrou nada). Múltiplas escaladas em sequência
+  // (1º → 2º → STJ, por exemplo) preservam cada hop — não é mais um par único de mão única.
+  instance        String? // Instância Original (espelha o topo da pilha de escaladas ainda ativas)
   currentInstance String? // Instância Atual — valores: PRIMEIRO_GRAU | SEGUNDO_GRAU | TERCEIRO_GRAU (ver lib/caseInstance.ts)
   // Seção/Câmara/Turma do tribunal ATUAL (ex.: "3ª Câmara Cível do TJGO") — texto livre e
   // opcional, preenchido junto da escalada por recurso ou editável a qualquer momento; não tem
   // catálogo por trás (câmara/turma varia demais entre tribunais para valer a pena catalogar).
   currentInstanceDetail String?
-  // Tribunal ANTES da última escalada por recurso — ver comentário de `instance` acima sobre o
-  // par origem/atual. tribunalSigla/Nome/Sistema/Link (abaixo) passam a representar o tribunal
-  // ATUAL a partir do momento em que isto é preenchido.
+  // Tribunal do topo da pilha de escaladas ainda ativas — ver comentário de `instance` acima
+  // sobre o par origem/atual. tribunalSigla/Nome/Sistema/Link (abaixo) passam a representar o
+  // tribunal ATUAL a partir do momento em que isto é preenchido.
   tribunalOrigemSigla   String?
   tribunalOrigemNome    String?
   tribunalOrigemSistema String?
@@ -577,6 +580,10 @@ model Case {
   linksAsA CaseLink[] @relation("CaseLinkA")
   linksAsB CaseLink[] @relation("CaseLinkB")
 
+  // Histórico completo de escaladas de instância (ver model CaseInstanceEscalation e comentário
+  // de `instance` acima) — cada subida por recurso empilha um registro aqui.
+  instanceEscalations CaseInstanceEscalation[]
+
   @@index([officeId])
   @@index([officeId, processNumber])
 }
@@ -600,6 +607,44 @@ model CaseLink {
   office   Office @relation(fields: [officeId], references: [id])
 
   @@unique([caseAId, caseBId])
+  @@index([officeId])
+}
+
+// Histórico de escaladas de instância por recurso (ver escalarTribunalSuperior/
+// retornarInstanciaAnterior, lib/actions/cases.ts) — cada vez que um processo sobe de instância,
+// empilha um registro aqui com o estado ANTES (from*) e DEPOIS (to*) da escalada. "Retorno dos
+// autos" desempilha só o registro mais recente ainda sem returnedAt (LIFO), restaura o Case pros
+// valores from* daquele registro e marca returnedAt — se sobrar algum registro mais antigo sem
+// returnedAt, ele passa a ser o novo topo (outro retorno o desfaria em seguida). `order` é só
+// pra facilitar leitura em UI/debug (1ª, 2ª, 3ª escalada...); a ordem "de verdade" pra empilhar/
+// desempilhar é sempre por escalatedAt (mais recente primeiro).
+model CaseInstanceEscalation {
+  id     String @id @default(cuid())
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id])
+  order  Int
+
+  fromInstance          String?
+  fromTribunalSigla     String?
+  fromTribunalNome      String?
+  fromTribunalSistema   String?
+  fromTribunalLink      String?
+  fromInstanceDetail    String?
+
+  toInstance          String
+  toTribunalSigla     String
+  toTribunalNome      String?
+  toTribunalSistema   String?
+  toTribunalLink      String?
+  toInstanceDetail    String?
+
+  escalatedAt DateTime  @default(now())
+  returnedAt  DateTime? // preenchido quando "retorno dos autos" desfaz esta escalada específica
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([caseId])
   @@index([officeId])
 }
 

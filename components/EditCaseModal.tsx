@@ -12,7 +12,7 @@ import { Pencil } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 import CaseMateriaField from "@/components/processo/CaseMateriaField";
 import AssuntosField from "@/components/processo/AssuntosField";
-import InstanciaTribunalPanel from "@/components/processo/InstanciaTribunalPanel";
+import InstanciaTribunalPanel, { type CaseInstanceHistoryEntry } from "@/components/processo/InstanciaTribunalPanel";
 import CaseLinkField from "@/components/processo/CaseLinkField";
 import { formatDate } from "@/components/ui";
 
@@ -69,6 +69,7 @@ export default function EditCaseModal({
   users,
   tribunais,
   caseLinks = [],
+  instanceHistory = [],
 }: {
   caseData: CaseData;
   clients: { id: string; name: string }[];
@@ -78,6 +79,9 @@ export default function EditCaseModal({
   // mesmo motivo dos demais campos novos: telas mais antigas que ainda não passam continuam
   // funcionando (nasce sem nenhum vínculo pra mostrar).
   caseLinks?: CaseLinkEntry[];
+  // Histórico de escaladas de instância (ver getCaseInstanceHistory, lib/actions/cases.ts) —
+  // mesmo motivo de opcional dos demais.
+  instanceHistory?: CaseInstanceHistoryEntry[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -274,6 +278,7 @@ export default function EditCaseModal({
                   tribunalOrigemSigla={caseData.tribunalOrigemSigla ?? null}
                   tribunalOrigemNome={caseData.tribunalOrigemNome ?? null}
                   origemInstance={caseData.instance ?? null}
+                  history={instanceHistory}
                   inputClassName={inputClass}
                 />
               </div>

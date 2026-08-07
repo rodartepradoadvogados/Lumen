@@ -41,6 +41,7 @@ import { financeGroupKind } from "@/lib/financeGroupKind";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import { instanciaLabel } from "@/lib/caseInstance";
 import { getCaseLinks } from "@/lib/actions/caseLinks";
+import { getCaseInstanceHistory } from "@/lib/actions/cases";
 
 export const dynamic = "force-dynamic";
 
@@ -183,7 +184,7 @@ export default async function CaseDetailPage({
     createdAt: a.createdAt.toISOString(),
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays, caseLinks] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays, caseLinks, instanceHistory] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -219,6 +220,8 @@ export default async function CaseDetailPage({
     // Vínculos com outros processos (ver components/processo/CaseLinkField.tsx) — já vem
     // resolvido do ponto de vista deste Case (other/role), pronto para passar ao EditCaseModal.
     getCaseLinks(c.id),
+    // Histórico de escaladas de instância (ver InstanciaTribunalPanel.tsx) — mais recente primeiro.
+    getCaseInstanceHistory(c.id),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const holidayDates = holidays.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
@@ -418,6 +421,7 @@ export default async function CaseDetailPage({
                 users={users.map((u) => ({ id: u.id, name: u.name }))}
                 tribunais={tribunais}
                 caseLinks={caseLinks}
+                instanceHistory={instanceHistory}
               />
             </div>
             {caseClients.length === 0 ? (
