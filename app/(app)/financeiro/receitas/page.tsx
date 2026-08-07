@@ -197,6 +197,8 @@ export default async function ReceitasPage({
             case: r.case ? { title: r.case.title } : null,
             client: r.client ? { name: r.client.name } : null,
             reimbursesPayable: r.reimbursesPayable ? { id: r.reimbursesPayable.id, description: r.reimbursesPayable.description } : null,
+            receiptDriveUrl: r.receiptDriveUrl,
+            receiptFileName: r.receiptFileName,
           }))}
           categories={categories}
           cases={cases.map((c) => ({ id: c.id, name: c.title }))}

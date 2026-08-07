@@ -655,6 +655,8 @@ export default async function CaseDetailPage({
                           paidDate: r.paidDate ? r.paidDate.toISOString() : null,
                           paymentMethod: r.paymentMethod,
                           paymentReceiptNumber: r.paymentReceiptNumber,
+                          receiptDriveUrl: r.receiptDriveUrl,
+                          receiptFileName: r.receiptFileName,
                         }}
                         categories={receivableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
@@ -749,6 +751,8 @@ export default async function CaseDetailPage({
                           kind: p.kind,
                           expensePayer: p.expensePayer,
                           reimbursementReceivable: p.reimbursementReceivable,
+                          receiptDriveUrl: p.receiptDriveUrl,
+                          receiptFileName: p.receiptFileName,
                         }}
                         categories={payableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}

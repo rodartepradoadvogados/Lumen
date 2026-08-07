@@ -15,6 +15,8 @@ import { formatCurrency } from "@/components/ui";
 import { Plus, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
 
@@ -167,6 +169,11 @@ export default function NewPayableModal({
   const [paidAmount, setPaidAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
 
+  // ---- Comprovante ---- a conta ainda não existe neste ponto (o id só nasce depois do
+  // createPayable abaixo) — o arquivo fica em memória e só é enviado depois do create ter
+  // sucesso, ver o "action" do form.
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
   function regenerate(count: string, interval: string, total: string) {
     setParcelas((prev) => regenerateParcelas(prev, parseInt(count || "1") || 1, parseInt(interval || "1") || 1, dueDate || todayStr(), total));
   }
@@ -279,6 +286,12 @@ export default function NewPayableModal({
                   if (result.error) {
                     setError(result.error);
                     return;
+                  }
+                  if (receiptFile && result.id) {
+                    const uploadResult = await uploadFinanceReceipt("PAYABLE", result.id, receiptFile);
+                    if (uploadResult.error) {
+                      alert(`Lançamento salvo, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nVocê pode anexá-lo novamente editando o lançamento.`);
+                    }
                   }
                   setOpen(false);
                   router.refresh();
@@ -616,6 +629,7 @@ export default function NewPayableModal({
                 </SecaoLancamento>
 
                 <SecaoLancamento title="Pagamento" tone="verde">
+                  <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
                   <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                     <input type="checkbox" checked={pago} disabled={parcelado} onChange={(e) => handlePagoToggle(e.target.checked)} />
                     Já foi pago

@@ -54,6 +54,9 @@ type Payable = {
   // Presente só quando esta despesa já tem um reembolso vinculado — ver
   // Payable.reimbursementReceivable em prisma/schema.prisma.
   reimbursementReceivable: { id: string; amount: number; status: string } | null;
+  // Comprovante de pagamento (ver Payable.receiptDriveUrl/receiptFileName, lib/financeReceiptNaming.ts).
+  receiptDriveUrl: string | null;
+  receiptFileName: string | null;
 };
 
 type Option = { id: string; name: string };
@@ -180,6 +183,8 @@ export default function PayablesList({
                     kind: p.kind,
                     expensePayer: p.expensePayer,
                     reimbursementReceivable: p.reimbursementReceivable,
+                    receiptDriveUrl: p.receiptDriveUrl,
+                    receiptFileName: p.receiptFileName,
                   }}
                   categories={categories}
                   cases={cases}

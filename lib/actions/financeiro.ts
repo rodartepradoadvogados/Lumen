@@ -630,7 +630,7 @@ export type CreatePayableInput = {
   createReimbursement?: boolean;
 };
 
-export async function createPayable(data: CreatePayableInput): Promise<{ error?: string }> {
+export async function createPayable(data: CreatePayableInput): Promise<{ error?: string; id?: string }> {
   const officeId = await requireFinanceOfficeId();
   try {
     await assertFinanceRelationsInOffice({ ...data, bankAccountId: data.pagamento?.bankAccountId }, officeId);
@@ -753,7 +753,12 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
 
   revalidateFinance();
   revalidateCase(data.caseId);
-  return {};
+  // id do primeiro lançamento criado (único, se não parcelado; a 1ª parcela, se parcelado) —
+  // usado por NewPayableModal.tsx/MobileNewPayableForm.tsx para anexar o comprovante de
+  // pagamento/recebimento (ver app/api/financeiro/comprovante/upload/route.ts) assim que a conta
+  // existe, já que o upload precisa de um id de Payable real (o arquivo é catalogado com dados
+  // que só existem depois do create, e a pasta do Drive/OneDrive/Dropbox é resolvida por conta).
+  return { id: firstPayableId ?? undefined };
 }
 
 export type CreateReceivableInput = {
@@ -778,7 +783,7 @@ export type CreateReceivableInput = {
   pagamento?: PagamentoInput;
 };
 
-export async function createReceivable(data: CreateReceivableInput): Promise<{ error?: string }> {
+export async function createReceivable(data: CreateReceivableInput): Promise<{ error?: string; id?: string }> {
   const officeId = await requireFinanceOfficeId();
   try {
     await assertFinanceRelationsInOffice({ ...data, bankAccountId: data.pagamento?.bankAccountId }, officeId);
@@ -805,6 +810,8 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
     issueDate: data.issueDate ? new Date(data.issueDate) : null,
   };
 
+  let firstReceivableId: string | null = null;
+
   if (parcelado) {
     const rows = data.parcelas ?? [];
     if (rows.length === 0) return { error: "Informe ao menos uma parcela." };
@@ -827,6 +834,7 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
           installmentBoleto: row.installmentBoleto || null,
         },
       });
+      if (i === 0) firstReceivableId = receivable.id;
       if (row.pago) {
         await prisma.financePayment.create({
           data: { officeId, amount: rowAmount, paidDate: rowDueDate, documentNumber: row.installmentBoleto || null, receivableId: receivable.id },
@@ -847,6 +855,7 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
     const receivable = await prisma.receivable.create({
       data: { ...shared, description: data.description, amount, discount, surcharge, dueDate, noDueDate },
     });
+    firstReceivableId = receivable.id;
     if (recebido && data.pagamento) {
       await registrarPagamentoReceivable(receivable.id, data.pagamento, officeId);
     } else if (!noDueDate) {
@@ -856,7 +865,9 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
 
   revalidateFinance();
   revalidateCase(data.caseId);
-  return {};
+  // Mesmo raciocínio de createPayable acima — id do primeiro lançamento, para
+  // NewReceivableModal.tsx/MobileNewReceivableForm.tsx anexar o comprovante depois do create.
+  return { id: firstReceivableId ?? undefined };
 }
 
 // Quantos meses (mês corrente + à frente) o RecurringFee sempre mantém materializados em

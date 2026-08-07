@@ -171,6 +171,8 @@ export default async function DespesasPage({
             reimbursementReceivable: p.reimbursementReceivable
               ? { id: p.reimbursementReceivable.id, amount: p.reimbursementReceivable.amount, status: p.reimbursementReceivable.status }
               : null,
+            receiptDriveUrl: p.receiptDriveUrl,
+            receiptFileName: p.receiptFileName,
           }))}
           categories={categories}
           cases={cases.map((c) => ({ id: c.id, name: c.title }))}

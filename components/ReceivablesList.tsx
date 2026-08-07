@@ -72,6 +72,9 @@ type Receivable = {
   // Presente só quando esta receita NASCEU como o reembolso de uma despesa (kind "REEMBOLSO") —
   // ver Receivable.reimbursesPayableId em prisma/schema.prisma.
   reimbursesPayable: { id: string; description: string } | null;
+  // Comprovante de recebimento (ver Receivable.receiptDriveUrl/receiptFileName).
+  receiptDriveUrl: string | null;
+  receiptFileName: string | null;
 };
 
 type Option = { id: string; name: string };
@@ -207,6 +210,8 @@ export default function ReceivablesList({
                     paidDate: r.paidDate,
                     paymentMethod: r.paymentMethod,
                     paymentReceiptNumber: r.paymentReceiptNumber,
+                    receiptDriveUrl: r.receiptDriveUrl,
+                    receiptFileName: r.receiptFileName,
                   }}
                   categories={categories}
                   cases={cases}

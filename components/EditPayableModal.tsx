@@ -15,6 +15,8 @@ import { formatCurrency, formatDate } from "@/components/ui";
 import { Pencil, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
 
@@ -100,6 +102,11 @@ export default function EditPayableModal({
     // Payable.reimbursementReceivable) — amount/status bastam para a informação exibida aqui
     // (nunca navega para o reembolso em si, ver Problema 2 do pedido original).
     reimbursementReceivable?: { id: string; amount: number; status: string } | null;
+    // Comprovante já salvo (ver Payable.receiptDriveUrl/receiptFileName) — opcional pelo mesmo
+    // motivo dos demais campos "novos" acima: telas mais antigas que ainda não foram adaptadas a
+    // passá-lo continuam funcionando (nasce sem comprovante nenhum pra mostrar).
+    receiptDriveUrl?: string | null;
+    receiptFileName?: string | null;
   };
   categories: Option[];
   cases: Option[];
@@ -129,6 +136,10 @@ export default function EditPayableModal({
   // motivo qualquer; marcar reembolso por padrão criaria um lançamento novo sem o usuário pedir
   // de propósito, só porque ele salvou uma edição em outro campo.
   const [createReimbursement, setCreateReimbursement] = useState(false);
+
+  // ---- Comprovante ---- a conta já existe (payable.id) — o upload roda logo depois de
+  // updatePayable ter sucesso, mesma ideia de NewPayableModal.tsx.
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const amountNum = parseFloat(amount || "0") || 0;
   const discountNum = parseFloat(discount || "0") || 0;
@@ -186,6 +197,12 @@ export default function EditPayableModal({
                   if (result.error) {
                     setError(result.error);
                     return;
+                  }
+                  if (receiptFile) {
+                    const uploadResult = await uploadFinanceReceipt("PAYABLE", payable.id, receiptFile);
+                    if (uploadResult.error) {
+                      alert(`Alterações salvas, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nTente anexá-lo novamente.`);
+                    }
                   }
                   setOpen(false);
                   router.refresh();
@@ -421,6 +438,12 @@ export default function EditPayableModal({
                     concorrentes editando o mesmo histórico de pagamentos. Esta seção só resume o
                     que já está lançado. */}
                 <SecaoLancamento title="Pagamento" tone="verde">
+                  <ComprovanteField
+                    file={receiptFile}
+                    onFileChange={setReceiptFile}
+                    existingUrl={payable.receiptDriveUrl}
+                    existingName={payable.receiptFileName}
+                  />
                   {payable.status === "PAGO" || payable.status === "PARCIAL" ? (
                     <p className="text-xs text-navy-800/70 dark:text-cream-50/70">
                       {payable.status === "PARCIAL" ? "Parcialmente pago" : "Pago"}: {formatCurrency(payable.paidAmount ?? 0)}

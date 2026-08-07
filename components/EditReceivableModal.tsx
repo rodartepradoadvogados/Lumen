@@ -14,6 +14,8 @@ import { formatCurrency, formatDate } from "@/components/ui";
 import { Pencil, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
 
@@ -54,6 +56,10 @@ export default function EditReceivableModal({
     paidDate?: string | null;
     paymentMethod?: string | null;
     paymentReceiptNumber?: string | null;
+    // Comprovante já salvo (ver Receivable.receiptDriveUrl/receiptFileName) — opcional pelo mesmo
+    // motivo dos demais campos acima.
+    receiptDriveUrl?: string | null;
+    receiptFileName?: string | null;
   };
   categories: Option[];
   cases: Option[];
@@ -69,6 +75,10 @@ export default function EditReceivableModal({
   const [amount, setAmount] = useState(String(receivable.amount));
   const [discount, setDiscount] = useState(String(receivable.discount ?? 0));
   const [surcharge, setSurcharge] = useState(String(receivable.surcharge ?? 0));
+
+  // ---- Comprovante ---- mesma ideia de EditPayableModal.tsx: enviado logo depois do
+  // updateReceivable ter sucesso.
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const amountNum = parseFloat(amount || "0") || 0;
   const discountNum = parseFloat(discount || "0") || 0;
@@ -120,6 +130,12 @@ export default function EditReceivableModal({
                   if (result.error) {
                     setError(result.error);
                     return;
+                  }
+                  if (receiptFile) {
+                    const uploadResult = await uploadFinanceReceipt("RECEIVABLE", receivable.id, receiptFile);
+                    if (uploadResult.error) {
+                      alert(`Alterações salvas, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nTente anexá-lo novamente.`);
+                    }
                   }
                   setOpen(false);
                   router.refresh();
@@ -290,6 +306,12 @@ export default function EditReceivableModal({
                 </SecaoLancamento>
 
                 <SecaoLancamento title="Recebimento" tone="verde">
+                  <ComprovanteField
+                    file={receiptFile}
+                    onFileChange={setReceiptFile}
+                    existingUrl={receivable.receiptDriveUrl}
+                    existingName={receivable.receiptFileName}
+                  />
                   {receivable.status === "PAGO" || receivable.status === "PARCIAL" ? (
                     <p className="text-xs text-navy-800/70 dark:text-cream-50/70">
                       {receivable.status === "PARCIAL" ? "Parcialmente recebido" : "Recebido"}: {formatCurrency(receivable.paidAmount ?? 0)}

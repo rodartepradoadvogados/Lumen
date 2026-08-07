@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPayable } from "@/lib/actions/financeiro";
 import { PAYABLE_KIND_OPTIONS, EXPENSE_PAYER_LABELS } from "@/lib/despesaProcesso";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 import { Plus, X, Send } from "lucide-react";
 
 type Option = { id: string; name: string };
@@ -74,6 +76,9 @@ export default function MobileNewPayableForm({
   const [kind, setKind] = useState("OUTROS");
   const [expensePayer, setExpensePayer] = useState<ExpensePayer>("ESCRITORIO");
   const [createReimbursement, setCreateReimbursement] = useState(true);
+  // ---- Comprovante ---- mesma ideia de NewPayableModal.tsx (desktop): enviado só depois do
+  // createPayable ter sucesso, quando o id real já existe.
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   if (!open) {
     return (
@@ -127,6 +132,12 @@ export default function MobileNewPayableForm({
               setError(result.error);
               return;
             }
+            if (receiptFile && result.id) {
+              const uploadResult = await uploadFinanceReceipt("PAYABLE", result.id, receiptFile);
+              if (uploadResult.error) {
+                alert(`Lançamento salvo, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nVocê pode anexá-lo novamente editando o lançamento.`);
+              }
+            }
             if (afterSaveHref) {
               router.push(afterSaveHref);
               return;
@@ -166,6 +177,7 @@ export default function MobileNewPayableForm({
           <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
           Sem vencimento definido
         </label>
+        <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
           <label className={labelCls}>Fornecedor (opcional)</label>
           <select name="supplierId" defaultValue="" className="mobile-input">

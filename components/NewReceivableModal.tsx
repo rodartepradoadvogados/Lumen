@@ -14,6 +14,8 @@ import { formatCurrency } from "@/components/ui";
 import { Plus, X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 
 type Option = { id: string; name: string };
 
@@ -125,6 +127,10 @@ export default function NewReceivableModal({
   const [paidAmount, setPaidAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
 
+  // ---- Comprovante ---- mesma ideia de NewPayableModal.tsx: enviado só depois do
+  // createReceivable ter sucesso, quando o id real já existe.
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
   function regenerate(count: string, interval: string, total: string) {
     setParcelas((prev) => regenerateParcelas(prev, parseInt(count || "1") || 1, parseInt(interval || "1") || 1, dueDate || todayStr(), total));
   }
@@ -228,6 +234,12 @@ export default function NewReceivableModal({
                   if (result.error) {
                     setError(result.error);
                     return;
+                  }
+                  if (receiptFile && result.id) {
+                    const uploadResult = await uploadFinanceReceipt("RECEIVABLE", result.id, receiptFile);
+                    if (uploadResult.error) {
+                      alert(`Lançamento salvo, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nVocê pode anexá-lo novamente editando o lançamento.`);
+                    }
                   }
                   setOpen(false);
                   router.refresh();
@@ -534,6 +546,7 @@ export default function NewReceivableModal({
                 </SecaoLancamento>
 
                 <SecaoLancamento title="Recebimento" tone="verde">
+                  <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
                   <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
                     <input type="checkbox" checked={recebido} disabled={parcelado} onChange={(e) => handleRecebidoToggle(e.target.checked)} />
                     Já foi recebido

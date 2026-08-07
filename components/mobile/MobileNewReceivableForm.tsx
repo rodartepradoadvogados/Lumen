@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReceivable } from "@/lib/actions/financeiro";
 import { RECEIVABLE_KIND_OPTIONS } from "@/lib/honorarioLancamento";
+import ComprovanteField from "@/components/financeiro/ComprovanteField";
+import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 import { Plus, X } from "lucide-react";
 
 type Option = { id: string; name: string };
@@ -24,6 +26,9 @@ export default function MobileNewReceivableForm({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // ---- Comprovante ---- mesma ideia de MobileNewPayableForm.tsx: enviado só depois do
+  // createReceivable ter sucesso.
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   if (!open) {
     return (
@@ -71,6 +76,12 @@ export default function MobileNewReceivableForm({
               setError(result.error);
               return;
             }
+            if (receiptFile && result.id) {
+              const uploadResult = await uploadFinanceReceipt("RECEIVABLE", result.id, receiptFile);
+              if (uploadResult.error) {
+                alert(`Lançamento salvo, mas houve falha ao enviar o comprovante: ${uploadResult.error}\n\nVocê pode anexá-lo novamente editando o lançamento.`);
+              }
+            }
             setOpen(false);
             router.refresh();
           } catch (err) {
@@ -105,6 +116,7 @@ export default function MobileNewReceivableForm({
             ))}
           </select>
         </div>
+        <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
           <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente (opcional)</label>
           <select name="clientId" defaultValue="" className="mobile-input">
