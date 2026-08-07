@@ -133,6 +133,10 @@ const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
 // Raiz nova para Case cuja natureza é "CASO" (ver lib/caseNatureza.ts e o mesmo ponto em
 // lib/googleDrive.ts) — mesma regra, mesmo comentário de fundo, só o provedor muda.
 const CASOS_ROOT_NAME = "Lúmen - Casos";
+// Comprovantes do Financeiro — duas raízes FLAT (sem pasta por conta), mesmo raciocínio do lado
+// Google (ver lib/googleDrive.ts, mesmo comentário): o arquivo já nasce catalogado pelo nome.
+const FINANCEIRO_DESPESAS_ROOT_NAME = "Lúmen - Financeiro - Despesas";
+const FINANCEIRO_RECEITAS_ROOT_NAME = "Lúmen - Financeiro - Receitas";
 
 async function getOrCreateNamedRootFolder(rootName: string, officeId: string): Promise<string> {
   const lumenRootId = await getOrCreateRootFolder(officeId);
@@ -200,6 +204,14 @@ export async function getDropboxItemInfo(fileId: string, officeId: string): Prom
   const idx = data.path_display.lastIndexOf("/");
   const parentPath = idx > 0 ? data.path_display.slice(0, idx) : "/";
   return { id: asIdPath(data.id), name: data.name, pathDisplay: data.path_display, parentPath };
+}
+
+export async function getFinanceDespesasRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(FINANCEIRO_DESPESAS_ROOT_NAME, officeId);
+}
+
+export async function getFinanceReceitasRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(FINANCEIRO_RECEITAS_ROOT_NAME, officeId);
 }
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:

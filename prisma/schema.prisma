@@ -1557,6 +1557,16 @@ model Payable {
   // a despesa dá pra ver se já existe reembolso vinculado (nunca duplicar por engano).
   reimbursementReceivable Receivable? @relation("PayableReimbursement")
 
+  // Comprovante de pagamento — UM arquivo por conta (não uma lista como Attachment), catalogado
+  // como "AAAA-MM-DD-fornecedor-descricao" em "Lúmen - Financeiro - Despesas" (ver
+  // lib/financeReceiptNaming.ts). receiptFileName guarda o nome que o arquivo tem HOJE no Drive
+  // — sem ele, saber se uma edição precisa renomear (mudou descrição/fornecedor/data de
+  // pagamento) exigiria recalcular e comparar com o nome real no provedor a cada save.
+  receiptDriveUrl        String?
+  receiptStorageProvider String?
+  receiptStorageFileId   String?
+  receiptFileName        String?
+
   @@index([officeId])
   @@index([officeId, dueDate])
 }
@@ -1683,6 +1693,13 @@ model Receivable {
   // precisar buscar, que já existe (ou não) um reembolso ligado a ela.
   reimbursesPayableId String?  @unique
   reimbursesPayable   Payable? @relation("PayableReimbursement", fields: [reimbursesPayableId], references: [id])
+
+  // Comprovante de recebimento — mesmo desenho de Payable.receiptDriveUrl (ver comentário lá),
+  // catalogado em "Lúmen - Financeiro - Receitas" em vez de "Despesas".
+  receiptDriveUrl        String?
+  receiptStorageProvider String?
+  receiptStorageFileId   String?
+  receiptFileName        String?
 
   @@unique([recurringFeeId, competencia])
   @@index([officeId])

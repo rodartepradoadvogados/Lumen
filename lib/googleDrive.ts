@@ -606,6 +606,27 @@ export async function getCasosRootFolderId(officeId: string): Promise<string> {
   return getOrCreateRootFolder(drive, CASOS_ROOT_NAME);
 }
 
+// Comprovantes do Financeiro (Contas a Pagar/Contas a Receber) — duas raízes FLAT, sem pasta por
+// conta nem por fornecedor/cliente: o arquivo já nasce catalogado pelo NOME
+// ("AAAA-MM-DD-fornecedor-descricao", ver lib/financeReceiptNaming.ts), então uma subpasta por
+// conta só acrescentaria clique sem organizar nada a mais — a lista já é ordenável por nome no
+// próprio Drive. "Despesas" (Payable) e "Receitas" (Receivable) são raízes SEPARADAS (não uma
+// única "Lúmen - Financeiro" com duas subpastas) para ficar no mesmo padrão flat de
+// PROCESSOS_ROOT_NAME/ATENDIMENTOS_ROOT_NAME/ASSESSORIA_ROOT_NAME acima — todas raiz direta do
+// Drive, nenhuma aninhada dentro de outra pasta do Lúmen.
+const FINANCEIRO_DESPESAS_ROOT_NAME = "Lúmen - Financeiro - Despesas";
+const FINANCEIRO_RECEITAS_ROOT_NAME = "Lúmen - Financeiro - Receitas";
+
+export async function getFinanceDespesasRootFolderId(officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, FINANCEIRO_DESPESAS_ROOT_NAME);
+}
+
+export async function getFinanceReceitasRootFolderId(officeId: string): Promise<string> {
+  const { drive } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, FINANCEIRO_RECEITAS_ROOT_NAME);
+}
+
 // ============ MIGRAÇÃO DE PASTAS LEGADAS (ver lib/actions/driveFolderMigration.ts) ============
 
 export type DriveFileInfo = { id: string; name: string; parents: string[]; trashed: boolean };

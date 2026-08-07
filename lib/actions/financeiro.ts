@@ -6,6 +6,8 @@ import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice } from "@/lib/officeScope";
 import { valorLiquido, statusPorPagamentos } from "@/lib/financeCalc";
+import { renameDriveFile } from "@/lib/storageProvider";
+import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceiptNaming";
 
 // Exportado para lib/actions/honorarioLancamento.ts reaproveitar a mesma checagem de vínculos
 // (categoria/centro de custo/cliente/processo do escritório do usuário logado) no lançamento
@@ -65,6 +67,65 @@ export async function requireFinanceOfficeId(): Promise<string> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Sessão inválida.");
   return user.officeId;
+}
+
+// Comprovante de pagamento/recebimento — ver lib/financeReceiptNaming.ts (o formato do nome) e
+// app/api/financeiro/comprovante/upload/route.ts (o upload em si, que grava
+// receiptDriveUrl/receiptStorageProvider/receiptStorageFileId/receiptFileName pela primeira vez).
+//
+// Chamada DEPOIS que updatePayable/updateReceivable já salvaram os campos editados: relê a conta
+// do zero (nunca confia em `data`/`existing` de quem chamou — description/fornecedor podem ter
+// sido recusados/normalizados no meio do caminho) e, só se já existir um comprovante anexado,
+// recalcula o nome que ele DEVERIA ter agora. Se mudou (descrição, fornecedor/cliente, ou a data
+// de pagamento passou a existir/mudou), renomeia o arquivo no provedor de armazenamento.
+//
+// Best-effort de propósito — nunca deixa lançar: uma falha ao renomear (Drive fora do ar, token
+// expirado) não pode desfazer a edição que o usuário já salvou; o arquivo só fica com o nome
+// antigo até a próxima edição bem-sucedida tentar de novo.
+async function maybeRenameFinanceReceipt(kind: "PAYABLE" | "RECEIVABLE", id: string, officeId: string): Promise<void> {
+  try {
+    if (kind === "PAYABLE") {
+      const p = await prisma.payable.findFirst({
+        where: { id, officeId },
+        select: { description: true, supplier: true, paidDate: true, dueDate: true, receiptStorageFileId: true, receiptFileName: true },
+      });
+      if (!p?.receiptStorageFileId) return;
+      const desired = buildReceiptFileName({
+        date: p.paidDate ?? p.dueDate,
+        counterpart: p.supplier,
+        description: p.description,
+        extension: extensionFromFileName(p.receiptFileName || "arquivo.pdf"),
+      });
+      if (desired === p.receiptFileName) return;
+      await renameDriveFile(p.receiptStorageFileId, desired, officeId);
+      await prisma.payable.update({ where: { id }, data: { receiptFileName: desired } });
+    } else {
+      const r = await prisma.receivable.findFirst({
+        where: { id, officeId },
+        select: {
+          description: true,
+          payerName: true,
+          paidDate: true,
+          dueDate: true,
+          receiptStorageFileId: true,
+          receiptFileName: true,
+          client: { select: { name: true } },
+        },
+      });
+      if (!r?.receiptStorageFileId) return;
+      const desired = buildReceiptFileName({
+        date: r.paidDate ?? r.dueDate,
+        counterpart: r.client?.name ?? r.payerName ?? null,
+        description: r.description,
+        extension: extensionFromFileName(r.receiptFileName || "arquivo.pdf"),
+      });
+      if (desired === r.receiptFileName) return;
+      await renameDriveFile(r.receiptStorageFileId, desired, officeId);
+      await prisma.receivable.update({ where: { id }, data: { receiptFileName: desired } });
+    }
+  } catch (e) {
+    console.error(`[financeiro] falha ao renomear comprovante de ${kind === "PAYABLE" ? "despesa" : "receita"} ${id}:`, e);
+  }
 }
 
 // Cria um lembrete de vencimento na Agenda/Kanban para uma parcela recorrente
@@ -440,6 +501,8 @@ export async function updatePayable(id: string, data: {
     });
   }
 
+  await maybeRenameFinanceReceipt("PAYABLE", id, officeId);
+
   revalidateFinance();
   revalidateCase(effectiveCaseId ?? existing.caseId);
   return {};
@@ -497,6 +560,9 @@ export async function updateReceivable(id: string, data: {
       noDueDate,
     },
   });
+
+  await maybeRenameFinanceReceipt("RECEIVABLE", id, officeId);
+
   revalidateFinance();
   return {};
 }

@@ -139,6 +139,10 @@ const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
 // Raiz nova para Case cuja natureza é "CASO" (ver lib/caseNatureza.ts e o mesmo ponto em
 // lib/googleDrive.ts) — mesma regra, mesmo comentário de fundo, só o provedor muda.
 const CASOS_ROOT_NAME = "Lúmen - Casos";
+// Comprovantes do Financeiro — duas raízes FLAT (sem pasta por conta), mesmo raciocínio do lado
+// Google (ver lib/googleDrive.ts, mesmo comentário): o arquivo já nasce catalogado pelo nome.
+const FINANCEIRO_DESPESAS_ROOT_NAME = "Lúmen - Financeiro - Despesas";
+const FINANCEIRO_RECEITAS_ROOT_NAME = "Lúmen - Financeiro - Receitas";
 
 // Mesmo mapa de subpasta por tipo de documento do lado Google (lib/googleDrive.ts) — reexportado
 // em vez de duplicado, já que o catálogo de tipos (AssessoriaDocumento.docType) é o mesmo
@@ -214,6 +218,14 @@ export async function getOneDriveItemInfo(fileId: string, officeId: string): Pro
   if (!res.ok) throw new Error(`Falha ao buscar item no OneDrive (${res.status}): ${await res.text()}`);
   const data = (await res.json()) as { id: string; name: string; parentReference?: { id?: string } };
   return { id: data.id, name: data.name, parentId: data.parentReference?.id ?? null };
+}
+
+export async function getFinanceDespesasRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(FINANCEIRO_DESPESAS_ROOT_NAME, officeId);
+}
+
+export async function getFinanceReceitasRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateNamedRootFolder(FINANCEIRO_RECEITAS_ROOT_NAME, officeId);
 }
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:

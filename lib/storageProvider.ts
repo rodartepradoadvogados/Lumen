@@ -141,6 +141,15 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
   }
 }
 
+// Raiz "Lúmen - Financeiro - Despesas"/"Lúmen - Financeiro - Receitas" — comprovante de
+// pagamento/recebimento (Payable/Receivable). Ver lib/financeReceiptNaming.ts para o nome do
+// arquivo dentro dela; a pasta em si é flat, sem subpasta por conta.
+export async function getFinanceReceiptsFolderId(kind: "PAYABLE" | "RECEIVABLE", officeId: string): Promise<string> {
+  const provider = await providerFor(officeId);
+  const impl = provider === "ONEDRIVE" ? oneDriveStorage : provider === "DROPBOX" ? dropboxStorage : googleDrive;
+  return kind === "PAYABLE" ? impl.getFinanceDespesasRootFolderId(officeId) : impl.getFinanceReceitasRootFolderId(officeId);
+}
+
 // Diferente das demais funções deste dispatcher, recebe o provider EXPLICITAMENTE em vez de
 // resolvê-lo por Office.storageProvider — quem chama (lib/actions/attachments.ts:deleteAttachment)
 // já sabe qual provedor foi usado no upload original (Attachment.storageProvider), gravado no
@@ -211,6 +220,15 @@ export async function renameDriveFolder(folderId: string, newName: string, offic
       await googleDrive.renameDriveFolder(folderId, newName, officeId);
   }
 }
+
+// Alias de renameDriveFolder acima — nos três provedores, renomear é um PATCH/move genérico do
+// item pelo id (Google files.update, OneDrive PATCH /items/{id}, Dropbox move_v2 para o mesmo
+// pai com nome novo — ver as implementações "*renomear pasta*" em cada arquivo de provedor), sem
+// distinção real entre arquivo e pasta. Existe como nome próprio só para não confundir quem lê
+// uma chamada como "renameDriveFolder(receiptFileId, ...)" — é o comprovante (arquivo) do
+// Financeiro sendo renomeado quando descrição/fornecedor/data de pagamento mudam (ver
+// lib/actions/financeiro.ts), não uma pasta.
+export const renameDriveFile = renameDriveFolder;
 
 export async function moveDriveFile(fileId: string, newParentId: string, officeId: string): Promise<void> {
   const provider = await providerFor(officeId);
