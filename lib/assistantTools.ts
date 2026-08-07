@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { valorLiquido } from "@/lib/financeCalc";
+import { caseMatchesMateria } from "@/lib/caseMaterias";
 
 // ============================================================================
 // Ferramentas do Assistente Claude (chat interno)
@@ -64,24 +65,26 @@ async function executarConsultarProcessos(input: ToolInput, officeId: string): P
     const area = str(input, "area");
     const status = str(input, "status");
 
+    // Prisma não faz "contains" case-insensitive em coluna String[] (Case.materias) — busca um
+    // lote maior de candidatos (só client/status, indexáveis) e filtra por matéria em memória.
     const cases = await prisma.case.findMany({
       where: {
         officeId,
         client: cliente ? { name: { contains: cliente, mode: "insensitive" } } : undefined,
-        area: area ? { contains: area, mode: "insensitive" } : undefined,
         status: status || undefined,
       },
       include: { client: true, responsible: true },
       orderBy: { updatedAt: "desc" },
-      take: 20,
+      take: area ? 100 : 20,
     });
+    const filtered = area ? cases.filter((c) => caseMatchesMateria(c.materias, c.area, area)) : cases;
 
-    const resumo = cases.map((c) => ({
+    const resumo = filtered.slice(0, 20).map((c) => ({
       id: c.id,
       title: c.title,
       processNumber: c.processNumber,
       status: c.status,
-      area: c.area,
+      materias: c.materias,
       cliente: c.client?.name ?? null,
       responsavel: c.responsible?.name ?? null,
     }));

@@ -121,7 +121,11 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
                     <Badge color={caseStatusColors[c.status]}>{c.status}</Badge>
-                    {c.area && <Badge color="gold">{c.area}</Badge>}
+                    {c.materias.map((m) => (
+                      <Badge key={m} color="gold">
+                        {m}
+                      </Badge>
+                    ))}
                   </div>
                   <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 truncate">
                     {c.processNumber ? `${c.processNumber} · ` : ""}

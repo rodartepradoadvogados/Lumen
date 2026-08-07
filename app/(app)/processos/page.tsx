@@ -80,7 +80,8 @@ export default async function ProcessosPage({
   const baseFilters: Prisma.CaseWhereInput = {
     officeId: viewer.officeId,
     status: searchParams.status || undefined,
-    area: searchParams.area || undefined,
+    // Ver mesmo comentário em lib/casesFilter.ts — "area" no filtro busca em Case.materias.
+    materias: searchParams.area ? { has: searchParams.area } : undefined,
     responsibleId: searchParams.responsibleId || undefined,
   };
   // Mesmo builder de where usado pela pré-visualização dinâmica do formulário (ver
@@ -110,7 +111,10 @@ export default async function ProcessosPage({
       orderBy: SORTS[sortKey],
     }),
     prisma.case.count({ where: { officeId: viewer.officeId } }),
-    prisma.case.findMany({ where: { area: { not: null }, officeId: viewer.officeId }, distinct: ["area"], select: { area: true }, orderBy: { area: "asc" } }),
+    // Prisma não faz distinct em elementos de coluna String[] — traz todas as listas não-vazias e
+    // achata/deduplica em memória (ver `areas` abaixo). Volume de Processos de um escritório não
+    // justifica preocupação de performance aqui.
+    prisma.case.findMany({ where: { officeId: viewer.officeId, materias: { isEmpty: false } }, select: { materias: true } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     // Contagem das 4 abas de natureza — sempre respeitando os DEMAIS filtros ativos (status/area/
     // responsável), só sem o filtro de natureza em si, pra cada aba mostrar quantos registros
@@ -121,7 +125,7 @@ export default async function ProcessosPage({
     prisma.case.count({ where: { ...baseFilters, ...(naturezaWhere("CASO") as Prisma.CaseWhereInput) } }),
   ]);
 
-  const areas = areaRows.map((a) => a.area).filter((a): a is string => Boolean(a));
+  const areas = Array.from(new Set(areaRows.flatMap((c) => c.materias))).sort((a, b) => a.localeCompare(b, "pt-BR"));
   const isFiltered = Boolean(q || searchParams.area || searchParams.responsibleId || searchParams.status);
 
   return (
@@ -229,7 +233,11 @@ export default async function ProcessosPage({
                       <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
                       <p className="font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
                       <Badge color={statusColors[c.status]}>{c.status}</Badge>
-                      {c.area && <Badge color="gold">{c.area}</Badge>}
+                      {c.materias.map((m) => (
+                        <Badge key={m} color="gold">
+                          {m}
+                        </Badge>
+                      ))}
                     </div>
                     <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">
                       {nat === "ADMINISTRATIVO" ? (

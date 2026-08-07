@@ -23,7 +23,9 @@ export async function buildCasesWhere(input: CasesFilterInput): Promise<Prisma.C
   const baseFilters: Prisma.CaseWhereInput = {
     officeId: input.officeId,
     status: input.status || undefined,
-    area: input.area || undefined,
+    // "area" no filtro (nome mantido no searchParams/URL por compatibilidade com os links
+    // existentes) busca dentro de Case.materias — ver lib/caseMaterias.ts.
+    materias: input.area ? { has: input.area } : undefined,
     responsibleId: input.responsibleId || undefined,
   };
   // Busca por nº de processo ignora máscara (hífen, ponto, barra...) — ver lib/processNumberSearch.ts.

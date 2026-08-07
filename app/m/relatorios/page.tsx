@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
 import { ArrowLeft, Users, Scale, Target, Newspaper } from "lucide-react";
+import { groupCasesByMateria } from "@/lib/caseMaterias";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
   const start = new Date(now.getFullYear(), now.getMonth() - (meses - 1), 1);
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [doneTasks, attendances, publications, casesByArea, casesByStatus] = await Promise.all([
+  const [doneTasks, attendances, publications, activeCases, casesByStatus] = await Promise.all([
     prisma.task.findMany({
       where: { officeId: viewer.officeId, status: "CONCLUIDO", completedAt: { gte: start, lt: end }, responsibleId: { not: null } },
       include: { responsible: { select: { id: true, name: true, color: true } } },
@@ -87,7 +88,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
       where: { officeId: viewer.officeId, publishedAt: { gte: start, lt: end } },
       select: { triageStatus: true },
     }),
-    prisma.case.groupBy({ by: ["area"], where: { officeId: viewer.officeId, status: "ATIVO" }, _count: { _all: true } }),
+    prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { materias: true } }),
     prisma.case.groupBy({ by: ["status"], where: { officeId: viewer.officeId }, _count: { _all: true } }),
   ]);
 
@@ -108,10 +109,10 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
     .slice(0, 5);
 
   // ---------- PROCESSOS ----------
-  const areaRows = casesByArea
-    .map((r) => ({ label: r.area ?? "Sem área", value: r._count._all }))
-    .sort((a, b) => b.value - a.value);
-  const totalActiveCases = areaRows.reduce((s, r) => s + r.value, 0);
+  // Um processo com mais de uma matéria conta em cada grupo — totalActiveCases é o total real de
+  // processos ativos, não a soma dos grupos (ver mesmo padrão em app/(app)/relatorios/page.tsx).
+  const areaRows = groupCasesByMateria(activeCases).map((r) => ({ label: r.label, value: r.count }));
+  const totalActiveCases = activeCases.length;
 
   const statusCounts: Record<string, number> = {};
   for (const s of CASE_STATUS_ORDER) statusCounts[s] = 0;

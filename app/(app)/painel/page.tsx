@@ -5,6 +5,7 @@ import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { hasBlogAccess } from "@/lib/officeModules";
 import { valorLiquido } from "@/lib/financeCalc";
+import { groupCasesByMateria } from "@/lib/caseMaterias";
 import {
   Card,
   CardHeader,
@@ -92,12 +93,14 @@ export default async function DashboardPage() {
   const totalPayable = payablesPending.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
   const totalReceivable = receivablesPending.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
 
-  const byArea = await prisma.case.groupBy({
-    by: ["area"],
+  const activeCasesForAreaWidget = await prisma.case.findMany({
     where: { status: "ATIVO", officeId: viewer.officeId },
-    _count: { _all: true },
+    select: { materias: true },
   });
-  const totalCasesByArea = byArea.reduce((s, a) => s + a._count._all, 0) || 1;
+  // Um processo com mais de uma matéria conta em cada grupo — a soma de byArea pode passar do
+  // total real de processos ativos (ver mesmo padrão em app/(app)/relatorios/page.tsx).
+  const byArea = groupCasesByMateria(activeCasesForAreaWidget);
+  const totalCasesByArea = activeCasesForAreaWidget.length || 1;
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
@@ -337,15 +340,15 @@ export default async function DashboardPage() {
           <div className="p-5 space-y-3">
             {byArea.length === 0 && <EmptyState title="Nenhum processo ativo" />}
             {byArea.map((a) => (
-              <div key={a.area ?? "outros"}>
+              <div key={a.label}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-navy-800 dark:text-cream-50/80">{a.area ?? "Não classificado"}</span>
-                  <span className="font-semibold text-navy-900 dark:text-cream-50">{a._count._all}</span>
+                  <span className="text-navy-800 dark:text-cream-50/80">{a.label}</span>
+                  <span className="font-semibold text-navy-900 dark:text-cream-50">{a.count}</span>
                 </div>
                 <div className="h-2 rounded-full bg-cream-200 dark:bg-white/10 overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-navy-800 to-gold-600 dark:from-gold-500 dark:to-bordo-500"
-                    style={{ width: `${(a._count._all / totalCasesByArea) * 100}%` }}
+                    style={{ width: `${(a.count / totalCasesByArea) * 100}%` }}
                   />
                 </div>
               </div>

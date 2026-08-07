@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
 import { Users, Target, Newspaper, Wallet, Scale, Info } from "lucide-react";
 import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
+import { groupCasesByMateria } from "@/lib/caseMaterias";
 
 export const dynamic = "force-dynamic";
 
@@ -204,19 +205,20 @@ async function ProdutividadeSection({ start, end, months, officeId }: { start: D
 }
 
 async function ProcessosSection({ start, end, officeId }: { start: Date; end: Date; officeId: string }) {
-  const [casesByArea, casesByStatus, closedCasesInPeriod] = await Promise.all([
-    prisma.case.groupBy({ by: ["area"], where: { officeId, status: "ATIVO" }, _count: { _all: true } }),
+  const [activeCases, casesByStatus, closedCasesInPeriod] = await Promise.all([
+    prisma.case.findMany({ where: { officeId, status: "ATIVO" }, select: { materias: true } }),
     prisma.case.groupBy({ by: ["status"], where: { officeId }, _count: { _all: true } }),
     prisma.case.findMany({
       where: { officeId, status: "ENCERRADO", distributedAt: { not: null }, closedAt: { gte: start, lt: end } },
-      select: { area: true, distributedAt: true, closedAt: true },
+      select: { materias: true, distributedAt: true, closedAt: true },
     }),
   ]);
 
-  const areaRows = casesByArea
-    .map((r) => ({ label: r.area ?? "Sem área", value: r._count._all }))
-    .sort((a, b) => b.value - a.value);
-  const totalActiveCases = areaRows.reduce((s, r) => s + r.value, 0);
+  // Um processo com mais de uma matéria conta em cada grupo — totalActiveCases é o número real de
+  // processos ativos (não a soma dos grupos), por isso as % das barras abaixo podem somar mais de
+  // 100% quando há processos multi-matéria.
+  const areaRows = groupCasesByMateria(activeCases).map((r) => ({ label: r.label, value: r.count }));
+  const totalActiveCases = activeCases.length;
   const maxAreaCount = Math.max(0, ...areaRows.map((r) => r.value));
 
   const statusCounts: Record<string, number> = {};
@@ -226,25 +228,30 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
   }
   const maxStatusCount = Math.max(0, ...CASE_STATUS_ORDER.map((s) => statusCounts[s]));
 
-  const caseDurations = closedCasesInPeriod
+  const closedDurations = closedCasesInPeriod
     .filter((c) => c.distributedAt && c.closedAt)
-    .map((c) => ({
-      area: c.area ?? "Sem área",
-      days: Math.round((c.closedAt!.getTime() - c.distributedAt!.getTime()) / 86400000),
-    }))
-    .filter((d) => d.days >= 0);
+    .map((c) => Math.round((c.closedAt!.getTime() - c.distributedAt!.getTime()) / 86400000))
+    .filter((days) => days >= 0);
   const avgTramitacaoDays =
-    caseDurations.length > 0 ? Math.round(caseDurations.reduce((s, d) => s + d.days, 0) / caseDurations.length) : null;
+    closedDurations.length > 0 ? Math.round(closedDurations.reduce((s, d) => s + d, 0) / closedDurations.length) : null;
 
+  // Média geral acima usa uma linha por processo (sem duplicar); a quebra por matéria abaixo
+  // credita a duração de um processo multi-matéria em cada uma das suas matérias.
   const durByArea = new Map<string, { sum: number; count: number }>();
-  for (const d of caseDurations) {
-    let row = durByArea.get(d.area);
-    if (!row) {
-      row = { sum: 0, count: 0 };
-      durByArea.set(d.area, row);
+  for (const c of closedCasesInPeriod) {
+    if (!c.distributedAt || !c.closedAt) continue;
+    const days = Math.round((c.closedAt.getTime() - c.distributedAt.getTime()) / 86400000);
+    if (days < 0) continue;
+    const materias = c.materias.filter(Boolean).length > 0 ? c.materias.filter(Boolean) : ["Sem matéria"];
+    for (const area of materias) {
+      let row = durByArea.get(area);
+      if (!row) {
+        row = { sum: 0, count: 0 };
+        durByArea.set(area, row);
+      }
+      row.sum += days;
+      row.count += 1;
     }
-    row.sum += d.days;
-    row.count += 1;
   }
   const avgTramitacaoByArea = Array.from(durByArea.entries())
     .map(([label, { sum, count }]) => ({ label, value: Math.round(sum / count), count }))
@@ -307,7 +314,7 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
               <>
                 <p className="font-serif font-bold text-3xl text-navy-900 dark:text-cream-50">{avgTramitacaoDays} dias</p>
                 <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
-                  {caseDurations.length} processo(s) encerrado(s) no período com datas completas
+                  {closedDurations.length} processo(s) encerrado(s) no período com datas completas
                 </p>
               </>
             ) : (
