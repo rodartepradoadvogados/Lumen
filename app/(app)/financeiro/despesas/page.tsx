@@ -140,6 +140,10 @@ export default async function DespesasPage({
 
       {recurringExpenses.length > 0 && (
         <Card className="mb-4">
+          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 px-5 pt-3 pb-1">
+            Despesas recorrentes ativas — cada mês já vira uma conta normal (ex.: &ldquo;nome — {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}&rdquo;) na aba{" "}
+            <strong>Contas a Pagar</strong> abaixo, com Dar Baixa e anexo de comprovante iguais a qualquer outro lançamento. &ldquo;Encerrar&rdquo; aqui só para de gerar os meses futuros.
+          </p>
           {recurringExpenses.map((expense) => (
             <RecurringExpenseCard key={expense.id} expense={{ id: expense.id, description: expense.description, amount: expense.amount, dueDay: expense.dueDay }} />
           ))}
