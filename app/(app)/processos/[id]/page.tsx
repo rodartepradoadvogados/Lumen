@@ -39,6 +39,8 @@ import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/li
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { financeGroupKind } from "@/lib/financeGroupKind";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
+import { instanciaLabel } from "@/lib/caseInstance";
+import { getCaseLinks } from "@/lib/actions/caseLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -181,7 +183,7 @@ export default async function CaseDetailPage({
     createdAt: a.createdAt.toISOString(),
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays, caseLinks] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -214,6 +216,9 @@ export default async function CaseDetailPage({
     // de apuração do êxito (ApurarHonorarioModal) para calcular o trânsito em julgado presumido
     // com lib/prazos.ts:addDiasUteis, junto dos feriados nacionais (calculados em código).
     prisma.holiday.findMany({ where: { officeId: viewer.officeId }, select: { date: true } }),
+    // Vínculos com outros processos (ver components/processo/CaseLinkField.tsx) — já vem
+    // resolvido do ponto de vista deste Case (other/role), pronto para passar ao EditCaseModal.
+    getCaseLinks(c.id),
   ]);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const holidayDates = holidays.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
@@ -398,10 +403,21 @@ export default async function CaseDetailPage({
                   adminMateria: c.adminMateria,
                   clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
                   parties: caseParties,
+                  description: c.description,
+                  materias: c.materias,
+                  assuntos: c.assuntos,
+                  distributedAt: c.distributedAt ? c.distributedAt.toISOString() : null,
+                  createdAt: c.createdAt.toISOString(),
+                  currentInstance: c.currentInstance,
+                  currentInstanceDetail: c.currentInstanceDetail,
+                  tribunalOrigemSigla: c.tribunalOrigemSigla,
+                  tribunalOrigemNome: c.tribunalOrigemNome,
+                  instance: c.instance,
                 }}
                 clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
                 users={users.map((u) => ({ id: u.id, name: u.name }))}
                 tribunais={tribunais}
+                caseLinks={caseLinks}
               />
             </div>
             {caseClients.length === 0 ? (
@@ -451,11 +467,51 @@ export default async function CaseDetailPage({
                 <ExternalLink size={12} /> Acessar sistema do {nat === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
               </a>
             )}
+            {/* Instância atual — só aparece quando preenchida (ver InstanciaTribunalPanel.tsx no
+                Editar Processo, onde fica editável). Tribunal de origem só existe depois de a
+                primeira escalada por recurso acontecer (ver escalarTribunalSuperior). */}
+            {c.currentInstance && <Field label="Instância atual" value={instanciaLabel(c.currentInstance)} />}
+            {c.currentInstanceDetail && <Field label="Seção/Câmara/Turma" value={c.currentInstanceDetail} />}
+            {c.tribunalOrigemSigla && (
+              <Field label="Veio de" value={`${instanciaLabel(c.instance)} (${c.tribunalOrigemSigla} — ${c.tribunalOrigemNome ?? ""})`} />
+            )}
           </Card>
           <Card className="p-5">
             <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>
             <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
           </Card>
+          {(c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
+            <Card className="p-5 space-y-2">
+              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Classificação</h4>
+              {c.materias.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {c.materias.map((m) => (
+                    <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-400">
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <Field label="Data da distribuição" value={c.distributedAt ? formatDate(c.distributedAt) : undefined} />
+              <Field label="Criado no Lúmen" value={formatDate(c.createdAt)} />
+              {c.assuntos.filter(Boolean).length > 0 && <Field label="Assuntos" value={c.assuntos.filter(Boolean).join(", ")} />}
+            </Card>
+          )}
+          {caseLinks.length > 0 && (
+            <Card className="p-5 space-y-2">
+              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Processos vinculados</h4>
+              <div className="space-y-1.5">
+                {caseLinks.map((l) => (
+                  <div key={l.linkId} className="flex items-center justify-between gap-2">
+                    <Link href={`/processos/${l.other.id}`} className="text-sm text-navy-900 dark:text-cream-50 hover:underline truncate">
+                      {l.other.title}
+                    </Link>
+                    {l.role === "PRINCIPAL" && <Badge color="gold">Principal</Badge>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
           {c.type !== "JUDICIAL" && (
             <Card className="p-5 md:col-span-2">
               <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-3">Converter em Processo Judicial</h4>
@@ -806,7 +862,7 @@ export default async function CaseDetailPage({
             <GerarDocumentoButton caseId={c.id} />
           </div>
           <Card className="p-5">
-            <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} />
+            <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} tribunais={tribunais} />
           </Card>
         </div>
       )}

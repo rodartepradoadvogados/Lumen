@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil, LayoutGrid, List as ListIcon, Table2 } from "lucide-react";
 import { createAttachment, deleteAttachment, finalizeAttachmentUpload, updateAttachmentDocType } from "@/lib/actions/attachments";
-import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
+import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isRecursoQueEscalaInstancia } from "@/lib/documentTypes";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { formatDate } from "@/components/ui";
+import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
+import RecursoEscalaPrompt from "@/components/processo/RecursoEscalaPrompt";
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
 
 // Mesma convenção de chave de outras preferências client-side do site (ver THEME_KEY em
@@ -31,14 +33,22 @@ export default function AttachmentList({
   caseId,
   attendanceId,
   driveConnected,
+  tribunais = [],
 }: {
   attachments: AttachmentData[];
   caseId?: string;
   attendanceId?: string;
   driveConnected: boolean;
+  // Catálogo de tribunais para o pop-up "vincular a tribunal superior?" (ver
+  // components/processo/RecursoEscalaPrompt.tsx) — só faz sentido para anexo de Processo
+  // (attendanceId nunca dispara o pop-up, mesmo que venha preenchido).
+  tribunais?: TribunalCatalogEntry[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // docType do último anexo/edição que é um recurso que escala instância — dispara o pop-up (ver
+  // RecursoEscalaPrompt.tsx) só quando caseId existe (Atendimento não tem esse conceito).
+  const [recursoPrompt, setRecursoPrompt] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +130,7 @@ export default function AttachmentList({
         setError(result.error);
       } else {
         setStagedFile(null);
+        if (caseId && isRecursoQueEscalaInstancia(stagedDocType)) setRecursoPrompt(stagedDocType);
         router.refresh();
       }
     } catch (e) {
@@ -153,6 +164,7 @@ export default function AttachmentList({
         return;
       }
       setLinkMode(false);
+      if (caseId && isRecursoQueEscalaInstancia(linkDocType)) setRecursoPrompt(linkDocType);
       setLinkDocType("OUTRO");
       router.refresh();
     });
@@ -194,6 +206,7 @@ export default function AttachmentList({
     startTransition(async () => {
       await updateAttachmentDocType(id, docType);
       setEditingId(null);
+      if (caseId && isRecursoQueEscalaInstancia(docType)) setRecursoPrompt(docType);
       router.refresh();
     });
   }
@@ -609,6 +622,15 @@ export default function AttachmentList({
           </button>
         )}
       </div>
+
+      {recursoPrompt && caseId && (
+        <RecursoEscalaPrompt
+          caseId={caseId}
+          docTypeLabel={getDocumentTypeLabel(recursoPrompt)}
+          tribunais={tribunais}
+          onClose={() => setRecursoPrompt(null)}
+        />
+      )}
     </div>
   );
 }

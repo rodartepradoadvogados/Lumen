@@ -10,6 +10,11 @@ import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 import { naturezaOf, ESFERAS, MATERIAS_ADMIN } from "@/lib/caseNatureza";
 import { Pencil } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
+import CaseMateriaField from "@/components/processo/CaseMateriaField";
+import AssuntosField from "@/components/processo/AssuntosField";
+import InstanciaTribunalPanel from "@/components/processo/InstanciaTribunalPanel";
+import CaseLinkField from "@/components/processo/CaseLinkField";
+import { formatDate } from "@/components/ui";
 
 type CaseData = {
   id: string;
@@ -33,6 +38,26 @@ type CaseData = {
   adminMateria?: string | null;
   clients: { clientId: string | null; clientName?: string; role: string | null }[];
   parties: { name: string; document: string | null; address: string | null; role: string | null }[];
+  // Classificação (ver proposta aprovada em 2026-08-07) — opcionais pelo mesmo motivo dos demais
+  // campos "novos": telas mais antigas que ainda não foram adaptadas a passá-los continuam
+  // funcionando (nascem vazias/nulas).
+  description?: string | null;
+  materias?: string[];
+  assuntos?: string[];
+  distributedAt?: string | null;
+  createdAt?: string;
+  // Instância/tribunal de recurso — ver lib/caseInstance.ts e InstanciaTribunalPanel.tsx.
+  currentInstance?: string | null;
+  currentInstanceDetail?: string | null;
+  tribunalOrigemSigla?: string | null;
+  tribunalOrigemNome?: string | null;
+  instance?: string | null;
+};
+
+type CaseLinkEntry = {
+  linkId: string;
+  other: { id: string; title: string; processNumber: string | null };
+  role: "PRINCIPAL" | "VINCULADO" | "NENHUM_PRINCIPAL";
 };
 
 // Edição completa dos campos hoje mostrados como Field read-only no Card da aba Visão Geral
@@ -43,11 +68,16 @@ export default function EditCaseModal({
   clients,
   users,
   tribunais,
+  caseLinks = [],
 }: {
   caseData: CaseData;
   clients: { id: string; name: string }[];
   users: { id: string; name: string }[];
   tribunais: TribunalCatalogEntry[];
+  // Vínculos com outros processos (ver components/processo/CaseLinkField.tsx) — opcional pelo
+  // mesmo motivo dos demais campos novos: telas mais antigas que ainda não passam continuam
+  // funcionando (nasce sem nenhum vínculo pra mostrar).
+  caseLinks?: CaseLinkEntry[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -115,6 +145,12 @@ export default function EditCaseModal({
                   // modal não edita natureza) é ADMINISTRATIVO — enviar sempre é inofensivo.
                   adminEsfera: String(formData.get("adminEsfera") || ""),
                   adminMateria: String(formData.get("adminMateria") || ""),
+                  description: String(formData.get("description") || ""),
+                  materias: formData.getAll("materias").map(String),
+                  assuntos: formData.getAll("assuntos").map(String),
+                  distributedAt: String(formData.get("distributedAt") || ""),
+                  currentInstance: String(formData.get("currentInstance") || ""),
+                  currentInstanceDetail: String(formData.get("currentInstanceDetail") || ""),
                 });
                 setLoading(false);
                 if (result?.error) {
@@ -227,6 +263,50 @@ export default function EditCaseModal({
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="border-t border-navy-800/8 dark:border-white/10 pt-3 mt-1 space-y-3">
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Instância</p>
+                <InstanciaTribunalPanel
+                  caseId={caseData.id}
+                  currentInstance={caseData.currentInstance ?? null}
+                  currentInstanceDetail={caseData.currentInstanceDetail ?? null}
+                  tribunalOrigemSigla={caseData.tribunalOrigemSigla ?? null}
+                  tribunalOrigemNome={caseData.tribunalOrigemNome ?? null}
+                  origemInstance={caseData.instance ?? null}
+                  inputClassName={inputClass}
+                />
+              </div>
+
+              <div className="border-t border-navy-800/8 dark:border-white/10 pt-3 space-y-3">
+                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Classificação</p>
+                <CaseMateriaField defaultValue={caseData.materias ?? []} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data da distribuição</label>
+                    <input
+                      name="distributedAt"
+                      type="date"
+                      defaultValue={caseData.distributedAt ? caseData.distributedAt.slice(0, 10) : ""}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Criado no Lúmen</label>
+                    <p className="mt-1 px-3 py-2 text-sm text-navy-800/50 dark:text-cream-50/40">
+                      {caseData.createdAt ? formatDate(caseData.createdAt) : "—"}
+                    </p>
+                  </div>
+                </div>
+                <AssuntosField defaultValue={caseData.assuntos ?? []} inputClassName={inputClass} />
+                <div>
+                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (observações livres)</label>
+                  <textarea name="description" rows={2} defaultValue={caseData.description ?? ""} className={inputClass} />
+                </div>
+              </div>
+
+              <div className="border-t border-navy-800/8 dark:border-white/10 pt-3">
+                <CaseLinkField caseId={caseData.id} links={caseLinks} />
               </div>
             </div>
 
