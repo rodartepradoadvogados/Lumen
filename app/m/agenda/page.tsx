@@ -104,11 +104,11 @@ async function DayView({
         <div className="text-center min-w-0 flex-1">
           <p className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm capitalize truncate">{label}</p>
           {!isToday && (
-            <Link href="/m/agenda" className="text-[11px] font-semibold text-gold-700 dark:text-gold-400">
+            <Link href="/m/agenda" className="text-[11px] font-semibold text-bordo-700 dark:text-bordo-400">
               Voltar para hoje
             </Link>
           )}
-          {isToday && <p className="text-[11px] font-semibold text-gold-700 dark:text-gold-400">Hoje</p>}
+          {isToday && <p className="text-[11px] font-semibold text-bordo-700 dark:text-bordo-400">Hoje</p>}
         </div>
         <Link
           href={`/m/agenda?d=${toISODate(next)}`}
@@ -257,7 +257,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
                 href={`/m/agenda?view=day&d=${key}`}
                 className={`aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 ${
                   isToday
-                    ? "bg-navy-900 dark:bg-gold-600 border-navy-900 dark:border-gold-600"
+                    ? "bg-bordo-700 dark:bg-bordo-500 border-bordo-700 dark:border-bordo-500"
                     : "bg-cream-100 dark:bg-white/5 border-navy-800/8 dark:border-white/10"
                 }`}
               >
@@ -287,7 +287,7 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
       <Link
         href={`/m/agenda?view=day&d=${d}`}
         className={`flex-1 text-center text-xs font-semibold py-1.5 rounded-md transition-colors ${
-          view === "day" ? "bg-navy-900 dark:bg-gold-600 text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"
+          view === "day" ? "bg-bordo-700 dark:bg-bordo-500 text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"
         }`}
       >
         Dia
@@ -295,7 +295,7 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
       <Link
         href={`/m/agenda?view=week&d=${d}`}
         className={`flex-1 text-center text-xs font-semibold py-1.5 rounded-md transition-colors ${
-          view === "week" ? "bg-navy-900 dark:bg-gold-600 text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"
+          view === "week" ? "bg-bordo-700 dark:bg-bordo-500 text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"
         }`}
       >
         Semana

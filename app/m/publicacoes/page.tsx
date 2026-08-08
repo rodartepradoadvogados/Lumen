@@ -8,6 +8,20 @@ import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 
 export const dynamic = "force-dynamic";
 
+// Borda à esquerda por fonte (source do item principal do grupo) — mesmo mapeamento usado no
+// desktop (ver components/PublicationsList.tsx) pra manter consistência visual entre as telas.
+const SOURCE_BORDER_COLORS: Record<string, string> = {
+  DJEN: "border-l-navy-700 dark:border-l-navy-500",
+  DATAJUD: "border-l-blue-500 dark:border-l-blue-400",
+  JUSBRASIL_EMAIL: "border-l-emerald-500 dark:border-l-emerald-400",
+  MANUAL: "border-l-gold-500 dark:border-l-gold-400",
+};
+const DEFAULT_SOURCE_BORDER_COLOR = "border-l-slate-400 dark:border-l-white/20";
+
+function sourceBorderColor(source: string): string {
+  return SOURCE_BORDER_COLORS[source] ?? DEFAULT_SOURCE_BORDER_COLOR;
+}
+
 export default async function MobilePublicacoes() {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
@@ -67,7 +81,10 @@ export default async function MobilePublicacoes() {
         ) : (
           <div className="divide-y divide-navy-800/5 dark:divide-white/10">
             {groups.map((g, i) => (
-              <div key={g.key} className={i % 2 === 0 ? "pub-card-a" : "pub-card-b"}>
+              <div
+                key={g.key}
+                className={`border-l-4 ${sourceBorderColor(g.primary.source)} ${i % 2 === 0 ? "pub-card-a" : "pub-card-b"}`}
+              >
                 <MobilePublicationCard group={g} users={users} />
               </div>
             ))}

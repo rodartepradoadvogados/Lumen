@@ -1,7 +1,7 @@
 import { NATUREZA_LABELS, type CaseNatureza } from "@/lib/caseNatureza";
 
 // Etiqueta pequena de natureza reutilizada na listagem e no detalhe do processo mobile —
-// mesma paleta em qualquer tema (Dia/Tarde/Noite), só a intensidade do fundo muda: dourado
+// mesma paleta em qualquer tema (Manhã/Noite), só a intensidade do fundo muda: dourado
 // para Judicial (cor de destaque principal da marca), bordô para Administrativo (cor
 // secundária, mesma associação já usada em Assessoria/Licitações) e navy para Caso (o
 // "resto" — extrajudicial e os legados Atendimento/Consultivo, ver lib/caseNatureza.ts).

@@ -37,7 +37,7 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
             <span className="relative">
               <span
                 className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
-                  active ? "bg-gold-500 dark:bg-gold-400" : ""
+                  active ? "bg-bordo-700 dark:bg-bordo-500" : ""
                 }`}
               >
                 <Icon

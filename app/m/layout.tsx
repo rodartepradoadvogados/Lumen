@@ -16,27 +16,29 @@ import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 
-// Aplica as classes `dark`/`theme-tarde` no <html> de forma síncrona, antes do resto da
-// árvore renderizar, para evitar o "flash" de tema errado (padrão comum em apps Next.js com
-// next-themes/dark mode manual). Escopo: só o app mobile, então fica só neste layout — mesmos
-// 3 estados do site (Dia/Tarde/Noite, ver lib/theme.ts), mas com chave de localStorage própria
-// ("rp-mobile-theme", não "rp-site-theme") de propósito: o dono do escritório pode querer,
-// por exemplo, o site sempre em Noite mas o app mobile em Dia, sem um afetar o outro.
+// Aplica a classe `dark` no <html> de forma síncrona, antes do resto da árvore renderizar,
+// para evitar o "flash" de tema errado (padrão comum em apps Next.js com next-themes/dark mode
+// manual). Escopo: só o app mobile, então fica só neste layout — mesmos 2 estados do site
+// (Manhã/Noite, ver lib/theme.ts), mas com chave de localStorage própria ("rp-mobile-theme",
+// não "rp-site-theme") de propósito: o dono do escritório pode querer, por exemplo, o site
+// sempre em Noite mas o app mobile em Manhã, sem um afetar o outro — só o NÚMERO de estados
+// que agora é igual (até a remodelação do portal em 2026-08, o app mobile tinha um terceiro
+// estado próprio, "Tarde"/auto, ver histórico de components/mobile/MobileThemeToggle.tsx).
 //
 // Usa toggle (não só add) de propósito: o layout raiz do site (app/layout.tsx) roda seu
 // próprio script de tema antes deste e pode já ter deixado as classes no <html>. Se este
 // script só adicionasse a classe quando escuro, uma visita direta a uma rota /m com o tema
 // mobile em "light" herdaria (incorretamente) o que o script do site deixou. Com toggle, este
 // script sempre decide o estado final para as rotas /m. Sem preferência salva, o padrão é
-// "light" (Dia), igual ao site.
+// "light" (Manhã), igual ao site. Mesmo padrão de migração do site (ver THEME_INIT_SCRIPT em
+// lib/theme.ts): uma preferência salva como "auto" (do extinto modo Tarde) migra para "dark",
+// não "light" — quem já tinha optado por um tema mais escuro não perde essa preferência.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem("rp-mobile-theme");
-    var mode = stored === "light" || stored === "dark" || stored === "auto" ? stored : "light";
-    var dark = mode === "dark" || mode === "auto";
+    var dark = stored === "dark" || stored === "auto";
     document.documentElement.classList.toggle("dark", dark);
-    document.documentElement.classList.toggle("theme-tarde", mode === "auto");
   } catch (e) {}
 })();
 `;
@@ -73,11 +75,11 @@ export default async function MobileLayout({ children }: { children: React.React
           `<main>` com um pt-[52px] fixo (o antigo cabeçalho `fixed` exigia isso). */}
       <div className="sticky top-0 inset-x-0 z-40 flex flex-col">
         <SupportAccessBanner />
-        {/* Cabeçalho sempre navy, nos 3 temas (Dia/Tarde/Noite) — de propósito sem classes
-            `dark:`, senão o Tarde tingiria o cabeçalho de bordô junto com os cards (mesmo
-            motivo pelo qual components/Sidebar.tsx alterna a cor via JS, não via `dark:`).
-            Nome+foto do perfil saiu daqui — agora é só logo/nome do escritório + Alertas/Tema,
-            pra bater com a proposta de Início nova; Perfil segue acessível por Menu (Mais). */}
+        {/* Cabeçalho sempre navy, nos 2 temas (Manhã/Noite) — de propósito sem classes `dark:`,
+            pra não mudar de cor junto com o resto da tela. Nome+foto do perfil saiu daqui —
+            agora é só logo/nome do escritório + Alertas/Tema, pra bater com a proposta de
+            Início nova; Perfil segue
+            acessível por Menu (Mais). */}
         <header className="min-h-[52px] shrink-0 bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between gap-2 px-4 py-2">
           <Link href="/m" className="flex items-center gap-2 min-w-0">
             <LumenMark size={24} />

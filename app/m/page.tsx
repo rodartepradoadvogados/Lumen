@@ -179,7 +179,7 @@ const BADGE_TONE: Record<Tone, string> = {
 };
 
 // Selo do ícone em "squircle" (quadrado bem arredondado, não círculo) com gradiente na cor
-// do próprio atalho — mesma cor em todo tema (Dia/Tarde/Noite), só o cartão ao redor muda.
+// do próprio atalho — mesma cor em todo tema (Manhã/Noite), só o cartão ao redor muda.
 function TileBadge({ icon: Icon, tone, size = 18 }: { icon: LucideIcon; tone: Tone; size?: number }) {
   return (
     <span className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white shrink-0 ${BADGE_TONE[tone]}`}>
