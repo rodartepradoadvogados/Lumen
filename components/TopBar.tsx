@@ -4,6 +4,7 @@ import { getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { logout } from "@/lib/actions/auth";
 import GlobalSearch from "@/components/GlobalSearch";
+import InternalTabsBar from "@/components/InternalTabsBar";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import PeticionarButton from "@/components/PeticionarButton";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -22,9 +23,12 @@ export default async function TopBar() {
 
   return (
     <header className="relative z-30 h-16 shrink-0 bg-cream-50/80 dark:bg-navy-950/90 backdrop-blur border-b border-gold-500/20 dark:border-gold-400/10 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
-      <GlobalSearch />
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <GlobalSearch />
+        <InternalTabsBar />
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <PeticionarButton />
         <NewEntityMenu />
 

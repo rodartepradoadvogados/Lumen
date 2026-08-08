@@ -148,6 +148,26 @@ export default function GlobalSearch() {
     if (narrow && expanded) expandedInputRef.current?.focus();
   }, [narrow, expanded]);
 
+  // Atalho global ⌘K / Ctrl+K — foca a barra direto (modo largo) ou abre o painel e foca (modo
+  // estreito). Ignora quando o foco já está num campo de texto/textarea/contenteditable, pra não
+  // roubar o "k" de quem está digitando em outro formulário na tela.
+  useEffect(() => {
+    function onKeyDownGlobal(e: KeyboardEvent) {
+      if (e.key.toLowerCase() !== "k" || !(e.metaKey || e.ctrlKey)) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      e.preventDefault();
+      if (narrow) {
+        setExpanded(true);
+      } else {
+        inlineInputRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKeyDownGlobal);
+    return () => window.removeEventListener("keydown", onKeyDownGlobal);
+  }, [narrow]);
+
   // Ordena resultados agrupados para navegação por teclado
   const ordered: SearchResult[] = GROUP_ORDER.flatMap((g) => results.filter((r) => r.type === g));
 
@@ -252,9 +272,14 @@ export default function GlobalSearch() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Pesquisar processo, contato ou tarefa..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg border border-navy-800/10 dark:border-white/10 bg-white dark:bg-navy-900 text-sm text-navy-900 dark:text-cream-50 placeholder:text-navy-800/40 dark:placeholder:text-cream-50/30 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+              placeholder="Pesquisar tudo"
+              className="w-full pl-9 pr-12 py-2 rounded-lg border border-navy-800/10 dark:border-white/10 bg-white dark:bg-navy-900 text-sm text-navy-900 dark:text-cream-50 placeholder:text-navy-800/40 dark:placeholder:text-cream-50/30 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
             />
+            {!query && (
+              <kbd className="hidden sm:flex absolute right-2.5 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded border border-navy-800/15 dark:border-white/15 text-[11px] font-medium text-navy-800/40 dark:text-cream-50/40 pointer-events-none">
+                ⌘K
+              </kbd>
+            )}
           </div>
 
           {showDropdown && (
