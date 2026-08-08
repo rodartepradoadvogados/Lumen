@@ -63,7 +63,7 @@ export default function NewAssessoriaForm({ clients, users }: { clients: ClientO
 
       {error && <p className="text-xs font-semibold text-bordo-600 dark:text-bordo-400">{error}</p>}
 
-      <button type="submit" disabled={pending} className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50">
+      <button type="submit" disabled={pending} className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50">
         {pending ? "Criando..." : "Criar Assessoria"}
       </button>
 

@@ -777,7 +777,7 @@ export default function NewAttendanceModal({
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
+                  <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
                     {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Criar"}
                   </button>
                 </div>
@@ -795,7 +795,7 @@ export default function NewAttendanceModal({
               <button
                 onClick={handleSaveDraft}
                 disabled={loading}
-                className="w-full bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
+                className="w-full bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Salvar rascunho"}
               </button>

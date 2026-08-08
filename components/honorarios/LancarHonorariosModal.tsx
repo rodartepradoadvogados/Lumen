@@ -1013,7 +1013,7 @@ export default function LancarHonorariosModal({
                     type="submit"
                     disabled={loading || !hasCase}
                     title={!hasCase ? "Selecione um processo, na seção Identificação" : undefined}
-                    className="bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50"
+                    className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50"
                   >
                     {loading ? "Salvando..." : "Salvar lançamento"}
                   </button>

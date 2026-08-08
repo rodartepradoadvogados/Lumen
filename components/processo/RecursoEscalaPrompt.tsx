@@ -90,7 +90,7 @@ export default function RecursoEscalaPrompt({
                   tribunais={tribunais}
                   onSelect={handlePick}
                   trigger={
-                    <span className="inline-flex text-xs font-semibold bg-gold-600 hover:bg-gold-700 text-white px-3 py-1.5 rounded-lg cursor-pointer">
+                    <span className="inline-flex text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-white px-3 py-1.5 rounded-lg cursor-pointer">
                       Vincular tribunal →
                     </span>
                   }
@@ -138,7 +138,7 @@ export default function RecursoEscalaPrompt({
                 <button
                   onClick={confirm}
                   disabled={saving}
-                  className="flex-1 text-xs font-semibold bg-gold-600 hover:bg-gold-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  className="flex-1 text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                 >
                   {saving ? "Salvando..." : "Confirmar"}
                 </button>

@@ -188,7 +188,7 @@ export default function DistributePublicationsButton() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || readyCount === 0}
-                className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
               >
                 {submitting ? "Distribuindo..." : `Distribuir${readyCount > 0 ? ` (${readyCount})` : ""}`}
               </button>

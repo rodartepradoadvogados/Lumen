@@ -180,7 +180,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
             </div>
 
             <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
-              <button type="submit" disabled={loading} className="bg-gold-600 hover:bg-gold-700 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Criar"}
               </button>
             </div>

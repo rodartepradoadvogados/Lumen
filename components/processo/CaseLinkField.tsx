@@ -180,7 +180,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                     type="button"
                     disabled={saving}
                     onClick={confirmLink}
-                    className="text-xs font-semibold bg-gold-600 hover:bg-gold-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                    className="text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                   >
                     {saving ? "Vinculando..." : "Vincular"}
                   </button>

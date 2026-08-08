@@ -392,7 +392,7 @@ export default async function CaseDetailPage({
             href={`/processos/${c.id}?tab=${t.key}`}
             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
               tab === t.key
-                ? "border-gold-600 text-navy-900 dark:text-cream-50"
+                ? "border-bordo-600 dark:border-bordo-400 text-navy-900 dark:text-cream-50"
                 : "border-transparent text-navy-800/45 dark:text-cream-50/45 hover:text-navy-800 dark:hover:text-cream-50/80"
             }`}
           >

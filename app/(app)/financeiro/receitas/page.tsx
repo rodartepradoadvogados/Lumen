@@ -143,7 +143,7 @@ export default async function ReceitasPage({
           </button>
           <a
             href={exportHref}
-            className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5"
+            className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5"
           >
             <Download size={15} /> Exportar .xlsx
           </a>

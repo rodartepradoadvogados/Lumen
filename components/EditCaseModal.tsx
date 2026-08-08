@@ -316,7 +316,7 @@ export default function EditCaseModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-gold-600 hover:bg-gold-700 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Salvar"}
               </button>

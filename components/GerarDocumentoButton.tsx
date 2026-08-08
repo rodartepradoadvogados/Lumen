@@ -162,7 +162,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                     <button
                       onClick={handleAttach}
                       disabled={attaching}
-                      className="w-full flex items-center justify-center gap-2 bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50"
                     >
                       <Paperclip size={16} /> {attaching ? "Inserindo..." : "Inserir nos Anexos"}
                     </button>
@@ -308,7 +308,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !templateId}
-                  className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                  className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50"
                 >
                   {loading ? "Gerando..." : "Gerar"}
                 </button>

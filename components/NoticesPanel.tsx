@@ -195,7 +195,7 @@ export default function NoticesPanel({
           <button
             onClick={publish}
             disabled={pending || !text.trim()}
-            className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold rounded-lg px-3 flex items-center gap-1.5 disabled:opacity-50 shrink-0"
+            className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-3 flex items-center gap-1.5 disabled:opacity-50 shrink-0"
           >
             <Send size={14} /> Publicar
           </button>

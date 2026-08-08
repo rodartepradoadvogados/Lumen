@@ -178,7 +178,7 @@ export default function AnotacaoDraftForm({ draft, splitView }: { draft: Anotaca
           type="button"
           onClick={handleSave}
           disabled={pending}
-          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gold-600 hover:bg-gold-700 rounded-lg px-3.5 py-1.5 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-bordo-700 hover:bg-bordo-600 rounded-lg px-3.5 py-1.5 disabled:opacity-50 transition-colors"
         >
           <Check size={13} /> {pending ? "Salvando..." : "Salvar"}
         </button>

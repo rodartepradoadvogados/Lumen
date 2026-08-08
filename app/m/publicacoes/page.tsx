@@ -10,13 +10,18 @@ export const dynamic = "force-dynamic";
 
 // Borda à esquerda por fonte (source do item principal do grupo) — mesmo mapeamento usado no
 // desktop (ver components/PublicationsList.tsx) pra manter consistência visual entre as telas.
+// Chaves batem com Publication.source de verdade (DJE/PJE/ESAJ/PROJUDI/MANUAL/JUSBRASIL_EMAIL,
+// ver prisma/schema.prisma) — a versão anterior usava "DJEN"/"DATAJUD", que não existem, então
+// a borda nunca aparecia; achado testando ao vivo, corrigido junto com o desktop.
 const SOURCE_BORDER_COLORS: Record<string, string> = {
-  DJEN: "border-l-navy-700 dark:border-l-navy-500",
-  DATAJUD: "border-l-blue-500 dark:border-l-blue-400",
-  JUSBRASIL_EMAIL: "border-l-emerald-500 dark:border-l-emerald-400",
+  DJE: "border-l-navy-700 dark:border-l-navy-500",
+  PJE: "border-l-blue-500 dark:border-l-blue-400",
+  ESAJ: "border-l-amber-500 dark:border-l-amber-400",
+  PROJUDI: "border-l-slate-500 dark:border-l-slate-400",
   MANUAL: "border-l-gold-500 dark:border-l-gold-400",
+  JUSBRASIL_EMAIL: "border-l-emerald-500 dark:border-l-emerald-400",
 };
-const DEFAULT_SOURCE_BORDER_COLOR = "border-l-slate-400 dark:border-l-white/20";
+const DEFAULT_SOURCE_BORDER_COLOR = "border-l-slate-300 dark:border-l-white/15";
 
 function sourceBorderColor(source: string): string {
   return SOURCE_BORDER_COLORS[source] ?? DEFAULT_SOURCE_BORDER_COLOR;

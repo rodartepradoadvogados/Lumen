@@ -63,7 +63,7 @@ export default function RedefinirSenhaForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-navy-900 font-semibold rounded-lg px-4 py-2 text-sm"
+        className="bg-bordo-700 hover:bg-bordo-600 disabled:opacity-50 text-cream-50 font-semibold rounded-lg px-4 py-2 text-sm"
       >
         {pending ? "Salvando..." : "Redefinir senha"}
       </button>

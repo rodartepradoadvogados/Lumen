@@ -82,7 +82,7 @@ export default function InactivityNotice() {
           <button
             onClick={handleResume}
             disabled={isPending}
-            className="flex-1 bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
           >
             {isPending ? "Retomando..." : "Continuar"}
           </button>

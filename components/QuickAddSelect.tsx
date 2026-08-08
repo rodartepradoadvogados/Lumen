@@ -54,7 +54,7 @@ export default function QuickAddSelect({
           type="button"
           onClick={handleAdd}
           disabled={pending}
-          className="px-2.5 rounded-lg bg-gold-600 hover:bg-gold-700 text-white text-xs font-semibold disabled:opacity-50"
+          className="px-2.5 rounded-lg bg-bordo-700 hover:bg-bordo-600 text-white text-xs font-semibold disabled:opacity-50"
         >
           {pending ? "..." : "OK"}
         </button>

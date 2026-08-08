@@ -38,8 +38,8 @@ export default function PeticionarButton({ compact, caseId }: { compact?: boolea
         title="Gera uma cópia nova do timbrado do escritório no Google Docs para peticionar"
         className={
           compact
-            ? "flex items-center gap-1 text-[11px] font-semibold text-gold-800 hover:text-gold-900 px-2.5 py-1 rounded-lg bg-gold-500/10 hover:bg-gold-500/20 disabled:opacity-50"
-            : "hidden sm:flex items-center gap-1.5 bg-gold-600 hover:bg-gold-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors disabled:opacity-50"
+            ? "flex items-center gap-1 text-[11px] font-semibold text-bordo-700 dark:text-bordo-400 hover:text-bordo-800 dark:hover:text-bordo-300 px-2.5 py-1 rounded-lg bg-bordo-500/10 hover:bg-bordo-500/20 dark:bg-bordo-400/10 dark:hover:bg-bordo-400/20 disabled:opacity-50"
+            : "hidden sm:flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors disabled:opacity-50"
         }
       >
         <FileEdit size={compact ? 12 : 16} /> {pending ? "Gerando..." : "Peticionar"}

@@ -69,7 +69,7 @@ export default function MobileNovaAnotacaoForm({ linkType, entityId }: { linkTyp
         type="button"
         onClick={handleSave}
         disabled={pending}
-        className="w-full text-xs font-semibold text-white bg-gold-600 hover:bg-gold-700 rounded-lg px-3.5 py-2 disabled:opacity-50 transition-colors"
+        className="w-full text-xs font-semibold text-white bg-bordo-600 hover:bg-bordo-700 rounded-lg px-3.5 py-2 disabled:opacity-50 transition-colors"
       >
         {pending ? "Salvando..." : "Salvar anotação"}
       </button>

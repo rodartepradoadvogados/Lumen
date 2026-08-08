@@ -153,7 +153,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
                 type="button"
                 disabled={pending}
                 onClick={sendRequest}
-                className="inline-flex items-center gap-1 bg-gold-600 hover:bg-gold-700 disabled:opacity-50 text-white font-semibold rounded-lg px-2.5 py-1.5"
+                className="inline-flex items-center gap-1 bg-bordo-700 hover:bg-bordo-600 disabled:opacity-50 text-white font-semibold rounded-lg px-2.5 py-1.5"
               >
                 Solicitar acesso a este registro
               </button>

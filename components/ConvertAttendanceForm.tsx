@@ -35,7 +35,7 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
         </button>
         <button
           onClick={() => setMode("JUDICIAL")}
-          className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+          className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg"
         >
           Transformar em Processo Judicial
         </button>
@@ -56,7 +56,7 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+        <button type="submit" disabled={pending} className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
           {pending ? "Convertendo..." : "Confirmar Processo Judicial"}
         </button>
         <button type="button" onClick={() => setMode("none")} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">

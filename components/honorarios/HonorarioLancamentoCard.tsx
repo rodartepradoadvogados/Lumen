@@ -401,7 +401,7 @@ export default function HonorarioLancamentoCard({
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="w-full bg-gold-600 hover:bg-gold-700 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Salvar alterações"}
               </button>

@@ -24,7 +24,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-600 dark:hover:bg-gold-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-bordo-700 dark:hover:bg-bordo-600 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
         <Mail size={15} /> Enviar E-mail
       </button>
@@ -110,7 +110,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-gold-600 hover:bg-gold-700 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
               >
                 {loading ? "Enviando..." : "Enviar agora"}
               </button>

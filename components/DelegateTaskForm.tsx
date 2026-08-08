@@ -551,7 +551,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold rounded-lg px-5 py-2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-5 py-2 disabled:opacity-50"
           >
             <UserPlus size={15} /> {loading ? "Delegando..." : "Delegar"}
           </button>

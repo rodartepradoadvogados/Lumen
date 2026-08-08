@@ -272,7 +272,7 @@ export default function ApurarHonorarioModal({
                 onClick={handleSubmit}
                 disabled={loading || (!semExito && valorApuradoNum <= 0)}
                 className={`font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 text-white ${
-                  semExito ? "bg-bordo-700 hover:bg-bordo-800" : "bg-gold-600 hover:bg-gold-700"
+                  semExito ? "bg-bordo-700 hover:bg-bordo-800" : "bg-bordo-700 hover:bg-bordo-600"
                 }`}
               >
                 {loading ? "Salvando..." : semExito ? "Confirmar sem êxito" : "Confirmar apuração"}

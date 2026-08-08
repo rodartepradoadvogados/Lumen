@@ -68,7 +68,7 @@ export default function MobileCaseFinanceTab({
       <div className="flex gap-2">
         <Link
           href={`/m/processos/${caseId}/honorarios`}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
         >
           <HandCoins size={16} /> Lançar Honorários
         </Link>

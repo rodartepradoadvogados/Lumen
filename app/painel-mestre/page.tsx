@@ -73,7 +73,7 @@ export default async function CockpitPage() {
             ) : (
               <a
                 href="/api/btg/connect"
-                className="inline-flex items-center gap-1.5 bg-gold-600 hover:bg-gold-700 text-white text-xs font-semibold rounded-lg px-3 py-2"
+                className="inline-flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-xs font-semibold rounded-lg px-3 py-2"
               >
                 <CreditCard size={13} /> Conectar BTG Empresas
               </a>

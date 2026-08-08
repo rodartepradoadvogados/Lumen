@@ -165,7 +165,7 @@ export default function AttendancePendenciasPanel({
             <button
               onClick={handleSaveNew}
               disabled={saving}
-              className="bg-gold-600 hover:bg-gold-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              className="bg-bordo-700 hover:bg-bordo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
               {saving ? "Salvando..." : "Salvar pendência(s)"}
             </button>

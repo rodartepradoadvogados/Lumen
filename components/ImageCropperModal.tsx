@@ -153,7 +153,7 @@ export default function ImageCropperModal({
             <button onClick={onCancel} className="flex-1 text-sm font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 py-2.5 rounded-lg border border-navy-800/12 dark:border-white/15">
               Cancelar
             </button>
-            <button onClick={handleConfirm} className="flex-1 bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold py-2.5 rounded-lg">
+            <button onClick={handleConfirm} className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg">
               Usar foto
             </button>
           </div>

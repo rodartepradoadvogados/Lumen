@@ -62,7 +62,7 @@ export default function MobileNewTaskForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-600 dark:hover:bg-gold-700 text-cream-50 text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-bordo-700 dark:hover:bg-bordo-600 text-cream-50 text-sm font-semibold py-2.5 rounded-lg transition-colors"
       >
         <Plus size={16} /> Agendar Compromisso
       </button>
@@ -168,7 +168,7 @@ export default function MobileNewTaskForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? "Salvando..." : "Criar"}
         </button>

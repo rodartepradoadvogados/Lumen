@@ -47,7 +47,7 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           onClick={() => setMode("JUDICIAL")}
           disabled={pending}
-          className="w-full bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="w-full bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
         >
           Transformar em Processo Judicial
         </button>
@@ -69,7 +69,7 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           type="submit"
           disabled={pending}
-          className="flex-1 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="flex-1 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
         >
           {pending ? "Convertendo..." : "Confirmar"}
         </button>

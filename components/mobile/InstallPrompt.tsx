@@ -78,7 +78,7 @@ export default function InstallPrompt() {
               <p className="text-xs text-cream-50/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
               <button
                 onClick={install}
-                className="mt-2 inline-flex items-center gap-1.5 bg-gold-600 hover:bg-gold-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+                className="mt-2 inline-flex items-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
               >
                 <Download size={13} /> Instalar
               </button>

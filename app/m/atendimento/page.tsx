@@ -84,7 +84,7 @@ export default async function MobileAtendimento({
         </div>
         <Link
           href="/m/atendimento/novo"
-          className="inline-flex items-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white text-xs font-semibold px-3 py-2 rounded-lg shrink-0"
+          className="inline-flex items-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-xs font-semibold px-3 py-2 rounded-lg shrink-0"
         >
           <Plus size={14} /> Novo
         </Link>
@@ -121,7 +121,7 @@ export default async function MobileAtendimento({
             className="w-full border border-navy-800/12 dark:border-white/10 bg-white dark:bg-navy-900 text-navy-900 dark:text-cream-50 placeholder:text-navy-800/40 dark:placeholder:text-cream-50/30 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
           />
         </div>
-        <button type="submit" className="bg-navy-900 dark:bg-gold-600 text-white text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-navy-900 dark:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-4 py-2">
           Buscar
         </button>
       </form>

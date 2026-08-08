@@ -254,7 +254,7 @@ export default function MobileNewPayableForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-1.5 bg-gold-600 hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
         >
           {startOpen && <Send size={14} />} {loading ? "Salvando..." : startOpen ? "Salvar lançamento" : "Criar"}
         </button>

@@ -391,7 +391,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             type="button"
                             disabled={pending}
                             onClick={() => save(o.id)}
-                            className="bg-gold-600 hover:bg-gold-500 disabled:opacity-50 text-navy-950 text-xs font-semibold rounded-lg px-4 py-2"
+                            className="bg-bordo-700 hover:bg-bordo-600 disabled:opacity-50 text-cream-50 text-xs font-semibold rounded-lg px-4 py-2"
                           >
                             Salvar
                           </button>

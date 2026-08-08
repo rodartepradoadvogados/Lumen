@@ -640,7 +640,7 @@ export default function NewReceivableModal({
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
+                  <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
                     {loading ? "Salvando..." : "Salvar lançamento"}
                   </button>
                 </div>

@@ -64,7 +64,7 @@ export default function AttendanceLostReasonModal({
           <button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="flex-1 bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
+            className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
           >
             Confirmar
           </button>

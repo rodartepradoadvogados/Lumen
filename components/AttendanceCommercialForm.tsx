@@ -215,7 +215,7 @@ export default function AttendanceCommercialForm({
         <button
           type="submit"
           disabled={pending}
-          className="bg-gold-600 hover:bg-gold-700 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+          className="bg-bordo-700 hover:bg-bordo-600 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
         >
           {pending ? "Salvando..." : "Salvar"}
         </button>

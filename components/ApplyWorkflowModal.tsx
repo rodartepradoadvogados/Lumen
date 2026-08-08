@@ -109,7 +109,7 @@ export default function ApplyWorkflowModal({
               <button
                 type="submit"
                 disabled={pending}
-                className="bg-gold-600 hover:bg-gold-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 {pending ? "Aplicando..." : "Aplicar workflow"}
               </button>

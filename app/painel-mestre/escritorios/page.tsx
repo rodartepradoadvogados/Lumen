@@ -26,7 +26,7 @@ export default async function EscritoriosPage() {
         </div>
         <Link
           href="/painel-mestre/novo"
-          className="inline-flex items-center gap-1.5 bg-gold-600 hover:bg-gold-700 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
+          className="inline-flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
         >
           <Plus size={16} /> Novo escritório
         </Link>
