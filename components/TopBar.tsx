@@ -7,7 +7,6 @@ import GlobalSearch from "@/components/GlobalSearch";
 import InternalTabsBar from "@/components/InternalTabsBar";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import PeticionarButton from "@/components/PeticionarButton";
-import ThemeToggle from "@/components/ThemeToggle";
 import TimesheetTimer from "@/components/TimesheetTimer";
 import TeamMonitorPanel from "@/components/TeamMonitorPanel";
 import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
@@ -33,8 +32,6 @@ export default async function TopBar() {
         <NewEntityMenu />
 
         {user && <TimesheetTimer initialSeconds={sessionSeconds} />}
-
-        <ThemeToggle />
 
         {user?.isPlatformOwner && (
           <Link

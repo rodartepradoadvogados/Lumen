@@ -30,7 +30,7 @@ import TermosVigilanciaPanel from "@/components/TermosVigilanciaPanel";
 import ProtocolosTab from "@/components/protocolos/ProtocolosTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import BreakGlassReveal from "@/components/BreakGlassReveal";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Presentation } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -42,6 +42,8 @@ import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import { instanciaLabel } from "@/lib/caseInstance";
 import { getCaseLinks } from "@/lib/actions/caseLinks";
 import { getCaseInstanceHistory } from "@/lib/actions/cases";
+import { buildCaseTimeline } from "@/lib/caseTimeline";
+import CaseTimeline from "@/components/processos/CaseTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -223,6 +225,7 @@ export default async function CaseDetailPage({
     // Histórico de escaladas de instância (ver InstanciaTribunalPanel.tsx) — mais recente primeiro.
     getCaseInstanceHistory(c.id),
   ]);
+  const timelineEvents = buildCaseTimeline(c, instanceHistory);
   const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
   const holidayDates = holidays.map((h) => ({ date: h.date.toISOString().slice(0, 10) }));
   // Parcelas percentuais "a apurar" deste processo, juntando todos os HonorarioLancamento (pode
@@ -332,6 +335,20 @@ export default async function CaseDetailPage({
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
         <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{c.title}</h1>
         <div className="flex items-center gap-2">
+          {/* Abre em aba nova, de propósito: fica junto do site aberto, pronta pra projetar/
+              imprimir na frente do cliente sem sair do que já estava sendo feito no Processo
+              (mesmo padrão do PeticionarButton logo ao lado). Ver components/reuniao/
+              ModoReuniaoView.tsx e app/reuniao/[id]/page.tsx. */}
+          <Link
+            href={`/reuniao/${c.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-tip="Vista de impressão/apresentação para reunião com o cliente"
+            data-tip-pos="bottom"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-navy-800/15 dark:border-white/15 text-navy-800 dark:text-cream-50 font-semibold text-xs px-3 py-2 hover:bg-navy-900/5 dark:hover:bg-white/5 transition-colors"
+          >
+            <Presentation size={14} /> Modo reunião
+          </Link>
           <PeticionarButton compact caseId={c.id} />
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
           <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
@@ -384,144 +401,161 @@ export default async function CaseDetailPage({
         ))}
       </div>
 
+      {/* Visão Geral em 3 painéis fixos lado a lado (Dados do processo / Partes e vínculos /
+          Linha do tempo) — requisito confirmado pelo cliente na proposta de remodelação do
+          portal, não colapsa em menos de 3 no desktop (só empilha em telas estreitas, onde
+          320px fixo de painel simplesmente não cabe ao lado dos outros dois). */}
       {tab === "visao-geral" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Card className="p-5 space-y-3">
-            <div className="flex items-center justify-between -mt-1 -mr-1">
-              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Dados do Processo</h4>
-              <EditCaseModal
-                caseData={{
-                  id: c.id,
-                  type: c.type,
-                  responsibleId: c.responsibleId,
-                  court: c.court,
-                  caseValue: c.caseValue,
-                  convictionValue: c.convictionValue,
-                  economicBenefitValue: c.economicBenefitValue,
-                  tribunalSigla: c.tribunalSigla,
-                  tribunalNome: c.tribunalNome,
-                  tribunalSistema: c.tribunalSistema,
-                  tribunalLink: c.tribunalLink,
-                  adminEsfera: c.adminEsfera,
-                  adminMateria: c.adminMateria,
-                  clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
-                  parties: caseParties,
-                  description: c.description,
-                  materias: c.materias,
-                  assuntos: c.assuntos,
-                  distributedAt: c.distributedAt ? c.distributedAt.toISOString() : null,
-                  createdAt: c.createdAt.toISOString(),
-                  currentInstance: c.currentInstance,
-                  currentInstanceDetail: c.currentInstanceDetail,
-                  tribunalOrigemSigla: c.tribunalOrigemSigla,
-                  tribunalOrigemNome: c.tribunalOrigemNome,
-                  instance: c.instance,
-                }}
-                clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
-                users={users.map((u) => ({ id: u.id, name: u.name }))}
-                tribunais={tribunais}
-                caseLinks={caseLinks}
-                instanceHistory={instanceHistory}
-              />
-            </div>
-            {caseClients.length === 0 ? (
-              <Field label="Cliente" value={undefined} />
-            ) : (
-              caseClients.map((cc, i) => (
-                <Field
-                  key={cc.id}
-                  label={caseClients.length > 1 ? `Cliente ${i + 1}` : "Cliente"}
-                  value={cc.role ? `${cc.name} (${cc.role})` : cc.name}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_320px] gap-5 items-start">
+          <div className="space-y-5">
+            <Card className="p-5 space-y-3">
+              <div className="flex items-center justify-between -mt-1 -mr-1">
+                <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Dados do processo</h4>
+                <EditCaseModal
+                  caseData={{
+                    id: c.id,
+                    type: c.type,
+                    responsibleId: c.responsibleId,
+                    court: c.court,
+                    caseValue: c.caseValue,
+                    convictionValue: c.convictionValue,
+                    economicBenefitValue: c.economicBenefitValue,
+                    tribunalSigla: c.tribunalSigla,
+                    tribunalNome: c.tribunalNome,
+                    tribunalSistema: c.tribunalSistema,
+                    tribunalLink: c.tribunalLink,
+                    adminEsfera: c.adminEsfera,
+                    adminMateria: c.adminMateria,
+                    clients: caseClients.map((cc) => ({ clientId: cc.id, clientName: cc.name, role: cc.role })),
+                    parties: caseParties,
+                    description: c.description,
+                    materias: c.materias,
+                    assuntos: c.assuntos,
+                    distributedAt: c.distributedAt ? c.distributedAt.toISOString() : null,
+                    createdAt: c.createdAt.toISOString(),
+                    currentInstance: c.currentInstance,
+                    currentInstanceDetail: c.currentInstanceDetail,
+                    tribunalOrigemSigla: c.tribunalOrigemSigla,
+                    tribunalOrigemNome: c.tribunalOrigemNome,
+                    instance: c.instance,
+                  }}
+                  clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
+                  users={users.map((u) => ({ id: u.id, name: u.name }))}
+                  tribunais={tribunais}
+                  caseLinks={caseLinks}
+                  instanceHistory={instanceHistory}
                 />
-              ))
+              </div>
+              <Field label="Advogado Responsável" value={c.responsible?.name} />
+              <Field label="Vara/Comarca" value={c.court} />
+              <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
+              <Field label="Proveito Econômico" value={c.economicBenefitValue != null ? formatCurrency(c.economicBenefitValue) : undefined} />
+              <Field label="Valor da Condenação" value={c.convictionValue != null ? formatCurrency(c.convictionValue) : undefined} />
+              {/* "Órgão" no lugar de "Tribunal" para processo administrativo — mesmo par de campos
+                  (tribunalSigla/tribunalNome), só o rótulo muda (ver lib/caseNatureza.ts). */}
+              <Field label={nat === "ADMINISTRATIVO" ? "Órgão" : "Tribunal"} value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
+              <Field label="Sistema" value={c.tribunalSistema} />
+              {nat === "ADMINISTRATIVO" && (
+                <>
+                  <Field label="Esfera" value={c.adminEsfera ? ESFERA_LABELS[c.adminEsfera] || c.adminEsfera : undefined} />
+                  <Field label="Matéria" value={c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : undefined} />
+                </>
+              )}
+              {c.tribunalLink && (
+                <a
+                  href={c.tribunalLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+                >
+                  <ExternalLink size={12} /> Acessar sistema do {nat === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
+                </a>
+              )}
+              {/* Instância atual — só aparece quando preenchida (ver InstanciaTribunalPanel.tsx no
+                  Editar Processo, onde fica editável). Tribunal de origem só existe depois de a
+                  primeira escalada por recurso acontecer (ver escalarTribunalSuperior). */}
+              {c.currentInstance && <Field label="Instância atual" value={instanciaLabel(c.currentInstance)} />}
+              {c.currentInstanceDetail && <Field label="Seção/Câmara/Turma" value={c.currentInstanceDetail} />}
+              {c.tribunalOrigemSigla && (
+                <Field label="Veio de" value={`${instanciaLabel(c.instance)} (${c.tribunalOrigemSigla} — ${c.tribunalOrigemNome ?? ""})`} />
+              )}
+            </Card>
+            <Card className="p-5">
+              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>
+              <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
+            </Card>
+            {(c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
+              <Card className="p-5 space-y-2">
+                <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Classificação</h4>
+                {c.materias.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {c.materias.map((m) => (
+                      <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-400">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <Field label="Data da distribuição" value={c.distributedAt ? formatDate(c.distributedAt) : undefined} />
+                <Field label="Criado no Lúmen" value={formatDate(c.createdAt)} />
+                {c.assuntos.filter(Boolean).length > 0 && <Field label="Assuntos" value={c.assuntos.filter(Boolean).join(", ")} />}
+              </Card>
             )}
-            {caseParties.length === 0 ? (
-              <Field label="Parte Adversa" value={undefined} />
-            ) : (
-              caseParties.map((p, i) => (
-                <Field
-                  key={`${p.name}-${i}`}
-                  label={caseParties.length > 1 ? `Parte ${i + 1}` : "Parte Adversa"}
-                  value={p.role ? `${p.name} (${partyRoleLabels[p.role] || p.role})` : p.name}
-                />
-              ))
-            )}
-            <Field label="Advogado Responsável" value={c.responsible?.name} />
-            <Field label="Vara/Comarca" value={c.court} />
-            <Field label="Valor da Causa" value={c.caseValue != null ? formatCurrency(c.caseValue) : undefined} />
-            <Field label="Proveito Econômico" value={c.economicBenefitValue != null ? formatCurrency(c.economicBenefitValue) : undefined} />
-            <Field label="Valor da Condenação" value={c.convictionValue != null ? formatCurrency(c.convictionValue) : undefined} />
-            {/* "Órgão" no lugar de "Tribunal" para processo administrativo — mesmo par de campos
-                (tribunalSigla/tribunalNome), só o rótulo muda (ver lib/caseNatureza.ts). */}
-            <Field label={nat === "ADMINISTRATIVO" ? "Órgão" : "Tribunal"} value={c.tribunalSigla ? `${c.tribunalSigla} — ${c.tribunalNome ?? ""}` : undefined} />
-            <Field label="Sistema" value={c.tribunalSistema} />
-            {nat === "ADMINISTRATIVO" && (
-              <>
-                <Field label="Esfera" value={c.adminEsfera ? ESFERA_LABELS[c.adminEsfera] || c.adminEsfera : undefined} />
-                <Field label="Matéria" value={c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : undefined} />
-              </>
-            )}
-            {c.tribunalLink && (
-              <a
-                href={c.tribunalLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
-              >
-                <ExternalLink size={12} /> Acessar sistema do {nat === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
-              </a>
-            )}
-            {/* Instância atual — só aparece quando preenchida (ver InstanciaTribunalPanel.tsx no
-                Editar Processo, onde fica editável). Tribunal de origem só existe depois de a
-                primeira escalada por recurso acontecer (ver escalarTribunalSuperior). */}
-            {c.currentInstance && <Field label="Instância atual" value={instanciaLabel(c.currentInstance)} />}
-            {c.currentInstanceDetail && <Field label="Seção/Câmara/Turma" value={c.currentInstanceDetail} />}
-            {c.tribunalOrigemSigla && (
-              <Field label="Veio de" value={`${instanciaLabel(c.instance)} (${c.tribunalOrigemSigla} — ${c.tribunalOrigemNome ?? ""})`} />
-            )}
-          </Card>
-          <Card className="p-5">
-            <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>
-            <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
-          </Card>
-          {(c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
-            <Card className="p-5 space-y-2">
-              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Classificação</h4>
-              {c.materias.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {c.materias.map((m) => (
-                    <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-400">
-                      {m}
-                    </span>
+          </div>
+
+          <div className="space-y-5">
+            <Card className="p-5 space-y-3">
+              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Partes e vínculos</h4>
+              {caseClients.length === 0 ? (
+                <Field label="Cliente" value={undefined} />
+              ) : (
+                caseClients.map((cc, i) => (
+                  <Field
+                    key={cc.id}
+                    label={caseClients.length > 1 ? `Cliente ${i + 1}` : "Cliente"}
+                    value={cc.role ? `${cc.name} (${cc.role})` : cc.name}
+                  />
+                ))
+              )}
+              {caseParties.length === 0 ? (
+                <Field label="Parte Adversa" value={undefined} />
+              ) : (
+                caseParties.map((p, i) => (
+                  <Field
+                    key={`${p.name}-${i}`}
+                    label={caseParties.length > 1 ? `Parte ${i + 1}` : "Parte Adversa"}
+                    value={p.role ? `${p.name} (${partyRoleLabels[p.role] || p.role})` : p.name}
+                  />
+                ))
+              )}
+            </Card>
+            {caseLinks.length > 0 && (
+              <Card className="p-5 space-y-2">
+                <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Processos vinculados</h4>
+                <div className="space-y-1.5">
+                  {caseLinks.map((l) => (
+                    <div key={l.linkId} className="flex items-center justify-between gap-2">
+                      <Link href={`/processos/${l.other.id}`} className="text-sm text-navy-900 dark:text-cream-50 hover:underline truncate">
+                        {l.other.title}
+                      </Link>
+                      {l.role === "PRINCIPAL" && <Badge color="gold">Principal</Badge>}
+                    </div>
                   ))}
                 </div>
-              )}
-              <Field label="Data da distribuição" value={c.distributedAt ? formatDate(c.distributedAt) : undefined} />
-              <Field label="Criado no Lúmen" value={formatDate(c.createdAt)} />
-              {c.assuntos.filter(Boolean).length > 0 && <Field label="Assuntos" value={c.assuntos.filter(Boolean).join(", ")} />}
-            </Card>
-          )}
-          {caseLinks.length > 0 && (
-            <Card className="p-5 space-y-2">
-              <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Processos vinculados</h4>
-              <div className="space-y-1.5">
-                {caseLinks.map((l) => (
-                  <div key={l.linkId} className="flex items-center justify-between gap-2">
-                    <Link href={`/processos/${l.other.id}`} className="text-sm text-navy-900 dark:text-cream-50 hover:underline truncate">
-                      {l.other.title}
-                    </Link>
-                    {l.role === "PRINCIPAL" && <Badge color="gold">Principal</Badge>}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-          {c.type !== "JUDICIAL" && (
-            <Card className="p-5 md:col-span-2">
-              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-3">Converter em Processo Judicial</h4>
-              <PromoteToJudicialForm caseId={c.id} />
-            </Card>
-          )}
+              </Card>
+            )}
+            {c.type !== "JUDICIAL" && (
+              <Card className="p-5">
+                <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-3">Converter em Processo Judicial</h4>
+                <PromoteToJudicialForm caseId={c.id} />
+              </Card>
+            )}
+          </div>
+
+          <Card className="p-5 lg:sticky lg:top-4">
+            <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Linha do tempo</h4>
+            <CaseTimeline events={timelineEvents} />
+          </Card>
         </div>
       )}
 

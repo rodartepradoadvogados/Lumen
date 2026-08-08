@@ -1,15 +1,17 @@
 import clsx from "clsx";
 import { ButtonHTMLAttributes, ReactNode } from "react";
 
-// Botões da marca Lúmen: primário em ouro (ação principal), secundário em bordô (a cor
-// SECUNDÁRIA da marca — não só de urgência/alerta) com texto papel. Novos botões devem
-// consumir estes dois em vez de montar classes soltas; os botões existentes espalhados
-// pelos formulários/modais do portal ainda não foram migrados para cá (ver checklist).
+// Botões da marca Lúmen: primário em bordô (ação principal) — ver proposta de remodelação do
+// portal, "troca de papéis de cor": bordô vira a cor de AÇÃO, dourado passa a ser só decorativo
+// (logo, realces pontuais), deixa de aparecer em botão/estado interativo. Secundário é um
+// contorno neutro (não mais o bordô — que agora é do primário). Novos botões devem consumir
+// estes dois em vez de montar classes soltas; os botões existentes espalhados pelos
+// formulários/modais do portal ainda não foram migrados para cá (ver checklist).
 export function ButtonPrimary({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg bg-gold-600 hover:bg-gold-700 text-white font-semibold text-sm px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-default",
+        "inline-flex items-center justify-center gap-1.5 rounded-lg bg-bordo-700 hover:bg-bordo-600 text-cream-50 font-semibold text-sm px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-default",
         className
       )}
       {...props}
@@ -20,7 +22,7 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg bg-bordo-700 hover:bg-bordo-600 text-cream-50 font-semibold text-sm px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-default",
+        "inline-flex items-center justify-center gap-1.5 rounded-lg border border-navy-800/15 dark:border-white/15 bg-transparent hover:bg-navy-900/5 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50 font-semibold text-sm px-4 py-2 transition-colors disabled:opacity-60 disabled:cursor-default",
         className
       )}
       {...props}
@@ -32,7 +34,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <div
       className={clsx(
-        "bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm",
+        "bg-white dark:bg-navy-900 rounded-[14px] border border-slate-200 dark:border-white/10",
         className
       )}
     >

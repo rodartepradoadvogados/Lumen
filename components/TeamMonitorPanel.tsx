@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, User, X } from "lucide-react";
 import { fetchTeamSummaries, fetchUserHistory } from "@/lib/actions/timesheet";
+import ThemeToggle from "@/components/ThemeToggle";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
 
 function formatHMS(totalSeconds: number) {
@@ -93,7 +94,7 @@ export default function TeamMonitorPanel({
 
       {open && (
         <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-white dark:bg-navy-900 rounded-xl border border-navy-800/10 dark:border-white/10 shadow-pop z-50 overflow-hidden">
-          <div className="p-1.5 border-b border-navy-800/8 dark:border-white/10">
+          <div className="p-1.5 border-b border-navy-800/8 dark:border-white/10 space-y-0.5">
             <Link
               href="/perfil"
               onClick={() => setOpen(false)}
@@ -101,6 +102,7 @@ export default function TeamMonitorPanel({
             >
               <User size={15} className="text-navy-800/50 dark:text-cream-50/50" /> Meu Perfil
             </Link>
+            <ThemeToggle variant="menu" />
           </div>
           {!isAdmin ? (
             <div className="flex justify-end p-1">

@@ -20,7 +20,12 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 // Botão único que alterna Manhã <-> Noite. O script inline em app/layout.tsx já aplica a
 // classe certa antes deste componente montar (evita flash); aqui assumimos o controle a partir
 // da hidratação, só para refletir o estado no ícone e reagir a cliques no próprio botão.
-export default function ThemeToggle() {
+//
+// variant="menu" (ver proposta de remodelação do portal: ThemeToggle sai da TopBar e entra no
+// menu do avatar, components/TeamMonitorPanel.tsx) renderiza uma linha de menu com rótulo, em
+// vez do botão-ícone isolado. O app mobile tem seu próprio toggle, decoupled deste (ver
+// components/mobile/MobileThemeToggle.tsx — 3 estados, Dia/Tarde/Noite, não 2).
+export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" }) {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -59,11 +64,26 @@ export default function ThemeToggle() {
 
   if (!mounted) {
     // Evita mismatch de hidratação até sabermos a preferência real; ocupa o mesmo espaço do botão.
-    return <span className="h-9 w-9 shrink-0" aria-hidden="true" />;
+    return <span className={variant === "menu" ? "block h-9" : "h-9 w-9 shrink-0"} aria-hidden="true" />;
   }
 
   const Icon = ICONS[mode];
   const nextLabel = THEME_LABEL[THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length]];
+
+  if (variant === "menu") {
+    return (
+      <button
+        type="button"
+        onClick={cycle}
+        aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
+        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-navy-900 dark:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/5"
+      >
+        <Icon size={15} className="text-navy-800/50 dark:text-cream-50/50" />
+        Tema: {THEME_LABEL[mode]}
+        <span className="ml-auto text-[11px] text-navy-800/40 dark:text-cream-50/40">Mudar p/ {nextLabel}</span>
+      </button>
+    );
+  }
 
   return (
     <button
