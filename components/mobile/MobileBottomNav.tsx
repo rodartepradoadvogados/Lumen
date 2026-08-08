@@ -10,6 +10,12 @@ import { Calendar, Bell, Newspaper, Menu } from "lucide-react";
 // app/m/mais/page.tsx) pra abrir espaço sem disputar com o que se usa todo dia. Alertas e
 // Publicações usam o MESMO ícone da grade da Início — reforça que é o mesmo destino, não um
 // atalho novo pra aprender.
+//
+// Ícone ativo fica em DOURADO de propósito (não bordô, que virou a cor de ação em todo o
+// resto do app com a Fase 3 da Início — ver app/m/page.tsx) — decisão explícita do dono do
+// escritório: bordô em todo lugar faria o item ativo da barra se misturar com os cartões de
+// "criar". Dourado aqui não é decorativo, é sinal de "onde eu estou" — papel diferente de
+// "ação", por isso pode usar a cor que em todo resto do app ficou reservada só a acento.
 const items = [
   { href: "/m/agenda", label: "Agenda", Icon: Calendar, exact: false, badge: "agenda" as const },
   { href: "/m/alertas", label: "Alertas", Icon: Bell, exact: false, badge: "alerts" as const },
@@ -37,7 +43,7 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
             <span className="relative">
               <span
                 className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
-                  active ? "bg-bordo-700 dark:bg-bordo-500" : ""
+                  active ? "bg-gold-500 dark:bg-gold-400" : ""
                 }`}
               >
                 <Icon

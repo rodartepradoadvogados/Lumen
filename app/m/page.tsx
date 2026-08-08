@@ -98,19 +98,22 @@ export default async function MobileHome() {
       <MobileGlobalSearch />
 
       <div className="space-y-3">
-        {/* Criar (dourado/bordô) fica separado de acompanhar (grade abaixo): os dois únicos
-            atalhos que lançam algo novo em vez de abrir uma lista que já existe. */}
+        {/* Criar (bordô) fica separado de acompanhar (grade abaixo): os dois únicos atalhos que
+            lançam algo novo em vez de abrir uma lista que já existe — ver proposta Nível 3 da
+            remodelação: bordô é a cor de AÇÃO em toda a Início, dourado sai dos cartões (só o
+            item ativo da barra inferior continua dourado, por decisão à parte, ver
+            components/mobile/MobileBottomNav.tsx). */}
         <div className={modules.atendimento ? "grid grid-cols-2 gap-3" : ""}>
           <HubCard
             title="Novo Compromisso"
             subtitle="Tarefa, prazo, audiência ou perícia"
             icon={CalendarPlus}
-            tone="gold"
+            tone="bordo"
             chips={[
-              { href: "/m/agenda?novo=1&tipo=TAREFA", label: "Tarefa", icon: ListTodo, tone: "gold" },
-              { href: "/m/agenda?novo=1&tipo=PRAZO", label: "Prazo", icon: CalendarClock, tone: "bordo" },
-              { href: "/m/agenda?novo=1&tipo=AUDIENCIA", label: "Audiência", icon: Gavel, tone: "bordo" },
-              { href: "/m/agenda?novo=1&tipo=PERICIA", label: "Perícia", icon: Stethoscope, tone: "gold" },
+              { href: "/m/agenda?novo=1&tipo=TAREFA", label: "Tarefa", icon: ListTodo },
+              { href: "/m/agenda?novo=1&tipo=PRAZO", label: "Prazo", icon: CalendarClock },
+              { href: "/m/agenda?novo=1&tipo=AUDIENCIA", label: "Audiência", icon: Gavel },
+              { href: "/m/agenda?novo=1&tipo=PERICIA", label: "Perícia", icon: Stethoscope },
             ]}
           />
           {modules.atendimento && (
@@ -139,10 +142,10 @@ export default async function MobileHome() {
             // (sem poluir com "0 adm." pra ninguém).
             subCaption={activeAdministrativoCount > 0 ? `${activeJudicialCount} jud. · ${activeAdministrativoCount} adm.` : undefined}
           />
-          <TileLink href="/m/alertas" icon={Bell} tone="bordo" title="Central de Alertas" count={totalAlerts} countLabel="pendente(s)" />
+          <TileLink href="/m/alertas" icon={Bell} tone="navy" title="Central de Alertas" count={totalAlerts} countLabel="pendente(s)" countTone="bordo" />
           <TileLink href="/m/publicacoes" icon={Newspaper} tone="navy" title="Publicações" count={unreadCount} countLabel="não lida(s)" />
           {modules.assessoria && (
-            <TileLink href="/m/assessoria" icon={Building2} tone="magenta" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
+            <TileLink href="/m/assessoria" icon={Building2} tone="navy" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
           )}
         </div>
 
@@ -152,14 +155,14 @@ export default async function MobileHome() {
             title="Financeiro"
             subtitle={saldoMes !== null ? `Fluxo do mês: ${formatCurrency(saldoMes)}` : undefined}
             icon={DollarSign}
-            tone="gold"
+            tone="navy"
             chips={[
-              { href: "/m/financeiro/despesas", label: "Despesas", icon: Wallet, tone: "bordo" },
-              { href: "/m/financeiro/receitas", label: "Receitas", icon: Wallet, tone: "gold" },
-              { href: "/m/financeiro/relatorios", label: "Relatórios Gerenciais", icon: FileBarChart, tone: "gold" },
-              { href: "/m/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: LineChart, tone: "gold" },
-              { href: "/m/financeiro/dre", label: "DRE", icon: FileBarChart, tone: "gold" },
-              { href: "/m/financeiro/livro-caixa", label: "Livro Caixa", icon: BookOpen, tone: "gold" },
+              { href: "/m/financeiro/despesas", label: "Despesas", icon: Wallet },
+              { href: "/m/financeiro/receitas", label: "Receitas", icon: Wallet },
+              { href: "/m/financeiro/relatorios", label: "Relatórios Gerenciais", icon: FileBarChart },
+              { href: "/m/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: LineChart },
+              { href: "/m/financeiro/dre", label: "DRE", icon: FileBarChart },
+              { href: "/m/financeiro/livro-caixa", label: "Livro Caixa", icon: BookOpen },
             ]}
           />
         )}
@@ -168,18 +171,19 @@ export default async function MobileHome() {
   );
 }
 
-type Tone = "gold" | "bordo" | "navy" | "magenta";
-type ChipTone = "gold" | "bordo";
+// Nível 3 da remodelação: bordô é a única cor de AÇÃO da Início (os 2 cartões que criam algo
+// novo), navy é o neutro de "acompanhar" (todo o resto — antes eram 4 tons categorizando área,
+// agora um só, a diferença fica no ícone/rótulo de cada atalho). Dourado saiu daqui de
+// propósito (fica só como acento pontual, ex.: o número de Central de Alertas, ver TileLink).
+type Tone = "bordo" | "navy";
 
 const BADGE_TONE: Record<Tone, string> = {
-  gold: "bg-gradient-to-br from-gold-400 to-gold-600",
-  bordo: "bg-gradient-to-br from-bordo-500 to-bordo-700",
-  navy: "bg-gradient-to-br from-navy-600 to-navy-900",
-  magenta: "bg-gradient-to-br from-magenta-600 to-magenta-700",
+  bordo: "bg-bordo-700",
+  navy: "bg-navy-900",
 };
 
-// Selo do ícone em "squircle" (quadrado bem arredondado, não círculo) com gradiente na cor
-// do próprio atalho — mesma cor em todo tema (Manhã/Noite), só o cartão ao redor muda.
+// Selo do ícone em "squircle" (quadrado bem arredondado, não círculo) — mesma cor em todo
+// tema (Manhã/Noite), só o cartão ao redor muda.
 function TileBadge({ icon: Icon, tone, size = 18 }: { icon: LucideIcon; tone: Tone; size?: number }) {
   return (
     <span className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white shrink-0 ${BADGE_TONE[tone]}`}>
@@ -198,6 +202,7 @@ function TileLink({
   count,
   countLabel,
   subCaption,
+  countTone,
 }: {
   href: string;
   icon: LucideIcon;
@@ -208,6 +213,10 @@ function TileLink({
   // Legenda pequena opcional abaixo da contagem (ex.: "96 jud. · 27 adm.") — hoje só o atalho
   // Processos usa isso, pra abrir a divisão por natureza sem precisar entrar na lista.
   subCaption?: string;
+  // Realce pontual só no NÚMERO (não no cartão inteiro) — hoje só Central de Alertas usa,
+  // pra manter uma pista visual de urgência mesmo com o selo do ícone virando navy neutro
+  // (ver proposta Nível 3: "navy + número em bordô").
+  countTone?: "bordo";
 }) {
   return (
     <Link href={href} className="block h-full">
@@ -215,7 +224,9 @@ function TileLink({
         <TileBadge icon={icon} tone={tone} size={17} />
         <p className="text-[13px] font-bold text-navy-900 dark:text-cream-50 mt-2.5 leading-tight">{title}</p>
         <p className="text-xs mt-0.5">
-          <span className="font-extrabold text-navy-900 dark:text-cream-50 tabular-nums">{count}</span>{" "}
+          <span className={`font-extrabold tabular-nums ${countTone === "bordo" ? "text-bordo-700 dark:text-bordo-400" : "text-navy-900 dark:text-cream-50"}`}>
+            {count}
+          </span>{" "}
           <span className="text-navy-800/50 dark:text-cream-50/50">{countLabel}</span>
         </p>
         {subCaption && <p className="text-[10px] text-navy-800/40 dark:text-cream-50/40 mt-0.5 tabular-nums">{subCaption}</p>}
@@ -224,7 +235,7 @@ function TileLink({
   );
 }
 
-type Chip = { href: string; label: string; icon: LucideIcon; tone: ChipTone };
+type Chip = { href: string; label: string; icon: LucideIcon };
 
 // Hub suspenso (<details>/<summary>): expande mostrando chips de atalho, com uma sombra
 // discreta de flutuação quando aberto (open:shadow-pop). Dois formatos: hero (vertical,
@@ -275,16 +286,13 @@ function HubCard({
   );
 }
 
-function HubChip({ href, label, icon: Icon, tone }: Chip) {
-  const toneClasses =
-    tone === "bordo"
-      ? "bg-bordo-500/10 text-bordo-700 border-bordo-500/20 dark:bg-bordo-400/10 dark:text-bordo-400 dark:border-bordo-400/25"
-      : "bg-gold-500/10 text-gold-800 border-gold-500/25 dark:bg-gold-400/10 dark:text-gold-400 dark:border-gold-400/25";
-
+// Contorno neutro único — a cor do cartão-pai (bordô em Novo Compromisso, navy em Financeiro)
+// já basta pra dar contexto; os chips não precisam da própria cor (ver proposta Nível 3).
+function HubChip({ href, label, icon: Icon }: Chip) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-colors ${toneClasses}`}
+      className="flex items-center gap-2 rounded-lg border border-navy-800/12 dark:border-white/15 text-navy-800/70 dark:text-cream-50/70 px-3 py-2.5 text-xs font-semibold hover:bg-navy-900/5 dark:hover:bg-white/5 transition-colors"
     >
       <Icon size={15} className="shrink-0" />
       <span className="truncate">{label}</span>
