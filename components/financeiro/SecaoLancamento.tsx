@@ -6,13 +6,9 @@ import type { ReactNode } from "react";
 // qual num formulário longo, sem depender só da leitura do título.
 //
 // As cores em si vêm de variáveis CSS declaradas em app/globals.css (--secao-<tom>-bg/-border),
-// não de classes utilitárias Tailwind com hex solto (`bg-[#...]`) — dois motivos: (1) Tailwind
-// não gera classes para strings montadas em runtime a partir de uma prop (`tone`), então
-// `bg-[var(--secao-${tone}-bg)]` simplesmente não seria compilado; (2) o remap de contraste do
-// tema Tarde (`.dark.theme-tarde` em globals.css) funciona reescrevendo variáveis/classes
-// conhecidas — ficar de fora dele é fácil com hex solto, então declarar os três valores (Dia,
-// Noite, Tarde) explicitamente por variável, no mesmo arquivo que já concentra esse remap,
-// deixa a auditoria de contraste num lugar só. Ver a régua de decisão no próprio globals.css.
+// não de classes utilitárias Tailwind com hex solto (`bg-[#...]`) — Tailwind não gera classes
+// para strings montadas em runtime a partir de uma prop (`tone`), então
+// `bg-[var(--secao-${tone}-bg)]` simplesmente não seria compilado.
 export type SecaoTone = "palha" | "azul" | "ouro" | "verde" | "rosa";
 
 export default function SecaoLancamento({

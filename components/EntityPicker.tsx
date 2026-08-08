@@ -120,11 +120,8 @@ export default function EntityPicker({
           Esc), nunca por clique fora, ver comentário no topo do arquivo. Fundo azul de propósito
           (tema próprio deste seletor) — no escuro vira azul-marinho profundo com borda/realces em
           azul claro translúcido, o mesmo par bg+texto usado em badges do projeto (ver
-          components/ui.tsx:badgeColors.blue), conferido também contra o remap do tema Tarde
-          (`.dark.theme-tarde` em app/globals.css, que reescreve exatamente estas classes
-          dark:bg-navy-950/dark:border-white, então o contraste seguinte continua legível nos três
-          temas). z-[60]: acima dos modais de lançamento (z-50), já que este seletor sempre abre
-          DE DENTRO de um deles. */}
+          components/ui.tsx:badgeColors.blue). z-[60]: acima dos modais de lançamento (z-50), já
+          que este seletor sempre abre DE DENTRO de um deles. */}
       {open && (
         <div className="fixed inset-0 z-[60] bg-navy-950/40 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
           <div className="w-full max-w-sm bg-white dark:bg-navy-950 rounded-xl border-2 border-blue-300 dark:border-blue-400/30 shadow-pop overflow-hidden flex flex-col max-h-[80vh]">

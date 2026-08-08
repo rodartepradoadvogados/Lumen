@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, CloudSun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import {
   THEME_KEY,
   THEME_ORDER,
@@ -14,16 +14,12 @@ import {
 
 const ICONS: Record<ThemeMode, typeof Sun> = {
   light: Sun,
-  auto: CloudSun,
   dark: Moon,
 };
 
-// Botão único que cicla Dia -> Tarde -> Noite -> Dia... na TopBar do site (ao lado de
-// "Peticionar"). "Tarde" é um visual híbrido fixo: fundo da página claro (como o Dia), resto
-// da interface escuro (como a Noite) — ver lib/theme.ts para o mecanismo das classes
-// `dark`/`theme-tarde`. O script inline em app/layout.tsx já aplica as classes certas antes
-// deste componente montar (evita flash); aqui assumimos o controle a partir da hidratação,
-// só para refletir o estado no ícone e reagir a cliques no próprio botão.
+// Botão único que alterna Manhã <-> Noite. O script inline em app/layout.tsx já aplica a
+// classe certa antes deste componente montar (evita flash); aqui assumimos o controle a partir
+// da hidratação, só para refletir o estado no ícone e reagir a cliques no próprio botão.
 export default function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
@@ -42,13 +38,12 @@ export default function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  // Aplica o modo atual ao <html> (classes `dark` e `theme-tarde`) e avisa o resto do app
-  // (ex.: components/Sidebar.tsx) do modo EXATO escolhido via evento customizado — dispara
-  // tanto na sincronização inicial pós-montagem quanto em toda troca de modo pelo cycle().
+  // Aplica o modo atual ao <html> (classe `dark`) e avisa o resto do app do modo escolhido via
+  // evento customizado — dispara tanto na sincronização inicial pós-montagem quanto em toda
+  // troca de modo pelo cycle().
   useEffect(() => {
     if (!mounted) return;
     document.documentElement.classList.toggle("dark", resolveIsDark(mode));
-    document.documentElement.classList.toggle("theme-tarde", mode === "auto");
     window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: mode }));
   }, [mode, mounted]);
 

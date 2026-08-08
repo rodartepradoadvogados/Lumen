@@ -90,10 +90,7 @@ export default function EditCaseModal({
   const isAdministrativo = naturezaOf(caseData.type) === "ADMINISTRATIVO";
 
   // Classes de input/select do modal — segue o par bg+texto do StartActingModal.tsx
-  // (dark:bg-navy-800 + dark:text-cream-50 + dark:border-white/15), todos cobertos pelo MESMO
-  // bloco de remap `.dark.theme-tarde` em globals.css. Evita criar uma classe CSS própria com
-  // seletor `.dark` cru (como em novo/page.tsx), que ficaria fora da auditoria de contraste do
-  // Tarde — regra prática já registrada neste projeto.
+  // (dark:bg-navy-800 + dark:text-cream-50 + dark:border-white/15).
   const inputClass =
     "w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm";
 

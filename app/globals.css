@@ -101,11 +101,16 @@ body {
   background-size: 42px 42px;
 }
 
-/* Versão "Tarde" (lib/theme.ts): a classe `dark` continua presente (todo o resto da
-   interface — sidebar, cards, texto — segue estilizado como no modo Noite via as variantes
-   `dark:` do Tailwind espalhadas pelo app), mas o FUNDO da página volta a ser claro, igual
-   ao modo Dia. Precisa de `.dark.theme-tarde` (as duas classes juntas) para ganhar de
-   `.dark .brand-texture` em especificidade, já que as duas regras miram o mesmo elemento. */
+/* Versão "Tarde" — relevante hoje só para o APP MOBILE (components/mobile/MobileThemeToggle.tsx,
+   app/m/layout.tsx), que ainda tem os 3 estados originais (Dia/Tarde/Noite) e não faz parte do
+   escopo da remodelação do portal desktop (app/(app)/**, reduzido a Manhã/Noite — ver
+   lib/theme.ts). A classe `dark` continua presente (todo o resto da interface — sidebar, cards,
+   texto — segue estilizado como no modo Noite via as variantes `dark:` do Tailwind espalhadas
+   pelo app), mas o FUNDO da página volta a ser claro, igual ao modo Dia. Precisa de
+   `.dark.theme-tarde` (as duas classes juntas) para ganhar de `.dark .brand-texture` em
+   especificidade, já que as duas regras miram o mesmo elemento. O portal desktop nunca mais
+   aplica a classe `theme-tarde` ao <html> (ThemeToggle.tsx só alterna `dark`), então este bloco
+   fica inerte lá — existe só para o mobile continuar funcionando como antes. */
 .dark.theme-tarde {
   --background: #f8fafc;
   /* Faltava re-escurecer --foreground também: `.dark` deixa a cor de texto herdada (`body
@@ -353,8 +358,8 @@ body {
 }
 
 /* Tons de preenchimento das seções de formulário do Financeiro — ver components/financeiro/
-   SecaoLancamento.tsx para o porquê de serem variáveis CSS (declaradas acima, em :root/.dark/
-   .dark.theme-tarde) em vez de classes utilitárias com hex solto. */
+   SecaoLancamento.tsx para o porquê de serem variáveis CSS (declaradas acima, em :root/.dark)
+   em vez de classes utilitárias com hex solto. */
 .secao-lancamento--palha {
   background-color: var(--secao-palha-bg);
   border-left-color: var(--secao-palha-border);
@@ -380,15 +385,12 @@ body {
    e app/m/publicacoes/page.tsx), pra facilitar a leitura de onde um card termina e o outro começa
    sem criar hierarquia nenhuma de informação — por isso o contraste entre as duas variantes (a/b,
    alternadas por índice) é mínimo de propósito. O destaque de "novo" (dourado) continua tendo
-   prioridade sobre isso quando presente.
-   Precisa de bloco próprio por tema (não só `dark:`) porque Tarde e Noite dividem a classe `dark`
-   do <html> mas têm paletas opostas (claro/bordô x escuro/azul-marinho) — mesma técnica de
-   especificidade `.dark.theme-tarde` usada no resto deste arquivo. */
+   prioridade sobre isso quando presente. */
 .pub-card-a {
   background-color: #ffffff;
 }
 .pub-card-b {
-  background-color: #faf6ec; /* palha/creme bem leve sobre o branco do modo Dia */
+  background-color: #faf6ec; /* palha/creme bem leve sobre o branco do modo Manhã */
 }
 .dark .pub-card-a {
   background-color: #0a1128; /* navy-900, igual ao fundo padrão dos cards no Noite */
@@ -396,6 +398,8 @@ body {
 .dark .pub-card-b {
   background-color: #0e1a36; /* azul petróleo — um tom só ligeiramente mais claro/azulado */
 }
+/* Modo Tarde — só o app mobile chega nesta combinação de classes hoje (ver comentário grande
+   no bloco `.dark.theme-tarde` acima). */
 .dark.theme-tarde .pub-card-a {
   background-color: rgba(154, 44, 67, 0.06); /* bordô bem diluído sobre o fundo claro do Tarde */
 }

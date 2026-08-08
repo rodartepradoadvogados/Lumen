@@ -315,11 +315,8 @@ export default async function ConfiguracoesPage({
       )}
 
       <div className="flex gap-6 items-start">
-      {/* Sempre navy sólido (sem dark:), mesmo em modo Dia/Tarde/Noite — o texto aqui é
-          propositalmente sempre cream (sem dark: também), então NÃO pode usar dark:bg-*: no
-          modo Tarde o CSS de app/globals.css (.dark.theme-tarde) reescreve dark:bg-navy-900/950
-          para um bordô quase transparente, mas não mexe em texto sem o prefixo dark:, deixando
-          texto cream sobre fundo agora claro. Mesmo padrão do menu lateral principal (Sidebar.tsx). */}
+      {/* Sempre navy sólido (sem dark:), mesmo em Manhã/Noite — o texto aqui é propositalmente
+          sempre cream (sem dark: também), então NÃO pode usar dark:bg-*. */}
       {canConfig && (
         <aside className="hidden lg:block w-56 shrink-0 bg-navy-900 rounded-2xl overflow-hidden sticky top-6">
           <nav className="p-3 space-y-1">
