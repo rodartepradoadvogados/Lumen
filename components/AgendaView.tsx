@@ -123,7 +123,7 @@ export default function AgendaView({
 
   const controls = (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      <div className="flex gap-1 bg-white dark:bg-navy-900 rounded-lg border border-navy-800/10 dark:border-white/10 p-1">
+      <div className="flex gap-1 bg-cream-100 dark:bg-white/5 rounded-lg border border-navy-800/10 dark:border-white/10 p-1">
         {[
           { key: "mes", label: "Mês" },
           { key: "semana", label: "Semana" },
@@ -134,7 +134,9 @@ export default function AgendaView({
             href={buildHref({ visao: v.key === "mes" ? undefined : v.key })}
             className={clsx(
               "text-xs font-semibold px-3 py-1.5 rounded-md transition-colors",
-              visao === v.key ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/5"
+              visao === v.key
+                ? "bg-bordo-700 dark:bg-bordo-500 text-white"
+                : "text-navy-800/60 dark:text-cream-50/60 hover:bg-white/70 dark:hover:bg-white/10"
             )}
           >
             {v.label}
@@ -335,7 +337,7 @@ function MonthView({
               <span
                 className={clsx(
                   "text-xs font-semibold h-5 w-5 flex items-center justify-center rounded-full",
-                  isToday ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/70 dark:text-cream-50/70"
+                  isToday ? "bg-bordo-500 dark:bg-bordo-400 text-white dark:text-navy-950" : "text-navy-800/70 dark:text-cream-50/70"
                 )}
               >
                 {date.getDate()}
@@ -411,7 +413,7 @@ function WeekView({
                 <span
                   className={clsx(
                     "text-xs font-semibold h-6 w-6 flex items-center justify-center rounded-full",
-                    isToday ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/70 dark:text-cream-50/70"
+                    isToday ? "bg-bordo-500 dark:bg-bordo-400 text-white dark:text-navy-950" : "text-navy-800/70 dark:text-cream-50/70"
                   )}
                 >
                   {date.getDate()}

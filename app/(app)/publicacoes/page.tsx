@@ -155,7 +155,7 @@ export default async function PublicacoesPage({
         }
       />
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-4 overflow-x-auto">
         <TabLink label={`Não lidas${unreadCount ? ` (${unreadCount})` : ""}`} href={qs({ aba: undefined })} active={!isLidas && !isTodos} />
         <TabLink label="Lidas" href={qs({ aba: "lidas" })} active={isLidas} />
         <TabLink label="Todos" href={qs({ aba: "todos" })} active={isTodos} />
@@ -228,10 +228,10 @@ function TabLink({ label, href, active }: { label: string; href: string; active:
   return (
     <Link
       href={href}
-      className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
+      className={`text-sm px-4 py-2.5 border-b-2 -mb-px transition-colors whitespace-nowrap ${
         active
-          ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950"
-          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/10"
+          ? "border-bordo-600 dark:border-bordo-400 text-navy-900 dark:text-cream-50 font-semibold"
+          : "border-transparent text-navy-800/45 dark:text-cream-50/45 font-medium hover:text-navy-800 dark:hover:text-cream-50/80"
       }`}
     >
       {label}

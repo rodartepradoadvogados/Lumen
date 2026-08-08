@@ -222,47 +222,6 @@ export default async function DashboardPage() {
         </PendingListModal>
       </div>
 
-      {/* Bloco de destaque do Juris Blog: propositalmente diferente dos StatCards acima
-          (fundo em gradiente navy->bordô, ícone em moldura dourada) para chamar atenção
-          para o blog público do escritório sem se misturar com os cards de KPI. */}
-      <div className="mb-6 relative overflow-hidden rounded-xl border border-gold-500/30 bg-gradient-to-r from-navy-900 via-navy-800 to-bordo-700 shadow-card">
-        <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-5">
-          <div className="h-12 w-12 shrink-0 rounded-full bg-gold-500/15 border border-gold-400/40 flex items-center justify-center text-gold-400">
-            <Newspaper size={22} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-serif text-lg font-bold text-cream-50">Juris Blog</h2>
-              {blogPendingCount > 0 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gold-500/20 text-gold-300 border border-gold-400/30">
-                  {blogPendingCount} aguardando revisão
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-cream-50/70 mt-0.5">Conteúdo jurídico atualizado, publicado pelo escritório para clientes e visitantes.</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/blog"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gold-500 hover:bg-gold-400 text-navy-950 rounded-lg px-3.5 py-2 transition-colors"
-            >
-              Ver blog <ExternalLink size={13} />
-            </Link>
-            {viewer?.isAdmin && blogAccess && (
-              <Link
-                href="/configuracoes?secao=blog&blogTab=revisao"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/15 text-cream-50 border border-white/15 rounded-lg px-3.5 py-2 transition-colors"
-              >
-                Fila de revisão <ArrowRight size={13} />
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardHeader
@@ -329,14 +288,14 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <Card className="flex flex-col">
           <CardHeader title="Recados do Escritório" subtitle="Mural de comunicação entre a equipe" />
           <NoticesPanel notices={serializedNotices} currentUserId={viewer?.id ?? null} isAdmin={Boolean(viewer?.isAdmin)} users={activeUsers} />
         </Card>
 
         <Card>
-          <CardHeader title="Resumo de Processos por Área" />
+          <CardHeader title="Carteira por área" />
           <div className="p-5 space-y-3">
             {byArea.length === 0 && <EmptyState title="Nenhum processo ativo" />}
             {byArea.map((a) => (
@@ -353,6 +312,45 @@ export default async function DashboardPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader
+            title="Juris Blog"
+            action={
+              viewer?.isAdmin && blogAccess ? (
+                <Link
+                  href="/configuracoes?secao=blog&blogTab=revisao"
+                  className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-800 dark:hover:text-gold-300 flex items-center gap-1"
+                >
+                  Fila de revisão <ArrowRight size={13} />
+                </Link>
+              ) : undefined
+            }
+          />
+          <div className="p-5 flex flex-col gap-3 flex-1">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 shrink-0 rounded-full bg-gold-500/15 flex items-center justify-center text-gold-600 dark:text-gold-400">
+                <Newspaper size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-navy-800/70 dark:text-cream-50/60">Conteúdo jurídico publicado pelo escritório.</p>
+                {blogPendingCount > 0 && (
+                  <Badge color="gold" className="mt-1">
+                    {blogPendingCount} aguardando revisão
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <Link
+              href="/blog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-cream-50 rounded-lg px-3.5 py-2 transition-colors w-fit"
+            >
+              Ver blog <ExternalLink size={13} />
+            </Link>
           </div>
         </Card>
       </div>

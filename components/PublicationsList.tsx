@@ -23,6 +23,21 @@ type Pub = {
 
 const STORAGE_KEY = "rp_seen_publications";
 
+// Borda à esquerda por fonte (source do item principal do grupo, ver lib/publicationGrouping.ts)
+// — pistas rápidas de origem sem precisar ler o rótulo. Cores reaproveitadas da paleta já usada
+// no resto do app (badgeColors, components/ui.tsx), nenhuma cor nova introduzida.
+const SOURCE_BORDER_COLORS: Record<string, string> = {
+  DJEN: "border-l-navy-700 dark:border-l-navy-500",
+  DATAJUD: "border-l-blue-500 dark:border-l-blue-400",
+  JUSBRASIL_EMAIL: "border-l-emerald-500 dark:border-l-emerald-400",
+  MANUAL: "border-l-gold-500 dark:border-l-gold-400",
+};
+const DEFAULT_SOURCE_BORDER_COLOR = "border-l-slate-400 dark:border-l-white/20";
+
+function sourceBorderColor(source: string): string {
+  return SOURCE_BORDER_COLORS[source] ?? DEFAULT_SOURCE_BORDER_COLOR;
+}
+
 export default function PublicationsList({
   groups,
   highlightNew = true,
@@ -64,7 +79,12 @@ export default function PublicationsList({
   return (
     <div className="divide-y divide-navy-800/5 dark:divide-white/10">
       {groups.map((g, i) => (
-        <div key={g.key} className={newIds.has(g.key) ? "bg-gold-500/10 dark:bg-gold-400/15" : i % 2 === 0 ? "pub-card-a" : "pub-card-b"}>
+        <div
+          key={g.key}
+          className={`border-l-4 ${sourceBorderColor(g.primary.source)} ${
+            newIds.has(g.key) ? "bg-gold-500/10 dark:bg-gold-400/15" : i % 2 === 0 ? "pub-card-a" : "pub-card-b"
+          }`}
+        >
           <PublicationRow group={g} users={users} />
         </div>
       ))}
