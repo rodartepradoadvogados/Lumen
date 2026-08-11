@@ -155,7 +155,7 @@ export default async function PublicacoesPage({
         }
       />
 
-      <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-4 overflow-x-auto">
+      <div className="flex gap-1 border-b border-regua mb-4 overflow-x-auto">
         <TabLink label={`Não lidas${unreadCount ? ` (${unreadCount})` : ""}`} href={qs({ aba: undefined })} active={!isLidas && !isTodos} />
         <TabLink label="Lidas" href={qs({ aba: "lidas" })} active={isLidas} />
         <TabLink label="Todos" href={qs({ aba: "todos" })} active={isTodos} />
@@ -165,11 +165,11 @@ export default async function PublicacoesPage({
         <FilterLink label="Todos os tipos" href={qs({ kind: undefined })} active={!searchParams.kind} />
         <FilterLink label="Publicações" href={qs({ kind: "PUBLICACAO" })} active={searchParams.kind === "PUBLICACAO"} />
         <FilterLink label="Andamentos" href={qs({ kind: "ANDAMENTO" })} active={searchParams.kind === "ANDAMENTO"} />
-        <span className="w-px h-5 bg-navy-800/10 dark:bg-white/10 mx-1" />
+        <span className="w-px h-5 bg-regua mx-1" />
         <FilterLink label="Todos advogados" href={qs({ adv: undefined })} active={!adv} />
         <FilterLink label="Jairo" href={qs({ adv: "Jairo" })} active={adv === "Jairo"} />
         <FilterLink label="Rodrigo" href={qs({ adv: "Rodrigo" })} active={adv === "Rodrigo"} />
-        <span className="w-px h-5 bg-navy-800/10 dark:bg-white/10 mx-1" />
+        <span className="w-px h-5 bg-regua mx-1" />
         <PublicationRespFilter users={users} value={resp} baseParams={{ aba: searchParams.aba, kind: searchParams.kind, q: searchParams.q, adv: searchParams.adv }} />
         {viewer && (
           <FilterLink label="Minhas" href={qs({ resp: viewer.id })} active={resp === viewer.id} />
@@ -182,20 +182,20 @@ export default async function PublicacoesPage({
         {searchParams.adv && <input type="hidden" name="adv" value={searchParams.adv} />}
         {searchParams.resp && <input type="hidden" name="resp" value={searchParams.resp} />}
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
           <input
             type="text"
             name="q"
             defaultValue={searchParams.q}
             placeholder="Buscar por número do processo, conteúdo ou título"
-            className="w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+            className="w-full border border-regua bg-sf text-tx rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
           />
         </div>
-        <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
           Buscar
         </button>
         {q && (
-          <Link href={qs({ q: undefined })} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 flex items-center">
+          <Link href={qs({ q: undefined })} className="text-xs font-semibold text-tx-2 hover:text-tx px-2 flex items-center">
             Limpar
           </Link>
         )}
@@ -229,9 +229,7 @@ function TabLink({ label, href, active }: { label: string; href: string; active:
     <Link
       href={href}
       className={`text-sm px-4 py-2.5 border-b-2 -mb-px transition-colors whitespace-nowrap ${
-        active
-          ? "border-bordo-600 dark:border-bordo-400 text-navy-900 dark:text-cream-50 font-semibold"
-          : "border-transparent text-navy-800/45 dark:text-cream-50/45 font-medium hover:text-navy-800 dark:hover:text-cream-50/80"
+        active ? "border-acao text-tx font-semibold" : "border-transparent text-tx-3 font-medium hover:text-tx-2"
       }`}
     >
       {label}
@@ -243,10 +241,8 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
   return (
     <Link
       href={href}
-      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-        active
-          ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950"
-          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/10"
+      className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+        active ? "bg-acao text-acao-tx border-acao" : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
       }`}
     >
       {label}

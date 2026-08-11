@@ -121,14 +121,14 @@ export default function ProtocolosTab({
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-4">
-        <p className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 font-mono">
+        <p className="text-xs font-semibold text-tx-2 font-mono tabular-nums">
           {lotes.length === 0 ? "Nenhum protocolo ainda" : `${lotes.length} protocolo${lotes.length > 1 ? "s" : ""}`}
         </p>
         <div className="flex items-center gap-2">
           <EnviarDocumentosButton entity={{ tipo: "CASE", id: caseId, titulo: caseTitle }} attachments={attachments} />
           <button
             onClick={() => setNovoOpen(true)}
-            className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
           >
             <Plus size={16} /> Novo protocolo
           </button>
@@ -136,7 +136,7 @@ export default function ProtocolosTab({
       </div>
 
       {lotes.length === 0 ? (
-        <p className="text-sm text-navy-800/45 dark:text-cream-50/45 py-6 text-center">
+        <p className="text-sm text-tx-2 py-6 text-center">
           Um protocolo é a lista dos documentos enviados (ou a enviar) ao tribunal/órgão — nenhum arquivo é duplicado, só referenciado.
         </p>
       ) : (
@@ -240,11 +240,11 @@ function LoteCard({
   }
 
   return (
-    <div className="border border-navy-800/10 dark:border-white/10 rounded-lg p-4 bg-white dark:bg-navy-900">
+    <div className="border border-regua rounded-lg p-4 bg-sf">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <p className="font-medium text-navy-900 dark:text-cream-50">{lote.titulo}</p>
-          <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 font-mono">
+          <p className="font-medium text-tx">{lote.titulo}</p>
+          <p className="text-xs text-tx-2 mt-0.5 font-mono tabular-nums">
             {lote.status === "PROTOCOLADO"
               ? `protocolado ${lote.protocoladoEm ? formatCalendarDate(lote.protocoladoEm) : ""} · nº ${lote.numeroProtocolo} · ${lote.itens.length} documento(s) · ${lote.protocoladoPor?.name ?? "—"}`
               : `${lote.itens.length} documento(s) · criado por ${lote.criadoPor?.name ?? "—"}`}
@@ -255,7 +255,7 @@ function LoteCard({
 
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
         {tarefa ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 rounded-full pl-2 pr-1 py-0.5">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 bg-sf-apoio rounded-full pl-2 pr-1 py-0.5">
             <CalendarClock size={11} />
             {tarefa.title} · {formatCalendarDate(tarefa.dueDate)}
             {editavel && (
@@ -263,7 +263,7 @@ function LoteCard({
                 onClick={handleDesvincularTarefa}
                 disabled={pending}
                 title="Desvincular tarefa"
-                className="text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 rounded-full p-0.5"
+                className="text-tx-2 hover:text-atencao rounded-full p-0.5"
               >
                 <X size={10} />
               </button>
@@ -273,7 +273,7 @@ function LoteCard({
           editavel && (
             <button
               onClick={() => setTarefaModalOpen(true)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-navy-800/45 dark:text-cream-50/45 hover:text-navy-900 dark:hover:text-cream-50 rounded-full px-2 py-0.5 hover:bg-cream-100 dark:hover:bg-white/5"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx rounded-full px-2 py-0.5 hover:bg-sf-apoio"
             >
               <Link2 size={11} /> Vincular prazo
             </button>
@@ -281,17 +281,17 @@ function LoteCard({
         )}
       </div>
 
-      <div className="mt-3 divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/5 dark:border-white/10">
+      <div className="mt-3 divide-y divide-regua border-t border-regua">
         {lote.itens.map((item) => (
           <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
-            <span className="font-mono text-xs text-navy-800/40 dark:text-cream-50/40 w-6 shrink-0">{String(item.ordem).padStart(2, "0")}</span>
-            <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50" title={item.nomeSnapshot}>
+            <span className="font-mono text-xs text-tx-2 w-6 shrink-0 tabular-nums">{String(item.ordem).padStart(2, "0")}</span>
+            <span className="flex-1 min-w-0 truncate text-tx" title={item.nomeSnapshot}>
               {item.nomeSnapshot}
-              {!item.attachmentId && <span className="text-[10px] text-bordo-600 dark:text-bordo-400 ml-1.5">(excluído do processo)</span>}
+              {!item.attachmentId && <span className="text-[10px] text-urgente ml-1.5">(excluído do processo)</span>}
             </span>
-            <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
+            <span className="text-[10px] text-tx-2 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
             {item.driveUrl && (
-              <a href={item.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gold-700 dark:text-gold-400 shrink-0 flex items-center gap-0.5">
+              <a href={item.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-marca-tx shrink-0 flex items-center gap-0.5">
                 abrir <ExternalLink size={10} />
               </a>
             )}
@@ -299,22 +299,22 @@ function LoteCard({
         ))}
         {lote.comprovante && (
           <div className="flex items-center gap-2 py-1.5 text-sm">
-            <Stamp size={13} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
-            <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{lote.comprovante.name}</span>
-            <a href={lote.comprovante.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gold-700 dark:text-gold-400 shrink-0 flex items-center gap-0.5">
+            <Stamp size={13} className="text-tx-2 shrink-0" />
+            <span className="flex-1 min-w-0 truncate text-tx">{lote.comprovante.name}</span>
+            <a href={lote.comprovante.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-marca-tx shrink-0 flex items-center gap-0.5">
               abrir <ExternalLink size={10} />
             </a>
           </div>
         )}
       </div>
 
-      {error && <p className="text-[11px] text-bordo-600 dark:text-bordo-400 mt-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente mt-2">{error}</p>}
 
       {editavel && (
-        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-navy-800/5 dark:border-white/10">
+        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-regua">
           <button
             onClick={onRegistrar}
-            className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+            className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg"
           >
             <Stamp size={13} /> Registrar protocolo
           </button>
@@ -323,7 +323,7 @@ function LoteCard({
               onClick={handleMarcarPronto}
               disabled={pending}
               title="Exige procuração anexada ao processo (aba Anexos)"
-              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
             >
               <CheckCircle2 size={13} /> Marcar como pronto
             </button>
@@ -331,19 +331,19 @@ function LoteCard({
             <button
               onClick={handleReabrir}
               disabled={pending}
-              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
             >
               <Undo2 size={13} /> Voltar para em preparo
             </button>
           )}
-          <button onClick={onEditar} className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5">
+          <button onClick={onEditar} className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio">
             Editar seleção
           </button>
           {driveConnected && (
             <button
               onClick={handleGerarPasta}
               disabled={pending}
-              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
             >
               {lote.driveFolderId ? <RefreshCw size={13} /> : <FolderOpen size={13} />}
               {pending ? "Gerando..." : lote.driveFolderId ? "Regenerar pasta no Drive" : "Gerar pasta no Drive"}
@@ -352,7 +352,7 @@ function LoteCard({
           {driveConnected && lote.itens.length > 0 && (
             <a
               href={`/api/protocolos/${lote.id}/zip`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio"
             >
               <Download size={13} /> Baixar tudo (.zip)
             </a>
@@ -360,7 +360,7 @@ function LoteCard({
           <button
             onClick={handleCancelar}
             disabled={pending}
-            className="flex items-center gap-1.5 text-xs font-semibold text-bordo-600 dark:text-bordo-400 hover:bg-bordo-50 dark:hover:bg-bordo-950/30 px-3 py-1.5 rounded-lg ml-auto disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 rounded-lg ml-auto disabled:opacity-50"
           >
             <Ban size={13} /> Cancelar
           </button>
@@ -368,10 +368,10 @@ function LoteCard({
       )}
 
       {!editavel && lote.status === "PROTOCOLADO" && driveConnected && lote.itens.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-navy-800/5 dark:border-white/10">
+        <div className="mt-3 pt-3 border-t border-regua">
           <a
             href={`/api/protocolos/${lote.id}/zip`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio"
           >
             <Download size={13} /> Baixar tudo (.zip)
           </a>
@@ -452,11 +452,11 @@ function TarefaModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Vincular prazo</h3>
-          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+    <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-sf rounded-xl shadow-modal w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+          <h3 className="font-bold text-tx">Vincular prazo</h3>
+          <button onClick={onClose} className="text-tx-2 hover:text-tx">
             <X size={18} />
           </button>
         </div>
@@ -466,13 +466,13 @@ function TarefaModal({
             <div className="flex gap-1.5 text-xs font-semibold">
               <button
                 onClick={() => setModo("existente")}
-                className={`px-2.5 py-1 rounded-lg ${modo === "existente" ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5"}`}
+                className={`px-2.5 py-1 rounded-lg ${modo === "existente" ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
               >
                 Tarefa existente
               </button>
               <button
                 onClick={() => setModo("nova")}
-                className={`px-2.5 py-1 rounded-lg ${modo === "nova" ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950" : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5"}`}
+                className={`px-2.5 py-1 rounded-lg ${modo === "nova" ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
               >
                 Criar nova
               </button>
@@ -481,16 +481,16 @@ function TarefaModal({
 
           {modo === "existente" ? (
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tarefa do processo</label>
+              <label className="text-xs font-medium text-tx-2">Tarefa do processo</label>
               {tasks === null ? (
-                <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1">Carregando…</p>
+                <p className="text-xs text-tx-2 mt-1">Carregando…</p>
               ) : tasks.length === 0 ? (
-                <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1">Este processo ainda não tem tarefas. Crie uma nova abaixo.</p>
+                <p className="text-xs text-tx-2 mt-1">Este processo ainda não tem tarefas. Crie uma nova abaixo.</p>
               ) : (
                 <select
                   value={taskId}
                   onChange={(e) => setTaskId(e.target.value)}
-                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
                 >
                   <option value="">Selecione…</option>
                   {tasks.map((t) => (
@@ -504,37 +504,37 @@ function TarefaModal({
           ) : (
             <>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do prazo</label>
+                <label className="text-xs font-medium text-tx-2">Título do prazo</label>
                 <input
                   value={novoTitulo}
                   onChange={(e) => setNovoTitulo(e.target.value)}
                   placeholder="Ex: Protocolar Petição Inicial"
-                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data limite</label>
+                <label className="text-xs font-medium text-tx-2">Data limite</label>
                 <input
                   type="date"
                   value={novaData}
                   onChange={(e) => setNovaData(e.target.value)}
-                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
                 />
               </div>
             </>
           )}
 
-          {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+          {error && <p className="text-xs font-medium text-urgente">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10">
-          <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-regua">
+          <button onClick={onClose} className="text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2">
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
           >
             {loading ? "Vinculando..." : "Vincular"}
           </button>
@@ -649,34 +649,34 @@ function SelecaoModal({
           <div className="space-y-3">
             {!lote && (
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do protocolo</label>
+                <label className="text-xs font-medium text-tx-2">Título do protocolo</label>
                 <input
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   placeholder="Ex: Petição Inicial + documentos"
-                  className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
                 />
               </div>
             )}
 
             {selectedAttachments.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
+                <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1.5">
                   Ordem de envio ({selectedAttachments.length})
                 </p>
-                <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10">
+                <div className="border border-regua rounded-lg divide-y divide-regua">
                   {selectedAttachments.map((a, idx) => (
                     <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                      <span className="font-mono text-xs text-navy-800/40 dark:text-cream-50/40 w-6">{String(idx + 1).padStart(2, "0")}</span>
-                      <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
+                      <span className="font-mono text-xs text-tx-2 w-6 tabular-nums">{String(idx + 1).padStart(2, "0")}</span>
+                      <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
                       <div className="flex items-center shrink-0">
-                        <button onClick={() => move(a.id, -1)} disabled={idx === 0} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
+                        <button onClick={() => move(a.id, -1)} disabled={idx === 0} className="p-1 text-tx-2 hover:text-tx disabled:opacity-20">
                           <ChevronUp size={14} />
                         </button>
-                        <button onClick={() => move(a.id, 1)} disabled={idx === selectedAttachments.length - 1} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-20">
+                        <button onClick={() => move(a.id, 1)} disabled={idx === selectedAttachments.length - 1} className="p-1 text-tx-2 hover:text-tx disabled:opacity-20">
                           <ChevronDown size={14} />
                         </button>
-                        <button onClick={() => toggle(a.id)} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400">
+                        <button onClick={() => toggle(a.id)} className="p-1 text-tx-2 hover:text-atencao">
                           <X size={14} />
                         </button>
                       </div>
@@ -686,56 +686,56 @@ function SelecaoModal({
               </div>
             )}
 
-            {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+            {error && <p className="text-xs font-medium text-urgente">{error}</p>}
           </div>
 
           <div>
             <div className="flex items-center justify-between gap-2 mb-1.5">
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Documentos do processo</p>
+              <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Documentos do processo</p>
               {sugeridosPendentes.length > 0 && (
                 <button
                   onClick={aplicarSugestoes}
                   title={sugestao?.motivo}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline shrink-0"
+                  className="flex items-center gap-1 text-[11px] font-semibold text-marca-tx hover:underline shrink-0"
                 >
                   <Sparkles size={11} /> Usar sugestão ({sugeridosPendentes.length})
                 </button>
               )}
             </div>
             <div className="relative mb-2">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome"
-                className="w-full text-xs border border-navy-800/12 dark:border-white/15 rounded-lg pl-7 pr-2.5 py-1.5 bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full text-xs border border-regua rounded-lg pl-7 pr-2.5 py-1.5 bg-sf text-tx"
               />
             </div>
-            <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10 max-h-[50vh] overflow-y-auto scrollbar-thin">
-              {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-navy-800/40 dark:text-cream-50/40">Nenhum documento encontrado.</p>}
+            <div className="border border-regua rounded-lg divide-y divide-regua max-h-[50vh] overflow-y-auto scrollbar-thin">
+              {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-tx-2">Nenhum documento encontrado.</p>}
               {disponiveis.map((a) => {
                 const checked = selected.includes(a.id);
                 const Icon = getDocumentTypeIcon(a.docType);
                 const jaProtocolado = jaProtocolados[a.id];
                 return (
-                  <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100 dark:hover:bg-white/5">
-                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-gold-600 focus:ring-gold-500/40 shrink-0" />
-                    <Icon size={14} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
-                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
+                  <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-sf-apoio">
+                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua-forte text-acao focus:ring-acao/40 shrink-0" />
+                    <Icon size={14} className="text-tx-2 shrink-0" />
+                    <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
                     {!checked && sugeridosSet.has(a.id) && (
-                      <span title={sugestao?.motivo} className="flex items-center gap-0.5 text-[10px] font-semibold text-gold-700 dark:text-gold-400 shrink-0">
+                      <span title={sugestao?.motivo} className="flex items-center gap-0.5 text-[10px] font-semibold text-marca-tx shrink-0">
                         <Sparkles size={10} /> sugerido
                       </span>
                     )}
                     {jaProtocolado && (
                       <span
                         title={`Já protocolado em "${jaProtocolado.loteTitulo}"${jaProtocolado.numeroProtocolo ? ` (nº ${jaProtocolado.numeroProtocolo})` : ""}`}
-                        className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 shrink-0"
+                        className="flex items-center gap-0.5 text-[10px] font-semibold text-aviso shrink-0"
                       >
                         <AlertTriangle size={10} /> já protocolado
                       </span>
                     )}
-                    <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
+                    <span className="text-[10px] text-tx-2 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
                   </label>
                 );
               })}
@@ -744,14 +744,14 @@ function SelecaoModal({
         </div>
       </div>
 
-      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10 bg-cream-50/60 dark:bg-white/5">
-        <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-regua bg-sf-apoio/60">
+        <button onClick={onClose} className="text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2">
           Cancelar
         </button>
         <button
           onClick={handleConfirm}
           disabled={loading}
-          className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
         >
           {loading ? "Salvando..." : lote ? "Salvar seleção" : "Criar lote e gerar pasta"}
         </button>
@@ -812,52 +812,52 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Registrar protocolo</h3>
-          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+    <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+      <div className="bg-sf rounded-xl shadow-modal w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+          <h3 className="font-bold text-tx">Registrar protocolo</h3>
+          <button onClick={onClose} className="text-tx-2 hover:text-tx">
             <X size={18} />
           </button>
         </div>
 
         <div className="p-5 space-y-3">
-          <p className="text-xs text-navy-800/50 dark:text-cream-50/50">&ldquo;{lote.titulo}&rdquo; — depois de enviar pelo sistema do tribunal/órgão.</p>
+          <p className="text-xs text-tx-2">&ldquo;{lote.titulo}&rdquo; — depois de enviar pelo sistema do tribunal/órgão.</p>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do protocolo</label>
+              <label className="text-xs font-medium text-tx-2">Número do protocolo</label>
               <input
                 value={numero}
                 onChange={(e) => setNumero(e.target.value)}
                 placeholder="20260731-993217"
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data do protocolo</label>
+              <label className="text-xs font-medium text-tx-2">Data do protocolo</label>
               <input
                 type="date"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Comprovante (opcional)</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">Comprovante (opcional)</label>
             {stagedFile ? (
-              <div className="flex items-center gap-2 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-cream-50 dark:bg-navy-800">
-                <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{stagedFile.name}</span>
-                <button onClick={() => setStagedFile(null)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 shrink-0">
+              <div className="flex items-center gap-2 border border-regua rounded-lg px-3 py-2 text-sm bg-sf-apoio">
+                <span className="flex-1 min-w-0 truncate text-tx">{stagedFile.name}</span>
+                <button onClick={() => setStagedFile(null)} className="text-tx-2 hover:text-atencao shrink-0">
                   <X size={14} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 rounded-lg py-3 text-xs text-navy-800/60 dark:text-cream-50/60"
+                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-acao/40 rounded-lg py-3 text-xs text-tx-2"
               >
                 Anexar comprovante devolvido pelo tribunal/órgão
               </button>
@@ -874,17 +874,17 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
             />
           </div>
 
-          {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+          {error && <p className="text-xs font-medium text-urgente">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10">
-          <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-regua">
+          <button onClick={onClose} className="text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2">
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
           >
             {loading ? "Registrando..." : "Concluir protocolo"}
           </button>

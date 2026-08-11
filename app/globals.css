@@ -3,67 +3,149 @@
 @tailwind utilities;
 
 /* ============================================================================
-   TOKENS LÚMEN — fonte única de verdade das cores da marca.
-   Qualquer cor nova no produto vem daqui (ou das escalas navy/gold/bordo/cream
-   do tailwind.config.ts, que usam exatamente estes valores) — nunca um hex
-   solto dentro de um componente. Ver o manual de identidade visual "Lúmen".
+   TOKENS LÚMEN — fonte única de verdade das cores.
+   A especificação completa, detalhe por detalhe, está em docs/DESIGN-SYSTEM.md.
+   Nenhum hex vive dentro de um componente: ou vem daqui, ou vem das escalas do
+   tailwind.config.ts (que apontam para estes mesmos valores).
+
+   Dois temas e só dois: Manhã (:root) e Noite (.dark no <html>, ver lib/theme.ts).
    ============================================================================ */
 :root {
-  /* Azul-marinho — base: fundos escuros e texto sobre fundo claro */
-  --lumen-navy: #0a1128;
-  --lumen-navy-2: #111a35; /* superfícies elevadas: cards, sidebar */
-  --lumen-navy-3: #1a2647; /* bordas/hover em fundo escuro */
-  /* Ouro — destaque principal, CTA primário, marca */
-  --lumen-gold: #b8860b;
-  --lumen-gold-lt: #d9a93a; /* hover do ouro, ícones */
-  --lumen-gold-pale: #e7c15a; /* topo do gradiente do ícone da marca */
-  /* Bordô — cor secundária (botões 2º, estado ativo, links, categorias, divisórias) */
-  --lumen-bordo: #6e0d25;
-  --lumen-bordo-lt: #8f1c38; /* hover/links, texto bordô sobre claro */
-  /* Papel — superfícies claras e leitura longa (blog) */
-  --lumen-paper: #f4efe4;
-  --lumen-paper-2: #ece3d2;
+  /* ---- Escalas base (manual da marca v2) ---------------------------------- */
+  --grafite-300: #5b646e;
+  --grafite-500: #39414a;
+  --grafite-700: #22272e;
+  --grafite-800: #16191d;
+  --grafite-900: #0f1216;
 
-  /* Tons de preenchimento das seções de formulário do Financeiro (SecaoLancamento, Fase 2:
-     Lançar Honorários; Fase 3: Contas a Pagar/Receber reaproveitam) — valores do modo Dia. */
-  --secao-palha-bg: #f8f2e0;
-  --secao-palha-border: #b8860b;
-  --secao-azul-bg: #e9eff9;
-  --secao-azul-border: #3b5c92;
-  --secao-ouro-bg: #fbeed2;
-  --secao-ouro-border: #9c6f0a;
-  --secao-verde-bg: #e7f0ec;
-  --secao-verde-border: #276a56;
-  --secao-rosa-bg: #f9e9ed;
-  --secao-rosa-border: #8f1c38;
-}
+  --ouro-300: #e0b954;
+  --ouro-500: #d9a93a;
+  --ouro-700: #c9962f;
+  --ouro-800: #a87a1c; /* único tom de ouro que pode virar texto sobre fundo claro */
+  --ouro-900: #7d5a11;
 
-:root {
-  --background: #f8fafc;
-  --foreground: #14213d;
+  --vinho-300: #cd5f77;
+  --vinho-500: #a3234a;
+  --vinho-700: #7d1330;
+  --vinho-800: #5e0e24;
+  --vinho-900: #3e0918;
+
+  /* ---- Tokens semânticos — é isto que o componente usa -------------------- */
+  --sf-fundo: #eef0f2;
+  --sf-superficie: #ffffff;
+  --sf-apoio: #f3f4f6;
+  --regua: #e5e7ea;
+  --regua-forte: #c9cdd3;
+
+  --tx: #16191d;
+  --tx-2: #5b646e;
+  --tx-3: #8b939c;
+
+  /* Ação primária: azul-tinta. Sóbrio o bastante para repetir dezenas de vezes por tela —
+     que é o que o bordô não aguentava. --acao-tx é o texto QUE VAI EM CIMA de --acao e
+     inverte entre os temas: nunca escreva #fff cravado sobre um fundo de ação. */
+  --acao: #17325c;
+  --acao-hover: #21447a;
+  --acao-tx: #ffffff;
+  --acao-bg: rgba(23, 50, 92, 0.09);
+
+  /* Ouro: só a marca e o indicador de seção ativa. Nunca fundo de botão. */
+  --marca: #c9962f;
+  --marca-tx: #a87a1c;
+  --marca-bg: rgba(201, 150, 47, 0.15);
+
+  /* Vinho é da MARCA (pingo do símbolo, badge do rail) e da ação destrutiva.
+     Não confundir com --urgente, que é DADO (algo venceu). Ver DESIGN-SYSTEM.md §2. */
+  --vinho: #7d1330;
+
+  --urgente: #b3261e;
+  --urgente-bg: rgba(179, 38, 30, 0.1);
+  --aviso: #9a6700;
+  --aviso-bg: rgba(154, 103, 0, 0.12);
+  --concluido: #1c6b52;
+  --concluido-bg: rgba(28, 107, 82, 0.1);
+
+  /* Texto sobre as superfícies que são grafite nos DOIS temas (rail, barra de menus da
+     Bancada, faixa de guias). Não dá para usar --tx-2 aqui: ele é escuro no tema Manhã e
+     sumiria sobre o grafite. Ver DESIGN-SYSTEM.md §3. */
+  --rail-tx: #9aa3ad; /* item inativo do rail e da faixa de guias */
+  --menu-tx: #aeb6be; /* menu inativo da barra superior no modo Bancada */
+
+  /* Fonte da publicação (DESIGN-SYSTEM.md §9). Cinco das sete reaproveitam tokens semânticos
+     (--acao, --aviso, --tx-2, --vinho, --concluido); o PJE precisa de um azul distinto do
+     azul-tinta de ação, senão DJE e PJE ficam indistinguíveis num filete de 3px. */
+  --fonte-pje: #2f6fb0;
+
+  --sombra-menu: 0 10px 30px rgba(22, 25, 29, 0.18);
+  --sombra-modal: 0 12px 40px rgba(22, 25, 29, 0.2);
+  --sombra-arrasto: 0 8px 24px rgba(22, 25, 29, 0.18);
+
+  --background: var(--sf-fundo);
+  --foreground: var(--tx);
   color-scheme: light;
 }
 
-/* Tema "Noite" do site (classe `dark` no <html>, ver lib/theme.ts e components/ThemeToggle.tsx).
-   Fundo = exatamente --lumen-navy, para o modo escuro do portal bater com a marca. */
 .dark {
-  --background: var(--lumen-navy);
-  --foreground: #f1ece0;
-  color-scheme: dark;
+  --sf-fundo: #0f1216;
+  --sf-superficie: #161a1f;
+  --sf-apoio: #1b2026;
+  --regua: #272d34;
+  --regua-forte: #39414a;
 
-  /* Tons de seção (SecaoLancamento) no modo Noite — mesmos tons "escuros" definidos junto com o
-     Dia acima (ver componente), aqui sobrescritos porque .dark tem mais especificidade que :root
-     sozinho para a MESMA variável (a última declaração que casar com o elemento vence). */
-  --secao-palha-bg: #1c2135;
-  --secao-palha-border: #c8993a;
-  --secao-azul-bg: #142346;
-  --secao-azul-border: #6f8fd0;
-  --secao-ouro-bg: #241f2e;
-  --secao-ouro-border: #d9a93a;
-  --secao-verde-bg: #12262b;
-  --secao-verde-border: #5cb598;
-  --secao-rosa-bg: #2a1a26;
-  --secao-rosa-border: #c96a80;
+  --tx: #e6eaee;
+  --tx-2: #98a1ab;
+  --tx-3: #79828c;
+
+  /* No Noite o azul de ação CLAREIA — e por isso o texto sobre ele fica escuro. */
+  --acao: #7ea6dd;
+  --acao-hover: #9dbce8;
+  --acao-tx: #0f1216;
+  --acao-bg: rgba(126, 166, 221, 0.14);
+
+  --marca: #d9a93a;
+  --marca-tx: #d9a93a;
+  --marca-bg: rgba(217, 169, 58, 0.15);
+
+  --vinho: #cd5f77;
+
+  --urgente: #e2685a;
+  --urgente-bg: rgba(226, 104, 90, 0.14);
+  --aviso: #d0a02a;
+  --aviso-bg: rgba(208, 160, 42, 0.14);
+  --concluido: #4fb28c;
+  --concluido-bg: rgba(79, 178, 140, 0.14);
+
+  --rail-tx: #8b949e;
+  --menu-tx: #8b949e;
+  --fonte-pje: #93c0f0;
+
+  --sombra-menu: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --sombra-modal: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --sombra-arrasto: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  --background: var(--sf-fundo);
+  --foreground: var(--tx);
+  color-scheme: dark;
+}
+
+/* ----------------------------------------------------------------------------
+   LEGADO. As variáveis abaixo existiam antes do manual v2 e ainda são lidas por
+   componentes não migrados. Apontam para os valores NOVOS, para que a tela inteira
+   já apareça na paleta certa enquanto a migração por área acontece. Saem daqui
+   quando a última referência sair do código — ver DESIGN-SYSTEM.md §16.
+   ---------------------------------------------------------------------------- */
+:root,
+.dark {
+  --lumen-navy: var(--grafite-800);
+  --lumen-navy-2: var(--grafite-700);
+  --lumen-navy-3: var(--grafite-500);
+  --lumen-gold: var(--marca);
+  --lumen-gold-lt: var(--ouro-500);
+  --lumen-gold-pale: var(--ouro-300);
+  --lumen-bordo: var(--vinho-700);
+  --lumen-bordo-lt: var(--vinho-500);
+  --lumen-paper: var(--sf-apoio);
+  --lumen-paper-2: var(--regua);
 }
 
 /* Sem declarar color-scheme, o navegador estiliza campos nativos (select, input, scrollbar)
@@ -82,65 +164,41 @@ body {
   }
 }
 
-/* Fundo cinza-frio, com uma textura geométrica dourada quase imperceptível
-   (opacidade bem reduzida em relação à versão anterior) — mantém uma leve
-   referência ao papel timbrado sem gerar sensação de "sujeira" visual. */
-.brand-texture {
-  background-color: #f8fafc;
-  background-image: linear-gradient(135deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px),
-    linear-gradient(45deg, rgba(184, 144, 79, 0.025) 1px, transparent 1px);
-  background-size: 42px 42px;
-}
-
-/* Versão "Noite": mesmo grid geométrico dourado, agora sobre o fundo escuro do site, um
-   pouco mais visível (opacidade maior) já que contrasta melhor contra navy bem escuro. */
-.dark .brand-texture {
-  background-color: #080f1c;
-  background-image: linear-gradient(135deg, rgba(198, 160, 92, 0.05) 1px, transparent 1px),
-    linear-gradient(45deg, rgba(198, 160, 92, 0.05) 1px, transparent 1px);
-  background-size: 42px 42px;
-}
-
-/* Tons de preenchimento das seções de formulário do Financeiro — ver components/financeiro/
-   SecaoLancamento.tsx para o porquê de serem variáveis CSS (declaradas acima, em :root/.dark)
-   em vez de classes utilitárias com hex solto. */
-.secao-lancamento--palha {
-  background-color: var(--secao-palha-bg);
-  border-left-color: var(--secao-palha-border);
+/* Seções de formulário (components/financeiro/SecaoLancamento.tsx): o fundo colorido cheio
+   saiu — cada seção agora é fundo neutro + filete de 3px na cor que a identifica. A cor
+   continua ajudando a achar o bloco num formulário alto, sem pintar 40% da janela.
+   Ver DESIGN-SYSTEM.md §11. Os nomes das classes foram mantidos para não quebrar o
+   componente; o que muda é o que elas pintam. */
+.secao-lancamento--palha,
+.secao-lancamento--azul,
+.secao-lancamento--ouro,
+.secao-lancamento--verde,
+.secao-lancamento--rosa {
+  background-color: var(--sf-apoio);
 }
 .secao-lancamento--azul {
-  background-color: var(--secao-azul-bg);
-  border-left-color: var(--secao-azul-border);
-}
+  border-left-color: var(--acao);
+} /* Contato / Identificação */
+.secao-lancamento--palha {
+  border-left-color: var(--tx-2);
+} /* Assunto e matéria */
 .secao-lancamento--ouro {
-  background-color: var(--secao-ouro-bg);
-  border-left-color: var(--secao-ouro-border);
-}
-.secao-lancamento--verde {
-  background-color: var(--secao-verde-bg);
-  border-left-color: var(--secao-verde-border);
-}
+  border-left-color: var(--marca);
+} /* Honorário */
 .secao-lancamento--rosa {
-  background-color: var(--secao-rosa-bg);
-  border-left-color: var(--secao-rosa-border);
-}
+  border-left-color: var(--vinho);
+} /* Pendências */
+.secao-lancamento--verde {
+  border-left-color: var(--concluido);
+} /* Anexos */
 
-/* Alternância sutil de fundo dos cards da lista de Publicações (ver components/PublicationsList.tsx
-   e app/m/publicacoes/page.tsx), pra facilitar a leitura de onde um card termina e o outro começa
-   sem criar hierarquia nenhuma de informação — por isso o contraste entre as duas variantes (a/b,
-   alternadas por índice) é mínimo de propósito. O destaque de "novo" (dourado) continua tendo
-   prioridade sobre isso quando presente. */
-.pub-card-a {
-  background-color: #ffffff;
-}
+/* A alternância branco/palha dos cards de Publicações saiu junto com o creme: o ritmo de
+   leitura passa a vir da régua de 1px entre os cards, não de duas cores de fundo. As duas
+   classes continuam existindo (o componente as aplica por índice) e agora pintam igual —
+   saem do CSS e do JSX na migração da área Jurídico. */
+.pub-card-a,
 .pub-card-b {
-  background-color: #faf6ec; /* palha/creme bem leve sobre o branco do modo Manhã */
-}
-.dark .pub-card-a {
-  background-color: #0a1128; /* navy-900, igual ao fundo padrão dos cards no Noite */
-}
-.dark .pub-card-b {
-  background-color: #0e1a36; /* azul petróleo — um tom só ligeiramente mais claro/azulado */
+  background-color: var(--sf-superficie);
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -148,7 +206,7 @@ body {
   height: 8px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(184, 144, 79, 0.35);
+  background-color: var(--regua-forte);
   border-radius: 8px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -184,7 +242,7 @@ body {
     bottom: calc(100% + 6px);
     left: 50%;
     transform: translateX(-50%);
-    background: #0b1730; /* navy-900 */
+    background: var(--grafite-800);
     color: #ffffff;
     font-size: 11px;
     font-weight: 500;
@@ -192,7 +250,7 @@ body {
     padding: 4px 8px;
     border-radius: 6px;
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(11, 23, 48, 0.25);
+    box-shadow: var(--sombra-menu);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease-out;
@@ -205,7 +263,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     border: 4px solid transparent;
-    border-top-color: #0b1730;
+    border-top-color: var(--grafite-800);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease-out;
@@ -230,6 +288,6 @@ body {
     bottom: auto;
     top: calc(100% + 2px);
     border-top-color: transparent;
-    border-bottom-color: #0b1730; /* navy-900 */
+    border-bottom-color: var(--grafite-800);
   }
 }

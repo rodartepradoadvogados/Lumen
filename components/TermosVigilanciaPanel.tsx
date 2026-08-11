@@ -65,9 +65,9 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 px-4 py-3 flex items-start gap-2.5">
-        <Radar size={15} className="shrink-0 mt-0.5 text-bordo-700 dark:text-bordo-400" />
-        <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+      <div className="rounded-lg bg-sf-apoio border border-regua px-4 py-3 flex items-start gap-2.5">
+        <Radar size={15} className="shrink-0 mt-0.5 text-acao" />
+        <p className="text-xs text-tx-2">
           O robô de vigilância varre diariamente PNCP, DOU e diários de tribunais de contas atrás destes termos (nome de
           parte, número do processo, palavra-chave...). Ao encontrar uma correspondência, gera um alerta direto neste processo.
         </p>
@@ -79,28 +79,28 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
           value={novoTermo}
           onChange={(e) => setNovoTermo(e.target.value)}
           placeholder="Ex.: nome da parte, nº do processo, palavra-chave..."
-          className="flex-1 rounded-lg border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+          className="flex-1 rounded-lg border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
         />
         <button
           type="submit"
           disabled={pending || !novoTermo.trim()}
-          className="bg-bordo-700 hover:bg-bordo-600 dark:bg-bordo-600 dark:hover:bg-bordo-500 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           Adicionar termo
         </button>
       </form>
 
-      {error && <p className="text-xs text-bordo-700 dark:text-bordo-400">{error}</p>}
+      {error && <p className="text-xs text-urgente">{error}</p>}
 
       {termos.length === 0 ? (
-        <p className="text-sm text-navy-800/45 dark:text-cream-50/45 py-4 text-center">Nenhum termo cadastrado ainda.</p>
+        <p className="text-sm text-tx-2 py-4 text-center">Nenhum termo cadastrado ainda.</p>
       ) : (
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10 rounded-lg border border-navy-800/8 dark:border-white/10">
+        <div className="divide-y divide-regua rounded-lg border border-regua">
           {termos.map((t) => (
             <div key={t.id} className={`flex items-center justify-between gap-3 px-4 py-3 ${t.ativo ? "" : "opacity-45"}`}>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{t.termo}</p>
-                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                <p className="text-sm font-medium text-tx truncate">{t.termo}</p>
+                <p className="text-[11px] text-tx-2">
                   {TIPO_LABELS[t.tipo] || t.tipo}
                   {t.ultimoHitAt ? ` · último alerta em ${new Date(t.ultimoHitAt).toLocaleDateString("pt-BR")}` : ""}
                 </p>
@@ -113,9 +113,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
                   disabled={pending}
                   title={t.ativo ? "Desativar vigilância deste termo" : "Ativar vigilância deste termo"}
                   className={`p-1.5 rounded-lg transition-colors ${
-                    t.ativo
-                      ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-400/10"
-                      : "text-navy-800/30 dark:text-cream-50/30 hover:bg-cream-100 dark:hover:bg-white/5"
+                    t.ativo ? "text-concluido hover:bg-concluido-bg" : "text-tx-3 hover:bg-sf-apoio"
                   }`}
                 >
                   <Power size={14} />
@@ -125,7 +123,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
                   onClick={() => handleRemove(t.id, t.termo)}
                   disabled={pending}
                   title="Excluir termo"
-                  className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-700 dark:hover:text-bordo-400 hover:bg-cream-100 dark:hover:bg-white/5 transition-colors"
+                  className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-sf-apoio transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>

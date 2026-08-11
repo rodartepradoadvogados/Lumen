@@ -1,4 +1,4 @@
-import { Bell, LogOut, Lock } from "lucide-react";
+import { Bell, Lock } from "lucide-react";
 import Link from "next/link";
 import { getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -21,7 +21,10 @@ export default async function TopBar() {
   const sessionSeconds = user ? await getCurrentSessionElapsedSeconds(user.id) : 0;
 
   return (
-    <header className="relative z-30 h-16 shrink-0 bg-cream-50/80 dark:bg-navy-950/90 backdrop-blur border-b border-gold-500/20 dark:border-gold-400/10 flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
+    // 42px, fundo --sf-superficie, borda inferior --regua — sem backdrop-blur e sem borda dourada
+    // (DESIGN-SYSTEM.md §3: "hoje tem border-gold-500/20, que sai"). Presente nos dois modos de
+    // visualização (Régua e Bancada) — ver components/AppShell.tsx.
+    <header className="relative z-30 h-[42px] shrink-0 bg-sf border-b border-regua flex items-center justify-between pl-16 pr-4 md:px-6 gap-4">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <GlobalSearch />
         <InternalTabsBar />
@@ -38,22 +41,22 @@ export default async function TopBar() {
             href="/painel-mestre"
             data-tip="Painel Mestre"
             data-tip-pos="bottom"
-            className="p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors text-bordo-700 dark:text-bordo-400"
+            className="p-2 rounded-lg hover:bg-sf-apoio transition-colors text-atencao"
           >
             <Lock size={18} />
           </Link>
         )}
 
-        <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors">
-          <Bell size={20} className="text-navy-800 dark:text-cream-50/80" />
+        <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-sf-apoio transition-colors">
+          <Bell size={20} className="text-tx" />
           {todayItems.length > 0 && (
-            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-bordo-600 dark:bg-bordo-500">
+            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-vinho-500">
               {todayItems.length > 9 ? "9+" : todayItems.length}
             </span>
           )}
         </Link>
 
-        <div className="flex items-center gap-2 pl-3 border-l border-navy-800/10 dark:border-white/10">
+        <div className="flex items-center gap-2 pl-3 border-l border-regua">
           {user ? (
             <TeamMonitorPanel
               initials={initials}
@@ -61,26 +64,18 @@ export default async function TopBar() {
               role={user.role}
               photoUrl={user.photoUrl ? `/api/perfil/foto/${user.id}` : null}
               isAdmin={user.isAdmin}
+              logoutAction={logout}
             />
           ) : (
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xs font-semibold">
+              <div className="h-8 w-8 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xs font-semibold">
                 {initials}
               </div>
               <div className="hidden md:block leading-tight">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">Não identificado</p>
+                <p className="text-sm font-medium text-tx">Não identificado</p>
               </div>
             </div>
           )}
-          <form action={logout}>
-            <button
-              type="submit"
-              data-tip="Sair"
-              className="p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
-            >
-              <LogOut size={16} />
-            </button>
-          </form>
         </div>
       </div>
     </header>

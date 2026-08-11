@@ -98,48 +98,48 @@ model Office {
   // travar o suporte antes de existir onde aprovar.
   supportAccessPolicy String @default("AUTO") // AUTO | APROVACAO
 
-  users                User[]
-  notices              Notice[]
-  loginSessions        LoginSession[]
-  clients              Client[]
-  lawyers              Lawyer[]
-  suppliers            Supplier[]
-  cases                Case[]
-  kanbanColumns        KanbanColumn[]
-  tasks                Task[]
-  taskTypePoints       TaskTypePoints[]
-  workflowTemplates    WorkflowTemplate[]
-  workflowSteps        WorkflowStep[]
-  comments             Comment[]
-  anotacoes            Anotacao[]
-  mentions             Mention[]
-  attendances          Attendance[]
-  whatsappMessages     WhatsappMessage[]
-  emailMessages        EmailMessage[]
-  attachments          Attachment[]
-  documentTemplates    DocumentTemplate[]
-  deletionRequests     DeletionRequest[]
-  googleCredentials    GoogleCredential[]
-  microsoftCredentials MicrosoftCredential[]
-  financialCategories  FinancialCategory[]
-  costCenters          CostCenter[]
-  payables             Payable[]
-  receivables          Receivable[]
-  recurringFees        RecurringFee[]
-  recurringExpenses    RecurringExpense[]
-  caseLinks            CaseLink[]
+  users                   User[]
+  notices                 Notice[]
+  loginSessions           LoginSession[]
+  clients                 Client[]
+  lawyers                 Lawyer[]
+  suppliers               Supplier[]
+  cases                   Case[]
+  kanbanColumns           KanbanColumn[]
+  tasks                   Task[]
+  taskTypePoints          TaskTypePoints[]
+  workflowTemplates       WorkflowTemplate[]
+  workflowSteps           WorkflowStep[]
+  comments                Comment[]
+  anotacoes               Anotacao[]
+  mentions                Mention[]
+  attendances             Attendance[]
+  whatsappMessages        WhatsappMessage[]
+  emailMessages           EmailMessage[]
+  attachments             Attachment[]
+  documentTemplates       DocumentTemplate[]
+  deletionRequests        DeletionRequest[]
+  googleCredentials       GoogleCredential[]
+  microsoftCredentials    MicrosoftCredential[]
+  financialCategories     FinancialCategory[]
+  costCenters             CostCenter[]
+  payables                Payable[]
+  receivables             Receivable[]
+  recurringFees           RecurringFee[]
+  recurringExpenses       RecurringExpense[]
+  caseLinks               CaseLink[]
   caseInstanceEscalations CaseInstanceEscalation[]
-  assessorias          Assessoria[]
-  assessoriaDocumentos AssessoriaDocumento[]
-  pareceres            Parecer[]
-  honorarios           Honorario[]
-  licitacoes           Licitacao[]
-  publications         Publication[]
-  blogPosts            BlogPost[]
-  photos               Photo[]
-  whatsappConfig       WhatsappConfig?
-  dropboxCredential    DropboxCredential?
-  invoices             TenantInvoice[]
+  assessorias             Assessoria[]
+  assessoriaDocumentos    AssessoriaDocumento[]
+  pareceres               Parecer[]
+  honorarios              Honorario[]
+  licitacoes              Licitacao[]
+  publications            Publication[]
+  blogPosts               BlogPost[]
+  photos                  Photo[]
+  whatsappConfig          WhatsappConfig?
+  dropboxCredential       DropboxCredential?
+  invoices                TenantInvoice[]
 
   // ---- Lúmen (Passo 1 — fundação de dados, ainda não lida por nenhuma tela) ----
   subscription   Subscription?
@@ -156,6 +156,7 @@ model Office {
   // FonteAdministrativa mais abaixo.
   termosVigilancia      TermoVigilancia[]
   fontesAdministrativas FonteAdministrativa[]
+  officeDocumentTypes   OfficeDocumentType[]
 
   // Fase 2 do Setor de Processos Administrativos — ver model RoboDouItem mais abaixo.
   roboDouItens RoboDouItem[]
@@ -242,7 +243,7 @@ model User {
   pushSubscriptions           PushSubscription[]
   tasksResponsible            Task[]                 @relation("TaskResponsible")
   tasksDelegated              Task[]                 @relation("TaskDelegatedBy")
-  tasksCompleted               Task[]                @relation("TaskCompletedBy")
+  tasksCompleted              Task[]                 @relation("TaskCompletedBy")
   casesResponsible            Case[]                 @relation("CaseResponsible")
   comments                    Comment[]
   anotacoes                   Anotacao[]
@@ -257,6 +258,7 @@ model User {
   notices                     Notice[]
   publicationsAssigned        Publication[]          @relation("PublicationAssignee")
   googleCredentials           GoogleCredential[]
+  officeDocumentTypes         OfficeDocumentType[]
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]             @relation("BlogPostReviewer")
   emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
@@ -287,15 +289,15 @@ model User {
   // parcela percentual (Receivable.apuradoPorId) e quem registrou um recebimento/pagamento
   // parcial (FinancePayment.createdById). Papéis distintos entre si de propósito: quem lança a
   // conta muitas vezes não é quem depois dá baixa ou apura o êxito.
-  payablesResponsible            Payable[]             @relation("PayableResponsible")
+  payablesResponsible             Payable[]             @relation("PayableResponsible")
   // Contas a Pagar em que este User é quem RECEBE o pagamento (honorário de advogado contratado,
   // estagiário, funcionário — ver Payable.payeeUserId), distinto de payablesResponsible acima
   // (quem lançou a conta, não quem é pago por ela).
-  payablesAsPayee                Payable[]             @relation("PayablePayee")
-  receivablesResponsible         Receivable[]          @relation("ReceivableResponsible")
-  receivablesApuradas            Receivable[]          @relation("ReceivableApuradoPor")
+  payablesAsPayee                 Payable[]             @relation("PayablePayee")
+  receivablesResponsible          Receivable[]          @relation("ReceivableResponsible")
+  receivablesApuradas             Receivable[]          @relation("ReceivableApuradoPor")
   honorarioLancamentosResponsible HonorarioLancamento[] @relation("HonorarioLancamentoResponsible")
-  financePayments                FinancePayment[]
+  financePayments                 FinancePayment[]
 
   // Pendências do Atendimento (Fase 5) atribuídas a esta pessoa como responsável — ver model
   // AtendimentoPendencia mais abaixo.
@@ -445,20 +447,20 @@ model Case {
   tribunalSistema String?
   tribunalLink    String?
 
-  caseValue           Float?
-  convictionValue     Float?
+  caseValue             Float?
+  convictionValue       Float?
   // "Proveito econômico" — base alternativa de cálculo de honorário percentual (ver
   // HonorarioLancamento.percentualBase), ao lado de caseValue (valor da causa) e
   // convictionValue (valor da condenação). Puramente informativo até que uma parcela
   // percentual referencie esta base no cálculo do valor estimado da parcela.
-  economicBenefitValue Float?
+  economicBenefitValue  Float?
   // "Valor do acordo" — quarta base de cálculo de honorário percentual (ver
   // Receivable.percentualBase), ao lado de caseValue/economicBenefitValue/convictionValue acima.
   // Só costuma ser preenchido quando o processo termina em acordo homologado, em vez de sentença/
   // condenação — as demais bases continuam existindo em paralelo (um caso pode ter as quatro
   // preenchidas ao longo do tempo; qual delas vale para uma parcela específica é escolha de quem
   // lança o honorário, não automática).
-  agreementValue Float?
+  agreementValue        Float?
   // instance = "Instância Original": só passa a ser preenchido na PRIMEIRA vez que um recurso faz
   // o processo subir de instância (ver escalarTribunalSuperior, lib/actions/cases.ts) — antes
   // disso, um processo só tem "instância atual" (currentInstance), sem par origem/atual pra
@@ -469,8 +471,8 @@ model Case {
   // desempilha só a mais recente ainda ativa, recalculando instance/tribunalOrigem* a partir do
   // que sobrou na pilha (ou zerando os dois se não sobrou nada). Múltiplas escaladas em sequência
   // (1º → 2º → STJ, por exemplo) preservam cada hop — não é mais um par único de mão única.
-  instance        String? // Instância Original (espelha o topo da pilha de escaladas ainda ativas)
-  currentInstance String? // Instância Atual — valores: PRIMEIRO_GRAU | SEGUNDO_GRAU | TERCEIRO_GRAU (ver lib/caseInstance.ts)
+  instance              String? // Instância Original (espelha o topo da pilha de escaladas ainda ativas)
+  currentInstance       String? // Instância Atual — valores: PRIMEIRO_GRAU | SEGUNDO_GRAU | TERCEIRO_GRAU (ver lib/caseInstance.ts)
   // Seção/Câmara/Turma do tribunal ATUAL (ex.: "3ª Câmara Cível do TJGO") — texto livre e
   // opcional, preenchido junto da escalada por recurso ou editável a qualquer momento; não tem
   // catálogo por trás (câmara/turma varia demais entre tribunais para valer a pena catalogar).
@@ -482,19 +484,19 @@ model Case {
   tribunalOrigemNome    String?
   tribunalOrigemSistema String?
   tribunalOrigemLink    String?
-  distributedAt   DateTime?
-  closedAt        DateTime?
-  description     String?
+  distributedAt         DateTime?
+  closedAt              DateTime?
+  description           String?
   // Matérias do processo (multi-select, ex.: ["Cível", "Consumidor"]) — ver lib/caseMaterias.ts.
   // `area` (acima) continua sendo gravado também, sempre igual a materias[0] (ou null se vazio):
   // é o que todo filtro/relatório/busca existente já lê, e continuar escrevendo os dois evita ter
   // que migrar essas telas agora só para habilitar múltipla escolha no cadastro.
-  materias String[] @default([])
+  materias              String[]  @default([])
   // Assuntos livres do processo (hoje 2 campos na tela, guardado como lista pra não precisar de
   // migração nova se um dia virar 3+) — ver lib/assuntosCatalog.ts para o pop-up de exemplos.
-  assuntos String[] @default([])
-  clientRole      String? // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
-  actionType      String? // Ação (ex: Execução Fiscal)
+  assuntos              String[]  @default([])
+  clientRole            String? // papel do NOSSO cliente: Autor, Réu, Interessado, Recorrente, Recorrido...
+  actionType            String? // Ação (ex: Execução Fiscal)
 
   // Só preenchidos quando type = "ADMINISTRATIVO" — permitem filtrar a lista por esfera e
   // por matéria sem precisar olhar o órgão. Ficam nulos em processo judicial.
@@ -624,19 +626,19 @@ model CaseInstanceEscalation {
   case   Case   @relation(fields: [caseId], references: [id])
   order  Int
 
-  fromInstance          String?
-  fromTribunalSigla     String?
-  fromTribunalNome      String?
-  fromTribunalSistema   String?
-  fromTribunalLink      String?
-  fromInstanceDetail    String?
+  fromInstance        String?
+  fromTribunalSigla   String?
+  fromTribunalNome    String?
+  fromTribunalSistema String?
+  fromTribunalLink    String?
+  fromInstanceDetail  String?
 
-  toInstance          String
-  toTribunalSigla     String
-  toTribunalNome      String?
-  toTribunalSistema   String?
-  toTribunalLink      String?
-  toInstanceDetail    String?
+  toInstance        String
+  toTribunalSigla   String
+  toTribunalNome    String?
+  toTribunalSistema String?
+  toTribunalLink    String?
+  toInstanceDetail  String?
 
   escalatedAt DateTime  @default(now())
   returnedAt  DateTime? // preenchido quando "retorno dos autos" desfaz esta escalada específica
@@ -767,7 +769,7 @@ model Task {
   responsibleId String?
   responsible   User?   @relation("TaskResponsible", fields: [responsibleId], references: [id])
 
-  completedBy   User?   @relation("TaskCompletedBy", fields: [completedById], references: [id])
+  completedBy User? @relation("TaskCompletedBy", fields: [completedById], references: [id])
 
   // Delegação: quando preenchido, indica que a tarefa foi atribuída por outra pessoa
   // (não criada pelo próprio responsável) — usado para gerar alerta/notificação só
@@ -1026,15 +1028,15 @@ model AtendimentoPendencia {
   attendanceId String
   attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
 
-  direction String // SOLICITAR | ENVIAR
-  kind      String // ver lib/pendencias.ts (SOLICITAR_KIND_OPTIONS / ENVIAR_KIND_OPTIONS)
+  direction   String // SOLICITAR | ENVIAR
+  kind        String // ver lib/pendencias.ts (SOLICITAR_KIND_OPTIONS / ENVIAR_KIND_OPTIONS)
   // "Quais?" — só preenchido/exigido para os kinds que pedem descrição livre (Documentos,
   // Informações, Outros — ver pendenciaKindNeedsDescription em lib/pendencias.ts).
   description String?
-  status      String     @default("PENDENTE") // PENDENTE | CONCLUIDA
+  status      String    @default("PENDENTE") // PENDENTE | CONCLUIDA
   dueDate     DateTime?
   completedAt DateTime?
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime  @default(now())
 
   responsibleId String?
   responsible   User?   @relation("AtendimentoPendenciaResponsible", fields: [responsibleId], references: [id])
@@ -1232,7 +1234,7 @@ model DocumentoEnvio {
 
   // Nome de quem recebeu, sempre preenchido (cadastrado ou digitado na hora) — é o que aparece no
   // histórico, já que destinatarioContato sozinho (um e-mail ou telefone) diria pouco por si.
-  destinatarioNome String
+  destinatarioNome    String
   // E-mail ou telefone conforme `metodo` — pode vir de Client/Lawyer/Supplier já cadastrado ou ser
   // digitado na hora (a pessoa nem sempre está cadastrada); nenhuma FK para não travar o registro
   // à existência contínua do cadastro de origem.
@@ -1299,13 +1301,13 @@ model DocumentoEnvioItem {
 // parcelado) não passa por aqui — vira uma Receivable solta, com honorarioLancamentoId nulo,
 // exatamente como antes.
 model HonorarioLancamento {
-  id                 String  @id @default(cuid())
+  id                 String @id @default(cuid())
   // Total declarado pelo usuário ao criar o parcelamento (ex.: 5.000,00 no exemplo entrada +
   // êxito) — nunca recalculado sozinho depois; só serve de referência para a nota de
   // divergência. Nulo quando o próprio lançamento já nasce só com parcela(s) percentual(is)
   // sem nenhum valor total declarado.
   valorTotalIndicado Float?
-  kind               String  @default("HONORARIOS_CONTRATUAIS") // mesmo catálogo de Receivable.kind (ver comentário lá, inclui HONORARIOS_ACORDO desde a Fase 9)
+  kind               String @default("HONORARIOS_CONTRATUAIS") // mesmo catálogo de Receivable.kind (ver comentário lá, inclui HONORARIOS_ACORDO desde a Fase 9)
 
   createdAt DateTime @default(now())
 
@@ -1426,23 +1428,23 @@ model DocumentTemplate {
 // ============ SOLICITAÇÕES DE EXCLUSÃO (aprovação de admin) ============
 
 model DeletionRequest {
-  id          String   @id @default(cuid())
-  entityType  String // TASK | CASE | ATTENDANCE | PAYABLE | RECEIVABLE | HONORARIO_LANCAMENTO
-  entityId    String
-  entityLabel String // snapshot legível (título/nome) para exibir mesmo após excluir
+  id               String   @id @default(cuid())
+  entityType       String // TASK | CASE | ATTENDANCE | PAYABLE | RECEIVABLE | HONORARIO_LANCAMENTO
+  entityId         String
+  entityLabel      String // snapshot legível (título/nome) para exibir mesmo após excluir
   // ONLY | FOLLOWING | ALL — só preenchido para RECEIVABLE/PAYABLE pertencentes a um agrupamento
   // (parcelamento, honorário parcelado ou honorário recorrente; ver requestDeletionScoped em
   // lib/actions/deletion.ts). Nulo para os demais entityType e para RECEIVABLE/PAYABLE avulsos —
   // nesses casos a aprovação segue o fluxo antigo (performDelete), sem escopo nenhum.
-  scope       String?
+  scope            String?
   // Só relevante para RECEIVABLE/PAYABLE com um reembolso vinculado (ver Payable.
   // reimbursementReceivable/Receivable.reimbursesPayableId) — se true, aprovar esta solicitação
   // também exclui o registro vinculado (respeitando a mesma proteção de nunca apagar de fato um
   // status PAGO; ver performDelete em lib/actions/deletion.ts). Default false: comportamento
   // não-destrutivo — sem marcar, excluir só desvincula, como sempre foi.
-  alsoDeleteLinked Boolean @default(false)
-  status      String   @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
-  createdAt   DateTime @default(now())
+  alsoDeleteLinked Boolean  @default(false)
+  status           String   @default("PENDENTE") // PENDENTE | APROVADA | REJEITADA
+  createdAt        DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1465,6 +1467,12 @@ model GoogleCredential {
   refreshToken      String
   isPrimaryDrive    Boolean  @default(false) // conta usada para anexos/documentos DESTE escritório (uma só, escolhida na primeira conexão)
   syncJusbrasil     Boolean  @default(true) // se a caixa desta conta é varrida em busca de e-mails do Jusbrasil
+  // Pasta-mãe "Lúmen" no Google Drive: TODAS as raízes do sistema (Processos, Casos,
+  // Atendimentos, Assessoria, Anexos, Modelos, Documentos Gerados, Financeiro) passam a ser
+  // filhas dela, em vez de nascerem soltas na raiz do Drive. É o mesmo desenho que OneDrive e
+  // Dropbox já usam (MicrosoftCredential.rootFolderId / DropboxCredential.rootFolderId) — o
+  // Google era o único provedor sem pasta-mãe. Nulo = escritório ainda não migrado.
+  rootFolderId      String?
   folderId          String?
   templatesFolderId String?
   generatedFolderId String?
@@ -1898,16 +1906,16 @@ model RecurringExpense {
 // Conta bancária do escritório — cadastro simples (Fase 3 monta a tela); aqui só o registro para
 // FinancePayment.bankAccountId ter o que referenciar desde já.
 model BankAccount {
-  id            String   @id @default(cuid())
-  name          String // apelido, ex. "Itaú Principal"
-  bank          String?
-  agency        String?
-  accountNumber String?
-  type          String   @default("CORRENTE") // CORRENTE | POUPANCA | INVESTIMENTO
-  initialBalance Float   @default(0)
-  active        Boolean  @default(true)
-  notes         String?
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  name           String // apelido, ex. "Itaú Principal"
+  bank           String?
+  agency         String?
+  accountNumber  String?
+  type           String   @default("CORRENTE") // CORRENTE | POUPANCA | INVESTIMENTO
+  initialBalance Float    @default(0)
+  active         Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1922,7 +1930,7 @@ model BankAccount {
 // lib/prazos.ts:feriadosNacionais); esta tabela só existe para o que o calendário nacional não
 // cobre (ex.: aniversário da comarca, feriado forense local).
 model Holiday {
-  id    String @id @default(cuid())
+  id    String   @id @default(cuid())
   // Data-calendário em UTC-meia-noite, mesma convenção de Task.dueDate (ver
   // formatCalendarDate em components/ui.tsx) — nunca ler com getters locais de Date.
   date  DateTime
@@ -1944,13 +1952,13 @@ model Holiday {
 // fluxo antigo (markReceivablePaid/markPayablePaid) continua funcionando sem nenhuma linha aqui;
 // FinancePayment só entra em cena quando a baixa passar a ser parcial/em várias vezes.
 model FinancePayment {
-  id              String    @id @default(cuid())
-  amount          Float
-  paidDate        DateTime
-  paymentMethod   String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | DINHEIRO | OUTROS
-  documentNumber  String? // nº do documento de pagamento (comprovante, autenticação bancária...)
-  notes           String?
-  createdAt       DateTime  @default(now())
+  id             String   @id @default(cuid())
+  amount         Float
+  paidDate       DateTime
+  paymentMethod  String? // DEBITO | CREDITO | PIX | TRANSFERENCIA | BOLETO | DINHEIRO | OUTROS
+  documentNumber String? // nº do documento de pagamento (comprovante, autenticação bancária...)
+  notes          String?
+  createdAt      DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -2002,17 +2010,17 @@ model Assessoria {
   responsibleId String?
   responsible   User?   @relation("AssessoriaResponsible", fields: [responsibleId], references: [id])
 
-  documents   AssessoriaDocumento[]
-  honorarios  Honorario[]
-  licitacoes  Licitacao[]
-  cases       Case[]
-  attendances Attendance[]
+  documents       AssessoriaDocumento[]
+  honorarios      Honorario[]
+  licitacoes      Licitacao[]
+  cases           Case[]
+  attendances     Attendance[]
   // Anotações pessoais (painel global "Anotações", chip "Assessoria") vinculadas a esta Assessoria.
-  anotacoes   Anotacao[]
+  anotacoes       Anotacao[]
   // Envios de documentos (E-mail/WhatsApp) desta assessoria — ver model DocumentoEnvio.
   documentoEnvios DocumentoEnvio[]
   // Pareceres (pastas de documentos) desta assessoria — ver model Parecer mais abaixo.
-  pareceres Parecer[]
+  pareceres       Parecer[]
 
   @@index([officeId])
 }
@@ -2076,16 +2084,16 @@ model AssessoriaDocumento {
 // — a tela trata esse caso à parte (ver AssessoriaProcessosCasosTab.tsx), nunca escondendo um
 // parecer antigo da lista.
 model Parecer {
-  id          String   @id @default(cuid())
-  name        String
-  date        DateTime @default(now())
-  description String?
+  id              String   @id @default(cuid())
+  name            String
+  date            DateTime @default(now())
+  description     String?
   // Pasta "Lúmen - Assessoria/{empresa}/Pareceres/{nome}" no provedor de armazenamento deste
   // escritório — nula até o primeiro documento ser enviado para dentro do parecer (mesma
   // filosofia preguiçosa de Case.driveFolderId/Attendance.driveFolderId: só cria pasta quando
   // alguém realmente for usar).
   driveFolderId   String?
-  storageProvider String  @default("GOOGLE_DRIVE")
+  storageProvider String   @default("GOOGLE_DRIVE")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -2407,8 +2415,8 @@ model RoboLicitacao {
   dataCaptura              DateTime @default(now())
   statusProcessado         Boolean  @default(false)
 
-  @@map("licitacoes_pncp")
   @@index([statusProcessado])
+  @@map("licitacoes_pncp")
 }
 
 // Artigo do Diario Oficial da Uniao (DOU) capturado via INLABS (Imprensa Nacional) que bateu
@@ -2427,15 +2435,15 @@ model RoboLicitacao {
 model RoboDouItem {
   id               String   @id @default(cuid())
   chaveUnica       String   @unique // dataPublicacao + secao + id do artigo + officeId — evita duplicar entre execuções
-  secao            String   // DO1 | DO2 | DO3 | DO1E | DO2E | DO3E
+  secao            String // DO1 | DO2 | DO3 | DO1E | DO2E | DO3E
   orgao            String?
   titulo           String?
   ementa           String?
-  textoResumo      String?  // trecho em torno do termo encontrado, não o artigo inteiro
+  textoResumo      String? // trecho em torno do termo encontrado, não o artigo inteiro
   dataPublicacao   String?
   numeroPagina     String?
-  termoEncontrado  String   // texto do termo que bateu (não o id — sobrevive se o termo for apagado depois)
-  payloadBruto     String?  // XML do artigo; truncado com segurança se muito grande
+  termoEncontrado  String // texto do termo que bateu (não o id — sobrevive se o termo for apagado depois)
+  payloadBruto     String? // XML do artigo; truncado com segurança se muito grande
   dataCaptura      DateTime @default(now())
   statusProcessado Boolean  @default(false)
 
@@ -2832,4 +2840,37 @@ model FonteAdministrativa {
   office   Office @relation(fields: [officeId], references: [id])
 
   @@unique([officeId, chave])
+}
+
+// ============ TIPOS DE DOCUMENTO CRIADOS PELO ESCRITÓRIO ============
+
+// O catálogo de tipos de documento (lib/documentTypes.ts) é fixo no código e agrupado por seção
+// ("Processual", "Decisões Judiciais", "Contratos"...). Isso cobre o comum e trava o incomum: se
+// o escritório precisa de "Print de conversa de WhatsApp" ou "Laudo de vistoria", não tem por
+// onde criar — e acaba jogando tudo em "Outros", que é o mesmo que não categorizar.
+//
+// Esta tabela guarda os tipos que o próprio escritório cria, na hora de anexar: escolhe a SEÇÃO
+// em que o tipo entra e escreve o nome. A partir daí o tipo aparece no seletor junto com os
+// nativos, e a pasta correspondente passa a ser criada sozinha no Drive, do mesmo jeito que as
+// categorias nativas (getOrCreateCategoryFolder usa o rótulo como nome de pasta).
+//
+// `chave` é derivada do rótulo (maiúsculas, sem acento, com _) e é o que fica gravado em
+// Attachment.docType / AssessoriaDocumento.docType — mesmo formato dos tipos nativos, para que
+// nada precise distinguir um do outro na hora de ler.
+model OfficeDocumentType {
+  id        String   @id @default(cuid())
+  chave     String // ex.: PRINT_DE_CONVERSA — mesmo formato dos tipos nativos
+  rotulo    String // ex.: "Print de conversa"
+  secao     String // nome do grupo em DOCUMENT_TYPE_GROUPS onde o tipo aparece
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  @@unique([officeId, chave])
+  @@index([officeId])
 }

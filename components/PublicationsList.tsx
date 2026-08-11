@@ -24,20 +24,24 @@ type Pub = {
 const STORAGE_KEY = "rp_seen_publications";
 
 // Borda à esquerda por fonte (source do item principal do grupo, ver lib/publicationGrouping.ts)
-// — pistas rápidas de origem sem precisar ler o rótulo. Cores reaproveitadas da paleta já usada
-// no resto do app (badgeColors, components/ui.tsx), nenhuma cor nova introduzida. Chaves batem
-// com Publication.source de verdade (ver prisma/schema.prisma: "DJE | PJE | ESAJ | PROJUDI |
-// MANUAL | JUSBRASIL_EMAIL") — a versão anterior usava "DJEN"/"DATAJUD", que não existem nesse
-// campo, então a borda nunca aparecia (sempre caía no cinza padrão); achado testando ao vivo.
+// — pistas rápidas de origem sem precisar ler o rótulo. Tabela exata em DESIGN-SYSTEM.md §9.
+// Chaves batem com Publication.source de verdade (ver prisma/schema.prisma: "DJE | PJE | ESAJ |
+// PROJUDI | MANUAL | JUSBRASIL_EMAIL") — a versão anterior usava "DJEN"/"DATAJUD", que não
+// existem nesse campo, então a borda nunca aparecia (sempre caía no cinza padrão); achado
+// testando ao vivo. Continuam certas nesta rodada.
+// DJE = --acao, ESAJ = --aviso, PROJUDI = --tx-2, MANUAL = --vinho (via alias --atencao, é o
+// único lançamento feito por pessoa), JUSBRASIL_EMAIL = --concluido — todos tokens semânticos
+// já existentes. PJE é a única fonte sem token próprio no design system (#2f6fb0 / #93c0f0 no
+// manual); fica em valor cravado até existir `--fonte-pje` em app/globals.css.
 const SOURCE_BORDER_COLORS: Record<string, string> = {
-  DJE: "border-l-navy-700 dark:border-l-navy-500",
-  PJE: "border-l-blue-500 dark:border-l-blue-400",
-  ESAJ: "border-l-amber-500 dark:border-l-amber-400",
-  PROJUDI: "border-l-slate-500 dark:border-l-slate-400",
-  MANUAL: "border-l-gold-500 dark:border-l-gold-400",
-  JUSBRASIL_EMAIL: "border-l-emerald-500 dark:border-l-emerald-400",
+  DJE: "border-l-acao",
+  PJE: "border-l-fonte-pje",
+  ESAJ: "border-l-aviso",
+  PROJUDI: "border-l-tx-2",
+  MANUAL: "border-l-atencao",
+  JUSBRASIL_EMAIL: "border-l-concluido",
 };
-const DEFAULT_SOURCE_BORDER_COLOR = "border-l-slate-300 dark:border-l-white/15";
+const DEFAULT_SOURCE_BORDER_COLOR = "border-l-regua-forte";
 
 function sourceBorderColor(source: string): string {
   return SOURCE_BORDER_COLORS[source] ?? DEFAULT_SOURCE_BORDER_COLOR;
@@ -82,13 +86,11 @@ export default function PublicationsList({
   }, [groups.map((g) => g.key).join(",")]);
 
   return (
-    <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-      {groups.map((g, i) => (
+    <div className="divide-y divide-regua bg-sf">
+      {groups.map((g) => (
         <div
           key={g.key}
-          className={`border-l-4 ${sourceBorderColor(g.primary.source)} ${
-            newIds.has(g.key) ? "bg-gold-500/10 dark:bg-gold-400/15" : i % 2 === 0 ? "pub-card-a" : "pub-card-b"
-          }`}
+          className={`border-l-[3px] ${sourceBorderColor(g.primary.source)} ${newIds.has(g.key) ? "bg-marca-bg" : ""}`}
         >
           <PublicationRow group={g} users={users} />
         </div>

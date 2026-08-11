@@ -46,7 +46,8 @@ const sortLabels: Record<string, string> = {
 
 // Cor da etiqueta de natureza na listagem e no cabeçalho do processo — dourado (cor de destaque
 // da marca) para Judicial, bordô (cor secundária) para Administrativo, navy para "Caso" (nem
-// judicial nem administrativo, ver lib/caseNatureza.ts).
+// judicial nem administrativo, ver lib/caseNatureza.ts). Continua usando as chaves de cor do
+// Badge (components/ui.tsx) — só cor de detalhe direta no JSX é que migra para os tokens novos.
 const naturezaBadgeColor: Record<CaseNatureza, "gold" | "bordo" | "navy"> = {
   JUDICIAL: "gold",
   ADMINISTRATIVO: "bordo",
@@ -140,7 +141,7 @@ export default async function ProcessosPage({
           dourada usado nas abas do processo (app/(app)/processos/[id]/page.tsx). Trocar de aba
           preserva os demais filtros (status/área/busca/responsável/ordenação) via qsFor; só sai da
           aba Administrativos limpa esfera/matéria, que só fazem sentido ali. */}
-      <div className="flex gap-1 border-b border-navy-800/10 dark:border-white/10 mb-4 overflow-x-auto">
+      <div className="flex gap-1 border-b border-regua mb-4 overflow-x-auto">
         <NaturezaTab
           label="Todos"
           count={countTodos}
@@ -172,14 +173,14 @@ export default async function ProcessosPage({
       {natureza === "ADMINISTRATIVO" && (
         <div className="space-y-2 mb-4">
           <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide mr-1">Esfera</span>
+            <span className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide mr-1">Esfera</span>
             <FilterLink label="Todas" href={qsFor(searchParams, { esfera: undefined })} active={!esfera} />
             {ESFERAS.map((e) => (
               <FilterLink key={e.value} label={e.label} href={qsFor(searchParams, { esfera: e.value })} active={esfera === e.value} />
             ))}
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide mr-1">Matéria</span>
+            <span className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide mr-1">Matéria</span>
             <FilterLink label="Todas" href={qsFor(searchParams, { materia: undefined })} active={!materia} />
             {MATERIAS_ADMIN.map((m) => (
               <FilterLink key={m.value} label={m.label} href={qsFor(searchParams, { materia: m.value })} active={materia === m.value} />
@@ -220,18 +221,18 @@ export default async function ProcessosPage({
         {cases.length === 0 ? (
           <EmptyState title="Nenhum processo encontrado" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {cases.map((c) => {
               const nat = naturezaOf(c.type);
               return (
-                <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
-                  <div className="h-10 w-10 rounded-full bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
+                <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors">
+                  <div className="h-10 w-10 rounded-full bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                     <Scale size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
-                      <p className="font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
+                      <p className="font-medium text-tx truncate">{c.title}</p>
                       <Badge color={statusColors[c.status]}>{c.status}</Badge>
                       {c.materias.map((m) => (
                         <Badge key={m} color="gold">
@@ -239,7 +240,7 @@ export default async function ProcessosPage({
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">
+                    <p className="text-xs text-tx-2 mt-1 truncate tabular-nums">
                       {nat === "ADMINISTRATIVO" ? (
                         // Linha secundária administrativa: número · órgão · matéria (em vez do
                         // formato "cliente x parte adversa", que não se aplica a esse setor).
@@ -256,10 +257,10 @@ export default async function ProcessosPage({
                     </p>
                   </div>
                   <div className="text-right shrink-0 hidden sm:block">
-                    {c.caseValue != null && <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(c.caseValue)}</p>}
-                    <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
+                    {c.caseValue != null && <p className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(c.caseValue)}</p>}
+                    <p className="text-xs text-tx-3 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
                   </div>
-                  <div className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0 w-20 text-right hidden md:block">
+                  <div className="text-xs text-tx-3 shrink-0 w-20 text-right hidden md:block tabular-nums">
                     {c._count.tasks} tarefa(s)
                   </div>
                   <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"?`} />
@@ -270,9 +271,8 @@ export default async function ProcessosPage({
         )}
       </Card>
       <style>{`
-        .pr-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background: #fff; color: #14213d; }
-        .pr-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-        .dark .pr-input { border-color: rgba(255,255,255,0.12); background: #0b1730; color: #f6f3ec; }
+        .pr-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background: var(--sf-superficie); color: var(--tx); }
+        .pr-input:focus { outline: none; box-shadow: 0 0 0 2px var(--acao-bg); }
       `}</style>
     </div>
   );
@@ -290,10 +290,8 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
   return (
     <Link
       href={href}
-      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-        active
-          ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950"
-          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/10"
+      className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+        active ? "bg-acao text-acao-tx border-acao" : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
       }`}
     >
       {label}
@@ -301,19 +299,18 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
   );
 }
 
-// Aba de natureza — mesmo padrão visual de borda inferior dourada usado nas abas do processo
-// (app/(app)/processos/[id]/page.tsx), com a contagem ao lado do rótulo.
+// Aba de natureza — mesmo padrão visual de filete inferior de 2px em --acao usado nas abas
+// internas do processo (app/(app)/processos/[id]/page.tsx, ver DESIGN-SYSTEM.md §3), com a
+// contagem ao lado do rótulo.
 function NaturezaTab({ label, count, href, active }: { label: string; count: number; href: string; active: boolean }) {
   return (
     <Link
       href={href}
       className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-        active
-          ? "border-bordo-600 dark:border-bordo-400 text-navy-900 dark:text-cream-50 font-semibold"
-          : "border-transparent text-navy-800/45 dark:text-cream-50/45 hover:text-navy-800 dark:hover:text-cream-50/80"
+        active ? "border-acao text-tx font-semibold" : "border-transparent text-tx-3 hover:text-tx-2"
       }`}
     >
-      {label} <span className="text-xs text-navy-800/40 dark:text-cream-50/40">({count})</span>
+      {label} <span className="text-xs text-tx-3 tabular-nums">({count})</span>
     </Link>
   );
 }

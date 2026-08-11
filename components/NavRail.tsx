@@ -10,11 +10,13 @@ import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, isSectionVisible, sectionForPathname, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Rail de 68px com 6 ícones (Painel + as 5 seções de lib/navSections.ts) — substitui a antiga
+// Rail de 62px com 6 ícones (Painel + as 5 seções de lib/navSections.ts) — substitui a antiga
 // sidebar de 264px. "Painel" é o único item que RECOLHE o painel de seção (components/
 // SectionPanel.tsx) em vez de abri-lo; os outros 5 abrem (ou trocam o conteúdo d)o painel e o
 // mantêm aberto até o usuário recolher pelo botão ChevronsLeft no topo dele — ver proposta de
-// remodelação do portal, "Arquitetura de navegação".
+// remodelação do portal, "Arquitetura de navegação". Só existe no modo de visualização Régua
+// (components/ViewModeProvider.tsx) — no modo Bancada, components/AppShell.tsx monta
+// TopMenuBar/SubTabsBar/GuiasBar no lugar dele. Ver DESIGN-SYSTEM.md §3.
 export default function NavRail({
   hasFinanceAccess = true,
   unreadPublications = 0,
@@ -80,21 +82,23 @@ export default function NavRail({
     <>
       <button
         onClick={onOpenMobile}
-        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center rounded-lg bg-[#0a1128] text-cream-50 shadow-pop"
+        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center rounded-lg bg-grafite-800 text-white shadow-menu"
         aria-label="Abrir menu"
       >
         <Menu size={18} />
       </button>
 
-      {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-navy-950/50" onClick={onCloseMobile} />}
+      {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-grafite-900/50" onClick={onCloseMobile} />}
 
+      {/* 62px (DESIGN-SYSTEM.md §3) — grafite nos dois temas, fundo fixo (não usa --sf-*, que
+          troca com o tema: o rail é sempre escuro, Manhã e Noite). */}
       <aside
         className={clsx(
-          "w-[68px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-[#0a1128] transition-transform duration-200 md:translate-x-0",
+          "w-[62px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-grafite-800 transition-transform duration-200 md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <button onClick={onCloseMobile} className="md:hidden absolute top-3 right-2 text-cream-100/60 hover:text-cream-50" aria-label="Fechar menu">
+        <button onClick={onCloseMobile} className="md:hidden absolute top-3 right-2 text-white/60 hover:text-white" aria-label="Fechar menu">
           <X size={16} />
         </button>
 
@@ -134,7 +138,7 @@ export default function NavRail({
           })}
         </nav>
 
-        <div className="pb-3 text-[8px] text-cream-100/30 text-center px-1">v0.1</div>
+        <div className="pb-3 text-[8px] text-white/30 text-center px-1">v0.1</div>
       </aside>
     </>
   );
@@ -162,18 +166,26 @@ function RailButton({
       data-tip={label}
       className={clsx(
         "relative w-full flex flex-col items-center gap-0.5 py-2.5 rounded-lg border-l-[3px] transition-colors",
-        active ? "bg-white/[0.09] border-[#6e0d25] text-[#f4efe4] font-semibold" : "border-transparent text-[rgba(236,227,210,0.74)] hover:bg-white/5 hover:text-cream-50"
+        active
+          ? // Fundo do item ativo difere por tema (grafite-700 na Manhã, --sf-apoio na Noite,
+            // que nesse tom vale #1b2026) mesmo o rail em si sendo escuro nos dois — ver
+            // DESIGN-SYSTEM.md §3. Filete e texto vêm do token de marca/branco puro.
+            "bg-grafite-700 dark:bg-sf-apoio border-marca text-white font-semibold"
+          : // #9aa3ad/#8b949e (Manhã/Noite) não têm token próprio em app/globals.css ainda — são
+            // hex literais só porque este componente não tem posse sobre esse arquivo para
+            // criar um; valor exato conforme DESIGN-SYSTEM.md §3, tabela do rail.
+            "border-transparent text-rail-tx hover:bg-white/5 hover:text-white"
       )}
     >
       <span className="relative">
-        <Icon size={19} strokeWidth={1.9} />
+        <Icon size={17} strokeWidth={1.9} />
         {badge > 0 && (
-          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-[#8f1c38] text-white text-[9px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-vinho-500 text-white text-[9px] font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
       </span>
-      <span className="text-[9px] leading-none">{label}</span>
+      <span className="text-[8px] leading-none">{label}</span>
     </Link>
   );
 }

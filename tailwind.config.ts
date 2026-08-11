@@ -1,5 +1,18 @@
 import type { Config } from "tailwindcss";
 
+// Paleta do manual da marca Lúmen v2 (agosto/2026). A especificação completa — qual cor vai em
+// qual detalhe, nos dois temas — está em docs/DESIGN-SYSTEM.md, e é ela que manda numa dúvida.
+//
+// Duas famílias convivem aqui de propósito, durante a migração:
+//
+//   NOVA     grafite / ouro / vinho / tinta / neutro  +  os apelidos semânticos (acao, marca,
+//            urgente, aviso, concluido, sf, tx, regua), que apontam para as variáveis CSS de
+//            app/globals.css e por isso trocam sozinhos entre Manhã e Noite.
+//   LEGADO   navy / gold / bordo / cream / magenta — ainda usadas por centenas de arquivos.
+//            Foram REAPONTADAS para os valores novos, então a tela inteira já aparece na paleta
+//            certa sem um commit gigante. São removidas área por área (DESIGN-SYSTEM.md §16).
+//
+// Código novo usa só a família nova. Um `#` dentro de components/ ou app/ é bug de revisão.
 const config: Config = {
   darkMode: "class",
   content: [
@@ -10,78 +23,135 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        // Archivo em todo o produto. `serif` continua declarada e apontando para a MESMA fonte
+        // porque 107 arquivos ainda usam `font-serif`: eles renderizam certo enquanto a classe
+        // não é removida. Some daqui quando a última referência sair.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Escalas navy/gold/bordo/cream ancoradas nos tokens da marca Lúmen — os valores
-        // marcados "brand" abaixo são EXATAMENTE os hex do manual de identidade visual
-        // (mesmos valores de --lumen-* em app/globals.css); os demais tons da escala são
-        // interpolações para dar gradação a componentes que precisam de mais de 2 tons
-        // (hover, texto sutil, bordas) sem inventar uma cor fora da família da marca.
+
+        /* ---------- Paleta nova ---------- */
+        grafite: {
+          300: "#5b646e",
+          500: "#39414a",
+          700: "#22272e",
+          800: "#16191d", // marca: fundo do símbolo e da barra de navegação
+          900: "#0f1216", // fundo do tema Noite
+        },
+        ouro: {
+          300: "#e0b954",
+          500: "#d9a93a", // Noite
+          700: "#c9962f", // Manhã — marca e seção ativa
+          800: "#a87a1c", // ÚNICO tom de ouro que pode virar texto sobre fundo claro
+          900: "#7d5a11",
+        },
+        vinho: {
+          300: "#cd5f77",
+          500: "#a3234a",
+          700: "#7d1330",
+          800: "#5e0e24",
+          900: "#3e0918",
+        },
+        // Azul-tinta: cor de ação do produto. O tom fixo fica aqui para gráficos e casos que
+        // precisam do valor cravado; na interface prefira `bg-acao`/`text-acao`, que troca de
+        // tema sozinho.
+        tinta: {
+          400: "#7ea6dd", // Noite
+          700: "#17325c", // Manhã
+          600: "#21447a", // hover Manhã
+        },
+
+        /* ---------- Apelidos semânticos (trocam de tema sozinhos) ---------- */
+        sf: {
+          fundo: "var(--sf-fundo)",
+          DEFAULT: "var(--sf-superficie)",
+          apoio: "var(--sf-apoio)",
+        },
+        regua: { DEFAULT: "var(--regua)", forte: "var(--regua-forte)" },
+        tx: { DEFAULT: "var(--tx)", 2: "var(--tx-2)", 3: "var(--tx-3)" },
+        acao: { DEFAULT: "var(--acao)", hover: "var(--acao-hover)", tx: "var(--acao-tx)", bg: "var(--acao-bg)" },
+        marca: { DEFAULT: "var(--marca)", tx: "var(--marca-tx)", bg: "var(--marca-bg)" },
+        atencao: "var(--vinho)",
+        // Texto sobre as superfícies que são grafite nos dois temas (rail, barra de menus da
+        // Bancada, faixa de guias) — --tx-2 não serve ali, sumiria no tema Manhã.
+        rail: { tx: "var(--rail-tx)" },
+        menu: { tx: "var(--menu-tx)" },
+        // Azul distinto do azul-tinta de ação, para o filete de fonte PJE não se confundir
+        // com o do DJE (DESIGN-SYSTEM.md §9).
+        fonte: { pje: "var(--fonte-pje)" },
+        urgente: { DEFAULT: "var(--urgente)", bg: "var(--urgente-bg)" },
+        aviso: { DEFAULT: "var(--aviso)", bg: "var(--aviso-bg)" },
+        concluido: { DEFAULT: "var(--concluido)", bg: "var(--concluido-bg)" },
+
+        /* ---------- Legado reapontado ---------- */
+        // navy era o azul-marinho da marca antiga; agora é grafite, com os mesmos degraus.
         navy: {
-          950: "#070c1c",
-          900: "#0a1128", // brand: --navy (base)
-          800: "#111a35", // brand: --navy-2 (superfícies elevadas)
-          700: "#1a2647", // brand: --navy-3 (bordas/hover em fundo escuro)
-          600: "#243a63",
-          500: "#304e82",
+          950: "#0f1216",
+          900: "#16191d",
+          800: "#22272e",
+          700: "#39414a",
+          600: "#5b646e",
+          500: "#8b939c",
         },
+        // gold perde o papel de CTA (que passou ao azul-tinta) e fica só como marca/acento.
+        // 500 e 600 apontam para o ouro novo; 700+ escurecem para poder virar texto.
         gold: {
-          900: "#453105",
-          800: "#5e4306",
-          700: "#7a5708",
-          600: "#9c6f0a",
-          500: "#b8860b", // brand: --gold (destaque principal, CTA primário)
-          400: "#d9a93a", // brand: --gold-lt (hover, ícones)
-          300: "#e7c15a", // brand: --gold-pale
-          100: "#f5e9cf",
+          900: "#7d5a11",
+          800: "#a87a1c",
+          700: "#a87a1c",
+          600: "#c9962f",
+          500: "#c9962f",
+          400: "#d9a93a",
+          300: "#e0b954",
+          100: "rgba(201, 150, 47, 0.15)",
         },
+        // cream/paper viram os neutros frios — o creme e a palha saíram inteiros da paleta.
         cream: {
-          50: "#f4efe4", // brand: --paper (superfícies claras, leitura longa)
-          100: "#ece3d2", // brand: --paper-2 (divisórias em fundo claro)
-          200: "#e8ddc9",
-          300: "#e5dcc8",
+          50: "#f3f4f6",
+          100: "#e5e7ea",
+          200: "#e5e7ea",
+          300: "#c9cdd3",
         },
-        // Paleta bordô — cor SECUNDÁRIA da marca (não só urgência): botões secundários,
-        // estado ativo/aba ativa, links, badges de categoria do blog, divisórias de seção.
-        // bordo-400 é uma variante clara adicional (fora dos 2 tons de referência da marca)
-        // usada em modo escuro para manter contraste, no mesmo papel que gold-400 cumpre
-        // para a paleta dourada.
+        // bordo passa a ser o vinho da marca. Os botões que estavam em bordo-700 vão para
+        // `bg-acao` na migração por área; até lá aparecem em vinho, não mais em ouro.
         bordo: {
-          900: "#3d1119",
-          700: "#6e0d25", // brand: --bordo (base)
-          600: "#8f1c38", // brand: --bordo-lt (hover/links, texto bordô sobre claro)
-          500: "#9a2c43",
-          400: "#c96a80",
-          100: "#f4dde1",
+          900: "#3e0918",
+          700: "#7d1330",
+          600: "#a3234a",
+          500: "#a3234a",
+          400: "#cd5f77",
+          100: "rgba(125, 19, 48, 0.1)",
         },
-        // Paleta magenta — terceiro acento, opcional e de uso pontual (hoje só no
-        // hub de Contatos, módulo Equipe), pra dar variedade sem competir com o
-        // dourado/bordô que já carregam significado (destaque financeiro / urgência
-        // jurídica). magenta-400 segue o mesmo papel que gold-400/bordo-400: variante
-        // mais clara usada em modo escuro pra manter contraste.
+        // magenta era o terceiro acento (só o hub de Contatos). Colapsa no vinho: o manual v2
+        // não tem uma terceira cor de acento, e manter uma inventada é o que gera deriva.
         magenta: {
-          700: "#9d2467",
-          600: "#b52e79",
-          500: "#c73f8a",
-          400: "#d17fae",
-          100: "#f9dced",
+          700: "#7d1330",
+          600: "#a3234a",
+          500: "#a3234a",
+          400: "#cd5f77",
+          100: "rgba(125, 19, 48, 0.1)",
         },
       },
       boxShadow: {
-        card: "0 1px 2px rgba(15, 31, 61, 0.06), 0 1px 8px rgba(15, 31, 61, 0.06)",
-        pop: "0 8px 30px rgba(15, 31, 61, 0.16)",
+        // Sombra só em coisa que flutua de verdade (DESIGN-SYSTEM.md §13). `card` vira nenhuma
+        // sombra de propósito: cartão parado se separa por régua de 1px. Assim os ~200 usos de
+        // `shadow-card` param de sombrear sem precisar editar 200 arquivos.
+        card: "none",
+        pop: "var(--sombra-menu)",
+        menu: "var(--sombra-menu)",
+        modal: "var(--sombra-modal)",
+        arrasto: "var(--sombra-arrasto)",
       },
       borderRadius: {
-        // Raio padrão de card da marca Lúmen = 16px. `xl` já é a classe usada pelos cards
-        // do produto (`rounded-xl`), então sobrescrever aqui atualiza todos eles de uma vez
-        // — sem precisar trocar a classe em cada componente. Botões usam `rounded-lg`
-        // (8px), que já bate com o padrão da marca sem precisar de mudança nenhuma.
-        xl: "1rem",
-        xl2: "1rem",
+        // Raio de cartão cai de 16px para 6px — é a mudança que mais aumenta densidade sem
+        // mexer em layout. `rounded-xl` já é a classe usada pelos cards, então sobrescrever
+        // aqui atualiza todos de uma vez.
+        xl: "0.375rem",
+        xl2: "0.375rem",
+        lg: "0.3125rem", // botão e campo: 5px
       },
     },
   },

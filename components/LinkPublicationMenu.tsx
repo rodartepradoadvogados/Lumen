@@ -89,18 +89,18 @@ export default function LinkPublicationMenu({
             e.stopPropagation();
             setMenuOpen((o) => !o);
           }}
-          className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/60 hover:text-navy-900 dark:text-cream-50/60 dark:hover:text-cream-50 px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-cream-200 dark:bg-white/10 dark:hover:bg-white/15"
+          className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
         >
           <FilePlus2 size={12} /> Cadastrar Processo <ChevronDown size={11} />
         </button>
         {menuOpen && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-0 top-full mt-1 w-56 bg-white dark:bg-navy-900 rounded-lg border border-navy-800/10 dark:border-white/10 shadow-pop z-20 overflow-hidden"
+            className="absolute left-0 top-full mt-1 w-56 bg-sf rounded-lg border border-regua shadow-menu z-20 overflow-hidden"
           >
             <Link
               href={newCaseHref}
-              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-tx hover:bg-sf-apoio transition-colors"
             >
               <FilePlus2 size={13} /> Cadastrar novo processo
             </Link>
@@ -110,7 +110,7 @@ export default function LinkPublicationMenu({
                 setMenuOpen(false);
                 setSearchOpen(true);
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs text-tx hover:bg-sf-apoio transition-colors"
             >
               <Search size={13} /> Vincular a processo já existente
             </button>
@@ -121,7 +121,7 @@ export default function LinkPublicationMenu({
                   setMenuOpen(false);
                   setBlockConfirmOpen(true);
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-bordo-700 dark:text-bordo-400 hover:bg-bordo-100/60 dark:hover:bg-bordo-700/15 transition-colors border-t border-navy-800/8 dark:border-white/10"
+                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-atencao hover:bg-urgente-bg transition-colors border-t border-regua"
               >
                 <Ban size={13} /> Bloquear
               </button>
@@ -131,23 +131,20 @@ export default function LinkPublicationMenu({
       </div>
 
       {blockConfirmOpen && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div
-            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 flex items-center gap-2">
-                <Ban size={16} className="text-bordo-700 dark:text-bordo-400" /> Bloquear processo
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-modal w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+              <h3 className="font-bold text-tx flex items-center gap-2">
+                <Ban size={16} className="text-atencao" /> Bloquear processo
               </h3>
               {!blocking && (
-                <button onClick={() => setBlockConfirmOpen(false)} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
+                <button onClick={() => setBlockConfirmOpen(false)} className="text-tx-3 hover:text-tx">
                   <X size={18} />
                 </button>
               )}
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-sm text-navy-800 dark:text-cream-50/85">
+              <p className="text-sm text-tx">
                 Esta ação faz com que você deixe de receber publicações e andamentos processuais deste processo — os
                 demais advogados do escritório continuam recebendo normalmente. Tem certeza?
               </p>
@@ -156,7 +153,7 @@ export default function LinkPublicationMenu({
                   type="button"
                   disabled={blocking}
                   onClick={() => setBlockConfirmOpen(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-navy-800/70 dark:text-cream-50/70 hover:bg-cream-100 dark:hover:bg-white/10 disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-tx-2 hover:bg-sf-apoio disabled:opacity-50"
                 >
                   Não
                 </button>
@@ -164,7 +161,7 @@ export default function LinkPublicationMenu({
                   type="button"
                   disabled={blocking}
                   onClick={confirmBlock}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-bordo-700 hover:bg-bordo-800 text-white disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-atencao hover:opacity-90 text-white disabled:opacity-50"
                 >
                   {blocking ? "Bloqueando..." : "Sim"}
                 </button>
@@ -175,14 +172,14 @@ export default function LinkPublicationMenu({
       )}
 
       {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-md max-h-[80vh] flex flex-col"
+            className="bg-sf rounded-xl shadow-modal w-full max-w-md max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Vincular a processo existente</h3>
-              <button onClick={() => setSearchOpen(false)} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
+              <h3 className="font-bold text-tx">Vincular a processo existente</h3>
+              <button onClick={() => setSearchOpen(false)} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>
             </div>
@@ -192,11 +189,11 @@ export default function LinkPublicationMenu({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por título ou número do processo..."
-                className="w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
               />
-              {searching && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 px-1">Buscando...</p>}
+              {searching && <p className="text-xs text-tx-2 px-1">Buscando...</p>}
               {!searching && query.trim().length >= 2 && results.length === 0 && (
-                <p className="text-xs text-navy-800/50 dark:text-cream-50/50 px-1">Nenhum processo encontrado.</p>
+                <p className="text-xs text-tx-2 px-1">Nenhum processo encontrado.</p>
               )}
               {results.map((c) => (
                 <button
@@ -204,10 +201,10 @@ export default function LinkPublicationMenu({
                   type="button"
                   disabled={linking}
                   onClick={() => pickCase(c.id)}
-                  className="flex flex-col items-start w-full px-3 py-2 rounded-lg text-left hover:bg-cream-50 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+                  className="flex flex-col items-start w-full px-3 py-2 rounded-lg text-left hover:bg-sf-apoio transition-colors disabled:opacity-50"
                 >
-                  <span className="text-sm text-navy-900 dark:text-cream-50">{c.title}</span>
-                  {c.processNumber && <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{c.processNumber}</span>}
+                  <span className="text-sm text-tx">{c.title}</span>
+                  {c.processNumber && <span className="text-xs text-tx-2 tabular-nums">{c.processNumber}</span>}
                 </button>
               ))}
             </div>
