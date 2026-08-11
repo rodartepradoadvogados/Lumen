@@ -122,8 +122,8 @@ export default async function AssinaturasPage() {
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">Assinaturas</h1>
-        <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1">
+        <h1 className="text-2xl font-bold text-white">Assinaturas</h1>
+        <p className="text-sm text-white/55 mt-1">
           Ciclo, forma de pagamento e desconto de cada escritório-cliente
         </p>
       </div>

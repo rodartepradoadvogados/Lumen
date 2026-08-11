@@ -1,38 +1,22 @@
 import type { ReactNode } from "react";
+import { Badge, financeStatusColors, financeStatusLabel } from "@/components/ui";
 
 // Rótulo e cor do status financeiro (Payable/Receivable.status e o effectiveStatus derivado —
-// ver lib/financeQuery.ts) — DESIGN-SYSTEM.md §10. A tabela é exata: nenhuma outra combinação
-// fundo/texto vale para status financeiro.
+// ver lib/financeQuery.ts) — DESIGN-SYSTEM.md §10.
 //
-// components/ui.tsx ainda não tinha um helper equivalente quando esta área foi migrada — por
-// isso ele mora aqui em vez de lá. Se um helper de rótulo/cor de status financeiro aparecer em
-// components/ui.tsx depois, os consumidores devem trocar para ele.
+// A tabela fundo/texto/rótulo mora em components/ui.tsx (financeStatusLabels/financeStatusColors/
+// financeStatusLabel) — esta área foi migrada antes desse helper existir lá, então tinha sua
+// própria cópia. Consolidado: este arquivo agora só reexporta financeStatusLabel e oferece
+// FinanceStatusBadge como um wrapper fino sobre <Badge> + financeStatusColors, para não haver
+// duas fontes de verdade para o mesmo rótulo.
 export type FinanceStatus = "PENDENTE" | "PAGO" | "ATRASADO" | "PARCIAL" | "CANCELADO" | "A_APURAR";
 
-const financeStatusMeta: Record<string, { label: string; bg: string; text: string }> = {
-  PENDENTE: { label: "Pendente", bg: "bg-aviso-bg", text: "text-aviso" },
-  PAGO: { label: "Pago", bg: "bg-concluido-bg", text: "text-concluido" },
-  ATRASADO: { label: "Atrasado", bg: "bg-urgente-bg", text: "text-urgente" },
-  PARCIAL: { label: "Parcial", bg: "bg-aviso-bg", text: "text-aviso" },
-  CANCELADO: { label: "Cancelado", bg: "bg-sf-apoio", text: "text-tx-3" },
-  // Fora da tabela do §10 — status exclusivo de parcela de honorário "a apurar no desfecho do
-  // processo" (Receivable.status, ver lib/financeQuery.ts). Sem valor real ainda, então segue o
-  // mesmo neutro do Cancelado em vez de ganhar uma cor própria que o manual não define.
-  A_APURAR: { label: "A apurar", bg: "bg-sf-apoio", text: "text-tx-3" },
-};
+export { financeStatusLabel };
 
-// Rótulo capitalizado a mostrar (nunca o enum cru em caixa alta — era o bug em Despesas).
-export function financeStatusLabel(status: string): string {
-  return financeStatusMeta[status]?.label ?? status;
-}
-
-export function FinanceStatusBadge({ status, className = "" }: { status: string; className?: string }): ReactNode {
-  const meta = financeStatusMeta[status];
+export function FinanceStatusBadge({ status, className }: { status: string; className?: string }): ReactNode {
   return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${meta?.bg ?? "bg-sf-apoio"} ${meta?.text ?? "text-tx-3"} ${className}`}
-    >
-      {meta?.label ?? status}
-    </span>
+    <Badge color={financeStatusColors[status] ?? "muted"} className={className}>
+      {financeStatusLabel(status)}
+    </Badge>
   );
 }

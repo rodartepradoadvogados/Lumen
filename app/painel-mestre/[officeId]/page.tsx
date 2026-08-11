@@ -27,7 +27,7 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
 
   return (
     <div className="p-6 max-w-[700px] mx-auto animate-fade-in space-y-6">
-      <Link href="/painel-mestre" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+      <Link href="/painel-mestre" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Painel Mestre
       </Link>
       <PageHeader
@@ -38,11 +38,11 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
 
       <Card>
         <CardHeader title="Equipe" subtitle={`${office.users.length} pessoa(s) ativa(s)`} />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {office.users.map((u) => (
             <div key={u.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
-              <span className="text-navy-900 dark:text-cream-50">{u.name}</span>
-              <span className="text-[11px] text-navy-800/45 dark:text-cream-50/45">{u.email}{u.isAdmin ? " · admin" : ""}</span>
+              <span className="text-tx">{u.name}</span>
+              <span className="text-[11px] text-tx-3">{u.email}{u.isAdmin ? " · admin" : ""}</span>
             </div>
           ))}
         </div>

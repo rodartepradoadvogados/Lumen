@@ -16,7 +16,7 @@ export default async function PainelMestreLayout({ children }: { children: React
   if (!viewer.isPlatformOwner) redirect("/painel");
 
   return (
-    <div className="dark min-h-screen bg-navy-950 dark:bg-navy-950 text-cream-50 dark:text-cream-50 flex">
+    <div className="dark min-h-screen bg-grafite-900 text-white flex">
       <LumenNavRail />
       <div className="flex-1 flex flex-col min-w-0">
         <LumenTopStrip memberName={viewer.name} />

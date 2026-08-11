@@ -68,7 +68,7 @@ export default function PlatformExpenseModal({
       {mode === "create" ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
         >
           <Plus size={16} /> Nova despesa
         </button>
@@ -76,7 +76,7 @@ export default function PlatformExpenseModal({
         <button
           onClick={() => setOpen(true)}
           data-tip="Editar"
-          className="p-1.5 rounded-lg text-cream-50/40 hover:text-cream-50 hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
         >
           <Pencil size={14} />
         </button>
@@ -89,7 +89,7 @@ export default function PlatformExpenseModal({
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-cream-50/60">Conta</label>
+                  <label className="text-xs font-medium text-white/60">Conta</label>
                   <select
                     name="accountId"
                     required
@@ -107,17 +107,17 @@ export default function PlatformExpenseModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-cream-50/60">Descrição</label>
+                  <label className="text-xs font-medium text-white/60">Descrição</label>
                   <input name="description" required defaultValue={expense?.description} className="pm-input" placeholder="Ex: Hospedagem Vercel" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-cream-50/60">Valor (R$)</label>
+                  <label className="text-xs font-medium text-white/60">Valor (R$)</label>
                   <input name="amount" type="number" step="0.01" required defaultValue={expense?.amount} className="pm-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-cream-50/60">Competência</label>
+                  <label className="text-xs font-medium text-white/60">Competência</label>
                   <input
                     name="competencia"
                     type="month"
@@ -129,22 +129,22 @@ export default function PlatformExpenseModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-cream-50/60">Pago em (opcional)</label>
+                  <label className="text-xs font-medium text-white/60">Pago em (opcional)</label>
                   <input name="paidAt" type="date" defaultValue={expense?.paidAt ?? ""} className="pm-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-cream-50/60">Fornecedor (opcional)</label>
+                  <label className="text-xs font-medium text-white/60">Fornecedor (opcional)</label>
                   <input name="supplier" defaultValue={expense?.supplier ?? ""} className="pm-input" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-cream-50/60">Observações (opcional)</label>
+                <label className="text-xs font-medium text-white/60">Observações (opcional)</label>
                 <textarea name="notes" rows={3} defaultValue={expense?.notes ?? ""} className="pm-input resize-none" />
               </div>
-              {error && <p className="text-xs text-bordo-400">{error}</p>}
+              {error && <p className="text-xs text-atencao">{error}</p>}
             </div>
             <div className="shrink-0 border-t border-white/10 px-5 py-3 flex justify-end">
-              <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : mode === "create" ? "Criar" : "Salvar alterações"}
               </button>
             </div>
@@ -157,14 +157,14 @@ export default function PlatformExpenseModal({
           margin-top: 0.25rem;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #fdfaf3;
+          color: white;
           border-radius: 0.5rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
         }
         .pm-input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--marca) 40%, transparent);
         }
       `}</style>
     </>
@@ -195,7 +195,7 @@ export function DeletePlatformExpenseButton({ id }: { id: string }) {
       onClick={handleClick}
       disabled={pending}
       data-tip="Excluir"
-      className="p-1.5 rounded-lg text-cream-50/40 hover:text-bordo-400 hover:bg-white/10 transition-colors disabled:opacity-40"
+      className="p-1.5 rounded-lg text-white/40 hover:text-atencao hover:bg-white/10 transition-colors disabled:opacity-40"
     >
       <Trash2 size={14} />
     </button>

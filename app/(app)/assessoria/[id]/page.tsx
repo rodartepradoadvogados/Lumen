@@ -11,7 +11,7 @@ import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab
 import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
 import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
@@ -50,14 +50,17 @@ export default async function AssessoriaDetailPage({
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [users, availableCasesRaw, driveStatus, anotacoesRaw] = await Promise.all([
+  const [users, availableCasesRaw, storageConnected, anotacoesRaw] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
       select: { id: true, title: true, processNumber: true },
       orderBy: { title: "asc" },
     }),
-    getDriveStatus(viewer.officeId),
+    // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
+    // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
+    // não via onde soltar o arquivo, porque a checagem era específica do Drive.
+    isStorageConnected(viewer.officeId),
     // Aba "Anotações pessoais" (painel global "Anotações") — mesma regra de filtro por
     // authorId de app/(app)/processos/[id]/page.tsx e app/(app)/atendimento/[id]/page.tsx.
     prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
@@ -93,7 +96,7 @@ export default async function AssessoriaDetailPage({
       {/* driveFolderId nulo com o armazenamento conectado só acontece hoje se a criação da pasta
           falhou silenciosamente (bug corrigido na Tarefa C, ver createAssessoria em
           lib/actions/assessoria.ts) — sem isso, a assessoria "parecia" ter pasta e não tinha. */}
-      {driveStatus.connected && !assessoria.driveFolderId && (
+      {storageConnected && !assessoria.driveFolderId && (
         <div className="mb-5">
           <DriveFolderMissingNotice
             message="Esta assessoria ainda não tem pasta no armazenamento em nuvem."
@@ -138,11 +141,11 @@ export default async function AssessoriaDetailPage({
       </div>
 
       {tab === "geral" && <AssessoriaOverviewTab assessoria={assessoria} />}
-      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={driveStatus.connected} />}
+      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={storageConnected} />}
       {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
       {tab === "processos-casos" && (
-        <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} driveConnected={driveStatus.connected} />
+        <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} driveConnected={storageConnected} />
       )}
       {tab === "linha-do-tempo" && <AssessoriaTimelineTab assessoria={assessoria} />}
       {tab === "anotacoes-pessoais" && (

@@ -32,7 +32,7 @@ import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList"
 import BreakGlassReveal from "@/components/BreakGlassReveal";
 import { ArrowLeft, ExternalLink, Presentation } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
@@ -186,7 +186,7 @@ export default async function CaseDetailPage({
     createdAt: a.createdAt.toISOString(),
   }));
 
-  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, driveStatus, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays, caseLinks, instanceHistory] = await Promise.all([
+  const [cases, users, columns, receivableCategories, payableCategories, costCenters, suppliers, storageConnected, workflowTemplates, taskCounts, assessoriasRaw, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, holidays, caseLinks, instanceHistory] = await Promise.all([
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } }),
@@ -194,7 +194,10 @@ export default async function CaseDetailPage({
     getLeafCategoryOptions("DESPESA", viewer.officeId),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    getDriveStatus(viewer.officeId),
+    // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
+    // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
+    // não via onde soltar o arquivo, porque a checagem era específica do Drive.
+    isStorageConnected(viewer.officeId),
     prisma.workflowTemplate.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.task.groupBy({
       by: ["publicationId"],
@@ -900,7 +903,7 @@ export default async function CaseDetailPage({
             <GerarDocumentoButton caseId={c.id} />
           </div>
           <Card className="p-5">
-            <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={driveStatus.connected} tribunais={tribunais} />
+            <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={storageConnected} tribunais={tribunais} />
           </Card>
         </div>
       )}
@@ -913,7 +916,7 @@ export default async function CaseDetailPage({
             attachments={serializedAttachments.map((a) => ({ id: a.id, name: a.name, docType: a.docType, driveUrl: a.driveUrl }))}
             lotes={serializedLotes}
             envios={serializedEnvios}
-            driveConnected={driveStatus.connected}
+            driveConnected={storageConnected}
           />
         </Card>
       )}

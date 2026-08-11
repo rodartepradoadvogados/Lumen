@@ -19,14 +19,14 @@ export default async function EscritoriosPage() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">Escritórios</h1>
-          <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1">
+          <h1 className="text-2xl font-bold text-white">Escritórios</h1>
+          <p className="text-sm text-white/55 mt-1">
             Escritórios-clientes da plataforma — acesso restrito a Jairo e Rodrigo
           </p>
         </div>
         <Link
           href="/painel-mestre/novo"
-          className="inline-flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
+          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
         >
           <Plus size={16} /> Novo escritório
         </Link>

@@ -14,7 +14,7 @@ import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
@@ -47,10 +47,13 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
 
-  const [users, columns, driveStatus] = await Promise.all([
+  const [users, columns, storageConnected] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" }, select: { id: true, name: true } }),
-    getDriveStatus(viewer.officeId),
+    // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
+    // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
+    // não via onde soltar o arquivo, porque a checagem era específica do Drive.
+    isStorageConnected(viewer.officeId),
   ]);
 
   const serializedAttachments = a.attachments.map((att) => ({
@@ -301,7 +304,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 </div>
                 <GerarDocumentoButton attendanceId={a.id} />
               </div>
-              <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={driveStatus.connected} />
+              <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={storageConnected} />
             </Card>
 
             <Card className="p-5 mt-5">

@@ -13,7 +13,7 @@ export default async function NovoEscritorioPage() {
 
   return (
     <div className="p-6 max-w-[700px] mx-auto animate-fade-in space-y-6">
-      <Link href="/painel-mestre" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+      <Link href="/painel-mestre" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Painel Mestre
       </Link>
       <PageHeader title="Novo escritório" subtitle="Cria o acesso e já manda o convite pra definir senha" />
