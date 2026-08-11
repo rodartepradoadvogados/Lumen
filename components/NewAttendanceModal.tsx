@@ -20,7 +20,7 @@ import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 type ClientHit = { id: string; name: string; phone: string | null; email: string | null };
-type AssessoriaOption = { id: string; clientName: string };
+type AssessoriaOption = { id: string; clientName: string; status?: string };
 type ConflictMatch = { id: string; title: string; processNumber: string | null };
 type FeeMode = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
@@ -75,10 +75,14 @@ export default function NewAttendanceModal({
   users,
   assessorias,
   autoOpen,
+  defaultAssessoriaId,
 }: {
   users: { id: string; name: string }[];
   assessorias: AssessoriaOption[];
   autoOpen?: boolean;
+  // Vem de ?assessoriaId= na URL — o botão "Novo atendimento" da própria tela de uma Assessoria
+  // linka para cá assim, para o atendimento nascer já vinculado (ver app/(app)/atendimento/page.tsx).
+  defaultAssessoriaId?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(!!autoOpen);
@@ -595,7 +599,7 @@ export default function NewAttendanceModal({
                         className="at-input"
                       />
                     </div>
-                    <AssessoriaSelect assessorias={assessorias} inputClassName="at-input" />
+                    <AssessoriaSelect assessorias={assessorias} inputClassName="at-input" defaultValue={defaultAssessoriaId} />
                   </div>
                   <p className="text-[11px] text-tx-3">
                     Lead sem retorno é lead perdido — a Central de Alertas avisa se o prazo acima estourar sem resposta.
@@ -737,6 +741,7 @@ export default function NewAttendanceModal({
                             value={att.docType}
                             onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                             excludeKeys={["PARECER"]}
+                            allowCreate
                             className="text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 sm:max-w-[220px]"
                           />
                           <button

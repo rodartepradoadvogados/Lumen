@@ -65,14 +65,14 @@ export default async function AcessosPage() {
         <div className="p-5 flex items-center gap-3">
           {totalEntradas === 0 ? (
             <>
-              <ShieldCheck size={22} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <ShieldCheck size={22} className="text-concluido shrink-0" />
               <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen <strong>não acessou</strong> os dados do seu escritório nenhuma vez.
               </p>
             </>
           ) : (
             <>
-              <ShieldAlert size={22} className="text-gold-600 dark:text-gold-400 shrink-0" />
+              <ShieldAlert size={22} className="text-aviso shrink-0" />
               <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen acessou dados do seu escritório <strong>{totalEntradas}</strong>{" "}
                 {totalEntradas === 1 ? "vez" : "vezes"}.

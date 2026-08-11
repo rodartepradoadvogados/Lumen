@@ -23,7 +23,11 @@ const statusLabels: Record<string, string> = {
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
 
-export default async function AtendimentoPage({ searchParams }: { searchParams: { status?: string; novo?: string; q?: string } }) {
+export default async function AtendimentoPage({
+  searchParams,
+}: {
+  searchParams: { status?: string; novo?: string; q?: string; assessoriaId?: string };
+}) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
 
@@ -47,8 +51,23 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
     orderBy: { createdAt: "desc" },
   });
   const users = await prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } });
-  const assessoriasRaw = await prisma.assessoria.findMany({ where: { status: "ATIVA", officeId: viewer.officeId }, include: { client: true }, orderBy: { client: { name: "asc" } } });
-  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
+  // Só assessorias ATIVAS entram na lista — MAS a assessoria de origem entra sempre, mesmo
+  // suspensa ou encerrada, quando o botão "Novo atendimento" da própria tela dela manda
+  // ?assessoriaId=. Sem essa exceção o seletor perderia o vínculo em silêncio no submit — mesma
+  // correção já aplicada em app/(app)/processos/novo/page.tsx (ver components/AssessoriaSelect.tsx).
+  const assessoriasRaw = await prisma.assessoria.findMany({
+    where: {
+      officeId: viewer.officeId,
+      ...(searchParams.assessoriaId
+        ? { OR: [{ status: "ATIVA" }, { id: searchParams.assessoriaId }] }
+        : { status: "ATIVA" }),
+    },
+    include: { client: true },
+    orderBy: { client: { name: "asc" } },
+  });
+  // `status` vai junto para o seletor poder marcar "(Suspensa)"/"(Encerrada)" na assessoria de
+  // origem quando ela não estiver ATIVA.
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name, status: a.status }));
 
   const statusHref = (status?: string) => {
     const params = new URLSearchParams();
@@ -71,7 +90,12 @@ export default async function AtendimentoPage({ searchParams }: { searchParams: 
             >
               <Filter size={16} /> Funil Comercial
             </Link>
-            <NewAttendanceModal users={users} assessorias={assessorias} autoOpen={searchParams.novo === "1"} />
+            <NewAttendanceModal
+              users={users}
+              assessorias={assessorias}
+              autoOpen={searchParams.novo === "1"}
+              defaultAssessoriaId={searchParams.assessoriaId}
+            />
           </div>
         }
       />

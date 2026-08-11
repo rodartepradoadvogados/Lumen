@@ -154,10 +154,10 @@ export default function ParecerFolderRow({
 
   function handleDelete() {
     if (parecer.documents.length > 0) {
-      setDeleteError("Este parecer tem documentos dentro — remova-os antes de excluir a pasta.");
+      setDeleteError("Esta demanda tem documentos dentro — remova-os antes de excluir a pasta.");
       return;
     }
-    if (!window.confirm(`Excluir o parecer "${parecer.name}"?`)) return;
+    if (!window.confirm(`Excluir a demanda "${parecer.name}"?`)) return;
     setDeleteError(null);
     startDeleteTransition(async () => {
       const result = await deleteParecer(parecer.id);
@@ -169,22 +169,22 @@ export default function ParecerFolderRow({
   const anyUploading = items.some((it) => it.uploading);
 
   return (
-    <div className="border border-navy-800/8 dark:border-white/10 rounded-lg overflow-hidden">
+    <div className="border border-regua rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-cream-50 dark:hover:bg-white/5"
+        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-sf-apoio"
       >
         <span className="flex items-center gap-2 min-w-0">
           {expanded ? (
-            <ChevronDown size={14} className="shrink-0 text-navy-800/40 dark:text-cream-50/40" />
+            <ChevronDown size={14} className="shrink-0 text-tx-3" />
           ) : (
-            <ChevronRight size={14} className="shrink-0 text-navy-800/40 dark:text-cream-50/40" />
+            <ChevronRight size={14} className="shrink-0 text-tx-3" />
           )}
-          <FolderOpen size={15} className="shrink-0 text-gold-700 dark:text-gold-400" />
-          <span className="font-medium text-navy-900 dark:text-cream-50 truncate">{parecer.name}</span>
+          <FolderOpen size={15} className="shrink-0 text-tx-3" />
+          <span className="font-medium text-tx truncate">{parecer.name}</span>
         </span>
-        <span className="flex items-center gap-2 shrink-0 text-xs text-navy-800/45 dark:text-cream-50/45">
+        <span className="flex items-center gap-2 shrink-0 text-xs text-tx-2">
           <span>
             {parecer.documents.length} documento{parecer.documents.length === 1 ? "" : "s"}
           </span>
@@ -193,13 +193,13 @@ export default function ParecerFolderRow({
       </button>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-1 border-t border-navy-800/8 dark:border-white/10 space-y-2.5">
-          {parecer.description && <p className="text-xs text-navy-800/60 dark:text-cream-50/60 whitespace-pre-wrap">{parecer.description}</p>}
+        <div className="px-3 pb-3 pt-1 border-t border-regua space-y-2.5">
+          {parecer.description && <p className="text-xs text-tx-2 whitespace-pre-wrap">{parecer.description}</p>}
 
           {parecer.documents.length === 0 ? (
-            <p className="text-xs text-navy-800/40 dark:text-cream-50/40">Nenhum documento dentro deste parecer ainda.</p>
+            <p className="text-xs text-tx-3">Nenhum documento dentro desta demanda ainda.</p>
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {parecer.documents.map((d) => {
                 const Icon = getDocumentTypeIcon(d.docType);
                 return (
@@ -208,12 +208,12 @@ export default function ParecerFolderRow({
                     href={d.driveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 py-1.5 text-sm hover:bg-cream-50 dark:hover:bg-white/5 -mx-1 px-1 rounded"
+                    className="flex items-center gap-2 py-1.5 text-sm hover:bg-sf-apoio -mx-1 px-1 rounded"
                   >
-                    <Icon size={13} className="shrink-0 text-navy-800/40 dark:text-cream-50/40" />
-                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{d.name}</span>
-                    <span className="shrink-0 text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono">{getDocumentTypeLabel(d.docType)}</span>
-                    <ExternalLink size={11} className="shrink-0 text-navy-800/30 dark:text-cream-50/30" />
+                    <Icon size={13} className="shrink-0 text-tx-3" />
+                    <span className="flex-1 min-w-0 truncate text-tx">{d.name}</span>
+                    <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
+                    <ExternalLink size={11} className="shrink-0 text-tx-3" />
                   </a>
                 );
               })}
@@ -234,11 +234,11 @@ export default function ParecerFolderRow({
               }}
               onClick={() => fileInputRef.current?.click()}
               className={`flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-3 cursor-pointer transition-colors ${
-                dragOver ? "border-gold-500 bg-gold-500/5" : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-cream-50 dark:hover:bg-white/5"
+                dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
               }`}
             >
-              <UploadCloud size={16} className="text-navy-800/40 dark:text-cream-50/40" />
-              <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60 text-center">
+              <UploadCloud size={16} className="text-tx-2" />
+              <p className="text-[11px] text-tx-2 text-center">
                 Arraste arquivos aqui, ou clique para selecionar (pode escolher vários)
               </p>
               <input
@@ -259,26 +259,27 @@ export default function ParecerFolderRow({
               {items.map((it) => (
                 <div
                   key={it.tempId}
-                  className="flex items-center gap-2 rounded-lg border border-navy-800/8 dark:border-white/10 bg-cream-50 dark:bg-navy-800 px-2.5 py-1.5"
+                  className="flex items-center gap-2 rounded-lg border border-regua bg-sf-apoio px-2.5 py-1.5"
                 >
-                  <span className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate flex-1" title={it.name}>
+                  <span className="text-xs font-medium text-tx truncate flex-1" title={it.name}>
                     {it.name}
                   </span>
                   {it.uploading ? (
-                    <Loader2 size={13} className="animate-spin text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+                    <Loader2 size={13} className="animate-spin text-tx-2 shrink-0" />
                   ) : (
                     <DocumentTypeSelect
                       value={it.docType}
                       onChange={(v) => updateItem(it.tempId, { docType: v })}
-                      className="text-[11px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1.5 py-1 max-w-[170px] shrink-0"
+                      className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[170px] shrink-0"
+                      allowCreate
                     />
                   )}
-                  {it.error && <span className="text-[10px] text-red-600 dark:text-red-400 shrink-0">{it.error}</span>}
+                  {it.error && <span className="text-[10px] text-urgente shrink-0">{it.error}</span>}
                   <button
                     type="button"
                     onClick={() => removeItem(it.tempId)}
                     disabled={it.uploading}
-                    className="p-1 text-navy-800/30 dark:text-cream-50/30 hover:text-red-600 dark:hover:text-red-400 shrink-0 disabled:opacity-50"
+                    className="p-1 text-tx-3 hover:text-atencao shrink-0 disabled:opacity-50"
                   >
                     <X size={13} />
                   </button>
@@ -288,7 +289,7 @@ export default function ParecerFolderRow({
                 type="button"
                 onClick={enviarTodos}
                 disabled={anyUploading}
-                className="text-xs font-semibold text-white bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 px-3 py-1.5 rounded-lg disabled:opacity-50"
+                className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg disabled:opacity-50"
               >
                 {anyUploading ? "Enviando..." : `Enviar ${items.length} arquivo${items.length > 1 ? "s" : ""} para o Drive`}
               </button>
@@ -299,7 +300,7 @@ export default function ParecerFolderRow({
             <button
               type="button"
               onClick={() => setEditOpen((v) => !v)}
-              className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+              className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx"
             >
               <Pencil size={11} /> Editar
             </button>
@@ -307,17 +308,17 @@ export default function ParecerFolderRow({
               type="button"
               onClick={handleDelete}
               disabled={deletePending}
-              className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
+              className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-atencao disabled:opacity-50"
             >
               <Trash2 size={11} /> Excluir pasta
             </button>
           </div>
-          {deleteError && <p className="text-[11px] text-red-600">{deleteError}</p>}
+          {deleteError && <p className="text-[11px] text-urgente">{deleteError}</p>}
 
           {editOpen && (
-            <form action={handleEdit} className="p-3 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 space-y-2">
+            <form action={handleEdit} className="p-3 rounded-lg border border-regua bg-sf-apoio space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input name="name" required defaultValue={parecer.name} placeholder="Nome do parecer" className="parecer-edit-input" />
+                <input name="name" required defaultValue={parecer.name} placeholder="Nome da demanda" className="parecer-edit-input" />
                 <input name="date" type="date" defaultValue={new Date(parecer.date).toISOString().slice(0, 10)} className="parecer-edit-input" />
               </div>
               <textarea
@@ -327,20 +328,20 @@ export default function ParecerFolderRow({
                 rows={2}
                 className="parecer-edit-input w-full"
               />
-              {editError && <p className="text-xs text-red-600">{editError}</p>}
+              {editError && <p className="text-xs text-urgente">{editError}</p>}
               <div className="flex gap-2">
                 <button
                   type="submit"
                   disabled={editPending}
-                  className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
                 >
                   {editPending ? "Salvando..." : "Salvar"}
                 </button>
-                <button type="button" onClick={() => setEditOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+                <button type="button" onClick={() => setEditOpen(false)} className="text-xs font-semibold text-tx-2">
                   Cancelar
                 </button>
               </div>
-              <style>{`.parecer-edit-input { width:100%; border:1px solid rgba(15,31,61,0.12); border-radius:0.5rem; padding:0.4rem 0.65rem; font-size:0.75rem; background:#fff; } .dark .parecer-edit-input { border-color: rgba(255,255,255,0.15); background:#0f1f3d; color:#fbfaf7; }`}</style>
+              <style>{`.parecer-edit-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.5rem; padding:0.4rem 0.65rem; font-size:0.75rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
             </form>
           )}
         </div>

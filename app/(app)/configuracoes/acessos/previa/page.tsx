@@ -190,7 +190,7 @@ export default async function PreviaSuportePage() {
 
       <Card>
         <div className="p-5 flex items-start gap-3">
-          <ShieldCheck size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <ShieldCheck size={20} className="text-concluido shrink-0 mt-0.5" />
           <div className="text-sm text-tx space-y-2">
             <p>
               Abaixo estão até {PREVIEW_SAMPLE_SIZE} registros recentes de cada uma das áreas mais sensíveis do seu escritório —
@@ -240,7 +240,7 @@ export default async function PreviaSuportePage() {
         <CardHeader title="O que isso garante — e o que isso não garante" />
         <div className="p-5 space-y-4 text-sm text-tx">
           <div className="flex items-start gap-3">
-            <EyeOff size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <EyeOff size={18} className="text-concluido shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">O que o suporte nunca vê numa sessão comum</p>
               <ul className="list-disc pl-5 mt-1 space-y-0.5 text-tx-2">
@@ -264,7 +264,7 @@ export default async function PreviaSuportePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Lock size={18} className="text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
+            <Lock size={18} className="text-aviso shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Onde o dado real aparece — e sob que controle</p>
               <ul className="list-disc pl-5 mt-1 space-y-0.5 text-tx-2">

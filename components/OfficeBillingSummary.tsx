@@ -81,7 +81,7 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
           )}
           <div className="flex-1 min-w-[220px]">
             <p className="text-xs font-semibold text-tx mb-1">
-              Fatura de {latestInvoice.competencia} — {formatCurrency(latestInvoice.amount)}, vence {formatDate(latestInvoice.dueDate)}
+              Fatura de {latestInvoice.competencia} — <span className="tabular-nums">{formatCurrency(latestInvoice.amount)}</span>, vence {formatDate(latestInvoice.dueDate)}
             </p>
             <p className="text-[11px] text-tx-3 mb-1.5">Pix Copia e Cola:</p>
             <div className="flex items-center gap-2">
@@ -105,10 +105,10 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
           <div className="divide-y divide-regua border border-regua rounded-lg">
             {invoices.map((i) => (
               <div key={i.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                <span className="text-tx/85">
+                <span className="text-tx/85 tabular-nums">
                   {i.competencia} — {formatCurrency(i.amount)}
                 </span>
-                <span className={i.status === "PAGO" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}>
+                <span className={i.status === "PAGO" ? "text-concluido" : "text-aviso"}>
                   {i.status === "PAGO" ? "pago" : `${INVOICE_STATUS_LABEL[i.status] ?? i.status} — vence ${formatDate(i.dueDate)}`}
                 </span>
               </div>

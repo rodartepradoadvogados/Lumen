@@ -23,8 +23,8 @@ const VIEW_MODE_KEY = "rp-assessoria-documentos-view";
 function ParecerBadge({ name }: { name: string }) {
   return (
     <span
-      className="inline-flex items-center gap-1 text-[10px] font-medium text-gold-700 dark:text-gold-400 bg-gold-500/10 px-1.5 py-0.5 rounded-full"
-      title={`Dentro da pasta de parecer "${name}"`}
+      className="inline-flex items-center gap-1 text-[10px] font-medium text-tx-2 bg-sf-apoio px-1.5 py-0.5 rounded-full"
+      title={`Dentro da demanda "${name}"`}
     >
       <FolderOpen size={10} className="shrink-0" />
       <span className="truncate max-w-[120px]">{name}</span>
@@ -165,12 +165,12 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <div className="flex flex-wrap gap-2 flex-1">
           <div className="relative flex-1 min-w-[160px]">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome"
-              className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg pl-7 pr-2.5 py-1.5"
+              className="w-full text-sm border border-regua bg-sf text-tx rounded-lg pl-7 pr-2.5 py-1.5"
             />
           </div>
           <DocumentTypeSelect
@@ -179,21 +179,21 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
             allowAll
             includeLegacy
             excludeKeys={["PARECER"]}
-            className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2 py-1.5 max-w-[220px]"
+            className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5 max-w-[220px]"
           />
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             title="Enviado a partir de"
-            className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2 py-1.5"
+            className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
           />
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             title="Enviado até"
-            className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2 py-1.5"
+            className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
           />
           {/* Filtro por pasta de parecer — eixo independente da categoria (select acima): "Todas
               as pastas" não filtra nada, "Fora de pasta" mostra só documentos soltos, e cada
@@ -202,8 +202,8 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
             <select
               value={folderFilter}
               onChange={(e) => setFolderFilter(e.target.value)}
-              title="Filtrar por pasta de parecer"
-              className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2 py-1.5 max-w-[200px]"
+              title="Filtrar por demanda"
+              className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5 max-w-[200px]"
             >
               <option value="TODOS">Todas as pastas</option>
               <option value="SOLTOS">Fora de pasta</option>
@@ -217,7 +217,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
         </div>
         <button
           onClick={() => setFormOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-3 py-1.5 rounded-lg"
+          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover hover:bg-sf-apoio px-3 py-1.5 rounded-lg"
         >
           <Plus size={14} /> Colar link
         </button>
@@ -225,12 +225,12 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
 
       {assessoria.documents.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <label className="flex items-center gap-1.5 text-xs text-navy-800/50 dark:text-cream-50/50">
+          <label className="flex items-center gap-1.5 text-xs text-tx-2">
             Ordenar por
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2 py-1.5"
+              className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -240,7 +240,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
             </select>
           </label>
 
-          <div className="flex items-center gap-0.5 border border-navy-800/12 dark:border-white/15 rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 border border-regua rounded-lg p-0.5">
             {(
               [
                 { mode: "icons" as const, icon: LayoutGrid, label: "Ícones" },
@@ -255,8 +255,8 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
                 data-tip={label}
                 className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
                   viewMode === mode
-                    ? "bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950"
-                    : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx"
+                    : "text-tx-2 hover:bg-sf-apoio"
                 }`}
               >
                 <ModeIcon size={13} />
@@ -270,26 +270,26 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
       {formOpen && (
         <form
           action={handleSubmit}
-          className="mb-4 p-4 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 space-y-3"
+          className="mb-4 p-4 rounded-lg border border-regua bg-sf-apoio space-y-3"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="name" required placeholder="Nome do documento" className="doc-input" />
-            <DocumentTypeSelect name="docType" value={linkDocType} onChange={setLinkDocType} excludeKeys={["PARECER"]} className="doc-input" />
+            <DocumentTypeSelect name="docType" value={linkDocType} onChange={setLinkDocType} excludeKeys={["PARECER"]} className="doc-input" allowCreate />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="driveUrl" required type="url" placeholder="Link do Drive, Dropbox, OneDrive..." className="doc-input" />
             <input name="date" type="date" className="doc-input" />
           </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-urgente">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
             </button>
-            <button type="button" onClick={() => setFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+            <button type="button" onClick={() => setFormOpen(false)} className="text-xs font-semibold text-tx-2">
               Cancelar
             </button>
           </div>
-          <style>{`.doc-input { width:100%; border:1px solid rgba(15,31,61,0.12); border-radius:0.5rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:#fff; } .dark .doc-input { border-color: rgba(255,255,255,0.15); background:#0f1f3d; color:#fbfaf7; }`}</style>
+          <style>{`.doc-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
         </form>
       )}
 
@@ -303,11 +303,11 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors mb-4 ${
-            dragOver ? "border-gold-500 bg-gold-500/5" : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-cream-50 dark:hover:bg-white/5"
+            dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
           }`}
         >
-          <UploadCloud size={20} className="text-navy-800/40 dark:text-cream-50/40" />
-          <p className="text-xs text-navy-800/60 dark:text-cream-50/60 text-center">
+          <UploadCloud size={20} className="text-tx-2" />
+          <p className="text-xs text-tx-2 text-center">
             Arraste um arquivo aqui, ou clique para selecionar do computador
           </p>
           <input
@@ -324,32 +324,33 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
       )}
 
       {stagedFile && (
-        <div className="p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2 mb-4">
-          <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Esse documento é:</p>
+        <div className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2 mb-4">
+          <p className="text-xs font-semibold text-tx-2">Esse documento é:</p>
           <input
             value={stagedName}
             onChange={(e) => setStagedName(e.target.value)}
             placeholder="Nome do documento"
-            className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
           />
           <DocumentTypeSelect
             value={stagedDocType}
             onChange={setStagedDocType}
             excludeKeys={["PARECER"]}
-            className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            allowCreate
           />
           <div className="flex gap-2">
             <button
               onClick={confirmStagedFile}
               disabled={uploading}
-              className="flex-1 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
             >
               {uploading ? "Enviando..." : "Enviar para o Drive"}
             </button>
             <button
               onClick={() => setStagedFile(null)}
               disabled={uploading}
-              className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+              className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
             >
               Cancelar
             </button>
@@ -372,26 +373,26 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 rounded-lg p-3 hover:border-gold-500/40 transition-colors flex flex-col items-center text-center gap-1.5"
+                className="bg-sf-apoio border border-regua rounded-lg p-3 hover:border-acao/40 transition-colors flex flex-col items-center text-center gap-1.5"
               >
-                <div className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-sf text-tx-2 flex items-center justify-center">
                   <Icon size={18} />
                 </div>
-                <p className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate w-full" title={d.name}>
+                <p className="text-xs font-medium text-tx truncate w-full" title={d.name}>
                   {d.name}
                 </p>
-                <p className="text-[10px] text-navy-800/45 dark:text-cream-50/45 truncate w-full" title={getDocumentTypeLabel(d.docType)}>
+                <p className="text-[10px] text-tx-2 truncate w-full" title={getDocumentTypeLabel(d.docType)}>
                   {getDocumentTypeLabel(d.docType)}
                 </p>
                 {d.parecer && <ParecerBadge name={d.parecer.name} />}
-                <span className="flex items-center gap-0.5 text-[10px] text-gold-700 dark:text-gold-400">
+                <span className="flex items-center gap-0.5 text-[10px] text-marca-tx">
                   <ExternalLink size={10} /> {getLinkSourceLabel(d.driveUrl)}
                 </span>
               </a>
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-sm text-navy-800/40 dark:text-cream-50/40 col-span-full py-8 text-center">
+            <p className="text-sm text-tx-2 col-span-full py-8 text-center">
               {assessoria.documents.length === 0 ? "Nenhum documento cadastrado ainda." : "Nenhum documento encontrado com esse filtro."}
             </p>
           )}
@@ -399,7 +400,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
       )}
 
       {viewMode === "list" && (
-        <div className="divide-y divide-navy-800/8 dark:divide-white/10 border-y border-navy-800/8 dark:border-white/10">
+        <div className="divide-y divide-regua border-y border-regua">
           {sorted.map((d) => {
             const Icon = getDocumentTypeIcon(d.docType);
             return (
@@ -408,23 +409,23 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 py-2 hover:bg-cream-50 dark:hover:bg-white/5"
+                className="flex items-center gap-2 py-2 hover:bg-sf-apoio"
               >
-                <Icon size={14} className="shrink-0 text-navy-800/40 dark:text-cream-50/40" />
-                <span className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate" title={d.name}>
+                <Icon size={14} className="shrink-0 text-tx-2" />
+                <span className="text-sm font-medium text-tx truncate" title={d.name}>
                   {d.name}
                 </span>
                 {d.parecer && <ParecerBadge name={d.parecer.name} />}
-                <span className="hidden sm:inline text-[11px] text-navy-800/45 dark:text-cream-50/45 shrink-0">
+                <span className="hidden sm:inline text-[11px] text-tx-2 shrink-0">
                   {getDocumentTypeLabel(d.docType)}
                 </span>
                 <span className="flex-1" />
-                <span className="shrink-0 text-[11px] text-navy-800/40 dark:text-cream-50/40">{formatDate(d.date)}</span>
+                <span className="shrink-0 text-[11px] text-tx-2">{formatDate(d.date)}</span>
               </a>
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-sm text-navy-800/40 dark:text-cream-50/40 py-8 text-center">
+            <p className="text-sm text-tx-2 py-8 text-center">
               {assessoria.documents.length === 0 ? "Nenhum documento cadastrado ainda." : "Nenhum documento encontrado com esse filtro."}
             </p>
           )}
@@ -434,13 +435,13 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
       {viewMode === "details" && (
         <div className="overflow-x-auto">
           {sorted.length === 0 ? (
-            <p className="text-sm text-navy-800/40 dark:text-cream-50/40 py-8 text-center">
+            <p className="text-sm text-tx-2 py-8 text-center">
               {assessoria.documents.length === 0 ? "Nenhum documento cadastrado ainda." : "Nenhum documento encontrado com esse filtro."}
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 border-b border-navy-800/10 dark:border-white/10">
+                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
                   <th className="pb-2 pr-3">Nome</th>
                   <th className="pb-2 pr-3">Categoria</th>
                   <th className="pb-2 pr-3">Data</th>
@@ -449,28 +450,28 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
                   <th className="pb-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <tbody className="divide-y divide-regua">
                 {sorted.map((d) => {
                   const Icon = getDocumentTypeIcon(d.docType);
                   return (
                     <tr key={d.id}>
-                      <td className="py-2.5 pr-3 font-medium text-navy-900 dark:text-cream-50">
+                      <td className="py-2.5 pr-3 font-medium text-tx">
                         <span className="flex items-center gap-2">
-                          <Icon size={15} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+                          <Icon size={15} className="text-tx-2 shrink-0" />
                           {d.name}
                           {d.parecer && <ParecerBadge name={d.parecer.name} />}
                         </span>
                       </td>
-                      <td className="py-2.5 pr-3 text-navy-800/60 dark:text-cream-50/60">{getDocumentTypeLabel(d.docType)}</td>
-                      <td className="py-2.5 pr-3 text-navy-800/60 dark:text-cream-50/60">{formatDate(d.date)}</td>
-                      <td className="py-2.5 pr-3 text-navy-800/60 dark:text-cream-50/60">{d.case?.title || "—"}</td>
-                      <td className="py-2.5 pr-3 text-navy-800/60 dark:text-cream-50/60">{d.uploadedBy?.name || "—"}</td>
+                      <td className="py-2.5 pr-3 text-tx-2">{getDocumentTypeLabel(d.docType)}</td>
+                      <td className="py-2.5 pr-3 text-tx-2">{formatDate(d.date)}</td>
+                      <td className="py-2.5 pr-3 text-tx-2">{d.case?.title || "—"}</td>
+                      <td className="py-2.5 pr-3 text-tx-2">{d.uploadedBy?.name || "—"}</td>
                       <td className="py-2.5">
                         <a
                           href={d.driveUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-gold-600 dark:text-gold-400 font-semibold text-xs"
+                          className="inline-flex items-center gap-1 text-marca-tx font-semibold text-xs"
                         >
                           <ExternalLink size={11} /> {getLinkSourceLabel(d.driveUrl)}
                         </a>

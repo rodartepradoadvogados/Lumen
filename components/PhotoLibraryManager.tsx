@@ -96,7 +96,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
 
   return (
     <div className="space-y-4 p-5">
-      {error && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
       <form onSubmit={handleUpload} className="flex gap-2 flex-wrap items-end border border-regua rounded-lg p-3">
         <div className="flex-1 min-w-[200px]">
@@ -141,7 +141,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
         <button
           type="submit"
           disabled={uploading}
-          className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors"
         >
           <UploadCloud size={16} /> {uploading ? "Enviando..." : "Enviar"}
         </button>
@@ -167,7 +167,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
                 <button
                   onClick={() => handleDelete(photo.id)}
                   disabled={pending}
-                  className="w-full flex items-center justify-center gap-1 mt-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40"
+                  className="w-full flex items-center justify-center gap-1 mt-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-vinho border border-regua hover:bg-sf-apoio disabled:opacity-40"
                 >
                   <Trash2 size={12} /> Excluir
                 </button>

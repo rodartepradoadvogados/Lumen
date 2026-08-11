@@ -534,7 +534,7 @@ function DayPanel({
                 data-tip={done ? completedLabel(t) || undefined : undefined}
                 className={clsx(
                   "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
-                  done ? "bg-emerald-500 border-emerald-500 text-white" : "border-regua-forte text-transparent hover:border-emerald-500"
+                  done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
                 )}
               >
                 <Check size={12} strokeWidth={3} />
