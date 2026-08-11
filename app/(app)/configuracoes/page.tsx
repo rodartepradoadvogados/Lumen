@@ -26,6 +26,7 @@ import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
 import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
+import MigrarPastaMaeButton from "@/components/MigrarPastaMaeButton";
 import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
@@ -522,311 +523,336 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {canConfig && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="Integração com Drive e e-mail"
-            subtitle="Necessária para anexar documentos (quando o armazenamento escolhido for Google Drive, ver o card “Armazenamento de anexos” abaixo) e sincronizar as publicações/andamentos que chegam por e-mail. O e-mail (leitura de publicações e envio no Atendimento) já aceita Outlook também — ver o card abaixo."
-          />
-          <div className="p-5 space-y-3">
-            {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
-            {searchParams.google === "erro" && (
-              <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
-            )}
-            {driveStatus.connected ? (
-              <StatusLine state="ok">
-                Conectado como <strong>{driveStatus.accountEmail}</strong>
-              </StatusLine>
-            ) : (
-              <StatusLine state="off">Nenhuma conta conectada ainda.</StatusLine>
-            )}
-            <a href="/api/google/connect" className={SECONDARY_BTN}>
-              <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive + Gmail)
-            </a>
-            {driveStatus.connected && (
-              <p className="text-[11px] text-tx-3">
-                Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para as publicações por e-mail) e o acesso completo ao Drive (necessário para mover/organizar pastas de processo que já existiam antes do Lúmen — sem isso, a migração de pastas legadas em &ldquo;Pastas de processo fora do lugar no Drive&rdquo;, mais abaixo, só consegue simular, não aplicar).
-              </p>
-            )}
-          </div>
-        </Card>
-      )}
-
+      {/* Painel "Contas conectadas" (redesenho aprovado — ver figura 11 · Modelos & Integrações):
+          reúne as cinco integrações de conta em um único cartão, na mesma ordem da proposta —
+          Google, Outlook, publicações por e-mail por usuário, armazenamento de anexos, envio de
+          e-mail no Atendimento. Cada uma mantém seu rótulo, subtítulo e funcionalidade originais,
+          só a casca em cartões separados é que vira seções dentro de um cartão só. */}
       {canConfig && secao === "modelos" && viewer && (() => {
         const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
-        return (
-          <Card>
-            <CardHeader
-              title="Publicações e andamentos processuais de e-mail"
-              subtitle="Captura publicações, intimações, despachos e andamentos processuais (Projudi, eProc, DJEN, PJE, Datajud, eSaj, entre outros) recebidos por e-mail — cada pessoa só conecta a própria caixa"
-            />
-            <div className="p-5 space-y-4">
-              <div className="space-y-2">
-                {users.filter((u) => u.active).map((u) => {
-                  const found = googleAccounts.find((a) => a.userId === u.id);
-                  return (
-                    <div key={u.id} className="flex items-center gap-2 text-sm">
-                      {found ? (
-                        <CheckCircle2 size={16} className="text-concluido shrink-0" />
-                      ) : (
-                        <AlertTriangle size={16} className="text-tx-3 shrink-0" />
-                      )}
-                      <span className={found ? "text-tx" : "text-tx-3"}>
-                        {u.name}
-                        {found ? <span className="text-tx-3"> — {found.accountEmail}</span> : " (ainda não conectou o e-mail)"}
-                      </span>
-                    </div>
-                  );
-                })}
-                {googleAccounts.filter((a) => !a.userId).map((a) => (
-                  <div key={a.id} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 size={16} className="text-concluido shrink-0" />
-                    <span className="text-tx">
-                      {a.accountEmail}
-                      {a.isPrimaryDrive && <span className="text-tx-3"> (conta principal do Drive)</span>}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="pt-3 border-t border-regua">
-                <p className="text-xs text-tx-2 mb-2">
-                  {minhaConexao ? (
-                    <>Sua conta conectada: <strong>{minhaConexao.accountEmail}</strong></>
-                  ) : (
-                    "Você ainda não conectou seu e-mail."
-                  )}
-                </p>
-                <a href="/api/google/connect?mode=jusbrasil" className={SECONDARY_BTN}>
-                  <HardDrive size={16} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
-                </a>
-                <p className="text-[11px] text-tx-3 mt-2">
-                  Cada pessoa só pode conectar/reconectar o próprio e-mail por aqui — não é possível reconectar o e-mail de outra pessoa.
-                </p>
-              </div>
-            </div>
-          </Card>
-        );
-      })()}
-
-      {canConfig && secao === "modelos" && viewer && (() => {
         const minhaConexaoMs = microsoftAccounts.find((a) => a.userId === viewer.id);
         return (
           <Card>
-            <CardHeader
-              title="Outlook (Microsoft)"
-              subtitle="Alternativa ao Google acima: recebe publicações/andamentos por e-mail e permite enviar e-mail no Atendimento usando a conta Outlook da própria pessoa. Para armazenamento (OneDrive), veja o card “Armazenamento de anexos” abaixo — é uma conexão separada, do escritório. O calendário do Outlook ainda não está integrado."
-            />
-            <div className="p-5 space-y-4">
-              {!isMicrosoftConfigured() && <StatusLine state="off">Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).</StatusLine>}
-              {searchParams.microsoft === "conectado" && <StatusLine state="ok">Microsoft conectado com sucesso!</StatusLine>}
-              {searchParams.microsoft === "erro" && (
-                <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
-              )}
-              <div className="space-y-2">
-                {microsoftAccounts.length === 0 ? (
-                  <p className="text-sm text-tx-2">Nenhuma conta Microsoft conectada ainda.</p>
+            <CardHeader title="Contas conectadas" subtitle="Google, Outlook, publicações por e-mail, armazenamento de anexos e envio de e-mail no Atendimento" />
+            <div className="divide-y divide-regua">
+              {/* Google — Drive e e-mail */}
+              <div className="p-5 space-y-3">
+                <div>
+                  <p className="text-[15px] font-semibold text-tx">Google — Drive e e-mail</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
+                    Necessária para anexar documentos (quando o armazenamento escolhido for Google Drive, ver &ldquo;Armazenamento de anexos&rdquo; abaixo) e sincronizar as publicações/andamentos que chegam por e-mail. O e-mail (leitura de publicações e envio no Atendimento) já aceita Outlook também — ver abaixo.
+                  </p>
+                </div>
+                {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
+                {searchParams.google === "erro" && (
+                  <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
+                )}
+                {driveStatus.connected ? (
+                  <StatusLine state="ok">
+                    Conectado como <strong>{driveStatus.accountEmail}</strong>
+                  </StatusLine>
                 ) : (
-                  microsoftAccounts.map((a) => (
+                  <StatusLine state="off">Nenhuma conta conectada ainda.</StatusLine>
+                )}
+                <a href="/api/google/connect" className={SECONDARY_BTN}>
+                  <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive + Gmail)
+                </a>
+                {driveStatus.connected && (
+                  <p className="text-[11px] text-tx-3">
+                    Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para as publicações por e-mail) e o acesso completo ao Drive (necessário para mover/organizar pastas de processo que já existiam antes do Lúmen — sem isso, a migração de pastas legadas em &ldquo;Manutenção do Drive&rdquo;, mais abaixo, só consegue simular, não aplicar).
+                  </p>
+                )}
+              </div>
+
+              {/* Outlook (Microsoft) */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <p className="text-[15px] font-semibold text-tx">Outlook (Microsoft)</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
+                    Alternativa ao Google acima: recebe publicações/andamentos por e-mail e permite enviar e-mail no Atendimento usando a conta Outlook da própria pessoa. Para armazenamento (OneDrive), veja &ldquo;Armazenamento de anexos&rdquo; abaixo — é uma conexão separada, do escritório. O calendário do Outlook ainda não está integrado.
+                  </p>
+                </div>
+                {!isMicrosoftConfigured() && <StatusLine state="off">Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).</StatusLine>}
+                {searchParams.microsoft === "conectado" && <StatusLine state="ok">Microsoft conectado com sucesso!</StatusLine>}
+                {searchParams.microsoft === "erro" && (
+                  <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
+                )}
+                <div className="space-y-2">
+                  {microsoftAccounts.length === 0 ? (
+                    <p className="text-sm text-tx-2">Nenhuma conta Microsoft conectada ainda.</p>
+                  ) : (
+                    microsoftAccounts.map((a) => (
+                      <div key={a.id} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 size={16} className="text-concluido shrink-0" />
+                        <span className="text-tx">
+                          {a.ownerName ?? a.accountEmail} <span className="text-tx-3">— {a.accountEmail}</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="pt-3 border-t border-regua">
+                  <p className="text-xs text-tx-2 mb-2">
+                    {minhaConexaoMs ? (
+                      <>Sua conta conectada: <strong>{minhaConexaoMs.accountEmail}</strong></>
+                    ) : (
+                      "Você ainda não conectou sua conta Microsoft."
+                    )}
+                  </p>
+                  <a href="/api/microsoft/connect" className={SECONDARY_BTN}>
+                    <HardDrive size={16} /> {minhaConexaoMs ? "Reconectar" : "Conectar"} minha conta Microsoft
+                  </a>
+                  <p className="text-[11px] text-tx-3 mt-2">
+                    Cada pessoa só pode conectar/reconectar a própria conta — não é possível reconectar a conta de outra pessoa.
+                  </p>
+                </div>
+              </div>
+
+              {/* Publicações por e-mail — por usuário */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <p className="text-[15px] font-semibold text-tx">Publicações por e-mail — por usuário</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
+                    Captura publicações, intimações, despachos e andamentos processuais (Projudi, eProc, DJEN, PJE, Datajud, eSaj, entre outros) recebidos por e-mail — cada pessoa só conecta a própria caixa
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {users.filter((u) => u.active).map((u) => {
+                    const found = googleAccounts.find((a) => a.userId === u.id);
+                    return (
+                      <div key={u.id} className="flex items-center gap-2 text-sm">
+                        {found ? (
+                          <CheckCircle2 size={16} className="text-concluido shrink-0" />
+                        ) : (
+                          <AlertTriangle size={16} className="text-tx-3 shrink-0" />
+                        )}
+                        <span className={found ? "text-tx" : "text-tx-3"}>
+                          {u.name}
+                          {found ? <span className="text-tx-3"> — {found.accountEmail}</span> : " (ainda não conectou o e-mail)"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {googleAccounts.filter((a) => !a.userId).map((a) => (
                     <div key={a.id} className="flex items-center gap-2 text-sm">
                       <CheckCircle2 size={16} className="text-concluido shrink-0" />
                       <span className="text-tx">
-                        {a.ownerName ?? a.accountEmail} <span className="text-tx-3">— {a.accountEmail}</span>
+                        {a.accountEmail}
+                        {a.isPrimaryDrive && <span className="text-tx-3"> (conta principal do Drive)</span>}
                       </span>
                     </div>
-                  ))
+                  ))}
+                </div>
+                <div className="pt-3 border-t border-regua">
+                  <p className="text-xs text-tx-2 mb-2">
+                    {minhaConexao ? (
+                      <>Sua conta conectada: <strong>{minhaConexao.accountEmail}</strong></>
+                    ) : (
+                      "Você ainda não conectou seu e-mail."
+                    )}
+                  </p>
+                  <a href="/api/google/connect?mode=jusbrasil" className={SECONDARY_BTN}>
+                    <HardDrive size={16} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
+                  </a>
+                  <p className="text-[11px] text-tx-3 mt-2">
+                    Cada pessoa só pode conectar/reconectar o próprio e-mail por aqui — não é possível reconectar o e-mail de outra pessoa.
+                  </p>
+                </div>
+              </div>
+
+              {/* Armazenamento de anexos */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <p className="text-[15px] font-semibold text-tx">Armazenamento de anexos</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
+                    Por padrão, anexos de Processos/Atendimentos/Assessoria ficam no Google Drive. Cada escritório pode trocar para OneDrive ou Dropbox.
+                  </p>
+                </div>
+                {!isMicrosoftConfigured() && <StatusLine state="off">OneDrive ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).</StatusLine>}
+                {!isDropboxConfigured() && <StatusLine state="off">Dropbox ainda não configurado na plataforma — falta registrar o app no Dropbox App Console (ver README_MICROSOFT.md).</StatusLine>}
+                {searchParams.microsoft === "onedrive-conectado" && <StatusLine state="ok">OneDrive conectado com sucesso!</StatusLine>}
+                {searchParams.dropbox === "conectado" && <StatusLine state="ok">Dropbox conectado com sucesso!</StatusLine>}
+                {searchParams.dropbox === "erro" && (
+                  <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
+                )}
+                <StorageProviderPicker
+                  current={storageProvider}
+                  isAdmin={canConfig}
+                  oneDriveConnected={oneDriveStatus.connected}
+                  dropboxConnected={dropboxStatus.connected}
+                />
+                {storageProvider === "ONEDRIVE" && (
+                  <div className="pt-3 border-t border-regua space-y-2">
+                    {oneDriveStatus.connected ? (
+                      <StatusLine state="ok">
+                        Conectado como <strong>{oneDriveStatus.accountEmail}</strong>
+                      </StatusLine>
+                    ) : (
+                      <StatusLine state="off">Nenhuma conta OneDrive conectada ainda.</StatusLine>
+                    )}
+                    <a href="/api/microsoft/connect?mode=onedrive" className={SECONDARY_BTN}>
+                      <HardDrive size={16} /> {oneDriveStatus.connected ? "Reconectar" : "Conectar"} OneDrive
+                    </a>
+                  </div>
+                )}
+                {storageProvider === "DROPBOX" && (
+                  <div className="pt-3 border-t border-regua space-y-2">
+                    {dropboxStatus.connected ? (
+                      <StatusLine state="ok">
+                        Conectado como <strong>{dropboxStatus.accountEmail}</strong>
+                      </StatusLine>
+                    ) : (
+                      <StatusLine state="off">Nenhuma conta Dropbox conectada ainda.</StatusLine>
+                    )}
+                    <a href="/api/dropbox/connect" className={SECONDARY_BTN}>
+                      <HardDrive size={16} /> {dropboxStatus.connected ? "Reconectar" : "Conectar"} Dropbox
+                    </a>
+                  </div>
                 )}
               </div>
-              <div className="pt-3 border-t border-regua">
-                <p className="text-xs text-tx-2 mb-2">
-                  {minhaConexaoMs ? (
-                    <>Sua conta conectada: <strong>{minhaConexaoMs.accountEmail}</strong></>
-                  ) : (
-                    "Você ainda não conectou sua conta Microsoft."
-                  )}
-                </p>
-                <a href="/api/microsoft/connect" className={SECONDARY_BTN}>
-                  <HardDrive size={16} /> {minhaConexaoMs ? "Reconectar" : "Conectar"} minha conta Microsoft
-                </a>
-                <p className="text-[11px] text-tx-3 mt-2">
-                  Cada pessoa só pode conectar/reconectar a própria conta — não é possível reconectar a conta de outra pessoa.
-                </p>
+
+              {/* Envio de e-mail no Atendimento */}
+              <div className="p-5">
+                <div className="mb-3">
+                  <p className="text-[15px] font-semibold text-tx">Envio de e-mail no Atendimento</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
+                    Conectar Google e/ou Microsoft acima não liga o envio sozinho — escolha qual dos dois usar. Sem escolha, o botão de enviar e-mail no Atendimento dá erro.
+                  </p>
+                </div>
+                <EmailSendProviderPicker
+                  current={viewer.emailSendProvider ?? null}
+                  googleConnected={googleAccounts.some((a) => a.userId === viewer.id)}
+                  microsoftConnected={microsoftAccounts.some((a) => a.userId === viewer.id)}
+                />
               </div>
             </div>
           </Card>
         );
       })()}
 
+      {/* Painel "Robôs de captura": cada linha traz o filete de severidade à esquerda —
+          --concluido funcionando, --urgente falhando, --tx-3 não configurado/sem execução — e a
+          última execução como subtítulo, exatamente como na figura 11 do redesenho aprovado. */}
       {canConfig && secao === "modelos" && (
         <Card>
-          <CardHeader
-            title="Armazenamento de anexos"
-            subtitle="Por padrão, anexos de Processos/Atendimentos/Assessoria ficam no Google Drive. Cada escritório pode trocar para OneDrive ou Dropbox."
-          />
-          <div className="p-5 space-y-4">
-            {!isMicrosoftConfigured() && <StatusLine state="off">OneDrive ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).</StatusLine>}
-            {!isDropboxConfigured() && <StatusLine state="off">Dropbox ainda não configurado na plataforma — falta registrar o app no Dropbox App Console (ver README_MICROSOFT.md).</StatusLine>}
-            {searchParams.microsoft === "onedrive-conectado" && <StatusLine state="ok">OneDrive conectado com sucesso!</StatusLine>}
-            {searchParams.dropbox === "conectado" && <StatusLine state="ok">Dropbox conectado com sucesso!</StatusLine>}
-            {searchParams.dropbox === "erro" && (
-              <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
-            )}
-            <StorageProviderPicker
-              current={storageProvider}
-              isAdmin={canConfig}
-              oneDriveConnected={oneDriveStatus.connected}
-              dropboxConnected={dropboxStatus.connected}
-            />
-            {storageProvider === "ONEDRIVE" && (
-              <div className="pt-3 border-t border-regua space-y-2">
-                {oneDriveStatus.connected ? (
-                  <StatusLine state="ok">
-                    Conectado como <strong>{oneDriveStatus.accountEmail}</strong>
-                  </StatusLine>
-                ) : (
-                  <StatusLine state="off">Nenhuma conta OneDrive conectada ainda.</StatusLine>
-                )}
-                <a href="/api/microsoft/connect?mode=onedrive" className={SECONDARY_BTN}>
-                  <HardDrive size={16} /> {oneDriveStatus.connected ? "Reconectar" : "Conectar"} OneDrive
-                </a>
-              </div>
-            )}
-            {storageProvider === "DROPBOX" && (
-              <div className="pt-3 border-t border-regua space-y-2">
-                {dropboxStatus.connected ? (
-                  <StatusLine state="ok">
-                    Conectado como <strong>{dropboxStatus.accountEmail}</strong>
-                  </StatusLine>
-                ) : (
-                  <StatusLine state="off">Nenhuma conta Dropbox conectada ainda.</StatusLine>
-                )}
-                <a href="/api/dropbox/connect" className={SECONDARY_BTN}>
-                  <HardDrive size={16} /> {dropboxStatus.connected ? "Reconectar" : "Conectar"} Dropbox
-                </a>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {canConfig && secao === "modelos" && viewer && (
-        <Card>
-          <CardHeader
-            title="Envio de e-mail no Atendimento"
-            subtitle="Conectar Google e/ou Microsoft acima não liga o envio sozinho — escolha qual dos dois usar. Sem escolha, o botão de enviar e-mail no Atendimento dá erro."
-          />
-          <div className="p-5">
-            <EmailSendProviderPicker
-              current={viewer.emailSendProvider ?? null}
-              googleConnected={googleAccounts.some((a) => a.userId === viewer.id)}
-              microsoftConnected={microsoftAccounts.some((a) => a.userId === viewer.id)}
-            />
-          </div>
-        </Card>
-      )}
-
-      {canConfig && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="DJEN — Diário de Justiça Eletrônico Nacional (CNJ)"
-            subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
-          />
+          <CardHeader title="Robôs de captura" subtitle="DJEN, Datajud, e-mail diário da agenda e WhatsApp — origem automática de publicações, andamentos e mensagens" />
           <div className="p-5 space-y-3">
-            <p className="text-xs text-tx-2">
-              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-acao font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
-            </p>
-            {ultimoLogDjen && (
-              <StatusLine state={ultimoLogDjen.sucesso ? "ok" : "erro"}>
-                Última execução do robô: {formatRelativeTime(ultimoLogDjen.executadoEm)} —{" "}
-                {ultimoLogDjen.sucesso ? "sem falha registrada" : "falhou (provável bloqueio de IP, ver abaixo)"}.
-              </StatusLine>
-            )}
-            <TestDjenButton />
-          </div>
-        </Card>
-      )}
-
-      {canConfig && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="Datajud — Andamentos Processuais (CNJ)"
-            subtitle="API oficial do CNJ, autenticada por chave — não sofre o bloqueio de IP que o DJEN sofre"
-          />
-          <div className="p-5 space-y-3">
-            <p className="text-xs text-tx-2">
-              Consulta os andamentos de todo processo já cadastrado no site com número de processo preenchido — não depende do
-              DJEN para descobrir o que monitorar. Hoje: <strong>{processosMonitoradosCount} processo(s) monitorado(s)</strong>.
-            </p>
-            {ultimoLogDatajud ? (
-              <StatusLine state={ultimoLogDatajud.sucesso ? "ok" : "erro"}>
-                Última execução {formatRelativeTime(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
-                {ultimoLogDatajud.detalhe && <> — {ultimoLogDatajud.detalhe}</>}
-              </StatusLine>
-            ) : (
-              <StatusLine state="off">Nenhuma execução registrada ainda.</StatusLine>
-            )}
-            {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").length > 1 && (
-              <details className="text-xs">
-                <summary className="cursor-pointer text-tx-2 font-semibold">Histórico recente</summary>
-                <ul className="mt-2 space-y-1">
-                  {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").slice(0, 5).map((l) => (
-                    <li key={l.id} className="text-tx-2">
-                      {formatRelativeTime(l.executadoEm)} — {l.sucesso ? "sucesso" : "falha"}{l.detalhe ? ` — ${l.detalhe}` : ""}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {canConfig && secao === "modelos" && (
-        <Card>
-          <CardHeader title="E-mail Diário da Agenda" subtitle="Envio automático todos os dias às 5h (Brasília) para os administradores do escritório — inclui as tarefas do dia e as publicações/andamentos capturados no dia" />
-          <div className="p-5">
-            <TestEmailButton />
-          </div>
-        </Card>
-      )}
-
-      {canConfig && secao === "modelos" && modules.whatsapp && (
-        <Card>
-          <CardHeader
-            title="WhatsApp"
-            subtitle="Número da Cloud API (Meta) deste escritório — usado para receber e responder mensagens de clientes em Atendimento"
-          />
-          <div className="p-5 flex items-start gap-3">
-            <MessageCircle size={18} className="text-tx-3 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />
-              <p className="text-[11px] text-tx-3 mt-3">
-                O Phone Number ID e o Access Token são gerados ao cadastrar um número na Cloud API do WhatsApp (Meta for Developers). O webhook e o token de verificação são compartilhados pela plataforma — só o número precisa ser cadastrado aqui.
+            {/* DJEN */}
+            <div className={`border-l-[3px] rounded-r-lg bg-sf-apoio p-4 space-y-3 ${ultimoLogDjen ? (ultimoLogDjen.sucesso ? "border-concluido" : "border-urgente") : "border-tx-3"}`}>
+              <div>
+                <p className="text-sm font-semibold text-tx">DJEN — Diário de Justiça Eletrônico Nacional (CNJ)</p>
+                <p className="text-xs text-tx-2 mt-0.5">
+                  {ultimoLogDjen
+                    ? `Última execução ${formatRelativeTime(ultimoLogDjen.executadoEm)} — ${ultimoLogDjen.sucesso ? "sem falha registrada" : "falhou (provável bloqueio de IP, ver abaixo)"}.`
+                    : "Nenhuma execução registrada ainda."}
+                </p>
+              </div>
+              <p className="text-xs text-tx-2">
+                Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail. As OABs consultadas são as cadastradas em{" "}
+                <Link href="/configuracoes?secao=equipe" className="text-acao font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
               </p>
+              <TestDjenButton />
             </div>
+
+            {/* Datajud */}
+            <div className={`border-l-[3px] rounded-r-lg bg-sf-apoio p-4 space-y-3 ${ultimoLogDatajud ? (ultimoLogDatajud.sucesso ? "border-concluido" : "border-urgente") : "border-tx-3"}`}>
+              <div>
+                <p className="text-sm font-semibold text-tx">Datajud — Andamentos Processuais (CNJ)</p>
+                <p className="text-xs text-tx-2 mt-0.5">
+                  {ultimoLogDatajud
+                    ? `Última execução ${formatRelativeTime(ultimoLogDatajud.executadoEm)}: ${ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}${ultimoLogDatajud.detalhe ? ` — ${ultimoLogDatajud.detalhe}` : ""}`
+                    : "Nenhuma execução registrada ainda."}
+                </p>
+              </div>
+              <p className="text-xs text-tx-2">
+                API oficial do CNJ, autenticada por chave — não sofre o bloqueio de IP que o DJEN sofre. Consulta os andamentos de todo processo já cadastrado no site com número de processo preenchido. Hoje: <strong>{processosMonitoradosCount} processo(s) monitorado(s)</strong>.
+              </p>
+              {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").length > 1 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-tx-2 font-semibold">Histórico recente</summary>
+                  <ul className="mt-2 space-y-1">
+                    {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").slice(0, 5).map((l) => (
+                      <li key={l.id} className="text-tx-2">
+                        {formatRelativeTime(l.executadoEm)} — {l.sucesso ? "sucesso" : "falha"}{l.detalhe ? ` — ${l.detalhe}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+
+            {/* E-mail Diário da Agenda */}
+            <div className="border-l-[3px] border-tx-3 rounded-r-lg bg-sf-apoio p-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-tx">E-mail Diário da Agenda</p>
+                <p className="text-xs text-tx-2 mt-0.5">Sem execução monitorada — use o teste manual abaixo para conferir agora.</p>
+              </div>
+              <p className="text-xs text-tx-2">
+                Envio automático todos os dias às 5h (Brasília) para os administradores do escritório — inclui as tarefas do dia e as publicações/andamentos capturados no dia.
+              </p>
+              <TestEmailButton />
+            </div>
+
+            {/* WhatsApp */}
+            {modules.whatsapp && (
+              <div className={`border-l-[3px] rounded-r-lg bg-sf-apoio p-4 space-y-3 ${whatsappConfig ? "border-concluido" : "border-tx-3"}`}>
+                <div>
+                  <p className="text-sm font-semibold text-tx">WhatsApp</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
+                    {whatsappConfig ? `Número configurado${whatsappConfig.displayPhone ? ` — ${whatsappConfig.displayPhone}` : ""}.` : "Número não configurado neste escritório."}
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <MessageCircle size={18} className="text-tx-3 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />
+                    <p className="text-[11px] text-tx-3 mt-3">
+                      O Phone Number ID e o Access Token são gerados ao cadastrar um número na Cloud API do WhatsApp (Meta for Developers). O webhook e o token de verificação são compartilhados pela plataforma — só o número precisa ser cadastrado aqui.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}
 
+      {/* Painel "Manutenção do Drive": organização de anexos, pastas fora do lugar, e a Tarefa A
+          — a migração da pasta-mãe do Lúmen (lib/actions/driveParentMigration.ts), que antes não
+          tinha nenhuma interface que a chamasse. */}
       {canConfig && secao === "modelos" && driveStatus.connected && (
         <Card>
-          <CardHeader
-            title="Organização de anexos no Drive"
-            subtitle="Anexos de Processos e Atendimentos ficam em uma pasta por processo/atendimento, com subpasta por categoria de documento — em vez de uma única pasta plana"
-          />
-          <div className="p-5">
-            <ReorganizeAttachmentsButton />
-          </div>
-        </Card>
-      )}
+          <CardHeader title="Manutenção do Drive" subtitle="Organização de anexos, pastas fora do lugar e migração da pasta-mãe do Lúmen" />
+          <div className="divide-y divide-regua">
+            <div className="p-5 space-y-3">
+              <div>
+                <p className="text-[15px] font-semibold text-tx">Organização de anexos no Drive</p>
+                <p className="text-xs text-tx-2 mt-0.5">
+                  Anexos de Processos e Atendimentos ficam em uma pasta por processo/atendimento, com subpasta por categoria de documento — em vez de uma única pasta plana
+                </p>
+              </div>
+              <ReorganizeAttachmentsButton />
+            </div>
 
-      {canConfig && secao === "modelos" && driveStatus.connected && (
-        <Card>
-          <CardHeader
-            title="Pastas de processo fora do lugar no Drive"
-            subtitle="Corrige pastas de Processo/Atendimento que ficaram apontando para a raiz antiga do Drive depois da migração para o Lúmen multi-tenant — move a pasta para a raiz correta sem alterar nenhum link já salvo"
-          />
-          <div className="p-5">
-            <MigrarPastasLegadasButton />
+            <div className="p-5 space-y-3">
+              <div>
+                <p className="text-[15px] font-semibold text-tx">Pastas de processo fora do lugar no Drive</p>
+                <p className="text-xs text-tx-2 mt-0.5">
+                  Corrige pastas de Processo/Atendimento que ficaram apontando para a raiz antiga do Drive depois da migração para o Lúmen multi-tenant — move a pasta para a raiz correta sem alterar nenhum link já salvo
+                </p>
+              </div>
+              <MigrarPastasLegadasButton />
+            </div>
+
+            <div className="p-5 space-y-3">
+              <div>
+                <p className="text-[15px] font-semibold text-tx">Migração da pasta-mãe do Lúmen</p>
+                <p className="text-xs text-tx-2 mt-0.5">
+                  Move as raízes &ldquo;Lúmen - *&rdquo; soltas na raiz do Drive para dentro da pasta-mãe &ldquo;Lúmen&rdquo; e audita as pastas antigas &ldquo;RP Financeiro - *&rdquo;: o que corresponde a um registro do sistema é movido para o lugar certo, o que não corresponde é só relatado — nunca apagado.
+                </p>
+              </div>
+              <MigrarPastaMaeButton />
+            </div>
           </div>
         </Card>
       )}
