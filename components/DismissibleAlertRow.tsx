@@ -63,7 +63,7 @@ export default function DismissibleAlertRow({
           className={clsx(
             "shrink-0 self-center mr-3 flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors",
             status === "idle" &&
-              "text-navy-800/50 dark:text-cream-50/50 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10",
+              "text-tx-2 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10",
             status !== "idle" && "text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-400/15"
           )}
         >

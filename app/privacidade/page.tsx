@@ -14,27 +14,30 @@ export const metadata = {
 
 export default function PrivacidadePage() {
   return (
-    <div className="min-h-screen bg-cream-50">
-      <header className="bg-navy-900 px-6 py-8">
+    <div className="min-h-screen bg-sf-fundo">
+      {/* Masthead grafite-800 fixo — chrome do site público, mesmo raciocínio do rail/barra de
+          menus (DESIGN-SYSTEM.md §3) e de app/blog/page.tsx. Texto branco fixo, não --acao/--tx:
+          esses trocam de tema e, no Manhã, ficariam ilegíveis contra um fundo que não troca.
+          Tipografia: Archivo, sem serifa — igual ao produto (a licença de serifa própria vale
+          só para o blog, ver app/blog/layout.tsx). */}
+      <header className="bg-grafite-800 px-6 py-8">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-500 hover:text-gold-400">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-white/80">
             <ArrowLeft size={14} /> Voltar
           </Link>
           <div className="flex items-center gap-2">
             <LumenMark size={22} />
-            <span className="font-serif font-semibold text-cream-50">Lúmen</span>
+            <span className="font-semibold text-white">Lúmen</span>
           </div>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <article className="bg-white rounded-xl border border-navy-800/8 shadow-card overflow-hidden">
-          <div className="p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-navy-900/80">
+        <article className="bg-sf rounded-xl border border-regua overflow-hidden">
+          <div className="p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-tx">
             <div>
-              <h1 className="font-serif font-bold text-navy-900 text-2xl sm:text-3xl leading-tight mb-1">
-                Política de Privacidade
-              </h1>
-              <p className="text-xs text-navy-900/50">Última atualização: 24 de julho de 2026</p>
+              <h1 className="font-bold text-tx text-2xl sm:text-3xl leading-tight mb-1">Política de Privacidade</h1>
+              <p className="text-xs text-tx-2">Última atualização: 24 de julho de 2026</p>
             </div>
 
             <p>
@@ -44,7 +47,7 @@ export default function PrivacidadePage() {
             </p>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">1. Quem é o responsável pelos dados</h2>
+              <h2 className="font-bold text-tx text-lg">1. Quem é o responsável pelos dados</h2>
               <p>
                 O escritório de advocacia com quem você troca mensagens é o responsável pelo tratamento dos seus
                 dados pessoais (controlador, nos termos da LGPD — Lei nº 13.709/2018). O Lúmen é o sistema de gestão
@@ -53,12 +56,12 @@ export default function PrivacidadePage() {
               </p>
               <p>
                 Nesta conta do WhatsApp Business, o escritório responsável é o <b>Rodarte Prado Advogados</b>, com
-                contato em <a className="text-bordo-700 hover:text-bordo-600 font-semibold" href="mailto:rodartepradoadvogados@gmail.com">rodartepradoadvogados@gmail.com</a>.
+                contato em <a className="text-acao hover:text-acao-hover font-semibold" href="mailto:rodartepradoadvogados@gmail.com">rodartepradoadvogados@gmail.com</a>.
               </p>
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">2. Quais dados coletamos</h2>
+              <h2 className="font-bold text-tx text-lg">2. Quais dados coletamos</h2>
               <p>Ao conversar pelo WhatsApp ou por outros canais atendidos pelo escritório, podemos registrar:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Nome e número de telefone associados à conversa;</li>
@@ -69,7 +72,7 @@ export default function PrivacidadePage() {
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">3. Para que usamos esses dados</h2>
+              <h2 className="font-bold text-tx text-lg">3. Para que usamos esses dados</h2>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Responder ao seu contato e prestar o atendimento solicitado;</li>
                 <li>Registrar o histórico do atendimento dentro do sistema do escritório;</li>
@@ -80,7 +83,7 @@ export default function PrivacidadePage() {
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">4. Com quem os dados são compartilhados</h2>
+              <h2 className="font-bold text-tx text-lg">4. Com quem os dados são compartilhados</h2>
               <p>
                 As mensagens trafegam pela infraestrutura da <b>Meta</b> (WhatsApp Cloud API) para serem entregues ao
                 sistema do escritório, conforme os termos e políticas da própria Meta. Dentro do escritório, os dados
@@ -90,7 +93,7 @@ export default function PrivacidadePage() {
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">5. Por quanto tempo guardamos os dados</h2>
+              <h2 className="font-bold text-tx text-lg">5. Por quanto tempo guardamos os dados</h2>
               <p>
                 O histórico de atendimento é mantido enquanto durar a relação com o escritório e pelo prazo necessário
                 para cumprir obrigações legais (incluindo prazos de prescrição aplicáveis a serviços advocatícios),
@@ -99,7 +102,7 @@ export default function PrivacidadePage() {
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">6. Segurança</h2>
+              <h2 className="font-bold text-tx text-lg">6. Segurança</h2>
               <p>
                 O acesso ao sistema é restrito por login individual da equipe do escritório, e os dados ficam
                 armazenados em infraestrutura com controle de acesso e criptografia em trânsito.
@@ -107,7 +110,7 @@ export default function PrivacidadePage() {
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">7. Seus direitos</h2>
+              <h2 className="font-bold text-tx text-lg">7. Seus direitos</h2>
               <p>
                 Nos termos da LGPD, você pode solicitar ao escritório responsável a confirmação, o acesso, a
                 correção ou a exclusão dos seus dados pessoais, bem como informações sobre com quem eles foram
@@ -116,7 +119,7 @@ export default function PrivacidadePage() {
             </section>
 
             <section className="space-y-1.5">
-              <h2 className="font-serif font-bold text-navy-900 text-lg">8. Alterações desta política</h2>
+              <h2 className="font-bold text-tx text-lg">8. Alterações desta política</h2>
               <p>
                 Esta política pode ser atualizada periodicamente. A data no topo desta página indica a versão mais
                 recente.

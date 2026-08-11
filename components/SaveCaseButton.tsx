@@ -67,7 +67,7 @@ export default function SaveCaseButton({ defaultType }: { defaultType: string })
         onClick={(e) => {
           if (attachmentsUploading) e.preventDefault();
         }}
-        className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {attachmentsUploading
           ? "Enviando anexos..."

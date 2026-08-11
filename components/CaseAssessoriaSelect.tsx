@@ -33,8 +33,8 @@ export default function CaseAssessoriaSelect({
       title="Vincular a uma assessoria"
       className={`text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer ${
         assessoriaId
-          ? "bg-gold-500/10 text-gold-800 border-gold-500/25 dark:bg-gold-400/10 dark:text-gold-400 dark:border-gold-400/25"
-          : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-cream-50/60 dark:border-white/15"
+          ? "bg-marca-bg text-marca-tx border-marca/25"
+          : "bg-sf-apoio text-tx-2 border-regua"
       }`}
     >
       <option value="">Vincular a uma assessoria</option>

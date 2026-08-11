@@ -37,7 +37,7 @@ export default async function MobileNewAttendancePage() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Novo Atendimento</h1>
+        <h1 className="text-xl font-bold text-tx">Novo Atendimento</h1>
         <p className="text-sm text-tx-2">Registre um novo contato rapidamente</p>
       </div>
 

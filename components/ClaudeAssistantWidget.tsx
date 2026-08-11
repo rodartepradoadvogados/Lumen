@@ -88,7 +88,9 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
         onClick={() => setOpen((v) => !v)}
         data-tip="Assistente Claude"
         style={{ right: rightOffsetPx }}
-        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-navy-800 text-gold-400 shadow-pop flex items-center justify-center hover:bg-navy-700 transition-[right,background-color] duration-200"
+        // Grafite fixo nos dois temas + acento ouro, de propósito: mesmo par de cores da marca
+        // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
+        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-marca shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
       >
         {open ? <X size={22} /> : <Sparkles size={22} />}
       </button>
@@ -96,11 +98,12 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
       {open && (
         <div
           style={{ right: rightOffsetPx }}
-          className="fixed bottom-20 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-white z-40 flex flex-col overflow-hidden border border-gold-500/20 transition-[right] duration-200"
+          className="fixed bottom-20 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
         >
-          <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-navy-800 text-white">
+          {/* Grafite fixo nos dois temas — mesmo tratamento do botão flutuante acima. */}
+          <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
             <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-gold-400" />
+              <Sparkles size={18} className="text-marca" />
               <span className="font-medium text-sm">Assistente Lúmen</span>
             </div>
             <button
@@ -112,14 +115,14 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
             </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3 bg-cream-50">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3 bg-sf-apoio">
             {mensagens.map((m, i) => (
               <div key={i} className={clsx("flex", m.role === "user" ? "justify-end" : "justify-start")}>
                 <div
                   className={clsx(
                     "max-w-[85%] rounded-xl2 px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                    m.role === "user" && "bg-navy-800 text-white",
-                    m.role === "assistant" && "bg-white border border-gold-500/20 text-navy-900 shadow-card",
+                    m.role === "user" && "bg-acao text-acao-tx",
+                    m.role === "assistant" && "bg-sf border border-regua text-tx shadow-card",
                     m.role === "error" && "bg-red-50 border border-red-200 text-red-700",
                   )}
                 >
@@ -129,27 +132,27 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
             ))}
             {enviando && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] rounded-xl2 px-3 py-2 text-sm bg-white border border-gold-500/20 text-navy-800/60 shadow-card">
+                <div className="max-w-[85%] rounded-xl2 px-3 py-2 text-sm bg-sf border border-regua text-tx-2 shadow-card">
                   digitando...
                 </div>
               </div>
             )}
           </div>
 
-          <div className="shrink-0 border-t border-gold-500/20 p-3 flex items-end gap-2 bg-white">
+          <div className="shrink-0 border-t border-regua p-3 flex items-end gap-2 bg-sf">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Pergunte sobre processos, agenda, clientes..."
               rows={1}
-              className="flex-1 resize-none rounded-lg border border-navy-800/15 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40 max-h-28"
+              className="flex-1 resize-none rounded-lg border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 max-h-28"
             />
             <button
               type="button"
               onClick={enviarMensagem}
               disabled={enviando || !input.trim()}
-              className="h-9 w-9 shrink-0 rounded-lg bg-navy-800 text-gold-400 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-navy-700 transition-colors"
+              className="h-9 w-9 shrink-0 rounded-lg bg-acao hover:bg-acao-hover text-acao-tx flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Send size={16} />
             </button>

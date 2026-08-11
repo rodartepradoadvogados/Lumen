@@ -21,14 +21,14 @@ export default function PromoteToJudicialForm({ caseId }: { caseId: string }) {
   return (
     <form action={handleSubmit} className="flex flex-wrap gap-2 items-end">
       <div>
-        <label className="text-xs font-medium text-navy-800/60">Número do processo</label>
+        <label className="text-xs font-medium text-tx-2">Número do processo</label>
         <input name="processNumber" required className="pj-input" placeholder="0000000-00.2026.8.09.0051" />
       </div>
       <div>
-        <label className="text-xs font-medium text-navy-800/60">Vara/Comarca</label>
+        <label className="text-xs font-medium text-tx-2">Vara/Comarca</label>
         <input name="court" className="pj-input" />
       </div>
-      <button type="submit" disabled={pending} className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+      <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
         {pending ? "Convertendo..." : "Converter em Judicial"}
       </button>
       <style jsx global>{`

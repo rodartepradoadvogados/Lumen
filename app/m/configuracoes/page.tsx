@@ -114,16 +114,16 @@ export default async function MobileConfiguracoes() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Configurações</h1>
+        <h1 className="text-xl font-bold text-tx">Configurações</h1>
         <p className="text-sm text-tx-2">Perfil e preferências da conta</p>
       </div>
 
       <div className="flex items-center gap-3 px-1">
-        <div className="h-12 w-12 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-sm font-serif font-bold shrink-0">
+        <div className="h-12 w-12 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-sm font-bold shrink-0">
           {initials}
         </div>
         <div className="min-w-0">
-          <p className="font-serif font-bold text-tx leading-tight truncate">{viewer.name}</p>
+          <p className="font-bold text-tx leading-tight truncate">{viewer.name}</p>
           <p className="text-xs text-tx-2 truncate">{viewer.email}</p>
         </div>
       </div>
@@ -131,7 +131,7 @@ export default async function MobileConfiguracoes() {
       <Card>
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <User size={16} className="text-marca-tx" />
-          <h3 className="font-serif font-bold text-tx text-sm">Minha conta</h3>
+          <h3 className="font-bold text-tx text-sm">Minha conta</h3>
         </div>
         <div className="divide-y divide-regua">
           <Field label="Cargo" value={viewer.role} />
@@ -148,7 +148,7 @@ export default async function MobileConfiguracoes() {
       <Card>
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <Bell size={16} className="text-marca-tx" />
-          <h3 className="font-serif font-bold text-tx text-sm">Notificações</h3>
+          <h3 className="font-bold text-tx text-sm">Notificações</h3>
         </div>
         <NotificationPreferences />
       </Card>
@@ -160,7 +160,7 @@ export default async function MobileConfiguracoes() {
         <Card className="flex items-center justify-between px-4 py-3.5">
           <div className="flex items-center gap-2">
             <ShieldCheck size={16} className="text-marca-tx" />
-            <h3 className="font-serif font-bold text-tx text-sm">Acessos da Lúmen</h3>
+            <h3 className="font-bold text-tx text-sm">Acessos da Lúmen</h3>
           </div>
           <ChevronRight size={14} className="text-tx-3 shrink-0" />
         </Card>
@@ -186,7 +186,7 @@ export default async function MobileConfiguracoes() {
                   <p className="text-xs font-semibold text-tx-2 mb-2">Drive e e-mail</p>
                   {driveStatus.connected ? (
                     <div className="flex items-center gap-2 text-xs text-tx mb-2">
-                      <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <CheckCircle2 size={14} className="text-concluido shrink-0" />
                       <span className="truncate">Conectado como <strong>{driveStatus.accountEmail}</strong></span>
                     </div>
                   ) : (
@@ -207,7 +207,7 @@ export default async function MobileConfiguracoes() {
                       const found = googleAccounts.find((a) => a.userId === u.id);
                       return (
                         <div key={u.id} className="flex items-center gap-1.5 text-xs">
-                          <CheckCircle2 size={12} className={found ? "text-emerald-600 dark:text-emerald-400 shrink-0" : "text-tx-3 shrink-0"} />
+                          <CheckCircle2 size={12} className={found ? "text-concluido shrink-0" : "text-tx-3 shrink-0"} />
                           <span className={found ? "text-tx" : "text-tx-2"}>{u.name}</span>
                         </div>
                       );
@@ -236,11 +236,11 @@ export default async function MobileConfiguracoes() {
                     {processosMonitoradosCount} processo(s) monitorado(s) — API oficial, não sofre o bloqueio do DJEN.
                   </p>
                   {ultimoLogDatajud ? (
-                    <p className={`text-[11px] rounded-lg px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-300" : "bg-urgente-bg text-urgente"}`}>
+                    <p className={`text-[11px] rounded-lg px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
                       Última execução {formatRelativeTimeMobile(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
                     </p>
                   ) : (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400">Nenhuma execução registrada ainda.</p>
+                    <p className="text-[11px] text-aviso">Nenhuma execução registrada ainda.</p>
                   )}
                 </div>
 
@@ -397,10 +397,6 @@ export default async function MobileConfiguracoes() {
         </>
       )}
 
-      <style>{`
-        .cfg-input { border: 1px solid rgba(15,31,61,0.15); border-radius: 0.5rem; padding: 0.4rem 0.6rem; font-size: 0.8rem; background: transparent; color: inherit; }
-        .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-      `}</style>
     </div>
   );
 }
@@ -430,7 +426,7 @@ function Group({ icon: Icon, title, meta, children }: { icon: LucideIcon; title:
       <summary className="list-none cursor-pointer marker:content-none">
         <div className="flex items-center gap-2 px-4 py-3.5 bg-sf border border-regua rounded-xl group-open:rounded-b-none group-open:border-b-0">
           <Icon size={16} className="text-marca-tx shrink-0" />
-          <h3 className="font-serif font-bold text-tx text-sm flex-1">{title}</h3>
+          <h3 className="font-bold text-tx text-sm flex-1">{title}</h3>
           <span className="text-[10px] text-tx-2 font-medium">{meta}</span>
           <ChevronRight size={14} className="text-tx-3 transition-transform group-open:rotate-90 shrink-0" />
         </div>

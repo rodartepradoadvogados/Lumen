@@ -326,7 +326,7 @@ export default function MobileLancarHonorariosForm({
     <form action={handleSubmit} className="space-y-3 pb-4">
       {alreadyReceivedForCase !== undefined && (
         <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
-          Já recebido neste processo: <span className="font-semibold text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
+          Já recebido neste processo: <span className="font-semibold tabular-nums text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
         </p>
       )}
       {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
@@ -506,7 +506,7 @@ export default function MobileLancarHonorariosForm({
             </div>
 
             {Math.abs(divergencia) > 0.01 && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+              <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
                 A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                 {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
               </p>
@@ -671,10 +671,10 @@ export default function MobileLancarHonorariosForm({
                 <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
                   {percentualNum || 0}% de {formatCurrency(baseValue)}
                   {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago</>} ={" "}
-                  <span className="font-semibold text-tx">{formatCurrency(percentualApurado)}</span> líquido
+                  <span className="font-semibold tabular-nums text-tx">{formatCurrency(percentualApurado)}</span> líquido
                 </p>
               ) : (
-                <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
                   A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão &quot;A apurar&quot;, fora do
                   fluxo de caixa, até o desfecho do processo.
                 </p>
@@ -766,14 +766,14 @@ export default function MobileLancarHonorariosForm({
           {recorrente ? (
             <>
               <span className="block text-[10px] uppercase tracking-wide text-tx-2">Valor mensal</span>
-              <span className="font-serif text-base font-bold tabular-nums text-acao">
+              <span className="text-base font-bold tabular-nums text-acao">
                 {formatCurrency(parseFloat(amountMensal || "0") || 0)}
               </span>
             </>
           ) : (
             <>
               <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
-              <span className="font-serif text-base font-bold tabular-nums text-acao">{formatCurrency(liquido)}</span>
+              <span className="text-base font-bold tabular-nums text-acao">{formatCurrency(liquido)}</span>
             </>
           )}
         </div>
@@ -790,21 +790,17 @@ export default function MobileLancarHonorariosForm({
         .mobile-input {
           width: 100%;
           margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
-          color: #14213d;
-          background: white;
+          background-color: var(--sf-superficie);
+          color: var(--tx);
         }
         .mobile-input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
-        }
-        :global(html.dark) .mobile-input {
-          border-color: rgba(255, 255, 255, 0.12);
-          color: #fbfaf7;
-          background: #0b1730;
+          border-color: var(--acao);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
         }
       `}</style>
     </form>

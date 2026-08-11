@@ -61,7 +61,7 @@ export default async function MobileLivroCaixa() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Livro Caixa</h1>
+        <h1 className="text-xl font-bold text-tx">Livro Caixa</h1>
         <p className="text-sm text-tx-2">
           Extrato cronológico das movimentações efetivadas · mais recentes primeiro
         </p>
@@ -79,13 +79,13 @@ export default async function MobileLivroCaixa() {
                     <p className="text-sm text-tx truncate">{e.description}</p>
                     <p className="text-xs text-tx-2 mt-0.5">{formatDate(e.date)}</p>
                   </div>
-                  <p className={`text-sm font-semibold shrink-0 ${e.type === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-urgente"}`}>
+                  <p className={`text-sm font-semibold tabular-nums shrink-0 ${e.type === "entrada" ? "text-concluido" : "text-urgente"}`}>
                     {e.type === "entrada" ? "+" : ""}
                     {formatCurrency(e.value)}
                   </p>
                 </div>
                 <p className="text-xs text-tx-2 mt-1 text-right">
-                  Saldo acumulado: <span className="font-semibold text-tx">{formatCurrency(e.balance)}</span>
+                  Saldo acumulado: <span className="font-semibold tabular-nums text-tx">{formatCurrency(e.balance)}</span>
                 </p>
               </div>
             ))}

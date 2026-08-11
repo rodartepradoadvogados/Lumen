@@ -49,35 +49,40 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     .filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-cream-50">
-      <header className="bg-navy-900 px-6 py-8 text-center">
-        <Link href="/blog" className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-500 hover:text-gold-400">
+    <div className="min-h-screen bg-sf-fundo">
+      {/* Masthead grafite-800 fixo — chrome do site público, mesmo raciocínio de app/blog/page.tsx.
+          "Voltar ao blog" fica branco, não --acao: --acao no Manhã é azul escuro e sumiria
+          contra este fundo que não troca de tema. */}
+      <header className="bg-grafite-800 px-6 py-8 text-center">
+        <Link href="/blog" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-white/80">
           <ArrowLeft size={14} /> Voltar ao blog
         </Link>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <article className="bg-white rounded-xl border border-navy-800/8 shadow-card overflow-hidden">
+        <article className="bg-sf rounded-xl border border-regua overflow-hidden">
           {post.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={post.imageUrl} alt="" className="w-full max-h-80 object-cover" />
           )}
           <div className="p-6 sm:p-8 space-y-4">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
+              <Badge color="slate">{TYPE_LABELS[post.type] ?? post.type}</Badge>
             </div>
-            <h1 className="font-serif font-bold text-navy-900 text-2xl sm:text-3xl leading-tight">{post.title}</h1>
+            <h1 className="font-bold text-tx text-2xl sm:text-3xl leading-tight [font-family:var(--font-blog-serif)]">
+              {post.title}
+            </h1>
             {post.publishedAt && (
-              <p className="text-xs text-navy-800/45">
+              <p className="text-xs text-tx-2">
                 Publicado em{" "}
                 {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             )}
-            <p className="text-base text-navy-800/70 italic border-l-2 border-bordo-600/60 pl-3 text-justify hyphens-auto">
+            <p className="text-base text-tx italic border-l-2 border-vinho-500/60 pl-3 text-justify hyphens-auto [font-family:var(--font-blog-serif)]">
               {post.summary}
             </p>
 
-            <div className="prose-like text-navy-900 text-[15px] leading-relaxed space-y-4 text-justify hyphens-auto">
+            <div className="prose-like text-tx text-[15px] leading-relaxed space-y-4 text-justify hyphens-auto [font-family:var(--font-blog-serif)]">
               {post.content
                 .split(/\n+/)
                 .filter(Boolean)
@@ -87,12 +92,12 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
 
             {sourceLinks.length > 0 && (
-              <div className="pt-4 border-t border-navy-800/8">
-                <p className="text-xs font-semibold text-navy-800/55 uppercase mb-2">Fontes</p>
+              <div className="pt-4 border-t border-regua">
+                <p className="text-xs font-semibold text-tx-2 uppercase mb-2">Fontes</p>
                 <ul className="space-y-1">
                   {sourceLinks.map((url, i) => (
                     <li key={i}>
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-bordo-600 hover:underline break-all">
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-acao hover:underline break-all">
                         {url}
                       </a>
                     </li>
@@ -103,7 +108,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           </div>
         </article>
 
-        <p className="text-center text-[11px] text-navy-800/40 mt-8">
+        <p className="text-center text-[11px] text-tx-3 mt-8">
           Lúmen — conteúdo informativo, não substitui consulta jurídica.
         </p>
       </main>

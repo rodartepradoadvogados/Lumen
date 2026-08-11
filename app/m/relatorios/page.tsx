@@ -35,12 +35,14 @@ const stageLabels: Record<string, string> = {
   FECHADO: "Fechado",
   PERDIDO: "Perdido",
 };
+// Mesmo mapa de app/(app)/relatorios/page.tsx (var(--x) direto no `style` inline — Tailwind não
+// gera classe pra cor escolhida em runtime a partir de uma chave, ver DESIGN-SYSTEM.md §16).
 const stageColor: Record<string, string> = {
-  NOVO: "#f59e0b",
-  QUALIFICACAO: "#3b82f6",
-  PROPOSTA: "#c6a05c",
-  FECHADO: "#10b981",
-  PERDIDO: "#ef4444",
+  NOVO: "var(--aviso)",
+  QUALIFICACAO: "var(--acao)",
+  PROPOSTA: "var(--marca)",
+  FECHADO: "var(--concluido)",
+  PERDIDO: "var(--urgente)",
 };
 
 const CASE_STATUS_ORDER = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
@@ -51,14 +53,14 @@ const caseStatusLabels: Record<string, string> = {
   ARQUIVADO: "Arquivado",
 };
 const caseStatusColor: Record<string, string> = {
-  ATIVO: "#10b981",
-  SUSPENSO: "#f59e0b",
-  ENCERRADO: "#64748b",
-  ARQUIVADO: "#ef4444",
+  ATIVO: "var(--concluido)",
+  SUSPENSO: "var(--aviso)",
+  ENCERRADO: "var(--tx-2)",
+  ARQUIVADO: "var(--urgente)",
 };
 
 const triageLabels: Record<string, string> = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", TRATADA: "Tratada" };
-const triageColor: Record<string, string> = { PENDENTE: "#f59e0b", EM_ANALISE: "#3b82f6", TRATADA: "#10b981" };
+const triageColor: Record<string, string> = { PENDENTE: "var(--aviso)", EM_ANALISE: "var(--acao)", TRATADA: "var(--concluido)" };
 
 const periodOptions: { value: 3 | 6 | 12; label: string }[] = [
   { value: 3, label: "3m" },
@@ -143,7 +145,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-serif text-xl font-bold text-tx">Relatórios</h1>
+          <h1 className="text-xl font-bold text-tx">Relatórios</h1>
           <p className="text-sm text-tx-2">
             {monthLabel(start)} a {monthLabel(now)}
           </p>
@@ -167,11 +169,11 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
       <Card>
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <Users size={16} className="text-marca-tx" />
-          <h3 className="font-serif font-bold text-tx text-sm">Produtividade</h3>
+          <h3 className="font-bold text-tx text-sm">Produtividade</h3>
         </div>
         <div className="px-4 py-3 flex items-center justify-between border-b border-regua">
           <span className="text-xs text-tx-2">Tarefas concluídas no período</span>
-          <span className="text-lg font-serif font-bold text-tx">{doneTasks.length}</span>
+          <span className="text-lg font-bold tabular-nums text-tx">{doneTasks.length}</span>
         </div>
         {prodRanking.length === 0 ? (
           <EmptyState title="Nenhuma tarefa concluída no período" />
@@ -186,7 +188,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm font-medium text-tx truncate">{r.user.name}</span>
-                <span className="text-sm font-semibold text-tx shrink-0">{r.points} pts</span>
+                <span className="text-sm font-semibold tabular-nums text-tx shrink-0">{r.points} pts</span>
                 <span className="text-xs text-tx-2 shrink-0">{r.count} tarefa(s)</span>
               </div>
             ))}
@@ -198,7 +200,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
       <Card>
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <Scale size={16} className="text-marca-tx" />
-          <h3 className="font-serif font-bold text-tx text-sm">Processos</h3>
+          <h3 className="font-bold text-tx text-sm">Processos</h3>
         </div>
         <div className="px-4 pt-3 pb-1">
           <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">
@@ -212,7 +214,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
             {areaRows.map((r) => (
               <div key={r.label} className="px-4 py-2.5 flex items-center justify-between gap-3">
                 <span className="text-sm text-tx-2 truncate">{r.label}</span>
-                <span className="text-sm font-semibold text-tx shrink-0">
+                <span className="text-sm font-semibold tabular-nums text-tx shrink-0">
                   {r.value} · {totalActiveCases > 0 ? ((r.value / totalActiveCases) * 100).toFixed(0) : 0}%
                 </span>
               </div>
@@ -231,7 +233,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
                 <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: caseStatusColor[s] }} />
                 {caseStatusLabels[s]}
               </span>
-              <span className="text-sm font-semibold text-tx shrink-0">{statusCounts[s]}</span>
+              <span className="text-sm font-semibold tabular-nums text-tx shrink-0">{statusCounts[s]}</span>
             </div>
           ))}
         </div>
@@ -241,11 +243,11 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
       <Card>
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <Target size={16} className="text-marca-tx" />
-          <h3 className="font-serif font-bold text-tx text-sm flex-1">Funil Comercial</h3>
+          <h3 className="font-bold text-tx text-sm flex-1">Funil Comercial</h3>
           <span className="text-xs text-tx-2">
             Conversão:{" "}
             {conversionRate !== null ? (
-              <span className="font-semibold text-emerald-700 dark:text-emerald-400">{conversionRate.toFixed(0)}%</span>
+              <span className="font-semibold text-concluido">{conversionRate.toFixed(0)}%</span>
             ) : (
               <span className="text-tx-2">—</span>
             )}
@@ -261,7 +263,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
                   <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: stageColor[s.stage] }} />
                   {stageLabels[s.stage]}
                 </span>
-                <span className="text-sm font-semibold text-tx shrink-0">{s.count}</span>
+                <span className="text-sm font-semibold tabular-nums text-tx shrink-0">{s.count}</span>
               </div>
             ))}
           </div>
@@ -272,11 +274,11 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
       <Card>
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <Newspaper size={16} className="text-marca-tx" />
-          <h3 className="font-serif font-bold text-tx text-sm">Publicações</h3>
+          <h3 className="font-bold text-tx text-sm">Publicações</h3>
         </div>
         <div className="px-4 py-3 flex items-center justify-between border-b border-regua">
           <span className="text-xs text-tx-2">Volume no período</span>
-          <span className="text-lg font-serif font-bold text-tx">{publications.length}</span>
+          <span className="text-lg font-bold tabular-nums text-tx">{publications.length}</span>
         </div>
         <div className="p-4">
           <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">
@@ -288,7 +290,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
                 key={t.status}
                 className="rounded-lg bg-sf-apoio border border-regua p-3 text-center"
               >
-                <p className="font-serif font-bold text-lg text-tx">{t.value}</p>
+                <p className="font-bold text-lg tabular-nums text-tx">{t.value}</p>
                 <div className="flex items-center justify-center gap-1 mt-1">
                   <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: triageColor[t.status] }} />
                   <span className="text-[10px] text-tx-2">{triageLabels[t.status]}</span>

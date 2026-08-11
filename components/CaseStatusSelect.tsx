@@ -6,6 +6,15 @@ import { updateCaseStatus } from "@/lib/actions/cases";
 
 const options = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
 
+// O <select> mostrava o enum cru em caixa alta ("ATIVO", "ARQUIVADO"). Mesmo defeito que a lista
+// de Despesas tinha com o status financeiro — ver financeStatusLabel em components/ui.tsx.
+const labels: Record<string, string> = {
+  ATIVO: "Ativo",
+  SUSPENSO: "Suspenso",
+  ENCERRADO: "Encerrado",
+  ARQUIVADO: "Arquivado",
+};
+
 const colors: Record<string, string> = {
   ATIVO: "bg-concluido-bg text-concluido border-transparent",
   SUSPENSO: "bg-aviso-bg text-aviso border-transparent",
@@ -56,7 +65,7 @@ export default function CaseStatusSelect({
       >
         {options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {labels[o] ?? o}
           </option>
         ))}
       </select>

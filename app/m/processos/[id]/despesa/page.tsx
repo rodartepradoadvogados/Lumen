@@ -36,7 +36,7 @@ export default async function MobileNovaDespesaPage({ params }: { params: { id: 
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Lançar Despesa</h1>
+        <h1 className="text-xl font-bold text-tx">Lançar Despesa</h1>
         <p className="text-sm text-tx-2">{c.title}</p>
       </div>
 

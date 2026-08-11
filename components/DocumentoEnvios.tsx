@@ -95,7 +95,7 @@ export function EnviarDocumentosButton({ entity, attachments }: { entity: EnvioE
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 border border-navy-800/15 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5 text-navy-900 dark:text-cream-50 text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
       >
         <Send size={15} /> Enviar E-mail/WhatsApp
       </button>
@@ -224,7 +224,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Método</label>
+              <label className="text-xs font-medium text-tx-2 block mb-1">Método</label>
               <div className="flex gap-1.5 text-xs font-semibold">
                 {(["EMAIL", "WHATSAPP"] as const).map((m) => (
                   <button
@@ -236,8 +236,8 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
                       metodo === m
-                        ? "bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950"
-                        : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5 border border-navy-800/12 dark:border-white/15"
+                        ? "bg-acao text-acao-tx"
+                        : "text-tx-2 hover:bg-sf-apoio border border-regua"
                     }`}
                   >
                     {m === "EMAIL" ? <Mail size={13} /> : <MessageCircle size={13} />}
@@ -245,7 +245,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1.5">
+              <p className="text-[11px] text-tx-3 mt-1.5">
                 {metodo === "EMAIL"
                   ? "Os documentos selecionados são anexados de verdade e o e-mail sai imediatamente ao confirmar."
                   : "O WhatsApp não permite anexar arquivo por link direto — a mensagem vai incluir o link de cada documento para o destinatário abrir. Isto abre o WhatsApp da própria pessoa; nada sai do sistema sozinho."}
@@ -253,9 +253,9 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
             </div>
 
             <div className="relative">
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Destinatário</label>
+              <label className="text-xs font-medium text-tx-2">Destinatário</label>
               <div className="relative mt-1">
-                <UserRound size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+                <UserRound size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
                 <input
                   value={nome}
                   onChange={(e) => {
@@ -265,24 +265,24 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                   onFocus={() => setSugestoesAbertas(true)}
                   onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
                   placeholder="Nome (busque um contato cadastrado ou digite)"
-                  className="w-full border border-navy-800/12 dark:border-white/15 rounded-lg pl-7 pr-2.5 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                  className="w-full border border-regua rounded-lg pl-7 pr-2.5 py-2 text-sm bg-sf text-tx"
                 />
               </div>
               {sugestoesAbertas && sugeridos.length > 0 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-navy-950 border border-navy-800/12 dark:border-white/15 rounded-lg shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-sf border border-regua rounded-lg shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
                   {sugeridos.map((c) => (
                     <button
                       key={`${c.tipo}-${c.id}`}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => escolherContato(c)}
-                      className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left hover:bg-cream-100 dark:hover:bg-white/5"
+                      className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-left hover:bg-sf-apoio"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate text-navy-900 dark:text-cream-50">{c.name}</span>
-                        <span className="block truncate text-[11px] text-navy-800/45 dark:text-cream-50/45">{c.contato}</span>
+                        <span className="block truncate text-tx">{c.name}</span>
+                        <span className="block truncate text-[11px] text-tx-2">{c.contato}</span>
                       </span>
-                      <span className="shrink-0 text-[10px] font-semibold text-navy-800/40 dark:text-cream-50/40 font-mono">{CONTATO_TIPO_LABEL[c.tipo]}</span>
+                      <span className="shrink-0 text-[10px] font-semibold text-tx-3 font-mono">{CONTATO_TIPO_LABEL[c.tipo]}</span>
                     </button>
                   ))}
                 </div>
@@ -290,7 +290,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
             </div>
 
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{metodo === "EMAIL" ? "E-mail" : "Telefone (WhatsApp)"}</label>
+              <label className="text-xs font-medium text-tx-2">{metodo === "EMAIL" ? "E-mail" : "Telefone (WhatsApp)"}</label>
               <input
                 value={contato}
                 onChange={(e) => {
@@ -299,15 +299,15 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 }}
                 type={metodo === "EMAIL" ? "email" : "tel"}
                 placeholder={metodo === "EMAIL" ? "nome@exemplo.com" : "(62) 99999-9999"}
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
               />
-              <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">
+              <p className="text-[11px] text-tx-3 mt-1">
                 Não encontrou o contato na busca acima? Pode digitar o {metodo === "EMAIL" ? "e-mail" : "telefone"} direto aqui.
               </p>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Mensagem</label>
+              <label className="text-xs font-medium text-tx-2">Mensagem</label>
               <textarea
                 value={mensagem}
                 onChange={(e) => {
@@ -316,23 +316,23 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 }}
                 rows={5}
                 placeholder="Selecione os documentos ao lado para gerar um texto inicial, ou escreva a sua própria mensagem"
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y"
               />
-              <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">
+              <p className="text-[11px] text-tx-3 mt-1">
                 {metodo === "EMAIL" ? "Vira o corpo do e-mail — revise antes de confirmar." : "Vira o texto da mensagem do WhatsApp — revise antes de confirmar."}
               </p>
             </div>
 
             {selectedAttachments.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
+                <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1.5">
                   Documentos selecionados ({selectedAttachments.length})
                 </p>
-                <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10">
+                <div className="border border-regua rounded-lg divide-y divide-regua">
                   {selectedAttachments.map((a) => (
                     <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                      <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
-                      <button onClick={() => toggle(a.id)} className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 shrink-0">
+                      <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
+                      <button onClick={() => toggle(a.id)} className="p-1 text-tx-3 hover:text-atencao shrink-0">
                         <X size={14} />
                       </button>
                     </div>
@@ -341,33 +341,33 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
               </div>
             )}
 
-            {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400">{error}</p>}
+            {error && <p className="text-xs font-medium text-urgente">{error}</p>}
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1.5">
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1.5">
               {entity.tipo === "CASE" ? "Documentos do processo" : "Documentos da assessoria"}
             </p>
             <div className="relative mb-2">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome"
-                className="w-full text-xs border border-navy-800/12 dark:border-white/15 rounded-lg pl-7 pr-2.5 py-1.5 bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full text-xs border border-regua rounded-lg pl-7 pr-2.5 py-1.5 bg-sf text-tx"
               />
             </div>
-            <div className="border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10 max-h-[50vh] overflow-y-auto scrollbar-thin">
-              {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-navy-800/40 dark:text-cream-50/40">Nenhum documento encontrado.</p>}
+            <div className="border border-regua rounded-lg divide-y divide-regua max-h-[50vh] overflow-y-auto scrollbar-thin">
+              {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-tx-3">Nenhum documento encontrado.</p>}
               {disponiveis.map((a) => {
                 const checked = selected.includes(a.id);
                 const Icon = getDocumentTypeIcon(a.docType);
                 return (
-                  <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100 dark:hover:bg-white/5">
-                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-gold-600 focus:ring-gold-500/40 shrink-0" />
-                    <Icon size={14} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
-                    <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50">{a.name}</span>
-                    <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
+                  <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-sf-apoio">
+                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua text-acao focus:ring-acao/40 shrink-0" />
+                    <Icon size={14} className="text-tx-3 shrink-0" />
+                    <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
+                    <span className="text-[10px] text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
                   </label>
                 );
               })}
@@ -376,14 +376,14 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
         </div>
       </div>
 
-      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-navy-800/8 dark:border-white/10 bg-cream-50/60 dark:bg-white/5">
-        <button onClick={onClose} className="text-sm font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-2">
+      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-regua bg-sf-apoio">
+        <button onClick={onClose} className="text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2">
           Cancelar
         </button>
         <button
           onClick={handleConfirm}
           disabled={loading}
-          className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -425,13 +425,13 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
   }
 
   return (
-    <div className="mt-6 pt-5 border-t border-navy-800/8 dark:border-white/10">
-      <h4 className="font-serif font-bold text-navy-900 dark:text-cream-50">Documentos enviados</h4>
-      <p className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 font-mono mb-3 mt-1">
+    <div className="mt-6 pt-5 border-t border-regua">
+      <h4 className="font-serif font-bold text-tx">Documentos enviados</h4>
+      <p className="text-xs font-semibold text-tx-3 font-mono mb-3 mt-1">
         {envios.length === 0 ? "Nenhum envio registrado ainda" : `${envios.length} envio${envios.length > 1 ? "s" : ""} registrado${envios.length > 1 ? "s" : ""}`}
       </p>
       {envios.length === 0 ? (
-        <p className="text-sm text-navy-800/45 dark:text-cream-50/45 py-2">
+        <p className="text-sm text-tx-2 py-2">
           {entity.tipo === "CASE"
             ? 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos a um cliente, advogado ou fornecedor fora do protocolo judicial/administrativo.'
             : 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos desta empresa a um cliente, advogado ou fornecedor.'}
@@ -439,19 +439,19 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
       ) : (
         <div className="space-y-3">
           {envios.map((envio) => (
-            <div key={envio.id} className="border border-navy-800/10 dark:border-white/10 rounded-lg p-4 bg-white dark:bg-navy-900">
+            <div key={envio.id} className="border border-regua rounded-lg p-4 bg-sf">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0 flex items-center gap-2">
                   {envio.metodo === "EMAIL" ? (
-                    <Mail size={14} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+                    <Mail size={14} className="text-tx-3 shrink-0" />
                   ) : (
-                    <MessageCircle size={14} className="text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+                    <MessageCircle size={14} className="text-tx-3 shrink-0" />
                   )}
                   <div className="min-w-0">
-                    <p className="font-medium text-navy-900 dark:text-cream-50 truncate">
-                      Para {envio.destinatarioNome} <span className="text-navy-800/45 dark:text-cream-50/45 font-normal">({envio.destinatarioContato})</span>
+                    <p className="font-medium text-tx truncate">
+                      Para {envio.destinatarioNome} <span className="text-tx-2 font-normal">({envio.destinatarioContato})</span>
                     </p>
-                    <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 font-mono">
+                    <p className="text-xs text-tx-2 mt-0.5 font-mono">
                       {formatEnviadoEm(envio.enviadoEm)} · {envio.itens.length} documento(s) · {envio.enviadoPor?.name ?? "—"}
                     </p>
                   </div>
@@ -464,7 +464,7 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
                       onClick={() => handleReabrir(envio)}
                       disabled={reabrindoId === envio.id}
                       title="Abrir WhatsApp de novo"
-                      className="flex items-center gap-1 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline px-2 py-1 disabled:opacity-50"
+                      className="flex items-center gap-1 text-[11px] font-semibold text-marca-tx hover:underline px-2 py-1 disabled:opacity-50"
                     >
                       <Send size={11} /> {reabrindoId === envio.id ? "Abrindo..." : "Reabrir"}
                     </button>
@@ -473,23 +473,23 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
                     onClick={() => handleExcluir(envio.id)}
                     disabled={pendingId === envio.id}
                     title="Excluir registro"
-                    className="text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 p-1.5 rounded-lg hover:bg-bordo-50 dark:hover:bg-bordo-950/30 disabled:opacity-50"
+                    className="text-tx-3 hover:text-atencao p-1.5 rounded-lg hover:bg-atencao/10 disabled:opacity-50"
                   >
                     <Trash2 size={13} />
                   </button>
                 </div>
               </div>
 
-              <div className="mt-2 divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/5 dark:border-white/10">
+              <div className="mt-2 divide-y divide-regua border-t border-regua">
                 {envio.itens.map((item) => {
                   const excluido = entity.tipo === "CASE" ? !item.attachmentId : !item.assessoriaDocumentoId;
                   return (
                     <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
-                      <span className="flex-1 min-w-0 truncate text-navy-900 dark:text-cream-50" title={item.nomeSnapshot}>
+                      <span className="flex-1 min-w-0 truncate text-tx" title={item.nomeSnapshot}>
                         {item.nomeSnapshot}
-                        {excluido && <span className="text-[10px] text-bordo-600 dark:text-bordo-400 ml-1.5">(excluído)</span>}
+                        {excluido && <span className="text-[10px] text-atencao ml-1.5">(excluído)</span>}
                       </span>
-                      <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
+                      <span className="text-[10px] text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
                     </div>
                   );
                 })}

@@ -36,7 +36,7 @@ export default function DeleteButton({
         onClick={handleClick}
         disabled={pending}
         data-tip="Excluir"
-        className="p-1.5 rounded-lg text-navy-800/30 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+        className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40"
       >
         <Trash2 size={14} />
       </button>

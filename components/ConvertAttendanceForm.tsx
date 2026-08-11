@@ -29,13 +29,13 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
         <button
           onClick={handleSubmitCaso}
           disabled={pending}
-          className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
         >
           {pending ? "Convertendo..." : "Transformar em Caso"}
         </button>
         <button
           onClick={() => setMode("JUDICIAL")}
-          className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
         >
           Transformar em Processo Judicial
         </button>
@@ -47,19 +47,19 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
     <form action={handleSubmitJudicial} className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número do processo</label>
-          <input name="processNumber" required className="cvt-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" placeholder="0000000-00.2026.8.09.0051" />
+          <label className="text-xs font-medium text-tx-2">Número do processo</label>
+          <input name="processNumber" required className="cvt-input bg-sf border border-regua text-tx" placeholder="0000000-00.2026.8.09.0051" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vara/Comarca</label>
-          <input name="court" className="cvt-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+          <label className="text-xs font-medium text-tx-2">Vara/Comarca</label>
+          <input name="court" className="cvt-input bg-sf border border-regua text-tx" />
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
           {pending ? "Convertendo..." : "Confirmar Processo Judicial"}
         </button>
-        <button type="button" onClick={() => setMode("none")} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+        <button type="button" onClick={() => setMode("none")} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
           Cancelar
         </button>
       </div>

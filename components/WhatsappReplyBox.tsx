@@ -41,13 +41,13 @@ export default function WhatsappReplyBox({ attendanceId }: { attendanceId: strin
           rows={2}
           placeholder="Escreva uma resposta pelo WhatsApp…"
           disabled={isPending}
-          className="flex-1 resize-none rounded-lg border border-navy-800/15 px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500/40 disabled:opacity-60"
+          className="flex-1 resize-none rounded-lg border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={isPending || !body.trim()}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-navy-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-navy-800 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-acao px-4 py-2.5 text-xs font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
         >
           <Send size={13} />
           {isPending ? "Enviando…" : "Enviar"}

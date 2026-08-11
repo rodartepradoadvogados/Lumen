@@ -1,4 +1,4 @@
-import { formatCurrency, formatCalendarDate, Badge } from "@/components/ui";
+import { formatCurrency, formatCalendarDate, Badge, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import { PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS } from "@/lib/honorarioLancamento";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
@@ -32,17 +32,6 @@ type Lancamento = {
   parcelas: Parcela[];
 };
 
-function statusBadgeColor(status: string): "green" | "red" | "amber" | "slate" {
-  if (status === "PAGO") return "green";
-  if (status === "ATRASADO") return "red";
-  if (status === "A_APURAR") return "slate";
-  return "amber";
-}
-
-function statusLabel(status: string): string {
-  return status === "A_APURAR" ? "A apurar" : status;
-}
-
 // Versão mobile (só leitura das parcelas + baixa, sem a edição em massa que
 // components/honorarios/HonorarioLancamentoCard.tsx oferece no desktop — aquele arquivo é
 // exclusivo do outro agente desta fase, então este componente próprio cobre a parte que o pedido
@@ -59,7 +48,7 @@ export default function MobileHonorarioLancamentoGroup({
     <div className="px-4 py-3 border-b border-regua last:border-0">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <p className="text-sm font-semibold text-tx">
-          Honorário parcelado{lancamento.valorTotalIndicado != null && <> — total {formatCurrency(lancamento.valorTotalIndicado)}</>}
+          Honorário parcelado{lancamento.valorTotalIndicado != null && <> — total <span className="tabular-nums">{formatCurrency(lancamento.valorTotalIndicado)}</span></>}
         </p>
         <DeleteEntityButton
           entityType="HONORARIO_LANCAMENTO"
@@ -99,12 +88,12 @@ export default function MobileHonorarioLancamentoGroup({
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                  {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>}
+                  <p className="text-sm font-semibold tabular-nums text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                  {p.status === "PARCIAL" && <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 mt-1.5">
-                <Badge color={statusBadgeColor(p.status)}>{statusLabel(p.status)}</Badge>
+                <Badge color={financeStatusColors[p.status] ?? "slate"}>{financeStatusLabel(p.status)}</Badge>
                 <DeleteEntityButton
                   entityType="RECEIVABLE"
                   entityId={p.id}

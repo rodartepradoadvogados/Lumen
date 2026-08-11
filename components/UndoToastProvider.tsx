@@ -35,19 +35,21 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
     <UndoToastContext.Provider value={{ showUndo }}>
       {children}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-[200] w-72 rounded-xl bg-navy-900 text-cream-50 shadow-pop overflow-hidden animate-fade-in">
+        // Toast flutuante — grafite fixo nos dois temas, de propósito, igual ao rail e ao
+        // botão do assistente: precisa continuar legível sobre qualquer fundo por trás dele.
+        <div className="fixed bottom-5 right-5 z-[200] w-72 rounded-xl bg-grafite-800 text-white shadow-pop overflow-hidden animate-fade-in">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <span className="text-sm">{toast.message}</span>
             <button
               onClick={handleUndo}
-              className="flex items-center gap-1 text-sm font-semibold text-gold-400 hover:text-gold-300 shrink-0"
+              className="flex items-center gap-1 text-sm font-semibold text-marca hover:opacity-80 shrink-0"
             >
               <Undo2 size={14} /> Desfazer
             </button>
           </div>
           <div
             key={toast.id}
-            className="h-1 bg-gold-500"
+            className="h-1 bg-marca"
             style={{ animation: `undoToastShrink ${UNDO_TOAST_DURATION_MS}ms linear forwards` }}
           />
         </div>

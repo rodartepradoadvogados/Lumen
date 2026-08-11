@@ -79,7 +79,7 @@ export default async function MobileAtendimento({
     <div className="p-4 space-y-4 animate-fade-in">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-serif text-xl font-bold text-tx">Atendimento</h1>
+          <h1 className="text-xl font-bold text-tx">Atendimento</h1>
           <p className="text-sm text-tx-2">{attendances.length} registro(s)</p>
         </div>
         <Link

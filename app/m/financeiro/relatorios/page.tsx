@@ -78,7 +78,7 @@ export default async function MobileRelatoriosFinanceiro() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Relatórios · Financeiro</h1>
+        <h1 className="text-xl font-bold text-tx">Relatórios · Financeiro</h1>
         <p className="text-sm text-tx-2">
           {months[0].label} a {months[months.length - 1].label}
         </p>
@@ -103,11 +103,11 @@ export default async function MobileRelatoriosFinanceiro() {
             <div key={m.key} className="px-4 py-3 flex items-center justify-between gap-3">
               <span className="text-sm font-semibold text-tx w-12 shrink-0 capitalize">{m.label}</span>
               <div className="flex-1 text-right leading-tight">
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">+{formatCurrency(m.receita)}</p>
-                <p className="text-xs text-urgente">-{formatCurrency(m.despesa)}</p>
+                <p className="text-xs tabular-nums text-concluido">+{formatCurrency(m.receita)}</p>
+                <p className="text-xs tabular-nums text-urgente">-{formatCurrency(m.despesa)}</p>
               </div>
               <span
-                className={`text-sm font-semibold w-28 text-right shrink-0 ${
+                className={`text-sm font-semibold tabular-nums w-28 text-right shrink-0 ${
                   m.saldo >= 0 ? "text-tx" : "text-urgente"
                 }`}
               >
@@ -127,7 +127,7 @@ export default async function MobileRelatoriosFinanceiro() {
             {topExpenses.map((e) => (
               <div key={e.label} className="px-4 py-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-tx-2 truncate">{e.label}</span>
-                <span className="text-sm font-semibold text-tx shrink-0">{formatCurrency(e.value)}</span>
+                <span className="text-sm font-semibold tabular-nums text-tx shrink-0">{formatCurrency(e.value)}</span>
               </div>
             ))}
           </div>
@@ -149,7 +149,7 @@ function StatBlock({
   tone: "green" | "red" | "gold" | "navy";
 }) {
   const toneClass = {
-    green: "text-emerald-600 dark:text-emerald-400",
+    green: "text-concluido",
     red: "text-urgente",
     gold: "text-concluido",
     navy: "text-tx",
@@ -157,7 +157,7 @@ function StatBlock({
   return (
     <Card className="p-4">
       <p className="text-xs font-medium text-tx-2 uppercase tracking-wide">{label}</p>
-      <p className={`text-2xl font-serif font-bold mt-1 ${toneClass}`}>{value}</p>
+      <p className={`text-2xl font-bold tabular-nums mt-1 ${toneClass}`}>{value}</p>
       {hint && <p className="text-xs text-tx-2 mt-1">{hint}</p>}
     </Card>
   );

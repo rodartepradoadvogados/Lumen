@@ -283,7 +283,7 @@ export default function MobileNewAttendanceForm({
         <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
-          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-lg px-2.5 py-1.5">
             Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o atendimento,
             você ainda pode anexar documentos pelo computador.
           </p>
@@ -338,6 +338,7 @@ export default function MobileNewAttendanceForm({
                       onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                       excludeKeys={["PARECER"]}
                       className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"
+                      allowCreate
                     />
                     <button
                       type="button"
@@ -359,7 +360,7 @@ export default function MobileNewAttendanceForm({
       </div>
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-3 py-2">
+        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-lg px-3 py-2">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>

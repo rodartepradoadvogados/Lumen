@@ -45,19 +45,19 @@ export default function DeletionRequestsPanel({ requests }: { requests: Req[] })
   }
 
   return (
-    <div className="divide-y divide-navy-800/5">
+    <div className="divide-y divide-regua">
       {requests.map((r) => (
         <div key={r.id} className="flex items-center gap-3 px-5 py-3.5">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-navy-800/40 uppercase tracking-wide">{entityLabels[r.entityType] ?? r.entityType}</p>
-            <p className="text-sm font-medium text-navy-900 mt-0.5 truncate">{r.entityLabel}</p>
+            <p className="text-xs font-semibold text-tx-3 uppercase tracking-wide">{entityLabels[r.entityType] ?? r.entityType}</p>
+            <p className="text-sm font-medium text-tx mt-0.5 truncate">{r.entityLabel}</p>
             {r.scope && scopeLabels[r.scope] && (
-              <p className="text-xs font-semibold text-bordo-600 mt-0.5">Escopo: {scopeLabels[r.scope]}</p>
+              <p className="text-xs font-semibold text-atencao mt-0.5">Escopo: {scopeLabels[r.scope]}</p>
             )}
             {r.alsoDeleteLinked && (
-              <p className="text-xs font-semibold text-bordo-600 mt-0.5">Vai excluir também o reembolso/despesa vinculada</p>
+              <p className="text-xs font-semibold text-atencao mt-0.5">Vai excluir também o reembolso/despesa vinculada</p>
             )}
-            <p className="text-xs text-navy-800/45 mt-0.5">Solicitado por {r.requestedBy.name}</p>
+            <p className="text-xs text-tx-2 mt-0.5">Solicitado por {r.requestedBy.name}</p>
           </div>
           <button
             onClick={() => handle(r.id, "approve")}

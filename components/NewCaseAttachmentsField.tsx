@@ -86,7 +86,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
 
   return (
     <div ref={rootRef}>
-      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Anexos (opcional)</label>
+      <label className="text-xs font-medium text-tx-2">Anexos (opcional)</label>
       <input type="hidden" name="stagedAttachments" value={JSON.stringify(payload)} />
 
       {!driveConnected && (
@@ -111,12 +111,12 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
           onClick={() => fileInputRef.current?.click()}
           className={`mt-1 flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
             dragOver
-              ? "border-gold-500 bg-gold-500/5"
-              : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-cream-50 dark:hover:bg-white/5"
+              ? "border-acao bg-acao-bg"
+              : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
           }`}
         >
-          <UploadCloud size={18} className="text-navy-800/40 dark:text-cream-50/40" />
-          <p className="text-xs text-navy-800/60 dark:text-cream-50/60 text-center">
+          <UploadCloud size={18} className="text-tx-3" />
+          <p className="text-xs text-tx-2 text-center">
             Arraste arquivos aqui, ou clique para selecionar — já ficam anexados ao salvar
           </p>
           <input
@@ -137,27 +137,27 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
           {items.map((it) => (
             <div
               key={it.tempId}
-              className="flex items-center gap-2 rounded-lg border border-navy-800/8 dark:border-white/10 bg-cream-50 dark:bg-navy-800 px-2.5 py-1.5"
+              className="flex items-center gap-2 rounded-lg border border-regua bg-sf-apoio px-2.5 py-1.5"
             >
-              <span className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate flex-1" title={it.name}>
+              <span className="text-xs font-medium text-tx truncate flex-1" title={it.name}>
                 {it.name}
               </span>
               {it.uploading ? (
-                <Loader2 size={13} className="animate-spin text-navy-800/40 dark:text-cream-50/40 shrink-0" />
+                <Loader2 size={13} className="animate-spin text-tx-3 shrink-0" />
               ) : it.error ? (
                 <span className="text-[10px] text-red-600 dark:text-red-400 shrink-0">{it.error}</span>
               ) : (
                 <DocumentTypeSelect
                   value={it.docType}
                   onChange={(v) => updateDocType(it.tempId, v)}
-                  className="text-[11px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1.5 py-1 max-w-[170px] shrink-0"
+                  className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[170px] shrink-0"
                   allowCreate
                 />
               )}
               <button
                 type="button"
                 onClick={() => removeItem(it.tempId)}
-                className="p-1 text-navy-800/30 dark:text-cream-50/30 hover:text-red-600 dark:hover:text-red-400 shrink-0"
+                className="p-1 text-tx-3 hover:text-red-600 dark:hover:text-red-400 shrink-0"
               >
                 <X size={13} />
               </button>
@@ -167,7 +167,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
       )}
 
       {anyUploading && (
-        <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">
+        <p className="text-[11px] text-tx-3 mt-1">
           Enviando anexo(s)... o botão de salvar fica bloqueado até terminar, pra nenhum arquivo ficar de fora.
         </p>
       )}

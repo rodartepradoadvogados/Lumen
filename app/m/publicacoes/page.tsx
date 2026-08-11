@@ -15,11 +15,11 @@ export const dynamic = "force-dynamic";
 // a borda nunca aparecia; achado testando ao vivo, corrigido junto com o desktop.
 // DJE = --acao, ESAJ = --aviso, PROJUDI = --tx-2, MANUAL = --vinho (via alias --atencao, é o
 // único lançamento feito por pessoa), JUSBRASIL_EMAIL = --concluido — todos tokens semânticos
-// já existentes. PJE é a única fonte sem token próprio no design system (#2f6fb0 / #93c0f0 no
-// manual, DESIGN-SYSTEM.md §9) — mesmo par cravado usado no desktop.
+// já existentes. PJE tem token próprio (--fonte-pje, DESIGN-SYSTEM.md §9), separado do azul de
+// ação para não se confundir com o filete do DJE — ver `fonte.pje` em tailwind.config.ts.
 const SOURCE_BORDER_COLORS: Record<string, string> = {
   DJE: "border-l-acao",
-  PJE: "border-l-[#2f6fb0] dark:border-l-[#93c0f0]",
+  PJE: "border-l-fonte-pje",
   ESAJ: "border-l-aviso",
   PROJUDI: "border-l-tx-2",
   MANUAL: "border-l-atencao",
@@ -80,7 +80,7 @@ export default async function MobilePublicacoes() {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Publicações</h1>
+        <h1 className="text-xl font-bold text-tx">Publicações</h1>
         <p className="text-sm text-tx-2">{groups.length} não lida(s)</p>
       </div>
 

@@ -92,10 +92,13 @@ const stageLabels: Record<string, string> = {
   FECHADO: "Fechado",
   PERDIDO: "Perdido",
 };
+// Remapeado por significado, não por posição: Novo = neutro (ainda sem opinião), Qualificação =
+// --acao (em andamento), Proposta = --aviso (aguardando decisão do cliente), Fechado =
+// --concluido, Perdido = --urgente (KPI negativo, DESIGN-SYSTEM.md §2).
 const stageColor: Record<string, string> = {
-  NOVO: "var(--aviso)",
+  NOVO: "var(--tx-3)",
   QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--marca)",
+  PROPOSTA: "var(--aviso)",
   FECHADO: "var(--concluido)",
   PERDIDO: "var(--urgente)",
 };
@@ -123,15 +126,16 @@ const caseStatusLabels: Record<string, string> = {
   ENCERRADO: "Encerrado",
   ARQUIVADO: "Arquivado",
 };
+// ARQUIVADO usa o mesmo neutro de ENCERRADO — --urgente é reservado para dado vencido/KPI
+// negativo (DESIGN-SYSTEM.md §2), e arquivar é encerramento deliberado, não isso.
 const caseStatusColor: Record<string, string> = {
   ATIVO: "var(--concluido)",
   SUSPENSO: "var(--aviso)",
-  ENCERRADO: "var(--tx-2)",
-  ARQUIVADO: "var(--urgente)",
+  ENCERRADO: "var(--tx-3)",
+  ARQUIVADO: "var(--tx-3)",
 };
 
 const NAVY = "var(--acao)";
-const GOLD = "var(--marca)";
 
 // ---------- seções (cada uma busca só os dados de que precisa) ----------
 
@@ -197,7 +201,7 @@ async function ProdutividadeSection({ start, end, months, officeId }: { start: D
         </div>
         <div>
           <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
-          <VBars items={monthlyPoints.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={GOLD} />
+          <VBars items={monthlyPoints.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={NAVY} />
         </div>
       </div>
     </Card>
@@ -332,7 +336,7 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
                     display={`${r.value} dias (${r.count})`}
                     value={r.value}
                     max={maxTramitacaoArea}
-                    color={GOLD}
+                    color={NAVY}
                   />
                 ))}
               </div>
@@ -375,7 +379,7 @@ async function FunilSection({ start, end, officeId }: { start: Date; end: Date; 
         <span className="text-xs text-tx-2">
           Conversão:{" "}
           {conversionRate !== null ? (
-            <span className="font-semibold text-emerald-700 dark:text-emerald-400">{conversionRate.toFixed(0)}%</span>
+            <span className="font-semibold text-concluido">{conversionRate.toFixed(0)}%</span>
           ) : (
             <span className="text-tx-3">—</span>
           )}
@@ -473,7 +477,7 @@ async function PublicacoesSection({ start, end, months, officeId }: { start: Dat
             ) : (
               <div className="space-y-3">
                 {lawyerRows.map((r) => (
-                  <HBar key={r.label} label={r.label} display={String(r.value)} value={r.value} max={maxLawyer} color={GOLD} />
+                  <HBar key={r.label} label={r.label} display={String(r.value)} value={r.value} max={maxLawyer} color={NAVY} />
                 ))}
               </div>
             )}
@@ -556,12 +560,15 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
         <div>
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Recebido x Pago por mês (regime de caixa)</p>
+            {/* "Pago" não é --urgente: só dado vencido é vermelho no sistema (DESIGN-SYSTEM.md §2),
+                e despesa paga em dia não é isso — pintá-la de vermelho confundiria com "algo
+                furou". Usa o grafite neutro da escala base; "Recebido" fica em --concluido. */}
             <div className="flex items-center gap-3 text-[11px]">
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Recebido
+                <span className="h-2 w-2 rounded-full bg-concluido" /> Recebido
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-red-500" /> Pago
+                <span className="h-2 w-2 rounded-full bg-tx-3" /> Pago
               </span>
             </div>
           </div>
@@ -569,17 +576,17 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
             {financeMonthly.map((m) => (
               <div key={m.label} className="flex-1 min-w-[52px] flex flex-col items-center">
                 <div className="flex flex-col items-center text-[9px] leading-tight mb-1">
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{compactBRL(m.receita)}</span>
-                  <span className="text-urgente font-semibold">{compactBRL(m.despesa)}</span>
+                  <span className="text-concluido font-semibold">{compactBRL(m.receita)}</span>
+                  <span className="text-tx-3 font-semibold">{compactBRL(m.despesa)}</span>
                 </div>
                 <div className="w-full h-32 flex items-end justify-center gap-1">
                   <div
-                    className="w-1/2 rounded-t-md bg-emerald-500"
+                    className="w-1/2 rounded-t-md bg-concluido"
                     style={{ height: `${(m.receita / maxFinance) * 100}%`, minHeight: m.receita > 0 ? 4 : 0 }}
                     title={`Recebido: ${formatCurrency(m.receita)}`}
                   />
                   <div
-                    className="w-1/2 rounded-t-md bg-red-500"
+                    className="w-1/2 rounded-t-md bg-tx-3"
                     style={{ height: `${(m.despesa / maxFinance) * 100}%`, minHeight: m.despesa > 0 ? 4 : 0 }}
                     title={`Pago: ${formatCurrency(m.despesa)}`}
                   />
@@ -598,7 +605,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
             ) : (
               <div className="space-y-3">
                 {topExpenses.map((e) => (
-                  <HBar key={e.label} label={e.label} display={formatCurrency(e.value)} value={e.value} max={maxExpense} color={GOLD} />
+                  <HBar key={e.label} label={e.label} display={formatCurrency(e.value)} value={e.value} max={maxExpense} color={NAVY} />
                 ))}
               </div>
             )}

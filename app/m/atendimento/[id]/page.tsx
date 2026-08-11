@@ -63,7 +63,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <h1 className="font-serif text-lg font-bold text-tx leading-tight">{a.clientName}</h1>
+          <h1 className="text-lg font-bold text-tx leading-tight">{a.clientName}</h1>
           <p className="text-sm text-tx-2 mt-0.5">{a.subject}</p>
         </div>
         <MobileAttendanceStatusSelect attendanceId={a.id} status={a.status} />

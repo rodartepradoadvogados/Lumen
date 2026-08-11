@@ -38,12 +38,12 @@ export default function ModulesManager({ modules }: { modules: OfficeModules }) 
   }
 
   return (
-    <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+    <div className="divide-y divide-regua">
       {MODULE_LABELS.map(({ key, label, desc }) => (
         <div key={key} className="flex items-center gap-3 px-5 py-3.5">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{label}</p>
-            <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{desc}</p>
+            <p className="text-sm font-medium text-tx">{label}</p>
+            <p className="text-xs text-tx-2">{desc}</p>
           </div>
           <button
             type="button"
@@ -52,7 +52,7 @@ export default function ModulesManager({ modules }: { modules: OfficeModules }) 
             disabled={pending}
             onClick={() => toggle(key)}
             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
-              current[key] ? "bg-emerald-600 dark:bg-emerald-500" : "bg-navy-800/20 dark:bg-white/15"
+              current[key] ? "bg-emerald-600 dark:bg-emerald-500" : "bg-regua-forte"
             }`}
           >
             <span
@@ -64,7 +64,7 @@ export default function ModulesManager({ modules }: { modules: OfficeModules }) 
         </div>
       ))}
       <div className="px-5 py-3 flex items-center gap-2">
-        {error && <span className="text-[11px] text-red-700 dark:text-bordo-400">{error}</span>}
+        {error && <span className="text-[11px] text-urgente">{error}</span>}
         {saved && !pending && !error && (
           <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-[11px]" title="Salvo">
             <Check size={14} /> Salvo

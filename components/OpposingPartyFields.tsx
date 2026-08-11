@@ -59,7 +59,7 @@ export default function OpposingPartyFields({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs font-semibold text-navy-900 dark:text-cream-50 hover:text-gold-700 dark:hover:text-gold-400 transition-colors"
+        className="flex items-center gap-1.5 text-xs font-semibold text-tx hover:text-marca-tx transition-colors"
       >
         <UserPlus size={14} /> Cadastrar parte adversa
       </button>
@@ -69,9 +69,9 @@ export default function OpposingPartyFields({
   return (
     <div className="space-y-3">
       {entries.map((entry, idx) => (
-        <div key={entry.key} className={idx > 0 ? "pt-3 border-t border-navy-800/8 dark:border-white/10" : ""}>
+        <div key={entry.key} className={idx > 0 ? "pt-3 border-t border-regua" : ""}>
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+            <label className="text-xs font-medium text-tx-2">
               {idx === 0 ? "Parte Adversa / Terceiro Interessado" : `Parte ${idx + 1}`}
             </label>
             {entries.length > 1 && (
@@ -79,7 +79,7 @@ export default function OpposingPartyFields({
                 type="button"
                 onClick={() => removeEntry(entry.key)}
                 aria-label="Remover parte"
-                className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400"
+                className="p-1 text-tx-3 hover:text-atencao"
               >
                 <X size={13} />
               </button>
@@ -123,7 +123,7 @@ export default function OpposingPartyFields({
         <button
           type="button"
           onClick={addEntry}
-          className="flex items-center gap-1.5 text-xs font-semibold text-navy-900 dark:text-cream-50 hover:text-gold-700 dark:hover:text-gold-400 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-semibold text-tx hover:text-marca-tx transition-colors"
         >
           <Plus size={14} /> Adicionar outra parte
         </button>
@@ -133,7 +133,7 @@ export default function OpposingPartyFields({
             setOpen(false);
             setEntries([{ key: counter.current++, name: "", document: "", role: "", address: "" }]);
           }}
-          className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+          className="text-[11px] font-semibold text-tx-2 hover:text-tx"
         >
           Remover todas
         </button>

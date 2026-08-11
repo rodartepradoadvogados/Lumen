@@ -78,22 +78,22 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
 
   return (
     <div>
-      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Processos vinculados</label>
+      <label className="text-xs font-medium text-tx-2">Processos vinculados</label>
 
       {links.length > 0 && (
         <div className="mt-1.5 space-y-1.5">
           {links.map((l) => (
-            <div key={l.linkId} className="flex items-center justify-between gap-2 bg-cream-100 dark:bg-white/5 rounded-lg px-3 py-2">
+            <div key={l.linkId} className="flex items-center justify-between gap-2 bg-sf-apoio rounded-lg px-3 py-2">
               <div className="min-w-0">
-                <Link href={`/processos/${l.other.id}`} className="text-xs font-semibold text-navy-900 dark:text-cream-50 hover:underline truncate block">
+                <Link href={`/processos/${l.other.id}`} className="text-xs font-semibold text-tx hover:underline truncate block">
                   {l.other.title}
                 </Link>
-                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                <p className="text-[11px] text-tx-2">
                   {l.other.processNumber && <>{l.other.processNumber} · </>}
                   {roleLabel[l.role]}
                 </p>
               </div>
-              <button type="button" onClick={() => handleRemove(l.linkId)} className="shrink-0 text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400">
+              <button type="button" onClick={() => handleRemove(l.linkId)} className="shrink-0 text-tx-3 hover:text-atencao">
                 <X size={14} />
               </button>
             </div>
@@ -106,12 +106,12 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:underline"
           >
             <Search size={13} /> Vincular a outro processo
           </button>
         ) : (
-          <div className="border border-navy-800/12 dark:border-white/15 rounded-lg p-2.5 space-y-2">
+          <div className="border border-regua rounded-lg p-2.5 space-y-2">
             {!picked ? (
               <>
                 <input
@@ -119,11 +119,11 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar por número ou título do processo..."
-                  className="w-full border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-1.5 text-xs"
+                  className="w-full border border-regua bg-sf text-tx rounded-lg px-3 py-1.5 text-xs"
                 />
-                {searching && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">Buscando...</p>}
+                {searching && <p className="text-[11px] text-tx-2">Buscando...</p>}
                 {!searching && query.trim().length >= 2 && results.length === 0 && (
-                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">Nenhum processo encontrado.</p>
+                  <p className="text-[11px] text-tx-2">Nenhum processo encontrado.</p>
                 )}
                 {results.length > 0 && (
                   <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-1">
@@ -132,25 +132,25 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                         key={r.id}
                         type="button"
                         onClick={() => setPicked({ id: r.id, title: r.title })}
-                        className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+                        className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
                       >
-                        <span className="font-medium text-navy-900 dark:text-cream-50">{r.title}</span>
-                        {r.processNumber && <span className="text-navy-800/45 dark:text-cream-50/45"> — {r.processNumber}</span>}
+                        <span className="font-medium text-tx">{r.title}</span>
+                        {r.processNumber && <span className="text-tx-2"> — {r.processNumber}</span>}
                       </button>
                     ))}
                   </div>
                 )}
-                <button type="button" onClick={() => setSearchOpen(false)} className="text-[11px] text-navy-800/45 dark:text-cream-50/45 hover:underline">
+                <button type="button" onClick={() => setSearchOpen(false)} className="text-[11px] text-tx-2 hover:underline">
                   Cancelar
                 </button>
               </>
             ) : (
               <>
-                <p className="text-xs text-navy-800 dark:text-cream-50">
+                <p className="text-xs text-tx">
                   Vincular a <strong>{picked.title}</strong>
                 </p>
                 <div>
-                  <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60 mb-1">Qual é o principal?</p>
+                  <p className="text-[11px] text-tx-2 mb-1">Qual é o principal?</p>
                   <div className="flex flex-wrap gap-1.5">
                     {(
                       [
@@ -165,8 +165,8 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                         onClick={() => setPrincipal(value)}
                         className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
                           principal === value
-                            ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-                            : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15"
+                            ? "bg-acao text-acao-tx border-acao"
+                            : "bg-sf text-tx-2 border-regua"
                         }`}
                       >
                         {label}
@@ -174,17 +174,17 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                     ))}
                   </div>
                 </div>
-                {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400">{error}</p>}
+                {error && <p className="text-[11px] text-urgente">{error}</p>}
                 <div className="flex gap-2">
                   <button
                     type="button"
                     disabled={saving}
                     onClick={confirmLink}
-                    className="text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                    className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg disabled:opacity-50"
                   >
                     {saving ? "Vinculando..." : "Vincular"}
                   </button>
-                  <button type="button" onClick={() => setPicked(null)} className="text-[11px] text-navy-800/45 dark:text-cream-50/45 hover:underline">
+                  <button type="button" onClick={() => setPicked(null)} className="text-[11px] text-tx-2 hover:underline">
                     Voltar
                   </button>
                 </div>

@@ -88,7 +88,7 @@ export default async function MobileHome() {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">
+        <h1 className="text-xl font-bold text-tx">
           {greeting()}
           {firstName ? `, ${firstName}` : ""}
         </h1>

@@ -60,20 +60,20 @@ export default function ClientPicker({
   return (
     <div className="space-y-3">
       {entries.map((entry, idx) => (
-        <div key={entry.key} className={idx > 0 ? "pt-3 border-t border-navy-800/8 dark:border-white/10" : ""}>
+        <div key={entry.key} className={idx > 0 ? "pt-3 border-t border-regua" : ""}>
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+            <label className="text-xs font-medium text-tx-2">
               {idx === 0 ? "Cliente" : `Cliente ${idx + 1} (litisconsórcio)`}
             </label>
             <div className="flex items-center gap-1.5">
-              <div className="flex gap-1 bg-cream-100 dark:bg-navy-800 rounded-lg p-0.5">
+              <div className="flex gap-1 bg-sf-apoio rounded-lg p-0.5">
                 <button
                   type="button"
                   onClick={() => update(entry.key, { mode: "selecionar" })}
                   className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
                     entry.mode === "selecionar"
-                      ? "bg-white dark:bg-navy-950 shadow-sm text-navy-900 dark:text-cream-50"
-                      : "text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                      ? "bg-sf shadow-sm text-tx"
+                      : "text-tx-2 hover:text-tx"
                   }`}
                 >
                   Selecionar cliente
@@ -83,8 +83,8 @@ export default function ClientPicker({
                   onClick={() => update(entry.key, { mode: "novo" })}
                   className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
                     entry.mode === "novo"
-                      ? "bg-white dark:bg-navy-950 shadow-sm text-navy-900 dark:text-cream-50"
-                      : "text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                      ? "bg-sf shadow-sm text-tx"
+                      : "text-tx-2 hover:text-tx"
                   }`}
                 >
                   Cadastrar novo cliente
@@ -95,7 +95,7 @@ export default function ClientPicker({
                   type="button"
                   onClick={() => removeEntry(entry.key)}
                   aria-label="Remover cliente"
-                  className="p-1 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400"
+                  className="p-1 text-tx-3 hover:text-atencao"
                 >
                   <X size={14} />
                 </button>
@@ -123,7 +123,7 @@ export default function ClientPicker({
 
           {!hideRole && (
             <div className="mt-2">
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Papel do cliente no processo</label>
+              <label className="text-xs font-medium text-tx-2">Papel do cliente no processo</label>
               <select value={entry.role} onChange={(e) => update(entry.key, { role: e.target.value })} className={inputClassName}>
                 <option value="">Não definido</option>
                 {CLIENT_ROLE_OPTIONS.map((r) => (
@@ -151,7 +151,7 @@ export default function ClientPicker({
       <button
         type="button"
         onClick={addEntry}
-        className="flex items-center gap-1.5 text-xs font-semibold text-navy-900 dark:text-cream-50 hover:text-gold-700 dark:hover:text-gold-400 transition-colors"
+        className="flex items-center gap-1.5 text-xs font-semibold text-tx hover:text-marca-tx transition-colors"
       >
         <Plus size={14} /> Adicionar outro cliente (litisconsórcio)
       </button>

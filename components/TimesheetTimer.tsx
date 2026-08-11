@@ -71,7 +71,7 @@ export default function TimesheetTimer({ initialSeconds }: { initialSeconds: num
   }, []);
 
   return (
-    <span title="Tempo desta sessão (reinicia após um período de inatividade)" className="hidden lg:flex items-center gap-1 text-[11px] text-navy-800/40 dark:text-cream-50/40 font-medium tabular-nums">
+    <span title="Tempo desta sessão (reinicia após um período de inatividade)" className="hidden lg:flex items-center gap-1 text-[11px] text-tx-3 font-medium tabular-nums">
       <Clock size={12} /> {formatHMS(seconds)}
     </span>
   );

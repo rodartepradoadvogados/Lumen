@@ -48,7 +48,7 @@ export default async function MobileAcessosPage() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Acessos da Lúmen</h1>
+        <h1 className="text-xl font-bold text-tx">Acessos da Lúmen</h1>
         <p className="text-sm text-tx-2">
           Toda vez que o suporte precisa entrar nos dados do seu escritório, fica registrado aqui.
         </p>
@@ -58,7 +58,7 @@ export default async function MobileAcessosPage() {
         <div className="p-4 flex items-start gap-2.5">
           {totalEntradas === 0 ? (
             <>
-              <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <ShieldCheck size={18} className="text-concluido shrink-0 mt-0.5" />
               <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen <strong>não acessou</strong> os dados do seu escritório nenhuma vez.
               </p>

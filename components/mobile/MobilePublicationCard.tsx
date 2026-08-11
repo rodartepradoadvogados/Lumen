@@ -117,7 +117,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
         </Link>
       )}
       {!pub.caseId && pub.clientId && pub.clientName && (
-        <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">Cliente compatível: {pub.clientName}</p>
+        <p className="text-xs font-medium text-concluido mb-1">Cliente compatível: {pub.clientName}</p>
       )}
 
       {/* Cartão recolhido por padrão — clicar no conteúdo expande INLINE (mesma posição, sem
@@ -245,7 +245,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div className="bg-sf rounded-xl shadow-pop w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
-              <h3 className="font-serif font-bold text-tx">Delegar publicação</h3>
+              <h3 className="font-bold text-tx">Delegar publicação</h3>
               <button onClick={() => setDelegateOpen(false)} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>

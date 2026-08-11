@@ -82,7 +82,7 @@ export default function MobileSettleForm({
   }
 
   return (
-    <div className="w-full rounded-lg border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-400/5 p-3 space-y-2.5">
+    <div className="w-full rounded-lg border border-concluido/25 bg-concluido-bg p-3 space-y-2.5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-tx">Confirmar baixa</p>
         <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Cancelar">
@@ -91,8 +91,8 @@ export default function MobileSettleForm({
       </div>
       {alreadyPaid > 0 && (
         <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-2.5 py-1.5">
-          Já pago: <span className="font-semibold text-tx">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
-          <span className="font-semibold text-tx">{formatCurrency(saldoAtual)}</span>
+          Já pago: <span className="font-semibold text-tx tabular-nums">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
+          <span className="font-semibold text-tx tabular-nums">{formatCurrency(saldoAtual)}</span>
         </p>
       )}
       <form
@@ -137,8 +137,8 @@ export default function MobileSettleForm({
           </div>
         </div>
         {ficaParcial && (
-          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-2.5 py-1.5">
-            Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>.
+          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-2.5 py-1.5">
+            Valor menor que o saldo em aberto — esta conta ficará <strong>Parcial</strong>.
           </p>
         )}
         <div>
@@ -173,7 +173,7 @@ export default function MobileSettleForm({
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2 rounded-lg disabled:opacity-50"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2 rounded-lg disabled:opacity-50"
         >
           {loading ? "Confirmando..." : "Confirmar Baixa"}
         </button>
@@ -182,21 +182,17 @@ export default function MobileSettleForm({
         .mobile-input {
           width: 100%;
           margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
-          color: #14213d;
-          background: white;
+          background-color: var(--sf-superficie);
+          color: var(--tx);
         }
         .mobile-input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
-        }
-        :global(html.dark) .mobile-input {
-          border-color: rgba(255, 255, 255, 0.12);
-          color: #fbfaf7;
-          background: #0b1730;
+          border-color: var(--acao);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
         }
       `}</style>
     </div>

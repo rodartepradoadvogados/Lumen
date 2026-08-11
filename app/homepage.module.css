@@ -1,29 +1,45 @@
 /* Homepage pública do produto "Lúmen" (app/page.tsx).
  *
- * Cor e tipografia vêm dos tokens centrais da marca: as variáveis --lumen-* definidas em
- * app/globals.css (mesmos hex do manual de identidade "Lúmen") e as fontes compartilhadas
- * --font-serif (Cormorant Garamond) / --font-sans (Inter), carregadas uma única vez em
- * app/layout.tsx — nada de paleta ou fonte próprias aqui, pra não duplicar a fonte da
- * verdade. As variáveis abaixo (--ink, --mist, --line...) são só apelidos locais, sempre
- * apontando pros mesmos --lumen-*, pra manter o resto deste arquivo legível.
+ * Tipografia: só Archivo (--font-sans), igual ao produto — carregada uma única vez em
+ * app/layout.tsx e compartilhada por toda a marca Lúmen. Esta página não carrega fonte
+ * própria, e a antiga serifa (Cormorant Garamond) não entra aqui: a licença de "voz
+ * tipográfica própria" do manual v2 vale só para o blog público (app/blog, ver comentário
+ * em app/blog/layout.tsx), não para a landing nem para a Política de Privacidade.
  *
- * Landing é SEMPRE navy (não segue o Dia/Tarde/Noite do portal, ver lib/theme.ts) — é a
- * página de marketing do produto, com identidade fixa, igual ao mockup do manual.
+ * Cor: a landing é SEMPRE grafite escuro (não segue o Manhã/Tarde/Noite do portal, ver
+ * lib/theme.ts) — é a página de marketing do produto, com identidade fixa, igual ao mockup
+ * do manual. Por isso as variáveis abaixo (--ink, --text, --brass, --oxblood...) apontam
+ * direto pra ESCALA BASE do manual v2 (--grafite, --ouro e --vinho, app/globals.css), que
+ * é fixa nos dois temas por definição — não pros tokens semânticos que trocam (--tx, --sf),
+ * que aqui ficariam ilegíveis se o visitante já tiver o tema Noite salvo no navegador (mesma
+ * chave de localStorage do portal logado, "rp-site-theme").
+ *
+ * Duas exceções que SÃO theme-aware de propósito, porque não fazem parte da identidade fixa:
+ *   - Os botões primários (.navCta, .btnPrimary, .loginSubmit, .modalBtnPrimary) usam
+ *     --acao/--acao-tx/--acao-hover do produto — o par sempre tem contraste correto sozinho,
+ *     nos dois temas, porque fundo e texto trocam juntos.
+ *   - O modal de "esqueci minha senha" (.modalCard e filhos) usa --sf-superficie/--tx/--acao
+ *     do produto — é um overlay comum, não faz parte do banner fixo, então segue o tema como
+ *     qualquer modal do resto do sistema.
+ * Em todo o resto — texto sobre foto, chips de categoria do blog, o link "Ver todas as
+ * matérias" — --acao especificamente NÃO é seguro: no tema Manhã ele é azul ESCURO, que some
+ * contra o grafite fixo desta página. Por isso esses pontos ficam em vinho/branco (ambos
+ * claros nos dois temas) — ver os comentários pontuais mais abaixo, junto de cada um.
  */
 
 .page {
-  --ink: var(--lumen-navy);
-  --ink-2: var(--lumen-navy-2);
-  --ink-3: var(--lumen-navy-3);
-  --text: var(--lumen-paper);
-  --mist: rgba(244, 239, 228, 0.72);
-  --mist-dim: rgba(244, 239, 228, 0.5);
-  --brass: var(--lumen-gold);
-  --brass-soft: var(--lumen-gold-lt);
-  --oxblood: var(--lumen-bordo);
-  --oxblood-soft: var(--lumen-bordo-lt);
-  --line: rgba(244, 239, 228, 0.14);
-  --on-photo-ink: #1a1410;
+  --ink: var(--grafite-800);
+  --ink-2: var(--grafite-700);
+  --ink-3: var(--grafite-500);
+  --ink-deep: var(--grafite-900); /* base dos gradientes/véus escuros sobre foto */
+  --text: white; /* texto sobre o grafite fixo — nunca --tx, que troca de tema */
+  --mist: color-mix(in srgb, white 72%, transparent);
+  --mist-dim: color-mix(in srgb, white 50%, transparent);
+  --brass: var(--ouro-700);
+  --brass-soft: var(--ouro-500);
+  --oxblood: var(--vinho-700);
+  --oxblood-soft: var(--vinho-500);
+  --line: color-mix(in srgb, white 14%, transparent);
 
   background: var(--ink);
   color: var(--text);
@@ -38,7 +54,7 @@
 .page :global(h1),
 .page :global(h2),
 .page :global(h3) {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   text-wrap: balance;
   margin: 0;
@@ -75,7 +91,11 @@
   top: 0;
   z-index: 40;
   backdrop-filter: blur(10px);
-  background: linear-gradient(to bottom, rgba(10, 17, 40, 0.78), rgba(10, 17, 40, 0.4));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ink-deep) 78%, transparent),
+    color-mix(in srgb, var(--ink-deep) 40%, transparent)
+  );
   border-bottom: 1px solid var(--line);
 }
 .nav .navInner {
@@ -90,7 +110,7 @@
   gap: 0.7rem;
 }
 .wordmark {
-  font-family: var(--font-serif), serif;
+  font-family: var(--font-sans);
   font-weight: 500;
   font-size: 1.02rem;
   color: var(--text);
@@ -104,7 +124,7 @@
 .navLinkPlain {
   font-size: 0.86rem;
   font-weight: 500;
-  color: #f3ecdd;
+  color: var(--text);
   opacity: 0.82;
   transition: opacity 0.2s ease;
 }
@@ -116,8 +136,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--brass);
-  color: var(--on-photo-ink);
+  background: var(--acao);
+  color: var(--acao-tx);
   font-weight: 600;
   font-size: 0.82rem;
   padding: 0.55rem 1.1rem;
@@ -127,7 +147,7 @@
 }
 .navCta:hover,
 .navCta:focus-visible {
-  background: var(--brass-soft);
+  background: var(--acao-hover);
   transform: translateY(-1px);
 }
 /* Em telas estreitas, os links de texto (Blog/Funcionalidades/Entrar) somem — o quadro de
@@ -146,7 +166,7 @@
   min-height: 92svh;
   display: flex;
   align-items: flex-end;
-  background: var(--lumen-navy);
+  background: var(--ink);
 }
 .heroImageWrap {
   position: absolute;
@@ -164,10 +184,10 @@
   z-index: 2;
   background: linear-gradient(
     to top,
-    rgba(10, 17, 40, 0.95) 4%,
-    rgba(10, 17, 40, 0.62) 42%,
-    rgba(10, 17, 40, 0.3) 68%,
-    rgba(10, 17, 40, 0.5) 100%
+    color-mix(in srgb, var(--ink-deep) 95%, transparent) 4%,
+    color-mix(in srgb, var(--ink-deep) 62%, transparent) 42%,
+    color-mix(in srgb, var(--ink-deep) 30%, transparent) 68%,
+    color-mix(in srgb, var(--ink-deep) 50%, transparent) 100%
   );
 }
 
@@ -197,12 +217,12 @@
   width: 22px;
   height: 3px;
   border-radius: 999px;
-  background: rgba(243, 236, 221, 0.35);
+  background: color-mix(in srgb, white 35%, transparent);
   transition: background 0.2s ease;
   cursor: pointer;
 }
 .heroDot:hover {
-  background: rgba(243, 236, 221, 0.6);
+  background: color-mix(in srgb, white 60%, transparent);
 }
 .heroDotActive {
   background: var(--brass);
@@ -214,7 +234,7 @@
   max-width: 1180px;
   margin: 0 auto;
   width: 100%;
-  color: #f3ecdd;
+  color: var(--text);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 .heroContent .eyebrow {
@@ -227,7 +247,7 @@
   font-size: clamp(2.5rem, 5.4vw, 4.3rem);
   line-height: 1.08;
   max-width: 17ch;
-  color: #f6f1e4;
+  color: var(--text);
 }
 .heroTitle em {
   color: var(--brass-soft);
@@ -237,7 +257,7 @@
   margin-top: 1.4rem;
   max-width: 48ch;
   font-size: 1.08rem;
-  color: rgba(243, 236, 221, 0.88);
+  color: color-mix(in srgb, white 88%, transparent);
 }
 .heroCtas {
   margin-top: 2.2rem;
@@ -259,21 +279,21 @@
   cursor: pointer;
 }
 .btnPrimary {
-  background: var(--brass);
-  color: var(--on-photo-ink);
+  background: var(--acao);
+  color: var(--acao-tx);
 }
 .btnPrimary:hover,
 .btnPrimary:focus-visible {
-  background: var(--brass-soft);
+  background: var(--acao-hover);
   transform: translateY(-2px);
 }
 .btnGhost {
-  border-color: rgba(243, 236, 221, 0.4);
-  color: #f3ecdd;
+  border-color: color-mix(in srgb, white 40%, transparent);
+  color: var(--text);
 }
 .btnGhost:hover,
 .btnGhost:focus-visible {
-  border-color: #f3ecdd;
+  border-color: var(--text);
   transform: translateY(-2px);
 }
 .scrollCue {
@@ -282,7 +302,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
-  color: rgba(243, 236, 221, 0.55);
+  color: color-mix(in srgb, white 55%, transparent);
   font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -294,7 +314,7 @@
 .scrollCueLine {
   width: 1px;
   height: 26px;
-  background: rgba(243, 236, 221, 0.4);
+  background: color-mix(in srgb, white 40%, transparent);
   animation: scrollpulse 2.2s ease-in-out infinite;
 }
 @keyframes scrollpulse {
@@ -325,9 +345,9 @@
   width: min(300px, calc(100vw - 2.5rem));
   padding: 1.25rem;
   border-radius: 1rem;
-  background: rgba(11, 17, 32, 0.78);
+  background: color-mix(in srgb, var(--ink-deep) 78%, transparent);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(239, 231, 216, 0.16);
+  border: 1px solid color-mix(in srgb, white 16%, transparent);
   border-top: 2px solid var(--oxblood-soft);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
@@ -352,12 +372,12 @@
   font-size: 0.85rem;
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
-  border: 1px solid rgba(239, 231, 216, 0.2);
+  border: 1px solid color-mix(in srgb, white 20%, transparent);
   background: rgba(0, 0, 0, 0.25);
-  color: #f3ecdd;
+  color: var(--text);
 }
 .loginInput::placeholder {
-  color: rgba(243, 236, 221, 0.4);
+  color: color-mix(in srgb, white 40%, transparent);
 }
 .loginInput:focus {
   outline: none;
@@ -365,7 +385,7 @@
 }
 .loginError {
   font-size: 0.78rem;
-  color: #f0b9c1;
+  color: var(--vinho-300);
 }
 .loginSubmit {
   margin-top: 0.2rem;
@@ -374,13 +394,13 @@
   font-size: 0.85rem;
   padding: 0.55rem;
   border-radius: 8px;
-  background: var(--brass);
-  color: var(--on-photo-ink);
+  background: var(--acao);
+  color: var(--acao-tx);
   transition: background 0.2s ease;
 }
 .loginSubmit:hover,
 .loginSubmit:focus-visible {
-  background: var(--brass-soft);
+  background: var(--acao-hover);
 }
 .loginSubmit:disabled {
   opacity: 0.6;
@@ -399,7 +419,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: rgba(243, 236, 221, 0.5);
+  color: color-mix(in srgb, white 50%, transparent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -413,7 +433,7 @@
   align-self: flex-end;
   font-family: var(--font-sans), sans-serif;
   font-size: 0.75rem;
-  color: rgba(243, 236, 221, 0.55);
+  color: color-mix(in srgb, white 55%, transparent);
   text-decoration: underline;
   background: none;
   border: none;
@@ -426,10 +446,13 @@
   color: var(--brass-soft);
 }
 
+/* O modal ("esqueci minha senha") não é parte do banner fixo — é um overlay comum, então,
+   diferente do resto desta página, segue o tema Manhã/Noite do portal como qualquer modal do
+   produto: --sf-superficie/--tx/--acao trocam juntos e o par sempre tem contraste correto. */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 12, 24, 0.6);
+  background: color-mix(in srgb, var(--ink-deep) 60%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -437,8 +460,8 @@
   padding: 1rem;
 }
 .modalCard {
-  background: #fdfaf3;
-  color: #14213d;
+  background: var(--sf-superficie);
+  color: var(--tx);
   border-radius: 1rem;
   padding: 1.5rem;
   width: min(360px, 100%);
@@ -452,7 +475,7 @@
 }
 .modalText {
   font-size: 0.85rem;
-  color: rgba(20, 33, 61, 0.7);
+  color: var(--tx-2);
   margin-bottom: 1rem;
   line-height: 1.4;
 }
@@ -462,14 +485,14 @@
   font-size: 0.85rem;
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
-  border: 1px solid rgba(20, 33, 61, 0.18);
-  background: #fff;
-  color: #14213d;
+  border: 1px solid var(--regua-forte);
+  background: var(--sf-superficie);
+  color: var(--tx);
   margin-bottom: 0.75rem;
 }
 .modalInput:focus {
   outline: none;
-  border-color: var(--brass);
+  border-color: var(--acao);
 }
 .modalActions {
   display: flex;
@@ -483,13 +506,13 @@
   font-size: 0.85rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  background: var(--brass);
-  color: var(--on-photo-ink);
+  background: var(--acao);
+  color: var(--acao-tx);
   transition: background 0.2s ease;
 }
 .modalBtnPrimary:hover,
 .modalBtnPrimary:focus-visible {
-  background: var(--brass-soft);
+  background: var(--acao-hover);
 }
 .modalBtnPrimary:disabled {
   opacity: 0.6;
@@ -502,11 +525,11 @@
   padding: 0.5rem 1rem;
   border-radius: 8px;
   background: transparent;
-  color: rgba(20, 33, 61, 0.6);
-  border: 1px solid rgba(20, 33, 61, 0.18);
+  color: var(--tx);
+  border: 1px solid var(--regua);
 }
 .modalBtnSecondary:hover {
-  background: rgba(20, 33, 61, 0.05);
+  background: var(--sf-apoio);
 }
 /* Abaixo de ~860px (tablet/celular): o hero deixa de ser uma área fixa de 92svh com tudo
    sobreposto — vira uma altura de foto fixa (heroPhotoHeight) mais o card de login normal,
@@ -630,13 +653,18 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(10, 17, 40, 0.95), rgba(10, 17, 40, 0.42) 55%, rgba(10, 17, 40, 0.12) 85%);
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--ink-deep) 95%, transparent),
+    color-mix(in srgb, var(--ink-deep) 42%, transparent) 55%,
+    color-mix(in srgb, var(--ink-deep) 12%, transparent) 85%
+  );
 }
 .cardBody {
   position: relative;
   z-index: 2;
   padding: 2rem clamp(1.5rem, 3vw, 2.25rem);
-  color: #f3ecdd;
+  color: var(--text);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .tagRow {
@@ -646,6 +674,11 @@
   margin-bottom: 0.9rem;
   flex-wrap: wrap;
 }
+/* Badge de área do post: chip NEUTRO, não ouro — ouro é só marca/seção ativa
+   (DESIGN-SYSTEM.md §16, "proibido"). Aqui em branco translúcido, não em --sf-apoio/--tx-2
+   do produto: aqueles trocam de tema e sumiriam contra o grafite fixo desta página (ver nota
+   no topo do arquivo) — branco translúcido é o equivalente "neutro" que funciona nos dois
+   temas de um fundo que não troca. */
 .tag {
   font-size: 0.68rem;
   font-weight: 600;
@@ -653,50 +686,50 @@
   text-transform: uppercase;
   padding: 0.3rem 0.6rem;
   border-radius: 2px;
-  background: rgba(140, 49, 64, 0.28);
-  color: #f0b9c1;
-  border: 1px solid rgba(140, 49, 64, 0.5);
+  background: color-mix(in srgb, white 14%, transparent);
+  color: color-mix(in srgb, white 85%, transparent);
+  border: 1px solid color-mix(in srgb, white 26%, transparent);
 }
+/* Badge de tipo (Notícia/Análise): o único que "precisa se destacar" (mesma regra de badge).
+   Nem ouro (proibido) nem --acao servem de destaque aqui — --acao no tema Manhã é azul
+   ESCURO, que também some contra o grafite fixo. Vinho é marca (não dado) e continua claro
+   nos dois temas, por isso é o que sobra — mesmo raciocínio da fonte MANUAL em Publicações
+   (DESIGN-SYSTEM.md §9) e do link "Ver todas as matérias" logo abaixo (.linkArrow). */
 .tagType {
-  background: rgba(194, 144, 63, 0.2);
-  color: var(--brass-soft);
-  border-color: rgba(194, 144, 63, 0.45);
-}
-/* Dentro do card em destaque (foto + gradiente), usa o dourado de base — mais contraste
-   contra a foto do que o --brass-soft usado no .tagType "solto" (fundo --ink-2 liso). */
-.cardBody .tagType {
-  color: var(--brass);
+  background: color-mix(in srgb, var(--vinho-500) 22%, transparent);
+  color: var(--vinho-300);
+  border: 1px solid color-mix(in srgb, var(--vinho-500) 45%, transparent);
 }
 .articleFeaturedTitle {
   font-size: clamp(1.35rem, 2.6vw, 1.7rem);
   max-width: 26ch;
-  color: #f6f1e4;
+  color: var(--text);
 }
 .dek {
   margin-top: 0.7rem;
   max-width: 44ch;
   font-size: 0.95rem;
-  color: rgba(243, 236, 221, 0.78);
+  color: color-mix(in srgb, white 78%, transparent);
   text-align: justify;
   hyphens: auto;
 }
 .sourcesLine {
   margin-top: 1rem;
   font-size: 0.78rem;
-  color: rgba(243, 236, 221, 0.55);
+  color: color-mix(in srgb, white 55%, transparent);
   display: flex;
   gap: 0.4rem;
   align-items: center;
   flex-wrap: wrap;
 }
 .sourcesLine b {
-  color: rgba(243, 236, 221, 0.8);
+  color: color-mix(in srgb, white 80%, transparent);
   font-weight: 600;
 }
 .src {
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-decoration-color: rgba(201, 106, 128, 0.55);
+  text-decoration-color: color-mix(in srgb, var(--vinho-500) 55%, transparent);
 }
 
 .sideCol {
@@ -737,7 +770,7 @@
   color: var(--mist);
 }
 .articleRow .src {
-  text-decoration-color: rgba(201, 106, 128, 0.45);
+  text-decoration-color: color-mix(in srgb, var(--vinho-500) 45%, transparent);
 }
 .emptyReading {
   border: 1px dashed var(--line);
@@ -760,6 +793,9 @@
 }
 .linkArrow {
   font-weight: 600;
+  /* Não é --acao: no tema Manhã --acao é azul escuro, que some sobre o grafite fixo desta
+     página (landing é sempre navy, ver nota no topo do arquivo) — mesmo problema do
+     .tagType acima. Vinho fica claro nos dois temas. */
   color: var(--oxblood-soft);
   display: inline-flex;
   align-items: center;
@@ -812,7 +848,7 @@
   transform: translateY(-3px);
 }
 .featureCard h3 {
-  font-family: var(--font-serif), serif;
+  font-family: var(--font-sans);
   font-weight: 500;
   font-size: 1.05rem;
   margin-bottom: 0.6rem;
@@ -844,7 +880,7 @@
   top: 6rem;
 }
 .valuePhotoCaption {
-  font-family: var(--font-serif), serif;
+  font-family: var(--font-sans);
   font-style: italic;
   font-size: 0.85rem;
   color: var(--mist);
@@ -892,7 +928,7 @@
 .footer {
   position: relative;
   padding: clamp(4.5rem, 8vw, 7rem) 0 2.25rem;
-  color: #efe7d8;
+  color: var(--text);
 }
 .footerBgPhoto {
   position: absolute;
@@ -906,7 +942,11 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10, 17, 40, 0.9), rgba(10, 17, 40, 0.95));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ink-deep) 90%, transparent),
+    color-mix(in srgb, var(--ink-deep) 95%, transparent)
+  );
 }
 .footerWrap {
   position: relative;
@@ -919,7 +959,7 @@
   gap: 2.5rem;
   flex-wrap: wrap;
   padding-bottom: clamp(2.5rem, 5vw, 3.5rem);
-  border-bottom: 1px solid rgba(239, 231, 216, 0.16);
+  border-bottom: 1px solid color-mix(in srgb, white 16%, transparent);
 }
 .footerLede {
   border-left: 2px solid var(--oxblood-soft);
@@ -928,11 +968,11 @@
 .footerLede h2 {
   font-size: clamp(1.7rem, 3vw, 2.3rem);
   max-width: 18ch;
-  color: #f6f1e4;
+  color: var(--text);
 }
 .footerLede p {
   margin-top: 0.9rem;
-  color: rgba(239, 231, 216, 0.68);
+  color: color-mix(in srgb, white 68%, transparent);
   max-width: 40ch;
 }
 .footerBrand {
@@ -942,9 +982,9 @@
   margin-bottom: 1.6rem;
 }
 .footerBrand .wordmark {
-  font-family: var(--font-serif), serif;
+  font-family: var(--font-sans);
   font-size: 0.98rem;
-  color: #f3ecdd;
+  color: var(--text);
 }
 .footerCols {
   display: flex;
@@ -966,7 +1006,7 @@
 .footerCol a,
 .footerCol span {
   font-size: 0.92rem;
-  color: rgba(239, 231, 216, 0.78);
+  color: color-mix(in srgb, white 78%, transparent);
 }
 .footerCol a:hover {
   color: var(--brass-soft);
@@ -978,5 +1018,5 @@
   flex-wrap: wrap;
   padding-top: 1.75rem;
   font-size: 0.78rem;
-  color: rgba(239, 231, 216, 0.45);
+  color: color-mix(in srgb, white 45%, transparent);
 }

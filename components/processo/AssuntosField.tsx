@@ -23,8 +23,8 @@ export default function AssuntosField({ defaultValue = [], inputClassName }: { d
   return (
     <div>
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Assuntos</label>
-        <button type="button" onClick={() => setOpen(true)} className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline">
+        <label className="text-xs font-medium text-tx-2">Assuntos</label>
+        <button type="button" onClick={() => setOpen(true)} className="text-xs font-semibold text-marca-tx hover:underline">
           Ver exemplos
         </button>
       </div>
@@ -34,31 +34,31 @@ export default function AssuntosField({ defaultValue = [], inputClassName }: { d
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-[70] bg-navy-950/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[70] bg-grafite-900/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-sm bg-white dark:bg-navy-950 rounded-xl border border-navy-800/10 dark:border-white/15 shadow-pop overflow-hidden flex flex-col max-h-[80vh]"
+            className="w-full max-w-sm bg-sf rounded-xl border border-regua shadow-pop overflow-hidden flex flex-col max-h-[80vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-regua">
               <div>
-                <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Assuntos por matéria</h3>
-                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">Só um guia — clique num item para preencher</p>
+                <h3 className="font-serif font-bold text-tx text-sm">Assuntos por matéria</h3>
+                <p className="text-[11px] text-tx-2">Só um guia — clique num item para preencher</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+              <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx">
                 <X size={16} />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-3 space-y-3">
               {ASSUNTOS_CATALOG.map((entry) => (
                 <div key={entry.materia}>
-                  <p className="text-xs font-semibold text-gold-700 dark:text-gold-400 mb-1">{entry.materia}</p>
+                  <p className="text-xs font-semibold text-marca-tx mb-1">{entry.materia}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {entry.assuntos.map((assunto) => (
                       <button
                         key={assunto}
                         type="button"
                         onClick={() => applyExample(assunto)}
-                        className="text-xs px-2.5 py-1 rounded-full border border-navy-800/12 dark:border-white/15 text-navy-800/70 dark:text-cream-50/70 hover:bg-cream-100 dark:hover:bg-white/5"
+                        className="text-xs px-2.5 py-1 rounded-full border border-regua text-tx-2 hover:bg-sf-apoio"
                       >
                         {assunto}
                       </button>

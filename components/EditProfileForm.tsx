@@ -75,7 +75,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
       <div className="flex items-center gap-4">
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="relative h-20 w-20 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-xl font-serif font-bold shrink-0 cursor-pointer overflow-hidden group"
+          className="relative h-20 w-20 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xl font-serif font-bold shrink-0 cursor-pointer overflow-hidden group"
         >
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -92,11 +92,11 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-900 dark:hover:text-gold-300 disabled:opacity-50"
+            className="text-xs font-semibold text-marca-tx hover:text-marca-tx disabled:opacity-50"
           >
             {uploading ? "Enviando..." : "Trocar foto"}
           </button>
-          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">Aparece no lugar das iniciais em todo o sistema.</p>
+          <p className="text-[11px] text-tx-2 mt-0.5">Aparece no lugar das iniciais em todo o sistema.</p>
         </div>
         <input
           ref={fileInputRef}
@@ -124,15 +124,15 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nome</label>
+          <label className="text-xs font-medium text-tx-2">Nome</label>
           <input name="name" defaultValue={profile.name} required className="profile-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data de nascimento</label>
+          <label className="text-xs font-medium text-tx-2">Data de nascimento</label>
           <input name="birthDate" type="date" defaultValue={profile.birthDate ?? ""} className="profile-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Gênero</label>
+          <label className="text-xs font-medium text-tx-2">Gênero</label>
           <select name="gender" defaultValue={profile.gender ?? ""} className="profile-input w-full">
             <option value="">Não informado</option>
             {GENDER_OPTIONS.map((g) => (
@@ -141,7 +141,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estado civil</label>
+          <label className="text-xs font-medium text-tx-2">Estado civil</label>
           <select name="maritalStatus" defaultValue={profile.maritalStatus ?? ""} className="profile-input w-full">
             <option value="">Não informado</option>
             {MARITAL_OPTIONS.map((m) => (
@@ -150,27 +150,27 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF</label>
+          <label className="text-xs font-medium text-tx-2">CPF</label>
           <MaskedInput name="cpf" mask={maskCPF} defaultValue={profile.cpf ?? ""} placeholder="000.000.000-00" className="profile-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">RG</label>
+          <label className="text-xs font-medium text-tx-2">RG</label>
           <input name="rg" defaultValue={profile.rg ?? ""} className="profile-input w-full" />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço completo</label>
+          <label className="text-xs font-medium text-tx-2">Endereço completo</label>
           <input name="address" defaultValue={profile.address ?? ""} placeholder="Rua, número, complemento, bairro" className="profile-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CEP</label>
+          <label className="text-xs font-medium text-tx-2">CEP</label>
           <MaskedInput name="cep" mask={maskCEP} defaultValue={profile.cep ?? ""} placeholder="00000-000" className="profile-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cidade</label>
+          <label className="text-xs font-medium text-tx-2">Cidade</label>
           <input name="city" defaultValue={profile.city ?? ""} className="profile-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estado</label>
+          <label className="text-xs font-medium text-tx-2">Estado</label>
           <select name="state" defaultValue={profile.state ?? ""} className="profile-input w-full">
             <option value="">Selecione</option>
             {UFS.map((uf) => (
@@ -180,10 +180,10 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         </div>
       </div>
 
-      {error && <p className="text-[11px] text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-2.5 py-1.5">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-2.5 py-1.5">{error}</p>}
       {success && <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-2.5 py-1.5">Perfil atualizado com sucesso.</p>}
 
-      <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50">
+      <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50">
         {pending ? "Salvando..." : "Salvar alterações"}
       </button>
 

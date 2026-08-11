@@ -36,24 +36,24 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
   return (
     <div className="space-y-3">
       {anotacoes.map((a) => (
-        <div key={a.id} className="rounded-xl border border-navy-800/10 dark:border-white/10 bg-white dark:bg-navy-900 p-4">
+        <div key={a.id} className="rounded-xl border border-regua bg-sf p-4">
           <div className="flex items-start justify-between gap-2 mb-2">
-            <span className="text-[11px] font-semibold text-gold-700 dark:text-gold-400">Consignada em {formatCalendarDate(a.referenceDate)}</span>
+            <span className="text-[11px] font-semibold text-marca-tx">Consignada em {formatCalendarDate(a.referenceDate)}</span>
             <button
               type="button"
               onClick={() => handleDelete(a.id)}
               disabled={pending}
               data-tip="Excluir"
-              className="p-1 rounded text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10 transition-colors disabled:opacity-40"
+              className="p-1 rounded text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40"
             >
               <Trash2 size={13} />
             </button>
           </div>
           <div
-            className="anotacao-content text-sm text-navy-800 dark:text-cream-50/85 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1"
+            className="anotacao-content text-sm text-tx/85 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1"
             dangerouslySetInnerHTML={{ __html: a.content }}
           />
-          <p className="mt-2 text-[10px] text-navy-800/35 dark:text-cream-50/35">Criada em {formatDate(a.createdAt)}</p>
+          <p className="mt-2 text-[10px] text-tx-3">Criada em {formatDate(a.createdAt)}</p>
         </div>
       ))}
     </div>

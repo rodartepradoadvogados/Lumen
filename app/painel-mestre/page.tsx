@@ -90,9 +90,11 @@ export default async function CockpitPage() {
           ))}
         </div>
         <div className="px-5 py-3 border-t border-white/10">
+          {/* Link de navegação — não é marca, é ação (DESIGN-SYSTEM.md §4: "Ver tudo →" é o
+              exemplo textual do botão terciário/link, que usa --acao). */}
           <Link
             href="/painel-mestre/escritorios"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-marca-tx hover:underline"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:underline"
           >
             Ver todos <ArrowRight size={12} />
           </Link>

@@ -23,15 +23,15 @@ type Holiday = {
 function Fields({ defaults }: { defaults?: Partial<Holiday> }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-      <input name="date" type="date" defaultValue={defaults?.date ?? ""} required className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+      <input name="date" type="date" defaultValue={defaults?.date ?? ""} required className="cfg-input bg-sf border border-regua text-tx" />
       <input
         name="name"
         defaultValue={defaults?.name ?? ""}
         required
         placeholder="Nome do feriado"
-        className="cfg-input sm:col-span-2 dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+        className="cfg-input sm:col-span-2 bg-sf border border-regua text-tx placeholder:text-tx-3"
       />
-      <select name="scope" defaultValue={defaults?.scope ?? "FORENSE"} className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50">
+      <select name="scope" defaultValue={defaults?.scope ?? "FORENSE"} className="cfg-input bg-sf border border-regua text-tx">
         {Object.entries(SCOPE_LABELS).map(([value, label]) => (
           <option key={value} value={value}>
             {label}
@@ -77,14 +77,14 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
 
   if (editing) {
     return (
-      <form action={handleSave} className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
+      <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <Fields defaults={holiday} />
-        {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
             Cancelar
           </button>
         </div>
@@ -94,18 +94,18 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
 
   return (
     <div className="flex items-center gap-3 px-5 py-3">
-      <span className="text-xs font-mono text-navy-800/50 dark:text-cream-50/50 w-24 shrink-0">{formatCalendarDate(holiday.date)}</span>
-      <p className="text-sm text-navy-900 dark:text-cream-50 flex-1 min-w-0 truncate">{holiday.name}</p>
-      <span className="text-[11px] font-semibold text-navy-800/45 dark:text-cream-50/45 shrink-0">{SCOPE_LABELS[holiday.scope] ?? holiday.scope}</span>
+      <span className="text-xs font-mono text-tx-2 w-24 shrink-0">{formatCalendarDate(holiday.date)}</span>
+      <p className="text-sm text-tx flex-1 min-w-0 truncate">{holiday.name}</p>
+      <span className="text-[11px] font-semibold text-tx-2 shrink-0">{SCOPE_LABELS[holiday.scope] ?? holiday.scope}</span>
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10">
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio">
           <Pencil size={14} />
         </button>
-        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-50 dark:hover:bg-bordo-400/10 disabled:opacity-40">
+        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-atencao/10 disabled:opacity-40">
           <Trash2 size={14} />
         </button>
       </div>
-      {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400">{error}</p>}
+      {error && <p className="text-[11px] text-urgente">{error}</p>}
     </div>
   );
 }
@@ -138,48 +138,48 @@ export default function HolidaysManager({ holidays }: { holidays: Holiday[] }) {
 
   return (
     <div>
-      <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+      <div className="divide-y divide-regua">
         {holidays.length === 0 && !adding && (
-          <p className="px-5 py-4 text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum feriado local cadastrado ainda.</p>
+          <p className="px-5 py-4 text-sm text-tx-3">Nenhum feriado local cadastrado ainda.</p>
         )}
         {[...holidays].sort((a, b) => a.date.localeCompare(b.date)).map((h) => (
           <HolidayRow key={h.id} holiday={h} />
         ))}
       </div>
       {adding ? (
-        <form action={handleCreate} className="p-5 space-y-2 border-t border-navy-800/8 dark:border-white/10 bg-cream-50 dark:bg-navy-800">
+        <form action={handleCreate} className="p-5 space-y-2 border-t border-regua bg-sf-apoio">
           <Fields />
-          {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
             </button>
-            <button type="button" onClick={() => setAdding(false)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+            <button type="button" onClick={() => setAdding(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
               Cancelar
             </button>
           </div>
         </form>
       ) : (
-        <div className="p-5 border-t border-navy-800/8 dark:border-white/10">
-          <button onClick={() => setAdding(true)} className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+        <div className="p-5 border-t border-regua">
+          <button onClick={() => setAdding(true)} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
             Novo feriado local
           </button>
         </div>
       )}
 
-      <div className="border-t border-navy-800/8 dark:border-white/10 px-5 py-4">
-        <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1">
+      <div className="border-t border-regua px-5 py-4">
+        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">
           Feriados nacionais de {anoAtual} (calculados automaticamente — não cadastre aqui)
         </p>
-        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mb-3">
+        <p className="text-[11px] text-tx-2 mb-3">
           Fixos por lei/calendário civil e móveis (Carnaval, Sexta-feira Santa, Corpus Christi, calculados a partir da Páscoa) —
           o cálculo de prazo em dias úteis já os considera sozinho, todo ano, sem precisar de cadastro. Só leitura.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
           {nacionais.map((f) => (
             <div key={f.date} className="flex items-center gap-2 text-xs py-0.5">
-              <span className="font-mono text-navy-800/45 dark:text-cream-50/45 w-20 shrink-0">{formatCalendarDate(f.date)}</span>
-              <span className="text-navy-800/70 dark:text-cream-50/70">{f.name}</span>
+              <span className="font-mono text-tx-2 w-20 shrink-0">{formatCalendarDate(f.date)}</span>
+              <span className="text-tx-2">{f.name}</span>
             </div>
           ))}
         </div>

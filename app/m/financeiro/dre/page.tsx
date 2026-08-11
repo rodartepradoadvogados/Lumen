@@ -80,7 +80,7 @@ export default async function MobileDre({
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">DRE</h1>
+        <h1 className="text-xl font-bold text-tx">DRE</h1>
         <p className="text-sm text-tx-2">Regime de caixa (pago/recebido)</p>
       </div>
 
@@ -92,7 +92,7 @@ export default async function MobileDre({
         >
           <ChevronLeft size={18} />
         </Link>
-        <p className="font-serif font-bold text-tx text-sm text-center flex-1">
+        <p className="font-bold text-tx text-sm text-center flex-1">
           {MONTHS[month]} {year}
         </p>
         <Link
@@ -111,12 +111,12 @@ export default async function MobileDre({
           {Object.entries(receitasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-4 py-2.5 text-sm gap-3">
               <span className="text-tx-2 truncate">{cat}</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">{formatCurrency(val)}</span>
+              <span className="font-semibold tabular-nums text-concluido shrink-0">{formatCurrency(val)}</span>
             </div>
           ))}
           <div className="flex justify-between px-4 py-3 text-sm font-bold bg-sf-apoio">
             <span className="text-tx">Total de Receitas</span>
-            <span className="text-emerald-700 dark:text-emerald-400">{formatCurrency(totalReceitas)}</span>
+            <span className="tabular-nums text-concluido">{formatCurrency(totalReceitas)}</span>
           </div>
         </div>
       </Card>
@@ -128,12 +128,12 @@ export default async function MobileDre({
           {Object.entries(despesasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-4 py-2.5 text-sm gap-3">
               <span className="text-tx-2 truncate">{cat}</span>
-              <span className="font-semibold text-urgente shrink-0">{formatCurrency(val)}</span>
+              <span className="font-semibold tabular-nums text-urgente shrink-0">{formatCurrency(val)}</span>
             </div>
           ))}
           <div className="flex justify-between px-4 py-3 text-sm font-bold bg-sf-apoio">
             <span className="text-tx">Total de Despesas</span>
-            <span className="text-urgente">{formatCurrency(totalDespesas)}</span>
+            <span className="tabular-nums text-urgente">{formatCurrency(totalDespesas)}</span>
           </div>
         </div>
       </Card>
@@ -148,23 +148,23 @@ export default async function MobileDre({
           <div className="divide-y divide-regua border-t border-regua">
             <div className="flex justify-between px-4 py-2.5 text-sm">
               <span className="text-tx-2">Adiantado no período</span>
-              <span className="font-semibold text-tx">{formatCurrency(totalAdiantado)}</span>
+              <span className="font-semibold tabular-nums text-tx">{formatCurrency(totalAdiantado)}</span>
             </div>
             <div className="flex justify-between px-4 py-2.5 text-sm">
               <span className="text-tx-2">Reembolsado no período</span>
-              <span className="font-semibold text-tx">{formatCurrency(totalReembolsado)}</span>
+              <span className="font-semibold tabular-nums text-tx">{formatCurrency(totalReembolsado)}</span>
             </div>
             <div className="flex justify-between px-4 py-2.5 text-sm">
               <span className="text-tx-2">Saldo do período</span>
-              <span className="font-semibold text-tx">{formatCurrency(saldoAdiantamentos)}</span>
+              <span className="font-semibold tabular-nums text-tx">{formatCurrency(saldoAdiantamentos)}</span>
             </div>
           </div>
         </Card>
       )}
 
       <Card className="p-5 flex justify-between items-center">
-        <span className="font-serif font-bold text-tx">Resultado do Período</span>
-        <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>
+        <span className="font-bold text-tx">Resultado do Período</span>
+        <span className={`font-bold text-xl tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>
           {formatCurrency(resultado)}
         </span>
       </Card>
