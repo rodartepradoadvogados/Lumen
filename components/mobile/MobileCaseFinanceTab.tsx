@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import RecurringFeeCard from "@/components/RecurringFeeCard";
 import MobileHonorarioLancamentoGroup from "@/components/mobile/MobileHonorarioLancamentoGroup";
@@ -82,7 +82,7 @@ export default function MobileCaseFinanceTab({
 
       <Card>
         <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-serif font-bold text-tx text-sm">Contas a Receber</h2>
+          <h2 className="font-bold text-tx text-sm">Contas a Receber</h2>
         </div>
         {recurringFees.map((fee) => (
           <RecurringFeeCard key={fee.id} fee={fee} />
@@ -117,14 +117,12 @@ export default function MobileCaseFinanceTab({
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                      {r.status === "PARCIAL" && <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>}
+                      <p className="text-sm font-semibold tabular-nums text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                      {r.status === "PARCIAL" && <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">
-                    <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : isApurar ? "slate" : "amber"}>
-                      {isApurar ? "A apurar" : r.status}
-                    </Badge>
+                    <Badge color={financeStatusColors[r.status] ?? "slate"}>{financeStatusLabel(r.status)}</Badge>
                   </div>
                   {!isApurar && (
                     <div className="mt-2">
@@ -140,7 +138,7 @@ export default function MobileCaseFinanceTab({
 
       <Card>
         <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-serif font-bold text-tx text-sm">Contas a Pagar (custas etc.)</h2>
+          <h2 className="font-bold text-tx text-sm">Contas a Pagar (custas etc.)</h2>
         </div>
         {payables.length === 0 ? (
           <EmptyState title="Nenhum lançamento" />
@@ -158,19 +156,19 @@ export default function MobileCaseFinanceTab({
                       <p className="text-xs text-tx-2 mt-0.5">{p.noDueDate ? "Sem vencimento" : formatCalendarDate(p.dueDate)}</p>
                       {p.reimbursementReceivable && (
                         <p className="mt-1">
-                          <Badge color={p.reimbursementReceivable.status === "PAGO" ? "green" : p.reimbursementReceivable.status === "ATRASADO" ? "red" : "amber"}>
-                            ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {p.reimbursementReceivable.status}
+                          <Badge color={financeStatusColors[p.reimbursementReceivable.status] ?? "slate"}>
+                            ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {financeStatusLabel(p.reimbursementReceivable.status)}
                           </Badge>
                         </p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-tx">{formatCurrency(liquido)}</p>
-                      {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>}
+                      <p className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(liquido)}</p>
+                      {p.status === "PARCIAL" && <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">
-                    <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
+                    <Badge color={financeStatusColors[p.status] ?? "slate"}>{financeStatusLabel(p.status)}</Badge>
                   </div>
                   <div className="mt-2">
                     <MobileSettleForm id={p.id} kind="payable" liquido={liquido} alreadyPaid={paidSum} status={p.status} bankAccounts={bankAccounts} />

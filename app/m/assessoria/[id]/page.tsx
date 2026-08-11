@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
@@ -52,13 +53,17 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
   if (!assessoria) notFound();
 
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [availableCases, anotacoesRaw] = await Promise.all([
+  const [availableCases, anotacoesRaw, storageConnected] = await Promise.all([
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
       select: { id: true, title: true, processNumber: true },
       orderBy: { title: "asc" },
     }),
     prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
+    // Gate do upload de documentos (ver MobileAssessoriaDocumentsSection.tsx) — por PROVEDOR
+    // (Drive/OneDrive/Dropbox), não só Drive, mesmo bug já corrigido em
+    // app/(app)/processos/novo/page.tsx.
+    isStorageConnected(viewer.officeId),
   ]);
   const serializedAnotacoes = anotacoesRaw.map((n) => ({
     id: n.id,
@@ -74,7 +79,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </Link>
 
       <div>
-        <h1 className="font-serif text-lg font-bold text-tx leading-tight">{assessoria.client.name}</h1>
+        <h1 className="text-lg font-bold text-tx leading-tight">{assessoria.client.name}</h1>
         <div className="flex items-center gap-2 flex-wrap mt-1.5">
           <Badge color={statusColors[assessoria.status] || "slate"}>{statusLabels[assessoria.status] || assessoria.status}</Badge>
           {assessoria.responsible && <Badge color="navy">{assessoria.responsible.name}</Badge>}
@@ -82,7 +87,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </div>
 
       <Card className="p-4 space-y-2.5">
-        <Field label="Honorário mensal" value={`${formatCurrency(assessoria.monthlyFee)} · vence dia ${assessoria.dueDay}`} />
+        <Field label="Honorário mensal" value={`${formatCurrency(assessoria.monthlyFee)} · vence dia ${assessoria.dueDay}`} tabular />
         <Field label="Início do contrato" value={formatDate(assessoria.startDate)} />
         {assessoria.planningNotes && (
           <div className="pt-1">
@@ -94,7 +99,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
       <Card>
         <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-serif font-bold text-tx text-sm">Honorários</h2>
+          <h2 className="font-bold text-tx text-sm">Honorários</h2>
         </div>
         {assessoria.honorarios.length === 0 ? (
           <EmptyState title="Nenhum honorário gerado ainda" />
@@ -104,7 +109,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
               <div key={h.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tx">{h.competencia}</p>
-                  <p className="text-xs text-tx-2">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
+                  <p className="text-xs tabular-nums text-tx-2">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
                 </div>
                 <Badge color={financeStatusColors[h.receivable.status] ?? "slate"}>{financeStatusLabel(h.receivable.status)}</Badge>
               </div>
@@ -113,11 +118,16 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
         )}
       </Card>
 
-      <MobileAssessoriaDocumentsSection pareceres={assessoria.pareceres} documents={assessoria.documents} />
+      <MobileAssessoriaDocumentsSection
+        assessoriaId={assessoria.id}
+        pareceres={assessoria.pareceres}
+        documents={assessoria.documents}
+        storageConnected={storageConnected}
+      />
 
       <Card>
         <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-serif font-bold text-tx text-sm">Licitações</h2>
+          <h2 className="font-bold text-tx text-sm">Licitações</h2>
         </div>
         {assessoria.licitacoes.length === 0 ? (
           <EmptyState title="Nenhuma licitação cadastrada" />
@@ -141,7 +151,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
       <Card>
         <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2 flex-wrap">
-          <h2 className="font-serif font-bold text-tx text-sm">Processos vinculados</h2>
+          <h2 className="font-bold text-tx text-sm">Processos vinculados</h2>
           {/* Auditoria apontou que esta tela só vinculava processo existente — nenhuma criação
               (ver AssessoriaProcessosCasosTab.tsx no desktop, que já tem os dois atalhos). "Novo
               processo" abre o formulário no ramo Judicial; "Novo caso" força EXTRAJUDICIAL — os
@@ -179,7 +189,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
       <Card>
         <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-serif font-bold text-tx text-sm">Atendimentos vinculados</h2>
+          <h2 className="font-bold text-tx text-sm">Atendimentos vinculados</h2>
         </div>
         {assessoria.linkedAttendances.length === 0 ? (
           <EmptyState title="Nenhum atendimento vinculado" />
@@ -196,7 +206,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </Card>
 
       <Card className="p-4">
-        <h2 className="font-serif font-bold text-tx text-sm mb-3">Anotações pessoais</h2>
+        <h2 className="font-bold text-tx text-sm mb-3">Anotações pessoais</h2>
         <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
         <div className="mt-3 pt-3 border-t border-regua">
           <MobileNovaAnotacaoForm linkType="ASSESSORIA" entityId={assessoria.id} />
@@ -206,11 +216,11 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
   );
 }
 
-function Field({ label, value }: { label: string; value?: string | null }) {
+function Field({ label, value, tabular }: { label: string; value?: string | null; tabular?: boolean }) {
   return (
     <div className="flex justify-between gap-3 text-sm border-b border-regua pb-2 last:border-0 last:pb-0">
       <span className="text-tx-2 shrink-0">{label}</span>
-      <span className="font-medium text-tx text-right">{value || "—"}</span>
+      <span className={`font-medium text-tx text-right ${tabular ? "tabular-nums" : ""}`}>{value || "—"}</span>
     </div>
   );
 }

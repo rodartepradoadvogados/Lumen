@@ -178,21 +178,17 @@ export default function MobileNewTaskForm({
         .mobile-input {
           width: 100%;
           margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
-          color: #14213d;
-          background: white;
+          background-color: var(--sf-superficie);
+          color: var(--tx);
         }
         .mobile-input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
-        }
-        :global(html.dark) .mobile-input {
-          border-color: rgba(255, 255, 255, 0.12);
-          color: #fbfaf7;
-          background: #0b1730;
+          border-color: var(--acao);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
         }
       `}</style>
     </div>

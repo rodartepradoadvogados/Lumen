@@ -48,15 +48,15 @@ export default async function MobileMais() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <h1 className="font-serif text-xl font-bold text-tx">Mais</h1>
+      <h1 className="text-xl font-bold text-tx">Mais</h1>
 
       {viewer && (
         <div className="flex items-center gap-3 px-1">
-          <div className="h-12 w-12 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-sm font-serif font-bold shrink-0">
+          <div className="h-12 w-12 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-sm font-bold shrink-0">
             {initials}
           </div>
           <div>
-            <p className="font-serif font-bold text-tx leading-tight">{viewer.name}</p>
+            <p className="font-bold text-tx leading-tight">{viewer.name}</p>
             {viewer.role && (
               <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2">
                 {viewer.role}

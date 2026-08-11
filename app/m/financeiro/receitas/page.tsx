@@ -43,7 +43,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Receitas</h1>
+        <h1 className="text-xl font-bold text-tx">Receitas</h1>
         <p className="text-sm text-tx-2">
           {receivables.length} lançamento(s) · Total {formatCurrency(total)}
         </p>
@@ -103,9 +103,9 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                      <p className="text-sm font-semibold tabular-nums text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
                       {r.effectiveStatus === "PARCIAL" && (
-                        <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>
+                        <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>
                       )}
                       <p className="text-xs text-tx-2">
                         {r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}

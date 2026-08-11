@@ -56,7 +56,7 @@ export default function MobileChangePasswordForm() {
         </p>
       )}
       {success && (
-        <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1.5">
+        <p className="text-xs text-concluido bg-concluido-bg border border-concluido/20 rounded-lg px-2.5 py-1.5">
           Senha alterada com sucesso.
         </p>
       )}

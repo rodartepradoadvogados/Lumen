@@ -38,6 +38,10 @@ const statusColors: Record<string, "green" | "amber" | "slate" | "red"> = {
   ENCERRADO: "slate",
   ARQUIVADO: "red",
 };
+// Rótulo capitalizado (mesma tabela de app/m/assessoria/[id]/page.tsx para o mesmo enum
+// Case.status) — evita repetir aqui o bug do enum cru em caixa alta corrigido em Despesas
+// (DESIGN-SYSTEM.md §10) para outro campo de status.
+const statusLabels: Record<string, string> = { ATIVO: "Ativo", SUSPENSO: "Suspenso", ENCERRADO: "Encerrado", ARQUIVADO: "Arquivado" };
 
 // Mesmas oito abas do site (app/(app)/processos/[id]/page.tsx), mesmas regras de visibilidade
 // por acesso financeiro/natureza — ver o `.filter` logo abaixo de TABS. Antes desta fase o
@@ -278,10 +282,10 @@ export default async function MobileCaseDetail({
             componente de lá, reaproveitado tal qual (não é exclusivo do outro agente). */}
         <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
           <NaturezaBadge natureza={natureza} />
-          <Badge color={statusColors[c.status] ?? "slate"}>{c.status}</Badge>
+          <Badge color={statusColors[c.status] ?? "slate"}>{statusLabels[c.status] ?? c.status}</Badge>
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
         </div>
-        <h1 className="font-serif text-lg font-bold text-tx leading-tight">{c.title}</h1>
+        <h1 className="text-lg font-bold text-tx leading-tight">{c.title}</h1>
         <p className="flex flex-wrap items-center text-xs text-tx-2 mt-1">
           {c.processNumber && (
             <>
@@ -475,7 +479,7 @@ export default async function MobileCaseDetail({
       {tab === "atividades" && (
         <Card>
           <div className="px-4 py-3 border-b border-regua">
-            <h2 className="font-serif font-bold text-tx text-sm">Próximas tarefas</h2>
+            <h2 className="font-bold text-tx text-sm">Próximas tarefas</h2>
           </div>
           {c.tasks.length === 0 ? (
             <EmptyState title="Nenhuma tarefa pendente" />

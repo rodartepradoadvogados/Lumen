@@ -40,7 +40,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Despesas</h1>
+        <h1 className="text-xl font-bold text-tx">Despesas</h1>
         <p className="text-sm text-tx-2">
           {payables.length} lançamento(s) · Total {formatCurrency(total)}
         </p>
@@ -80,9 +80,9 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-tx">{formatCurrency(liquido)}</p>
+                      <p className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(liquido)}</p>
                       {p.effectiveStatus === "PARCIAL" && (
-                        <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>
+                        <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>
                       )}
                       <p className="text-xs text-tx-2">
                         {p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}

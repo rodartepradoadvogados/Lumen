@@ -1,5 +1,6 @@
 import { Card, EmptyState, formatDate } from "@/components/ui";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
+import MobileDocumentUpload from "@/components/mobile/MobileDocumentUpload";
 import { ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
 
 type DocumentoItem = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
@@ -17,14 +18,13 @@ export type AssessoriaDocumento = DocumentoItem & { parecer: { id: string; name:
 // lista achatada de todo o resto, ver AssessoriaDocumentosTab.tsx). Aqui cabe tudo numa seção só.
 //
 // Reavaliado nesta rodada (auditoria pediu pra considerar habilitar envio de documento também no
-// mobile): continua só leitura, de propósito. O upload do desktop (ParecerFolderRow.tsx) sobe
-// pro Vercel Blob e depois chama um <DocumentTypeSelect> pra escolher a categoria do arquivo —
-// e tanto DocumentTypeSelect.tsx quanto lib/documentTypes.ts (a lista de categorias) estão sendo
-// reescritos por outro agente agora mesmo. Implementar um seletor de categoria próprio aqui
-// significaria duplicar (e provavelmente divergir de) uma peça que está mudando de baixo dos pés
-// nesta mesma rodada — por isso a leitura fica pronta e migrada de paleta, mas o upload em si
-// fica pra uma próxima rodada, depois que aquele componente estabilizar. Ver relato final desta
-// tarefa.
+// mobile): DocumentTypeSelect.tsx e lib/documentTypes.ts — o que travava o upload na rodada
+// anterior — já estabilizaram, então o envio passa a existir aqui também (ver
+// components/mobile/MobileDocumentUpload.tsx, mesmo fluxo de duas etapas do desktop, um arquivo
+// por vez em vez da fila de vários do ParecerFolderRow — mais simples de operar com o polegar).
+// Só aparece quando `storageConnected` (Drive/OneDrive/Dropbox do escritório, ver
+// lib/storageProvider.ts — checagem por PROVEDOR, não só Drive, mesmo bug já corrigido em
+// app/(app)/processos/novo/page.tsx) — sem armazenamento conectado não há pasta de destino.
 //
 // `documents` (prop) é a lista COMPLETA vinda de assessoria.documents — inclui tanto os soltos
 // quanto os que já estão dentro de uma pasta (cada um carrega `parecer: {id,name}|null` dizendo
@@ -33,23 +33,27 @@ export type AssessoriaDocumento = DocumentoItem & { parecer: { id: string; name:
 // parecerId — as duas fontes descrevem os mesmos registros, então usar as duas pra a mesma pasta
 // re-listaria cada documento em dobro.
 export default function MobileAssessoriaDocumentsSection({
+  assessoriaId,
   pareceres,
   documents,
+  storageConnected,
 }: {
+  assessoriaId: string;
   pareceres: ParecerFolder[];
   documents: AssessoriaDocumento[];
+  storageConnected: boolean;
 }) {
   const soltos = documents.filter((d) => !d.parecer);
   const total = documents.length;
   // Uma pasta pode existir sem nenhum documento dentro ainda — o total de documentos seria 0
   // mesmo com a pasta lá. Some para o estado vazio só quando não há NEM pasta NEM documento
-  // nenhum; do contrário a pasta vazia precisa continuar visível (nada pode sumir da vista).
-  const nadaParaMostrar = pareceres.length === 0 && total === 0;
+  // nenhum E não há como enviar um novo; do contrário o card precisa continuar visível.
+  const nadaParaMostrar = pareceres.length === 0 && total === 0 && !storageConnected;
 
   return (
     <Card>
       <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2">
-        <h2 className="font-serif font-bold text-tx text-sm">Documentos</h2>
+        <h2 className="font-bold text-tx text-sm">Documentos</h2>
         {total > 0 && (
           <span className="text-xs text-tx-2 shrink-0">
             {total} documento{total === 1 ? "" : "s"}
@@ -60,30 +64,46 @@ export default function MobileAssessoriaDocumentsSection({
       {nadaParaMostrar ? (
         <EmptyState title="Nenhum documento cadastrado" />
       ) : (
-        <div className="divide-y divide-regua">
-          {pareceres.map((p) => (
-            <ParecerFolderMobileRow key={p.id} parecer={p} />
-          ))}
+        <>
+          <div className="divide-y divide-regua">
+            {pareceres.map((p) => (
+              <ParecerFolderMobileRow key={p.id} parecer={p} assessoriaId={assessoriaId} storageConnected={storageConnected} />
+            ))}
 
-          {soltos.length > 0 && pareceres.length > 0 && (
-            <p className="px-4 pt-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-tx-2">
-              Sem pasta
-            </p>
+            {soltos.length > 0 && pareceres.length > 0 && (
+              <p className="px-4 pt-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-tx-2">
+                Sem pasta
+              </p>
+            )}
+
+            {soltos.map((d) => (
+              <DocumentoRow key={d.id} doc={d} />
+            ))}
+          </div>
+
+          {storageConnected && (
+            <div className="p-3 border-t border-regua">
+              <MobileDocumentUpload assessoriaId={assessoriaId} />
+            </div>
           )}
-
-          {soltos.map((d) => (
-            <DocumentoRow key={d.id} doc={d} />
-          ))}
-        </div>
+        </>
       )}
     </Card>
   );
 }
 
 // Uma linha "pasta" de Parecer, recolhível via <details>/<summary> nativo — mesmo padrão de
-// components/mobile/MobileSecaoLancamento.tsx, sem precisar de "use client". A área de toque é a
-// <summary> inteira (px-4 py-3.5), confortável para o polegar.
-function ParecerFolderMobileRow({ parecer }: { parecer: ParecerFolder }) {
+// components/mobile/MobileSecaoLancamento.tsx. Precisa de "use client" só no widget de envio
+// embutido (MobileDocumentUpload) — a listagem em si continua toda vinda do servidor.
+function ParecerFolderMobileRow({
+  parecer,
+  assessoriaId,
+  storageConnected,
+}: {
+  parecer: ParecerFolder;
+  assessoriaId: string;
+  storageConnected: boolean;
+}) {
   return (
     <details className="group">
       <summary className="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-sf-apoio">
@@ -99,7 +119,7 @@ function ParecerFolderMobileRow({ parecer }: { parecer: ParecerFolder }) {
         <ChevronDown size={16} className="shrink-0 text-tx-3 transition-transform group-open:rotate-180" />
       </summary>
 
-      <div className="px-4 pb-3 pt-0.5 bg-sf-apoio">
+      <div className="px-4 pb-3 pt-0.5 bg-sf-apoio space-y-2">
         {parecer.description && <p className="text-xs text-tx-2 whitespace-pre-wrap py-2">{parecer.description}</p>}
         {parecer.documents.length === 0 ? (
           <p className="text-xs text-tx-2 py-2">Nenhum documento dentro desta demanda ainda.</p>
@@ -110,6 +130,7 @@ function ParecerFolderMobileRow({ parecer }: { parecer: ParecerFolder }) {
             ))}
           </div>
         )}
+        {storageConnected && <MobileDocumentUpload assessoriaId={assessoriaId} parecerId={parecer.id} />}
       </div>
     </details>
   );

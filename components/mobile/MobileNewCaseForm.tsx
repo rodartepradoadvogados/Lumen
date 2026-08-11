@@ -27,7 +27,9 @@ type Natureza = "JUDICIAL" | "ADMINISTRATIVO";
 
 type Client = { id: string; name: string };
 type UserOption = { id: string; name: string };
-type AssessoriaOption = { id: string; clientName: string };
+// `status` opcional (ver components/AssessoriaSelect.tsx) alimenta o rótulo "(Suspensa)"/
+// "(Encerrada)" quando a assessoria de origem — a que veio em ?assessoriaId= — não está ATIVA.
+type AssessoriaOption = { id: string; clientName: string; status?: string };
 
 export default function MobileNewCaseForm({
   clients,

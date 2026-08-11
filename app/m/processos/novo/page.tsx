@@ -27,15 +27,27 @@ export default async function MobileNewCasePage({
   const [clients, users, assessoriasRaw, tribunais, driveStatus] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    // Só assessorias ATIVAS entram na lista — MAS a assessoria de origem entra sempre, mesmo
+    // suspensa ou encerrada. Sem essa exceção, quem clicava "Novo processo"/"Novo caso" de
+    // dentro de uma assessoria não-ATIVA via o seletor sumir e o vínculo se perdia no submit,
+    // sem erro nenhum (mesmo bug corrigido em app/(app)/processos/novo/page.tsx — ver
+    // components/AssessoriaSelect.tsx).
     prisma.assessoria.findMany({
-      where: { status: "ATIVA", officeId: viewer.officeId },
+      where: {
+        officeId: viewer.officeId,
+        ...(searchParams.assessoriaId
+          ? { OR: [{ status: "ATIVA" }, { id: searchParams.assessoriaId }] }
+          : { status: "ATIVA" }),
+      },
       include: { client: true },
       orderBy: { client: { name: "asc" } },
     }),
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
     getDriveStatus(viewer.officeId),
   ]);
-  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
+  // `status` vai junto para o seletor poder marcar "(Suspensa)"/"(Encerrada)" na assessoria de
+  // origem — sem isso ela apareceria com o nome certo mas sem sinal nenhum de que não está ativa.
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name, status: a.status }));
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -44,7 +56,7 @@ export default async function MobileNewCasePage({
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Novo Processo/Caso</h1>
+        <h1 className="text-xl font-bold text-tx">Novo Processo/Caso</h1>
         <p className="text-sm text-tx-2">Cadastre um novo card — ele aparece na Agenda e no Kanban conforme tarefas forem criadas</p>
       </div>
 

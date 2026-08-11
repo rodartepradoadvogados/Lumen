@@ -27,7 +27,7 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 h-16 bg-sf border-t border-regua flex z-40 shadow-[0_-2px_12px_rgba(15,31,61,0.06)]">
+    <nav className="fixed bottom-0 inset-x-0 h-16 bg-sf border-t border-regua flex z-40">
       {items.map(({ href, label, Icon, exact, badge }) => {
         const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
         // "agenda" conta compromissos de HOJE (ver getTodayAgendaCount) — conceito diferente de

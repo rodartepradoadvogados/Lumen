@@ -14,10 +14,13 @@ const labels: Record<string, string> = {
   RASCUNHO: "Rascunho",
 };
 
+// Tokens semânticos (trocam de tema sozinhos, sem variante `dark:` própria — ver DESIGN-SYSTEM.md
+// §2): NOVO é aviso (pendência de triagem), EM_TRIAGEM é acao (em andamento), CONVERTIDO é
+// concluido (êxito).
 const colors: Record<string, string> = {
-  NOVO: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-400/15 dark:text-amber-400 dark:border-amber-400/20",
-  EM_TRIAGEM: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-400/15 dark:text-blue-400 dark:border-blue-400/20",
-  CONVERTIDO: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-400/15 dark:text-emerald-400 dark:border-emerald-400/20",
+  NOVO: "bg-aviso-bg text-aviso border-aviso/25",
+  EM_TRIAGEM: "bg-acao-bg text-acao border-acao/25",
+  CONVERTIDO: "bg-concluido-bg text-concluido border-concluido/25",
   ARQUIVADO: "bg-sf-apoio text-tx-2 border-regua",
   RASCUNHO: "bg-sf-apoio text-tx-2 border-regua",
 };

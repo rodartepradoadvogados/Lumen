@@ -37,7 +37,7 @@ export default async function MobileLancarHonorariosGeralPage() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Lançar Honorários</h1>
+        <h1 className="text-xl font-bold text-tx">Lançar Honorários</h1>
         <p className="text-sm text-tx-2">Escolha o processo — honorário sempre fica vinculado a um processo</p>
       </div>
 

@@ -30,7 +30,7 @@ export default async function MobileFinanceiroHub() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Financeiro</h1>
+        <h1 className="text-xl font-bold text-tx">Financeiro</h1>
         <p className="text-sm text-tx-2">Contas, relatórios e caixa do escritório</p>
       </div>
 

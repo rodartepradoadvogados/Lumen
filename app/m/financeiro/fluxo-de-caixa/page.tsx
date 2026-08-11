@@ -76,7 +76,7 @@ export default async function MobileFluxoDeCaixa() {
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-tx">Fluxo de Caixa</h1>
+        <h1 className="text-xl font-bold text-tx">Fluxo de Caixa</h1>
         <p className="text-sm text-tx-2">Entradas e saídas projetadas por mês (por vencimento)</p>
       </div>
 
@@ -88,7 +88,7 @@ export default async function MobileFluxoDeCaixa() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-tx">{m.label}</span>
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-sm font-semibold tabular-nums ${
                     m.saldoAcumulado >= 0 ? "text-concluido" : "text-urgente"
                   }`}
                 >
@@ -96,10 +96,10 @@ export default async function MobileFluxoDeCaixa() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-1 text-[11px]">
-                <span className="text-emerald-600 dark:text-emerald-400">↑ {formatCurrency(m.entradas)}</span>
-                <span className="text-urgente text-center">↓ {formatCurrency(m.saidas)}</span>
+                <span className="tabular-nums text-concluido">↑ {formatCurrency(m.entradas)}</span>
+                <span className="tabular-nums text-urgente text-center">↓ {formatCurrency(m.saidas)}</span>
                 <span
-                  className={`text-right font-semibold ${
+                  className={`text-right font-semibold tabular-nums ${
                     m.saldoMes >= 0 ? "text-tx" : "text-urgente"
                   }`}
                 >

@@ -73,7 +73,7 @@ export default function MobileSearchCasesModal({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-regua shrink-0">
-              <h3 className="font-serif font-bold text-tx text-sm">Pesquisar processos</h3>
+              <h3 className="font-bold text-tx text-sm">Pesquisar processos</h3>
               <button onClick={close} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>

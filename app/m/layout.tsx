@@ -85,8 +85,8 @@ export default async function MobileLayout({ children }: { children: React.React
             <LumenMark size={24} />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-serif text-sm font-bold tracking-wide text-white">LÚMEN</span>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" aria-hidden="true" />
+                <span className="text-sm font-bold tracking-wide text-white">LÚMEN</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-concluido shrink-0" aria-hidden="true" />
               </div>
               {office?.name && (
                 <p className="text-[10px] text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
