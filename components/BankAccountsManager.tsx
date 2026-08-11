@@ -150,7 +150,7 @@ function BankAccountRow({ account }: { account: BankAccount }) {
           onClick={handleToggle}
           disabled={pending}
           data-tip={account.active ? "Desativar" : "Reativar"}
-          className="p-1.5 rounded-lg text-tx-3 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40"
+          className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
         >
           <Power size={14} />
         </button>

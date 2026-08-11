@@ -63,11 +63,11 @@ function PointsRow({ item }: { item: Item }) {
         {pending ? "Salvando..." : "Salvar"}
       </button>
       {saved && !pending && (
-        <span className="text-emerald-600 flex items-center" title="Salvo">
+        <span className="text-concluido flex items-center" title="Salvo">
           <Check size={16} />
         </span>
       )}
-      {error && <span className="text-[11px] text-red-700">{error}</span>}
+      {error && <span className="text-[11px] text-urgente">{error}</span>}
     </div>
   );
 }

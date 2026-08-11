@@ -539,6 +539,12 @@ model Case {
   // Case, herda a MESMA pasta do atendimento (só renomeada), não cria outra.
   driveFolderId String?
 
+  // Marcado quando o usuário escolhe "descartar sugestões futuras" na janela de revisão da
+  // padronização de título "Cliente x Parte Adversa" (RenameCasesToConventionButton) — o
+  // processo passa a ser ignorado nas próximas conferências, mesmo que o título ainda não
+  // siga o padrão (ex.: título alterado de propósito, com nome informal do adversário).
+  namingConventionIgnored Boolean @default(false)
+
   tasks                    Task[]
   comments                 Comment[]
   receivables              Receivable[]
