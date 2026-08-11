@@ -63,7 +63,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
   return (
     <UndoToastProvider>
-    <div className="min-h-screen bg-cream-100 dark:bg-navy-950 transition-colors">
+    <div className="min-h-screen bg-sf-fundo transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       {user && <InactivityNotice />}
       <AppBadgeSync initialCount={totalAlerts} />
@@ -75,21 +75,21 @@ export default async function MobileLayout({ children }: { children: React.React
           `<main>` com um pt-[52px] fixo (o antigo cabeçalho `fixed` exigia isso). */}
       <div className="sticky top-0 inset-x-0 z-40 flex flex-col">
         <SupportAccessBanner />
-        {/* Cabeçalho sempre navy, nos 2 temas (Manhã/Noite) — de propósito sem classes `dark:`,
-            pra não mudar de cor junto com o resto da tela. Nome+foto do perfil saiu daqui —
-            agora é só logo/nome do escritório + Alertas/Tema, pra bater com a proposta de
-            Início nova; Perfil segue
-            acessível por Menu (Mais). */}
-        <header className="min-h-[52px] shrink-0 bg-navy-900 border-b border-white/10 text-cream-50 flex items-center justify-between gap-2 px-4 py-2">
+        {/* Cabeçalho sempre grafite, nos 2 temas (Manhã/Noite) — mesma casca fixa do Rail
+            desktop (DESIGN-SYSTEM.md §3: "grafite nos dois temas"), de propósito sem classes
+            `dark:`, pra não mudar de cor junto com o resto da tela. Nome+foto do perfil saiu
+            daqui — agora é só logo/nome do escritório + Alertas/Tema, pra bater com a proposta
+            de Início nova; Perfil segue acessível por Menu (Mais). */}
+        <header className="min-h-[52px] shrink-0 bg-grafite-800 border-b border-white/10 text-white flex items-center justify-between gap-2 px-4 py-2">
           <Link href="/m" className="flex items-center gap-2 min-w-0">
             <LumenMark size={24} />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-serif text-sm font-bold tracking-wide text-cream-50">LÚMEN</span>
+                <span className="font-serif text-sm font-bold tracking-wide text-white">LÚMEN</span>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" aria-hidden="true" />
               </div>
               {office?.name && (
-                <p className="text-[10px] text-cream-50/55 truncate max-w-[160px] leading-tight">{office.name}</p>
+                <p className="text-[10px] text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
               )}
             </div>
           </Link>
@@ -98,11 +98,11 @@ export default async function MobileLayout({ children }: { children: React.React
               <Link
                 href="/m/alertas"
                 aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
-                className="relative h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-cream-50/80 hover:text-gold-400 hover:bg-white/10 transition-colors"
+                className="relative h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
               >
                 <Bell size={16} />
                 {totalAlerts > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-bordo-600 text-white text-[9px] font-bold flex items-center justify-center border border-navy-900">
+                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-vinho-500 text-white text-[9px] font-bold flex items-center justify-center border border-grafite-800">
                     {totalAlerts > 99 ? "99+" : totalAlerts}
                   </span>
                 )}

@@ -43,13 +43,13 @@ export default async function MobileAcessosPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/configuracoes" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+      <Link href="/m/configuracoes" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
         <ArrowLeft size={13} /> Configurações
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Acessos da Lúmen</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">
+        <h1 className="font-serif text-xl font-bold text-tx">Acessos da Lúmen</h1>
+        <p className="text-sm text-tx-2">
           Toda vez que o suporte precisa entrar nos dados do seu escritório, fica registrado aqui.
         </p>
       </div>
@@ -59,14 +59,14 @@ export default async function MobileAcessosPage() {
           {totalEntradas === 0 ? (
             <>
               <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-navy-900 dark:text-cream-50">
+              <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen <strong>não acessou</strong> os dados do seu escritório nenhuma vez.
               </p>
             </>
           ) : (
             <>
-              <ShieldAlert size={18} className="text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-navy-900 dark:text-cream-50">
+              <ShieldAlert size={18} className="text-aviso shrink-0 mt-0.5" />
+              <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen acessou dados do seu escritório <strong>{totalEntradas}</strong>{" "}
                 {totalEntradas === 1 ? "vez" : "vezes"}.
               </p>
@@ -78,15 +78,15 @@ export default async function MobileAcessosPage() {
       <a
         href="/api/configuracoes/acessos/exportar"
         download
-        className="inline-flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold rounded-lg px-3 py-2.5 w-full justify-center"
+        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2.5 w-full justify-center"
       >
         <Download size={14} /> Baixar extrato de acessos (CSV)
       </a>
 
       <Card>
         <div className="p-4 flex items-start gap-2.5">
-          <Monitor size={18} className="text-navy-800/40 dark:text-cream-50/40 shrink-0 mt-0.5" />
-          <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+          <Monitor size={18} className="text-tx-2 shrink-0 mt-0.5" />
+          <p className="text-xs text-tx-2">
             A conferência campo a campo &ldquo;Ver como o suporte vê este escritório&rdquo; está disponível no computador
             (Configurações → Acessos da Lúmen) — é uma tabela densa, melhor numa tela maior.
           </p>
@@ -113,11 +113,11 @@ export default async function MobileAcessosPage() {
         <Card>
           <CardHeader title="Sessão ativa agora" subtitle="Alguém da Lúmen está com acesso ao seu escritório neste momento" />
           <div className="p-4 space-y-2.5">
-            <div className="text-sm text-navy-900 dark:text-cream-50">
+            <div className="text-sm text-tx">
               <p>
                 <strong>{activeSession.memberName}</strong> — {ACCESS_REASONS[activeSession.reasonCode as AccessReasonCode] ?? activeSession.reasonCode}
               </p>
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+              <p className="text-xs text-tx-2 mt-0.5">
                 Entrou às {activeSession.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}, expira às{" "}
                 {activeSession.expiresAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -130,25 +130,25 @@ export default async function MobileAcessosPage() {
       <Card>
         <CardHeader title="Histórico (90 dias)" subtitle="Somente leitura" />
         {log.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-navy-800/50 dark:text-cream-50/50">Nenhum acesso registrado neste período.</p>
+          <p className="px-4 py-6 text-sm text-tx-2">Nenhum acesso registrado neste período.</p>
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {log.map((entry) => (
               <div key={entry.id} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">
+                  <span className="text-sm font-semibold text-tx">
                     {ACCESS_ACTION_LABEL[entry.action] ?? entry.action}
                   </span>
-                  <span className="text-[11px] text-navy-800/45 dark:text-cream-50/45 shrink-0 whitespace-nowrap">
+                  <span className="text-[11px] text-tx-2 shrink-0 whitespace-nowrap">
                     {entry.createdAt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <p className="text-xs text-navy-800/70 dark:text-cream-50/60 mt-0.5">
+                <p className="text-xs text-tx-2 mt-0.5">
                   {entry.memberName} · {entry.reasonLabel}
                   {entry.durationMinutes !== null && ` · ${entry.durationMinutes} min`}
                 </p>
                 {entry.scopeDescription && (
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-0.5">{entry.scopeDescription}</p>
+                  <p className="text-[11px] text-tx-2 mt-0.5">{entry.scopeDescription}</p>
                 )}
                 {entry.outOfBand && (
                   <Badge color="red" className="mt-1.5">

@@ -12,6 +12,19 @@ export const dynamic = "force-dynamic";
 const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
 const CREATABLE_TYPES = ["TAREFA", "PRAZO", "AUDIENCIA", "PERICIA"];
 
+// Filete esquerdo de 3px por tipo de tarefa (DESIGN-SYSTEM.md §7) — mesma chave de cor que
+// components/ui.tsx já usa pro chip (taskTypeColors), só traduzida pra classe de borda.
+const TYPE_BORDER_COLORS: Record<string, string> = {
+  slate: "border-l-tx-2",
+  blue: "border-l-acao",
+  gold: "border-l-marca",
+  amber: "border-l-aviso",
+  red: "border-l-urgente",
+};
+function taskTypeBorder(type: string): string {
+  return TYPE_BORDER_COLORS[taskTypeColors[type] ?? "slate"] ?? "border-l-tx-3";
+}
+
 function toISODate(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -96,23 +109,23 @@ async function DayView({
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/m/agenda?d=${toISODate(prev)}`}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 flex items-center justify-center text-navy-800/60 dark:text-cream-50/60"
+          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Dia anterior"
         >
           <ChevronLeft size={18} />
         </Link>
         <div className="text-center min-w-0 flex-1">
-          <p className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm capitalize truncate">{label}</p>
+          <p className="font-serif font-bold text-tx text-sm capitalize truncate">{label}</p>
           {!isToday && (
-            <Link href="/m/agenda" className="text-[11px] font-semibold text-bordo-700 dark:text-bordo-400">
+            <Link href="/m/agenda" className="text-[11px] font-semibold text-acao">
               Voltar para hoje
             </Link>
           )}
-          {isToday && <p className="text-[11px] font-semibold text-bordo-700 dark:text-bordo-400">Hoje</p>}
+          {isToday && <p className="text-[11px] font-semibold text-acao">Hoje</p>}
         </div>
         <Link
           href={`/m/agenda?d=${toISODate(next)}`}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 flex items-center justify-center text-navy-800/60 dark:text-cream-50/60"
+          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próximo dia"
         >
           <ChevronRight size={18} />
@@ -123,17 +136,13 @@ async function DayView({
         {tasks.length === 0 ? (
           <EmptyState title="Nenhuma tarefa neste dia" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {tasks.map((t) => {
               const done = t.status === "CONCLUIDO";
-              // Prazo e Audiência recebem um destaque bordô na borda esquerda — peso jurídico/urgência.
-              const urgent = t.type === "PRAZO" || t.type === "AUDIENCIA";
               return (
                 <div
                   key={t.id}
-                  className={`flex items-start gap-3 px-4 py-3.5 ${
-                    urgent ? "border-l-2 border-bordo-500 dark:border-bordo-400" : ""
-                  }`}
+                  className={`flex items-start gap-3 px-4 py-3.5 border-l-[3px] ${taskTypeBorder(t.type)}`}
                 >
                   <div className="pt-0.5">
                     <MobileTaskToggle taskId={t.id} done={done} />
@@ -142,24 +151,24 @@ async function DayView({
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
                       {t.dueTime && (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-navy-800/55 dark:text-cream-50/55">
+                        <span className="flex items-center gap-1 text-xs font-semibold text-tx-2">
                           <Clock size={12} /> {t.dueTime}
                         </span>
                       )}
                     </div>
                     <p
                       className={`text-sm font-medium ${
-                        done ? "line-through text-navy-800/40 dark:text-cream-50/40" : "text-navy-900 dark:text-cream-50"
+                        done ? "line-through text-tx-2" : "text-tx"
                       }`}
                     >
                       {t.title}
                     </p>
-                    {t.case && <p className="text-xs text-gold-700 dark:text-gold-400 mt-0.5 truncate">{t.case.title}</p>}
+                    {t.case && <p className="text-xs text-acao mt-0.5 truncate">{t.case.title}</p>}
                     {t.responsible && (
-                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{t.responsible.name}</p>
+                      <p className="text-xs text-tx-2 mt-0.5">{t.responsible.name}</p>
                     )}
                     {done && t.completedBy && t.completedAt && (
-                      <p className="text-[11px] text-navy-800/35 dark:text-cream-50/35 mt-0.5">
+                      <p className="text-[11px] text-tx-3 mt-0.5">
                         Concluído por {t.completedBy.name} em {t.completedAt.toLocaleDateString("pt-BR")} às{" "}
                         {t.completedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </p>
@@ -223,17 +232,17 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/m/agenda?view=week&d=${toISODate(prevWeek)}`}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 flex items-center justify-center text-navy-800/60 dark:text-cream-50/60"
+          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Semana anterior"
         >
           <ChevronLeft size={18} />
         </Link>
-        <p className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm capitalize text-center flex-1 truncate">
+        <p className="font-serif font-bold text-tx text-sm capitalize text-center flex-1 truncate">
           {monthLabel}
         </p>
         <Link
           href={`/m/agenda?view=week&d=${toISODate(nextWeek)}`}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 flex items-center justify-center text-navy-800/60 dark:text-cream-50/60"
+          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próxima semana"
         >
           <ChevronRight size={18} />
@@ -243,7 +252,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
       <Card className="p-3">
         <div className="grid grid-cols-7 gap-1.5">
           {WEEKDAY_LABELS.map((wd, i) => (
-            <div key={i} className="text-center text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40">
+            <div key={i} className="text-center text-[11px] font-semibold text-tx-2">
               {wd}
             </div>
           ))}
@@ -256,17 +265,15 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
                 key={key}
                 href={`/m/agenda?view=day&d=${key}`}
                 className={`aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 ${
-                  isToday
-                    ? "bg-bordo-700 dark:bg-bordo-500 border-bordo-700 dark:border-bordo-500"
-                    : "bg-cream-100 dark:bg-white/5 border-navy-800/8 dark:border-white/10"
+                  isToday ? "bg-acao border-acao" : "bg-sf-apoio border-regua"
                 }`}
               >
-                <span className={`text-sm font-semibold ${isToday ? "text-cream-50" : "text-navy-900 dark:text-cream-50"}`}>
+                <span className={`text-sm font-semibold ${isToday ? "text-acao-tx" : "text-tx"}`}>
                   {d.getDate()}
                 </span>
                 {count > 0 && (
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${isToday ? "bg-gold-400" : "bg-gold-600 dark:bg-gold-400"}`}
+                    className={`h-1.5 w-1.5 rounded-full ${isToday ? "bg-acao-tx" : "bg-acao"}`}
                     aria-label={`${count} tarefa(s)`}
                   />
                 )}
@@ -276,18 +283,20 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
         </div>
       </Card>
 
-      <p className="text-center text-xs text-navy-800/40 dark:text-cream-50/40">Toque em um dia para ver as atividades.</p>
+      <p className="text-center text-xs text-tx-2">Toque em um dia para ver as atividades.</p>
     </div>
   );
 }
 
 function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
+  // Controle segmentado de dois estados — mesmo padrão de inversão do menu de tema/modo de
+  // visualização (DESIGN-SYSTEM.md §5): opção ativa inverte fundo/texto, sem cor de acento.
   return (
-    <div className="flex gap-1 bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 rounded-lg p-1">
+    <div className="flex gap-1 bg-sf-apoio border border-regua rounded-lg p-1">
       <Link
         href={`/m/agenda?view=day&d=${d}`}
         className={`flex-1 text-center text-xs font-semibold py-1.5 rounded-md transition-colors ${
-          view === "day" ? "bg-bordo-700 dark:bg-bordo-500 text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"
+          view === "day" ? "bg-tx text-sf" : "text-tx-2"
         }`}
       >
         Dia
@@ -295,7 +304,7 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
       <Link
         href={`/m/agenda?view=week&d=${d}`}
         className={`flex-1 text-center text-xs font-semibold py-1.5 rounded-md transition-colors ${
-          view === "week" ? "bg-bordo-700 dark:bg-bordo-500 text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"
+          view === "week" ? "bg-tx text-sf" : "text-tx-2"
         }`}
       >
         Semana

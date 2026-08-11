@@ -30,15 +30,15 @@ export default function ContraparteField({
 
   return (
     <div>
-      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Pago a</label>
+      <label className="text-xs font-medium text-tx-2">Pago a</label>
       <div className="mt-1 mb-1.5 flex gap-1.5">
         <button
           type="button"
           onClick={() => setMode("FORNECEDOR")}
           className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
             mode === "FORNECEDOR"
-              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+              ? "bg-acao text-acao-tx border-acao"
+              : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
           }`}
         >
           Fornecedor
@@ -48,8 +48,8 @@ export default function ContraparteField({
           onClick={() => setMode("EQUIPE")}
           className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
             mode === "EQUIPE"
-              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+              ? "bg-acao text-acao-tx border-acao"
+              : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
           }`}
         >
           Membro da equipe

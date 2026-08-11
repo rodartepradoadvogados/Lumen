@@ -17,6 +17,7 @@ import ContraparteField from "@/components/financeiro/ContraparteField";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
+import { financeStatusLabel } from "@/lib/financeStatus";
 
 type Option = { id: string; name: string };
 
@@ -25,7 +26,7 @@ const documentTypeOptions: Option[] = DOCUMENT_TYPE_OPTIONS.map((o) => ({ id: o.
 
 type ExpensePayer = "ESCRITORIO" | "CLIENTE";
 
-const labelCls = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+const labelCls = "text-xs font-medium text-tx-2";
 
 // Mesmo componente (copiado, não importado — ver comentário equivalente em NewPayableModal.tsx/
 // LancarHonorariosModal.tsx: cada tela de lançamento mantém sua própria cópia local) usado para a
@@ -48,8 +49,8 @@ function Segmented<T extends string>({
           onClick={() => onChange(opt.value)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
             value === opt.value
-              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+              ? "bg-acao text-acao-tx border-acao"
+              : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
           }`}
         >
           {opt.label}
@@ -160,15 +161,15 @@ export default function EditPayableModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Editar Conta a Pagar</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
+              <h3 className="font-bold text-tx">Editar Conta a Pagar</h3>
+              <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx dark:hover:text-tx">
                 <X size={18} />
               </button>
             </div>
@@ -225,11 +226,11 @@ export default function EditPayableModal({
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
                 <div>
                   <label className={labelCls}>Descrição</label>
-                  <input name="description" defaultValue={payable.description} required className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                  <input name="description" defaultValue={payable.description} required className="fin-input" />
                 </div>
 
                 <SecaoLancamento title="Identificação" tone="palha">
@@ -262,10 +263,10 @@ export default function EditPayableModal({
                       <label className={labelCls}>Processo vinculado</label>
                       {hasReimbursement ? (
                         <>
-                          <div className="fin-input dark:bg-navy-800 dark:border-white/15 bg-cream-100/60 text-navy-800/70 dark:text-cream-50/70">
+                          <div className="fin-input bg-sf-apoio text-tx-2">
                             {cases.find((c) => c.id === payable.caseId)?.name ?? "—"}
                           </div>
-                          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">
+                          <p className="text-[11px] text-tx-2 mt-1">
                             Travado — esta despesa já tem um reembolso vinculado. Para mudar o processo, exclua primeiro o reembolso vinculado.
                           </p>
                         </>
@@ -308,8 +309,8 @@ export default function EditPayableModal({
                           <label className={labelCls}>Quem arca com o custo</label>
                           {hasReimbursement ? (
                             <div className="mt-1">
-                              <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{EXPENSE_PAYER_LABELS.CLIENTE}</p>
-                              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">
+                              <p className="text-sm font-medium text-tx">{EXPENSE_PAYER_LABELS.CLIENTE}</p>
+                              <p className="text-[11px] text-tx-2 mt-1">
                                 Travado — já existe um reembolso vinculado a esta despesa. Para voltar a &quot;Escritório&quot;, exclua primeiro o
                                 reembolso vinculado.
                               </p>
@@ -328,16 +329,16 @@ export default function EditPayableModal({
                           )}
                         </div>
                         {hasReimbursement && payable.reimbursementReceivable && (
-                          <div className="sm:col-span-2 rounded-lg bg-gold-500/10 px-3 py-2.5">
-                            <p className="text-xs font-medium text-navy-800/80 dark:text-cream-50/80">
+                          <div className="sm:col-span-2 rounded-lg bg-marca-bg px-3 py-2.5">
+                            <p className="text-xs font-medium text-tx-2">
                               Reembolso vinculado: {formatCurrency(payable.reimbursementReceivable.amount)} · status{" "}
-                              {payable.reimbursementReceivable.status}
+                              {financeStatusLabel(payable.reimbursementReceivable.status)}
                             </p>
                           </div>
                         )}
                         {!hasReimbursement && expensePayer === "CLIENTE" && (
-                          <div className="sm:col-span-2 rounded-lg bg-gold-500/10 px-3 py-2.5">
-                            <label className="flex items-center gap-2 text-xs font-medium text-navy-800/80 dark:text-cream-50/80">
+                          <div className="sm:col-span-2 rounded-lg bg-marca-bg px-3 py-2.5">
+                            <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
                               <input
                                 type="checkbox"
                                 checked={createReimbursement}
@@ -345,7 +346,7 @@ export default function EditPayableModal({
                               />
                               Criar conta a receber vinculada para reembolso deste valor pelo cliente?
                             </label>
-                            <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1 ml-6">
+                            <p className="text-[11px] text-tx-2 mt-1 ml-6">
                               Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor líquido atual desta despesa
                               (lançamento retroativo — a despesa já existia sem reembolso).
                             </p>
@@ -371,11 +372,11 @@ export default function EditPayableModal({
                     </div>
                     <div>
                       <label className={labelCls}>Número do documento</label>
-                      <input name="documentNumber" defaultValue={payable.documentNumber ?? ""} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                      <input name="documentNumber" defaultValue={payable.documentNumber ?? ""} className="fin-input" />
                     </div>
                     <div>
                       <label className={labelCls}>Data de emissão</label>
-                      <input name="issueDate" type="date" defaultValue={payable.issueDate?.slice(0, 10) ?? ""} className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                      <input name="issueDate" type="date" defaultValue={payable.issueDate?.slice(0, 10) ?? ""} className="fin-input" />
                     </div>
                   </div>
                 </SecaoLancamento>
@@ -384,21 +385,21 @@ export default function EditPayableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Valor (R$)</label>
-                      <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                      <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className="fin-input" />
                     </div>
                     <div>
                       <label className={labelCls}>Desconto (R$)</label>
-                      <input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                      <input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="fin-input" />
                     </div>
                     <div>
                       <label className={labelCls}>Acréscimo (R$)</label>
-                      <input type="number" step="0.01" value={surcharge} onChange={(e) => setSurcharge(e.target.value)} className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                      <input type="number" step="0.01" value={surcharge} onChange={(e) => setSurcharge(e.target.value)} className="fin-input" />
                     </div>
                   </div>
                 </SecaoLancamento>
 
                 <SecaoLancamento title="Vencimento" tone="azul">
-                  <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                  <label className="flex items-center gap-2 text-xs text-tx-2">
                     <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
                     Sem vencimento definido
                   </label>
@@ -410,11 +411,11 @@ export default function EditPayableModal({
                         type="date"
                         defaultValue={payable.dueDate.slice(0, 10)}
                         required={!semVencimento}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       />
                     </div>
                   ) : (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                    <p className="text-[11px] text-tx-2">
                       Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
                     </p>
                   )}
@@ -427,16 +428,16 @@ export default function EditPayableModal({
                     parcelamento, mostra em qual posição ela está (somente leitura). */}
                 <SecaoLancamento title="Parcelamento" tone="rosa">
                   {payable.installmentTotal ? (
-                    <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
                       Parcela {payable.installmentNumber}/{payable.installmentTotal} de um lançamento parcelado — para mudar quantidade/intervalo,
                       lance um novo parcelamento.
                     </p>
                   ) : (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">Lançamento único, não parcelado.</p>
+                    <p className="text-[11px] text-tx-2">Lançamento único, não parcelado.</p>
                   )}
                   <div>
                     <label className={labelCls}>Nº do boleto desta parcela</label>
-                    <input name="installmentBoleto" defaultValue={payable.installmentBoleto ?? ""} className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                    <input name="installmentBoleto" defaultValue={payable.installmentBoleto ?? ""} className="fin-input" />
                   </div>
                 </SecaoLancamento>
 
@@ -452,49 +453,49 @@ export default function EditPayableModal({
                     existingName={payable.receiptFileName}
                   />
                   {payable.status === "PAGO" || payable.status === "PARCIAL" ? (
-                    <p className="text-xs text-navy-800/70 dark:text-cream-50/70">
+                    <p className="text-xs text-tx-2">
                       {payable.status === "PARCIAL" ? "Parcialmente pago" : "Pago"}: {formatCurrency(payable.paidAmount ?? 0)}
                       {payable.paidDate && <> em {formatDate(payable.paidDate)}</>}
                       {payable.paymentMethod && <> · {paymentMethodLabels[payable.paymentMethod] ?? payable.paymentMethod}</>}
                       {payable.paymentReceiptNumber && <> · comprovante {payable.paymentReceiptNumber}</>}
                     </p>
                   ) : (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">Ainda não há nenhuma baixa lançada nesta conta.</p>
+                    <p className="text-[11px] text-tx-2">Ainda não há nenhuma baixa lançada nesta conta.</p>
                   )}
-                  <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40">
+                  <p className="text-[11px] text-tx-3">
                     Para dar baixa (parcial ou integral) ou reabrir, use os botões na listagem — esta tela edita só o cadastro.
                   </p>
                 </SecaoLancamento>
               </div>
 
-              <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-cream-50/60 dark:bg-white/5">
+              <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="flex items-center gap-4">
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Bruto</span>
-                    <span className="text-sm font-semibold tabular-nums text-navy-900 dark:text-cream-50">{formatCurrency(amountNum)}</span>
+                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Bruto</span>
+                    <span className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(amountNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Desconto</span>
-                    <span className="text-sm font-semibold tabular-nums text-bordo-600 dark:text-bordo-400">-{formatCurrency(discountNum)}</span>
+                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Desconto</span>
+                    <span className="text-sm font-semibold tabular-nums text-urgente">-{formatCurrency(discountNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Acréscimo</span>
-                    <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">+{formatCurrency(surchargeNum)}</span>
+                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Acréscimo</span>
+                    <span className="text-sm font-semibold tabular-nums text-concluido">+{formatCurrency(surchargeNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Líquido</span>
-                    <span className="font-serif text-lg font-bold tabular-nums text-gold-700 dark:text-gold-400">{formatCurrency(liquido)}</span>
+                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+                    <span className="text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/10"
+                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
+                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors">
                     {loading ? "Salvando..." : "Salvar alterações"}
                   </button>
                 </div>
@@ -504,8 +505,8 @@ export default function EditPayableModal({
         </div>
       )}
       <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .fin-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
+        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
       `}</style>
     </>
   );

@@ -16,8 +16,8 @@ import CaseMateriaField from "@/components/processo/CaseMateriaField";
 import AssuntosField from "@/components/processo/AssuntosField";
 
 const inputClass =
-  "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
-const labelClass = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+const labelClass = "text-xs font-medium text-tx-2";
 
 // Duas naturezas de cadastro possíveis neste formulário — a terceira ("Caso", ver
 // lib/caseNatureza.ts) nunca é uma opção de cadastro direta, só existe como leitura do que já
@@ -36,6 +36,7 @@ export default function MobileNewCaseForm({
   tribunais,
   defaultType,
   defaultProcessNumber,
+  defaultAssessoriaId,
   driveConnected,
 }: {
   clients: Client[];
@@ -44,6 +45,7 @@ export default function MobileNewCaseForm({
   tribunais: TribunalCatalogEntry[];
   defaultType: string;
   defaultProcessNumber: string;
+  defaultAssessoriaId?: string;
   driveConnected: boolean;
 }) {
   const router = useRouter();
@@ -204,12 +206,12 @@ export default function MobileNewCaseForm({
           aria-pressed={natureza === "JUDICIAL"}
           className={`flex flex-col items-center gap-1 rounded-xl border-2 py-3 transition-colors ${
             natureza === "JUDICIAL"
-              ? "border-gold-600 bg-gold-500/10 dark:border-gold-400 dark:bg-gold-400/10"
-              : "border-navy-800/12 dark:border-white/10 bg-white dark:bg-navy-950"
+              ? "border-acao bg-acao-bg"
+              : "border-regua bg-sf"
           }`}
         >
-          <Scale size={18} className={natureza === "JUDICIAL" ? "text-gold-700 dark:text-gold-400" : "text-navy-800/35 dark:text-cream-50/35"} />
-          <span className={`text-sm font-semibold ${natureza === "JUDICIAL" ? "text-navy-900 dark:text-cream-50" : "text-navy-800/60 dark:text-cream-50/60"}`}>
+          <Scale size={18} className={natureza === "JUDICIAL" ? "text-acao" : "text-tx-3"} />
+          <span className={`text-sm font-semibold ${natureza === "JUDICIAL" ? "text-tx" : "text-tx-2"}`}>
             Judicial
           </span>
         </button>
@@ -219,12 +221,12 @@ export default function MobileNewCaseForm({
           aria-pressed={natureza === "ADMINISTRATIVO"}
           className={`flex flex-col items-center gap-1 rounded-xl border-2 py-3 transition-colors ${
             natureza === "ADMINISTRATIVO"
-              ? "border-bordo-600 bg-bordo-600/10 dark:border-bordo-400 dark:bg-bordo-600/20"
-              : "border-navy-800/12 dark:border-white/10 bg-white dark:bg-navy-950"
+              ? "border-regua-forte bg-sf-apoio"
+              : "border-regua bg-sf"
           }`}
         >
-          <Landmark size={18} className={natureza === "ADMINISTRATIVO" ? "text-bordo-700 dark:text-bordo-400" : "text-navy-800/35 dark:text-cream-50/35"} />
-          <span className={`text-sm font-semibold ${natureza === "ADMINISTRATIVO" ? "text-navy-900 dark:text-cream-50" : "text-navy-800/60 dark:text-cream-50/60"}`}>
+          <Landmark size={18} className={natureza === "ADMINISTRATIVO" ? "text-tx-2" : "text-tx-3"} />
+          <span className={`text-sm font-semibold ${natureza === "ADMINISTRATIVO" ? "text-tx" : "text-tx-2"}`}>
             Administrativo
           </span>
         </button>
@@ -361,7 +363,7 @@ export default function MobileNewCaseForm({
 
       <OpposingPartyFields inputClassName={inputClass} />
 
-      <AssessoriaSelect assessorias={assessorias} inputClassName={inputClass} />
+      <AssessoriaSelect assessorias={assessorias} inputClassName={inputClass} defaultValue={defaultAssessoriaId} />
 
       <AssuntosField inputClassName={inputClass} />
 
@@ -372,12 +374,12 @@ export default function MobileNewCaseForm({
 
       <NewCaseAttachmentsField driveConnected={driveConnected} />
 
-      {error && <p className="text-xs font-semibold text-bordo-600 dark:text-bordo-400">{error}</p>}
+      {error && <p className="text-xs font-semibold text-urgente">{error}</p>}
 
       <button
         type="submit"
         disabled={loading || attachmentsUploading}
-        className="w-full flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
       >
         <FilePlus2 size={15} /> {salvarLabel}
       </button>

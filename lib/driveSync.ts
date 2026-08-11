@@ -1,14 +1,16 @@
 // Sync reverso do Google Drive: cobre o sentido contrário do upload normal (site -> Drive).
 // Roda uma vez por dia (app/api/cron/drive-sync/route.ts) e, para cada escritório com o Drive
-// conectado (GoogleCredential.isPrimaryDrive), varre "Lúmen - Processos", "Lúmen - Casos" e
-// "Lúmen - Atendimentos" no Drive e:
-//   1) registra como Attachment de verdade qualquer arquivo que já esteja no lugar certo
-//      (pasta do processo/atendimento + subpasta do tipo de documento) mas que ninguém subiu
-//      pelo site — o caso "alguém arrastou o arquivo direto pro Drive";
-//   2) NUNCA adivinha o que fazer quando a estrutura foge do esperado (pasta sem processo
+// conectado (GoogleCredential.isPrimaryDrive), varre "Lúmen - Processos", "Lúmen - Casos",
+// "Lúmen - Atendimentos" E "Lúmen - Assessoria" (empresas + Pareceres, ver syncAssessoriaTree
+// abaixo — antes desta entrega a árvore de Assessoria ficava de fora) no Drive e:
+//   1) registra como Attachment/AssessoriaDocumento de verdade qualquer arquivo que já esteja no
+//      lugar certo (pasta do processo/atendimento/empresa + subpasta do tipo de documento) mas
+//      que ninguém subiu pelo site — o caso "alguém arrastou o arquivo direto pro Drive";
+//   2) NUNCA adivinha o que fazer quando a estrutura foge do esperado (pasta sem processo/empresa
 //      correspondente, subpasta com nome que não é nenhum tipo de documento conhecido, arquivo
-//      solto sem categoria) — só registra o problema em DriveSyncIssue, pra aparecer na Central
-//      de Alertas (kind DRIVE_INCONSISTENCIA, visível só a isAdmin) com a correção exata.
+//      solto sem categoria fora do que a Assessoria já considera normal) — só registra o problema
+//      em DriveSyncIssue, pra aparecer na Central de Alertas (kind DRIVE_INCONSISTENCIA, visível
+//      só a isAdmin) com a correção exata.
 // Read-only sobre tudo que não consegue resolver com confiança: nunca move, renomeia ou apaga
 // pasta/arquivo do Drive por conta própria.
 import { prisma } from "@/lib/prisma";
@@ -19,6 +21,8 @@ import {
   getProcessosRootFolderId,
   getCasosRootFolderId,
   getAtendimentosRootFolderId,
+  getAssessoriaRootFolderId,
+  ASSESSORIA_DOC_TYPE_FOLDERS,
 } from "@/lib/googleDrive";
 import { DOCUMENT_TYPES } from "@/lib/documentTypes";
 import { isReservedCaseSubfolder } from "@/lib/protocolos";
@@ -27,7 +31,16 @@ export type DriveSyncIssueType =
   | "PASTA_PROCESSO_SEM_CORRESPONDENCIA"
   | "PASTA_CATEGORIA_DESCONHECIDA"
   | "ARQUIVO_SOLTO_SEM_CATEGORIA"
-  | "ANEXO_SUMIU_DO_DRIVE";
+  | "ANEXO_SUMIU_DO_DRIVE"
+  // Equivalentes dos quatro tipos acima, para a árvore "Lúmen - Assessoria" (ver
+  // syncAssessoriaTree) — nomes próprios (não reaproveitados) porque a estrutura de pastas da
+  // Assessoria é diferente (empresa -> categoria/Pareceres -> [parecer ->] arquivos) e o texto do
+  // alerta precisa citar "empresa"/"parecer" em vez de "processo"/"atendimento".
+  | "PASTA_ASSESSORIA_SEM_CORRESPONDENCIA"
+  | "PASTA_CATEGORIA_ASSESSORIA_DESCONHECIDA"
+  | "ARQUIVO_ASSESSORIA_SOLTO_SEM_CATEGORIA"
+  | "PARECER_SEM_CORRESPONDENCIA"
+  | "DOCUMENTO_ASSESSORIA_SUMIU_DO_DRIVE";
 
 export type SyncOfficeResult = { registered: number; issuesFound: number; issuesResolved: number };
 
@@ -258,6 +271,199 @@ async function syncRoot(
   return { issues: allIssues, seenFileIds: allSeenFileIds, registered: totalRegistered };
 }
 
+// Mapa inverso de ASSESSORIA_DOC_TYPE_FOLDERS (lib/googleDrive.ts): nome exato da subpasta de
+// categoria dentro da pasta da empresa -> docType. "Pareceres" fica de fora de propósito — tem
+// tratamento próprio abaixo (cada filho dela é a pasta de um Parecer específico, não um arquivo).
+const ASSESSORIA_CATEGORY_LABEL_TO_KEY: Map<string, string> = new Map(
+  Object.entries(ASSESSORIA_DOC_TYPE_FOLDERS)
+    .filter(([key]) => key !== "PARECER")
+    .map(([key, label]) => [label, key])
+);
+const PARECERES_FOLDER_LABEL = ASSESSORIA_DOC_TYPE_FOLDERS.PARECER;
+
+// Varre "Lúmen - Assessoria" — estrutura diferente da de processo/atendimento (raiz -> EMPRESA ->
+// {Contratos, Licitações, Regimentos Internos, Pareceres} -> arquivos, com "Pareceres" tendo mais
+// um nível: Pareceres -> NOME DO PARECER -> arquivos). Documento OUTRO/ACAO_VINCULADA não tem
+// subpasta própria por desenho (ver comentário em lib/googleDrive.ts, ASSESSORIA_DOC_TYPE_FOLDERS)
+// — um arquivo solto direto na raiz da empresa é o caso ESPERADO pra esses dois tipos, não uma
+// inconsistência a relatar (ao contrário do arquivo solto na raiz de um processo/atendimento).
+async function syncAssessoriaTree(officeId: string): Promise<{ issues: PendingIssue[]; seenFileIds: Set<string>; registered: number }> {
+  const issues: PendingIssue[] = [];
+  const seenFileIds = new Set<string>();
+  let registered = 0;
+
+  const rootId = await getAssessoriaRootFolderId(officeId);
+  const companyFolders = await listDriveChildren(officeId, rootId);
+
+  for (const companyFolder of companyFolders) {
+    if (companyFolder.mimeType !== DRIVE_FOLDER_MIME_TYPE) continue; // algo solto direto na raiz da Assessoria: fora do escopo desta varredura
+
+    let assessoria = await prisma.assessoria.findFirst({
+      where: { officeId, driveFolderId: companyFolder.id },
+      select: { id: true, client: { select: { name: true } } },
+    });
+    if (!assessoria) {
+      const byName = await prisma.assessoria.findFirst({
+        where: { officeId, driveFolderId: null, client: { name: companyFolder.name } },
+        select: { id: true, client: { select: { name: true } } },
+      });
+      if (byName) {
+        await prisma.assessoria.update({ where: { id: byName.id }, data: { driveFolderId: companyFolder.id } });
+        assessoria = byName;
+      }
+    }
+
+    if (!assessoria) {
+      issues.push({
+        driveFileId: companyFolder.id,
+        issueType: "PASTA_ASSESSORIA_SEM_CORRESPONDENCIA",
+        description: `A pasta "${companyFolder.name}" em "Lúmen - Assessoria" não corresponde a nenhuma empresa com Assessoria cadastrada neste escritório.`,
+        suggestedFix: `Renomeie a pasta "${companyFolder.name}" no Drive para o nome exato do cliente de uma Assessoria já cadastrada, ou verifique se essa Assessoria foi excluída do sistema.`,
+        driveUrl: companyFolder.webViewLink,
+      });
+      continue;
+    }
+
+    const companyChildren = await listDriveChildren(officeId, companyFolder.id);
+    for (const child of companyChildren) {
+      if (child.mimeType !== DRIVE_FOLDER_MIME_TYPE) {
+        // Arquivo solto direto na raiz da empresa — esperado pra OUTRO/ACAO_VINCULADA (ver
+        // comentário da função). Registra como AssessoriaDocumento "OUTRO" se ainda não existir;
+        // não há como saber pelo Drive se era originalmente ACAO_VINCULADA.
+        seenFileIds.add(child.id);
+        const existing = await prisma.assessoriaDocumento.findFirst({ where: { officeId, storageFileId: child.id }, select: { id: true } });
+        if (existing) continue;
+        await prisma.assessoriaDocumento.create({
+          data: {
+            officeId,
+            assessoriaId: assessoria.id,
+            name: child.name,
+            docType: "OUTRO",
+            driveUrl: driveFileUrl(child.id, child.webViewLink),
+            storageProvider: "GOOGLE_DRIVE",
+            storageFileId: child.id,
+            uploadedById: null,
+          },
+        });
+        registered++;
+        continue;
+      }
+
+      if (child.name === PARECERES_FOLDER_LABEL) {
+        const parecerFolders = await listDriveChildren(officeId, child.id);
+        for (const parecerFolder of parecerFolders) {
+          if (parecerFolder.mimeType !== DRIVE_FOLDER_MIME_TYPE) {
+            // Arquivo solto direto dentro de "Pareceres", fora de qualquer pasta de parecer
+            // específico — não é o desenho esperado (todo documento de Parecer vive dentro da
+            // pasta do parecer, ver getOrCreateParecerFolder em lib/googleDrive.ts).
+            seenFileIds.add(parecerFolder.id);
+            issues.push({
+              driveFileId: parecerFolder.id,
+              issueType: "ARQUIVO_ASSESSORIA_SOLTO_SEM_CATEGORIA",
+              description: `O arquivo "${parecerFolder.name}" está solto dentro de "${assessoria.client.name} / Pareceres", fora de qualquer pasta de parecer específico.`,
+              suggestedFix: `Mova o arquivo "${parecerFolder.name}" para dentro da pasta do parecer correto, ou crie um parecer novo pra ele pela tela da Assessoria.`,
+              driveUrl: parecerFolder.webViewLink,
+            });
+            continue;
+          }
+
+          let parecer = await prisma.parecer.findFirst({
+            where: { officeId, assessoriaId: assessoria.id, driveFolderId: parecerFolder.id },
+            select: { id: true, name: true },
+          });
+          if (!parecer) {
+            const byName = await prisma.parecer.findFirst({
+              where: { officeId, assessoriaId: assessoria.id, driveFolderId: null, name: parecerFolder.name },
+              select: { id: true, name: true },
+            });
+            if (byName) {
+              await prisma.parecer.update({ where: { id: byName.id }, data: { driveFolderId: parecerFolder.id } });
+              parecer = byName;
+            }
+          }
+
+          const parecerFiles = await listDriveChildren(officeId, parecerFolder.id);
+          if (!parecer) {
+            for (const f of parecerFiles) seenFileIds.add(f.id); // marca como visto mesmo sem parecer, mesma lógica de categoria desconhecida abaixo
+            issues.push({
+              driveFileId: parecerFolder.id,
+              issueType: "PARECER_SEM_CORRESPONDENCIA",
+              description: `A pasta "${parecerFolder.name}" em "${assessoria.client.name} / Pareceres" não corresponde a nenhum parecer cadastrado.`,
+              suggestedFix: `Renomeie a pasta "${parecerFolder.name}" para o nome exato de um parecer já cadastrado nesta empresa, ou crie o parecer pela tela da Assessoria.`,
+              driveUrl: parecerFolder.webViewLink,
+            });
+            continue;
+          }
+
+          for (const f of parecerFiles) {
+            if (f.mimeType === DRIVE_FOLDER_MIME_TYPE) continue; // não esperamos sub-subpastas dentro de um parecer; ignora silenciosamente
+            seenFileIds.add(f.id);
+            const existing = await prisma.assessoriaDocumento.findFirst({ where: { officeId, storageFileId: f.id }, select: { id: true } });
+            if (existing) continue;
+            await prisma.assessoriaDocumento.create({
+              data: {
+                officeId,
+                assessoriaId: assessoria.id,
+                parecerId: parecer.id,
+                // docType real fica com o usuário (ver DocumentTypeSelect em ParecerFolderRow.tsx)
+                // — não há como inferir do Drive qual tipo era; "OUTRO" é o mesmo default usado
+                // pelo restante do sistema quando a categoria não é conhecida de antemão.
+                name: f.name,
+                docType: "OUTRO",
+                driveUrl: driveFileUrl(f.id, f.webViewLink),
+                storageProvider: "GOOGLE_DRIVE",
+                storageFileId: f.id,
+                uploadedById: null,
+              },
+            });
+            registered++;
+          }
+        }
+        continue;
+      }
+
+      const docTypeKey = ASSESSORIA_CATEGORY_LABEL_TO_KEY.get(child.name);
+      const categoryFiles = await listDriveChildren(officeId, child.id);
+      for (const f of categoryFiles) {
+        if (f.mimeType === DRIVE_FOLDER_MIME_TYPE) continue;
+        seenFileIds.add(f.id);
+      }
+
+      if (!docTypeKey) {
+        issues.push({
+          driveFileId: child.id,
+          issueType: "PASTA_CATEGORIA_ASSESSORIA_DESCONHECIDA",
+          description: `A pasta "${child.name}" dentro de "${assessoria.client.name}" não corresponde a nenhuma categoria de documento conhecida da Assessoria.`,
+          suggestedFix: `Renomeie a pasta "${child.name}" para um destes nomes exatos: ${Array.from(ASSESSORIA_CATEGORY_LABEL_TO_KEY.keys()).join(", ")} — ou mova os arquivos dela para a subpasta correta e apague esta.`,
+          driveUrl: child.webViewLink,
+        });
+        continue;
+      }
+
+      for (const f of categoryFiles) {
+        if (f.mimeType === DRIVE_FOLDER_MIME_TYPE) continue;
+        const existing = await prisma.assessoriaDocumento.findFirst({ where: { officeId, storageFileId: f.id }, select: { id: true } });
+        if (existing) continue;
+        await prisma.assessoriaDocumento.create({
+          data: {
+            officeId,
+            assessoriaId: assessoria.id,
+            name: f.name,
+            docType: docTypeKey,
+            driveUrl: driveFileUrl(f.id, f.webViewLink),
+            storageProvider: "GOOGLE_DRIVE",
+            storageFileId: f.id,
+            uploadedById: null,
+          },
+        });
+        registered++;
+      }
+    }
+  }
+
+  return { issues, seenFileIds, registered };
+}
+
 // Ponto de entrada, um escritório por vez — chamado pelo cron (app/api/cron/drive-sync/route.ts)
 // em loop sobre todos os escritórios da plataforma, cada chamada isolada (ver try/catch de quem
 // chama) pra uma credencial revogada num escritório não travar os demais.
@@ -281,13 +487,25 @@ export async function syncOfficeDrive(officeId: string): Promise<SyncOfficeResul
   const processosResult = await syncRoot(officeId, "case", processosRootId, "Lúmen - Processos", "processo");
   const casosResult = await syncRoot(officeId, "case", casosRootId, "Lúmen - Casos", "caso");
   const attendancesResult = await syncRoot(officeId, "attendance", atendimentosRootId, "Lúmen - Atendimentos", "atendimento");
+  // Árvore da Assessoria — antes desta entrega ficava totalmente fora do sync reverso (documento
+  // arrastado direto pro Drive numa pasta de empresa nunca virava AssessoriaDocumento sozinho).
+  const assessoriaResult = await syncAssessoriaTree(officeId).catch((e) => {
+    console.error(`[drive-sync] falha ao varrer a árvore da Assessoria do escritório ${officeId}:`, e);
+    return { issues: [] as PendingIssue[], seenFileIds: new Set<string>(), registered: 0 };
+  });
 
-  const issues = [...processosResult.issues, ...casosResult.issues, ...attendancesResult.issues];
-  const seenFileIds = new Set<string>([...processosResult.seenFileIds, ...casosResult.seenFileIds, ...attendancesResult.seenFileIds]);
-  const registered = processosResult.registered + casosResult.registered + attendancesResult.registered;
+  const issues = [...processosResult.issues, ...casosResult.issues, ...attendancesResult.issues, ...assessoriaResult.issues];
+  const seenFileIds = new Set<string>([
+    ...processosResult.seenFileIds,
+    ...casosResult.seenFileIds,
+    ...attendancesResult.seenFileIds,
+    ...assessoriaResult.seenFileIds,
+  ]);
+  const registered = processosResult.registered + casosResult.registered + attendancesResult.registered + assessoriaResult.registered;
 
-  // Bonus: Attachment do Google Drive já registrado cujo arquivo não apareceu em NENHUM lugar
-  // varrido acima — foi apagado ou movido pra fora da estrutura esperada direto no Drive.
+  // Bonus: Attachment/AssessoriaDocumento do Google Drive já registrado cujo arquivo não apareceu
+  // em NENHUM lugar varrido acima — foi apagado ou movido pra fora da estrutura esperada direto
+  // no Drive.
   const googleAttachments = await prisma.attachment.findMany({
     where: { officeId, storageProvider: "GOOGLE_DRIVE", storageFileId: { not: null } },
     select: { id: true, name: true, storageFileId: true, driveUrl: true },
@@ -300,6 +518,21 @@ export async function syncOfficeDrive(officeId: string): Promise<SyncOfficeResul
       description: `O anexo "${att.name}" ainda está cadastrado no sistema, mas o arquivo não foi encontrado no Drive.`,
       suggestedFix: `Verifique se o arquivo "${att.name}" foi apagado ou movido para fora da estrutura de pastas esperada no Drive. Se foi apagado por engano, restaure-o na Lixeira do Drive na pasta original; caso contrário, avalie remover este anexo do sistema.`,
       driveUrl: att.driveUrl || undefined,
+    });
+  }
+
+  const googleAssessoriaDocs = await prisma.assessoriaDocumento.findMany({
+    where: { officeId, storageProvider: "GOOGLE_DRIVE", storageFileId: { not: null } },
+    select: { id: true, name: true, storageFileId: true, driveUrl: true },
+  });
+  for (const doc of googleAssessoriaDocs) {
+    if (!doc.storageFileId || seenFileIds.has(doc.storageFileId)) continue;
+    issues.push({
+      driveFileId: doc.storageFileId,
+      issueType: "DOCUMENTO_ASSESSORIA_SUMIU_DO_DRIVE",
+      description: `O documento "${doc.name}" da Assessoria ainda está cadastrado no sistema, mas o arquivo não foi encontrado no Drive.`,
+      suggestedFix: `Verifique se o arquivo "${doc.name}" foi apagado ou movido para fora da estrutura de pastas esperada no Drive. Se foi apagado por engano, restaure-o na Lixeira do Drive na pasta original; caso contrário, avalie remover este documento do sistema.`,
+      driveUrl: doc.driveUrl || undefined,
     });
   }
 

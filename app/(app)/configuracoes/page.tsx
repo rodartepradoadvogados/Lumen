@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import {
@@ -67,6 +68,28 @@ function formatRelativeTime(date: Date): string {
   return `há ${dias} dia(s)`;
 }
 
+// Vocabulário único de conexão para os cartões de "Modelos & Integrações": em vez de cada
+// integração inventar seu próprio jeito de dizer "conectado" (badge, ícone + texto solto, caixa
+// colorida...), todo cartão usa a mesma linha com filete de severidade à esquerda — verde
+// (funcionando), vinho (falhando) ou cinza (não configurado ainda).
+function StatusLine({ state, children }: { state: "ok" | "erro" | "off"; children: ReactNode }) {
+  const tone: Record<typeof state, string> = {
+    ok: "border-concluido text-concluido",
+    erro: "border-vinho text-vinho",
+    off: "border-tx-3 text-tx-2",
+  };
+  return (
+    <p className={`flex items-center gap-2 border-l-[3px] ${tone[state]} bg-sf-apoio rounded-r-md px-3 py-2 text-xs font-medium`}>
+      {children}
+    </p>
+  );
+}
+
+// Botão secundário (DESIGN-SYSTEM.md §4): usado nos "Conectar"/"Reconectar" das integrações
+// e em outras ações de navegação/consulta que não são a ação primária do cartão.
+const SECONDARY_BTN =
+  "inline-flex items-center gap-2 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit transition-colors";
+
 function sortByCode(a: { code: string }, b: { code: string }) {
   const pa = a.code.split(".").map(Number);
   const pb = b.code.split(".").map(Number);
@@ -84,9 +107,9 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
     <>
       {children.map((c) => (
         <div key={c.id}>
-          <div className="flex items-center gap-2 px-5 py-2 hover:bg-cream-50 dark:hover:bg-white/5" style={{ paddingLeft: `${20 + depth * 20}px` }}>
-            <span className="text-[11px] text-navy-800/35 dark:text-cream-50/35 w-16 shrink-0 font-mono">{c.code}</span>
-            <span className="text-sm text-navy-800 dark:text-cream-50 flex-1">{c.name}</span>
+          <div className="flex items-center gap-2 px-5 py-2 hover:bg-sf-apoio" style={{ paddingLeft: `${20 + depth * 20}px` }}>
+            <span className="text-[11px] text-tx-3 w-16 shrink-0 font-mono">{c.code}</span>
+            <span className="text-sm text-tx flex-1">{c.name}</span>
             <DeleteButton
               id={c.id}
               confirmMessage={`Excluir a categoria "${c.name}"? Só é possível se não houver subcategorias ou lançamentos vinculados.`}
@@ -303,9 +326,7 @@ export default async function ConfiguracoesPage({
               key={s.key}
               href={`/configuracoes?secao=${s.key}`}
               className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
-                secao === s.key
-                  ? "bg-navy-900 text-white"
-                  : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+                secao === s.key ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
               }`}
             >
               {s.label}
@@ -315,10 +336,11 @@ export default async function ConfiguracoesPage({
       )}
 
       <div className="flex gap-6 items-start">
-      {/* Sempre navy sólido (sem dark:), mesmo em Manhã/Noite — o texto aqui é propositalmente
-          sempre cream (sem dark: também), então NÃO pode usar dark:bg-*. */}
+      {/* O rail lateral é sempre grafite sólido nos dois temas (mesmo padrão do NavRail/casca —
+          DESIGN-SYSTEM.md §3), então o texto aqui é propositalmente sempre claro, sem variante
+          dark: própria. */}
       {canConfig && (
-        <aside className="hidden lg:block w-56 shrink-0 bg-navy-900 rounded-2xl overflow-hidden sticky top-6">
+        <aside className="hidden lg:block w-56 shrink-0 bg-grafite-800 rounded-2xl overflow-hidden sticky top-6">
           <nav className="p-3 space-y-1">
             {availableSecoes.map((s) => {
               const Icon = SECAO_ICONS[s.key];
@@ -329,23 +351,23 @@ export default async function ConfiguracoesPage({
                   href={`/configuracoes?secao=${s.key}`}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors ${
                     active
-                      ? "bg-gold-500/10 text-cream-50 font-semibold border-gold-400"
-                      : "text-cream-100/70 font-medium border-transparent hover:bg-white/5 hover:text-cream-50"
+                      ? "bg-marca-bg text-white font-semibold border-marca"
+                      : "text-white/70 font-medium border-transparent hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <Icon size={16} className={active ? "text-gold-400" : "text-cream-100/45"} />
+                  <Icon size={16} className={active ? "text-marca" : "text-white/45"} />
                   {s.label}
                 </Link>
               );
             })}
           </nav>
           <div className="px-4 py-4 border-t border-white/10 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-white/10 text-gold-400 flex items-center justify-center text-xs font-serif font-bold shrink-0">
+            <div className="h-8 w-8 rounded-full bg-white/10 text-marca flex items-center justify-center text-xs font-bold shrink-0">
               {viewerInitials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-cream-50 truncate">{viewer.name}</p>
-              <p className="text-[10px] text-cream-100/50 truncate">{viewer.role}</p>
+              <p className="text-xs font-semibold text-white truncate">{viewer.name}</p>
+              <p className="text-[10px] text-white/50 truncate">{viewer.role}</p>
             </div>
           </div>
         </aside>
@@ -366,7 +388,7 @@ export default async function ConfiguracoesPage({
         <div className="p-5 flex flex-wrap gap-3">
           <Link
             href="/configuracoes/importar"
-            className="flex items-center gap-2 justify-center bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+            className="flex items-center gap-2 justify-center bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit transition-colors"
           >
             <Upload size={16} /> Importar Contatos / Processos / Agenda
           </Link>
@@ -392,10 +414,7 @@ export default async function ConfiguracoesPage({
       <Card>
         <CardHeader title="Acessos da Lúmen" subtitle="Veja quando e por quê o suporte da Lúmen acessou os dados do seu escritório" />
         <div className="p-5">
-          <Link
-            href="/configuracoes/acessos"
-            className="inline-flex items-center gap-2 justify-center bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-          >
+          <Link href="/configuracoes/acessos" className={SECONDARY_BTN}>
             <ShieldCheck size={16} /> Ver histórico de acessos
           </Link>
         </div>
@@ -412,8 +431,8 @@ export default async function ConfiguracoesPage({
                 href="/configuracoes?secao=blog&blogTab=revisao"
                 className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
                   blogTab === "revisao"
-                    ? "bg-navy-800 text-white"
-                    : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx"
+                    : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
                 }`}
               >
                 Revisão Pendente {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
@@ -422,8 +441,8 @@ export default async function ConfiguracoesPage({
                 href="/configuracoes?secao=blog&blogTab=publicadas"
                 className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
                   blogTab === "publicadas"
-                    ? "bg-navy-800 text-white"
-                    : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx"
+                    : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
                 }`}
               >
                 Matérias Publicadas ({blogPublishedRaw.length})
@@ -432,8 +451,8 @@ export default async function ConfiguracoesPage({
                 href="/configuracoes?secao=blog&blogTab=fotos"
                 className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
                   blogTab === "fotos"
-                    ? "bg-navy-800 text-white"
-                    : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx"
+                    : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
                 }`}
               >
                 Fotos ({photos.length})
@@ -510,30 +529,22 @@ export default async function ConfiguracoesPage({
             subtitle="Necessária para anexar documentos (quando o armazenamento escolhido for Google Drive, ver o card “Armazenamento de anexos” abaixo) e sincronizar as publicações/andamentos que chegam por e-mail. O e-mail (leitura de publicações e envio no Atendimento) já aceita Outlook também — ver o card abaixo."
           />
           <div className="p-5 space-y-3">
-            {searchParams.google === "conectado" && (
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">Google conectado com sucesso!</p>
-            )}
+            {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
             {searchParams.google === "erro" && (
-              <p className="text-xs text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-3 py-2">
-                Erro ao conectar: {searchParams.msg || "tente novamente."}
-              </p>
+              <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
             )}
             {driveStatus.connected ? (
-              <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50">
-                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+              <StatusLine state="ok">
                 Conectado como <strong>{driveStatus.accountEmail}</strong>
-              </div>
+              </StatusLine>
             ) : (
-              <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Nenhuma conta conectada ainda.</p>
+              <StatusLine state="off">Nenhuma conta conectada ainda.</StatusLine>
             )}
-            <a
-              href="/api/google/connect"
-              className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-            >
+            <a href="/api/google/connect" className={SECONDARY_BTN}>
               <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive + Gmail)
             </a>
             {driveStatus.connected && (
-              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+              <p className="text-[11px] text-tx-3">
                 Se a conexão foi feita antes desta atualização, clique em &ldquo;Reconectar&rdquo; para autorizar também o acesso de leitura ao Gmail (necessário para as publicações por e-mail) e o acesso completo ao Drive (necessário para mover/organizar pastas de processo que já existiam antes do Lúmen — sem isso, a migração de pastas legadas em &ldquo;Pastas de processo fora do lugar no Drive&rdquo;, mais abaixo, só consegue simular, não aplicar).
               </p>
             )}
@@ -556,46 +567,39 @@ export default async function ConfiguracoesPage({
                   return (
                     <div key={u.id} className="flex items-center gap-2 text-sm">
                       {found ? (
-                        <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <CheckCircle2 size={16} className="text-concluido shrink-0" />
                       ) : (
-                        <AlertTriangle size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                        <AlertTriangle size={16} className="text-tx-3 shrink-0" />
                       )}
-                      <span className={found ? "text-navy-900 dark:text-cream-50" : "text-navy-800/50 dark:text-cream-50/50"}>
+                      <span className={found ? "text-tx" : "text-tx-3"}>
                         {u.name}
-                        {found ? (
-                          <span className="text-navy-800/45 dark:text-cream-50/45"> — {found.accountEmail}</span>
-                        ) : (
-                          " (ainda não conectou o e-mail)"
-                        )}
+                        {found ? <span className="text-tx-3"> — {found.accountEmail}</span> : " (ainda não conectou o e-mail)"}
                       </span>
                     </div>
                   );
                 })}
                 {googleAccounts.filter((a) => !a.userId).map((a) => (
                   <div key={a.id} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="text-navy-900 dark:text-cream-50">
+                    <CheckCircle2 size={16} className="text-concluido shrink-0" />
+                    <span className="text-tx">
                       {a.accountEmail}
-                      {a.isPrimaryDrive && <span className="text-navy-800/45 dark:text-cream-50/45"> (conta principal do Drive)</span>}
+                      {a.isPrimaryDrive && <span className="text-tx-3"> (conta principal do Drive)</span>}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
-                <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mb-2">
+              <div className="pt-3 border-t border-regua">
+                <p className="text-xs text-tx-2 mb-2">
                   {minhaConexao ? (
                     <>Sua conta conectada: <strong>{minhaConexao.accountEmail}</strong></>
                   ) : (
                     "Você ainda não conectou seu e-mail."
                   )}
                 </p>
-                <a
-                  href="/api/google/connect?mode=jusbrasil"
-                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-                >
+                <a href="/api/google/connect?mode=jusbrasil" className={SECONDARY_BTN}>
                   <HardDrive size={16} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
                 </a>
-                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-2">
+                <p className="text-[11px] text-tx-3 mt-2">
                   Cada pessoa só pode conectar/reconectar o próprio e-mail por aqui — não é possível reconectar o e-mail de outra pessoa.
                 </p>
               </div>
@@ -613,48 +617,37 @@ export default async function ConfiguracoesPage({
               subtitle="Alternativa ao Google acima: recebe publicações/andamentos por e-mail e permite enviar e-mail no Atendimento usando a conta Outlook da própria pessoa. Para armazenamento (OneDrive), veja o card “Armazenamento de anexos” abaixo — é uma conexão separada, do escritório. O calendário do Outlook ainda não está integrado."
             />
             <div className="p-5 space-y-4">
-              {!isMicrosoftConfigured() && (
-                <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
-                  Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).
-                </p>
-              )}
-              {searchParams.microsoft === "conectado" && (
-                <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">Microsoft conectado com sucesso!</p>
-              )}
+              {!isMicrosoftConfigured() && <StatusLine state="off">Ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).</StatusLine>}
+              {searchParams.microsoft === "conectado" && <StatusLine state="ok">Microsoft conectado com sucesso!</StatusLine>}
               {searchParams.microsoft === "erro" && (
-                <p className="text-xs text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-3 py-2">
-                  Erro ao conectar: {searchParams.msg || "tente novamente."}
-                </p>
+                <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
               )}
               <div className="space-y-2">
                 {microsoftAccounts.length === 0 ? (
-                  <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Nenhuma conta Microsoft conectada ainda.</p>
+                  <p className="text-sm text-tx-2">Nenhuma conta Microsoft conectada ainda.</p>
                 ) : (
                   microsoftAccounts.map((a) => (
                     <div key={a.id} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span className="text-navy-900 dark:text-cream-50">
-                        {a.ownerName ?? a.accountEmail} <span className="text-navy-800/45 dark:text-cream-50/45">— {a.accountEmail}</span>
+                      <CheckCircle2 size={16} className="text-concluido shrink-0" />
+                      <span className="text-tx">
+                        {a.ownerName ?? a.accountEmail} <span className="text-tx-3">— {a.accountEmail}</span>
                       </span>
                     </div>
                   ))
                 )}
               </div>
-              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
-                <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mb-2">
+              <div className="pt-3 border-t border-regua">
+                <p className="text-xs text-tx-2 mb-2">
                   {minhaConexaoMs ? (
                     <>Sua conta conectada: <strong>{minhaConexaoMs.accountEmail}</strong></>
                   ) : (
                     "Você ainda não conectou sua conta Microsoft."
                   )}
                 </p>
-                <a
-                  href="/api/microsoft/connect"
-                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-                >
+                <a href="/api/microsoft/connect" className={SECONDARY_BTN}>
                   <HardDrive size={16} /> {minhaConexaoMs ? "Reconectar" : "Conectar"} minha conta Microsoft
                 </a>
-                <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-2">
+                <p className="text-[11px] text-tx-3 mt-2">
                   Cada pessoa só pode conectar/reconectar a própria conta — não é possível reconectar a conta de outra pessoa.
                 </p>
               </div>
@@ -670,26 +663,12 @@ export default async function ConfiguracoesPage({
             subtitle="Por padrão, anexos de Processos/Atendimentos/Assessoria ficam no Google Drive. Cada escritório pode trocar para OneDrive ou Dropbox."
           />
           <div className="p-5 space-y-4">
-            {!isMicrosoftConfigured() && (
-              <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
-                OneDrive ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).
-              </p>
-            )}
-            {!isDropboxConfigured() && (
-              <p className="text-xs text-navy-800/60 dark:text-cream-50/60 bg-cream-100 dark:bg-white/5 border border-navy-800/8 dark:border-white/10 rounded-lg px-3 py-2">
-                Dropbox ainda não configurado na plataforma — falta registrar o app no Dropbox App Console (ver README_MICROSOFT.md).
-              </p>
-            )}
-            {searchParams.microsoft === "onedrive-conectado" && (
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">OneDrive conectado com sucesso!</p>
-            )}
-            {searchParams.dropbox === "conectado" && (
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">Dropbox conectado com sucesso!</p>
-            )}
+            {!isMicrosoftConfigured() && <StatusLine state="off">OneDrive ainda não configurado na plataforma — falta registrar o app no Azure AD (ver README_MICROSOFT.md).</StatusLine>}
+            {!isDropboxConfigured() && <StatusLine state="off">Dropbox ainda não configurado na plataforma — falta registrar o app no Dropbox App Console (ver README_MICROSOFT.md).</StatusLine>}
+            {searchParams.microsoft === "onedrive-conectado" && <StatusLine state="ok">OneDrive conectado com sucesso!</StatusLine>}
+            {searchParams.dropbox === "conectado" && <StatusLine state="ok">Dropbox conectado com sucesso!</StatusLine>}
             {searchParams.dropbox === "erro" && (
-              <p className="text-xs text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-3 py-2">
-                Erro ao conectar: {searchParams.msg || "tente novamente."}
-              </p>
+              <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>
             )}
             <StorageProviderPicker
               current={storageProvider}
@@ -698,37 +677,29 @@ export default async function ConfiguracoesPage({
               dropboxConnected={dropboxStatus.connected}
             />
             {storageProvider === "ONEDRIVE" && (
-              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
+              <div className="pt-3 border-t border-regua space-y-2">
                 {oneDriveStatus.connected ? (
-                  <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50 mb-2">
-                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                  <StatusLine state="ok">
                     Conectado como <strong>{oneDriveStatus.accountEmail}</strong>
-                  </div>
+                  </StatusLine>
                 ) : (
-                  <p className="text-sm text-navy-800/60 dark:text-cream-50/60 mb-2">Nenhuma conta OneDrive conectada ainda.</p>
+                  <StatusLine state="off">Nenhuma conta OneDrive conectada ainda.</StatusLine>
                 )}
-                <a
-                  href="/api/microsoft/connect?mode=onedrive"
-                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-                >
+                <a href="/api/microsoft/connect?mode=onedrive" className={SECONDARY_BTN}>
                   <HardDrive size={16} /> {oneDriveStatus.connected ? "Reconectar" : "Conectar"} OneDrive
                 </a>
               </div>
             )}
             {storageProvider === "DROPBOX" && (
-              <div className="pt-3 border-t border-navy-800/8 dark:border-white/10">
+              <div className="pt-3 border-t border-regua space-y-2">
                 {dropboxStatus.connected ? (
-                  <div className="flex items-center gap-2 text-sm text-navy-900 dark:text-cream-50 mb-2">
-                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+                  <StatusLine state="ok">
                     Conectado como <strong>{dropboxStatus.accountEmail}</strong>
-                  </div>
+                  </StatusLine>
                 ) : (
-                  <p className="text-sm text-navy-800/60 dark:text-cream-50/60 mb-2">Nenhuma conta Dropbox conectada ainda.</p>
+                  <StatusLine state="off">Nenhuma conta Dropbox conectada ainda.</StatusLine>
                 )}
-                <a
-                  href="/api/dropbox/connect"
-                  className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
-                >
+                <a href="/api/dropbox/connect" className={SECONDARY_BTN}>
                   <HardDrive size={16} /> {dropboxStatus.connected ? "Reconectar" : "Conectar"} Dropbox
                 </a>
               </div>
@@ -760,14 +731,14 @@ export default async function ConfiguracoesPage({
             subtitle="Fonte oficial e gratuita de intimações/citações por OAB — em avaliação como alternativa ao Jusbrasil por e-mail"
           />
           <div className="p-5 space-y-3">
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
-              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-gold-700 dark:text-gold-400 font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
+            <p className="text-xs text-tx-2">
+              As OABs consultadas são as cadastradas em <Link href="/configuracoes?secao=equipe" className="text-acao font-semibold hover:underline">Equipe &amp; Acesso</Link> (campo OAB de cada pessoa ativa). Para acompanhar mais um advogado, cadastre a OAB dele lá.
             </p>
             {ultimoLogDjen && (
-              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+              <StatusLine state={ultimoLogDjen.sucesso ? "ok" : "erro"}>
                 Última execução do robô: {formatRelativeTime(ultimoLogDjen.executadoEm)} —{" "}
                 {ultimoLogDjen.sucesso ? "sem falha registrada" : "falhou (provável bloqueio de IP, ver abaixo)"}.
-              </p>
+              </StatusLine>
             )}
             <TestDjenButton />
           </div>
@@ -781,24 +752,24 @@ export default async function ConfiguracoesPage({
             subtitle="API oficial do CNJ, autenticada por chave — não sofre o bloqueio de IP que o DJEN sofre"
           />
           <div className="p-5 space-y-3">
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+            <p className="text-xs text-tx-2">
               Consulta os andamentos de todo processo já cadastrado no site com número de processo preenchido — não depende do
               DJEN para descobrir o que monitorar. Hoje: <strong>{processosMonitoradosCount} processo(s) monitorado(s)</strong>.
             </p>
             {ultimoLogDatajud ? (
-              <div className={`text-xs rounded-lg px-3 py-2 ${ultimoLogDatajud.sucesso ? "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-300" : "bg-red-50 dark:bg-bordo-400/10 text-red-700 dark:text-bordo-400"}`}>
+              <StatusLine state={ultimoLogDatajud.sucesso ? "ok" : "erro"}>
                 Última execução {formatRelativeTime(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
                 {ultimoLogDatajud.detalhe && <> — {ultimoLogDatajud.detalhe}</>}
-              </div>
+              </StatusLine>
             ) : (
-              <p className="text-xs text-amber-700 dark:text-amber-400">Nenhuma execução registrada ainda.</p>
+              <StatusLine state="off">Nenhuma execução registrada ainda.</StatusLine>
             )}
             {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").length > 1 && (
               <details className="text-xs">
-                <summary className="cursor-pointer text-navy-800/50 dark:text-cream-50/50 font-semibold">Histórico recente</summary>
+                <summary className="cursor-pointer text-tx-2 font-semibold">Histórico recente</summary>
                 <ul className="mt-2 space-y-1">
                   {roboExecucaoLogs.filter((l) => l.fonte === "DATAJUD").slice(0, 5).map((l) => (
-                    <li key={l.id} className="text-navy-800/60 dark:text-cream-50/60">
+                    <li key={l.id} className="text-tx-2">
                       {formatRelativeTime(l.executadoEm)} — {l.sucesso ? "sucesso" : "falha"}{l.detalhe ? ` — ${l.detalhe}` : ""}
                     </li>
                   ))}
@@ -825,10 +796,10 @@ export default async function ConfiguracoesPage({
             subtitle="Número da Cloud API (Meta) deste escritório — usado para receber e responder mensagens de clientes em Atendimento"
           />
           <div className="p-5 flex items-start gap-3">
-            <MessageCircle size={18} className="text-navy-800/40 dark:text-cream-50/40 shrink-0 mt-0.5" />
+            <MessageCircle size={18} className="text-tx-3 shrink-0 mt-0.5" />
             <div className="flex-1">
               <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />
-              <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-3">
+              <p className="text-[11px] text-tx-3 mt-3">
                 O Phone Number ID e o Access Token são gerados ao cadastrar um número na Cloud API do WhatsApp (Meta for Developers). O webhook e o token de verificação são compartilhados pela plataforma — só o número precisa ser cadastrado aqui.
               </p>
             </div>
@@ -909,13 +880,15 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "geral" && (
       <Card>
-        <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório" />
+        <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório — manual da marca v2" />
+        {/* Cores lidas das variáveis CSS (app/globals.css), não cravadas aqui — por isso o
+            swatch já troca sozinho de Manhã pra Noite junto com o resto da tela. */}
         <div className="p-5 flex gap-4 flex-wrap">
-          <Swatch color="#0b1730" label="Navy 900" />
-          <Swatch color="#152a52" label="Navy 700" />
-          <Swatch color="#b8904f" label="Gold 600" />
-          <Swatch color="#c6a05c" label="Gold 500" />
-          <Swatch color="#f3efe6" label="Fundo (Creme)" border />
+          <Swatch color="var(--grafite-800)" label="Grafite 800" />
+          <Swatch color="var(--grafite-500)" label="Grafite 500" />
+          <Swatch color="var(--marca)" label="Marca (Ouro)" />
+          <Swatch color="var(--vinho)" label="Vinho" />
+          <Swatch color="var(--sf-fundo)" label="Fundo" border />
         </div>
       </Card>
       )}
@@ -923,15 +896,15 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "equipe" && (
       <Card>
         <CardHeader title="Equipe (usuários)" subtitle={`${users.length} membro(s) · edite telefone, defina credenciais de acesso e conceda/revogue acesso ao Financeiro`} />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {users.map((u) => (
             <UserRow key={u.id} user={u} canManage={isAdmin} />
           ))}
         </div>
-        <form action={submitUser} className="p-5 grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-navy-800/8 dark:border-white/10">
-          <input name="name" required placeholder="Nome" className="cfg-input sm:col-span-2 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="email" type="email" required placeholder="E-mail" className="cfg-input sm:col-span-2 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <select name="role" className="cfg-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+        <form action={submitUser} className="p-5 grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-regua">
+          <input name="name" required placeholder="Nome" className="cfg-input sm:col-span-2" />
+          <input name="email" type="email" required placeholder="E-mail" className="cfg-input sm:col-span-2" />
+          <select name="role" className="cfg-input">
             <option value="Advogado">Advogado</option>
             <option value="Sócio">Sócio</option>
             <option value="Estagiário">Estagiário</option>
@@ -940,9 +913,9 @@ export default async function ConfiguracoesPage({
             <option value="Marketing">Marketing</option>
             <option value="Contador">Contador</option>
           </select>
-          <input name="oab" placeholder="OAB (opcional)" className="cfg-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1 dark:bg-navy-800 dark:border-white/15" />
-          <button type="submit" className="sm:col-span-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-3">
+          <input name="oab" placeholder="OAB (opcional)" className="cfg-input" />
+          <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1" />
+          <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-3 transition-colors">
             Adicionar membro
           </button>
         </form>
@@ -952,13 +925,13 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "modelos" && (
       <Card>
         <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {columns.map((c) => (
             <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }} />
-              <p className="text-sm text-navy-900 dark:text-cream-50 flex-1">{c.name}</p>
+              <p className="text-sm text-tx flex-1">{c.name}</p>
               {c.isDoneCol && <Badge color="green">Coluna de conclusão</Badge>}
-              <span className="text-xs text-navy-800/35 dark:text-cream-50/35">{c._count.tasks} tarefa(s)</span>
+              <span className="text-xs text-tx-3">{c._count.tasks} tarefa(s)</span>
               <DeleteButton
                 id={c.id}
                 confirmMessage={`Excluir a coluna "${c.name}"? Só é possível se não houver tarefas nela.`}
@@ -967,10 +940,10 @@ export default async function ConfiguracoesPage({
             </div>
           ))}
         </div>
-        <form action={submitColumn} className="p-5 flex gap-2 border-t border-navy-800/8 dark:border-white/10">
-          <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1 dark:bg-navy-800 dark:border-white/15" />
-          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4">
+        <form action={submitColumn} className="p-5 flex gap-2 border-t border-regua">
+          <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1" />
+          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1" />
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
             Adicionar
           </button>
         </form>
@@ -981,27 +954,27 @@ export default async function ConfiguracoesPage({
       <>
       <Card>
         <CardHeader title="Plano de Contas" subtitle="Grupos e subgrupos de receitas e despesas" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-navy-800/5 dark:divide-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-regua">
           <div>
-            <p className="px-5 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase">Receitas</p>
+            <p className="px-5 py-2 text-xs font-semibold text-concluido uppercase">Receitas</p>
             {categories.filter((c) => c.kind === "RECEITA" && !c.parentId).sort(sortByCode).map((root) => (
               <CategoryTree key={root.id} categories={categories} parentId={root.id} depth={0} />
             ))}
           </div>
           <div>
-            <p className="px-5 py-2 text-xs font-semibold text-red-600 dark:text-bordo-400 uppercase">Despesas</p>
+            <p className="px-5 py-2 text-xs font-semibold text-urgente uppercase">Despesas</p>
             {categories.filter((c) => c.kind === "DESPESA" && !c.parentId).sort(sortByCode).map((root) => (
               <CategoryTree key={root.id} categories={categories} parentId={root.id} depth={0} />
             ))}
           </div>
         </div>
-        <form action={submitCategory} className="p-5 flex gap-2 flex-wrap border-t border-navy-800/8 dark:border-white/10">
-          <input name="name" required placeholder="Nome da nova categoria/conta" className="cfg-input flex-1 min-w-[180px] dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <select name="kind" className="cfg-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+        <form action={submitCategory} className="p-5 flex gap-2 flex-wrap border-t border-regua">
+          <input name="name" required placeholder="Nome da nova categoria/conta" className="cfg-input flex-1 min-w-[180px]" />
+          <select name="kind" className="cfg-input">
             <option value="RECEITA">Receita</option>
             <option value="DESPESA">Despesa</option>
           </select>
-          <select name="parentId" className="cfg-input min-w-[200px] dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+          <select name="parentId" className="cfg-input min-w-[200px]">
             <option value="">Nível raiz (novo grupo)</option>
             {allCategoriesForParentSelect.map((c) => (
               <option key={c.id} value={c.id}>
@@ -1009,7 +982,7 @@ export default async function ConfiguracoesPage({
               </option>
             ))}
           </select>
-          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
             Adicionar
           </button>
         </form>
@@ -1017,10 +990,10 @@ export default async function ConfiguracoesPage({
 
       <Card>
         <CardHeader title="Centros de Custo" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {costCenters.map((c) => (
             <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
-              <p className="text-sm text-navy-900 dark:text-cream-50 flex-1">{c.name}</p>
+              <p className="text-sm text-tx flex-1">{c.name}</p>
               <DeleteButton
                 id={c.id}
                 confirmMessage={`Excluir o centro de custo "${c.name}"? Só é possível se não houver lançamentos vinculados.`}
@@ -1029,9 +1002,9 @@ export default async function ConfiguracoesPage({
             </div>
           ))}
         </div>
-        <form action={submitCostCenter} className="p-5 flex gap-2 border-t border-navy-800/8 dark:border-white/10">
-          <input name="name" required placeholder="Nome do centro de custo" className="cfg-input flex-1 dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4">
+        <form action={submitCostCenter} className="p-5 flex gap-2 border-t border-regua">
+          <input name="name" required placeholder="Nome do centro de custo" className="cfg-input flex-1" />
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
             Adicionar
           </button>
         </form>
@@ -1111,9 +1084,9 @@ export default async function ConfiguracoesPage({
       </div>
 
       <style>{`
-        .cfg-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; color: #14213d; }
-        .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-        .dark .cfg-input { background: #111a35; border-color: rgba(255,255,255,0.15); color: #f1ece0; }
+        .cfg-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
+        .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px var(--acao-bg); }
+        .cfg-input::placeholder { color: var(--tx-3); }
       `}</style>
     </div>
   );
@@ -1122,9 +1095,8 @@ export default async function ConfiguracoesPage({
 function Swatch({ color, label, border }: { color: string; label: string; border?: boolean }) {
   return (
     <div className="text-center">
-      <div className={`h-14 w-14 rounded-lg ${border ? "border border-navy-800/15 dark:border-white/15" : ""}`} style={{ backgroundColor: color }} />
-      <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">{label}</p>
-      <p className="text-[10px] text-navy-800/35 dark:text-cream-50/35">{color}</p>
+      <div className={`h-14 w-14 rounded-lg ${border ? "border border-regua-forte" : ""}`} style={{ backgroundColor: color }} />
+      <p className="text-[11px] text-tx-3 mt-1">{label}</p>
     </div>
   );
 }

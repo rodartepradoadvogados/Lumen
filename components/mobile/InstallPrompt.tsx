@@ -59,15 +59,15 @@ export default function InstallPrompt() {
 
   return (
     <div className="fixed bottom-16 inset-x-0 z-50 px-3 pb-3 animate-fade-in">
-      <div className="max-w-sm mx-auto bg-navy-900 text-cream-50 rounded-2xl shadow-pop p-4 flex items-start gap-3">
-        <span className="h-9 w-9 rounded-lg bg-navy-700 flex items-center justify-center shrink-0">
+      <div className="max-w-sm mx-auto bg-grafite-800 text-white rounded-2xl shadow-pop p-4 flex items-start gap-3">
+        <span className="h-9 w-9 rounded-lg bg-grafite-700 flex items-center justify-center shrink-0">
           <LumenMark size={22} />
         </span>
         <div className="flex-1 min-w-0">
           {platform === "ios" ? (
             <>
               <p className="text-sm font-semibold">Instale o app na tela inicial</p>
-              <p className="text-xs text-cream-50/70 mt-1 leading-relaxed">
+              <p className="text-xs text-white/70 mt-1 leading-relaxed">
                 Toque em <Share size={12} className="inline -mt-0.5" /> Compartilhar e depois em{" "}
                 <SquarePlus size={12} className="inline -mt-0.5" /> &ldquo;Adicionar à Tela de Início&rdquo;.
               </p>
@@ -75,17 +75,17 @@ export default function InstallPrompt() {
           ) : (
             <>
               <p className="text-sm font-semibold">Instale o app Lúmen</p>
-              <p className="text-xs text-cream-50/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
+              <p className="text-xs text-white/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
               <button
                 onClick={install}
-                className="mt-2 inline-flex items-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+                className="mt-2 inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg"
               >
                 <Download size={13} /> Instalar
               </button>
             </>
           )}
         </div>
-        <button onClick={dismiss} className="text-cream-50/50 hover:text-cream-50 shrink-0" aria-label="Fechar aviso de instalação">
+        <button onClick={dismiss} className="text-white/50 hover:text-white shrink-0" aria-label="Fechar aviso de instalação">
           <X size={16} />
         </button>
       </div>

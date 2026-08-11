@@ -34,7 +34,7 @@ export default async function LivroCaixaPage() {
 
   return (
     <div className="p-6 max-w-[1000px] mx-auto animate-fade-in">
-      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader title="Livro Caixa" subtitle="Extrato cronológico de todas as movimentações efetivadas" />
@@ -46,23 +46,23 @@ export default async function LivroCaixaPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
-                <tr className="text-left text-xs text-navy-800/45 dark:text-cream-50/45 uppercase tracking-wide border-b border-navy-800/8 dark:border-white/10">
+                <tr className="text-left text-xs text-tx-2 uppercase tracking-wide border-b border-regua">
                   <th className="px-5 py-3 font-semibold">Data</th>
                   <th className="px-5 py-3 font-semibold">Descrição</th>
                   <th className="px-5 py-3 font-semibold text-right">Valor</th>
                   <th className="px-5 py-3 font-semibold text-right">Saldo Acumulado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <tbody className="divide-y divide-regua">
                 {withBalance.map((e, i) => (
                   <tr key={i}>
-                    <td className="px-5 py-2.5 text-navy-800/60 dark:text-cream-50/60 whitespace-nowrap">{formatDate(e.date)}</td>
-                    <td className="px-5 py-2.5 text-navy-900 dark:text-cream-50">{e.description}</td>
-                    <td className={`px-5 py-2.5 text-right font-semibold ${e.type === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-bordo-400"}`}>
+                    <td className="px-5 py-2.5 text-tx-2 whitespace-nowrap">{formatDate(e.date)}</td>
+                    <td className="px-5 py-2.5 text-tx">{e.description}</td>
+                    <td className={`px-5 py-2.5 text-right font-semibold tabular-nums ${e.type === "entrada" ? "text-concluido" : "text-urgente"}`}>
                       {e.type === "entrada" ? "+" : ""}
                       {formatCurrency(e.value)}
                     </td>
-                    <td className="px-5 py-2.5 text-right font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(e.balance)}</td>
+                    <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-tx">{formatCurrency(e.balance)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -52,10 +52,10 @@ function HBar({ label, display, value, max, color }: { label: string; display: s
   return (
     <div>
       <div className="flex justify-between items-baseline text-sm mb-1 gap-2">
-        <span className="text-navy-800 dark:text-cream-50/80 truncate">{label}</span>
-        <span className="font-semibold text-navy-900 dark:text-cream-50 shrink-0">{display}</span>
+        <span className="text-tx-2 truncate">{label}</span>
+        <span className="font-semibold text-tx shrink-0">{display}</span>
       </div>
-      <div className="h-2.5 rounded-full bg-cream-200 dark:bg-white/10 overflow-hidden">
+      <div className="h-2.5 rounded-full bg-sf-apoio overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, minWidth: value > 0 ? 4 : 0, backgroundColor: color }} />
       </div>
     </div>
@@ -68,14 +68,14 @@ function VBars({ items, color }: { items: { label: string; display: string; valu
     <div className="flex items-end gap-2 overflow-x-auto pb-1">
       {items.map((it, i) => (
         <div key={i} className="flex-1 min-w-[38px] flex flex-col items-center">
-          <span className="text-[10px] font-semibold text-navy-800 dark:text-cream-50/80 mb-1">{it.display}</span>
+          <span className="text-[10px] font-semibold text-tx-2 mb-1">{it.display}</span>
           <div className="w-full h-32 flex items-end">
             <div
               className="w-full rounded-t-md"
               style={{ height: `${(it.value / max) * 100}%`, minHeight: it.value > 0 ? 4 : 0, backgroundColor: color }}
             />
           </div>
-          <span className="text-[10px] text-navy-800/50 dark:text-cream-50/50 mt-1.5 whitespace-nowrap">{it.label}</span>
+          <span className="text-[10px] text-tx-2 mt-1.5 whitespace-nowrap">{it.label}</span>
         </div>
       ))}
     </div>
@@ -93,11 +93,11 @@ const stageLabels: Record<string, string> = {
   PERDIDO: "Perdido",
 };
 const stageColor: Record<string, string> = {
-  NOVO: "#f59e0b",
-  QUALIFICACAO: "#3b82f6",
-  PROPOSTA: "#c6a05c",
-  FECHADO: "#10b981",
-  PERDIDO: "#ef4444",
+  NOVO: "var(--aviso)",
+  QUALIFICACAO: "var(--acao)",
+  PROPOSTA: "var(--marca)",
+  FECHADO: "var(--concluido)",
+  PERDIDO: "var(--urgente)",
 };
 
 const LEAD_ORDER = ["INDICACAO", "INSTAGRAM", "GOOGLE", "SITE", "WHATSAPP", "OUTRO", "NAO_INFORMADO"];
@@ -114,7 +114,7 @@ const leadSourceLabels: Record<string, string> = {
 const LAWYER_ORDER = ["Jairo", "Rodrigo", "Jairo e Rodrigo", "Sem identificação"];
 
 const triageLabels: Record<string, string> = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", TRATADA: "Tratada" };
-const triageColor: Record<string, string> = { PENDENTE: "#f59e0b", EM_ANALISE: "#3b82f6", TRATADA: "#10b981" };
+const triageColor: Record<string, string> = { PENDENTE: "var(--aviso)", EM_ANALISE: "var(--acao)", TRATADA: "var(--concluido)" };
 
 const CASE_STATUS_ORDER = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
 const caseStatusLabels: Record<string, string> = {
@@ -124,14 +124,14 @@ const caseStatusLabels: Record<string, string> = {
   ARQUIVADO: "Arquivado",
 };
 const caseStatusColor: Record<string, string> = {
-  ATIVO: "#10b981",
-  SUSPENSO: "#f59e0b",
-  ENCERRADO: "#64748b",
-  ARQUIVADO: "#ef4444",
+  ATIVO: "var(--concluido)",
+  SUSPENSO: "var(--aviso)",
+  ENCERRADO: "var(--tx-2)",
+  ARQUIVADO: "var(--urgente)",
 };
 
-const NAVY = "#0f1f3d";
-const GOLD = "#c6a05c";
+const NAVY = "var(--acao)";
+const GOLD = "var(--marca)";
 
 // ---------- seções (cada uma busca só os dados de que precisa) ----------
 
@@ -171,13 +171,13 @@ async function ProdutividadeSection({ start, end, months, officeId }: { start: D
 
   return (
     <Card>
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <Users size={18} className="text-gold-600" />
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Produtividade</h3>
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
+        <Users size={18} className="text-marca-tx" />
+        <h3 className="font-bold text-tx text-base">Produtividade</h3>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
         <div>
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Pontos e tarefas por pessoa</p>
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Pontos e tarefas por pessoa</p>
           {prodRanking.length === 0 ? (
             <EmptyState title="Nenhuma tarefa concluída no período" />
           ) : (
@@ -196,7 +196,7 @@ async function ProdutividadeSection({ start, end, months, officeId }: { start: D
           )}
         </div>
         <div>
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Total de pontos da equipe por mês</p>
           <VBars items={monthlyPoints.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={GOLD} />
         </div>
       </div>
@@ -260,13 +260,13 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
 
   return (
     <Card>
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <Scale size={18} className="text-gold-600" />
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Processos</h3>
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
+        <Scale size={18} className="text-marca-tx" />
+        <h3 className="font-bold text-tx text-base">Processos</h3>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
         <div>
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">
             Distribuição por área/matéria (processos ativos)
           </p>
           {areaRows.length === 0 ? (
@@ -287,7 +287,7 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
           )}
         </div>
         <div>
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">
             Distribuição por status (todos os processos)
           </p>
           <div className="space-y-3">
@@ -305,15 +305,15 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
         </div>
       </div>
       <div className="px-5 pb-5">
-        <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">
+        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">
           Tempo médio de tramitação (processos encerrados no período)
         </p>
         <div className={avgTramitacaoByArea.length >= 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
-          <div className="rounded-xl border border-navy-800/8 dark:border-white/10 bg-cream-100/70 dark:bg-navy-800/70 p-5">
+          <div className="rounded-xl border border-regua bg-sf-apoio p-5">
             {avgTramitacaoDays !== null ? (
               <>
-                <p className="font-serif font-bold text-3xl text-navy-900 dark:text-cream-50">{avgTramitacaoDays} dias</p>
-                <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
+                <p className="font-bold text-3xl text-tx">{avgTramitacaoDays} dias</p>
+                <p className="text-xs text-tx-2 mt-1">
                   {closedDurations.length} processo(s) encerrado(s) no período com datas completas
                 </p>
               </>
@@ -323,7 +323,7 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
           </div>
           {avgTramitacaoByArea.length >= 2 && (
             <div>
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Por área</p>
+              <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Por área</p>
               <div className="space-y-3">
                 {avgTramitacaoByArea.map((r) => (
                   <HBar
@@ -369,18 +369,18 @@ async function FunilSection({ start, end, officeId }: { start: Date; end: Date; 
 
   return (
     <Card>
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <Target size={18} className="text-gold-600" />
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base flex-1">Funil Comercial</h3>
-        <span className="text-xs text-navy-800/50 dark:text-cream-50/50">
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
+        <Target size={18} className="text-marca-tx" />
+        <h3 className="font-bold text-tx text-base flex-1">Funil Comercial</h3>
+        <span className="text-xs text-tx-2">
           Conversão:{" "}
           {conversionRate !== null ? (
             <span className="font-semibold text-emerald-700 dark:text-emerald-400">{conversionRate.toFixed(0)}%</span>
           ) : (
-            <span className="text-navy-800/40 dark:text-cream-50/40">—</span>
+            <span className="text-tx-3">—</span>
           )}
           {conversionRate !== null && (
-            <span className="text-navy-800/40 dark:text-cream-50/40">
+            <span className="text-tx-3">
               {" "}
               ({closed} de {closed + lost})
             </span>
@@ -394,7 +394,7 @@ async function FunilSection({ start, end, officeId }: { start: Date; end: Date; 
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Quantidade e valor estimado por estágio</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Quantidade e valor estimado por estágio</p>
             <div className="space-y-3">
               {stageTotals.map((s) => (
                 <HBar
@@ -409,7 +409,7 @@ async function FunilSection({ start, end, officeId }: { start: Date; end: Date; 
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Leads por origem</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Leads por origem</p>
             {leadRows.length === 0 ? (
               <EmptyState title="Sem origem registrada" />
             ) : (
@@ -456,18 +456,18 @@ async function PublicacoesSection({ start, end, months, officeId }: { start: Dat
 
   return (
     <Card>
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <Newspaper size={18} className="text-gold-600" />
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Publicações</h3>
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
+        <Newspaper size={18} className="text-marca-tx" />
+        <h3 className="font-bold text-tx text-base">Publicações</h3>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
         <div>
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Volume por mês</p>
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Volume por mês</p>
           <VBars items={pubMonthly.map((m) => ({ label: m.label, display: String(m.value), value: m.value }))} color={NAVY} />
         </div>
         <div className="space-y-6">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Distribuição por advogado</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Distribuição por advogado</p>
             {lawyerRows.length === 0 ? (
               <EmptyState title="Nenhuma publicação no período" />
             ) : (
@@ -479,14 +479,14 @@ async function PublicacoesSection({ start, end, months, officeId }: { start: Dat
             )}
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Pendências de triagem</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Pendências de triagem</p>
             <div className="grid grid-cols-3 gap-3">
               {triageRows.map((t) => (
-                <div key={t.status} className="rounded-lg bg-cream-100/70 dark:bg-navy-800/70 border border-navy-800/8 dark:border-white/10 p-3 text-center">
-                  <p className="font-serif font-bold text-xl text-navy-900 dark:text-cream-50">{t.value}</p>
+                <div key={t.status} className="rounded-lg bg-sf-apoio border border-regua p-3 text-center">
+                  <p className="font-bold text-xl text-tx">{t.value}</p>
                   <div className="flex items-center justify-center gap-1.5 mt-1">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: triageColor[t.status] }} />
-                    <span className="text-[11px] text-navy-800/55 dark:text-cream-50/55">{triageLabels[t.status]}</span>
+                    <span className="text-[11px] text-tx-2">{triageLabels[t.status]}</span>
                   </div>
                 </div>
               ))}
@@ -548,14 +548,14 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
 
   return (
     <Card>
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <Wallet size={18} className="text-gold-600" />
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Financeiro</h3>
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-regua">
+        <Wallet size={18} className="text-marca-tx" />
+        <h3 className="font-bold text-tx text-base">Financeiro</h3>
       </div>
       <div className="p-5 space-y-6">
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Recebido x Pago por mês (regime de caixa)</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Recebido x Pago por mês (regime de caixa)</p>
             <div className="flex items-center gap-3 text-[11px]">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" /> Recebido
@@ -570,7 +570,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
               <div key={m.label} className="flex-1 min-w-[52px] flex flex-col items-center">
                 <div className="flex flex-col items-center text-[9px] leading-tight mb-1">
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{compactBRL(m.receita)}</span>
-                  <span className="text-red-500 dark:text-bordo-400 font-semibold">{compactBRL(m.despesa)}</span>
+                  <span className="text-urgente font-semibold">{compactBRL(m.despesa)}</span>
                 </div>
                 <div className="w-full h-32 flex items-end justify-center gap-1">
                   <div
@@ -584,7 +584,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
                     title={`Pago: ${formatCurrency(m.despesa)}`}
                   />
                 </div>
-                <span className="text-[10px] text-navy-800/50 dark:text-cream-50/50 mt-1.5 whitespace-nowrap">{m.label}</span>
+                <span className="text-[10px] text-tx-2 mt-1.5 whitespace-nowrap">{m.label}</span>
               </div>
             ))}
           </div>
@@ -592,7 +592,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Top 5 categorias de despesa</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Top 5 categorias de despesa</p>
             {topExpenses.length === 0 ? (
               <EmptyState title="Nenhuma despesa paga no período" />
             ) : (
@@ -604,10 +604,10 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
             )}
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-3">Inadimplência atual</p>
-            <div className="rounded-xl border border-red-100 dark:border-bordo-400/20 bg-red-50 dark:bg-bordo-400/10 p-5">
-              <p className="font-serif font-bold text-2xl text-red-600 dark:text-bordo-400">{formatCurrency(inadimplenciaTotal)}</p>
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Inadimplência atual</p>
+            <div className="rounded-xl border border-regua bg-urgente-bg p-5">
+              <p className="font-bold text-2xl tabular-nums text-urgente">{formatCurrency(inadimplenciaTotal)}</p>
+              <p className="text-xs text-tx-2 mt-1">
                 {inadimplenciaCount} conta(s) a receber vencida(s)
               </p>
             </div>
@@ -617,11 +617,11 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
         {(totalAdiantado > 0 || totalReembolsado > 0) && (
           <div>
             <div className="flex items-center gap-1.5 mb-3">
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Adiantamentos a Clientes</p>
-              <span className="text-[10px] font-semibold text-navy-800/40 dark:text-cream-50/40">(informativo — fora da Receita/Despesa acima)</span>
+              <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Adiantamentos a Clientes</p>
+              <span className="text-[10px] font-semibold text-tx-3">(informativo — fora da Receita/Despesa acima)</span>
             </div>
-            <div className="rounded-xl border border-dashed border-navy-800/15 dark:border-white/15 p-5">
-              <div className="flex items-start gap-2 text-xs text-navy-800/60 dark:text-cream-50/60 mb-4">
+            <div className="rounded-xl border border-dashed border-regua-forte p-5">
+              <div className="flex items-start gap-2 text-xs text-tx-2 mb-4">
                 <Info size={14} className="shrink-0 mt-0.5" />
                 <p>
                   Despesas do processo pagas por conta do cliente (com reembolso vinculado) são um adiantamento que volta, não custo
@@ -630,16 +630,16 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Adiantado no período</p>
-                  <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalAdiantado)}</p>
+                  <p className="text-xs text-tx-2 uppercase tracking-wide">Adiantado no período</p>
+                  <p className="font-bold text-lg tabular-nums text-tx mt-1">{formatCurrency(totalAdiantado)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Reembolsado no período</p>
-                  <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalReembolsado)}</p>
+                  <p className="text-xs text-tx-2 uppercase tracking-wide">Reembolsado no período</p>
+                  <p className="font-bold text-lg tabular-nums text-tx mt-1">{formatCurrency(totalReembolsado)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Saldo do período</p>
-                  <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(saldoAdiantamentos)}</p>
+                  <p className="text-xs text-tx-2 uppercase tracking-wide">Saldo do período</p>
+                  <p className="font-bold text-lg tabular-nums text-tx mt-1">{formatCurrency(saldoAdiantamentos)}</p>
                 </div>
               </div>
             </div>
@@ -677,13 +677,13 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
         title="Relatórios"
         subtitle={`Painel consolidado (BI) · ${months[0].label} a ${months[months.length - 1].label}`}
         action={
-          <div className="flex items-center gap-1 bg-white dark:bg-navy-800 border border-navy-800/10 dark:border-white/10 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-sf border border-regua rounded-lg p-1">
             {periodOptions.map((opt) => (
               <Link
                 key={opt.value}
                 href={`/relatorios?secao=${secao}&meses=${opt.value}`}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${
-                  meses === opt.value ? "bg-navy-900 text-white" : "text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/5"
+                  meses === opt.value ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"
                 }`}
               >
                 {opt.label}
@@ -702,8 +702,8 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
               href={`/relatorios?secao=${s.key}&meses=${meses}`}
               className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
                 secao === s.key
-                  ? "bg-navy-900 text-white"
-                  : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+                  ? "bg-acao text-acao-tx"
+                  : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
               }`}
             >
               <Icon size={15} />

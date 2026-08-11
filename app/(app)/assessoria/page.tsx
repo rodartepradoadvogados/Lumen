@@ -34,22 +34,22 @@ export default async function AssessoriaListPage() {
         {assessorias.length === 0 ? (
           <EmptyState title="Nenhuma empresa em assessoria ainda" subtitle="Clique em 'Nova Assessoria' para cadastrar a primeira" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessorias.map((a) => (
               <Link
                 key={a.id}
                 href={`/assessoria/${a.id}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors flex-wrap"
+                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors flex-wrap"
               >
                 <div className="min-w-0">
-                  <p className="font-semibold text-navy-900 dark:text-cream-50">{a.client.name}</p>
-                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                  <p className="font-semibold text-tx">{a.client.name}</p>
+                  <p className="text-xs text-tx-2 mt-0.5">
                     {a._count.documents} documento(s) · {a._count.licitacoes} licitação(ões)
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge color={statusColors[a.status] || "slate"}>{statusLabels[a.status] || a.status}</Badge>
-                  <span className="text-sm font-semibold text-navy-800/70 dark:text-cream-50/70 whitespace-nowrap">
+                  <span className="text-sm font-semibold text-tx-2 whitespace-nowrap">
                     {formatCurrency(a.monthlyFee)}/mês
                   </span>
                 </div>

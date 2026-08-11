@@ -98,9 +98,9 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
     <div className="space-y-4 p-5">
       {error && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
-      <form onSubmit={handleUpload} className="flex gap-2 flex-wrap items-end border border-navy-800/10 dark:border-white/10 rounded-lg p-3">
+      <form onSubmit={handleUpload} className="flex gap-2 flex-wrap items-end border border-regua rounded-lg p-3">
         <div className="flex-1 min-w-[200px]">
-          <label className="text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55">Arquivo de imagem</label>
+          <label className="text-[11px] font-medium text-tx-2">Arquivo de imagem</label>
           <input
             id="photo-file-input"
             type="file"
@@ -110,7 +110,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           />
         </div>
         <div className="min-w-[180px]">
-          <label className="text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55">Categoria/Área</label>
+          <label className="text-[11px] font-medium text-tx-2">Categoria/Área</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="cfg-input w-full">
             {PHOTO_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -120,7 +120,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           </select>
         </div>
         <div className="min-w-[140px]">
-          <label className="text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55">Tribunal</label>
+          <label className="text-[11px] font-medium text-tx-2">Tribunal</label>
           <select value={court} onChange={(e) => setCourt(e.target.value)} className="cfg-input w-full">
             {PHOTO_COURTS.map((c) => (
               <option key={c.value} value={c.value}>
@@ -130,7 +130,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="text-[11px] font-medium text-navy-800/55 dark:text-cream-50/55">Legenda (opcional)</label>
+          <label className="text-[11px] font-medium text-tx-2">Legenda (opcional)</label>
           <input
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
@@ -155,7 +155,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {photos.map((photo) => (
-            <div key={photo.id} className="rounded-xl border border-navy-800/10 dark:border-white/10 overflow-hidden bg-white dark:bg-navy-900">
+            <div key={photo.id} className="rounded-xl border border-regua overflow-hidden bg-sf">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photoFileUrl(photo.id)} alt={photo.caption || photo.category} className="w-full h-28 object-cover" />
               <div className="p-2 space-y-1">
@@ -163,7 +163,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
                   <Badge color="navy">{photo.category}</Badge>
                   <Badge color="gold">{photo.court}</Badge>
                 </div>
-                {photo.caption && <p className="text-[11px] text-navy-800/55 dark:text-cream-50/55 truncate">{photo.caption}</p>}
+                {photo.caption && <p className="text-[11px] text-tx-2 truncate">{photo.caption}</p>}
                 <button
                   onClick={() => handleDelete(photo.id)}
                   disabled={pending}

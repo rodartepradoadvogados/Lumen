@@ -86,20 +86,20 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
         (cat) =>
           cat.items.length > 0 && (
             <div key={cat.value}>
-              <p className="text-xs font-semibold text-navy-800/50 uppercase tracking-wide mb-1.5">{cat.label}</p>
+              <p className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-1.5">{cat.label}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                 {cat.items.map((t) => (
-                  <div key={t.id} className="group relative flex items-center gap-2 bg-cream-50 border border-navy-800/8 rounded-lg px-3 py-2">
-                    <FileText size={15} className="text-navy-800/50 shrink-0" />
-                    <a href={t.driveUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-navy-900 truncate flex-1 hover:underline">
+                  <div key={t.id} className="group relative flex items-center gap-2 bg-sf-apoio border border-regua rounded-lg px-3 py-2">
+                    <FileText size={15} className="text-tx-3 shrink-0" />
+                    <a href={t.driveUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-tx truncate flex-1 hover:underline">
                       {t.name}
                     </a>
-                    <ExternalLink size={11} className="text-gold-700 shrink-0" />
+                    <ExternalLink size={11} className="text-acao shrink-0" />
                     <button
                       onClick={() => handleDelete(t.id)}
                       disabled={pending}
                       data-tip="Remover modelo"
-                      className="absolute top-1 right-1 p-1 rounded-md text-navy-800/25 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-all bg-cream-50"
+                      className="absolute top-1 right-1 p-1 rounded-md text-tx-3 opacity-0 group-hover:opacity-100 hover:text-vinho hover:bg-sf transition-all bg-sf-apoio"
                     >
                       <X size={11} />
                     </button>
@@ -109,13 +109,13 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             </div>
           )
       )}
-      {templates.length === 0 && <p className="text-xs text-navy-800/40">Nenhum modelo cadastrado ainda.</p>}
+      {templates.length === 0 && <p className="text-xs text-tx-3">Nenhum modelo cadastrado ainda.</p>}
 
-      <details className="rounded-lg border border-gold-500/25 bg-gold-500/5 px-3 py-2.5">
-        <summary className="text-xs font-semibold text-navy-800 cursor-pointer">
+      <details className="rounded-lg border border-regua bg-sf-apoio px-3 py-2.5">
+        <summary className="text-xs font-semibold text-tx cursor-pointer">
           Como escrever um modelo que preenche os dados automaticamente
         </summary>
-        <div className="mt-2 space-y-2 text-xs text-navy-800/70">
+        <div className="mt-2 space-y-2 text-xs text-tx-2">
           <p>
             O modelo precisa ser um arquivo do <strong>Word (.docx)</strong> — convertido automaticamente para Google Docs ao enviar
             aqui — ou um <strong>Google Docs</strong> já existente (cole o link). <strong>PDF não funciona</strong> como modelo:
@@ -123,24 +123,24 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
           </p>
           <p>
             No texto do seu contrato/petição/procuração, escreva os campos que devem ser preenchidos entre chaves duplas, exatamente
-            como na lista abaixo — ex.: <code className="bg-white px-1 rounded">Eu, {"{{CLIENTE}}"}, portador do CPF {"{{CLIENTE_CPF}}"}...</code>.
+            como na lista abaixo — ex.: <code className="bg-sf px-1 rounded">Eu, {"{{CLIENTE}}"}, portador do CPF {"{{CLIENTE_CPF}}"}...</code>.
             Sem esses tokens no texto, o documento é gerado normalmente, mas nenhum dado é preenchido.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
             {MERGE_FIELDS.map((f) => (
               <div key={f.token} className="flex items-baseline gap-1.5">
-                <code className="bg-white px-1 rounded shrink-0">{`{{${f.token}}}`}</code>
-                <span className="text-navy-800/50">{f.desc}</span>
+                <code className="bg-sf px-1 rounded shrink-0">{`{{${f.token}}}`}</code>
+                <span className="text-tx-3">{f.desc}</span>
               </div>
             ))}
           </div>
         </div>
       </details>
 
-      <div className="pt-2 border-t border-navy-800/8 space-y-2.5">
+      <div className="pt-2 border-t border-regua space-y-2.5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
-            <label className="text-xs font-medium text-navy-800/60">Nome do modelo</label>
+            <label className="text-xs font-medium text-tx-2">Nome do modelo</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -149,7 +149,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60">Categoria</label>
+            <label className="text-xs font-medium text-tx-2">Categoria</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="cfg-input w-full">
               {TEMPLATE_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -170,11 +170,11 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
-              dragOver ? "border-gold-500 bg-gold-500/5" : "border-navy-800/15 hover:border-gold-500/40 hover:bg-cream-50"
+              dragOver ? "border-acao bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-sf-apoio"
             }`}
           >
-            <UploadCloud size={20} className="text-navy-800/40" />
-            <p className="text-xs text-navy-800/60 text-center">
+            <UploadCloud size={20} className="text-tx-3" />
+            <p className="text-xs text-tx-2 text-center">
               {uploading ? "Enviando para o Google Drive..." : "Arraste o arquivo do modelo aqui, ou clique para selecionar do computador"}
             </p>
             <input
@@ -190,19 +190,19 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             />
           </div>
         ) : (
-          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-2.5 py-1.5">
             Google Drive não conectado — conecte acima para anexar arquivos, ou cole um link já existente abaixo.
           </p>
         )}
 
         <div className="flex gap-2">
           <input value={driveUrl} onChange={(e) => setDriveUrl(e.target.value)} placeholder="ou cole um link do Google Drive já existente" className="cfg-input flex-1" />
-          <button onClick={handleAddLink} disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-4 rounded-lg disabled:opacity-50">
+          <button onClick={handleAddLink} disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 rounded-lg disabled:opacity-50 transition-colors">
             Salvar link
           </button>
         </div>
 
-        {error && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
       </div>
     </div>
   );

@@ -72,19 +72,19 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-tx-2">
           {assessoria.licitacoes.length} licitaç{assessoria.licitacoes.length === 1 ? "ão" : "ões"}
         </p>
         <button
           onClick={() => setFormOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-3 py-1.5 rounded-lg"
+          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover px-3 py-1.5 rounded-lg"
         >
           <Plus size={14} /> Nova licitação
         </button>
       </div>
 
       {formOpen && (
-        <form action={handleNewLicitacao} className="mb-4 p-4 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 space-y-3">
+        <form action={handleNewLicitacao} className="mb-4 p-4 rounded-lg border border-regua bg-sf-apoio space-y-3">
           <input name="objeto" required placeholder="Objeto (ex: Fornecimento de insumos)" className="lic-input" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="orgao" required placeholder="Órgão" className="lic-input" />
@@ -92,38 +92,38 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">Abertura</label>
+              <label className="text-[11px] text-tx-2">Abertura</label>
               <input name="dataAbertura" type="date" className="lic-input" />
             </div>
             <div>
-              <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">Prazo final</label>
+              <label className="text-[11px] text-tx-2">Prazo final</label>
               <input name="prazoFinal" type="date" className="lic-input" />
             </div>
             <div>
-              <label className="text-[11px] text-navy-800/50 dark:text-cream-50/50">Valor estimado (R$)</label>
+              <label className="text-[11px] text-tx-2">Valor estimado (R$)</label>
               <input name="valorEstimado" type="number" step="0.01" className="lic-input" />
             </div>
           </div>
           <input name="editalUrl" type="url" placeholder="Link do edital no Google Drive" className="lic-input" />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-urgente">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
               {pending ? "Salvando..." : "Cadastrar"}
             </button>
-            <button type="button" onClick={() => setFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">Cancelar</button>
+            <button type="button" onClick={() => setFormOpen(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
           </div>
-          <style>{`.lic-input { width:100%; border:1px solid rgba(15,31,61,0.12); border-radius:0.5rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:#fff; } .dark .lic-input { border-color: rgba(255,255,255,0.15); background:#0f1f3d; color:#fbfaf7; }`}</style>
+          <style>{`.lic-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
         </form>
       )}
 
       {assessoria.licitacoes.length === 0 ? (
-        <p className="text-sm text-navy-800/40 dark:text-cream-50/40 py-8 text-center">Nenhuma licitação cadastrada ainda.</p>
+        <p className="text-sm text-tx-3 py-8 text-center">Nenhuma licitação cadastrada ainda.</p>
       ) : (
         <>
           <div className="overflow-x-auto mb-5">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 border-b border-navy-800/10 dark:border-white/10">
+                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
                   <th className="pb-2 pr-3">Objeto / Órgão</th>
                   <th className="pb-2 pr-3">Modalidade</th>
                   <th className="pb-2 pr-3">Prazo final</th>
@@ -131,20 +131,20 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                   <th className="pb-2">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <tbody className="divide-y divide-regua">
                 {assessoria.licitacoes.map((l) => (
                   <tr
                     key={l.id}
                     onClick={() => setSelectedId(l.id)}
-                    className={`cursor-pointer ${selectedId === l.id ? "bg-gold-500/10" : "hover:bg-cream-50 dark:hover:bg-white/5"}`}
+                    className={`cursor-pointer ${selectedId === l.id ? "bg-acao-bg" : "hover:bg-sf-apoio"}`}
                   >
                     <td className="py-2.5 pr-3">
-                      <p className="font-medium text-navy-900 dark:text-cream-50">{l.objeto}</p>
-                      <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{l.orgao}</p>
+                      <p className="font-medium text-tx">{l.objeto}</p>
+                      <p className="text-xs text-tx-2">{l.orgao}</p>
                     </td>
-                    <td className="py-2.5 pr-3 text-navy-800/70 dark:text-cream-50/70">{l.modalidade || "—"}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{l.prazoFinal ? formatCalendarDate(l.prazoFinal) : "—"}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{l.valorEstimado ? formatCurrency(l.valorEstimado) : "—"}</td>
+                    <td className="py-2.5 pr-3 text-tx-2">{l.modalidade || "—"}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-tx-2">{l.prazoFinal ? formatCalendarDate(l.prazoFinal) : "—"}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-tx-2">{l.valorEstimado ? formatCurrency(l.valorEstimado) : "—"}</td>
                     <td className="py-2.5"><Badge color={statusMeta(l.status).color}>{statusMeta(l.status).label}</Badge></td>
                   </tr>
                 ))}
@@ -154,31 +154,31 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
 
           {selected && (
             <>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2">
                 {selected.modalidade || selected.objeto} — detalhe
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Dados da licitação</h4>
+                <div className="bg-sf rounded-lg border border-regua p-4">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Dados da licitação</h4>
                   <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between"><span className="text-navy-800/55 dark:text-cream-50/55">Órgão</span><span className="text-navy-900 dark:text-cream-50">{selected.orgao}</span></div>
-                    <div className="flex justify-between"><span className="text-navy-800/55 dark:text-cream-50/55">Modalidade</span><span className="text-navy-900 dark:text-cream-50">{selected.modalidade || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-navy-800/55 dark:text-cream-50/55">Valor estimado</span><span className="text-navy-900 dark:text-cream-50 tabular-nums">{selected.valorEstimado ? formatCurrency(selected.valorEstimado) : "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-tx-2">Órgão</span><span className="text-tx">{selected.orgao}</span></div>
+                    <div className="flex justify-between"><span className="text-tx-2">Modalidade</span><span className="text-tx">{selected.modalidade || "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-tx-2">Valor estimado</span><span className="text-tx tabular-nums">{selected.valorEstimado ? formatCurrency(selected.valorEstimado) : "—"}</span></div>
                     <div className="flex justify-between items-center">
-                      <span className="text-navy-800/55 dark:text-cream-50/55">Edital</span>
+                      <span className="text-tx-2">Edital</span>
                       {selected.editalUrl ? (
-                        <a href={selected.editalUrl} target="_blank" rel="noopener noreferrer" className="text-gold-600 dark:text-gold-400 font-semibold">↗ Abrir no Drive</a>
+                        <a href={selected.editalUrl} target="_blank" rel="noopener noreferrer" className="text-acao hover:text-acao-hover font-semibold">↗ Abrir no Drive</a>
                       ) : (
-                        <span className="text-navy-800/40 dark:text-cream-50/40">Não anexado</span>
+                        <span className="text-tx-3">Não anexado</span>
                       )}
                     </div>
                     <div className="flex justify-between items-center pt-1">
-                      <span className="text-navy-800/55 dark:text-cream-50/55">Status</span>
+                      <span className="text-tx-2">Status</span>
                       <select
                         value={selected.status}
                         onChange={(e) => handleStatusChange(selected.id, e.target.value)}
                         disabled={pending}
-                        className="text-xs font-semibold border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1"
+                        className="text-xs font-semibold border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s.value} value={s.value}>{s.label}</option>
@@ -188,16 +188,16 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
+                <div className="bg-sf rounded-lg border border-regua p-4">
                   <div className="flex items-center justify-between mb-2.5">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Tarefas &amp; Prazos</h4>
-                    <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-gold-700 dark:text-gold-400">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Tarefas &amp; Prazos</h4>
+                    <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-acao hover:text-acao-hover">
                       + Nova tarefa
                     </button>
                   </div>
 
                   {taskFormOpen && (
-                    <form action={handleNewTask} className="mb-3 p-3 rounded-lg bg-cream-50 dark:bg-navy-800 space-y-2">
+                    <form action={handleNewTask} className="mb-3 p-3 rounded-lg bg-sf-apoio space-y-2">
                       <input name="title" required placeholder="Título da tarefa" className="lic-input" />
                       <div className="grid grid-cols-2 gap-2">
                         <input name="dueDate" type="date" required className="lic-input" />
@@ -210,22 +210,22 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                         ))}
                       </select>
                       <div className="flex gap-2">
-                        <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+                        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
                           Adicionar
                         </button>
-                        <button type="button" onClick={() => setTaskFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">Cancelar</button>
+                        <button type="button" onClick={() => setTaskFormOpen(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
                       </div>
                     </form>
                   )}
 
                   {selected.tasks.length === 0 ? (
-                    <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhuma tarefa cadastrada.</p>
+                    <p className="text-sm text-tx-3">Nenhuma tarefa cadastrada.</p>
                   ) : (
-                    <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+                    <div className="divide-y divide-regua">
                       {selected.tasks.map((t) => (
                         <div key={t.id} className="flex justify-between gap-3 py-2 text-sm">
-                          <span className={t.status === "CONCLUIDO" ? "line-through text-navy-800/40 dark:text-cream-50/40" : "text-navy-900 dark:text-cream-50"}>{t.title}</span>
-                          <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap tabular-nums">
+                          <span className={t.status === "CONCLUIDO" ? "line-through text-tx-3" : "text-tx"}>{t.title}</span>
+                          <span className="text-tx-2 whitespace-nowrap tabular-nums">
                             {formatCalendarDate(t.dueDate)}{t.responsible ? ` · ${t.responsible.name.split(" ")[0]}` : ""}
                           </span>
                         </div>

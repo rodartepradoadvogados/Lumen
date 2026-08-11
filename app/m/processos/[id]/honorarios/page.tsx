@@ -39,14 +39,14 @@ export default async function MobileLancarHonorariosPage({ params }: { params: {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href={`/m/processos/${c.id}?tab=financeiro`}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> {c.title}
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Lançar Honorários</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">{c.title}</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Lançar Honorários</h1>
+        <p className="text-sm text-tx-2">{c.title}</p>
       </div>
 
       <MobileLancarHonorariosForm

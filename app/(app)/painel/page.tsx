@@ -105,8 +105,8 @@ export default async function DashboardPage() {
   return (
     <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
       <div className="mb-6">
-        <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">Painel</h1>
-        <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1 capitalize">
+        <h1 className="text-2xl font-bold text-tx">Painel</h1>
+        <p className="text-sm text-tx-2 mt-1 capitalize">
           {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
         </p>
       </div>
@@ -122,23 +122,23 @@ export default async function DashboardPage() {
               hint={`${receivablesPending.length} contas em aberto`}
               title="Contas a Receber Pendentes"
             >
-              <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <div className="divide-y divide-regua">
                 {receivablesPending.length === 0 && <EmptyState title="Nenhuma conta pendente" />}
                 {receivablesPending.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{r.description}</p>
-                      <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                      <p className="text-sm font-medium text-tx truncate">{r.description}</p>
+                      <p className="text-xs text-tx-3 mt-0.5">
                         {r.noDueDate ? "Sem vencimento" : `Vence em ${formatDate(r.dueDate)}`}
                       </p>
                       {r.case && (
-                        <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline">
+                        <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-acao hover:underline">
                           {r.case.processNumber || r.case.title}
                         </Link>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(valorLiquido(r.amount, r.discount, r.surcharge))}</span>
+                      <span className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(valorLiquido(r.amount, r.discount, r.surcharge))}</span>
                       <SettleButton
                         id={r.id}
                         kind="receivable"
@@ -161,23 +161,23 @@ export default async function DashboardPage() {
               hint={`${payablesPending.length} contas em aberto`}
               title="Contas a Pagar Pendentes"
             >
-              <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <div className="divide-y divide-regua">
                 {payablesPending.length === 0 && <EmptyState title="Nenhuma conta pendente" />}
                 {payablesPending.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{p.description}</p>
-                      <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                      <p className="text-sm font-medium text-tx truncate">{p.description}</p>
+                      <p className="text-xs text-tx-3 mt-0.5">
                         {p.noDueDate ? "Sem vencimento" : `Vence em ${formatDate(p.dueDate)}`}
                       </p>
                       {p.case && (
-                        <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline">
+                        <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-acao hover:underline">
                           {p.case.processNumber || p.case.title}
                         </Link>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(valorLiquido(p.amount, p.discount, p.surcharge))}</span>
+                      <span className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(valorLiquido(p.amount, p.discount, p.surcharge))}</span>
                       <SettleButton
                         id={p.id}
                         kind="payable"
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
           hint={`${activeCases} processos ativos`}
           title="Prazos Atrasados"
         >
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {overdueTasksList.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
             {overdueTasksList.map((t) => (
               <OverdueTaskRow
@@ -228,25 +228,25 @@ export default async function DashboardPage() {
             title="Próximos 7 dias"
             subtitle="Tarefas, eventos, audiências e prazos"
             action={
-              <Link href="/agenda" className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-800 dark:hover:text-gold-300 flex items-center gap-1">
+              <Link href="/agenda" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
                 Ver agenda <ArrowRight size={13} />
               </Link>
             }
           />
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {upcomingTasks.length === 0 && <EmptyState title="Nada agendado para os próximos dias" />}
             {upcomingTasks.map((t) => (
-              <div key={t.id} className="flex items-center justify-between px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+              <div key={t.id} className="flex items-center justify-between px-5 py-3 hover:bg-sf-apoio transition-colors">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
-                    <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{t.title}</p>
+                    <p className="text-sm font-medium text-tx truncate">{t.title}</p>
                   </div>
-                  {t.case && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 truncate">{t.case.title}</p>}
+                  {t.case && <p className="text-xs text-tx-3 mt-0.5 truncate">{t.case.title}</p>}
                 </div>
                 <div className="text-right shrink-0 ml-3">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50/80">{formatCalendarDate(t.dueDate)}</p>
-                  {t.dueTime && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</p>}
+                  <p className="text-xs font-semibold text-tx/80">{formatCalendarDate(t.dueDate)}</p>
+                  {t.dueTime && <p className="text-[11px] text-tx-3">{t.dueTime}</p>}
                 </div>
               </div>
             ))}
@@ -257,28 +257,26 @@ export default async function DashboardPage() {
           <CardHeader
             title="Central de Alertas"
             action={
-              <Link href="/alertas" className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-800 dark:hover:text-gold-300 flex items-center gap-1">
+              <Link href="/alertas" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
                 Ver tudo <ArrowRight size={13} />
               </Link>
             }
           />
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10 max-h-[420px] overflow-y-auto scrollbar-thin">
+          <div className="divide-y divide-regua max-h-[420px] overflow-y-auto scrollbar-thin">
             {alerts.length === 0 && <EmptyState title="Sem alertas" />}
             {alerts.slice(0, 8).map((a) => (
               <AlertRow
                 key={a.id}
                 alert={a}
-                className={`block w-full text-left px-5 py-3 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors ${dueStatusClassName(a.dueStatus)}`}
+                className={`block w-full text-left px-5 py-3 hover:bg-sf-apoio transition-colors border-l-[3px] ${
+                  // Mesma régua de severidade da Central de Alertas completa (DESIGN-SYSTEM.md §8).
+                  a.severity === "alta" ? "border-urgente" : a.severity === "media" ? "border-marca" : "border-tx-3"
+                } ${dueStatusClassName(a.dueStatus)}`}
               >
                 <div className="flex items-start gap-2">
-                  <span
-                    className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
-                      a.severity === "alta" ? "bg-bordo-500 dark:bg-bordo-400" : a.severity === "media" ? "bg-gold-500" : "bg-slate-400"
-                    }`}
-                  />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{a.title}</p>
-                    {a.subtitle && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 truncate">{a.subtitle}</p>}
+                    <p className="text-sm font-medium text-tx truncate">{a.title}</p>
+                    {a.subtitle && <p className="text-xs text-tx-3 truncate">{a.subtitle}</p>}
                     {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
                   </div>
                 </div>
@@ -301,14 +299,11 @@ export default async function DashboardPage() {
             {byArea.map((a) => (
               <div key={a.label}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-navy-800 dark:text-cream-50/80">{a.label}</span>
-                  <span className="font-semibold text-navy-900 dark:text-cream-50">{a.count}</span>
+                  <span className="text-tx/80">{a.label}</span>
+                  <span className="font-semibold text-tx">{a.count}</span>
                 </div>
-                <div className="h-2 rounded-full bg-cream-200 dark:bg-white/10 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-navy-800 to-gold-600 dark:from-gold-500 dark:to-bordo-500"
-                    style={{ width: `${(a.count / totalCasesByArea) * 100}%` }}
-                  />
+                <div className="h-2 rounded-full bg-sf-apoio overflow-hidden">
+                  <div className="h-full bg-acao" style={{ width: `${(a.count / totalCasesByArea) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -322,7 +317,7 @@ export default async function DashboardPage() {
               viewer?.isAdmin && blogAccess ? (
                 <Link
                   href="/configuracoes?secao=blog&blogTab=revisao"
-                  className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-800 dark:hover:text-gold-300 flex items-center gap-1"
+                  className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1"
                 >
                   Fila de revisão <ArrowRight size={13} />
                 </Link>
@@ -331,11 +326,11 @@ export default async function DashboardPage() {
           />
           <div className="p-5 flex flex-col gap-3 flex-1">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 shrink-0 rounded-full bg-gold-500/15 flex items-center justify-center text-gold-600 dark:text-gold-400">
+              <div className="h-9 w-9 shrink-0 rounded-full bg-marca-bg flex items-center justify-center text-marca-tx">
                 <Newspaper size={16} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-navy-800/70 dark:text-cream-50/60">Conteúdo jurídico publicado pelo escritório.</p>
+                <p className="text-sm text-tx-2">Conteúdo jurídico publicado pelo escritório.</p>
                 {blogPendingCount > 0 && (
                   <Badge color="gold" className="mt-1">
                     {blogPendingCount} aguardando revisão
@@ -347,7 +342,7 @@ export default async function DashboardPage() {
               href="/blog"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-cream-50 rounded-lg px-3.5 py-2 transition-colors w-fit"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-sf border border-regua hover:bg-sf-apoio text-tx rounded-lg px-3.5 py-2 transition-colors w-fit"
             >
               Ver blog <ExternalLink size={13} />
             </Link>

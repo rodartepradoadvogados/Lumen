@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import { getFilteredPayables } from "@/lib/financeQuery";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
@@ -12,8 +12,6 @@ import MobileNewPayableForm from "@/components/mobile/MobileNewPayableForm";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", PARCIAL: "amber", CANCELADO: "red" };
 
 export default async function MobileDespesas({ searchParams }: { searchParams: { tab?: string } }) {
   const viewer = await getCurrentUser();
@@ -36,14 +34,14 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Despesas</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">
+        <h1 className="font-serif text-xl font-bold text-tx">Despesas</h1>
+        <p className="text-sm text-tx-2">
           {payables.length} lançamento(s) · Total {formatCurrency(total)}
         </p>
       </div>
@@ -60,7 +58,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
         {payables.length === 0 ? (
           <EmptyState title="Nenhuma conta encontrada" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {payables.map((p) => {
               const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
               const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
@@ -68,31 +66,31 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
                 <div key={p.id} className="px-4 py-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{p.description}</p>
-                      <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                      <p className="text-sm font-medium text-tx">{p.description}</p>
+                      <p className="text-xs text-tx-2 mt-0.5">
                         {p.supplier && <span>{p.supplier} · </span>}
                         {p.category?.name}
                         {p.costCenter && <span> · {p.costCenter.name}</span>}
                       </p>
                       {p.status === "PAGO" && (p.paymentMethod || p.paymentReceiptNumber) && (
-                        <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                        <p className="text-[11px] text-tx-2 mt-0.5">
                           {p.paymentMethod && (paymentMethodLabels[p.paymentMethod] ?? p.paymentMethod)}
                           {p.paymentReceiptNumber && ` · Comprovante: ${p.paymentReceiptNumber}`}
                         </p>
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(liquido)}</p>
+                      <p className="text-sm font-semibold text-tx">{formatCurrency(liquido)}</p>
                       {p.effectiveStatus === "PARCIAL" && (
-                        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>
+                        <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>
                       )}
-                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40">
+                      <p className="text-xs text-tx-2">
                         {p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}
                       </p>
                     </div>
                   </div>
                   <div className="mt-2">
-                    <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
+                    <Badge color={financeStatusColors[p.effectiveStatus] ?? "slate"}>{financeStatusLabel(p.effectiveStatus)}</Badge>
                   </div>
                   <div className="mt-2">
                     <MobileSettleForm id={p.id} kind="payable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />
@@ -113,8 +111,8 @@ function TabLink({ label, href, active }: { label: string; href: string; active:
       href={href}
       className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
         active
-          ? "bg-navy-900 text-white dark:bg-white/10 dark:text-cream-50"
-          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10"
+          ? "bg-acao text-acao-tx"
+          : "bg-sf text-tx-2 border border-regua"
       }`}
     >
       {label}

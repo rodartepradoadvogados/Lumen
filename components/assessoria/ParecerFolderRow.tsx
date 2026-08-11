@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { ChevronDown, ChevronRight, ExternalLink, FolderOpen, Loader2, Pencil, Trash2, UploadCloud, X } from "lucide-react";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
@@ -22,9 +23,10 @@ export type ParecerData = {
 };
 
 // Um arquivo ainda não enviado, aguardando confirmação (nome + categoria) — mesmo espírito de
-// StagedItem em components/NewCaseAttachmentsField.tsx, mas envia direto pro endpoint de upload
-// da Assessoria (o Parecer já existe, não precisa do estágio intermediário via Vercel Blob que o
-// formulário de Novo Processo usa por o caso ainda não existir no momento do upload).
+// StagedItem em components/NewCaseAttachmentsField.tsx. Também passa pelo Vercel Blob antes de
+// chegar no servidor (ver enviarTodos abaixo) — o Parecer já existe no momento do upload, mas o
+// arquivo pode ser grande (processo digitalizado inteiro, por exemplo), e uma Vercel Serverless
+// Function tem limite de payload de entrada bem menor que isso.
 type StagedItem = { tempId: string; file: File; name: string; docType: string; uploading: boolean; error?: string };
 
 // Uma linha "pasta" de Parecer na aba Pareceres/Processos/Casos da Assessoria — expande inline
@@ -72,36 +74,65 @@ export default function ParecerFolderRow({
     setItems((prev) => prev.filter((it) => it.tempId !== tempId));
   }
 
-  // Envia todos os arquivos pendentes de uma vez (um POST por arquivo — o endpoint só aceita um
-  // arquivo por vez, ver app/api/assessoria/documentos/upload/route.ts) e some da lista de
-  // pendentes só o que deu certo; o que falhar continua staged, com o erro visível, pra tentar de
-  // novo sem precisar reanexar tudo.
+  // Envia um arquivo: etapa 1, direto do navegador pro Vercel Blob (o token vem do mesmo endpoint
+  // que os Anexos de processo usam, ver app/api/attachments/blob-token/route.ts — genérico, não
+  // depende de ser Anexo ou Documento de Assessoria); etapa 2, payload pequeno (só a URL do Blob +
+  // metadados) pro servidor terminar o fluxo (baixar, mandar pro Drive/OneDrive/Dropbox do
+  // escritório, registrar o AssessoriaDocumento — ver app/api/assessoria/documentos/upload/route.ts).
+  async function enviarUm(it: StagedItem): Promise<boolean> {
+    try {
+      const blob = await upload(it.file.name, it.file, { access: "public", handleUploadUrl: "/api/attachments/blob-token" });
+
+      const res = await fetch("/api/assessoria/documentos/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blobUrl: blob.url,
+          name: it.name.trim() || it.file.name,
+          contentType: it.file.type || "application/octet-stream",
+          docType: it.docType,
+          assessoriaId,
+          parecerId: parecer.id,
+        }),
+      });
+
+      // SEMPRE confere res.ok ANTES de tentar interpretar o corpo como JSON — uma resposta de
+      // erro que não vem da nossa rota (413 do proxy, 504 de timeout, página de erro em HTML)
+      // não é JSON válido; tentar `res.json()` primeiro faz o catch cair no texto genérico
+      // "Erro ao enviar. Verifique sua conexão." mesmo quando a causa é conhecida e específica.
+      let data: { error?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+      if (!res.ok) {
+        updateItem(it.tempId, { uploading: false, error: data?.error || `Erro ao enviar (HTTP ${res.status}).` });
+        return false;
+      }
+      setItems((prev) => prev.filter((x) => x.tempId !== it.tempId));
+      return true;
+    } catch (e) {
+      updateItem(it.tempId, {
+        uploading: false,
+        error: e instanceof Error ? `Erro ao enviar: ${e.message}` : "Erro ao enviar. Verifique sua conexão.",
+      });
+      return false;
+    }
+  }
+
+  // Enfileira os arquivos, um de cada vez (nunca Promise.all) — vários uploads simultâneos para o
+  // MESMO parecer podiam disparar findOrCreateChildFolder em paralelo para a mesma pasta (ver
+  // lib/googleDrive.ts) e criar pastas duplicadas no Drive, já que a checagem "existe?" e a
+  // criação não são atômicas entre requisições concorrentes.
   async function enviarTodos() {
     const pendentes = items.filter((it) => !it.uploading);
     if (pendentes.length === 0) return;
-    setItems((prev) => prev.map((it) => ({ ...it, uploading: true, error: undefined })));
+    setItems((prev) => prev.map((it) => (pendentes.some((p) => p.tempId === it.tempId) ? { ...it, uploading: true, error: undefined } : it)));
 
-    await Promise.all(
-      pendentes.map(async (it) => {
-        const formData = new FormData();
-        formData.append("file", it.file);
-        formData.append("name", it.name.trim() || it.file.name);
-        formData.append("docType", it.docType);
-        formData.append("assessoriaId", assessoriaId);
-        formData.append("parecerId", parecer.id);
-        try {
-          const res = await fetch("/api/assessoria/documentos/upload", { method: "POST", body: formData });
-          const data = await res.json();
-          if (!res.ok) {
-            updateItem(it.tempId, { uploading: false, error: data.error || "Erro ao enviar." });
-          } else {
-            setItems((prev) => prev.filter((x) => x.tempId !== it.tempId));
-          }
-        } catch {
-          updateItem(it.tempId, { uploading: false, error: "Erro ao enviar. Verifique sua conexão." });
-        }
-      })
-    );
+    for (const it of pendentes) {
+      await enviarUm(it);
+    }
     router.refresh();
   }
 

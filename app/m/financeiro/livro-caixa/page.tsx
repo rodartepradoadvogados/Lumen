@@ -55,14 +55,14 @@ export default async function MobileLivroCaixa() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Livro Caixa</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">
+        <h1 className="font-serif text-xl font-bold text-tx">Livro Caixa</h1>
+        <p className="text-sm text-tx-2">
           Extrato cronológico das movimentações efetivadas · mais recentes primeiro
         </p>
       </div>
@@ -71,21 +71,21 @@ export default async function MobileLivroCaixa() {
         {mostRecentFirst.length === 0 ? (
           <EmptyState title="Nenhuma movimentação registrada ainda" subtitle="Dê baixa em contas a pagar/receber para elas aparecerem aqui" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {mostRecentFirst.map((e, i) => (
               <div key={i} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-navy-900 dark:text-cream-50 truncate">{e.description}</p>
-                    <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">{formatDate(e.date)}</p>
+                    <p className="text-sm text-tx truncate">{e.description}</p>
+                    <p className="text-xs text-tx-2 mt-0.5">{formatDate(e.date)}</p>
                   </div>
-                  <p className={`text-sm font-semibold shrink-0 ${e.type === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-bordo-400"}`}>
+                  <p className={`text-sm font-semibold shrink-0 ${e.type === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-urgente"}`}>
                     {e.type === "entrada" ? "+" : ""}
                     {formatCurrency(e.value)}
                   </p>
                 </div>
-                <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1 text-right">
-                  Saldo acumulado: <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(e.balance)}</span>
+                <p className="text-xs text-tx-2 mt-1 text-right">
+                  Saldo acumulado: <span className="font-semibold text-tx">{formatCurrency(e.balance)}</span>
                 </p>
               </div>
             ))}

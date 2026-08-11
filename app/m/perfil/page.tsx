@@ -20,19 +20,19 @@ export default async function MobilePerfilPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Meu Perfil</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Seus dados pessoais — só você enxerga e edita</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Meu Perfil</h1>
+        <p className="text-sm text-tx-2">Seus dados pessoais — só você enxerga e edita</p>
       </div>
 
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <User size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Dados pessoais</h3>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <User size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm">Dados pessoais</h3>
         </div>
         <div className="p-4">
           <EditProfileForm profile={profile} userId={viewer.id} initials={initials} />
@@ -41,9 +41,9 @@ export default async function MobilePerfilPage() {
 
       {viewer.isAdmin && (
         <Card>
-          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-            <Users size={16} className="text-gold-600" />
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Controle de Acesso da Equipe</h3>
+          <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+            <Users size={16} className="text-marca-tx" />
+            <h3 className="font-serif font-bold text-tx text-sm">Controle de Acesso da Equipe</h3>
           </div>
           <MobileTeamMonitor />
         </Card>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import EditReceivableModal from "@/components/EditReceivableModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
@@ -12,19 +12,7 @@ import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { financeGroupKind } from "@/lib/financeGroupKind";
 import { DOCUMENT_TYPE_OPTIONS, PAYER_TYPE_LABELS, PERCENTUAL_BASE_LABELS, RECEIVABLE_KIND_LABELS } from "@/lib/honorarioLancamento";
-
-const statusColor: Record<string, "green" | "red" | "amber" | "slate"> = {
-  PAGO: "green",
-  ATRASADO: "red",
-  PENDENTE: "amber",
-  PARCIAL: "amber",
-  CANCELADO: "red",
-  A_APURAR: "slate",
-};
-
-function statusLabel(status: string): string {
-  return status === "A_APURAR" ? "A apurar" : status;
-}
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 
 const documentTypeLabels: Record<string, string> = Object.fromEntries(DOCUMENT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
@@ -118,7 +106,7 @@ export default function ReceivablesList({
 
   return (
     <div>
-      <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+      <div className="divide-y divide-regua">
         {receivables.map((r) => {
           const isApurar = r.effectiveStatus === "A_APURAR";
           const selectable = r.status !== "PAGO" && !isApurar;
@@ -133,15 +121,15 @@ export default function ReceivablesList({
                     checked={selected.has(r.id)}
                     onChange={() => toggle(r.id)}
                     data-tip="Selecionar para baixa em bloco"
-                    className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-emerald-600 focus:ring-emerald-500"
+                    className="h-4 w-4 rounded border-regua-forte text-emerald-600 focus:ring-emerald-500"
                   />
                 ) : (
                   <span className="inline-block w-4" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{r.description}</p>
-                <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                <p className="text-sm font-medium text-tx">{r.description}</p>
+                <p className="text-xs text-tx-2 mt-0.5">
                   {r.client?.name}
                   {r.case && <span> · {r.case.title}</span>}
                   {r.costCenter && <span> · {r.costCenter.name}</span>}
@@ -156,28 +144,36 @@ export default function ReceivablesList({
                   {r.status === "PAGO" && r.paymentReceiptNumber && <span> · Comprovante: {r.paymentReceiptNumber}</span>}
                 </p>
                 {isApurar && (
-                  <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                  <p className="text-[11px] text-tx-3 mt-0.5">
                     {r.percentual}% de {PERCENTUAL_BASE_LABELS[r.percentualBase ?? ""] ?? "base não definida"} — regra a apurar no desfecho do processo
                   </p>
                 )}
                 {/* Problema 2 (autoavaliação Fase 10) — contraparte do badge de PayablesList.tsx:
                     sem isto, nada denunciava que esta receita já era o reembolso de uma despesa. */}
                 {r.reimbursesPayable && (
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">
-                    <Badge color="gold">↳ Reembolso de despesa · {r.reimbursesPayable.description}</Badge>
+                  <p className="text-[11px] text-tx-2 mt-1">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-marca-bg text-marca-tx">
+                      ↳ Reembolso de despesa · {r.reimbursesPayable.description}
+                    </span>
                   </p>
                 )}
               </div>
               <div className="flex items-center justify-between sm:contents">
                 <div className="text-left sm:text-right shrink-0 sm:w-32">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                  <p
+                    className={`text-sm font-semibold tabular-nums ${
+                      r.effectiveStatus === "CANCELADO" ? "line-through text-tx-3" : "text-tx"
+                    }`}
+                  >
+                    {isApurar ? "—" : formatCurrency(liquido)}
+                  </p>
                   {r.effectiveStatus === "PARCIAL" && (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>
+                    <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
                   )}
-                  <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                  <p className="text-xs text-tx-3">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                 </div>
                 <div className="shrink-0 sm:w-24">
-                  <Badge color={statusColor[r.effectiveStatus]}>{statusLabel(r.effectiveStatus)}</Badge>
+                  <FinanceStatusBadge status={r.effectiveStatus} />
                 </div>
               </div>
               <div className="shrink-0 flex items-center gap-1">

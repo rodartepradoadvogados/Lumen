@@ -21,14 +21,14 @@ type AttachmentData = {
 export default function MobileCaseAttachmentsTab({ attachments }: { attachments: AttachmentData[] }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-navy-800/45 dark:text-cream-50/45 bg-cream-100 dark:bg-white/5 rounded-lg px-3 py-2">
+      <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
         Só leitura por aqui — para enviar ou gerar um novo anexo, use o computador.
       </p>
       <Card>
         {attachments.length === 0 ? (
           <EmptyState title="Nenhum anexo" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {attachments.map((a) => {
               const Icon = getDocumentTypeIcon(a.docType);
               return (
@@ -37,20 +37,20 @@ export default function MobileCaseAttachmentsTab({ attachments }: { attachments:
                   href={a.driveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 px-4 py-3 hover:bg-cream-100 dark:hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-3 hover:bg-sf-apoio transition-colors"
                 >
-                  <span className="p-1.5 rounded-lg bg-gold-500/10 text-gold-700 dark:text-gold-400 shrink-0">
+                  <span className="p-1.5 rounded-lg bg-marca-bg text-marca-tx shrink-0">
                     <Icon size={15} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-navy-900 dark:text-cream-50 truncate">{a.name}</p>
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                    <p className="text-sm text-tx truncate">{a.name}</p>
+                    <p className="text-[11px] text-tx-2">
                       {getDocumentTypeLabel(a.docType)} · {formatDate(a.createdAt)}
                       {a.uploadedBy && <> · {a.uploadedBy.name}</>}
                       {a.driveUrl.startsWith("http") && !a.driveUrl.includes("drive.google.com") && <> · {getLinkSourceLabel(a.driveUrl)}</>}
                     </p>
                   </div>
-                  <ExternalLink size={14} className="shrink-0 text-navy-800/30 dark:text-cream-50/30" />
+                  <ExternalLink size={14} className="shrink-0 text-tx-3" />
                 </a>
               );
             })}

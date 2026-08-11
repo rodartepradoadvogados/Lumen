@@ -13,15 +13,19 @@ export const dynamic = "force-dynamic";
 // Chaves batem com Publication.source de verdade (DJE/PJE/ESAJ/PROJUDI/MANUAL/JUSBRASIL_EMAIL,
 // ver prisma/schema.prisma) — a versão anterior usava "DJEN"/"DATAJUD", que não existem, então
 // a borda nunca aparecia; achado testando ao vivo, corrigido junto com o desktop.
+// DJE = --acao, ESAJ = --aviso, PROJUDI = --tx-2, MANUAL = --vinho (via alias --atencao, é o
+// único lançamento feito por pessoa), JUSBRASIL_EMAIL = --concluido — todos tokens semânticos
+// já existentes. PJE é a única fonte sem token próprio no design system (#2f6fb0 / #93c0f0 no
+// manual, DESIGN-SYSTEM.md §9) — mesmo par cravado usado no desktop.
 const SOURCE_BORDER_COLORS: Record<string, string> = {
-  DJE: "border-l-navy-700 dark:border-l-navy-500",
-  PJE: "border-l-blue-500 dark:border-l-blue-400",
-  ESAJ: "border-l-amber-500 dark:border-l-amber-400",
-  PROJUDI: "border-l-slate-500 dark:border-l-slate-400",
-  MANUAL: "border-l-gold-500 dark:border-l-gold-400",
-  JUSBRASIL_EMAIL: "border-l-emerald-500 dark:border-l-emerald-400",
+  DJE: "border-l-acao",
+  PJE: "border-l-[#2f6fb0] dark:border-l-[#93c0f0]",
+  ESAJ: "border-l-aviso",
+  PROJUDI: "border-l-tx-2",
+  MANUAL: "border-l-atencao",
+  JUSBRASIL_EMAIL: "border-l-concluido",
 };
-const DEFAULT_SOURCE_BORDER_COLOR = "border-l-slate-300 dark:border-l-white/15";
+const DEFAULT_SOURCE_BORDER_COLOR = "border-l-regua-forte";
 
 function sourceBorderColor(source: string): string {
   return SOURCE_BORDER_COLORS[source] ?? DEFAULT_SOURCE_BORDER_COLOR;
@@ -76,20 +80,17 @@ export default async function MobilePublicacoes() {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Publicações</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">{groups.length} não lida(s)</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Publicações</h1>
+        <p className="text-sm text-tx-2">{groups.length} não lida(s)</p>
       </div>
 
       <Card>
         {groups.length === 0 ? (
           <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
-            {groups.map((g, i) => (
-              <div
-                key={g.key}
-                className={`border-l-4 ${sourceBorderColor(g.primary.source)} ${i % 2 === 0 ? "pub-card-a" : "pub-card-b"}`}
-              >
+          <div className="divide-y divide-regua">
+            {groups.map((g) => (
+              <div key={g.key} className={`border-l-4 ${sourceBorderColor(g.primary.source)} bg-sf`}>
                 <MobilePublicationCard group={g} users={users} />
               </div>
             ))}

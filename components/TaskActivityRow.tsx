@@ -53,7 +53,7 @@ export default function TaskActivityRow({
           setLoading(false);
         }}
         className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center disabled:opacity-50 ${
-          done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 hover:border-emerald-500"
+          done ? "bg-concluido border-concluido text-white" : "border-regua-forte hover:border-concluido"
         }`}
       >
         <Check size={12} strokeWidth={3} />
@@ -64,14 +64,14 @@ export default function TaskActivityRow({
             <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>
             <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>
             <p
-              className={`text-sm font-medium text-navy-900 dark:text-cream-50 ${
-                task.status === "CONCLUIDO" ? "line-through text-navy-800/40 dark:text-cream-50/40" : ""
+              className={`text-sm font-medium text-tx ${
+                task.status === "CONCLUIDO" ? "line-through text-tx-3" : ""
               }`}
             >
               {task.title}
             </p>
             {task.commentCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[11px] text-navy-800/40 dark:text-cream-50/40">
+              <span className="flex items-center gap-0.5 text-[11px] text-tx-3">
                 <MessageSquare size={11} /> {task.commentCount}
               </span>
             )}
@@ -79,7 +79,7 @@ export default function TaskActivityRow({
         </button>
         <TaskResponsibleSelect taskId={task.id} responsibleId={task.responsibleId} users={users} />
       </div>
-      <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatCalendarDate(task.dueDate)}</p>
+      <p className="text-xs font-semibold text-tx-2 shrink-0">{formatCalendarDate(task.dueDate)}</p>
       <DeleteEntityButton entityType="TASK" entityId={task.id} entityLabel={task.title} confirmMessage={`Excluir a atividade "${task.title}"?`} />
       {open && <TaskDetailModal taskId={task.id} onClose={() => setOpen(false)} />}
     </div>

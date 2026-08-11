@@ -33,8 +33,17 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
   const [clients, users, assessoriasRaw, tribunais, driveStatus] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    // Só assessorias ATIVAS entram na lista — MAS a assessoria de origem entra sempre, mesmo
+    // suspensa ou encerrada. Sem essa exceção, quem clicava "Novo processo"/"Novo caso" de
+    // dentro de uma assessoria não-ATIVA via o seletor sumir e o vínculo se perdia no submit,
+    // sem erro nenhum. Ver components/AssessoriaSelect.tsx.
     prisma.assessoria.findMany({
-      where: { status: "ATIVA", officeId: viewer.officeId },
+      where: {
+        officeId: viewer.officeId,
+        ...(searchParams.assessoriaId
+          ? { OR: [{ status: "ATIVA" }, { id: searchParams.assessoriaId }] }
+          : { status: "ATIVA" }),
+      },
       include: { client: true },
       orderBy: { client: { name: "asc" } },
     }),
@@ -43,7 +52,9 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
     getDriveStatus(viewer.officeId),
   ]);
-  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
+  // `status` vai junto para o seletor poder marcar "(Suspensa)"/"(Encerrada)" na assessoria de
+  // origem — sem isso ela apareceria com o nome certo mas sem sinal nenhum de que não está ativa.
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name, status: a.status }));
 
   async function submit(formData: FormData) {
     "use server";

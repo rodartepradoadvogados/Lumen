@@ -151,6 +151,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
                   value={it.docType}
                   onChange={(v) => updateDocType(it.tempId, v)}
                   className="text-[11px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1.5 py-1 max-w-[170px] shrink-0"
+                  allowCreate
                 />
               )}
               <button

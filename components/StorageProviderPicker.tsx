@@ -47,7 +47,9 @@ export default function StorageProviderPicker({ current, isAdmin, oneDriveConnec
 
   return (
     <div>
-      <p className="text-xs font-semibold text-navy-900 dark:text-cream-50 mb-2">Armazenar anexos de Processos/Atendimentos/Assessoria em:</p>
+      <p className="text-xs font-semibold text-tx mb-2">Armazenar anexos de Processos/Atendimentos/Assessoria em:</p>
+      {/* Mesmo padrão do controle segmentado (DESIGN-SYSTEM.md §5): opção ativa inverte —
+          fundo na cor do texto, texto na cor da superfície — sem cor de acento. */}
       <div className="flex flex-wrap gap-2">
         {OPTIONS.map((opt) => {
           const isSelected = selected === opt.value;
@@ -58,9 +60,7 @@ export default function StorageProviderPicker({ current, isAdmin, oneDriveConnec
               disabled={pending || !isAdmin}
               onClick={() => choose(opt.value)}
               className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed ${
-                isSelected
-                  ? "bg-gold-600 dark:bg-gold-500 text-white"
-                  : "bg-cream-100 dark:bg-white/10 text-navy-800/70 dark:text-cream-50/70"
+                isSelected ? "bg-tx text-sf" : "bg-sf-apoio text-tx-2"
               }`}
             >
               {isSelected && <CheckCircle2 size={13} />} {opt.label}
@@ -69,11 +69,11 @@ export default function StorageProviderPicker({ current, isAdmin, oneDriveConnec
         })}
       </div>
       {needsConnection && (
-        <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-2">
+        <p className="text-[11px] text-aviso mt-2">
           {selectedOption?.label} escolhido, mas ainda não conectado — conecte a conta abaixo para ativar de verdade. Até lá, uploads continuam falhando.
         </p>
       )}
-      {error && <p className="text-[11px] text-red-600 dark:text-bordo-400 mt-2">{error}</p>}
+      {error && <p className="text-[11px] text-vinho mt-2">{error}</p>}
     </div>
   );
 }

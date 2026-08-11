@@ -59,10 +59,10 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
 
   return (
     <div>
-      {error && <p className="mx-5 mt-4 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-      <div className="divide-y divide-navy-800/8">
+      {error && <p className="mx-5 mt-4 text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      <div className="divide-y divide-regua">
         {posts.map((post) => (
-          <div key={post.id} className="flex items-center gap-3 px-5 py-3 hover:bg-cream-50 transition-colors">
+          <div key={post.id} className="flex items-center gap-3 px-5 py-3 hover:bg-sf-apoio transition-colors">
             <Link
               href={`/blog/${post.slug}`}
               target="_blank"
@@ -71,17 +71,17 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
             >
               {post.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.imageUrl} alt="" className="h-12 w-16 object-cover rounded-lg border border-navy-800/10 shrink-0" />
+                <img src={post.imageUrl} alt="" className="h-12 w-16 object-cover rounded-lg border border-regua shrink-0" />
               ) : (
-                <div className="h-12 w-16 rounded-lg bg-cream-100 border border-navy-800/8 shrink-0" />
+                <div className="h-12 w-16 rounded-lg bg-sf-apoio border border-regua shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-navy-900 truncate group-hover:underline">{post.title}</p>
+                <p className="text-sm font-semibold text-tx truncate group-hover:underline">{post.title}</p>
                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                   <Badge color="navy">{post.area}</Badge>
                   <Badge color="gold">{TYPE_LABELS[post.type] ?? post.type}</Badge>
                   {post.publishedAt && (
-                    <span className="text-[11px] text-navy-800/45">
+                    <span className="text-[11px] text-tx-3">
                       publicado em {new Date(post.publishedAt).toLocaleDateString("pt-BR")}
                     </span>
                   )}
@@ -93,7 +93,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               onClick={() => setPickerPost(post)}
               disabled={pending}
               data-tip="Trocar foto"
-              className="p-1.5 rounded-lg text-navy-800/30 hover:text-navy-900 hover:bg-cream-100 transition-colors disabled:opacity-40 shrink-0"
+              className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors disabled:opacity-40 shrink-0"
             >
               <ImagePlus size={14} />
             </button>
@@ -101,7 +101,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               onClick={() => handleUnpublish(post.id, post.title)}
               disabled={pending}
               data-tip="Despublicar"
-              className="p-1.5 rounded-lg text-navy-800/30 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40 shrink-0"
+              className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 shrink-0"
             >
               <RotateCcw size={14} />
             </button>
@@ -110,23 +110,23 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
       </div>
 
       {pickerPost && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
+            className="bg-sf rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
               <div className="min-w-0">
-                <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Trocar foto da matéria</h3>
-                <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5 truncate">{pickerPost.title}</p>
+                <h3 className="font-bold text-tx">Trocar foto da matéria</h3>
+                <p className="text-xs text-tx-3 mt-0.5 truncate">{pickerPost.title}</p>
               </div>
-              <button onClick={() => setPickerPost(null)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50 shrink-0 ml-3">
+              <button onClick={() => setPickerPost(null)} className="text-tx-3 hover:text-tx shrink-0 ml-3">
                 <X size={18} />
               </button>
             </div>
             <div className="p-5">
               {photos.length === 0 ? (
-                <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Nenhuma foto cadastrada na biblioteca ainda.</p>
+                <p className="text-sm text-tx-3">Nenhuma foto cadastrada na biblioteca ainda.</p>
               ) : (
                 <PhotoPickerGrid photos={photos} imageUrl={pickerPost.imageUrl || ""} onSelect={handlePickImage} />
               )}

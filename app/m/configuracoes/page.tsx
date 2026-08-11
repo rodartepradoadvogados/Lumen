@@ -109,36 +109,36 @@ export default async function MobileConfiguracoes() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Configurações</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Perfil e preferências da conta</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Configurações</h1>
+        <p className="text-sm text-tx-2">Perfil e preferências da conta</p>
       </div>
 
       <div className="flex items-center gap-3 px-1">
-        <div className="h-12 w-12 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-sm font-serif font-bold shrink-0">
+        <div className="h-12 w-12 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-sm font-serif font-bold shrink-0">
           {initials}
         </div>
         <div className="min-w-0">
-          <p className="font-serif font-bold text-navy-900 dark:text-cream-50 leading-tight truncate">{viewer.name}</p>
-          <p className="text-xs text-navy-800/45 dark:text-cream-50/45 truncate">{viewer.email}</p>
+          <p className="font-serif font-bold text-tx leading-tight truncate">{viewer.name}</p>
+          <p className="text-xs text-tx-2 truncate">{viewer.email}</p>
         </div>
       </div>
 
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <User size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Minha conta</h3>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <User size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm">Minha conta</h3>
         </div>
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           <Field label="Cargo" value={viewer.role} />
           <div className="px-4 py-3.5">
             <div className="flex items-center gap-2 mb-2.5">
-              <KeyRound size={14} className="text-navy-800/40 dark:text-cream-50/40" />
-              <span className="text-sm font-medium text-navy-900 dark:text-cream-50">Trocar minha senha</span>
+              <KeyRound size={14} className="text-tx-2" />
+              <span className="text-sm font-medium text-tx">Trocar minha senha</span>
             </div>
             <MobileChangePasswordForm />
           </div>
@@ -146,9 +146,9 @@ export default async function MobileConfiguracoes() {
       </Card>
 
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <Bell size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Notificações</h3>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <Bell size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm">Notificações</h3>
         </div>
         <NotificationPreferences />
       </Card>
@@ -159,16 +159,16 @@ export default async function MobileConfiguracoes() {
       <Link href="/m/configuracoes/acessos" className="block">
         <Card className="flex items-center justify-between px-4 py-3.5">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-gold-600" />
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Acessos da Lúmen</h3>
+            <ShieldCheck size={16} className="text-marca-tx" />
+            <h3 className="font-serif font-bold text-tx text-sm">Acessos da Lúmen</h3>
           </div>
-          <ChevronRight size={14} className="text-navy-800/30 dark:text-cream-50/30 shrink-0" />
+          <ChevronRight size={14} className="text-tx-3 shrink-0" />
         </Card>
       </Link>
 
       {canConfig && driveStatus && (
         <>
-          <p className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide px-1 pt-2">
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide px-1 pt-2">
             Administração
           </p>
 
@@ -177,66 +177,66 @@ export default async function MobileConfiguracoes() {
               <Card className="!rounded-t-none border-t-0">
                 <div className="p-4 space-y-3">
                   <div>
-                    <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1">Sincronizar publicações e andamentos</p>
+                    <p className="text-xs font-semibold text-tx-2 mb-1">Sincronizar publicações e andamentos</p>
                     <SyncPublicationsButton />
                   </div>
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">Drive e e-mail</p>
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-2">Drive e e-mail</p>
                   {driveStatus.connected ? (
-                    <div className="flex items-center gap-2 text-xs text-navy-900 dark:text-cream-50 mb-2">
+                    <div className="flex items-center gap-2 text-xs text-tx mb-2">
                       <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="truncate">Conectado como <strong>{driveStatus.accountEmail}</strong></span>
                     </div>
                   ) : (
-                    <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mb-2">Nenhuma conta conectada ainda.</p>
+                    <p className="text-xs text-tx-2 mb-2">Nenhuma conta conectada ainda.</p>
                   )}
                   <a
                     href="/api/google/connect"
-                    className="inline-flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold rounded-lg px-3 py-2 w-fit"
+                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 w-fit"
                   >
                     <HardDrive size={13} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google
                   </a>
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">Publicações e andamentos processuais de e-mail</p>
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-2">Publicações e andamentos processuais de e-mail</p>
                   <div className="space-y-1.5 mb-3">
                     {users.map((u) => {
                       const found = googleAccounts.find((a) => a.userId === u.id);
                       return (
                         <div key={u.id} className="flex items-center gap-1.5 text-xs">
-                          <CheckCircle2 size={12} className={found ? "text-emerald-600 dark:text-emerald-400 shrink-0" : "text-navy-800/25 dark:text-cream-50/25 shrink-0"} />
-                          <span className={found ? "text-navy-900 dark:text-cream-50" : "text-navy-800/45 dark:text-cream-50/45"}>{u.name}</span>
+                          <CheckCircle2 size={12} className={found ? "text-emerald-600 dark:text-emerald-400 shrink-0" : "text-tx-3 shrink-0"} />
+                          <span className={found ? "text-tx" : "text-tx-2"}>{u.name}</span>
                         </div>
                       );
                     })}
                   </div>
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mb-2">
+                  <p className="text-[11px] text-tx-2 mb-2">
                     {minhaConexao ? <>Sua conta: <strong>{minhaConexao.accountEmail}</strong></> : "Você ainda não conectou seu e-mail."}
                   </p>
                   <a
                     href="/api/google/connect?mode=jusbrasil"
-                    className="inline-flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold rounded-lg px-3 py-2 w-fit"
+                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 w-fit"
                   >
                     <HardDrive size={13} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
                   </a>
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1 flex items-center gap-1.5"><Gavel size={13} /> DJEN (CNJ)</p>
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mb-2">OABs cadastradas em Equipe, no computador.</p>
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><Gavel size={13} /> DJEN (CNJ)</p>
+                  <p className="text-[11px] text-tx-2 mb-2">OABs cadastradas em Equipe, no computador.</p>
                   <TestDjenButton />
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1">Datajud — Andamentos (CNJ)</p>
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mb-2">
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-1">Datajud — Andamentos (CNJ)</p>
+                  <p className="text-[11px] text-tx-2 mb-2">
                     {processosMonitoradosCount} processo(s) monitorado(s) — API oficial, não sofre o bloqueio do DJEN.
                   </p>
                   {ultimoLogDatajud ? (
-                    <p className={`text-[11px] rounded-lg px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-300" : "bg-red-50 dark:bg-bordo-400/10 text-red-700 dark:text-bordo-400"}`}>
+                    <p className={`text-[11px] rounded-lg px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-300" : "bg-urgente-bg text-urgente"}`}>
                       Última execução {formatRelativeTimeMobile(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
                     </p>
                   ) : (
@@ -244,21 +244,21 @@ export default async function MobileConfiguracoes() {
                   )}
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1 flex items-center gap-1.5"><CalendarClock size={13} /> E-mail diário da agenda</p>
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><CalendarClock size={13} /> E-mail diário da agenda</p>
                   <TestEmailButton />
                 </div>
 
                 {modules?.whatsapp && (
-                  <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                    <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2 flex items-center gap-1.5"><MessageCircle size={13} /> WhatsApp</p>
+                  <div className="p-4 border-t border-regua">
+                    <p className="text-xs font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><MessageCircle size={13} /> WhatsApp</p>
                     <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />
                   </div>
                 )}
 
                 {driveStatus.connected && (
-                  <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                    <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2 flex items-center gap-1.5"><FolderCog size={13} /> Anexos do Drive</p>
+                  <div className="p-4 border-t border-regua">
+                    <p className="text-xs font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><FolderCog size={13} /> Anexos do Drive</p>
                     <ReorganizeAttachmentsButton />
                   </div>
                 )}
@@ -270,15 +270,15 @@ export default async function MobileConfiguracoes() {
           <details className="group">
             <Group icon={Users} title="Equipe" meta={`${users.length} pessoas`}>
               <Card className="!rounded-t-none border-t-0">
-                <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+                <div className="divide-y divide-regua">
                   {users.map((u) => (
                     <div key={u.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                      <span className="text-sm text-navy-900 dark:text-cream-50">{u.name}</span>
-                      <span className="text-[11px] text-navy-800/45 dark:text-cream-50/45">{u.role}</span>
+                      <span className="text-sm text-tx">{u.name}</span>
+                      <span className="text-[11px] text-tx-2">{u.role}</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 p-4 pt-3 border-t border-navy-800/8 dark:border-white/10">
+                <p className="text-[11px] text-tx-2 p-4 pt-3 border-t border-regua">
                   Cadastro de membros, credenciais e acesso ao Financeiro é ajustável só no computador.
                 </p>
               </Card>
@@ -291,23 +291,23 @@ export default async function MobileConfiguracoes() {
             <Group icon={SlidersHorizontal} title="Geral" meta="3 itens">
               <Card className="!rounded-t-none border-t-0">
                 <div className="p-4">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">Módulos contratados</p>
+                  <p className="text-xs font-semibold text-tx-2 mb-2">Módulos contratados</p>
                   <div className="space-y-1.5">
                     {Object.entries(MODULE_LABELS).map(([key, label]) => (
                       <div key={key} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-navy-800 dark:text-cream-50/85">{label}</span>
+                        <span className="text-tx-2">{label}</span>
                         <Badge color={modules?.[key as keyof typeof MODULE_LABELS] ? "green" : "slate"}>
                           {modules?.[key as keyof typeof MODULE_LABELS] ? "Ativo" : "Inativo"}
                         </Badge>
                       </div>
                     ))}
                   </div>
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-2">Liga/desliga só no computador.</p>
+                  <p className="text-[11px] text-tx-2 mt-2">Liga/desliga só no computador.</p>
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-1.5 flex items-center gap-1.5"><Upload size={13} /> Importação de Dados</p>
-                  <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60 leading-relaxed">
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-1.5 flex items-center gap-1.5"><Upload size={13} /> Importação de Dados</p>
+                  <p className="text-[11px] text-tx-2 leading-relaxed">
                     Traz Processos/Casos/Atendimentos, Agenda, Financeiro e Contatos de uma planilha (.xlsx ou .csv) — cada tipo
                     tem um modelo próprio pra baixar, com as colunas esperadas (ex.: cliente, partes, tribunal, valor). Clientes e
                     partes citados na planilha são cadastrados automaticamente. O envio do arquivo é feito só pelo computador,
@@ -315,17 +315,17 @@ export default async function MobileConfiguracoes() {
                   </p>
                 </div>
 
-                <div className="p-4 border-t border-navy-800/8 dark:border-white/10">
-                  <p className="text-xs font-semibold text-navy-800 dark:text-cream-50 mb-2">TaskScore — como está configurado</p>
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-2">TaskScore — como está configurado</p>
                   <div className="space-y-1.5">
                     {taskTypePointsRows.map((row) => (
                       <div key={row.type} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-navy-800 dark:text-cream-50/85">{taskTypeLabels[row.type] ?? row.type}</span>
-                        <span className="font-semibold text-navy-900 dark:text-cream-50">{row.points} pts</span>
+                        <span className="text-tx-2">{taskTypeLabels[row.type] ?? row.type}</span>
+                        <span className="font-semibold text-tx">{row.points} pts</span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-2">Pontos por tarefa concluída. Ajustável só no computador.</p>
+                  <p className="text-[11px] text-tx-2 mt-2">Pontos por tarefa concluída. Ajustável só no computador.</p>
                 </div>
               </Card>
             </Group>
@@ -367,7 +367,7 @@ export default async function MobileConfiguracoes() {
             <details className="group">
               <Group icon={Newspaper} title="Blog Jurídico" meta={`${blogPending} pendente(s)`}>
                 <Card className="!rounded-t-none border-t-0">
-                  <p className="text-xs text-navy-800/60 dark:text-cream-50/60 leading-relaxed p-4">
+                  <p className="text-xs text-tx-2 leading-relaxed p-4">
                     {blogPending} matéria(s) aguardando revisão · {blogPublished} publicada(s). Ajustável só no computador.
                   </p>
                 </Card>
@@ -391,7 +391,7 @@ export default async function MobileConfiguracoes() {
           </details>
           )}
 
-          <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 px-1">
+          <p className="text-[11px] text-tx-2 px-1">
             {isAdmin ? "Só administradores veem este bloco." : "Bloco liberado apenas para configurar integrações."}
           </p>
         </>
@@ -418,8 +418,8 @@ function formatRelativeTimeMobile(date: Date): string {
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="px-4 py-3 flex items-center justify-between gap-3">
-      <span className="text-xs text-navy-800/50 dark:text-cream-50/50">{label}</span>
-      <span className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{value || "—"}</span>
+      <span className="text-xs text-tx-2">{label}</span>
+      <span className="text-sm font-medium text-tx truncate">{value || "—"}</span>
     </div>
   );
 }
@@ -428,11 +428,11 @@ function Group({ icon: Icon, title, meta, children }: { icon: LucideIcon; title:
   return (
     <>
       <summary className="list-none cursor-pointer marker:content-none">
-        <div className="flex items-center gap-2 px-4 py-3.5 bg-white dark:bg-navy-900 border border-navy-800/8 dark:border-white/10 rounded-xl group-open:rounded-b-none group-open:border-b-0">
-          <Icon size={16} className="text-gold-600 shrink-0" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm flex-1">{title}</h3>
-          <span className="text-[10px] text-navy-800/40 dark:text-cream-50/40 font-medium">{meta}</span>
-          <ChevronRight size={14} className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-90 shrink-0" />
+        <div className="flex items-center gap-2 px-4 py-3.5 bg-sf border border-regua rounded-xl group-open:rounded-b-none group-open:border-b-0">
+          <Icon size={16} className="text-marca-tx shrink-0" />
+          <h3 className="font-serif font-bold text-tx text-sm flex-1">{title}</h3>
+          <span className="text-[10px] text-tx-2 font-medium">{meta}</span>
+          <ChevronRight size={14} className="text-tx-3 transition-transform group-open:rotate-90 shrink-0" />
         </div>
       </summary>
       {children}

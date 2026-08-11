@@ -133,6 +133,24 @@ export async function getOrCreateChildFolder(parentFolderId: string, name: strin
   return created.id;
 }
 
+// Cria uma pasta com nome exato dentro do pai indicado, SEM checar se já existe uma homônima
+// (ao contrário de getOrCreateChildFolder acima) — usada quando o pedido é criar uma pasta NOVA a
+// pedido do usuário (ver lib/actions/driveFolders.ts), não reaproveitar uma existente.
+// "@microsoft.graph.conflictBehavior": "rename" deixa o próprio Graph resolver um nome duplicado
+// (sufixo automático) em vez de falhar — mesmo efeito prático de createNamedDriveFolder no lado
+// Google (lib/googleDrive.ts), que sempre cria pasta nova.
+export async function createNamedFolder(parentFolderId: string, name: string, officeId: string): Promise<{ id: string }> {
+  const accessToken = await getAccessTokenForOffice(officeId);
+  const res = await graphFetch(`/me/drive/items/${parentFolderId}/children`, accessToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, folder: {}, "@microsoft.graph.conflictBehavior": "rename" }),
+  });
+  if (!res.ok) throw new Error(`Falha ao criar a pasta "${name}" no OneDrive (${res.status}): ${await res.text()}`);
+  const created = (await res.json()) as { id: string };
+  return { id: created.id };
+}
+
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
 const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";

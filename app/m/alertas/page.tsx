@@ -40,10 +40,12 @@ const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
   CONTA_RECEBER: { label: "Conta a Receber", icon: Wallet },
 };
 
+// Filete esquerdo de 3px por severidade (DESIGN-SYSTEM.md §8) — o rótulo do tipo de alerta já
+// diferencia as 12 chaves de `kindMeta`; nenhuma delas ganha cor própria, só a severidade.
 const severityStyle: Record<string, string> = {
-  alta: "border-l-4 border-red-500 dark:border-bordo-400",
-  media: "border-l-4 border-gold-500",
-  baixa: "border-l-4 border-slate-300 dark:border-white/20",
+  alta: "border-l-[3px] border-urgente",
+  media: "border-l-[3px] border-marca",
+  baixa: "border-l-[3px] border-tx-3",
 };
 
 export default async function MobileAlertas({ searchParams }: { searchParams: { tab?: string } }) {
@@ -59,8 +61,8 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Central de Alertas</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">
+        <h1 className="font-serif text-xl font-bold text-tx">Central de Alertas</h1>
+        <p className="text-sm text-tx-2">
           {tab === "pendentes" ? `${alerts.length} pendente(s)` : `${todayItems.length} item(ns) para hoje`}
         </p>
       </div>
@@ -68,13 +70,13 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
       <div className="flex gap-2">
         <Link
           href="/m/alertas?tab=pendentes"
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "pendentes" ? "bg-navy-900 text-white" : "bg-white dark:bg-navy-800 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10"}`}
+          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "pendentes" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"}`}
         >
           Pendentes
         </Link>
         <Link
           href="/m/alertas?tab=hoje"
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "hoje" ? "bg-navy-900 text-white" : "bg-white dark:bg-navy-800 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10"}`}
+          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "hoje" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"}`}
         >
           Hoje
         </Link>
@@ -85,7 +87,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
           {alerts.length === 0 ? (
             <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {alerts.map((a) => {
                 const meta = kindMeta[a.kind];
                 const Icon = meta.icon;
@@ -97,15 +99,15 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                     rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
                   >
                     <AlertRow alert={a} className="flex items-start gap-3 px-4 py-3 w-full text-left">
-                      <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
+                      <div className="p-2 rounded-lg bg-sf-apoio text-tx-2 shrink-0">
                         <Icon size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
-                        <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{a.title}</p>
-                        {a.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{a.subtitle}</p>}
+                        <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
+                        <p className="text-sm font-medium text-tx mt-0.5">{a.title}</p>
+                        {a.subtitle && <p className="text-xs text-tx-2 mt-0.5">{a.subtitle}</p>}
                         {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
-                        <span className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1 block">{a.date.toLocaleDateString("pt-BR")}</span>
+                        <span className="text-[11px] text-tx-2 mt-1 block">{a.date.toLocaleDateString("pt-BR")}</span>
                       </div>
                     </AlertRow>
                   </DismissibleAlertRow>
@@ -121,7 +123,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
           {todayItems.length === 0 ? (
             <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {todayItems.map((item) => {
                 const meta = todayMeta[item.kind];
                 const Icon = meta.icon;
@@ -131,15 +133,15 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                     href={item.href}
                     className={`flex items-start gap-3 px-4 py-3 ${dueStatusClassName(item.dueStatus)}`}
                   >
-                    <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
+                    <div className="p-2 rounded-lg bg-sf-apoio text-tx-2 shrink-0">
                       <Icon size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{item.title}</p>
-                      {item.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{item.subtitle}</p>}
+                      <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
+                      <p className="text-sm font-medium text-tx mt-0.5">{item.title}</p>
+                      {item.subtitle && <p className="text-xs text-tx-2 mt-0.5">{item.subtitle}</p>}
                     </div>
-                    {item.time && <span className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 shrink-0">{item.time}</span>}
+                    {item.time && <span className="text-xs font-semibold text-tx-2 shrink-0">{item.time}</span>}
                   </Link>
                 );
               })}

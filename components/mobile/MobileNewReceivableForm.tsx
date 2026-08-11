@@ -35,7 +35,7 @@ export default function MobileNewReceivableForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
       >
         <Plus size={16} /> Nova Conta a Receber
       </button>
@@ -43,15 +43,15 @@ export default function MobileNewReceivableForm({
   }
 
   return (
-    <div className="rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-100 dark:bg-white/5 p-3 space-y-3">
+    <div className="rounded-lg border border-regua bg-sf-apoio p-3 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Nova Conta a Receber</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40" aria-label="Fechar">
+        <p className="text-sm font-semibold text-tx">Nova Conta a Receber</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Fechar">
           <X size={16} />
         </button>
       </div>
 
-      {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {
@@ -93,21 +93,21 @@ export default function MobileNewReceivableForm({
         className="space-y-3"
       >
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição</label>
+          <label className="text-xs font-medium text-tx-2">Descrição</label>
           <input name="description" required className="mobile-input" placeholder="Ex: Honorários - parcela 1/6" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor (R$)</label>
+            <label className="text-xs font-medium text-tx-2">Valor (R$)</label>
             <input name="amount" type="number" step="0.01" required className="mobile-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vencimento</label>
+            <label className="text-xs font-medium text-tx-2">Vencimento</label>
             <input name="dueDate" type="date" required className="mobile-input" />
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo de Honorário</label>
+          <label className="text-xs font-medium text-tx-2">Tipo de Honorário</label>
           <select name="kind" defaultValue="HONORARIOS_CONTRATUAIS" className="mobile-input">
             {RECEIVABLE_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
@@ -118,7 +118,7 @@ export default function MobileNewReceivableForm({
         </div>
         <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Cliente (opcional)</label>
+          <label className="text-xs font-medium text-tx-2">Cliente (opcional)</label>
           <select name="clientId" defaultValue="" className="mobile-input">
             <option value="">Nenhum</option>
             {clients.map((c) => (
@@ -130,7 +130,7 @@ export default function MobileNewReceivableForm({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Categoria</label>
+            <label className="text-xs font-medium text-tx-2">Categoria</label>
             <select name="categoryId" defaultValue="" className="mobile-input">
               <option value="">Sem categoria</option>
               {categories.map((c) => (
@@ -141,7 +141,7 @@ export default function MobileNewReceivableForm({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Centro de Custo</label>
+            <label className="text-xs font-medium text-tx-2">Centro de Custo</label>
             <select name="costCenterId" defaultValue="" className="mobile-input">
               <option value="">Nenhum</option>
               {costCenters.map((c) => (
@@ -155,7 +155,7 @@ export default function MobileNewReceivableForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? "Salvando..." : "Criar"}
         </button>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { EmptyState, formatCurrency, formatDate } from "@/components/ui";
 import EditPayableModal from "@/components/EditPayableModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
@@ -12,8 +12,7 @@ import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { financeGroupKind } from "@/lib/financeGroupKind";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
-
-const statusColor: Record<string, "green" | "red" | "amber"> = { PAGO: "green", ATRASADO: "red", PENDENTE: "amber", PARCIAL: "amber", CANCELADO: "red" };
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 
 const documentTypeLabels: Record<string, string> = Object.fromEntries(DOCUMENT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
@@ -110,7 +109,7 @@ export default function PayablesList({
 
   return (
     <div>
-      <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+      <div className="divide-y divide-regua">
         {payables.map((p) => {
           const selectable = p.status !== "PAGO";
           const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
@@ -124,15 +123,15 @@ export default function PayablesList({
                     checked={selected.has(p.id)}
                     onChange={() => toggle(p.id)}
                     data-tip="Selecionar para baixa em bloco"
-                    className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-emerald-600 focus:ring-emerald-500"
+                    className="h-4 w-4 rounded border-regua-forte text-emerald-600 focus:ring-emerald-500"
                   />
                 ) : (
                   <span className="inline-block w-4" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{p.description}</p>
-                <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                <p className="text-sm font-medium text-tx">{p.description}</p>
+                <p className="text-xs text-tx-2 mt-0.5">
                   {p.supplier && <span>{p.supplier} · </span>}
                   {p.category?.name}
                   {p.costCenter && <span> · {p.costCenter.name}</span>}
@@ -144,23 +143,28 @@ export default function PayablesList({
                 {/* Problema 2 (autoavaliação Fase 10) — sem isto, nada na lista denunciava que esta
                     despesa já tinha um reembolso vinculado, abrindo espaço para duplicar por engano. */}
                 {p.reimbursementReceivable && (
-                  <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">
-                    <Badge color={statusColor[p.reimbursementReceivable.status] ?? "slate"}>
-                      ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {p.reimbursementReceivable.status}
-                    </Badge>
+                  <p className="text-[11px] text-tx-2 mt-1 flex items-center gap-1.5">
+                    ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)}
+                    <FinanceStatusBadge status={p.reimbursementReceivable.status} />
                   </p>
                 )}
               </div>
               <div className="flex items-center justify-between sm:contents">
                 <div className="text-left sm:text-right shrink-0 sm:w-32">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(liquido)}</p>
+                  <p
+                    className={`text-sm font-semibold tabular-nums ${
+                      p.effectiveStatus === "CANCELADO" ? "line-through text-tx-3" : "text-tx"
+                    }`}
+                  >
+                    {formatCurrency(liquido)}
+                  </p>
                   {p.effectiveStatus === "PARCIAL" && (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>
+                    <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
                   )}
-                  <p className="text-xs text-navy-800/40 dark:text-cream-50/40">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
+                  <p className="text-xs text-tx-3">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
                 </div>
                 <div className="shrink-0 sm:w-24">
-                  <Badge color={statusColor[p.effectiveStatus]}>{p.effectiveStatus}</Badge>
+                  <FinanceStatusBadge status={p.effectiveStatus} />
                 </div>
               </div>
               <div className="shrink-0 flex items-center gap-1">

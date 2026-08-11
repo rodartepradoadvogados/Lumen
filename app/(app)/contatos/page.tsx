@@ -18,8 +18,10 @@ export default async function ContatosPage() {
     prisma.user.count({ where: { officeId: viewer.officeId } }),
   ]);
 
-  // Cada módulo tem uma cor de destaque própria (dourado/bordô/navy/magenta), só
-  // pra diferenciar visualmente os 4 cards do hub — sem significado funcional.
+  // Os 4 cards do hub usam o mesmo chip neutro — a paleta nova reserva cor com significado
+  // (marca, ação, severidade); uma cor de destaque por card era só variedade decorativa, que a
+  // migração remove (ver DESIGN-SYSTEM.md §0/§2).
+  const iconClass = "bg-sf-apoio text-tx-2";
   const modules = [
     {
       href: "/contatos/clientes",
@@ -27,7 +29,7 @@ export default async function ContatosPage() {
       icon: Users,
       count: clients,
       desc: "Base de clientes do escritório",
-      iconClass: "bg-gold-500/15 text-gold-700 dark:bg-gold-400/15 dark:text-gold-400",
+      iconClass,
     },
     {
       href: "/contatos/advogados",
@@ -35,7 +37,7 @@ export default async function ContatosPage() {
       icon: ScaleIcon,
       count: lawyers,
       desc: "Parceiros e adversos",
-      iconClass: "bg-bordo-500/15 text-bordo-600 dark:bg-bordo-400/15 dark:text-bordo-400",
+      iconClass,
     },
     {
       href: "/contatos/fornecedores",
@@ -43,7 +45,7 @@ export default async function ContatosPage() {
       icon: Truck,
       count: suppliers,
       desc: "Fornecedores usados no Financeiro",
-      iconClass: "bg-navy-900/10 text-navy-900 dark:bg-white/10 dark:text-cream-50",
+      iconClass,
     },
     {
       href: "/contatos/equipe",
@@ -51,7 +53,7 @@ export default async function ContatosPage() {
       icon: UserCog,
       count: team,
       desc: "Membros do escritório",
-      iconClass: "bg-magenta-500/15 text-magenta-700 dark:bg-magenta-400/15 dark:text-magenta-400",
+      iconClass,
     },
   ];
 
@@ -66,11 +68,11 @@ export default async function ContatosPage() {
                 <div className={`p-3.5 rounded-full ${m.iconClass}`}>
                   <m.icon size={28} />
                 </div>
-                <ArrowRight size={16} className="text-navy-800/30 dark:text-cream-50/30" />
+                <ArrowRight size={16} className="text-tx-3" />
               </div>
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 mt-3">{m.label}</h3>
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1 mb-2">{m.desc}</p>
-              <p className="text-2xl font-serif font-bold text-gold-700 dark:text-gold-400">{m.count}</p>
+              <h3 className="font-bold text-tx mt-3">{m.label}</h3>
+              <p className="text-xs text-tx-3 mt-1 mb-2">{m.desc}</p>
+              <p className="text-2xl font-bold text-acao tabular-nums">{m.count}</p>
             </Card>
           </Link>
         ))}

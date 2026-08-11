@@ -57,24 +57,24 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-4 p-3.5 rounded-lg border border-navy-800/10 dark:border-white/10 bg-white dark:bg-navy-900">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4 p-3.5 rounded-lg border border-regua bg-sf">
         {editing ? (
           <form action={saveFee} className="flex items-center gap-2 flex-wrap">
-            <input name="monthlyFee" type="number" step="0.01" defaultValue={assessoria.monthlyFee} className="w-32 border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-sm" />
-            <span className="text-xs text-navy-800/45 dark:text-cream-50/45">/mês · vence dia</span>
-            <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5 text-sm" />
-            <button type="submit" disabled={pending} className="text-xs font-semibold text-white bg-navy-900 hover:bg-navy-800 px-3 py-1.5 rounded-lg disabled:opacity-50">
+            <input name="monthlyFee" type="number" step="0.01" defaultValue={assessoria.monthlyFee} className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+            <span className="text-xs text-tx-2">/mês · vence dia</span>
+            <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+            <button type="submit" disabled={pending} className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 rounded-lg disabled:opacity-50">
               {pending ? "Salvando..." : "Salvar"}
             </button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">Cancelar</button>
+            <button type="button" onClick={() => setEditing(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
           </form>
         ) : (
           <>
             <div>
-              <b className="text-navy-900 dark:text-cream-50">{formatCurrency(assessoria.monthlyFee)}</b>{" "}
-              <span className="text-navy-800/45 dark:text-cream-50/45 text-sm">por mês · vencimento todo dia {assessoria.dueDay}</span>
+              <b className="text-tx">{formatCurrency(assessoria.monthlyFee)}</b>{" "}
+              <span className="text-tx-2 text-sm">por mês · vencimento todo dia {assessoria.dueDay}</span>
             </div>
-            <button onClick={() => setEditing(true)} className="text-xs font-semibold text-navy-900 dark:text-cream-50">
+            <button onClick={() => setEditing(true)} className="text-xs font-semibold text-tx">
               ✎ Editar valor/vencimento
             </button>
           </>
@@ -82,7 +82,7 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
       </div>
 
       {assessoria.honorarios.length === 0 ? (
-        <p className="text-sm text-navy-800/40 dark:text-cream-50/40 py-8 text-center">
+        <p className="text-sm text-tx-3 py-8 text-center">
           Nenhum honorário gerado ainda — o primeiro aparece automaticamente no início do próximo mês.
         </p>
       ) : (
@@ -90,7 +90,7 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 border-b border-navy-800/10 dark:border-white/10">
+                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
                   <th className="pb-2 pr-3">Competência</th>
                   <th className="pb-2 pr-3">Valor</th>
                   <th className="pb-2 pr-3">Vencimento</th>
@@ -99,37 +99,37 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
                   <th className="pb-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <tbody className="divide-y divide-regua">
                 {assessoria.honorarios.map((h) => (
                   <tr key={h.id}>
-                    <td className="py-2.5 pr-3 font-medium text-navy-900 dark:text-cream-50">{h.competencia}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{formatCurrency(h.receivable.amount)}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{formatDate(h.receivable.dueDate)}</td>
+                    <td className="py-2.5 pr-3 font-medium text-tx">{h.competencia}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-tx-2">{formatCurrency(h.receivable.amount)}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-tx-2">{formatDate(h.receivable.dueDate)}</td>
                     <td className="py-2.5 pr-3"><Badge color={statusColors[h.receivable.status] || "slate"}>{statusLabels[h.receivable.status] || h.receivable.status}</Badge></td>
-                    <td className="py-2.5 pr-3 tabular-nums text-navy-800/70 dark:text-cream-50/70">{h.receivable.paidDate ? formatDate(h.receivable.paidDate) : "—"}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-tx-2">{h.receivable.paidDate ? formatDate(h.receivable.paidDate) : "—"}</td>
                     <td className="py-2.5">
                       {h.receivable.status === "PENDENTE" || h.receivable.status === "ATRASADO" || h.receivable.status === "PARCIAL" ? (
                         payingId === h.id ? (
                           <div className="flex flex-col gap-1.5 py-1 min-w-[15rem]">
                             <div className="flex items-center gap-1.5">
                               <div>
-                                <label className="block text-[10px] font-medium text-navy-800/45 dark:text-cream-50/45 mb-0.5">Data pgto.</label>
+                                <label className="block text-[10px] font-medium text-tx-2 mb-0.5">Data pgto.</label>
                                 <input
                                   type="date"
                                   value={payDate}
                                   onChange={(e) => setPayDate(e.target.value)}
-                                  className="w-32 text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1"
+                                  className="w-32 text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-medium text-navy-800/45 dark:text-cream-50/45 mb-0.5">Valor pago (R$)</label>
+                                <label className="block text-[10px] font-medium text-tx-2 mb-0.5">Valor pago (R$)</label>
                                 <input
                                   type="number"
                                   step="0.01"
                                   min="0.01"
                                   value={payAmount}
                                   onChange={(e) => setPayAmount(e.target.value)}
-                                  className="w-24 text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1"
+                                  className="w-24 text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
                                 />
                               </div>
                             </div>
@@ -137,20 +137,20 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
                               <button
                                 disabled={pending}
                                 onClick={() => confirmPayHonorario(h.id)}
-                                className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 rounded-lg disabled:opacity-50"
+                                className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1 rounded-lg disabled:opacity-50"
                               >
                                 {pending ? "Confirmando..." : "Confirmar"}
                               </button>
-                              <button onClick={() => setPayingId(null)} className="text-xs text-navy-800/45 dark:text-cream-50/45">Cancelar</button>
+                              <button onClick={() => setPayingId(null)} className="text-xs text-tx-2">Cancelar</button>
                             </div>
                           </div>
                         ) : (
-                          <button onClick={() => startPayHonorario(h.id, Math.max(0, h.receivable.amount - (h.receivable.paidAmount || 0)))} className="text-xs font-semibold text-gold-700 dark:text-gold-400">
+                          <button onClick={() => startPayHonorario(h.id, Math.max(0, h.receivable.amount - (h.receivable.paidAmount || 0)))} className="text-xs font-semibold text-acao hover:text-acao-hover">
                             Marcar como pago
                           </button>
                         )
                       ) : (
-                        <span className="text-xs text-navy-800/40 dark:text-cream-50/40">—</span>
+                        <span className="text-xs text-tx-3">—</span>
                       )}
                     </td>
                   </tr>
@@ -158,9 +158,9 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
               </tbody>
             </table>
           </div>
-          <div className="flex gap-5 mt-3 text-sm text-navy-800/70 dark:text-cream-50/70">
-            <span>Recebido no ano: <b className="text-navy-900 dark:text-cream-50 tabular-nums">{formatCurrency(recebidoNoAno)}</b></span>
-            <span>Em aberto: <b className="text-navy-900 dark:text-cream-50 tabular-nums">{formatCurrency(emAberto)}</b></span>
+          <div className="flex gap-5 mt-3 text-sm text-tx-2">
+            <span>Recebido no ano: <b className="text-tx tabular-nums">{formatCurrency(recebidoNoAno)}</b></span>
+            <span>Em aberto: <b className="text-tx tabular-nums">{formatCurrency(emAberto)}</b></span>
           </div>
         </>
       )}

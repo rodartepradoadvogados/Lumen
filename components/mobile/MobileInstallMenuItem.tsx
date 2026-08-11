@@ -72,16 +72,16 @@ export default function MobileInstallMenuItem() {
         onClick={handleClick}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
       >
-        <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
+        <span className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
           <Download size={17} />
         </span>
-        <span className="flex-1 text-sm font-medium text-navy-900 dark:text-cream-50">Instalar aplicativo</span>
-        <ChevronRight size={16} className="text-navy-800/30 dark:text-cream-50/30" />
+        <span className="flex-1 text-sm font-medium text-tx">Instalar aplicativo</span>
+        <ChevronRight size={16} className="text-tx-3" />
       </button>
 
       {platform === "ios" && showIOSInstructions && (
         <div className="px-4 pb-3.5 -mt-1">
-          <p className="text-xs text-navy-800/60 dark:text-cream-50/60 leading-relaxed">
+          <p className="text-xs text-tx-2 leading-relaxed">
             Toque em <Share size={12} className="inline -mt-0.5" /> Compartilhar e depois em{" "}
             <SquarePlus size={12} className="inline -mt-0.5" /> &ldquo;Adicionar à Tela de Início&rdquo;.
           </p>
@@ -90,7 +90,7 @@ export default function MobileInstallMenuItem() {
 
       {notReadyWarning && (
         <div className="px-4 pb-3.5 -mt-1">
-          <p className="text-xs text-bordo-600 dark:text-bordo-400 leading-relaxed">
+          <p className="text-xs text-urgente leading-relaxed">
             A instalação automática ainda não está disponível neste navegador — tente novamente em alguns instantes, ou atualize a página.
           </p>
         </div>

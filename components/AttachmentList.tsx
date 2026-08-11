@@ -315,6 +315,7 @@ export default function AttachmentList({
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
                       className="w-full text-[10px] border border-regua bg-sf text-tx rounded px-1 py-1"
+                      allowCreate
                     />
                   </div>
                 ) : (
@@ -377,6 +378,7 @@ export default function AttachmentList({
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
                       className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[180px]"
+                      allowCreate
                     />
                   </div>
                 ) : (
@@ -453,6 +455,7 @@ export default function AttachmentList({
                         onChange={(v) => handleUpdateDocType(a.id, v)}
                         excludeKeys={excludeParecer}
                         className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1"
+                        allowCreate
                       />
                     ) : (
                       getDocumentTypeLabel(a.docType)
@@ -542,6 +545,7 @@ export default function AttachmentList({
             onChange={setStagedDocType}
             excludeKeys={excludeParecer}
             className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            allowCreate
           />
           <div className="flex gap-2">
             <button
@@ -591,7 +595,8 @@ export default function AttachmentList({
                 onChange={setLinkDocType}
                 excludeKeys={excludeParecer}
                 className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
-              />
+            allowCreate
+          />
             </div>
             <div className="flex gap-2">
               <button

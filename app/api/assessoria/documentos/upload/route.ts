@@ -1,34 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
+import { del } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { uploadFileToDrive, uploadFileToDriveFolder, getOrCreateParecerFolder } from "@/lib/storageProvider";
+import { translateDriveError } from "@/lib/googleDrive";
 
-const MAX_SIZE = 25 * 1024 * 1024; // 25MB
-
+// Etapa 2 do upload de documentos da Assessoria (ver app/api/attachments/blob-token/route.ts para
+// a etapa 1, reaproveitada aqui — o token endpoint é genérico, não sabe nem precisa saber se o
+// arquivo é um Anexo de processo ou um Documento de Assessoria). Antes desta entrega esta rota
+// recebia o arquivo INTEIRO via formData() (limite de payload de uma Vercel Serverless Function,
+// bem menor que os 25MB que o front dizia suportar — era a causa real de "Erro ao enviar. Verifique
+// sua conexão." em qualquer PDF grande). Agora o navegador já subiu o arquivo direto pro Vercel
+// Blob (ver components/assessoria/AssessoriaDocumentosTab.tsx e
+// components/assessoria/ParecerFolderRow.tsx) — aqui só chega a URL do Blob (payload pequeno),
+// e o fluxo termina: baixa o conteúdo, manda pro provedor de armazenamento do escritório (Drive/
+// OneDrive/Dropbox, ver lib/storageProvider.ts) e apaga o Blob temporário.
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Sessão inválida." }, { status: 401 });
   }
 
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const name = formData.get("name");
-  const docType = formData.get("docType");
-  const assessoriaId = formData.get("assessoriaId");
-  // Opcional: quando presente, o arquivo entra DENTRO de um Parecer (pasta de documentos, ver
-  // model Parecer) em vez de ir direto para a pasta da categoria na raiz da empresa — ver
-  // components/assessoria/ParecerFolderRow.tsx, que é quem manda este campo.
-  const parecerId = formData.get("parecerId");
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Requisição inválida." }, { status: 400 });
+  }
+  const { blobUrl, name, contentType, docType, assessoriaId, parecerId } = body as Record<string, unknown>;
 
-  if (!(file instanceof File)) {
+  if (typeof blobUrl !== "string" || !blobUrl) {
     return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
   if (typeof assessoriaId !== "string" || !assessoriaId) {
     return NextResponse.json({ error: "Assessoria inválida." }, { status: 400 });
-  }
-  if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "Arquivo muito grande (máximo 25MB)." }, { status: 400 });
   }
 
   const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId }, include: { client: true } });
@@ -44,26 +47,46 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  try {
-    const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = typeof name === "string" && name ? name : "documento";
+  const mimeType = typeof contentType === "string" && contentType ? contentType : "application/octet-stream";
+  const finalDocType = typeof docType === "string" && docType ? docType : "OUTRO";
 
-    let folderId: string | null = null;
+  let buffer: Buffer;
+  try {
+    const res = await fetch(blobUrl);
+    if (!res.ok) throw new Error("download falhou");
+    buffer = Buffer.from(await res.arrayBuffer());
+  } catch {
+    return NextResponse.json({ error: "Erro ao processar o arquivo enviado. Tente novamente." }, { status: 502 });
+  }
+
+  // Resolve a pasta de destino ANTES de subir o arquivo — se isso falhar (Drive não conectado,
+  // token revogado, escopo insuficiente), sai aqui, sem upload e sem registro no banco. Nunca
+  // "sobe pela metade": ou sobe e registra, ou nenhuma das duas coisas acontece (ver comentário em
+  // translateDriveError, lib/googleDrive.ts).
+  let folderId: string | null = null;
+  try {
     if (parecer) {
       folderId = await getOrCreateParecerFolder(parecer.id, assessoria.client.name, parecer.name, user.officeId);
     } else {
       folderId = assessoria.driveFolderId;
     }
+  } catch (e) {
+    console.error("[assessoria/documentos/upload] falha ao resolver pasta de destino:", e);
+    return NextResponse.json({ error: translateDriveError(e, "preparar a pasta de destino no Drive") }, { status: 502 });
+  }
 
+  try {
     const result = folderId
-      ? await uploadFileToDriveFolder(file.name, file.type || "application/octet-stream", buffer, folderId, user.officeId)
-      : await uploadFileToDrive(file.name, file.type || "application/octet-stream", buffer, user.officeId);
+      ? await uploadFileToDriveFolder(fileName, mimeType, buffer, folderId, user.officeId)
+      : await uploadFileToDrive(fileName, mimeType, buffer, user.officeId);
 
     const doc = await prisma.assessoriaDocumento.create({
       data: {
         officeId: user.officeId,
         assessoriaId,
-        name: typeof name === "string" && name ? name : file.name,
-        docType: typeof docType === "string" && docType ? docType : "OUTRO",
+        name: fileName,
+        docType: finalDocType,
         driveUrl: result.webViewLink,
         uploadedById: user.id,
         storageProvider: result.storageProvider,
@@ -72,9 +95,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    del(blobUrl).catch(() => {});
+
     return NextResponse.json({ id: doc.id, name: doc.name, driveUrl: doc.driveUrl });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Erro ao enviar arquivo.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Não cria o AssessoriaDocumento — o upload falhou, então não há nada pra registrar. Sem
+    // isso, um erro de rede no meio do envio deixaria um documento "fantasma" no catálogo sem
+    // arquivo nenhum por trás (ou, pior, apontando pra um link que nunca existiu).
+    console.error("[assessoria/documentos/upload] falha ao enviar arquivo para o provedor de armazenamento:", e);
+    return NextResponse.json({ error: translateDriveError(e, "enviar o documento para o Drive") }, { status: 502 });
   }
 }

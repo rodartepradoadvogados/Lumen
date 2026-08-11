@@ -13,7 +13,7 @@ import {
   deleteDriveFile,
   type StorageProvider,
 } from "@/lib/storageProvider";
-import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
+import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile, translateDriveError } from "@/lib/googleDrive";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { autoResolvePendenciasForAttachment } from "@/lib/actions/attendancePendencias";
 
@@ -74,17 +74,27 @@ export async function finalizeAttachmentUpload(data: {
   const resolvedCaseId = data.caseId || null;
   const resolvedAttendanceId = data.attendanceId || null;
 
+  // Resolve a pasta de destino ANTES de tocar no arquivo — se isso falhar (Drive desconectado,
+  // token revogado, escopo insuficiente, pasta apagada fora do sistema), sai aqui, sem baixar
+  // nada do Blob e sem criar Attachment nenhum. Antes desta mudança essas chamadas ficavam FORA
+  // de qualquer try/catch: uma falha aqui virava uma exceção não tratada no meio de uma Server
+  // Action (erro genérico de servidor pro usuário, e nada no log explicando o motivo real).
   let targetFolderId: string | null = null;
-  if (resolvedCaseId) {
-    const c = await prisma.case.findFirst({ where: { id: resolvedCaseId, officeId: user.officeId }, select: { title: true } });
-    if (!c) return { error: "Processo não encontrado." };
-    const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title, user.officeId);
-    targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
-  } else if (resolvedAttendanceId) {
-    const a = await prisma.attendance.findFirst({ where: { id: resolvedAttendanceId, officeId: user.officeId }, select: { subject: true } });
-    if (!a) return { error: "Atendimento não encontrado." };
-    const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
-    targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
+  try {
+    if (resolvedCaseId) {
+      const c = await prisma.case.findFirst({ where: { id: resolvedCaseId, officeId: user.officeId }, select: { title: true } });
+      if (!c) return { error: "Processo não encontrado." };
+      const containerFolderId = await getOrCreateCaseFolder(resolvedCaseId, c.title, user.officeId);
+      targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
+    } else if (resolvedAttendanceId) {
+      const a = await prisma.attendance.findFirst({ where: { id: resolvedAttendanceId, officeId: user.officeId }, select: { subject: true } });
+      if (!a) return { error: "Atendimento não encontrado." };
+      const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
+      targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
+    }
+  } catch (e) {
+    console.error("[finalizeAttachmentUpload] falha ao resolver pasta de destino:", e);
+    return { error: translateDriveError(e, "preparar a pasta de destino no Drive") };
   }
 
   let buffer: Buffer;
@@ -124,7 +134,10 @@ export async function finalizeAttachmentUpload(data: {
 
     return { id: attachment.id, name: attachment.name, driveUrl: attachment.driveUrl };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Erro ao enviar arquivo para o Drive." };
+    // Não cria Attachment nenhum aqui — o upload falhou antes do prisma.attachment.create acima
+    // rodar, então não há documento "fantasma" no banco apontando pra um arquivo que nunca subiu.
+    console.error("[finalizeAttachmentUpload] falha ao enviar arquivo para o provedor de armazenamento:", e);
+    return { error: translateDriveError(e, "enviar o documento para o Drive") };
   }
 }
 

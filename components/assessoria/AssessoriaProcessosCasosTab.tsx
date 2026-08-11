@@ -3,13 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setCaseAssessoria, createParecer, type getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { setCaseAssessoria, createParecer, retryParecerDriveFolder, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { Plus, Search, ExternalLink, Link2, X, FolderOpen } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
 import ParecerFolderRow from "@/components/assessoria/ParecerFolderRow";
+import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type CaseOption = { id: string; title: string; processNumber: string | null };
@@ -122,16 +123,16 @@ export default function AssessoriaProcessosCasosTab({
 
   return (
     <div className="space-y-5">
-      <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
+      <div className="bg-sf rounded-lg border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Pareceres</h4>
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Demandas</h4>
           <div className="flex items-center gap-2 flex-wrap">
             <EnviarDocumentosButton entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} attachments={todosDocumentos} />
             <button
               onClick={() => setParecerFormOpen((v) => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
             >
-              <Plus size={13} /> Adicionar parecer
+              <Plus size={13} /> Adicionar demanda
             </button>
           </div>
         </div>
@@ -139,36 +140,48 @@ export default function AssessoriaProcessosCasosTab({
         {parecerFormOpen && (
           <form
             action={handleCreateParecer}
-            className="mb-3 p-3 rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-navy-800 space-y-2.5"
+            className="mb-3 p-3 rounded-lg border border-regua bg-sf-apoio space-y-2.5"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <input name="name" required placeholder="Nome do parecer" className="doc-input" />
+              <input name="name" required placeholder="Nome da demanda" className="doc-input" />
               <input name="date" type="date" className="doc-input" />
             </div>
             <textarea name="description" placeholder="Descrição (opcional)" rows={2} className="doc-input" />
-            {parecerError && <p className="text-xs text-red-600">{parecerError}</p>}
+            {parecerError && <p className="text-xs text-urgente">{parecerError}</p>}
             <div className="flex gap-2">
               <button
                 type="submit"
                 disabled={parecerPending}
-                className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                {parecerPending ? "Salvando..." : "Criar pasta"}
+                {parecerPending ? "Salvando..." : "Criar demanda"}
               </button>
-              <button type="button" onClick={() => setParecerFormOpen(false)} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+              <button type="button" onClick={() => setParecerFormOpen(false)} className="text-xs font-semibold text-tx-2">
                 Cancelar
               </button>
             </div>
-            <style>{`.doc-input { width:100%; border:1px solid rgba(15,31,61,0.12); border-radius:0.5rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:#fff; } .dark .doc-input { border-color: rgba(255,255,255,0.15); background:#0f1f3d; color:#fbfaf7; }`}</style>
+            <style>{`.doc-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
           </form>
         )}
 
         {assessoria.pareceres.length === 0 && pareceresSoltos.length === 0 ? (
-          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum parecer cadastrado ainda.</p>
+          <p className="text-sm text-tx-3">Nenhuma demanda cadastrada ainda.</p>
         ) : (
           <div className="space-y-2">
             {assessoria.pareceres.map((p) => (
-              <ParecerFolderRow key={p.id} parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} />
+              <div key={p.id} className="space-y-1.5">
+                <ParecerFolderRow parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} />
+                {/* driveFolderId nulo com o armazenamento conectado só acontece se a criação da
+                    pasta falhou silenciosamente (bug corrigido na Tarefa C, ver createParecer em
+                    lib/actions/assessoria.ts) — o upload de documento tenta de novo sozinho, mas
+                    até lá a demanda fica visivelmente sem pasta. */}
+                {driveConnected && !p.driveFolderId && (
+                  <DriveFolderMissingNotice
+                    message={`A demanda "${p.name}" ainda não tem pasta no armazenamento em nuvem.`}
+                    retry={retryParecerDriveFolder.bind(null, p.id)}
+                  />
+                )}
+              </div>
             ))}
 
             {/* Pareceres antigos (um arquivo = um parecer), ainda sem pasta — ver comentário em
@@ -180,14 +193,14 @@ export default function AssessoriaProcessosCasosTab({
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex justify-between items-center gap-3 py-2 px-3 text-sm border border-navy-800/8 dark:border-white/10 rounded-lg hover:bg-cream-50 dark:hover:bg-white/5"
+                className="flex justify-between items-center gap-3 py-2 px-3 text-sm border border-regua rounded-lg hover:bg-sf-apoio"
               >
                 <span className="flex items-center gap-2 min-w-0">
-                  <FolderOpen size={14} className="shrink-0 text-navy-800/30 dark:text-cream-50/30" />
-                  <span className="font-medium text-navy-900 dark:text-cream-50 truncate">{d.name}</span>
-                  <span className="shrink-0 text-[10px] text-navy-800/40 dark:text-cream-50/40 font-mono">{getDocumentTypeLabel(d.docType)}</span>
+                  <FolderOpen size={14} className="shrink-0 text-tx-3" />
+                  <span className="font-medium text-tx truncate">{d.name}</span>
+                  <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
                 </span>
-                <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap text-xs shrink-0">{formatDate(d.date)}</span>
+                <span className="text-tx-2 whitespace-nowrap text-xs shrink-0">{formatDate(d.date)}</span>
               </a>
             ))}
           </div>
@@ -196,25 +209,25 @@ export default function AssessoriaProcessosCasosTab({
         <HistoricoEnvios entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} envios={envios} />
       </div>
 
-      <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
+      <div className="bg-sf rounded-lg border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Processos vinculados</h4>
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Processos vinculados</h4>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
             >
               <Search size={13} /> Pesquisar processos
             </button>
             <Link
               href={`/processos/novo?assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
             >
               <Plus size={13} /> Novo processo
             </Link>
             <Link
               href={`/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
             >
               <Plus size={13} /> Novo caso
             </Link>
@@ -222,16 +235,16 @@ export default function AssessoriaProcessosCasosTab({
         </div>
 
         {assessoria.linkedCases.length === 0 ? (
-          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum processo vinculado a esta empresa ainda.</p>
+          <p className="text-sm text-tx-3">Nenhum processo vinculado a esta empresa ainda.</p>
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessoria.linkedCases.map((c) => (
               <Link
                 key={c.id}
                 href={`/processos/${c.id}`}
-                className="flex justify-between gap-3 py-2 text-sm hover:bg-cream-50 dark:hover:bg-white/5 -mx-1 px-1 rounded"
+                className="flex justify-between gap-3 py-2 text-sm hover:bg-sf-apoio -mx-1 px-1 rounded"
               >
-                <span className="font-medium text-navy-900 dark:text-cream-50 underline decoration-navy-900/20 dark:decoration-cream-50/20">{c.title}</span>
+                <span className="font-medium text-tx underline decoration-tx/20">{c.title}</span>
                 <Badge color={caseStatusColors[c.status] || "slate"}>{caseStatusLabels[c.status] || c.status}</Badge>
               </Link>
             ))}
@@ -239,20 +252,32 @@ export default function AssessoriaProcessosCasosTab({
         )}
       </div>
 
-      <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Casos (atendimentos) vinculados</h4>
+      <div className="bg-sf rounded-lg border border-regua p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Casos (atendimentos) vinculados</h4>
+          {/* Auditoria apontou que esta seção não tinha botão de criar — abre o modal "Novo
+              Atendimento" (components/NewAttendanceModal.tsx, de outro agente) já aberto
+              (?novo=1) e, quando aquele componente passar a aceitar o valor inicial, com esta
+              assessoria pré-selecionada (?assessoriaId=...). Ver relatório desta entrega. */}
+          <Link
+            href={`/atendimento?novo=1&assessoriaId=${assessoria.id}`}
+            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+          >
+            <Plus size={13} /> Novo atendimento
+          </Link>
+        </div>
         {assessoria.linkedAttendances.length === 0 ? (
-          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum atendimento vinculado a esta assessoria ainda.</p>
+          <p className="text-sm text-tx-3">Nenhum atendimento vinculado a esta assessoria ainda.</p>
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessoria.linkedAttendances.map((a) => (
               <Link
                 key={a.id}
                 href={`/atendimento/${a.id}`}
-                className="flex justify-between gap-3 py-2 text-sm hover:bg-cream-50 dark:hover:bg-white/5 -mx-1 px-1 rounded"
+                className="flex justify-between gap-3 py-2 text-sm hover:bg-sf-apoio -mx-1 px-1 rounded"
               >
-                <span className="font-medium text-navy-900 dark:text-cream-50 underline decoration-navy-900/20 dark:decoration-cream-50/20 truncate">{a.subject}</span>
-                <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap">{formatDate(a.createdAt)}</span>
+                <span className="font-medium text-tx underline decoration-tx/20 truncate">{a.subject}</span>
+                <span className="text-tx-2 whitespace-nowrap">{formatDate(a.createdAt)}</span>
               </Link>
             ))}
           </div>
@@ -260,57 +285,57 @@ export default function AssessoriaProcessosCasosTab({
       </div>
 
       {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
+            className="bg-sf rounded-xl shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Pesquisar processos</h3>
-              <button onClick={closeSearch} className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
+              <h3 className="font-bold text-tx">Pesquisar processos</h3>
+              <button onClick={closeSearch} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
+            <div className="p-4 border-b border-regua shrink-0">
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3" />
                 <input
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar por título ou número do processo"
-                  className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg pl-8 pr-3 py-2"
+                  className="w-full text-sm border border-regua-forte bg-sf text-tx rounded-lg pl-8 pr-3 py-2"
                 />
               </div>
-              {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+              {error && <p className="text-xs text-urgente mt-2">{error}</p>}
             </div>
 
-            <div className="overflow-y-auto scrollbar-thin flex-1 divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="overflow-y-auto scrollbar-thin flex-1 divide-y divide-regua">
               {filteredCases.length === 0 ? (
-                <p className="text-sm text-navy-800/40 dark:text-cream-50/40 text-center py-8 px-5">
+                <p className="text-sm text-tx-3 text-center py-8 px-5">
                   {availableCases.length === 0 ? "Não há processos disponíveis para vincular." : "Nenhum processo encontrado."}
                 </p>
               ) : (
                 filteredCases.map((c) => (
                   <div key={c.id} className="flex items-center justify-between gap-3 px-5 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
-                      {c.processNumber && <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{c.processNumber}</p>}
+                      <p className="text-sm font-medium text-tx truncate">{c.title}</p>
+                      {c.processNumber && <p className="text-xs text-tx-2">{c.processNumber}</p>}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <a
                         href={`/processos/${c.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-tx px-2 py-1.5 rounded-lg hover:bg-sf-apoio"
                       >
                         <ExternalLink size={12} /> Abrir
                       </a>
                       <button
                         onClick={() => handleLinkFromSearch(c.id)}
                         disabled={pending}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-gold-800 dark:text-gold-400 bg-gold-500/10 hover:bg-gold-500/20 px-2.5 py-1.5 rounded-lg disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1.5 rounded-lg disabled:opacity-50"
                       >
                         <Link2 size={12} /> {pending && linkingId === c.id ? "Vinculando..." : "Vincular"}
                       </button>

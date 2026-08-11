@@ -23,7 +23,7 @@ export default function MobileTaskToggle({ taskId, done }: { taskId: string; don
       className={`h-6 w-6 shrink-0 rounded-full border flex items-center justify-center transition-colors ${
         done
           ? "bg-emerald-500 border-emerald-500 text-white"
-          : "border-navy-800/25 dark:border-cream-50/25 text-transparent hover:border-emerald-500"
+          : "border-regua-forte text-transparent hover:border-emerald-500"
       } ${pending ? "opacity-50" : ""}`}
     >
       <Check size={13} strokeWidth={3} />

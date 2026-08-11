@@ -105,39 +105,39 @@ function ComparisonCard({
     <Card>
       <CardHeader title={title} subtitle={subtitle} />
       {pairs.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-navy-800/50 dark:text-cream-50/50">
+        <p className="px-5 py-6 text-sm text-tx-3">
           Seu escritório ainda não tem {recordNoun} cadastrado — nada para mostrar aqui ainda.
         </p>
       ) : (
-        <div className="divide-y divide-navy-800/8 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {pairs.map((pair, i) => (
             <div key={i} className="px-5 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-navy-800/40 dark:text-cream-50/40 mb-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-3 mb-2">
                 {recordNoun} {i + 1}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3">
                       <th className="py-1 pr-4 font-semibold">Campo</th>
                       <th className="py-1 pr-4 font-semibold">O que você vê</th>
                       <th className="py-1 font-semibold">O que o suporte vê</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+                  <tbody className="divide-y divide-regua">
                     {fields.map((field) => {
                       const kind = maskKindFor(modelName, field);
                       const realValue = formatRealValue(kind, pair.real[field]);
                       const maskedValue = formatMaskedValue(kind, pair.masked[field]);
                       return (
                         <tr key={field}>
-                          <td className="py-1.5 pr-4 text-navy-800/70 dark:text-cream-50/60 whitespace-nowrap">
+                          <td className="py-1.5 pr-4 text-tx-2 whitespace-nowrap">
                             {FIELD_LABEL[field] ?? field}
                           </td>
-                          <td className="py-1.5 pr-4 text-navy-900 dark:text-cream-50 max-w-[260px] truncate" title={realValue}>
+                          <td className="py-1.5 pr-4 text-tx max-w-[260px] truncate" title={realValue}>
                             {realValue}
                           </td>
-                          <td className="py-1.5 text-navy-800/60 dark:text-cream-50/55 font-mono text-xs max-w-[260px] truncate" title={maskedValue}>
+                          <td className="py-1.5 text-tx-2 font-mono text-xs max-w-[260px] truncate" title={maskedValue}>
                             {maskedValue}
                           </td>
                         </tr>
@@ -179,7 +179,7 @@ export default async function PreviaSuportePage() {
     <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
       <Link
         href="/configuracoes/acessos"
-        className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+        className="text-xs font-semibold text-tx-3 hover:text-tx"
       >
         ← Acessos da Lúmen
       </Link>
@@ -191,14 +191,14 @@ export default async function PreviaSuportePage() {
       <Card>
         <div className="p-5 flex items-start gap-3">
           <ShieldCheck size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-navy-900 dark:text-cream-50 space-y-2">
+          <div className="text-sm text-tx space-y-2">
             <p>
               Abaixo estão até {PREVIEW_SAMPLE_SIZE} registros recentes de cada uma das áreas mais sensíveis do seu escritório —
               Processos, Clientes, Contas a Receber e Publicações. Ao lado de cada campo protegido, mostramos o valor
               real (o mesmo que você já vê no sistema) e, em seguida, o valor exatamente como o suporte da Lúmen o
               recebe quando entra numa sessão comum.
             </p>
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/55">
+            <p className="text-xs text-tx-2">
               Esta comparação roda pela mesma função de mascaramento (<code>maskReadResult</code>) que a extensão do
               Prisma aplica de verdade em toda sessão de suporte — não é um exemplo fabricado nem uma cópia à parte. Se
               a Lúmen um dia mudar o que é mascarado, esta tela muda junto, automaticamente.
@@ -238,12 +238,12 @@ export default async function PreviaSuportePage() {
 
       <Card>
         <CardHeader title="O que isso garante — e o que isso não garante" />
-        <div className="p-5 space-y-4 text-sm text-navy-900 dark:text-cream-50">
+        <div className="p-5 space-y-4 text-sm text-tx">
           <div className="flex items-start gap-3">
             <EyeOff size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">O que o suporte nunca vê numa sessão comum</p>
-              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-navy-800/75 dark:text-cream-50/70">
+              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-tx-2">
                 <li>Valores em dinheiro (honorários, valor da causa, contas a pagar/receber) — somem por completo, nunca aparecem nem parcialmente.</li>
                 <li>Nomes, CPF/CNPJ, e-mail, telefone e endereço de clientes, partes e da parte adversa — aparecem redigidos, preservando só o formato (ex.: inicial do nome, últimos dígitos do documento, domínio do e-mail).</li>
                 <li>Teor de processos, publicações, tarefas e anotações — vira um rótulo com o tamanho do texto, nunca o conteúdo.</li>
@@ -253,10 +253,10 @@ export default async function PreviaSuportePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Eye size={18} className="text-navy-800/60 dark:text-cream-50/60 shrink-0 mt-0.5" />
+            <Eye size={18} className="text-tx-2 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">O que o suporte continua vendo normalmente</p>
-              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-navy-800/75 dark:text-cream-50/70">
+              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-tx-2">
                 <li>Nome e e-mail da EQUIPE do seu escritório (quem está logado, cargo, permissões) — é o que permite diagnosticar &quot;fulano não consegue acessar&quot; sem abrir os dados dos seus clientes.</li>
                 <li>Datas, status, contadores e categorias (ex.: &quot;processo ativo desde X&quot;, &quot;3 parcelas em aberto&quot;) — não identificam ninguém e são o principal eixo de diagnóstico.</li>
                 <li>Estrutura do processo (tribunal, ano, segmento) sem o número completo, e a agência/banco sem o valor.</li>
@@ -267,7 +267,7 @@ export default async function PreviaSuportePage() {
             <Lock size={18} className="text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Onde o dado real aparece — e sob que controle</p>
-              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-navy-800/75 dark:text-cream-50/70">
+              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-tx-2">
                 <li>
                   Só existe uma forma de o suporte ver o dado real de um registro específico: pedir, um sócio do seu
                   escritório aprovar aquele registro exato, e a leitura fica gravada no histórico como &quot;Viu dados

@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { convertAttendanceToCase } from "@/lib/actions/attendance";
 
 const inputClass =
-  "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
-const labelClass = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+const labelClass = "text-xs font-medium text-tx-2";
 
 // Versão mobile do conversor de atendimento em Caso/Processo Judicial. Reaproveita a mesma
 // server action do desktop (convertAttendanceToCase), mas informa "/m/processos" como base de
@@ -40,14 +40,14 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           onClick={handleCaso}
           disabled={pending}
-          className="w-full bg-navy-900 hover:bg-navy-800 dark:bg-cream-50/10 dark:hover:bg-cream-50/15 text-white dark:text-cream-50 text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
         >
           {pending ? "Convertendo..." : "Transformar em Caso"}
         </button>
         <button
           onClick={() => setMode("JUDICIAL")}
           disabled={pending}
-          className="w-full bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
         >
           Transformar em Processo Judicial
         </button>
@@ -69,14 +69,14 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           type="submit"
           disabled={pending}
-          className="flex-1 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
         >
           {pending ? "Convertendo..." : "Confirmar"}
         </button>
         <button
           type="button"
           onClick={() => setMode("none")}
-          className="px-4 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+          className="px-4 text-xs font-semibold text-tx-2"
         >
           Cancelar
         </button>

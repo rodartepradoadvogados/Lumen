@@ -68,21 +68,21 @@ export default function MobileCaseFinanceTab({
       <div className="flex gap-2">
         <Link
           href={`/m/processos/${caseId}/honorarios`}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
         >
           <HandCoins size={16} /> Lançar Honorários
         </Link>
         <Link
           href={`/m/processos/${caseId}/despesa`}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
         >
           <Receipt size={16} /> Lançar Despesa
         </Link>
       </div>
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Contas a Receber</h2>
+        <div className="px-4 py-3 border-b border-regua">
+          <h2 className="font-serif font-bold text-tx text-sm">Contas a Receber</h2>
         </div>
         {recurringFees.map((fee) => (
           <RecurringFeeCard key={fee.id} fee={fee} />
@@ -93,7 +93,7 @@ export default function MobileCaseFinanceTab({
         {soltas.length === 0 && honorarioLancamentos.length === 0 && recurringFees.length === 0 ? (
           <EmptyState title="Nenhum lançamento" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {soltas.map((r) => {
               const isApurar = r.status === "A_APURAR";
               const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
@@ -103,8 +103,8 @@ export default function MobileCaseFinanceTab({
                 <div key={r.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm text-navy-900 dark:text-cream-50">{r.description}</p>
-                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                      <p className="text-sm text-tx">{r.description}</p>
+                      <p className="text-xs text-tx-2 mt-0.5">
                         {r.noDueDate ? "Sem vencimento" : formatCalendarDate(r.dueDate)}
                         {r.payerType !== "CLIENTE" && (
                           <> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : r.payerType === "ADVERSA" ? "Parte adversa" : r.payerType}</>
@@ -117,8 +117,8 @@ export default function MobileCaseFinanceTab({
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                      {r.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                      <p className="text-sm font-semibold text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                      {r.status === "PARCIAL" && <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">
@@ -139,13 +139,13 @@ export default function MobileCaseFinanceTab({
       </Card>
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Contas a Pagar (custas etc.)</h2>
+        <div className="px-4 py-3 border-b border-regua">
+          <h2 className="font-serif font-bold text-tx text-sm">Contas a Pagar (custas etc.)</h2>
         </div>
         {payables.length === 0 ? (
           <EmptyState title="Nenhum lançamento" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {payables.map((p) => {
               const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
               const paidSum = p.payments.reduce((s, x) => s + x.amount, 0);
@@ -154,8 +154,8 @@ export default function MobileCaseFinanceTab({
                 <div key={p.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
-                      <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">{p.noDueDate ? "Sem vencimento" : formatCalendarDate(p.dueDate)}</p>
+                      <p className="text-sm text-tx">{p.description}</p>
+                      <p className="text-xs text-tx-2 mt-0.5">{p.noDueDate ? "Sem vencimento" : formatCalendarDate(p.dueDate)}</p>
                       {p.reimbursementReceivable && (
                         <p className="mt-1">
                           <Badge color={p.reimbursementReceivable.status === "PAGO" ? "green" : p.reimbursementReceivable.status === "ATRASADO" ? "red" : "amber"}>
@@ -165,8 +165,8 @@ export default function MobileCaseFinanceTab({
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(liquido)}</p>
-                      {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                      <p className="text-sm font-semibold text-tx">{formatCurrency(liquido)}</p>
+                      {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">

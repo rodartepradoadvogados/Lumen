@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import { getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +18,6 @@ const statusColors: Record<string, "green" | "slate" | "bordo"> = {
   ENCERRADA: "bordo",
 };
 const statusLabels: Record<string, string> = { ATIVA: "Ativa", SUSPENSA: "Suspensa", ENCERRADA: "Encerrada" };
-
-const honorarioStatusColors: Record<string, "green" | "amber" | "bordo" | "slate"> = {
-  PENDENTE: "amber",
-  PAGO: "green",
-  ATRASADO: "bordo",
-  CANCELADO: "slate",
-};
-const honorarioStatusLabels: Record<string, string> = { PENDENTE: "Pendente", PAGO: "Pago", ATRASADO: "Atrasado", CANCELADO: "Cancelado" };
 
 const licitacaoStatusColors: Record<string, "slate" | "amber" | "green" | "bordo"> = {
   EM_ANALISE: "slate",
@@ -77,12 +69,12 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/assessoria" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+      <Link href="/m/assessoria" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
         <ArrowLeft size={13} /> Assessoria Jurídica
       </Link>
 
       <div>
-        <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50 leading-tight">{assessoria.client.name}</h1>
+        <h1 className="font-serif text-lg font-bold text-tx leading-tight">{assessoria.client.name}</h1>
         <div className="flex items-center gap-2 flex-wrap mt-1.5">
           <Badge color={statusColors[assessoria.status] || "slate"}>{statusLabels[assessoria.status] || assessoria.status}</Badge>
           {assessoria.responsible && <Badge color="navy">{assessoria.responsible.name}</Badge>}
@@ -94,27 +86,27 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
         <Field label="Início do contrato" value={formatDate(assessoria.startDate)} />
         {assessoria.planningNotes && (
           <div className="pt-1">
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1">Planejamento</p>
-            <p className="text-sm text-navy-800 dark:text-cream-50/85 whitespace-pre-wrap">{assessoria.planningNotes}</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">Planejamento</p>
+            <p className="text-sm text-tx-2 whitespace-pre-wrap">{assessoria.planningNotes}</p>
           </div>
         )}
       </Card>
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Honorários</h2>
+        <div className="px-4 py-3 border-b border-regua">
+          <h2 className="font-serif font-bold text-tx text-sm">Honorários</h2>
         </div>
         {assessoria.honorarios.length === 0 ? (
           <EmptyState title="Nenhum honorário gerado ainda" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessoria.honorarios.map((h) => (
               <div key={h.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{h.competencia}</p>
-                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
+                  <p className="text-sm font-medium text-tx">{h.competencia}</p>
+                  <p className="text-xs text-tx-2">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
                 </div>
-                <Badge color={honorarioStatusColors[h.receivable.status] || "slate"}>{honorarioStatusLabels[h.receivable.status] || h.receivable.status}</Badge>
+                <Badge color={financeStatusColors[h.receivable.status] ?? "slate"}>{financeStatusLabel(h.receivable.status)}</Badge>
               </div>
             ))}
           </div>
@@ -124,20 +116,20 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       <MobileAssessoriaDocumentsSection pareceres={assessoria.pareceres} documents={assessoria.documents} />
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Licitações</h2>
+        <div className="px-4 py-3 border-b border-regua">
+          <h2 className="font-serif font-bold text-tx text-sm">Licitações</h2>
         </div>
         {assessoria.licitacoes.length === 0 ? (
           <EmptyState title="Nenhuma licitação cadastrada" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessoria.licitacoes.map((l) => (
               <div key={l.id} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{l.objeto}</p>
+                  <p className="text-sm font-medium text-tx truncate">{l.objeto}</p>
                   <Badge color={licitacaoStatusColors[l.status] || "slate"}>{licitacaoStatusLabels[l.status] || l.status}</Badge>
                 </div>
-                <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                <p className="text-xs text-tx-2 mt-0.5">
                   {l.orgao}
                   {l.prazoFinal && ` · prazo final ${formatDate(l.prazoFinal)}`}
                 </p>
@@ -148,17 +140,36 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </Card>
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10 flex items-center justify-between gap-2">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Processos vinculados</h2>
-          <MobileSearchCasesModal assessoriaId={assessoria.id} availableCases={availableCases} />
+        <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-serif font-bold text-tx text-sm">Processos vinculados</h2>
+          {/* Auditoria apontou que esta tela só vinculava processo existente — nenhuma criação
+              (ver AssessoriaProcessosCasosTab.tsx no desktop, que já tem os dois atalhos). "Novo
+              processo" abre o formulário no ramo Judicial; "Novo caso" força EXTRAJUDICIAL — os
+              dois levam a assessoriaId na querystring, que app/m/processos/novo/page.tsx agora lê
+              e repassa como pré-seleção pro MobileNewCaseForm (ver AssessoriaSelect). */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <MobileSearchCasesModal assessoriaId={assessoria.id} availableCases={availableCases} />
+            <Link
+              href={`/m/processos/novo?assessoriaId=${assessoria.id}`}
+              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 rounded-lg shrink-0"
+            >
+              <Plus size={12} /> Novo processo
+            </Link>
+            <Link
+              href={`/m/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
+              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 rounded-lg shrink-0"
+            >
+              <Plus size={12} /> Novo caso
+            </Link>
+          </div>
         </div>
         {assessoria.linkedCases.length === 0 ? (
           <EmptyState title="Nenhum processo vinculado" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessoria.linkedCases.map((c) => (
-              <Link key={c.id} href={`/m/processos/${c.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-cream-50 dark:hover:bg-white/5">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
+              <Link key={c.id} href={`/m/processos/${c.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-sf-apoio">
+                <p className="text-sm font-medium text-tx truncate">{c.title}</p>
                 <Badge color={caseStatusColors[c.status] || "slate"}>{caseStatusLabels[c.status] || c.status}</Badge>
               </Link>
             ))}
@@ -167,17 +178,17 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </Card>
 
       <Card>
-        <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Atendimentos vinculados</h2>
+        <div className="px-4 py-3 border-b border-regua">
+          <h2 className="font-serif font-bold text-tx text-sm">Atendimentos vinculados</h2>
         </div>
         {assessoria.linkedAttendances.length === 0 ? (
           <EmptyState title="Nenhum atendimento vinculado" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {assessoria.linkedAttendances.map((a) => (
-              <Link key={a.id} href={`/m/atendimento/${a.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-cream-50 dark:hover:bg-white/5">
-                <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{a.subject}</p>
-                <span className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0">{formatDate(a.createdAt)}</span>
+              <Link key={a.id} href={`/m/atendimento/${a.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-sf-apoio">
+                <p className="text-sm font-medium text-tx truncate">{a.subject}</p>
+                <span className="text-xs text-tx-2 shrink-0">{formatDate(a.createdAt)}</span>
               </Link>
             ))}
           </div>
@@ -185,9 +196,9 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
       </Card>
 
       <Card className="p-4">
-        <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm mb-3">Anotações pessoais</h2>
+        <h2 className="font-serif font-bold text-tx text-sm mb-3">Anotações pessoais</h2>
         <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
-        <div className="mt-3 pt-3 border-t border-navy-800/8 dark:border-white/10">
+        <div className="mt-3 pt-3 border-t border-regua">
           <MobileNovaAnotacaoForm linkType="ASSESSORIA" entityId={assessoria.id} />
         </div>
       </Card>
@@ -197,9 +208,9 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between gap-3 text-sm border-b border-navy-800/5 dark:border-white/10 pb-2 last:border-0 last:pb-0">
-      <span className="text-navy-800/50 dark:text-cream-50/50 shrink-0">{label}</span>
-      <span className="font-medium text-navy-900 dark:text-cream-50 text-right">{value || "—"}</span>
+    <div className="flex justify-between gap-3 text-sm border-b border-regua pb-2 last:border-0 last:pb-0">
+      <span className="text-tx-2 shrink-0">{label}</span>
+      <span className="font-medium text-tx text-right">{value || "—"}</span>
     </div>
   );
 }

@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { getCurrentUser } from "@/lib/currentUser";
 
-// Gera o token de upload direto pro Vercel Blob (etapa 1 do fluxo de anexos grandes — ver
-// lib/actions/attachments.ts:finalizeAttachmentUpload para a etapa 2). Isso existe porque uma
-// Vercel Serverless Function tem um limite de payload de entrada bem menor que os 25MB que os
-// anexos já suportavam (ex.: processo completo em PDF) — enviando o arquivo direto do navegador
-// pro Blob, a function nunca recebe o corpo grande, só os poucos KB deste token.
+// Gera o token de upload direto pro Vercel Blob — etapa 1 do fluxo de upload de arquivo grande.
+// Genérico de propósito (não sabe nem precisa saber o que está sendo enviado): usado tanto pelos
+// Anexos de Processo/Atendimento (ver lib/actions/attachments.ts:finalizeAttachmentUpload para a
+// etapa 2) quanto pelos Documentos da Assessoria (ver
+// app/api/assessoria/documentos/upload/route.ts, mesmo padrão de duas etapas). Isso existe porque
+// uma Vercel Serverless Function tem um limite de payload de entrada bem menor que os 25MB que
+// esses uploads precisam suportar (ex.: processo completo em PDF) — enviando o arquivo direto do
+// navegador pro Blob, a function nunca recebe o corpo grande, só os poucos KB deste token.
 const MAX_SIZE = 25 * 1024 * 1024; // 25MB
 
 export async function POST(request: NextRequest) {

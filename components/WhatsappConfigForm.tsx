@@ -42,36 +42,33 @@ export default function WhatsappConfigForm({
   return (
     <div className="space-y-3">
       {connected && (
-        <p className="text-sm text-navy-900 dark:text-cream-50">
+        <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio rounded-r-md px-3 py-2 text-xs font-medium">
           Número conectado{displayPhone ? <> — <strong>{displayPhone}</strong></> : null}
         </p>
       )}
       <form id="whatsapp-config-form" action={submit} className="space-y-3 max-w-sm">
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Phone Number ID (Meta Cloud API)</label>
-          <input name="phoneNumberId" required className="cfg-input w-full dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+          <label className="text-xs font-medium text-tx-2">Phone Number ID (Meta Cloud API)</label>
+          <input name="phoneNumberId" required className="cfg-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Access Token</label>
-          <input name="accessToken" type="password" required className="cfg-input w-full dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+          <label className="text-xs font-medium text-tx-2">Access Token</label>
+          <input name="accessToken" type="password" required className="cfg-input w-full" />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Número exibido (opcional, só para referência)</label>
-          <input name="displayPhone" placeholder="+55 62 99999-0000" className="cfg-input w-full dark:bg-navy-800 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <label className="text-xs font-medium text-tx-2">Número exibido (opcional, só para referência)</label>
+          <input name="displayPhone" placeholder="+55 62 99999-0000" className="cfg-input w-full" />
         </div>
-        {error && <p className="text-[11px] text-red-700 dark:text-bordo-400 bg-red-50 dark:bg-bordo-400/15 border border-red-200 dark:border-bordo-400/20 rounded-lg px-2.5 py-1.5">{error}</p>}
-        {success && <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-2.5 py-1.5">Conexão salva com sucesso.</p>}
+        {error && <p className="flex items-center gap-2 border-l-[3px] border-vinho text-vinho bg-sf-apoio rounded-r-md px-2.5 py-1.5 text-[11px]">{error}</p>}
+        {success && (
+          <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio rounded-r-md px-2.5 py-1.5 text-[11px]">Conexão salva com sucesso.</p>
+        )}
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={loading} className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50">
+          <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors">
             {loading ? "Salvando..." : connected ? "Atualizar conexão" : "Conectar"}
           </button>
           {connected && (
-            <button
-              type="button"
-              onClick={handleDisconnect}
-              disabled={loading}
-              className="text-sm font-semibold text-red-700 dark:text-bordo-400 hover:underline disabled:opacity-50"
-            >
+            <button type="button" onClick={handleDisconnect} disabled={loading} className="text-sm font-semibold text-vinho hover:underline disabled:opacity-50">
               Desconectar
             </button>
           )}

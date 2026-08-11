@@ -258,13 +258,13 @@ export default async function MobileCaseDetail({
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m/processos"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Processos
       </Link>
 
       {anexosFalhos > 0 && (
-        <div className="rounded-lg border border-bordo-700/25 dark:border-bordo-400/25 bg-bordo-100/40 dark:bg-bordo-700/10 px-3 py-2.5 text-xs text-bordo-700 dark:text-bordo-400">
+        <div className="rounded-lg border border-urgente bg-urgente-bg px-3 py-2.5 text-xs text-urgente">
           {anexosFalhos === 1
             ? "1 anexo enviado no cadastro não pôde ser processado."
             : `${anexosFalhos} anexos enviados no cadastro não puderam ser processados.`}{" "}
@@ -281,14 +281,14 @@ export default async function MobileCaseDetail({
           <Badge color={statusColors[c.status] ?? "slate"}>{c.status}</Badge>
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
         </div>
-        <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50 leading-tight">{c.title}</h1>
-        <p className="flex flex-wrap items-center text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">
+        <h1 className="font-serif text-lg font-bold text-tx leading-tight">{c.title}</h1>
+        <p className="flex flex-wrap items-center text-xs text-tx-2 mt-1">
           {c.processNumber && (
             <>
               <CopyButton
                 text={c.processNumber}
                 label={c.processNumber}
-                className="inline-flex items-center gap-1 hover:text-navy-900 dark:hover:text-cream-50 transition-colors"
+                className="inline-flex items-center gap-1 hover:text-tx transition-colors"
               />
               <span className="mx-1">·</span>
             </>
@@ -317,8 +317,8 @@ export default async function MobileCaseDetail({
             href={`/m/processos/${c.id}?tab=${t.key}`}
             className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
               tab === t.key
-                ? "bg-navy-900 text-white dark:bg-white/10 dark:text-cream-50"
-                : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10"
+                ? "bg-acao text-acao-tx"
+                : "bg-sf text-tx-2 border border-regua"
             }`}
           >
             {t.label}
@@ -334,7 +334,7 @@ export default async function MobileCaseDetail({
               preenchidos (antes desta fase esses cinco campos não chegavam ao modal no mobile,
               então editar Esfera/Matéria/as duas bases de cálculo não fazia efeito por aqui). */}
           <div className="flex items-center justify-between -mt-1 -mr-1">
-            <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Dados do Processo</h4>
+            <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Dados do Processo</h4>
             <EditCaseModal
               caseData={{
                 id: c.id,
@@ -418,7 +418,7 @@ export default async function MobileCaseDetail({
               href={c.tribunalLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:underline"
             >
               <ExternalLink size={12} /> Acessar sistema do {natureza === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
             </a>
@@ -432,19 +432,19 @@ export default async function MobileCaseDetail({
             <Field label="Veio de" value={`${instanciaLabel(c.instance)} (${c.tribunalOrigemSigla} — ${c.tribunalOrigemNome ?? ""})`} />
           )}
           <div className="pt-1">
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-1">Descrição</p>
-            <p className="text-sm text-navy-800 dark:text-cream-50/85 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">Descrição</p>
+            <p className="text-sm text-tx-2 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
           </div>
         </Card>
       )}
 
       {tab === "visao-geral" && (c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
         <Card className="p-4 space-y-2.5">
-          <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Classificação</h4>
+          <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Classificação</h4>
           {c.materias.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {c.materias.map((m) => (
-                <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-400">
+                <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-marca-bg text-marca-tx">
                   {m}
                 </span>
               ))}
@@ -458,11 +458,11 @@ export default async function MobileCaseDetail({
 
       {tab === "visao-geral" && caseLinks.length > 0 && (
         <Card className="p-4 space-y-2">
-          <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Processos vinculados</h4>
+          <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Processos vinculados</h4>
           <div className="space-y-1.5">
             {caseLinks.map((l) => (
               <div key={l.linkId} className="flex items-center justify-between gap-2">
-                <Link href={`/m/processos/${l.other.id}`} className="text-sm text-navy-900 dark:text-cream-50 hover:underline truncate">
+                <Link href={`/m/processos/${l.other.id}`} className="text-sm text-tx hover:underline truncate">
                   {l.other.title}
                 </Link>
                 {l.role === "PRINCIPAL" && <Badge color="gold">Principal</Badge>}
@@ -474,13 +474,13 @@ export default async function MobileCaseDetail({
 
       {tab === "atividades" && (
         <Card>
-          <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-            <h2 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Próximas tarefas</h2>
+          <div className="px-4 py-3 border-b border-regua">
+            <h2 className="font-serif font-bold text-tx text-sm">Próximas tarefas</h2>
           </div>
           {c.tasks.length === 0 ? (
             <EmptyState title="Nenhuma tarefa pendente" />
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {c.tasks.map((t) => (
                 <div key={t.id} className="flex items-start gap-2.5 px-4 py-3">
                   <div className="pt-0.5">
@@ -489,17 +489,17 @@ export default async function MobileCaseDetail({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
-                      <span className="text-xs font-semibold text-navy-800/55 dark:text-cream-50/55">{formatCalendarDate(t.dueDate)}</span>
-                      {t.dueTime && <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{t.dueTime}</span>}
+                      <span className="text-xs font-semibold text-tx-2">{formatCalendarDate(t.dueDate)}</span>
+                      {t.dueTime && <span className="text-xs text-tx-2">{t.dueTime}</span>}
                     </div>
-                    <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{t.title}</p>
+                    <p className="text-sm font-medium text-tx">{t.title}</p>
                     <MobileTaskResponsibleSelect taskId={t.id} responsibleId={t.responsibleId} users={users} />
                   </div>
                 </div>
               ))}
             </div>
           )}
-          <div className="p-3 border-t border-navy-800/8 dark:border-white/10">
+          <div className="p-3 border-t border-regua">
             <MobileNewTaskForm caseId={c.id} />
           </div>
         </Card>
@@ -508,20 +508,20 @@ export default async function MobileCaseDetail({
       {tab === "comentarios" && (
         <Card className="p-4 space-y-4">
           {c.comments.length === 0 ? (
-            <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum comentário ainda.</p>
+            <p className="text-sm text-tx-2">Nenhum comentário ainda.</p>
           ) : (
             <div className="space-y-3">
               {c.comments.map((cm) => (
                 <div key={cm.id} className="flex gap-2.5">
-                  <div className="h-8 w-8 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center text-[11px] font-bold shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-[11px] font-bold shrink-0">
                     {cm.author.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm">
-                      <span className="font-semibold text-navy-900 dark:text-cream-50">{cm.author.name}</span>{" "}
-                      <span className="text-[11px] text-navy-800/40 dark:text-cream-50/40">{formatDate(cm.createdAt)}</span>
+                      <span className="font-semibold text-tx">{cm.author.name}</span>{" "}
+                      <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
                     </p>
-                    <p className="text-sm text-navy-800 dark:text-cream-50/85 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
+                    <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                   </div>
                 </div>
               ))}
@@ -574,7 +574,7 @@ export default async function MobileCaseDetail({
           {publicationGroups.length === 0 ? (
             <EmptyState title="Nenhuma publicação ou andamento" />
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {publicationGroups.map((g) => (
                 <MobilePublicationCard key={g.key} group={g} />
               ))}
@@ -593,7 +593,7 @@ export default async function MobileCaseDetail({
         <div className="space-y-4">
           <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
           <Card className="p-4">
-            <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-2">Nova anotação</h4>
+            <h4 className="text-sm font-semibold text-tx mb-2">Nova anotação</h4>
             <MobileNovaAnotacaoForm linkType={anotacaoLinkType} entityId={c.id} />
           </Card>
         </div>
@@ -604,9 +604,9 @@ export default async function MobileCaseDetail({
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between gap-3 text-sm border-b border-navy-800/5 dark:border-white/10 pb-2 last:border-0 last:pb-0">
-      <span className="text-navy-800/50 dark:text-cream-50/50 shrink-0">{label}</span>
-      <span className="font-medium text-navy-900 dark:text-cream-50 text-right">{value || "—"}</span>
+    <div className="flex justify-between gap-3 text-sm border-b border-regua pb-2 last:border-0 last:pb-0">
+      <span className="text-tx-2 shrink-0">{label}</span>
+      <span className="font-medium text-tx text-right">{value || "—"}</span>
     </div>
   );
 }

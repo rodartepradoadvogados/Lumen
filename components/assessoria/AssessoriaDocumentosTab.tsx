@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { addDocumento, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { formatDate } from "@/components/ui";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
@@ -115,23 +116,45 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
     if (!stagedFile) return;
     setError(null);
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", stagedFile);
-    formData.append("name", stagedName.trim() || stagedFile.name);
-    formData.append("docType", stagedDocType);
-    formData.append("assessoriaId", assessoria.id);
 
     try {
-      const res = await fetch("/api/assessoria/documentos/upload", { method: "POST", body: formData });
-      const data = await res.json();
+      // Etapa 1: sobe o arquivo direto do navegador pro Vercel Blob (mesmo endpoint de token dos
+      // Anexos de processo, ver app/api/attachments/blob-token/route.ts — genérico) — uma Vercel
+      // Serverless Function tem limite de payload de entrada bem menor que os documentos que esta
+      // tela precisa aceitar (contrato completo em PDF, digitalização de processo, etc.).
+      const blob = await upload(stagedFile.name, stagedFile, { access: "public", handleUploadUrl: "/api/attachments/blob-token" });
+
+      // Etapa 2: payload pequeno (só a URL do Blob + metadados) — o servidor baixa o conteúdo,
+      // manda pro Drive/OneDrive/Dropbox do escritório e registra o AssessoriaDocumento.
+      const res = await fetch("/api/assessoria/documentos/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blobUrl: blob.url,
+          name: stagedName.trim() || stagedFile.name,
+          contentType: stagedFile.type || "application/octet-stream",
+          docType: stagedDocType,
+          assessoriaId: assessoria.id,
+        }),
+      });
+
+      // SEMPRE confere res.ok ANTES de interpretar o corpo como JSON — uma resposta de erro que
+      // não vem da nossa rota (413/504, página de erro em HTML) não é JSON válido; tentar
+      // `res.json()` primeiro faz cair no texto genérico mesmo quando a causa real é conhecida.
+      let data: { error?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       if (!res.ok) {
-        setError(data.error || "Erro ao enviar arquivo.");
+        setError(data?.error || `Erro ao enviar arquivo (HTTP ${res.status}).`);
       } else {
         setStagedFile(null);
         router.refresh();
       }
-    } catch {
-      setError("Erro ao enviar arquivo. Verifique sua conexão.");
+    } catch (e) {
+      setError(e instanceof Error ? `Erro ao enviar arquivo: ${e.message}` : "Erro ao enviar arquivo. Verifique sua conexão.");
     } finally {
       setUploading(false);
     }

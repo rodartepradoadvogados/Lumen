@@ -60,9 +60,20 @@ export async function saveTokensFromCode(code: string, officeId: string) {
 
   const existingPrimary = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true } });
   if (existingPrimary) {
+    // Reconectar com uma conta Google DIFERENTE da que já era a principal: os ids de pasta salvos
+    // (rootFolderId/folderId/templatesFolderId/generatedFolderId) pertencem à conta ANTIGA — sem
+    // zerá-los aqui, todo upload subsequente tentaria escrever em pastas que a conta nova nunca
+    // teve acesso (404/403 dentro de uploadFileToDrive etc., silencioso pra quem só vê "conectado"
+    // em Configurações). Reconectar com a MESMA conta (accountEmail igual — ex.: renovar consentimento
+    // depois que o token expirou) não precisa zerar nada: as pastas continuam sendo as mesmas.
+    const trocouDeConta = existingPrimary.accountEmail !== accountEmail;
     await prisma.googleCredential.update({
       where: { id: existingPrimary.id },
-      data: { accountEmail, refreshToken },
+      data: {
+        accountEmail,
+        refreshToken,
+        ...(trocouDeConta ? { rootFolderId: null, folderId: null, templatesFolderId: null, generatedFolderId: null } : {}),
+      },
     });
     return;
   }
@@ -105,10 +116,148 @@ async function exchangeCodeForTokens(code: string): Promise<{ accountEmail: stri
   return { accountEmail: data.email, refreshToken: tokens.refresh_token };
 }
 
-export async function getDriveStatus(officeId: string): Promise<{ connected: boolean; accountEmail?: string }> {
+// ============ TRADUÇÃO DE ERROS DO GOOGLE (mensagens em pt-BR) ============
+// Todo erro que sobe de uma chamada à API do Google (token revogado, escopo insuficiente,
+// arquivo/pasta apagados, sem permissão) precisa virar uma mensagem que o advogado entende e
+// consegue agir em cima — sem isso, só aparece "Erro ao enviar arquivo." na tela, mesmo quando a
+// causa é conhecida e tem correção óbvia (reconectar a conta). Mesmo padrão que
+// lib/actions/generateDocument.ts e lib/actions/peticionar.ts já usam (regex sobre a mensagem
+// crua) — replicado aqui, exportado, para as rotas de upload usarem (ver
+// app/api/assessoria/documentos/upload/route.ts e lib/actions/attachments.ts:finalizeAttachmentUpload).
+function errorStatus(e: unknown): number | undefined {
+  const err = e as { code?: number | string; response?: { status?: number } };
+  const code = typeof err?.code === "number" ? err.code : undefined;
+  return code ?? err?.response?.status;
+}
+
+function errorBodyText(e: unknown): string {
+  const err = e as { message?: string; response?: { data?: unknown } };
+  let dataText = "";
+  try {
+    dataText = JSON.stringify(err?.response?.data ?? "");
+  } catch {
+    dataText = "";
+  }
+  return `${err?.message ?? ""} ${dataText}`;
+}
+
+// Detecta, a partir de um erro 403 já capturado de uma chamada real à API do Drive, se a causa é
+// ESCOPO insuficiente (token antigo, conectado antes de SCOPES pedir "drive" completo — ver
+// comentário no topo deste arquivo) — diferente de um 403 de permissão comum (arquivo de outra
+// conta, sem compartilhamento). Complementa a checagem PROATIVA de getDriveStatus (via
+// tokeninfo, antes de qualquer upload) com uma checagem REATIVA, para o caso de um upload
+// específico falhar por escopo mesmo com getDriveStatus tendo dado "conectado" momentos antes
+// (ex.: token trocado de escopo entre a checagem e o upload, caso raro mas possível).
+export function isInsufficientScopeError(e: unknown): boolean {
+  if (errorStatus(e) !== 403) return false;
+  return /insufficient.*(scope|permission)|insufficientPermissions|insufficient_scope/i.test(errorBodyText(e));
+}
+
+function isInvalidGrantError(e: unknown): boolean {
+  return /invalid_grant|invalid_request/i.test(errorBodyText(e));
+}
+
+function isNotFoundError(e: unknown): boolean {
+  return errorStatus(e) === 404 || /file not found/i.test(errorBodyText(e));
+}
+
+function isPermissionError(e: unknown): boolean {
+  return errorStatus(e) === 403;
+}
+
+// Mensagem final, pronta pra tela — usada pelas rotas/actions de upload deste arquivo em diante.
+// `context` é o texto livre que descreve O QUE estava sendo feito (ex.: "enviar o documento para
+// o Google Drive"), pra a frase final ficar específica em vez de genérica. Sempre deixa explícito
+// que o documento NÃO subiu (nunca "subiu com problema") — ver lib/actions/attachments.ts e
+// app/api/assessoria/documentos/upload/route.ts, que garantem (por causa desta mensagem) que
+// nenhum registro é criado pela metade quando isto acontece.
+export function translateDriveError(e: unknown, context = "acessar o Google Drive"): string {
+  if (isInvalidGrantError(e)) {
+    return `Não foi possível ${context}: a conexão com a conta Google expirou ou foi revogada. Peça a um administrador para reconectar em Configurações → Modelos & Integrações. Enquanto isso, o documento não sobe para o Drive.`;
+  }
+  if (isInsufficientScopeError(e)) {
+    return `Não foi possível ${context}: a conta Google conectada não tem permissão suficiente no Drive (foi conectada antes da liberação de acesso completo). Peça a um administrador para reconectar em Configurações → Modelos & Integrações. Enquanto isso, o documento não sobe para o Drive.`;
+  }
+  if (isNotFoundError(e)) {
+    // Sem citar "Google" aqui de propósito — esta função também traduz erro devolvido por
+    // uploadFileToDrive/uploadFileToDriveFolder de lib/storageProvider.ts, que despacha pro
+    // OneDrive/Dropbox conforme o provedor do escritório (ver lib/storageProvider.ts); só
+    // invalid_grant/escopo acima são exclusivos do OAuth do Google.
+    return `Não foi possível ${context}: a pasta ou o arquivo não foi encontrado (pode ter sido apagado ou movido manualmente fora do sistema). Avise um administrador.`;
+  }
+  if (isPermissionError(e)) {
+    return `Não foi possível ${context}: a conta conectada não tem permissão sobre esta pasta/arquivo.`;
+  }
+  const raw = e instanceof Error ? e.message : "";
+  return raw ? `Não foi possível ${context}: ${raw}` : `Não foi possível ${context}.`;
+}
+
+export type DriveConnectionState = "DESCONECTADO" | "CONECTADO" | "TOKEN_INVALIDO" | "ESCOPO_INSUFICIENTE";
+
+// Valida de verdade a conexão (não só "existe uma linha no banco"): tenta renovar o access token a
+// partir do refresh_token salvo e, se conseguir, confere junto ao próprio Google quais escopos
+// esse token carrega — contas conectadas ANTES de SCOPES pedir "drive" completo (ver comentário no
+// topo deste arquivo) continuam com um refresh_token válido, porém restrito, até reconectar.
+// `connected` só é true no estado plenamente utilizável (CONECTADO) — mantém compatibilidade com
+// todo `driveStatus.connected` já em uso nas páginas que consomem esta função (fora da posse desta
+// entrega — ver relatório), só fica mais rigoroso: antes virava true só por existir a linha no
+// banco, mesmo com o token morto.
+export async function getDriveStatus(officeId: string): Promise<{
+  connected: boolean;
+  accountEmail?: string;
+  state: DriveConnectionState;
+  message?: string;
+}> {
   const cred = await prisma.googleCredential.findFirst({ where: { officeId, isPrimaryDrive: true } });
-  if (!cred) return { connected: false };
-  return { connected: true, accountEmail: cred.accountEmail };
+  if (!cred) return { connected: false, state: "DESCONECTADO" };
+
+  const client = getOAuthClient();
+  client.setCredentials({ refresh_token: cred.refreshToken });
+
+  let accessToken: string | null | undefined;
+  try {
+    const tokenResponse = await client.getAccessToken();
+    accessToken = tokenResponse.token;
+  } catch {
+    return {
+      connected: false,
+      accountEmail: cred.accountEmail,
+      state: "TOKEN_INVALIDO",
+      message: `A conexão com a conta Google (${cred.accountEmail}) expirou ou foi revogada. Reconecte em Configurações → Modelos & Integrações.`,
+    };
+  }
+  if (!accessToken) {
+    return {
+      connected: false,
+      accountEmail: cred.accountEmail,
+      state: "TOKEN_INVALIDO",
+      message: `Não foi possível renovar o acesso à conta Google (${cred.accountEmail}). Reconecte em Configurações → Modelos & Integrações.`,
+    };
+  }
+
+  // Checagem de escopo é best-effort: se o endpoint de tokeninfo do Google não responder (rede,
+  // instabilidade), não trava o escritório num falso "escopo insuficiente" — trata como conectado
+  // (o token em si já provou ser válido acima; o pior caso é só descobrir a falta de escopo na
+  // hora real do upload, que translateDriveError/isInsufficientScopeError também cobrem).
+  try {
+    const infoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+    if (infoRes.ok) {
+      const info = (await infoRes.json()) as { scope?: string };
+      const scopes = (info.scope ?? "").split(" ");
+      if (!scopes.includes("https://www.googleapis.com/auth/drive")) {
+        return {
+          connected: false,
+          accountEmail: cred.accountEmail,
+          state: "ESCOPO_INSUFICIENTE",
+          message: `A conta Google (${cred.accountEmail}) foi conectada com um nível de acesso mais restrito ao Drive. Reconecte em Configurações → Modelos & Integrações para liberar o acesso completo.`,
+        };
+      }
+    }
+  } catch {
+    // segue como conectado — ver comentário acima
+  }
+
+  return { connected: true, accountEmail: cred.accountEmail, state: "CONECTADO" };
 }
 
 export async function listGoogleAccounts(officeId: string) {
@@ -135,21 +284,64 @@ async function getDriveClient(officeId: string) {
   return { drive: google.drive({ version: "v3", auth: client }), docs: google.docs({ version: "v1", auth: client }), cred };
 }
 
+const LUMEN_PARENT_FOLDER_NAME = "Lúmen";
+
+// Pasta-mãe que passa a conter TODAS as raízes do sistema (Processos, Casos, Atendimentos,
+// Assessoria, Anexos, Modelos, Documentos Gerados, Financeiro-Despesas, Financeiro-Receitas) —
+// mesmo desenho que OneDrive/Dropbox já usam (rootFolderId cacheado na credencial de
+// armazenamento, ver lib/oneDriveStorage.ts/lib/dropboxStorage.ts). Antes desta entrega, cada uma
+// das nove raízes nascia solta direto em 'root' — ver lib/actions/driveParentMigration.ts para a
+// ação que move o que já existia pra dentro desta pasta-mãe (com etapa de conferência antes de
+// mexer em qualquer coisa).
+async function getOrCreateLumenParentFolder(
+  drive: ReturnType<typeof google.drive>,
+  cred: { id: string; rootFolderId: string | null }
+): Promise<string> {
+  if (cred.rootFolderId) return cred.rootFolderId;
+
+  const res = await drive.files.list({
+    q: `name='${LUMEN_PARENT_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+    fields: "files(id,name)",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+  let parentId = res.data.files?.[0]?.id;
+  if (!parentId) {
+    const created = await drive.files.create({
+      requestBody: { name: LUMEN_PARENT_FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" },
+      fields: "id",
+      supportsAllDrives: true,
+    });
+    parentId = created.data.id ?? undefined;
+  }
+  if (!parentId) throw new Error('Não foi possível criar a pasta-mãe "Lúmen" no Google Drive.');
+  await prisma.googleCredential.update({ where: { id: cred.id }, data: { rootFolderId: parentId } });
+  return parentId;
+}
+
 async function getOrCreateFolderId(kind: keyof typeof FOLDERS, officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
   const { name, field } = FOLDERS[kind];
   const existingId = cred[field];
   if (existingId) return existingId;
 
+  // Dentro da pasta-mãe "Lúmen" (ver getOrCreateLumenParentFolder), não mais solta em qualquer
+  // lugar do Drive — a busca antiga não filtrava nem por pasta-mãe nem por 'root', então uma
+  // pasta homônima criada por acidente em qualquer lugar do Drive conectado seria "encontrada" e
+  // reaproveitada por engano.
+  const parentId = await getOrCreateLumenParentFolder(drive, cred);
   const res = await drive.files.list({
-    q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
     fields: "files(id,name)",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   let folderId = res.data.files?.[0]?.id;
   if (!folderId) {
     const created = await drive.files.create({
-      requestBody: { name, mimeType: "application/vnd.google-apps.folder" },
+      requestBody: { name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
       fields: "id",
+      supportsAllDrives: true,
     });
     folderId = created.data.id ?? undefined;
   }
@@ -169,6 +361,7 @@ async function uploadBufferToFolder(
     requestBody: { name: fileName, parents: [folderId] },
     media: { mimeType, body: Readable.from(buffer) },
     fields: "id",
+    supportsAllDrives: true,
   });
   const fileId = created.data.id;
   if (!fileId) throw new Error("Falha ao enviar arquivo para o Google Drive.");
@@ -176,9 +369,10 @@ async function uploadBufferToFolder(
   await drive.permissions.create({
     fileId,
     requestBody: { role: "reader", type: "anyone" },
+    supportsAllDrives: true,
   });
 
-  const file = await drive.files.get({ fileId, fields: "id, webViewLink" });
+  const file = await drive.files.get({ fileId, fields: "id, webViewLink", supportsAllDrives: true });
   if (!file.data.webViewLink) throw new Error("Arquivo enviado, mas o link não pôde ser obtido.");
   return { id: fileId, webViewLink: file.data.webViewLink };
 }
@@ -247,12 +441,13 @@ export async function uploadDocumentTemplateFile(
     },
     media: { mimeType, body: Readable.from(buffer) },
     fields: "id",
+    supportsAllDrives: true,
   });
   const fileId = created.data.id;
   if (!fileId) throw new Error("Falha ao enviar arquivo para o Google Drive.");
 
-  await drive.permissions.create({ fileId, requestBody: { role: "reader", type: "anyone" } });
-  const file = await drive.files.get({ fileId, fields: "id, webViewLink" });
+  await drive.permissions.create({ fileId, requestBody: { role: "reader", type: "anyone" }, supportsAllDrives: true });
+  const file = await drive.files.get({ fileId, fields: "id, webViewLink", supportsAllDrives: true });
   if (!file.data.webViewLink) throw new Error("Arquivo enviado, mas o link não pôde ser obtido.");
   return { id: fileId, webViewLink: file.data.webViewLink };
 }
@@ -262,7 +457,7 @@ export async function uploadDocumentTemplateFile(
 // nada (a Docs API só localiza/substitui texto em Google Docs). Usado por createDocumentTemplateLink.
 export async function isGoogleDocFile(fileId: string, officeId: string): Promise<boolean> {
   const { drive } = await getDriveClient(officeId);
-  const file = await drive.files.get({ fileId, fields: "mimeType" });
+  const file = await drive.files.get({ fileId, fields: "mimeType", supportsAllDrives: true });
   return file.data.mimeType === GOOGLE_DOC_MIME;
 }
 
@@ -281,7 +476,7 @@ export function extractDriveFileId(url: string): string | null {
 // Attachment).
 export async function downloadFileFromDrive(fileId: string, officeId: string): Promise<{ content: Buffer; mimeType: string }> {
   const { drive } = await getDriveClient(officeId);
-  const meta = await drive.files.get({ fileId, fields: "mimeType" });
+  const meta = await drive.files.get({ fileId, fields: "mimeType", supportsAllDrives: true });
   const mimeType = meta.data.mimeType || "application/octet-stream";
 
   if (mimeType.startsWith("application/vnd.google-apps.")) {
@@ -292,7 +487,7 @@ export async function downloadFileFromDrive(fileId: string, officeId: string): P
     return { content: Buffer.from(exported.data as ArrayBuffer), mimeType: "application/pdf" };
   }
 
-  const res = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+  const res = await drive.files.get({ fileId, alt: "media", supportsAllDrives: true }, { responseType: "arraybuffer" });
   return { content: Buffer.from(res.data as ArrayBuffer), mimeType };
 }
 
@@ -313,6 +508,7 @@ export async function copyAndFillTemplate(
     fileId: templateFileId,
     requestBody: { name: newName, parents: [folderId] },
     fields: "id",
+    supportsAllDrives: true,
   });
   const newFileId = copied.data.id;
   if (!newFileId) throw new Error("Não foi possível copiar o modelo.");
@@ -333,9 +529,10 @@ export async function copyAndFillTemplate(
   await drive.permissions.create({
     fileId: newFileId,
     requestBody: { role: "reader", type: "anyone" },
+    supportsAllDrives: true,
   });
 
-  const file = await drive.files.get({ fileId: newFileId, fields: "id, webViewLink" });
+  const file = await drive.files.get({ fileId: newFileId, fields: "id, webViewLink", supportsAllDrives: true });
   if (!file.data.webViewLink) throw new Error("Documento gerado, mas o link não pôde ser obtido.");
   const pdfUrl = `https://docs.google.com/document/d/${newFileId}/export?format=pdf`;
   return { id: newFileId, webViewLink: file.data.webViewLink, pdfUrl, matchedCount };
@@ -346,7 +543,9 @@ const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
 // AssessoriaDocumento.docType) para o nome da subpasta correspondente — ACAO_VINCULADA e
 // OUTRO não têm pasta própria (a primeira já vive em Processos; a segunda cai na raiz da
 // empresa mesmo).
-const ASSESSORIA_DOC_TYPE_FOLDERS: Record<string, string> = {
+// Exportado (além de usado aqui dentro) para lib/actions/driveParentMigration.ts saber em qual
+// subpasta de categoria um AssessoriaDocumento legado (docType conhecido) deveria estar.
+export const ASSESSORIA_DOC_TYPE_FOLDERS: Record<string, string> = {
   CONTRATO: "Contratos",
   PARECER: "Pareceres",
   LICITACAO: "Licitações",
@@ -358,12 +557,15 @@ async function findOrCreateChildFolder(drive: ReturnType<typeof google.drive>, p
   const res = await drive.files.list({
     q: `name='${safeName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
     fields: "files(id,name)",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   let id = res.data.files?.[0]?.id;
   if (!id) {
     const created = await drive.files.create({
       requestBody: { name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
       fields: "id",
+      supportsAllDrives: true,
     });
     id = created.data.id ?? undefined;
   }
@@ -371,16 +573,26 @@ async function findOrCreateChildFolder(drive: ReturnType<typeof google.drive>, p
   return id;
 }
 
-async function getOrCreateRootFolder(drive: ReturnType<typeof google.drive>, rootName: string): Promise<string> {
+// Raiz de sistema (ex.: "Lúmen - Processos") DENTRO da pasta-mãe "Lúmen" (ver
+// getOrCreateLumenParentFolder acima) — antes desta entrega, cada uma nascia solta em 'root'.
+async function getOrCreateRootFolder(
+  drive: ReturnType<typeof google.drive>,
+  cred: { id: string; rootFolderId: string | null },
+  rootName: string
+): Promise<string> {
+  const parentId = await getOrCreateLumenParentFolder(drive, cred);
   const res = await drive.files.list({
-    q: `name='${rootName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+    q: `name='${rootName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
     fields: "files(id,name)",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   let rootId = res.data.files?.[0]?.id;
   if (!rootId) {
     const created = await drive.files.create({
-      requestBody: { name: rootName, mimeType: "application/vnd.google-apps.folder" },
+      requestBody: { name: rootName, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
       fields: "id",
+      supportsAllDrives: true,
     });
     rootId = created.data.id ?? undefined;
   }
@@ -393,8 +605,8 @@ async function getOrCreateRootFolder(drive: ReturnType<typeof google.drive>, roo
 // do Drive DESTE escritório. Chamado uma única vez, na criação da Assessoria — o id da pasta da
 // empresa fica salvo em Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
 export async function getOrCreateAssessoriaCompanyFolder(companyName: string, officeId: string): Promise<string> {
-  const { drive } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, ASSESSORIA_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   for (const subName of Object.values(ASSESSORIA_DOC_TYPE_FOLDERS)) {
     await findOrCreateChildFolder(drive, companyFolderId, subName);
@@ -408,15 +620,51 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
 // caminha o Drive de novo (raiz → empresa → Pareceres → nome do parecer) se ainda não existir.
 export async function getOrCreateParecerFolder(parecerId: string, companyName: string, parecerName: string, officeId: string): Promise<string> {
   const existing = await prisma.parecer.findFirst({ where: { id: parecerId, officeId }, select: { driveFolderId: true } });
-  if (existing?.driveFolderId) return existing.driveFolderId;
+  // Auto-cura: o id salvo pode apontar pra uma pasta que já não existe mais no Drive (apagada
+  // definitivamente ou mandada pra Lixeira fora do sistema) — sem checar, todo upload seguinte
+  // falharia com 404 sem explicação. getDriveFileInfo devolve null (apagada) ou trashed=true
+  // (Lixeira); nos dois casos, a pasta é recriada do zero e o id é regravado. A checagem em si é
+  // best-effort: se ELA falhar (ex.: Drive momentaneamente inacessível), devolve o id salvo como
+  // antes desta mudança em vez de travar quem só queria reaproveitar um id que provavelmente
+  // ainda é válido — o pior caso nesse cenário raro é um 404 na hora do upload de verdade, não
+  // pior do que o comportamento anterior a esta entrega.
+  if (existing?.driveFolderId) {
+    try {
+      const info = await getDriveFileInfo(existing.driveFolderId, officeId);
+      // info null (apagada) ou trashed=true (Lixeira): NÃO retorna aqui, cai pro recriar abaixo.
+      if (info && !info.trashed) return existing.driveFolderId;
+    } catch {
+      return existing.driveFolderId;
+    }
+  }
 
-  const { drive } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, ASSESSORIA_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   const pareceresFolderId = await findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER);
   const folderId = await findOrCreateChildFolder(drive, pareceresFolderId, parecerName);
   await prisma.parecer.updateMany({ where: { id: parecerId, officeId }, data: { driveFolderId: folderId, storageProvider: "GOOGLE_DRIVE" } });
   return folderId;
+}
+
+// Id da raiz "Lúmen - Assessoria" (cria se ainda não existir) — bare root, sem empresa nenhuma.
+// Exportado para lib/actions/driveParentMigration.ts mover uma pasta de EMPRESA legada pra dentro
+// dela.
+export async function getAssessoriaRootFolderId(officeId: string): Promise<string> {
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
+}
+
+// Subpasta "Pareceres" dentro da pasta da empresa (garante a estrutura completa) — usado pela
+// migração de pastas legadas (lib/actions/driveParentMigration.ts) para saber onde realocar um
+// Parecer.driveFolderId antigo SEM reconsultar o Parecer: ao contrário de getOrCreateParecerFolder
+// acima, que devolve direto o id já salvo sem recriar o caminho, aqui o objetivo é justamente
+// descobrir o PAI correto pra mover a pasta que esse id aponta — não reencontrá-la pelo id.
+export async function getAssessoriaPareceresContainerFolderId(companyName: string, officeId: string): Promise<string> {
+  const { drive, cred } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
+  const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
+  return findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER);
 }
 
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
@@ -443,14 +691,27 @@ const CASOS_ROOT_NAME = "Lúmen - Casos";
 // scripts/migrar-pastas-casos.ts (Tarefa B), não desta função.
 export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, officeId: string): Promise<string> {
   const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true, type: true } });
-  if (existing?.driveFolderId) return existing.driveFolderId;
+  // Auto-cura: mesmo raciocínio de getOrCreateParecerFolder acima — um id salvo que já não existe
+  // mais no Drive (apagado ou na Lixeira, fora do sistema) é tratado como "ainda não tem pasta",
+  // não como erro; a pasta é recriada e o id, regravado. Sem isso, um caso cuja pasta alguém
+  // apagou manualmente no Drive ficaria travado, incapaz de receber qualquer anexo novo. A
+  // checagem em si é best-effort (ver comentário em getOrCreateParecerFolder) — uma falha nela
+  // não deve travar quem só queria reaproveitar o id salvo.
+  if (existing?.driveFolderId) {
+    try {
+      const info = await getDriveFileInfo(existing.driveFolderId, officeId);
+      if (info && !info.trashed) return existing.driveFolderId;
+    } catch {
+      return existing.driveFolderId;
+    }
+  }
 
-  const { drive } = await getDriveClient(officeId);
+  const { drive, cred } = await getDriveClient(officeId);
   // Fallback conservador (existing null, ex.: caseId inválido — não deveria acontecer, pois quem
   // chama já validou o caseId antes) mantém o comportamento anterior a esta mudança: raiz de
   // Processos.
   const rootName = existing && naturezaOf(existing.type) === "CASO" ? CASOS_ROOT_NAME : PROCESSOS_ROOT_NAME;
-  const rootId = await getOrCreateRootFolder(drive, rootName);
+  const rootId = await getOrCreateRootFolder(drive, cred, rootName);
   const folderId = await findOrCreateChildFolder(drive, rootId, caseTitle);
   await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -461,10 +722,18 @@ export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, o
 // convertAttendanceToCase em lib/actions/attendance.ts), nunca duplicada.
 export async function getOrCreateAttendanceFolder(attendanceId: string, subject: string, officeId: string): Promise<string> {
   const existing = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId }, select: { driveFolderId: true } });
-  if (existing?.driveFolderId) return existing.driveFolderId;
+  // Auto-cura — ver comentário em getOrCreateCaseFolder acima.
+  if (existing?.driveFolderId) {
+    try {
+      const info = await getDriveFileInfo(existing.driveFolderId, officeId);
+      if (info && !info.trashed) return existing.driveFolderId;
+    } catch {
+      return existing.driveFolderId;
+    }
+  }
 
-  const { drive } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, cred, ATENDIMENTOS_ROOT_NAME);
   const folderId = await findOrCreateChildFolder(drive, rootId, subject);
   await prisma.attendance.updateMany({ where: { id: attendanceId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -480,7 +749,7 @@ export async function getOrCreateCategoryFolder(parentFolderId: string, category
 
 export async function renameDriveFolder(folderId: string, newName: string, officeId: string): Promise<void> {
   const { drive } = await getDriveClient(officeId);
-  await drive.files.update({ fileId: folderId, requestBody: { name: newName } });
+  await drive.files.update({ fileId: folderId, requestBody: { name: newName }, supportsAllDrives: true });
 }
 
 // ============ PROTOCOLOS (ver lib/protocolos.ts e lib/actions/protocolos.ts) ============
@@ -502,6 +771,7 @@ export async function createNamedDriveFolder(parentId: string, name: string, off
   const created = await drive.files.create({
     requestBody: { name, mimeType: DRIVE_FOLDER_MIME_TYPE, parents: [parentId] },
     fields: "id",
+    supportsAllDrives: true,
   });
   const id = created.data.id;
   if (!id) throw new Error(`Não foi possível criar a pasta "${name}" no Google Drive.`);
@@ -521,6 +791,7 @@ export async function createDriveShortcut(parentId: string, name: string, target
       shortcutDetails: { targetId: targetFileId },
     },
     fields: "id",
+    supportsAllDrives: true,
   });
   const id = created.data.id;
   if (!id) throw new Error(`Não foi possível criar o atalho "${name}" no Google Drive.`);
@@ -529,20 +800,21 @@ export async function createDriveShortcut(parentId: string, name: string, target
 
 export async function deleteDriveFile(fileId: string, officeId: string): Promise<void> {
   const { drive } = await getDriveClient(officeId);
-  await drive.files.delete({ fileId });
+  await drive.files.delete({ fileId, supportsAllDrives: true });
 }
 
 // "Mover" um arquivo no Drive é trocar os pais (parents) — não existe operação de move direta.
 // Usado pela reorganização de anexos já existentes (lib/actions/driveReorg.ts).
 export async function moveDriveFile(fileId: string, newParentId: string, officeId: string): Promise<void> {
   const { drive } = await getDriveClient(officeId);
-  const file = await drive.files.get({ fileId, fields: "parents" });
+  const file = await drive.files.get({ fileId, fields: "parents", supportsAllDrives: true });
   const previousParents = (file.data.parents || []).join(",");
   await drive.files.update({
     fileId,
     addParents: newParentId,
     removeParents: previousParents || undefined,
     fields: "id, parents",
+    supportsAllDrives: true,
   });
 }
 
@@ -575,6 +847,8 @@ export async function listDriveChildren(officeId: string, folderId: string): Pro
       fields: "nextPageToken, files(id,name,mimeType,webViewLink)",
       pageToken,
       pageSize: 1000,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
     for (const f of res.data.files ?? []) {
       if (f.id && f.name) children.push({ id: f.id, name: f.name, mimeType: f.mimeType ?? "", webViewLink: f.webViewLink });
@@ -589,21 +863,21 @@ export async function listDriveChildren(officeId: string, folderId: string): Pro
 // getOrCreateAttendanceFolder) — exportado pro sync reverso listar o conteúdo da raiz sem
 // precisar de um Case/Attendance específico em mãos.
 export async function getProcessosRootFolderId(officeId: string): Promise<string> {
-  const { drive } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, PROCESSOS_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, PROCESSOS_ROOT_NAME);
 }
 
 export async function getAtendimentosRootFolderId(officeId: string): Promise<string> {
-  const { drive } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, ATENDIMENTOS_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, ATENDIMENTOS_ROOT_NAME);
 }
 
 // Id da raiz "Lúmen - Casos" deste escritório (cria se ainda não existir) — exportado para o sync
 // reverso (lib/driveSync.ts) varrer o conteúdo da raiz nova, e para scripts/migrar-pastas-casos.ts
 // resolver o destino das pastas de caso movidas.
 export async function getCasosRootFolderId(officeId: string): Promise<string> {
-  const { drive } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, CASOS_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, CASOS_ROOT_NAME);
 }
 
 // Comprovantes do Financeiro (Contas a Pagar/Contas a Receber) — duas raízes FLAT, sem pasta por
@@ -612,20 +886,42 @@ export async function getCasosRootFolderId(officeId: string): Promise<string> {
 // conta só acrescentaria clique sem organizar nada a mais — a lista já é ordenável por nome no
 // próprio Drive. "Despesas" (Payable) e "Receitas" (Receivable) são raízes SEPARADAS (não uma
 // única "Lúmen - Financeiro" com duas subpastas) para ficar no mesmo padrão flat de
-// PROCESSOS_ROOT_NAME/ATENDIMENTOS_ROOT_NAME/ASSESSORIA_ROOT_NAME acima — todas raiz direta do
-// Drive, nenhuma aninhada dentro de outra pasta do Lúmen.
+// PROCESSOS_ROOT_NAME/ATENDIMENTOS_ROOT_NAME/ASSESSORIA_ROOT_NAME acima — todas raiz direta da
+// pasta-mãe "Lúmen", nenhuma aninhada dentro de outra.
 const FINANCEIRO_DESPESAS_ROOT_NAME = "Lúmen - Financeiro - Despesas";
 const FINANCEIRO_RECEITAS_ROOT_NAME = "Lúmen - Financeiro - Receitas";
 
 export async function getFinanceDespesasRootFolderId(officeId: string): Promise<string> {
-  const { drive } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, FINANCEIRO_DESPESAS_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, FINANCEIRO_DESPESAS_ROOT_NAME);
 }
 
 export async function getFinanceReceitasRootFolderId(officeId: string): Promise<string> {
-  const { drive } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, FINANCEIRO_RECEITAS_ROOT_NAME);
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateRootFolder(drive, cred, FINANCEIRO_RECEITAS_ROOT_NAME);
 }
+
+// Id da pasta-mãe "Lúmen" (cria se ainda não existir) — exportado para
+// lib/actions/driveParentMigration.ts mover as raízes legadas soltas pra dentro dela.
+export async function getLumenParentFolderId(officeId: string): Promise<string> {
+  const { drive, cred } = await getDriveClient(officeId);
+  return getOrCreateLumenParentFolder(drive, cred);
+}
+
+// As nove raízes que hoje nascem dentro da pasta-mãe "Lúmen" (ver getOrCreateRootFolder) — usado
+// só pela migração (lib/actions/driveParentMigration.ts) para reconhecer, por nome, qualquer uma
+// delas que ainda esteja solta direto em 'root' de uma conexão anterior a esta entrega.
+export const ALL_ROOT_FOLDER_NAMES: string[] = [
+  FOLDERS.anexos.name,
+  FOLDERS.modelos.name,
+  FOLDERS.gerados.name,
+  ASSESSORIA_ROOT_NAME,
+  PROCESSOS_ROOT_NAME,
+  ATENDIMENTOS_ROOT_NAME,
+  CASOS_ROOT_NAME,
+  FINANCEIRO_DESPESAS_ROOT_NAME,
+  FINANCEIRO_RECEITAS_ROOT_NAME,
+];
 
 // ============ MIGRAÇÃO DE PASTAS LEGADAS (ver lib/actions/driveFolderMigration.ts) ============
 
@@ -647,7 +943,7 @@ export type DriveFileInfo = { id: string; name: string; parents: string[]; trash
 export async function getDriveFileInfo(fileId: string, officeId: string): Promise<DriveFileInfo | null> {
   const { drive } = await getDriveClient(officeId);
   try {
-    const file = await drive.files.get({ fileId, fields: "id, name, parents, trashed" });
+    const file = await drive.files.get({ fileId, fields: "id, name, parents, trashed", supportsAllDrives: true });
     return { id: fileId, name: file.data.name ?? "", parents: file.data.parents ?? [], trashed: Boolean(file.data.trashed) };
   } catch (e: unknown) {
     const status = (e as { code?: number; response?: { status?: number } })?.code ?? (e as { response?: { status?: number } })?.response?.status;
@@ -660,8 +956,9 @@ export async function getDriveFileInfo(fileId: string, officeId: string): Promis
 // permanente e não pode ser desfeito por ninguém, nem o dono da conta). Usado só quando uma
 // automação está prestes a apagar algo que ela mesma concluiu (com alta confiança) ser um
 // duplicado vazio, e mesmo assim precisa continuar reversível por 30 dias pela Lixeira do Drive
-// caso a conclusão esteja errada — ver migrarPastasLegadasDoDrive.
+// caso a conclusão esteja errada — ver migrarPastasLegadasDoDrive e
+// lib/actions/driveParentMigration.ts (auditoria das raízes "RP Financeiro - *").
 export async function trashDriveFile(fileId: string, officeId: string): Promise<void> {
   const { drive } = await getDriveClient(officeId);
-  await drive.files.update({ fileId, requestBody: { trashed: true } });
+  await drive.files.update({ fileId, requestBody: { trashed: true }, supportsAllDrives: true });
 }

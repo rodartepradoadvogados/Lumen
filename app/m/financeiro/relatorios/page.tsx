@@ -72,14 +72,14 @@ export default async function MobileRelatoriosFinanceiro() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Relatórios · Financeiro</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">
+        <h1 className="font-serif text-xl font-bold text-tx">Relatórios · Financeiro</h1>
+        <p className="text-sm text-tx-2">
           {months[0].label} a {months[months.length - 1].label}
         </p>
       </div>
@@ -98,17 +98,17 @@ export default async function MobileRelatoriosFinanceiro() {
 
       <Card>
         <CardHeader title="Recebido x Pago por mês" subtitle="Regime de caixa" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {financeMonthly.map((m) => (
             <div key={m.key} className="px-4 py-3 flex items-center justify-between gap-3">
-              <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 w-12 shrink-0 capitalize">{m.label}</span>
+              <span className="text-sm font-semibold text-tx w-12 shrink-0 capitalize">{m.label}</span>
               <div className="flex-1 text-right leading-tight">
                 <p className="text-xs text-emerald-600 dark:text-emerald-400">+{formatCurrency(m.receita)}</p>
-                <p className="text-xs text-red-500 dark:text-bordo-400">-{formatCurrency(m.despesa)}</p>
+                <p className="text-xs text-urgente">-{formatCurrency(m.despesa)}</p>
               </div>
               <span
                 className={`text-sm font-semibold w-28 text-right shrink-0 ${
-                  m.saldo >= 0 ? "text-navy-900 dark:text-cream-50" : "text-red-600 dark:text-bordo-400"
+                  m.saldo >= 0 ? "text-tx" : "text-urgente"
                 }`}
               >
                 {formatCurrency(m.saldo)}
@@ -123,11 +123,11 @@ export default async function MobileRelatoriosFinanceiro() {
         {topExpenses.length === 0 ? (
           <EmptyState title="Nenhuma despesa paga no período" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {topExpenses.map((e) => (
               <div key={e.label} className="px-4 py-3 flex items-center justify-between gap-3">
-                <span className="text-sm text-navy-800 dark:text-cream-50/85 truncate">{e.label}</span>
-                <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{formatCurrency(e.value)}</span>
+                <span className="text-sm text-tx-2 truncate">{e.label}</span>
+                <span className="text-sm font-semibold text-tx shrink-0">{formatCurrency(e.value)}</span>
               </div>
             ))}
           </div>
@@ -150,15 +150,15 @@ function StatBlock({
 }) {
   const toneClass = {
     green: "text-emerald-600 dark:text-emerald-400",
-    red: "text-red-600 dark:text-bordo-400",
-    gold: "text-gold-700 dark:text-gold-400",
-    navy: "text-navy-900 dark:text-cream-50",
+    red: "text-urgente",
+    gold: "text-concluido",
+    navy: "text-tx",
   }[tone];
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium text-navy-800/55 dark:text-cream-50/55 uppercase tracking-wide">{label}</p>
+      <p className="text-xs font-medium text-tx-2 uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-serif font-bold mt-1 ${toneClass}`}>{value}</p>
-      {hint && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-tx-2 mt-1">{hint}</p>}
     </Card>
   );
 }

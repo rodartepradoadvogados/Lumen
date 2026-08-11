@@ -56,9 +56,9 @@ export default function MobileHonorarioLancamentoGroup({
   bankAccounts: Option[];
 }) {
   return (
-    <div className="px-4 py-3 border-b border-navy-800/5 dark:border-white/10 last:border-0">
+    <div className="px-4 py-3 border-b border-regua last:border-0">
       <div className="flex items-start justify-between gap-2 mb-1.5">
-        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">
+        <p className="text-sm font-semibold text-tx">
           Honorário parcelado{lancamento.valorTotalIndicado != null && <> — total {formatCurrency(lancamento.valorTotalIndicado)}</>}
         </p>
         <DeleteEntityButton
@@ -69,7 +69,7 @@ export default function MobileHonorarioLancamentoGroup({
         />
       </div>
       {lancamento.payerType !== "CLIENTE" && (
-        <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mb-1.5">
+        <p className="text-xs text-tx-2 mb-1.5">
           Pagador: {lancamento.payerType === "OUTRO" ? lancamento.payerName || "Outro" : PAYER_TYPE_LABELS[lancamento.payerType]}
         </p>
       )}
@@ -79,11 +79,11 @@ export default function MobileHonorarioLancamentoGroup({
           const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
           const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
           return (
-            <div key={p.id} className="rounded-lg bg-cream-50/60 dark:bg-white/5 px-3 py-2.5">
+            <div key={p.id} className="rounded-lg bg-sf-apoio px-3 py-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
-                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">
+                  <p className="text-sm text-tx">{p.description}</p>
+                  <p className="text-[11px] text-tx-2 mt-0.5">
                     {isApurar
                       ? `${p.percentual}% de ${PERCENTUAL_BASE_LABELS[p.percentualBase ?? ""] ?? "base não definida"} — a apurar`
                       : p.noDueDate
@@ -99,8 +99,8 @@ export default function MobileHonorarioLancamentoGroup({
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                  {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
+                  <p className="text-sm font-semibold text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                  {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2">saldo {formatCurrency(saldo)}</p>}
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 mt-1.5">

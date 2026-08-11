@@ -56,15 +56,15 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m/atendimento"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Atendimento
       </Link>
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50 leading-tight">{a.clientName}</h1>
-          <p className="text-sm text-navy-800/50 dark:text-cream-50/50 mt-0.5">{a.subject}</p>
+          <h1 className="font-serif text-lg font-bold text-tx leading-tight">{a.clientName}</h1>
+          <p className="text-sm text-tx-2 mt-0.5">{a.subject}</p>
         </div>
         <MobileAttendanceStatusSelect attendanceId={a.id} status={a.status} />
       </div>
@@ -78,8 +78,8 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
         <Field label="Data" value={formatDate(a.createdAt)} />
         {a.convertedCase && (
           <div className="flex justify-between gap-3 text-sm pb-0">
-            <span className="text-navy-800/50 dark:text-cream-50/50 shrink-0">Convertido em</span>
-            <Link href={`/m/processos/${a.convertedCase.id}`} className="font-medium text-gold-700 dark:text-gold-400 text-right">
+            <span className="text-tx-2 shrink-0">Convertido em</span>
+            <Link href={`/m/processos/${a.convertedCase.id}`} className="font-medium text-acao text-right">
               {a.convertedCase.title}
             </Link>
           </div>
@@ -87,19 +87,19 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       </Card>
 
       <Card className="p-4">
-        <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição</h4>
-        <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
+        <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Descrição</h4>
+        <p className="text-sm text-tx-2 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
       </Card>
 
       <div>
-        <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Anexos</h4>
+        <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</h4>
         <MobileCaseAttachmentsTab attachments={serializedAttachments} />
       </div>
 
       {!a.convertedCaseId && (
         <Card className="p-4">
-          <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-1">Transformar em Processo/Caso</h4>
-          <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+          <h4 className="text-sm font-semibold text-tx mb-1">Transformar em Processo/Caso</h4>
+          <p className="text-xs italic text-tx-3 mb-3">
             Cria um novo Caso ou Processo vinculado ao cliente, mantendo o histórico deste atendimento.
           </p>
           <MobileConvertAttendanceForm attendanceId={a.id} />
@@ -109,12 +109,12 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       {showWhatsapp && (
         <Card className="p-4">
           <div className="flex items-start justify-between mb-3 gap-2">
-            <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Conversa do WhatsApp</h4>
-            {a.waPhone && <span className="text-xs text-navy-800/45 dark:text-cream-50/45 shrink-0">{a.waPhone}</span>}
+            <h4 className="text-sm font-semibold text-tx">Conversa do WhatsApp</h4>
+            {a.waPhone && <span className="text-xs text-tx-2 shrink-0">{a.waPhone}</span>}
           </div>
 
           {a.whatsappMessages.length === 0 ? (
-            <p className="text-sm text-navy-800/45 dark:text-cream-50/45">Nenhuma mensagem ainda.</p>
+            <p className="text-sm text-tx-2">Nenhuma mensagem ainda.</p>
           ) : (
             <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
               {a.whatsappMessages.map((m) => {
@@ -124,12 +124,12 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
                     <div
                       className={
                         out
-                          ? "max-w-[80%] rounded-lg rounded-br-sm bg-navy-700 px-3 py-2 text-white"
-                          : "max-w-[80%] rounded-lg rounded-bl-sm bg-cream-100 dark:bg-white/5 px-3 py-2 text-navy-900 dark:text-cream-50 border border-navy-800/8 dark:border-white/10"
+                          ? "max-w-[80%] rounded-lg rounded-br-sm bg-acao px-3 py-2 text-acao-tx"
+                          : "max-w-[80%] rounded-lg rounded-bl-sm bg-sf-apoio px-3 py-2 text-tx border border-regua"
                       }
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                      <p className={out ? "mt-1 text-[10px] text-white/60 text-right" : "mt-1 text-[10px] text-navy-800/40 dark:text-cream-50/40"}>
+                      <p className={out ? "mt-1 text-[10px] text-acao-tx/60 text-right" : "mt-1 text-[10px] text-tx-2"}>
                         {formatDate(m.createdAt)}{" "}
                         {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         {out && m.status === "FAILED" ? " · falhou" : ""}
@@ -141,40 +141,40 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
             </div>
           )}
 
-          <p className="mt-3 text-xs italic text-navy-800/40 dark:text-cream-50/40">Para responder, use o computador.</p>
+          <p className="mt-3 text-xs italic text-tx-2">Para responder, use o computador.</p>
         </Card>
       )}
 
       {showEmail && (
         <Card className="p-4">
-          <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-3">E-mail</h4>
+          <h4 className="text-sm font-semibold text-tx mb-3">E-mail</h4>
           <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
             {a.emailMessages.map((m) => (
-              <div key={m.id} className="rounded-lg border border-navy-800/8 dark:border-white/10 bg-cream-100 dark:bg-white/5 px-3 py-2">
+              <div key={m.id} className="rounded-lg border border-regua bg-sf-apoio px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 truncate">{m.subject}</p>
-                  <span className="shrink-0 text-[10px] text-navy-800/40 dark:text-cream-50/40">
+                  <p className="text-sm font-semibold text-tx truncate">{m.subject}</p>
+                  <span className="shrink-0 text-[10px] text-tx-2">
                     {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-navy-800/50 dark:text-cream-50/50">
+                <p className="mt-1 text-xs text-tx-2">
                   De {m.fromAddress} para {m.toAddress}
                 </p>
-                <p className="mt-1 text-sm text-navy-900 dark:text-cream-50 whitespace-pre-wrap break-words">{m.body}</p>
+                <p className="mt-1 text-sm text-tx whitespace-pre-wrap break-words">{m.body}</p>
                 {m.status === "FAILED" && (
-                  <p className="mt-1 text-xs font-medium text-red-600 dark:text-bordo-400">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
+                  <p className="mt-1 text-xs font-medium text-urgente">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
                 )}
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs italic text-navy-800/40 dark:text-cream-50/40">Para responder, use o computador.</p>
+          <p className="mt-3 text-xs italic text-tx-2">Para responder, use o computador.</p>
         </Card>
       )}
 
       <Card className="p-4">
-        <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-2">Anotações pessoais</h4>
+        <h4 className="text-sm font-semibold text-tx mb-2">Anotações pessoais</h4>
         <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
-        <div className="mt-3 pt-3 border-t border-navy-800/8 dark:border-white/10">
+        <div className="mt-3 pt-3 border-t border-regua">
           <MobileNovaAnotacaoForm linkType="ATENDIMENTO" entityId={a.id} />
         </div>
       </Card>
@@ -184,9 +184,9 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between gap-3 text-sm border-b border-navy-800/5 dark:border-white/10 pb-2 last:border-0 last:pb-0">
-      <span className="text-navy-800/50 dark:text-cream-50/50 shrink-0">{label}</span>
-      <span className="font-medium text-navy-900 dark:text-cream-50 text-right">{value || "—"}</span>
+    <div className="flex justify-between gap-3 text-sm border-b border-regua pb-2 last:border-0 last:pb-0">
+      <span className="text-tx-2 shrink-0">{label}</span>
+      <span className="font-medium text-tx text-right">{value || "—"}</span>
     </div>
   );
 }
