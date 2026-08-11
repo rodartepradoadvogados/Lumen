@@ -8,6 +8,7 @@ import { getTaskDetail, updateTask, toggleTaskDone, TaskDetail } from "@/lib/act
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import CommentBox from "@/components/CommentBox";
 import { formatDate } from "@/components/ui";
+import { typeMeta } from "@/components/AgendaView";
 import ModalShell from "@/components/ModalShell";
 
 // Rótulo discreto de auditoria (tooltip) exibido no botão de concluir/reabrir quando a
@@ -101,12 +102,12 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
   return (
     <ModalShell size="cheio" title="Compromisso" onClose={onClose}>
       {loading || !task ? (
-        <div className="flex-1 flex items-center justify-center text-sm text-navy-800/50 dark:text-cream-50/50">Carregando...</div>
+        <div className="flex-1 flex items-center justify-center text-sm text-tx-3">Carregando...</div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
             {task.case && (
-              <Link href={`/processos/${task.case.id}`} className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline block">
+              <Link href={`/processos/${task.case.id}`} className="text-xs font-semibold text-acao hover:underline block">
                 {task.case.processNumber || task.case.title}
               </Link>
             )}
@@ -115,13 +116,13 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
             <form id="task-detail-form" action={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título</label>
+                  <label className="text-xs font-medium text-tx-2">Título</label>
                   <input name="title" defaultValue={task.title} required className="input" />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                    <label className="text-xs font-medium text-tx-2">Tipo</label>
                     <select name="type" className="input" value={type} onChange={(e) => setType(e.target.value)}>
                       <option value="TAREFA">Tarefa</option>
                       <option value="EVENTO">Evento / Reunião</option>
@@ -131,7 +132,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prioridade</label>
+                    <label className="text-xs font-medium text-tx-2">Prioridade</label>
                     <select name="priority" className="input" defaultValue={task.priority}>
                       <option value="BAIXA">Baixa</option>
                       <option value="MEDIA">Média</option>
@@ -143,17 +144,17 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
+                    <label className="text-xs font-medium text-tx-2">Data</label>
                     <input type="date" name="dueDate" required defaultValue={task.dueDate.slice(0, 10)} className="input" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora (opcional)</label>
+                    <label className="text-xs font-medium text-tx-2">Hora (opcional)</label>
                     <input type="time" name="dueTime" defaultValue={task.dueTime || ""} className="input" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Responsável</label>
+                  <label className="text-xs font-medium text-tx-2">Responsável</label>
                   <select name="responsibleId" className="input" defaultValue={task.responsibleId || ""}>
                     <option value="">Não definido</option>
                     {users.map((u) => (
@@ -167,12 +168,14 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
 
               <div className="space-y-3">
                 {(type === "EVENTO" || type === "AUDIENCIA") && (
-                  <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 p-3 space-y-3">
-                    <p className="text-xs font-semibold text-gold-800 dark:text-gold-400 uppercase tracking-wide">
+                  // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio +
+                  // filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
+                  <div className={`rounded-r-[5px] border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
+                    <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                       {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                     </p>
                     <div className="flex gap-4">
-                      <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                      <label className="flex items-center gap-1.5 text-sm text-tx">
                         <input
                           type="radio"
                           name="meetingType"
@@ -182,7 +185,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                         />
                         Presencial
                       </label>
-                      <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                      <label className="flex items-center gap-1.5 text-sm text-tx">
                         <input
                           type="radio"
                           name="meetingType"
@@ -195,12 +198,12 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                     </div>
                     {meetingType === "PRESENCIAL" ? (
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço (opcional)</label>
+                        <label className="text-xs font-medium text-tx-2">Endereço (opcional)</label>
                         <input name="location" defaultValue={task.location || ""} className="input" placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO" />
                       </div>
                     ) : (
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+                        <label className="text-xs font-medium text-tx-2">
                           {type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}
                         </label>
                         <input name="meetingUrl" type="url" defaultValue={task.meetingUrl || ""} className="input" placeholder="https://meet.google.com/..." />
@@ -210,13 +213,13 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                 )}
 
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
+                  <label className="text-xs font-medium text-tx-2">Descrição (opcional)</label>
                   <textarea name="description" rows={type === "AUDIENCIA" ? 3 : 5} defaultValue={task.description || ""} className="input" />
                 </div>
 
                 {type === "AUDIENCIA" && (
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+                    <label className="text-xs font-medium text-tx-2">Estratégia (opcional)</label>
                     <textarea
                       name="strategy"
                       rows={4}
@@ -229,23 +232,23 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               </div>
             </form>
 
-            <div className="border-t border-navy-800/8 dark:border-white/10 pt-3 space-y-3">
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Conversa</p>
+            <div className="border-t border-regua pt-3 space-y-3">
+              <p className="text-xs font-semibold text-tx-3 uppercase tracking-wide">Conversa</p>
               {task.comments.length === 0 ? (
-                <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nenhum comentário ainda.</p>
+                <p className="text-sm text-tx-3">Nenhum comentário ainda.</p>
               ) : (
                 <div className="space-y-3 max-h-56 overflow-y-auto scrollbar-thin">
                   {task.comments.map((cm) => (
                     <div key={cm.id} className="flex gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-navy-800 dark:bg-navy-700 text-gold-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-[10px] font-bold shrink-0">
                         {cm.authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm">
-                          <span className="font-semibold text-navy-900 dark:text-cream-50">{cm.authorName}</span>{" "}
-                          <span className="text-[11px] text-navy-800/40 dark:text-cream-50/40">{formatDate(cm.createdAt)}</span>
+                          <span className="font-semibold text-tx">{cm.authorName}</span>{" "}
+                          <span className="text-[11px] text-tx-3">{formatDate(cm.createdAt)}</span>
                         </p>
-                        <p className="text-sm text-navy-800/80 dark:text-cream-50/80 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
+                        <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                       </div>
                     </div>
                   ))}
@@ -255,15 +258,13 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center gap-2 flex-wrap bg-cream-50/60 dark:bg-white/5">
-            {error && (
-              <p className="w-full text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>
-            )}
+          <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center gap-2 flex-wrap bg-sf-apoio">
+            {error && <p className="w-full text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
             <button
               type="submit"
               form="task-detail-form"
               disabled={saving}
-              className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? "Salvando..." : "Salvar"}
             </button>
@@ -272,7 +273,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               onClick={handleToggleDone}
               disabled={saving}
               data-tip={task.status === "CONCLUIDO" && task.completedBy && task.completedAt ? completedLabel(task.completedBy.name, task.completedAt) : undefined}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3.5 py-2.5 rounded-lg disabled:opacity-50"
+              className="flex items-center gap-1.5 bg-concluido hover:opacity-90 text-white text-sm font-semibold px-3.5 py-2.5 rounded-lg disabled:opacity-50 transition-opacity"
             >
               <Check size={14} /> {task.status === "CONCLUIDO" ? "Reabrir" : "Marcar como concluída"}
             </button>
@@ -292,21 +293,16 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
         .input {
           width: 100%;
           margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
-          color: #14213d;
-          background: #fff;
+          color: var(--tx);
+          background: var(--sf-superficie);
         }
         .input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
-        }
-        .dark .input {
-          border-color: rgba(255, 255, 255, 0.15);
-          background: #0f1f3d;
-          color: #fbfaf7;
+          box-shadow: 0 0 0 2px var(--acao-bg);
         }
       `}</style>
     </ModalShell>

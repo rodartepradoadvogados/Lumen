@@ -11,8 +11,7 @@ export type PendenciaRow = {
   dueDate: string; // YYYY-MM-DD
 };
 
-const inputCls =
-  "w-full text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-md px-2 py-1";
+const inputCls = "w-full text-xs border border-regua-forte bg-sf text-tx rounded-md px-2 py-1";
 
 // Duas colunas de caixas de seleção (Solicitar ao lead / Enviar ao lead) — marcar uma abre, na
 // hora, uma pergunta a mais ("quais?" quando o tipo pedir) e os campos de responsável/prazo,
@@ -49,7 +48,7 @@ export default function PendenciasEditor({
   function Column({ direction, options }: { direction: PendenciaDirection; options: typeof SOLICITAR_KIND_OPTIONS }) {
     return (
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold text-navy-800/55 dark:text-cream-50/55 uppercase tracking-wide">
+        <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">
           {PENDENCIA_DIRECTION_LABELS[direction]}
         </p>
         <div className="space-y-1.5">
@@ -57,8 +56,8 @@ export default function PendenciasEditor({
             const row = rows.find((r) => r.direction === direction && r.kind === opt.kind);
             const checked = Boolean(row);
             return (
-              <div key={opt.kind} className="rounded-lg border border-navy-800/8 dark:border-white/10 bg-white/50 dark:bg-white/5 px-2.5 py-1.5">
-                <label className="flex items-center gap-2 text-xs text-navy-800/80 dark:text-cream-50/80 cursor-pointer">
+              <div key={opt.kind} className="rounded-lg border border-regua bg-sf-apoio px-2.5 py-1.5">
+                <label className="flex items-center gap-2 text-xs text-tx-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={checked}

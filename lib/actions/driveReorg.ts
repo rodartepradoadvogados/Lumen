@@ -3,11 +3,13 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
-import { extractDriveFileId } from "@/lib/googleDrive";
+import { extractDriveFileId, ASSESSORIA_DOC_TYPE_FOLDERS } from "@/lib/googleDrive";
 import {
   getOrCreateCaseFolder,
   getOrCreateAttendanceFolder,
   getOrCreateCategoryFolder,
+  getOrCreateAssessoriaCompanyFolder,
+  getOrCreateParecerFolder,
   moveDriveFile,
 } from "@/lib/storageProvider";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
@@ -57,6 +59,56 @@ export async function reorganizeExistingAttachments(): Promise<ReorgResult> {
       moved++;
     } catch (e) {
       errors.push(`${att.name}: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    }
+  }
+
+  return { moved, skipped, errors };
+}
+
+// Mesma ideia de reorganizeExistingAttachments acima, mas para os documentos da Assessoria
+// (AssessoriaDocumento) — antes desta entrega, esta ação só cobria Anexo de Processo/Atendimento;
+// a árvore de Assessoria (empresa/categoria/parecer) ficava de fora, mesmo lacuna que
+// lib/driveSync.ts tinha no sentido contrário (ver syncAssessoriaTree lá). Só move o que realmente
+// está no nosso Drive/OneDrive/Dropbox (link colado de outro serviço é ignorado). Idempotente.
+export async function reorganizeExistingAssessoriaDocuments(): Promise<ReorgResult> {
+  const user = await getCurrentUser();
+  if (!canConfigureIntegrations(user)) return { moved: 0, skipped: 0, errors: ["Apenas administradores podem rodar esta ação."] };
+
+  const documentos = await prisma.assessoriaDocumento.findMany({
+    where: { officeId: user.officeId },
+    include: {
+      assessoria: { select: { client: { select: { name: true } } } },
+      parecer: { select: { id: true, name: true } },
+    },
+  });
+
+  let moved = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  for (const doc of documentos) {
+    const fileId = doc.storageFileId || extractDriveFileId(doc.driveUrl);
+    if (!fileId) {
+      skipped++;
+      continue;
+    }
+    try {
+      const companyName = doc.assessoria.client.name;
+      let targetFolderId: string;
+      if (doc.parecer) {
+        targetFolderId = await getOrCreateParecerFolder(doc.parecerId!, companyName, doc.parecer.name, user.officeId);
+      } else {
+        const companyFolderId = await getOrCreateAssessoriaCompanyFolder(companyName, user.officeId);
+        // OUTRO/ACAO_VINCULADA não têm subpasta própria por desenho (ver comentário em
+        // lib/googleDrive.ts, ASSESSORIA_DOC_TYPE_FOLDERS) — ficam soltos na raiz da empresa, de
+        // propósito, não é um "esqueceu de categorizar".
+        const subName = ASSESSORIA_DOC_TYPE_FOLDERS[doc.docType];
+        targetFolderId = subName ? await getOrCreateCategoryFolder(companyFolderId, subName, user.officeId) : companyFolderId;
+      }
+      await moveDriveFile(fileId, targetFolderId, user.officeId);
+      moved++;
+    } catch (e) {
+      errors.push(`${doc.name}: ${e instanceof Error ? e.message : "erro desconhecido"}`);
     }
   }
 

@@ -68,8 +68,8 @@ export default async function FinanceiroLumenPage({
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">Financeiro Lúmen</h1>
-        <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1">Receita (MRR) e despesas da própria empresa Lúmen</p>
+        <h1 className="text-2xl font-bold text-white">Financeiro Lúmen</h1>
+        <p className="text-sm text-white/55 mt-1">Receita (MRR) e despesas da própria empresa Lúmen</p>
       </div>
 
       <LumenPanel>
@@ -82,11 +82,11 @@ export default async function FinanceiroLumenPage({
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-white/5 text-cream-50/70">
+          <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-white/5 text-white/70">
             <ChevronLeft size={18} />
           </Link>
-          <span className="text-sm font-semibold text-cream-50 px-2 min-w-[9rem] text-center">{labelCompetencia(mesFoco)}</span>
-          <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-white/5 text-cream-50/70">
+          <span className="text-sm font-semibold text-white px-2 min-w-[9rem] text-center">{labelCompetencia(mesFoco)}</span>
+          <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-white/5 text-white/70">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -98,7 +98,7 @@ export default async function FinanceiroLumenPage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-cream-50/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
                 <th className="px-5 py-2.5 font-semibold">Conta</th>
                 <th className="px-3 py-2.5 font-semibold">Descrição</th>
                 <th className="px-3 py-2.5 font-semibold">Fornecedor</th>
@@ -111,13 +111,13 @@ export default async function FinanceiroLumenPage({
               {expenses.map((e) => (
                 <tr key={e.id}>
                   <td className="px-5 py-3">
-                    <span className="text-cream-50 font-medium">{e.account.name}</span>
-                    {e.account.group && <span className="block text-[11px] text-cream-50/40">{e.account.group}</span>}
+                    <span className="text-white font-medium">{e.account.name}</span>
+                    {e.account.group && <span className="block text-[11px] text-white/40">{e.account.group}</span>}
                   </td>
-                  <td className="px-3 py-3 text-cream-50/80">{e.description}</td>
-                  <td className="px-3 py-3 text-cream-50/70">{e.supplier || "—"}</td>
-                  <td className="px-3 py-3 font-mono tabular-nums text-cream-50">{formatCurrency(e.amount)}</td>
-                  <td className="px-3 py-3 font-mono tabular-nums text-cream-50/70">{e.paidAt ? formatDate(e.paidAt) : "—"}</td>
+                  <td className="px-3 py-3 text-white/80">{e.description}</td>
+                  <td className="px-3 py-3 text-white/70">{e.supplier || "—"}</td>
+                  <td className="px-3 py-3 font-mono tabular-nums text-white">{formatCurrency(e.amount)}</td>
+                  <td className="px-3 py-3 font-mono tabular-nums text-white/70">{e.paidAt ? formatDate(e.paidAt) : "—"}</td>
                   <td className="px-3 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <PlatformExpenseModal
@@ -141,7 +141,7 @@ export default async function FinanceiroLumenPage({
               ))}
               {expenses.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-cream-50/40 text-sm">
+                  <td colSpan={6} className="px-5 py-8 text-center text-white/40 text-sm">
                     Nenhuma despesa lançada em {labelCompetencia(mesFoco)}.
                   </td>
                 </tr>

@@ -70,26 +70,26 @@ export default async function MobileFluxoDeCaixa() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Fluxo de Caixa</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Entradas e saídas projetadas por mês (por vencimento)</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Fluxo de Caixa</h1>
+        <p className="text-sm text-tx-2">Entradas e saídas projetadas por mês (por vencimento)</p>
       </div>
 
       <Card>
         <CardHeader title="Detalhamento mensal" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {rows.map((m) => (
             <div key={m.key} className="px-4 py-3 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">{m.label}</span>
+                <span className="text-sm font-semibold text-tx">{m.label}</span>
                 <span
                   className={`text-sm font-semibold ${
-                    m.saldoAcumulado >= 0 ? "text-gold-700 dark:text-gold-400" : "text-red-600 dark:text-bordo-400"
+                    m.saldoAcumulado >= 0 ? "text-concluido" : "text-urgente"
                   }`}
                 >
                   Acumulado: {formatCurrency(m.saldoAcumulado)}
@@ -97,10 +97,10 @@ export default async function MobileFluxoDeCaixa() {
               </div>
               <div className="grid grid-cols-3 gap-1 text-[11px]">
                 <span className="text-emerald-600 dark:text-emerald-400">↑ {formatCurrency(m.entradas)}</span>
-                <span className="text-red-500 dark:text-bordo-400 text-center">↓ {formatCurrency(m.saidas)}</span>
+                <span className="text-urgente text-center">↓ {formatCurrency(m.saidas)}</span>
                 <span
                   className={`text-right font-semibold ${
-                    m.saldoMes >= 0 ? "text-navy-900 dark:text-cream-50" : "text-red-600 dark:text-bordo-400"
+                    m.saldoMes >= 0 ? "text-tx" : "text-urgente"
                   }`}
                 >
                   {formatCurrency(m.saldoMes)}

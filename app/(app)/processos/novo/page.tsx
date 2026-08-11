@@ -5,7 +5,7 @@ export const maxDuration = 60;
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { createCase } from "@/lib/actions/cases";
 import { PageHeader, Card } from "@/components/ui";
 import ClientPicker from "@/components/ClientPicker";
@@ -30,20 +30,34 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
   // de Tipo original, sem o passo de natureza.
   const isProcessoFlow = defaultType === "JUDICIAL" || defaultType === "ADMINISTRATIVO";
   const initialNatureza: "JUDICIAL" | "ADMINISTRATIVO" = defaultType === "ADMINISTRATIVO" ? "ADMINISTRATIVO" : "JUDICIAL";
-  const [clients, users, assessoriasRaw, tribunais, driveStatus] = await Promise.all([
+  const [clients, users, assessoriasRaw, tribunais, storageConnected] = await Promise.all([
     prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    // Só assessorias ATIVAS entram na lista — MAS a assessoria de origem entra sempre, mesmo
+    // suspensa ou encerrada. Sem essa exceção, quem clicava "Novo processo"/"Novo caso" de
+    // dentro de uma assessoria não-ATIVA via o seletor sumir e o vínculo se perdia no submit,
+    // sem erro nenhum. Ver components/AssessoriaSelect.tsx.
     prisma.assessoria.findMany({
-      where: { status: "ATIVA", officeId: viewer.officeId },
+      where: {
+        officeId: viewer.officeId,
+        ...(searchParams.assessoriaId
+          ? { OR: [{ status: "ATIVA" }, { id: searchParams.assessoriaId }] }
+          : { status: "ATIVA" }),
+      },
       include: { client: true },
       orderBy: { client: { name: "asc" } },
     }),
     // Tribunal é catálogo global (sem officeId) — a ordenação real por CATEGORIA_ORDER acontece
     // no componente cliente (TribunalPickerModal), aqui só traz os dados.
     prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
-    getDriveStatus(viewer.officeId),
+    // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
+    // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
+    // não via onde soltar o arquivo, porque a checagem era específica do Drive.
+    isStorageConnected(viewer.officeId),
   ]);
-  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name }));
+  // `status` vai junto para o seletor poder marcar "(Suspensa)"/"(Encerrada)" na assessoria de
+  // origem — sem isso ela apareceria com o nome certo mas sem sinal nenhum de que não está ativa.
+  const assessorias = assessoriasRaw.map((a) => ({ id: a.id, clientName: a.client.name, status: a.status }));
 
   async function submit(formData: FormData) {
     "use server";
@@ -192,7 +206,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             <textarea name="description" rows={2} className="input" />
           </div>
 
-          <NewCaseAttachmentsField driveConnected={driveStatus.connected} />
+          <NewCaseAttachmentsField driveConnected={storageConnected} />
 
           <SaveCaseButton defaultType={defaultType} />
         </form>

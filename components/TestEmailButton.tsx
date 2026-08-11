@@ -13,12 +13,12 @@ export default function TestEmailButton() {
       <button
         onClick={() => startTransition(async () => setResult(await testDailyAgendaEmail()))}
         disabled={pending}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
       >
         <Mail size={15} /> {pending ? "Enviando..." : "Enviar e-mail de teste agora"}
       </button>
       {result && (
-        <p className={`text-sm mt-2 ${result.sent ? "text-emerald-700" : "text-red-600"}`}>
+        <p className={`text-sm mt-2 ${result.sent ? "text-concluido" : "text-vinho"}`}>
           {result.sent ? "E-mail enviado com sucesso!" : `Não enviado: ${result.reason}`}
         </p>
       )}

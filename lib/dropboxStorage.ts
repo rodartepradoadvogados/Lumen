@@ -127,6 +127,22 @@ export async function getOrCreateChildFolder(parentFolderId: string, name: strin
   return asIdPath(existing.id);
 }
 
+// Cria uma pasta com nome exato dentro do pai indicado, SEM reaproveitar uma existente (ao
+// contrário de getOrCreateChildFolder acima) — usada quando o pedido é criar uma pasta NOVA a
+// pedido do usuário (ver lib/actions/driveFolders.ts). autorename: true deixa a própria Dropbox
+// resolver um nome duplicado (sufixo automático), mesmo efeito prático de createNamedDriveFolder
+// no lado Google (lib/googleDrive.ts).
+export async function createNamedFolder(parentFolderId: string, name: string, officeId: string): Promise<{ id: string }> {
+  const accessToken = await getAccessTokenForOffice(officeId);
+  const parentMeta = await getMetadata(asIdPath(parentFolderId), accessToken);
+  const childPath = `${parentMeta.path_display}/${name}`;
+
+  const createRes = await dbxFetch("/files/create_folder_v2", accessToken, { path: childPath, autorename: true });
+  if (!createRes.ok) throw new Error(`Falha ao criar a pasta "${name}" no Dropbox (${createRes.status}): ${await createRes.text()}`);
+  const created = (await createRes.json()) as { metadata: { id: string } };
+  return { id: asIdPath(created.metadata.id) };
+}
+
 const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
 const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";

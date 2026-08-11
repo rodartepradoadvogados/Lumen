@@ -20,7 +20,7 @@ import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 
 type ClientHit = { id: string; name: string; phone: string | null; email: string | null };
-type AssessoriaOption = { id: string; clientName: string };
+type AssessoriaOption = { id: string; clientName: string; status?: string };
 type ConflictMatch = { id: string; title: string; processNumber: string | null };
 type FeeMode = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
@@ -59,9 +59,9 @@ function Segmented<T extends string>({
           type="button"
           onClick={() => onChange(opt.value)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-            value === opt.value
-              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+            // Mesmo padrão do controle segmentado (DESIGN-SYSTEM.md §5): opção ativa inverte —
+            // fundo na cor do texto, texto na cor da superfície — sem cor de acento.
+            value === opt.value ? "bg-tx text-sf border-tx" : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
           }`}
         >
           {opt.label}
@@ -75,10 +75,14 @@ export default function NewAttendanceModal({
   users,
   assessorias,
   autoOpen,
+  defaultAssessoriaId,
 }: {
   users: { id: string; name: string }[];
   assessorias: AssessoriaOption[];
   autoOpen?: boolean;
+  // Vem de ?assessoriaId= na URL — o botão "Novo atendimento" da própria tela de uma Assessoria
+  // linka para cá assim, para o atendimento nascer já vinculado (ver app/(app)/atendimento/page.tsx).
+  defaultAssessoriaId?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(!!autoOpen);
@@ -393,26 +397,27 @@ export default function NewAttendanceModal({
 
   return (
     <>
-      <button onClick={openFresh} className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors">
+      {/* "Novo" é Secundário (DESIGN-SYSTEM.md §4) — o azul de ação fica pro "Criar" dentro do modal. */}
+      <button onClick={openFresh} className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors">
         <Plus size={16} /> Novo Atendimento
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Novo Atendimento</h3>
-              <button onClick={handleCloseAttempt} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
+              <h3 className="font-bold text-tx">Novo Atendimento</h3>
+              <button onClick={handleCloseAttempt} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>
             </div>
 
             <form ref={formRef} onSubmit={handleSubmit} onChange={() => setDirty(true)} className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {formError && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{formError}</p>}
+                {formError && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{formError}</p>}
 
                 {uploadWarnings.length > 0 && (
-                  <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-3 py-2">
+                  <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg rounded-lg px-3 py-2">
                     <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -424,15 +429,15 @@ export default function NewAttendanceModal({
                 <SecaoLancamento title="Contato" tone="palha">
                   <div>
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nome do Contato</label>
-                      <div className="flex gap-1 bg-cream-100 dark:bg-white/5 rounded-lg p-0.5">
+                      <label className="text-xs font-medium text-tx-2">Nome do Contato</label>
+                      <div className="flex gap-1 bg-sf-apoio rounded-lg p-0.5">
                         <button
                           type="button"
                           onClick={() => setClientMode("novo")}
                           className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
                             clientMode === "novo"
-                              ? "bg-white dark:bg-navy-700 shadow-sm text-navy-900 dark:text-cream-50"
-                              : "text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                              ? "bg-sf shadow-sm text-tx"
+                              : "text-tx-3 hover:text-tx"
                           }`}
                         >
                           Cadastrar novo cliente
@@ -442,8 +447,8 @@ export default function NewAttendanceModal({
                           onClick={() => setClientMode("selecionar")}
                           className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
                             clientMode === "selecionar"
-                              ? "bg-white dark:bg-navy-700 shadow-sm text-navy-900 dark:text-cream-50"
-                              : "text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                              ? "bg-sf shadow-sm text-tx"
+                              : "text-tx-3 hover:text-tx"
                           }`}
                         >
                           Selecionar cliente
@@ -456,12 +461,12 @@ export default function NewAttendanceModal({
                         value={clientNameNovo}
                         onChange={(e) => setClientNameNovo(e.target.value)}
                         required
-                        className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="at-input"
                         placeholder="Nome completo"
                       />
                     ) : selectedClient ? (
-                      <div className="at-input flex items-center justify-between bg-cream-50 dark:bg-navy-800 dark:border-white/15">
-                        <span className="text-sm text-navy-900 dark:text-cream-50 truncate">{selectedClient.name}</span>
+                      <div className="at-input flex items-center justify-between bg-sf-apoio">
+                        <span className="text-sm text-tx truncate">{selectedClient.name}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -469,7 +474,7 @@ export default function NewAttendanceModal({
                             setClientQuery("");
                             setDirty(true);
                           }}
-                          className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline shrink-0 ml-2"
+                          className="text-xs font-semibold text-acao hover:underline shrink-0 ml-2"
                         >
                           trocar
                         </button>
@@ -480,13 +485,13 @@ export default function NewAttendanceModal({
                           value={clientQuery}
                           onChange={(e) => setClientQuery(e.target.value)}
                           placeholder="Buscar cliente cadastrado..."
-                          className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                          className="at-input"
                         />
                         {clientQuery.trim().length >= 2 && (
-                          <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-navy-800 border border-navy-800/10 dark:border-white/15 rounded-lg shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
-                            {searching && <p className="px-3 py-2 text-xs text-navy-800/50 dark:text-cream-50/50">Buscando...</p>}
+                          <div className="absolute z-10 left-0 right-0 mt-1 bg-sf border border-regua rounded-lg shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
+                            {searching && <p className="px-3 py-2 text-xs text-tx-3">Buscando...</p>}
                             {!searching && clientResults.length === 0 && (
-                              <p className="px-3 py-2 text-xs text-navy-800/50 dark:text-cream-50/50">Nenhum cliente encontrado.</p>
+                              <p className="px-3 py-2 text-xs text-tx-3">Nenhum cliente encontrado.</p>
                             )}
                             {!searching &&
                               clientResults.map((c) => (
@@ -494,11 +499,11 @@ export default function NewAttendanceModal({
                                   key={c.id}
                                   type="button"
                                   onClick={() => pickClient(c)}
-                                  className="flex flex-col items-start w-full px-3 py-2 text-left hover:bg-cream-50 dark:hover:bg-white/5 transition-colors"
+                                  className="flex flex-col items-start w-full px-3 py-2 text-left hover:bg-sf-apoio transition-colors"
                                 >
-                                  <span className="text-sm text-navy-900 dark:text-cream-50">{c.name}</span>
+                                  <span className="text-sm text-tx">{c.name}</span>
                                   {(c.phone || c.email) && (
-                                    <span className="text-xs text-navy-800/45 dark:text-cream-50/45">{[c.phone, c.email].filter(Boolean).join(" · ")}</span>
+                                    <span className="text-xs text-tx-3">{[c.phone, c.email].filter(Boolean).join(" · ")}</span>
                                   )}
                                 </button>
                               ))}
@@ -509,7 +514,7 @@ export default function NewAttendanceModal({
                   </div>
 
                   {conflictMatches.length > 0 && (
-                    <div className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-3 py-2">
+                    <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg rounded-lg px-3 py-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                       <div>
                         <p className="font-semibold">Possível conflito de interesses</p>
@@ -529,29 +534,29 @@ export default function NewAttendanceModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Telefone</label>
+                      <label className="text-xs font-medium text-tx-2">Telefone</label>
                       <input
                         name="contactPhone"
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
-                        className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="at-input"
                         placeholder="(00) 00000-0000"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">E-mail</label>
+                      <label className="text-xs font-medium text-tx-2">E-mail</label>
                       <input
                         name="clientEmail"
                         type="email"
                         value={clientEmail}
                         onChange={(e) => setClientEmail(e.target.value)}
-                        className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="at-input"
                         placeholder="cliente@exemplo.com"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Canal</label>
-                      <select name="channel" className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+                      <label className="text-xs font-medium text-tx-2">Canal</label>
+                      <select name="channel" className="at-input">
                         <option value="WHATSAPP">WhatsApp</option>
                         <option value="EMAIL">E-mail</option>
                         <option value="TELEFONE">Telefone</option>
@@ -559,8 +564,8 @@ export default function NewAttendanceModal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Origem do lead</label>
-                      <select name="leadSource" className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+                      <label className="text-xs font-medium text-tx-2">Origem do lead</label>
+                      <select name="leadSource" className="at-input">
                         <option value="">Não definida</option>
                         <option value="INDICACAO">Indicação</option>
                         <option value="INSTAGRAM">Instagram</option>
@@ -571,8 +576,8 @@ export default function NewAttendanceModal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Responsável pela triagem</label>
-                      <select name="responsibleId" className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+                      <label className="text-xs font-medium text-tx-2">Responsável pela triagem</label>
+                      <select name="responsibleId" className="at-input">
                         <option value="">Não definido</option>
                         {users.map((u) => (
                           <option key={u.id} value={u.id}>
@@ -582,21 +587,21 @@ export default function NewAttendanceModal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Próximo contato / follow-up</label>
-                      <input name="nextContactAt" type="date" className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                      <label className="text-xs font-medium text-tx-2">Próximo contato / follow-up</label>
+                      <input name="nextContactAt" type="date" className="at-input" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prazo de resposta ao lead</label>
+                      <label className="text-xs font-medium text-tx-2">Prazo de resposta ao lead</label>
                       <input
                         type="datetime-local"
                         value={responseDeadline}
                         onChange={(e) => setResponseDeadline(e.target.value)}
-                        className="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="at-input"
                       />
                     </div>
-                    <AssessoriaSelect assessorias={assessorias} inputClassName="at-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                    <AssessoriaSelect assessorias={assessorias} inputClassName="at-input" defaultValue={defaultAssessoriaId} />
                   </div>
-                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                  <p className="text-[11px] text-tx-3">
                     Lead sem retorno é lead perdido — a Central de Alertas avisa se o prazo acima estourar sem resposta.
                   </p>
                 </SecaoLancamento>
@@ -604,12 +609,12 @@ export default function NewAttendanceModal({
                 <SecaoLancamento title="Assunto e matéria" tone="azul">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Assunto (do que se trata)</label>
-                      <input name="subject" required className="at-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                      <label className="text-xs font-medium text-tx-2">Assunto (do que se trata)</label>
+                      <input name="subject" required className="at-input" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Matéria</label>
-                      <select name="area" className="at-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50">
+                      <label className="text-xs font-medium text-tx-2">Matéria</label>
+                      <select name="area" className="at-input">
                         <option value="">Não definida</option>
                         <option value="Cível">Cível</option>
                         <option value="Trabalhista">Trabalhista</option>
@@ -626,8 +631,8 @@ export default function NewAttendanceModal({
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição detalhada do que precisa</label>
-                    <textarea name="description" rows={4} className="at-input resize-y max-h-[40vh] dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                    <label className="text-xs font-medium text-tx-2">Descrição detalhada do que precisa</label>
+                    <textarea name="description" rows={4} className="at-input resize-y max-h-[40vh]" />
                   </div>
                 </SecaoLancamento>
 
@@ -644,29 +649,29 @@ export default function NewAttendanceModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {feeMode !== "PERCENTUAL" && (
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor em dinheiro (R$)</label>
-                        <input name="estimatedValue" type="number" step="0.01" min="0" className="at-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" placeholder="0,00" />
+                        <label className="text-xs font-medium text-tx-2">Valor em dinheiro (R$)</label>
+                        <input name="estimatedValue" type="number" step="0.01" min="0" className="at-input" placeholder="0,00" />
                       </div>
                     )}
                     {feeMode !== "DINHEIRO" && (
                       <>
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Percentual (%)</label>
+                          <label className="text-xs font-medium text-tx-2">Percentual (%)</label>
                           <input
                             type="number"
                             step="0.01"
                             min="0"
                             value={feePercentual}
                             onChange={(e) => setFeePercentual(e.target.value)}
-                            className="at-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="at-input"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Base do percentual</label>
+                          <label className="text-xs font-medium text-tx-2">Base do percentual</label>
                           <select
                             value={feePercentualBase}
                             onChange={(e) => setFeePercentualBase(e.target.value)}
-                            className="at-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="at-input"
                           >
                             {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
                               <option key={value} value={value}>
@@ -678,7 +683,7 @@ export default function NewAttendanceModal({
                       </>
                     )}
                   </div>
-                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                  <p className="text-[11px] text-tx-3">
                     Só uma intenção nesta fase — se o atendimento virar Processo, esses dados pré-preenchem (sem redigitar) a tela de Lançar
                     Honorários, mas a cobrança em si só é criada depois de você confirmar lá.
                   </p>
@@ -702,13 +707,11 @@ export default function NewAttendanceModal({
                     }}
                     onClick={() => fileInputRef.current?.click()}
                     className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
-                      dragOver
-                        ? "border-gold-500 bg-gold-500/5"
-                        : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-white/40 dark:hover:bg-white/5"
+                      dragOver ? "border-acao bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-sf-apoio"
                     }`}
                   >
-                    <UploadCloud size={20} className="text-navy-800/40 dark:text-cream-50/40" />
-                    <p className="text-xs text-navy-800/60 dark:text-cream-50/60 text-center">
+                    <UploadCloud size={20} className="text-tx-3" />
+                    <p className="text-xs text-tx-2 text-center">
                       Arraste um ou mais arquivos aqui, ou clique para selecionar do computador
                     </p>
                     <input
@@ -726,24 +729,25 @@ export default function NewAttendanceModal({
                   {stagedAttachments.length > 0 && (
                     <div className="space-y-2">
                       {stagedAttachments.map((att) => (
-                        <div key={att.key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg bg-white/50 dark:bg-white/5 border border-navy-800/8 dark:border-white/10">
+                        <div key={att.key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg bg-sf-apoio border border-regua">
                           <input
                             value={att.name}
                             onChange={(e) =>
                               setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, name: e.target.value } : a)))
                             }
-                            className="flex-1 text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+                            className="flex-1 text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5"
                           />
                           <DocumentTypeSelect
                             value={att.docType}
                             onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                             excludeKeys={["PARECER"]}
-                            className="text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5 sm:max-w-[220px]"
+                            allowCreate
+                            className="text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 sm:max-w-[220px]"
                           />
                           <button
                             type="button"
                             onClick={() => setStagedAttachments((prev) => prev.filter((a) => a.key !== att.key))}
-                            className="shrink-0 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 self-end sm:self-center"
+                            className="shrink-0 text-tx-3 hover:text-vinho self-end sm:self-center"
                           >
                             <X size={16} />
                           </button>
@@ -751,19 +755,19 @@ export default function NewAttendanceModal({
                       ))}
                     </div>
                   )}
-                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                  <p className="text-[11px] text-tx-3">
                     Os arquivos só sobem para a pasta do atendimento no Drive depois que ele é criado — o progresso aparece no rodapé desta
                     janela.
                   </p>
                 </SecaoLancamento>
               </div>
 
-              <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-cream-50/60 dark:bg-white/5">
+              <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="min-w-0">
                   {loading && progressText ? (
-                    <p className="text-xs font-semibold text-gold-700 dark:text-gold-400 truncate">{progressText}</p>
+                    <p className="text-xs font-semibold text-acao truncate">{progressText}</p>
                   ) : (
-                    <p className="text-xs text-navy-800/45 dark:text-cream-50/45">
+                    <p className="text-xs text-tx-3">
                       {pendenciaRows.length > 0 && `${pendenciaRows.length} pendência(s) · `}
                       {stagedAttachments.length > 0 && `${stagedAttachments.length} anexo(s) em espera`}
                     </p>
@@ -773,11 +777,11 @@ export default function NewAttendanceModal({
                   <button
                     type="button"
                     onClick={handleCloseAttempt}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/10"
+                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf-apoio"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
+                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors">
                     {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Criar"}
                   </button>
                 </div>
@@ -788,27 +792,22 @@ export default function NewAttendanceModal({
       )}
 
       {confirmClose && (
-        <div className="fixed inset-0 z-[60] bg-navy-950/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm p-5 space-y-4">
-            <p className="text-sm font-medium text-navy-900 dark:text-cream-50">Deseja salvar o rascunho deste atendimento e continuar depois?</p>
+        <div className="fixed inset-0 z-[60] bg-grafite-900/60 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm p-5 space-y-4">
+            <p className="text-sm font-medium text-tx">Deseja salvar o rascunho deste atendimento e continuar depois?</p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleSaveDraft}
                 disabled={loading}
-                className="w-full bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
+                className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {loading ? "Salvando..." : "Salvar rascunho"}
               </button>
-              <button
-                onClick={handleDiscard}
-                className="w-full bg-white dark:bg-navy-800 border border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/10 text-navy-800/70 dark:text-cream-50/70 text-sm font-semibold py-2 rounded-lg"
-              >
+              {/* Descartar é destrutivo (DESIGN-SYSTEM.md §4: fundo —, texto --vinho). */}
+              <button onClick={handleDiscard} className="w-full text-vinho text-sm font-semibold py-2 rounded-lg hover:bg-sf-apoio">
                 Descartar
               </button>
-              <button
-                onClick={() => setConfirmClose(false)}
-                className="w-full text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 py-1"
-              >
+              <button onClick={() => setConfirmClose(false)} className="w-full text-xs font-semibold text-tx-3 hover:text-tx py-1">
                 Cancelar
               </button>
             </div>
@@ -828,8 +827,23 @@ export default function NewAttendanceModal({
       )}
 
       <style jsx global>{`
-        .at-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .at-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .at-input {
+          width: 100%;
+          margin-top: 0.25rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+          background: var(--sf-superficie);
+          color: var(--tx);
+        }
+        .at-input:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px var(--acao-bg);
+        }
+        .at-input::placeholder {
+          color: var(--tx-3);
+        }
       `}</style>
     </>
   );

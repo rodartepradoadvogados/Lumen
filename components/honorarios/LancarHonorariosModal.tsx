@@ -110,8 +110,8 @@ function Segmented<T extends string>({
           onClick={() => onChange(opt.value)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
             value === opt.value
-              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-              : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+              ? "bg-acao text-acao-tx border-acao"
+              : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
           }`}
         >
           {opt.label}
@@ -121,7 +121,7 @@ function Segmented<T extends string>({
   );
 }
 
-const labelCls = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+const labelCls = "text-xs font-medium text-tx-2";
 
 // Bases zeradas — usadas como fallback enquanto ninguém escolheu processo ainda (entrando pelo
 // Financeiro, Fase 7): baseValueFor() devolve null para as quatro, cai no mesmo caminho de "base
@@ -315,16 +315,16 @@ export default function LancarHonorariosModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
         <Plus size={16} /> Lançar Honorários
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Lançar Honorários</h3>
-              <button onClick={resetAndClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
+              <h3 className="font-bold text-tx">Lançar Honorários</h3>
+              <button onClick={resetAndClose} className="text-tx-3 hover:text-tx dark:hover:text-tx">
                 <X size={18} />
               </button>
             </div>
@@ -430,15 +430,15 @@ export default function LancarHonorariosModal({
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
                 {caseAlreadyReceived !== undefined && (
-                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 bg-cream-50 dark:bg-navy-800 rounded-lg px-3 py-2">
+                  <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
                     Já recebido neste processo:{" "}
-                    <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(caseAlreadyReceived)}</span>
+                    <span className="font-semibold text-tx">{formatCurrency(caseAlreadyReceived)}</span>
                   </p>
                 )}
-                {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
                 {prefill && (
-                  <p className="text-xs text-gold-800 dark:text-gold-400 bg-gold-500/10 rounded-lg px-3 py-2">
+                  <p className="text-xs text-marca-tx bg-marca-bg rounded-lg px-3 py-2">
                     Honorário pretendido registrado na triagem deste atendimento — confira os valores abaixo e confirme antes de salvar.
                   </p>
                 )}
@@ -449,7 +449,7 @@ export default function LancarHonorariosModal({
                     name="description"
                     required
                     defaultValue={prefill ? "Honorários contratuais" : undefined}
-                    className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                    className="fin-input"
                     placeholder="Ex: Honorários contratuais"
                   />
                 </div>
@@ -469,11 +469,11 @@ export default function LancarHonorariosModal({
                           onChange={handleCaseChange}
                         />
                         {!hasCase ? (
-                          <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                          <p className="text-[11px] text-aviso mt-1">
                             Obrigatório — honorário sem processo não faz sentido.
                           </p>
                         ) : basesLoading ? (
-                          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">Carregando dados do processo...</p>
+                          <p className="text-[11px] text-tx-2 mt-1">Carregando dados do processo...</p>
                         ) : null}
                       </div>
                     )}
@@ -496,7 +496,7 @@ export default function LancarHonorariosModal({
                       <select
                         value={payerType}
                         onChange={(e) => setPayerType(e.target.value as PayerType)}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       >
                         <option value="CLIENTE">Cliente do processo</option>
                         <option value="ADVERSA">Parte adversa</option>
@@ -510,7 +510,7 @@ export default function LancarHonorariosModal({
                           value={payerName}
                           onChange={(e) => setPayerName(e.target.value)}
                           required
-                          className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                          className="fin-input"
                         />
                       </div>
                     )}
@@ -551,7 +551,7 @@ export default function LancarHonorariosModal({
                       <select
                         name="responsibleId"
                         defaultValue={defaultResponsibleId}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       >
                         {responsibles.map((r) => (
                           <option key={r.id} value={r.id}>
@@ -570,7 +570,7 @@ export default function LancarHonorariosModal({
                       <select
                         value={documentType}
                         onChange={(e) => setDocumentType(e.target.value)}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       >
                         <option value="">Não informado</option>
                         {DOCUMENT_TYPE_OPTIONS.map((o) => (
@@ -585,7 +585,7 @@ export default function LancarHonorariosModal({
                       <input
                         value={documentNumber}
                         onChange={(e) => setDocumentNumber(e.target.value)}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       />
                     </div>
                     <div>
@@ -594,7 +594,7 @@ export default function LancarHonorariosModal({
                         type="date"
                         value={issueDate}
                         onChange={(e) => setIssueDate(e.target.value)}
-                        className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       />
                     </div>
                   </div>
@@ -611,7 +611,7 @@ export default function LancarHonorariosModal({
                     ]}
                   />
                   {!hasCase && (
-                    <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                    <p className="text-[11px] text-tx-2">
                       &quot;Recorrente até o arquivamento&quot; exige um processo — escolha um na seção Identificação, acima, para habilitar.
                     </p>
                   )}
@@ -626,7 +626,7 @@ export default function LancarHonorariosModal({
                             step="0.01"
                             value={valorTotalIndicado}
                             onChange={(e) => setValorTotalIndicado(e.target.value)}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                         <div>
@@ -639,7 +639,7 @@ export default function LancarHonorariosModal({
                               setInstallmentCount(e.target.value);
                               regenerate(e.target.value, installmentIntervalDays, valorTotalIndicado);
                             }}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                         <div>
@@ -652,22 +652,22 @@ export default function LancarHonorariosModal({
                               setInstallmentIntervalDays(e.target.value);
                               regenerate(installmentCount, e.target.value, valorTotalIndicado);
                             }}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>
                       )}
 
-                      <div className="overflow-x-auto rounded-lg border border-navy-800/10 dark:border-white/10">
+                      <div className="overflow-x-auto rounded-lg border border-regua">
                         <table className="w-full text-xs">
                           <thead className="bg-white/50 dark:bg-white/5">
-                            <tr className="text-left text-navy-800/50 dark:text-cream-50/50">
+                            <tr className="text-left text-tx-2">
                               <th className="px-2 py-1.5 font-medium">Parcela</th>
                               <th className="px-2 py-1.5 font-medium">Vencimento</th>
                               <th className="px-2 py-1.5 font-medium">Valor (R$)</th>
@@ -677,8 +677,8 @@ export default function LancarHonorariosModal({
                           </thead>
                           <tbody>
                             {parcelas.map((p, i) => (
-                              <tr key={p.key} className="border-t border-navy-800/8 dark:border-white/10">
-                                <td className="px-2 py-1.5 text-navy-800/70 dark:text-cream-50/70 whitespace-nowrap">
+                              <tr key={p.key} className="border-t border-regua">
+                                <td className="px-2 py-1.5 text-tx-2 whitespace-nowrap">
                                   {i + 1}/{parcelas.length}
                                 </td>
                                 <td className="px-2 py-1.5">
@@ -686,7 +686,7 @@ export default function LancarHonorariosModal({
                                     type="date"
                                     value={p.dueDate}
                                     onChange={(e) => updateParcela(p.key, { dueDate: e.target.value, dueDateManual: true })}
-                                    className="w-full bg-transparent border border-navy-800/12 dark:border-white/15 rounded-md px-1.5 py-1 text-navy-900 dark:text-cream-50"
+                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
@@ -695,14 +695,14 @@ export default function LancarHonorariosModal({
                                     step="0.01"
                                     value={p.amount}
                                     onChange={(e) => updateParcela(p.key, { amount: e.target.value })}
-                                    className="w-full bg-transparent border border-navy-800/12 dark:border-white/15 rounded-md px-1.5 py-1 text-navy-900 dark:text-cream-50"
+                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
                                   <input
                                     value={p.installmentBoleto}
                                     onChange={(e) => updateParcela(p.key, { installmentBoleto: e.target.value })}
-                                    className="w-full bg-transparent border border-navy-800/12 dark:border-white/15 rounded-md px-1.5 py-1 text-navy-900 dark:text-cream-50"
+                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5 text-center">
@@ -713,7 +713,7 @@ export default function LancarHonorariosModal({
                           </tbody>
                         </table>
                       </div>
-                      <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                      <p className="text-[11px] text-tx-2">
                         Parcela quitada antes do cadastro se marca na coluna &quot;Pago&quot; da própria linha — é o único caminho para lançamento
                         retroativo parcelado.
                       </p>
@@ -731,7 +731,7 @@ export default function LancarHonorariosModal({
                             value={amountMensal}
                             onChange={(e) => setAmountMensal(e.target.value)}
                             required={recorrente}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                         <div>
@@ -743,11 +743,11 @@ export default function LancarHonorariosModal({
                             value={dueDay}
                             onChange={(e) => setDueDay(e.target.value)}
                             required={recorrente}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                       </div>
-                      <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                      <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
                         Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado — sem precisar
                         definir quantas parcelas.
                       </p>
@@ -777,9 +777,9 @@ export default function LancarHonorariosModal({
                               value={amount}
                               onChange={(e) => setAmount(e.target.value)}
                               disabled={parcelado}
-                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
+                              className="fin-input disabled:opacity-50"
                             />
-                            {parcelado && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
+                            {parcelado && <p className="text-[11px] text-tx-2 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
                           </div>
                         )}
                         <div>
@@ -790,7 +790,7 @@ export default function LancarHonorariosModal({
                             value={discount}
                             onChange={(e) => setDiscount(e.target.value)}
                             disabled={parcelado}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
+                            className="fin-input disabled:opacity-50"
                           />
                         </div>
                         <div>
@@ -801,7 +801,7 @@ export default function LancarHonorariosModal({
                             value={surcharge}
                             onChange={(e) => setSurcharge(e.target.value)}
                             disabled={parcelado}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 disabled:opacity-50"
+                            className="fin-input disabled:opacity-50"
                           />
                         </div>
                       </div>
@@ -815,7 +815,7 @@ export default function LancarHonorariosModal({
                               step="0.01"
                               value={percentual}
                               onChange={(e) => setPercentual(e.target.value)}
-                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                              className="fin-input"
                             />
                           </div>
                           <div>
@@ -823,7 +823,7 @@ export default function LancarHonorariosModal({
                             <select
                               value={percentualBase}
                               onChange={(e) => setPercentualBase(e.target.value)}
-                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                              className="fin-input"
                             >
                               {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
                                 <option key={value} value={value}>
@@ -843,14 +843,14 @@ export default function LancarHonorariosModal({
                                   ? formatCurrency(baseValue)
                                   : "Ainda não informado no processo"
                               }
-                              className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50/70 cursor-not-allowed"
+                              className="fin-input cursor-not-allowed"
                             />
                           </div>
                         </div>
                       )}
 
                       {cobranca === "AMBOS" && (
-                        <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                        <label className="flex items-center gap-2 text-xs text-tx-2">
                           <input type="checkbox" checked={abaterEntrada} onChange={(e) => setAbaterEntrada(e.target.checked)} />
                           Abater do percentual o que já foi pago em dinheiro
                         </label>
@@ -858,17 +858,17 @@ export default function LancarHonorariosModal({
 
                       {cobrancaHasPercentual &&
                         (!hasCase ? (
-                          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
                             A base do percentual será conhecida depois de escolher o processo, na seção Identificação, acima.
                           </p>
                         ) : baseValue ? (
-                          <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                          <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
                             {percentualNum || 0}% de {formatCurrency(baseValue)} = {formatCurrency((baseValue * (percentualNum || 0)) / 100)}
                             {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago em dinheiro</>}
-                            {" "}= <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(percentualApurado)}</span> líquido de honorário
+                            {" "}= <span className="font-semibold text-tx">{formatCurrency(percentualApurado)}</span> líquido de honorário
                           </p>
                         ) : (
-                          <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
                             A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão a apurar (status
                             &quot;A apurar&quot;), fora do fluxo de caixa e do DRE, até alguém registrar o desfecho do processo.
                           </p>
@@ -876,7 +876,7 @@ export default function LancarHonorariosModal({
                     </SecaoLancamento>
 
                     <SecaoLancamento title="Vencimento" tone="azul">
-                      <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                      <label className="flex items-center gap-2 text-xs text-tx-2">
                         <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
                         Sem vencimento definido
                       </label>
@@ -888,11 +888,11 @@ export default function LancarHonorariosModal({
                             value={dueDate}
                             onChange={(e) => setDueDate(e.target.value)}
                             required={!semVencimento}
-                            className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                       ) : (
-                        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                        <p className="text-[11px] text-tx-2">
                           Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
                         </p>
                       )}
@@ -904,7 +904,7 @@ export default function LancarHonorariosModal({
                     nem em Recorrente (nunca "já recebido" — é gerado mês a mês pelo cron). */}
                 {forma === "UNICO" && (
                   <SecaoLancamento title="Recebimento" tone="verde">
-                    <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+                    <label className="flex items-center gap-2 text-xs text-tx-2">
                       <input type="checkbox" checked={recebido} onChange={(e) => handleRecebidoToggle(e.target.checked)} />
                       Já foi recebido
                     </label>
@@ -918,7 +918,7 @@ export default function LancarHonorariosModal({
                             value={paidDate}
                             onChange={(e) => setPaidDate(e.target.value)}
                             required={recebido}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                         <div>
@@ -929,7 +929,7 @@ export default function LancarHonorariosModal({
                             value={paidAmount}
                             onChange={(e) => setPaidAmount(e.target.value)}
                             required={recebido}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           />
                         </div>
                         <div>
@@ -945,14 +945,14 @@ export default function LancarHonorariosModal({
                         </div>
                         <div>
                           <label className={labelCls}>Nº do documento de pagamento</label>
-                          <input name="paymentDocumentNumber" className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50" />
+                          <input name="paymentDocumentNumber" className="fin-input" />
                         </div>
                         <div className="sm:col-span-2">
                           <label className={labelCls}>Forma de pagamento</label>
                           <select
                             value={paymentMethod}
                             onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                            className="fin-input"
                           >
                             {PAYMENT_METHOD_OPTIONS.map((o) => (
                               <option key={o.value} value={o.value}>
@@ -967,36 +967,36 @@ export default function LancarHonorariosModal({
                 )}
               </div>
 
-              <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-cream-50/60 dark:bg-white/5">
+              <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="flex items-center gap-4">
                   {recorrente ? (
                     <div>
-                      <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Valor mensal</span>
-                      <span className="font-serif text-lg font-bold tabular-nums text-gold-700 dark:text-gold-400">
+                      <span className="block text-[10px] uppercase tracking-wide text-tx-2">Valor mensal</span>
+                      <span className="text-lg font-bold tabular-nums text-marca-tx">
                         {formatCurrency(parseFloat(amountMensal || "0") || 0)}
                       </span>
                     </div>
                   ) : (
                     <>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Bruto</span>
-                        <span className="text-sm font-semibold tabular-nums text-navy-900 dark:text-cream-50">{formatCurrency(bruto)}</span>
+                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Bruto</span>
+                        <span className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(bruto)}</span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Desconto</span>
-                        <span className="text-sm font-semibold tabular-nums text-bordo-600 dark:text-bordo-400">
+                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Desconto</span>
+                        <span className="text-sm font-semibold tabular-nums text-urgente">
                           -{formatCurrency(parcelado ? 0 : discountNum)}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Acréscimo</span>
-                        <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Acréscimo</span>
+                        <span className="text-sm font-semibold tabular-nums text-concluido">
                           +{formatCurrency(parcelado ? 0 : surchargeNum)}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45">Líquido</span>
-                        <span className="font-serif text-lg font-bold tabular-nums text-gold-700 dark:text-gold-400">{formatCurrency(liquido)}</span>
+                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+                        <span className="text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                       </div>
                     </>
                   )}
@@ -1005,7 +1005,7 @@ export default function LancarHonorariosModal({
                   <button
                     type="button"
                     onClick={resetAndClose}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-navy-800/60 dark:text-cream-50/60 hover:bg-cream-100 dark:hover:bg-white/10"
+                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf"
                   >
                     Cancelar
                   </button>
@@ -1013,7 +1013,7 @@ export default function LancarHonorariosModal({
                     type="submit"
                     disabled={loading || !hasCase}
                     title={!hasCase ? "Selecione um processo, na seção Identificação" : undefined}
-                    className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50"
+                    className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors"
                   >
                     {loading ? "Salvando..." : "Salvar lançamento"}
                   </button>
@@ -1024,8 +1024,8 @@ export default function LancarHonorariosModal({
         </div>
       )}
       <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .fin-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
+        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
       `}</style>
     </>
   );

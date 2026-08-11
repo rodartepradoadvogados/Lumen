@@ -60,7 +60,7 @@ export default function MobileThemeToggle() {
       type="button"
       onClick={cycle}
       aria-label={`Tema atual: ${THEME_LABEL[mode]}. Toque para mudar para ${nextLabel}`}
-      className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-cream-50/80 hover:text-gold-400 hover:bg-white/10 transition-colors"
+      className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
     >
       <Icon size={16} />
     </button>

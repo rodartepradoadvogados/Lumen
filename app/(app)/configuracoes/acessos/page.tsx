@@ -36,7 +36,7 @@ export default async function AcessosPage() {
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-6">
       <Link
         href="/configuracoes"
-        className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+        className="text-xs font-semibold text-tx-3 hover:text-tx"
       >
         ← Configurações
       </Link>
@@ -65,15 +65,15 @@ export default async function AcessosPage() {
         <div className="p-5 flex items-center gap-3">
           {totalEntradas === 0 ? (
             <>
-              <ShieldCheck size={22} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <p className="text-sm text-navy-900 dark:text-cream-50">
+              <ShieldCheck size={22} className="text-concluido shrink-0" />
+              <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen <strong>não acessou</strong> os dados do seu escritório nenhuma vez.
               </p>
             </>
           ) : (
             <>
-              <ShieldAlert size={22} className="text-gold-600 dark:text-gold-400 shrink-0" />
-              <p className="text-sm text-navy-900 dark:text-cream-50">
+              <ShieldAlert size={22} className="text-aviso shrink-0" />
+              <p className="text-sm text-tx">
                 Nos últimos 90 dias, a Lúmen acessou dados do seu escritório <strong>{totalEntradas}</strong>{" "}
                 {totalEntradas === 1 ? "vez" : "vezes"}.
               </p>
@@ -108,11 +108,11 @@ export default async function AcessosPage() {
         <Card>
           <CardHeader title="Sessão ativa agora" subtitle="Alguém da Lúmen está com acesso ao seu escritório neste momento" />
           <div className="p-5 flex items-center justify-between gap-3 flex-wrap">
-            <div className="text-sm text-navy-900 dark:text-cream-50">
+            <div className="text-sm text-tx">
               <p>
                 <strong>{activeSession.memberName}</strong> — {ACCESS_REASONS[activeSession.reasonCode as AccessReasonCode] ?? activeSession.reasonCode}
               </p>
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+              <p className="text-xs text-tx-3 mt-0.5">
                 Entrou às {activeSession.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}, expira às{" "}
                 {activeSession.expiresAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -125,12 +125,12 @@ export default async function AcessosPage() {
       <Card>
         <CardHeader title="Histórico (90 dias)" subtitle="Somente leitura — nenhum registro pode ser editado ou apagado" />
         {log.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-navy-800/50 dark:text-cream-50/50">Nenhum acesso registrado neste período.</p>
+          <p className="px-5 py-6 text-sm text-tx-3">Nenhum acesso registrado neste período.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 border-b border-navy-800/8 dark:border-white/10">
+                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3 border-b border-regua">
                   <th className="px-5 py-2 font-semibold">Data/hora</th>
                   <th className="px-5 py-2 font-semibold">Quem</th>
                   <th className="px-5 py-2 font-semibold">Motivo</th>
@@ -138,9 +138,9 @@ export default async function AcessosPage() {
                   <th className="px-5 py-2 font-semibold">Duração</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <tbody className="divide-y divide-regua">
                 {log.map((entry) => (
-                  <tr key={entry.id} className="text-navy-800 dark:text-cream-50/85">
+                  <tr key={entry.id} className="text-tx/85">
                     <td className="px-5 py-2.5 whitespace-nowrap">{entry.createdAt.toLocaleString("pt-BR")}</td>
                     <td className="px-5 py-2.5">{entry.memberName}</td>
                     <td className="px-5 py-2.5">
@@ -154,7 +154,7 @@ export default async function AcessosPage() {
                     <td className="px-5 py-2.5">
                       {ACTION_LABEL[entry.action] ?? entry.action}
                       {entry.scopeDescription && (
-                        <p className="text-[11px] font-normal text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+                        <p className="text-[11px] font-normal text-tx-3 mt-0.5">
                           {entry.scopeDescription}
                         </p>
                       )}

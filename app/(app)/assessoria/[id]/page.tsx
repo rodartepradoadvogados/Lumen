@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { getAssessoriaDetail, retryAssessoriaDriveFolder } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
 import { Badge, formatCurrency } from "@/components/ui";
 import AssessoriaOverviewTab from "@/components/assessoria/AssessoriaOverviewTab";
@@ -9,8 +9,9 @@ import AssessoriaHonorariosTab from "@/components/assessoria/AssessoriaHonorario
 import AssessoriaLicitacoesTab from "@/components/assessoria/AssessoriaLicitacoesTab";
 import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab";
 import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
+import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ const TABS = [
   { key: "documentos", label: "Documentos" },
   { key: "honorarios", label: "Honorários" },
   { key: "licitacoes", label: "Licitações" },
-  { key: "processos-casos", label: "Pareceres, Processos e Casos" },
+  { key: "processos-casos", label: "Demandas, Processos e Casos" },
   { key: "linha-do-tempo", label: "Linha do Tempo" },
   // Anotações criadas pelo painel global "Anotações" (faixa retrátil na borda direita, ver
   // components/anotacoes/AnotacoesPanel.tsx) vinculadas a esta Assessoria.
@@ -49,14 +50,17 @@ export default async function AssessoriaDetailPage({
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [users, availableCasesRaw, driveStatus, anotacoesRaw] = await Promise.all([
+  const [users, availableCasesRaw, storageConnected, anotacoesRaw] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
       select: { id: true, title: true, processNumber: true },
       orderBy: { title: "asc" },
     }),
-    getDriveStatus(viewer.officeId),
+    // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
+    // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
+    // não via onde soltar o arquivo, porque a checagem era específica do Drive.
+    isStorageConnected(viewer.officeId),
     // Aba "Anotações pessoais" (painel global "Anotações") — mesma regra de filtro por
     // authorId de app/(app)/processos/[id]/page.tsx e app/(app)/atendimento/[id]/page.tsx.
     prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
@@ -72,14 +76,14 @@ export default async function AssessoriaDetailPage({
 
   return (
     <div className="p-6 animate-fade-in">
-      <Link href="/assessoria" className="text-xs font-semibold text-navy-800/45 dark:text-cream-50/45 hover:text-navy-900 dark:hover:text-cream-50">
+      <Link href="/assessoria" className="text-xs font-semibold text-tx-2 hover:text-tx">
         ← Assessoria Jurídica
       </Link>
 
       <div className="flex items-start justify-between gap-4 flex-wrap mt-2 mb-5">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{assessoria.client.name}</h1>
-          <div className="flex items-center gap-2 flex-wrap text-xs text-navy-800/45 dark:text-cream-50/45 mt-1">
+          <h1 className="text-2xl font-bold text-tx">{assessoria.client.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap text-xs text-tx-2 mt-1">
             {assessoria.client.document && <span>CNPJ {assessoria.client.document}</span>}
             {assessoria.responsible && <><span className="opacity-40">·</span><span>Responsável: {assessoria.responsible.name}</span></>}
             <span className="opacity-40">·</span>
@@ -89,34 +93,46 @@ export default async function AssessoriaDetailPage({
         <Badge color={statusColors[assessoria.status] || "slate"}>{statusLabels[assessoria.status] || assessoria.status}</Badge>
       </div>
 
+      {/* driveFolderId nulo com o armazenamento conectado só acontece hoje se a criação da pasta
+          falhou silenciosamente (bug corrigido na Tarefa C, ver createAssessoria em
+          lib/actions/assessoria.ts) — sem isso, a assessoria "parecia" ter pasta e não tinha. */}
+      {storageConnected && !assessoria.driveFolderId && (
+        <div className="mb-5">
+          <DriveFolderMissingNotice
+            message="Esta assessoria ainda não tem pasta no armazenamento em nuvem."
+            retry={retryAssessoriaDriveFolder.bind(null, assessoria.id)}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-3.5">
-          <p className="text-2xl font-serif font-bold text-navy-900 dark:text-cream-50">{assessoria.linkedCases.length}</p>
-          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">Processos vinculados</p>
+        <div className="bg-sf rounded-lg border border-regua p-3.5">
+          <p className="text-2xl font-bold text-tx">{assessoria.linkedCases.length}</p>
+          <p className="text-[11px] text-tx-2 mt-0.5">Processos vinculados</p>
         </div>
-        <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-3.5">
-          <p className="text-2xl font-serif font-bold text-navy-900 dark:text-cream-50">{formatCurrency(assessoria.monthlyFee)}</p>
-          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">Honorário · vence dia {assessoria.dueDay}</p>
+        <div className="bg-sf rounded-lg border border-regua p-3.5">
+          <p className="text-2xl font-bold text-tx">{formatCurrency(assessoria.monthlyFee)}</p>
+          <p className="text-[11px] text-tx-2 mt-0.5">Honorário · vence dia {assessoria.dueDay}</p>
         </div>
-        <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-3.5">
-          <p className="text-2xl font-serif font-bold text-navy-900 dark:text-cream-50">{licitacoesEmAndamento}</p>
-          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">Licitações em andamento</p>
+        <div className="bg-sf rounded-lg border border-regua p-3.5">
+          <p className="text-2xl font-bold text-tx">{licitacoesEmAndamento}</p>
+          <p className="text-[11px] text-tx-2 mt-0.5">Licitações em andamento</p>
         </div>
-        <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-3.5">
-          <p className="text-2xl font-serif font-bold text-navy-900 dark:text-cream-50">{assessoria.documents.length}</p>
-          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-0.5">Documentos no catálogo</p>
+        <div className="bg-sf rounded-lg border border-regua p-3.5">
+          <p className="text-2xl font-bold text-tx">{assessoria.documents.length}</p>
+          <p className="text-[11px] text-tx-2 mt-0.5">Documentos no catálogo</p>
         </div>
       </div>
 
-      <div className="flex gap-1 border-b-2 border-navy-800/8 dark:border-white/10 mb-5 flex-wrap">
+      <div className="flex gap-1 border-b-2 border-regua mb-5 flex-wrap">
         {TABS.map((t) => (
           <Link
             key={t.key}
             href={`/assessoria/${assessoria.id}?tab=${t.key}`}
             className={`text-sm font-semibold px-3.5 py-2.5 border-b-2 -mb-0.5 transition-colors ${
               tab === t.key
-                ? "border-gold-500 text-navy-900 dark:text-cream-50"
-                : "border-transparent text-navy-800/45 dark:text-cream-50/45 hover:text-navy-800 dark:hover:text-cream-50/70"
+                ? "border-acao text-tx"
+                : "border-transparent text-tx-2 hover:text-tx"
             }`}
           >
             {t.label}
@@ -125,16 +141,16 @@ export default async function AssessoriaDetailPage({
       </div>
 
       {tab === "geral" && <AssessoriaOverviewTab assessoria={assessoria} />}
-      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={driveStatus.connected} />}
+      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={storageConnected} />}
       {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
       {tab === "processos-casos" && (
-        <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} driveConnected={driveStatus.connected} />
+        <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} driveConnected={storageConnected} />
       )}
       {tab === "linha-do-tempo" && <AssessoriaTimelineTab assessoria={assessoria} />}
       {tab === "anotacoes-pessoais" && (
         <div>
-          <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+          <p className="text-xs italic text-tx-2 mb-3">
             Anotações que você criou vinculadas a esta assessoria (painel Anotações, ícone na borda direita da tela) — visíveis só para você.
           </p>
           <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />

@@ -27,7 +27,7 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 h-16 bg-white dark:bg-navy-900 border-t border-navy-800/10 dark:border-white/10 flex z-40 shadow-[0_-2px_12px_rgba(15,31,61,0.06)]">
+    <nav className="fixed bottom-0 inset-x-0 h-16 bg-sf border-t border-regua flex z-40 shadow-[0_-2px_12px_rgba(15,31,61,0.06)]">
       {items.map(({ href, label, Icon, exact, badge }) => {
         const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
         // "agenda" conta compromissos de HOJE (ver getTodayAgendaCount) — conceito diferente de
@@ -43,23 +43,23 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
             <span className="relative">
               <span
                 className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
-                  active ? "bg-gold-500 dark:bg-gold-400" : ""
+                  active ? "bg-marca" : ""
                 }`}
               >
                 <Icon
                   size={19}
-                  className={active ? "text-white dark:text-navy-950" : "text-navy-800/40 dark:text-cream-50/40"}
+                  className={active ? "text-marca-tx" : "text-tx-2"}
                 />
               </span>
               {badge && badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-bordo-600 dark:bg-bordo-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-vinho-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
               )}
             </span>
             <span
               className={`text-[10px] font-medium leading-none ${
-                active ? "text-navy-900 dark:text-cream-50" : "text-navy-800/40 dark:text-cream-50/40"
+                active ? "text-tx" : "text-tx-2"
               }`}
             >
               {label}

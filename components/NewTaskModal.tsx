@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createTask } from "@/lib/actions/tasks";
 import { Plus } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
+import { typeMeta } from "@/components/AgendaView";
 
 type Option = { id: string; name: string };
 
@@ -67,9 +68,10 @@ export default function NewTaskModal({
 
   return (
     <>
+      {/* "Nova"/"Novo" é Secundário (DESIGN-SYSTEM.md §4) — o azul de ação fica pro "Criar" dentro do modal. */}
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
         <Plus size={16} /> {label ?? "Nova Tarefa"}
       </button>
@@ -83,13 +85,13 @@ export default function NewTaskModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título</label>
+                    <label className="text-xs font-medium text-tx-2">Título</label>
                     <input name="title" required className="input" placeholder="Ex: Audiência de instrução" />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                      <label className="text-xs font-medium text-tx-2">Tipo</label>
                       <select name="type" className="input" value={type} onChange={(e) => setType(e.target.value)}>
                         <option value="TAREFA">Tarefa</option>
                         <option value="EVENTO">Evento / Reunião</option>
@@ -99,7 +101,7 @@ export default function NewTaskModal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prioridade</label>
+                      <label className="text-xs font-medium text-tx-2">Prioridade</label>
                       <select name="priority" className="input" defaultValue="MEDIA">
                         <option value="BAIXA">Baixa</option>
                         <option value="MEDIA">Média</option>
@@ -111,17 +113,17 @@ export default function NewTaskModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
+                      <label className="text-xs font-medium text-tx-2">Data</label>
                       <input type="date" name="dueDate" required defaultValue={defaultDate} className="input" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora (opcional)</label>
+                      <label className="text-xs font-medium text-tx-2">Hora (opcional)</label>
                       <input type="time" name="dueTime" className="input" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Processo/Caso vinculado</label>
+                    <label className="text-xs font-medium text-tx-2">Processo/Caso vinculado</label>
                     <select name="caseId" className="input" defaultValue={defaultCaseId ?? ""}>
                       <option value="">Nenhum</option>
                       {cases.map((c) => (
@@ -134,7 +136,7 @@ export default function NewTaskModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Responsável</label>
+                      <label className="text-xs font-medium text-tx-2">Responsável</label>
                       <select name="responsibleId" className="input">
                         <option value="">Não definido</option>
                         {users.map((u) => (
@@ -145,7 +147,7 @@ export default function NewTaskModal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Coluna do Kanban</label>
+                      <label className="text-xs font-medium text-tx-2">Coluna do Kanban</label>
                       <select name="columnId" className="input" defaultValue={defaultColumnId}>
                         {columns.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -157,7 +159,7 @@ export default function NewTaskModal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Pontos (opcional)</label>
+                    <label className="text-xs font-medium text-tx-2">Pontos (opcional)</label>
                     <input
                       type="number"
                       name="points"
@@ -166,18 +168,20 @@ export default function NewTaskModal({
                       className="input"
                       placeholder="Padrão do tipo de tarefa"
                     />
-                    <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
+                    <p className="text-[11px] text-tx-3 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {(type === "EVENTO" || type === "AUDIENCIA") && (
-                    <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 p-3 space-y-3">
-                      <p className="text-xs font-semibold text-gold-800 dark:text-gold-400 uppercase tracking-wide">
+                    // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio
+                    // + filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
+                    <div className={`rounded-r-[5px] border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
+                      <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                         {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                       </p>
                       <div className="flex gap-4">
-                        <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                        <label className="flex items-center gap-1.5 text-sm text-tx">
                           <input
                             type="radio"
                             name="meetingType"
@@ -187,7 +191,7 @@ export default function NewTaskModal({
                           />
                           Presencial
                         </label>
-                        <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                        <label className="flex items-center gap-1.5 text-sm text-tx">
                           <input
                             type="radio"
                             name="meetingType"
@@ -200,12 +204,12 @@ export default function NewTaskModal({
                       </div>
                       {meetingType === "PRESENCIAL" ? (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço (opcional)</label>
+                          <label className="text-xs font-medium text-tx-2">Endereço (opcional)</label>
                           <input name="location" className="input" placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO" />
                         </div>
                       ) : (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">{type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}</label>
+                          <label className="text-xs font-medium text-tx-2">{type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}</label>
                           <input name="meetingUrl" type="url" className="input" placeholder="https://meet.google.com/..." />
                         </div>
                       )}
@@ -213,13 +217,13 @@ export default function NewTaskModal({
                   )}
 
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
+                    <label className="text-xs font-medium text-tx-2">Descrição (opcional)</label>
                     <textarea name="description" rows={type === "AUDIENCIA" ? 3 : 6} className="input" />
                   </div>
 
                   {type === "AUDIENCIA" && (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+                      <label className="text-xs font-medium text-tx-2">Estratégia (opcional)</label>
                       <textarea name="strategy" rows={4} className="input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
                     </div>
                   )}
@@ -227,12 +231,12 @@ export default function NewTaskModal({
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex items-center justify-end gap-3 bg-cream-50/60 dark:bg-white/5">
-              {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2 flex-1">{error}</p>}
+            <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-end gap-3 bg-sf-apoio">
+              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2 flex-1">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Criar"}
               </button>
@@ -245,21 +249,16 @@ export default function NewTaskModal({
         .input {
           width: 100%;
           margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
-          color: #14213d;
-          background: #fff;
+          color: var(--tx);
+          background: var(--sf-superficie);
         }
         .input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
-        }
-        .dark .input {
-          border-color: rgba(255, 255, 255, 0.15);
-          background: #0f1f3d;
-          color: #fbfaf7;
+          box-shadow: 0 0 0 2px var(--acao-bg);
         }
       `}</style>
     </>

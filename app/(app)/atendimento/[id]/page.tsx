@@ -14,7 +14,7 @@ import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
-import { getDriveStatus } from "@/lib/googleDrive";
+import { isStorageConnected } from "@/lib/storageProvider";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
 import { X } from "lucide-react";
@@ -47,10 +47,13 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   const whatsappConfigured = await isWhatsappConfigured(viewer.officeId);
   const showWhatsapp = Boolean(a.waPhone) || a.whatsappMessages.length > 0;
 
-  const [users, columns, driveStatus] = await Promise.all([
+  const [users, columns, storageConnected] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" }, select: { id: true, name: true } }),
-    getDriveStatus(viewer.officeId),
+    // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
+    // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
+    // não via onde soltar o arquivo, porque a checagem era específica do Drive.
+    isStorageConnected(viewer.officeId),
   ]);
 
   const serializedAttachments = a.attachments.map((att) => ({
@@ -83,14 +86,14 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
   return (
     <>
       {/* Backdrop puramente visual: clicar fora não fecha a janela (só o X fecha). */}
-      <div className="fixed inset-0 bg-navy-950/40 z-40" aria-hidden="true" />
+      <div className="fixed inset-0 bg-grafite-900/40 z-40" aria-hidden="true" />
 
-      <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-cream-50 dark:bg-navy-900 rounded-xl shadow-pop flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-3 border-b border-navy-800/8 dark:border-white/10 shrink-0 bg-cream-50 dark:bg-navy-900">
-          <span className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Atendimento</span>
+      <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-sf rounded-xl shadow-pop flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-regua shrink-0 bg-sf">
+          <span className="text-xs font-semibold text-tx-3 uppercase tracking-wide">Atendimento</span>
           <Link
             href="/atendimento"
-            className="text-navy-800/40 hover:text-navy-900 dark:text-cream-50/40 dark:hover:text-cream-50 transition-colors"
+            className="text-tx-3 hover:text-tx transition-colors"
             aria-label="Fechar"
             title="Fechar"
           >
@@ -101,7 +104,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
         <div className="overflow-y-auto flex-1 p-6">
           <div className="max-w-[900px] mx-auto animate-fade-in">
             <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
-              <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">{a.clientName}</h1>
+              <h1 className="text-2xl font-bold text-tx">{a.clientName}</h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
                 <AttendanceStatusSelect attendanceId={a.id} status={a.status} />
@@ -113,8 +116,8 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 />
               </div>
             </div>
-            <p className="text-sm text-navy-800/50 dark:text-cream-50/50">{a.subject}</p>
-            <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mt-1.5 mb-5">
+            <p className="text-sm text-tx-3">{a.subject}</p>
+            <p className="text-xs italic text-tx-3 mt-1.5 mb-5">
               Use os seletores acima para mudar o estágio comercial e o status operacional deste atendimento a qualquer momento.
             </p>
 
@@ -127,14 +130,14 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 <Field label="Responsável pela triagem" value={a.responsible?.name} />
                 <Field label="Data" value={formatDate(a.createdAt)} />
                 {a.convertedCase && (
-                  <div className="flex justify-between text-sm border-b border-navy-800/5 dark:border-white/10 pb-2">
-                    <span className="text-navy-800/50 dark:text-cream-50/50">Convertido em</span>
-                    <Link href={`/processos/${a.convertedCase.id}`} className="font-medium text-gold-700 dark:text-gold-400 hover:underline text-right">
+                  <div className="flex justify-between text-sm border-b border-regua pb-2">
+                    <span className="text-tx-3">Convertido em</span>
+                    <Link href={`/processos/${a.convertedCase.id}`} className="font-medium text-acao hover:underline text-right">
                       {a.convertedCase.title}
                     </Link>
                   </div>
                 )}
-                <div className="pt-2 border-t border-navy-800/8 dark:border-white/10">
+                <div className="pt-2 border-t border-regua">
                   <AttendanceCommercialForm
                     attendanceId={a.id}
                     estimatedValue={a.estimatedValue}
@@ -149,14 +152,14 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 </div>
               </Card>
               <Card className="p-5">
-                <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Descrição detalhada</h4>
-                <p className="text-sm text-navy-800 dark:text-cream-50/80 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
+                <h4 className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-2">Descrição detalhada</h4>
+                <p className="text-sm text-tx/80 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
               </Card>
             </div>
 
             <Card className="p-5 mb-5">
-              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-1">Pendências</h4>
-              <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+              <h4 className="text-sm font-semibold text-tx mb-1">Pendências</h4>
+              <p className="text-xs italic text-tx-3 mb-3">
                 O que falta pedir ao lead e o que falta mandar para ele. Fecha sozinha quando o anexo do tipo correspondente é registrado
                 abaixo (Procuração, Contrato de Honorários e Declaração de Hipossuficiência); o resto se marca à mão.
               </p>
@@ -165,8 +168,8 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
             {!a.convertedCaseId && (
               <Card className="p-5 mb-5">
-                <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-1">Transformar em Processo/Caso</h4>
-                <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+                <h4 className="text-sm font-semibold text-tx mb-1">Transformar em Processo/Caso</h4>
+                <p className="text-xs italic text-tx-3 mb-3">
                   Isso cria um novo Caso ou Processo vinculado ao cliente, mantendo o histórico completo deste atendimento.
                 </p>
                 <ConvertAttendanceForm attendanceId={a.id} />
@@ -177,17 +180,17 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               <Card className="p-5 mb-5">
                 <div className="flex items-start justify-between mb-3 gap-2">
                   <div>
-                    <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Conversa do WhatsApp</h4>
-                    <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mt-1.5">
+                    <h4 className="text-sm font-semibold text-tx">Conversa do WhatsApp</h4>
+                    <p className="text-xs italic text-tx-3 mt-1.5">
                       Mensagens trocadas pelo número oficial do escritório no WhatsApp — a resposta sai pelo mesmo número que o cliente já
                       conhece.
                     </p>
                   </div>
-                  {a.waPhone && <span className="text-xs text-navy-800/45 dark:text-cream-50/45 shrink-0">{a.waPhone}</span>}
+                  {a.waPhone && <span className="text-xs text-tx-3 shrink-0">{a.waPhone}</span>}
                 </div>
 
                 {a.whatsappMessages.length === 0 ? (
-                  <p className="text-sm text-navy-800/45 dark:text-cream-50/45">Nenhuma mensagem ainda.</p>
+                  <p className="text-sm text-tx-3">Nenhuma mensagem ainda.</p>
                 ) : (
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                     {a.whatsappMessages.map((m) => {
@@ -197,12 +200,12 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                           <div
                             className={
                               out
-                                ? "max-w-[75%] rounded-lg rounded-br-sm bg-navy-700 px-3 py-2 text-white"
-                                : "max-w-[75%] rounded-lg rounded-bl-sm bg-cream-100 dark:bg-navy-800 px-3 py-2 text-navy-900 dark:text-cream-50 border border-navy-800/8 dark:border-white/10"
+                                ? "max-w-[75%] rounded-lg rounded-br-sm bg-acao px-3 py-2 text-acao-tx"
+                                : "max-w-[75%] rounded-lg rounded-bl-sm bg-sf-apoio px-3 py-2 text-tx border border-regua"
                             }
                           >
                             <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                            <p className={out ? "mt-1 text-[10px] text-white/60 text-right" : "mt-1 text-[10px] text-navy-800/40 dark:text-cream-50/40"}>
+                            <p className={out ? "mt-1 text-[10px] text-acao-tx/70 text-right" : "mt-1 text-[10px] text-tx-3"}>
                               {formatDate(m.createdAt)}{" "}
                               {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                               {out && m.status === "FAILED" ? " · falhou" : ""}
@@ -217,7 +220,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 {a.waPhone && whatsappConfigured ? (
                   <WhatsappReplyBox attendanceId={a.id} />
                 ) : (
-                  <p className="mt-3 text-xs text-navy-800/40 dark:text-cream-50/40">
+                  <p className="mt-3 text-xs text-tx-3">
                     {a.waPhone ? "Canal WhatsApp não configurado." : "Este atendimento não tem WhatsApp vinculado."}
                   </p>
                 )}
@@ -226,30 +229,30 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
             <Card className="p-5 mb-5">
               <div className="mb-3">
-                <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">E-mail</h4>
-                <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mt-1.5">
+                <h4 className="text-sm font-semibold text-tx">E-mail</h4>
+                <p className="text-xs italic text-tx-3 mt-1.5">
                   Enviado usando a sua própria conta Google conectada. Se não conseguir enviar, reconecte sua conta em Configurações.
                 </p>
               </div>
 
               {a.emailMessages.length === 0 ? (
-                <p className="text-sm text-navy-800/45 dark:text-cream-50/45">Nenhum e-mail enviado ainda.</p>
+                <p className="text-sm text-tx-3">Nenhum e-mail enviado ainda.</p>
               ) : (
                 <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 mb-3">
                   {a.emailMessages.map((m) => (
-                    <div key={m.id} className="rounded-lg border border-navy-800/8 dark:border-white/10 bg-cream-100 dark:bg-navy-800 px-3 py-2">
+                    <div key={m.id} className="rounded-lg border border-regua bg-sf-apoio px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{m.subject}</p>
-                        <span className="shrink-0 text-[10px] text-navy-800/40 dark:text-cream-50/40">
+                        <p className="text-sm font-semibold text-tx">{m.subject}</p>
+                        <span className="shrink-0 text-[10px] text-tx-3">
                           {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-navy-800/50 dark:text-cream-50/50">
+                      <p className="mt-1 text-xs text-tx-3">
                         De {m.fromAddress} para {m.toAddress}
                       </p>
-                      <p className="mt-1 text-sm text-navy-900 dark:text-cream-50 whitespace-pre-wrap break-words">{m.body}</p>
+                      <p className="mt-1 text-sm text-tx whitespace-pre-wrap break-words">{m.body}</p>
                       {m.status === "FAILED" && (
-                        <p className="mt-1 text-xs font-medium text-red-600 dark:text-bordo-400">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
+                        <p className="mt-1 text-xs font-medium text-urgente">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
                       )}
                     </div>
                   ))}
@@ -260,10 +263,10 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
             </Card>
 
             <Card className="mb-5">
-              <div className="flex items-start justify-between px-5 py-3 border-b border-navy-800/8 dark:border-white/10 gap-2">
+              <div className="flex items-start justify-between px-5 py-3 border-b border-regua gap-2">
                 <div>
-                  <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Tarefas / Kanban</h4>
-                  <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mt-1.5">
+                  <h4 className="text-sm font-semibold text-tx">Tarefas / Kanban</h4>
+                  <p className="text-xs italic text-tx-3 mt-1.5">
                     Tarefas e compromissos vinculados só a este atendimento — aparecem também na Agenda geral.
                   </p>
                 </div>
@@ -272,18 +275,18 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               {a.tasks.length === 0 ? (
                 <EmptyState title="Nenhuma tarefa vinculada a este atendimento" />
               ) : (
-                <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+                <div className="divide-y divide-regua">
                   {a.tasks.map((t) => (
                     <div key={t.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                           <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
-                          <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{t.title}</p>
+                          <p className="text-sm font-medium text-tx">{t.title}</p>
                         </div>
-                        {t.responsible && <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-0.5">Responsável: {t.responsible.name}</p>}
+                        {t.responsible && <p className="text-xs text-tx-3 mt-0.5">Responsável: {t.responsible.name}</p>}
                       </div>
-                      <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 shrink-0">{formatCalendarDate(t.dueDate)}</p>
+                      <p className="text-xs font-semibold text-tx-2 shrink-0">{formatCalendarDate(t.dueDate)}</p>
                       <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir a tarefa "${t.title}"?`} />
                     </div>
                   ))}
@@ -294,19 +297,19 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
             <Card className="p-5">
               <div className="flex items-start justify-between mb-3 gap-2">
                 <div>
-                  <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50">Anexos</h4>
-                  <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mt-1.5">
+                  <h4 className="text-sm font-semibold text-tx">Anexos</h4>
+                  <p className="text-xs italic text-tx-3 mt-1.5">
                     Documentos armazenados no Drive do escritório, vinculados a este atendimento.
                   </p>
                 </div>
                 <GerarDocumentoButton attendanceId={a.id} />
               </div>
-              <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={driveStatus.connected} />
+              <AttachmentList attachments={serializedAttachments} attendanceId={a.id} driveConnected={storageConnected} />
             </Card>
 
             <Card className="p-5 mt-5">
-              <h4 className="text-sm font-semibold text-navy-900 dark:text-cream-50 mb-1">Anotações pessoais</h4>
-              <p className="text-xs italic text-slate-600 dark:text-cream-50/45 mb-3">
+              <h4 className="text-sm font-semibold text-tx mb-1">Anotações pessoais</h4>
+              <p className="text-xs italic text-tx-3 mb-3">
                 Anotações que você criou vinculadas a este atendimento (painel Anotações, ícone na borda direita da tela) — visíveis só para você.
               </p>
               <AnotacoesPessoaisList anotacoes={serializedAnotacoes} />
@@ -320,9 +323,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between text-sm border-b border-navy-800/5 dark:border-white/10 pb-2">
-      <span className="text-navy-800/50 dark:text-cream-50/50">{label}</span>
-      <span className="font-medium text-navy-900 dark:text-cream-50 text-right">{value || "—"}</span>
+    <div className="flex justify-between text-sm border-b border-regua pb-2">
+      <span className="text-tx-3">{label}</span>
+      <span className="font-medium text-tx text-right">{value || "—"}</span>
     </div>
   );
 }

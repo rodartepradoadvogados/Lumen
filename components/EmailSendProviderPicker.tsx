@@ -35,7 +35,9 @@ export default function EmailSendProviderPicker({ current, googleConnected, micr
 
   return (
     <div>
-      <p className="text-xs font-semibold text-navy-900 dark:text-cream-50 mb-2">Enviar e-mail do Atendimento por:</p>
+      <p className="text-xs font-semibold text-tx mb-2">Enviar e-mail do Atendimento por:</p>
+      {/* Mesmo padrão do controle segmentado (DESIGN-SYSTEM.md §5): opção ativa inverte —
+          fundo na cor do texto, texto na cor da superfície — sem cor de acento. */}
       <div className="flex flex-wrap gap-2">
         {OPTIONS.map((opt) => {
           const isConnected = connected[opt.value];
@@ -48,9 +50,7 @@ export default function EmailSendProviderPicker({ current, googleConnected, micr
               onClick={() => choose(isSelected ? null : opt.value)}
               title={isConnected ? undefined : "Conecte esta conta primeiro"}
               className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed ${
-                isSelected
-                  ? "bg-gold-600 dark:bg-gold-500 text-white"
-                  : "bg-cream-100 dark:bg-white/10 text-navy-800/70 dark:text-cream-50/70"
+                isSelected ? "bg-tx text-sf" : "bg-sf-apoio text-tx-2"
               }`}
             >
               {isSelected && <CheckCircle2 size={13} />} {opt.label}
@@ -59,11 +59,11 @@ export default function EmailSendProviderPicker({ current, googleConnected, micr
         })}
       </div>
       {!selected && (
-        <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-2">
+        <p className="text-[11px] text-aviso mt-2">
           Nenhum provedor escolhido — o envio de e-mail no Atendimento está desabilitado até você escolher um acima.
         </p>
       )}
-      {error && <p className="text-[11px] text-red-600 dark:text-bordo-400 mt-2">{error}</p>}
+      {error && <p className="text-[11px] text-vinho mt-2">{error}</p>}
     </div>
   );
 }

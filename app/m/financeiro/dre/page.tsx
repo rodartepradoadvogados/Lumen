@@ -74,30 +74,30 @@ export default async function MobileDre({
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">DRE</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Regime de caixa (pago/recebido)</p>
+        <h1 className="font-serif text-xl font-bold text-tx">DRE</h1>
+        <p className="text-sm text-tx-2">Regime de caixa (pago/recebido)</p>
       </div>
 
       <div className="flex items-center justify-between gap-2">
         <Link
           href={prevHref}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 flex items-center justify-center text-navy-800/60 dark:text-cream-50/60"
+          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Mês anterior"
         >
           <ChevronLeft size={18} />
         </Link>
-        <p className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm text-center flex-1">
+        <p className="font-serif font-bold text-tx text-sm text-center flex-1">
           {MONTHS[month]} {year}
         </p>
         <Link
           href={nextHref}
-          className="h-9 w-9 rounded-lg bg-white dark:bg-navy-900 border border-navy-800/10 dark:border-white/10 flex items-center justify-center text-navy-800/60 dark:text-cream-50/60"
+          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próximo mês"
         >
           <ChevronRight size={18} />
@@ -106,16 +106,16 @@ export default async function MobileDre({
 
       <Card>
         <CardHeader title="Receitas" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {Object.keys(receitasPorCategoria).length === 0 && <EmptyState title="Nenhuma receita no período" />}
           {Object.entries(receitasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-4 py-2.5 text-sm gap-3">
-              <span className="text-navy-800 dark:text-cream-50/85 truncate">{cat}</span>
+              <span className="text-tx-2 truncate">{cat}</span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">{formatCurrency(val)}</span>
             </div>
           ))}
-          <div className="flex justify-between px-4 py-3 text-sm font-bold bg-cream-50 dark:bg-white/5">
-            <span className="text-navy-900 dark:text-cream-50">Total de Receitas</span>
+          <div className="flex justify-between px-4 py-3 text-sm font-bold bg-sf-apoio">
+            <span className="text-tx">Total de Receitas</span>
             <span className="text-emerald-700 dark:text-emerald-400">{formatCurrency(totalReceitas)}</span>
           </div>
         </div>
@@ -123,48 +123,48 @@ export default async function MobileDre({
 
       <Card>
         <CardHeader title="Despesas" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {Object.keys(despesasPorCategoria).length === 0 && <EmptyState title="Nenhuma despesa no período" />}
           {Object.entries(despesasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-4 py-2.5 text-sm gap-3">
-              <span className="text-navy-800 dark:text-cream-50/85 truncate">{cat}</span>
-              <span className="font-semibold text-red-500 dark:text-bordo-400 shrink-0">{formatCurrency(val)}</span>
+              <span className="text-tx-2 truncate">{cat}</span>
+              <span className="font-semibold text-urgente shrink-0">{formatCurrency(val)}</span>
             </div>
           ))}
-          <div className="flex justify-between px-4 py-3 text-sm font-bold bg-cream-50 dark:bg-white/5">
-            <span className="text-navy-900 dark:text-cream-50">Total de Despesas</span>
-            <span className="text-red-600 dark:text-bordo-400">{formatCurrency(totalDespesas)}</span>
+          <div className="flex justify-between px-4 py-3 text-sm font-bold bg-sf-apoio">
+            <span className="text-tx">Total de Despesas</span>
+            <span className="text-urgente">{formatCurrency(totalDespesas)}</span>
           </div>
         </div>
       </Card>
 
       {(totalAdiantado > 0 || totalReembolsado > 0) && (
-        <Card className="border border-dashed border-navy-800/15 dark:border-white/15">
+        <Card className="border border-dashed border-regua">
           <CardHeader title="Adiantamentos a Clientes" subtitle="Informativo — fora do Resultado" />
-          <div className="px-4 py-3 flex items-start gap-2 text-xs text-navy-800/60 dark:text-cream-50/60">
+          <div className="px-4 py-3 flex items-start gap-2 text-xs text-tx-2">
             <Info size={13} className="shrink-0 mt-0.5" />
             <p>Despesas do processo pagas por conta do cliente (com reembolso vinculado) não entram na Receita/Despesa nem no Resultado.</p>
           </div>
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/8 dark:border-white/10">
+          <div className="divide-y divide-regua border-t border-regua">
             <div className="flex justify-between px-4 py-2.5 text-sm">
-              <span className="text-navy-800 dark:text-cream-50/85">Adiantado no período</span>
-              <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(totalAdiantado)}</span>
+              <span className="text-tx-2">Adiantado no período</span>
+              <span className="font-semibold text-tx">{formatCurrency(totalAdiantado)}</span>
             </div>
             <div className="flex justify-between px-4 py-2.5 text-sm">
-              <span className="text-navy-800 dark:text-cream-50/85">Reembolsado no período</span>
-              <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(totalReembolsado)}</span>
+              <span className="text-tx-2">Reembolsado no período</span>
+              <span className="font-semibold text-tx">{formatCurrency(totalReembolsado)}</span>
             </div>
             <div className="flex justify-between px-4 py-2.5 text-sm">
-              <span className="text-navy-800 dark:text-cream-50/85">Saldo do período</span>
-              <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(saldoAdiantamentos)}</span>
+              <span className="text-tx-2">Saldo do período</span>
+              <span className="font-semibold text-tx">{formatCurrency(saldoAdiantamentos)}</span>
             </div>
           </div>
         </Card>
       )}
 
       <Card className="p-5 flex justify-between items-center">
-        <span className="font-serif font-bold text-navy-900 dark:text-cream-50">Resultado do Período</span>
-        <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-gold-700 dark:text-gold-400" : "text-red-600 dark:text-bordo-400"}`}>
+        <span className="font-serif font-bold text-tx">Resultado do Período</span>
+        <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>
           {formatCurrency(resultado)}
         </span>
       </Card>

@@ -49,15 +49,15 @@ export default async function FinanceiroPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {modules.map((m) => (
           <Link key={m.href} href={m.href}>
-            <Card className="p-5 h-full hover:shadow-pop transition-shadow">
+            <Card className="p-5 h-full hover:bg-sf-apoio transition-colors">
               <div className="flex items-start justify-between">
-                <div className="p-2.5 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80">
+                <div className="p-2.5 rounded-lg bg-sf-apoio text-tx-2">
                   <m.icon size={20} />
                 </div>
-                <ArrowRight size={16} className="text-navy-800/30 dark:text-cream-50/30" />
+                <ArrowRight size={16} className="text-tx-3" />
               </div>
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 mt-3">{m.label}</h3>
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">{m.desc}</p>
+              <h3 className="font-bold text-tx mt-3">{m.label}</h3>
+              <p className="text-xs text-tx-2 mt-1">{m.desc}</p>
             </Card>
           </Link>
         ))}

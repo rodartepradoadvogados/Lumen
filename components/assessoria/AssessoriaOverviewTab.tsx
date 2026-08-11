@@ -38,36 +38,36 @@ export default function AssessoriaOverviewTab({ assessoria }: { assessoria: Asse
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Próximos vencimentos</h4>
+      <div className="bg-sf rounded-lg border border-regua p-4">
+        <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Próximos vencimentos</h4>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-navy-800/40 dark:text-cream-50/40">Nada pendente no momento.</p>
+          <p className="text-sm text-tx-3">Nada pendente no momento.</p>
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {upcoming.map((item, i) => (
               <div key={i} className="flex justify-between gap-3 py-2 text-sm">
-                <span className="text-navy-900 dark:text-cream-50">{item.label}</span>
-                <span className="text-navy-800/45 dark:text-cream-50/45 whitespace-nowrap">{formatDate(item.date)}</span>
+                <span className="text-tx">{item.label}</span>
+                <span className="text-tx-2 whitespace-nowrap">{formatDate(item.date)}</span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="bg-white dark:bg-navy-900 rounded-lg border border-slate-200 dark:border-white/10 p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mb-2.5">Planejamento</h4>
+      <div className="bg-sf rounded-lg border border-regua p-4">
+        <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Planejamento</h4>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={5}
           placeholder="Anotações estratégicas para esta empresa..."
-          className="w-full text-sm text-navy-800 dark:text-cream-50/85 bg-transparent border border-navy-800/10 dark:border-white/15 rounded-lg p-2 focus:outline-none focus:border-gold-500 resize-none"
+          className="w-full text-sm text-tx bg-transparent border border-regua-forte rounded-lg p-2 focus:outline-none focus:border-acao resize-none"
         />
         {notes !== savedNotes && (
           <button
             onClick={saveNotes}
             disabled={pending}
-            className="mt-2 text-xs font-semibold text-gold-700 dark:text-gold-400 hover:text-gold-800 disabled:opacity-50"
+            className="mt-2 text-xs font-semibold text-acao hover:text-acao-hover disabled:opacity-50"
           >
             {pending ? "Salvando..." : "Salvar planejamento"}
           </button>

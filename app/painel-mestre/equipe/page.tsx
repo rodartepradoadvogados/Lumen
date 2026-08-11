@@ -31,8 +31,8 @@ export default async function EquipeLumenPage() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-navy-900 dark:text-cream-50">Equipe Lúmen</h1>
-          <p className="text-sm text-navy-800/55 dark:text-cream-50/55 mt-1">
+          <h1 className="text-2xl font-bold text-white">Equipe Lúmen</h1>
+          <p className="text-sm text-white/55 mt-1">
             Quadro e papéis da empresa — preparação para o controle de acesso por sigilo, ainda não ativo
           </p>
         </div>
@@ -44,7 +44,7 @@ export default async function EquipeLumenPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-cream-50/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
                 <th className="px-5 py-2.5 font-semibold">Nome</th>
                 <th className="px-3 py-2.5 font-semibold">E-mail</th>
                 <th className="px-3 py-2.5 font-semibold">Papel</th>
@@ -67,7 +67,7 @@ export default async function EquipeLumenPage() {
               ))}
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-cream-50/40 text-sm">
+                  <td colSpan={4} className="px-5 py-8 text-center text-white/40 text-sm">
                     Nenhum membro cadastrado ainda.
                   </td>
                 </tr>

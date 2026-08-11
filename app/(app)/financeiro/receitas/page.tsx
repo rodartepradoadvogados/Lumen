@@ -51,7 +51,7 @@ export default async function ReceitasPage({
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
-      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader
@@ -82,7 +82,7 @@ export default async function ReceitasPage({
                 defaultResponsibleId={viewer.id}
               />
             </div>
-            <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 max-w-sm text-right">
+            <p className="text-[11px] text-tx-2 max-w-sm text-right">
               <span className="font-semibold">Nova Conta a Receber</span>: qualquer receita (aluguel, reembolso, venda).{" "}
               <span className="font-semibold">Lançar Honorários</span>: honorário vinculado a processo, com forma de cobrança e apuração de êxito.
             </p>
@@ -101,11 +101,11 @@ export default async function ReceitasPage({
         <form className="p-4 flex flex-wrap items-end gap-3">
           {searchParams.tab && <input type="hidden" name="tab" value={searchParams.tab} />}
           <div className="flex-1 min-w-[180px]">
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">Buscar</label>
             <input type="text" name="q" defaultValue={searchParams.q} placeholder="Descrição ou cliente" className="fp-input w-full" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Categoria</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">Categoria</label>
             <select name="categoryId" defaultValue={searchParams.categoryId} className="fp-input">
               <option value="">Todas</option>
               {categories.map((c) => (
@@ -116,19 +116,19 @@ export default async function ReceitasPage({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">
+            <label className="text-xs font-medium text-tx-2 block mb-1">
               De {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
             </label>
             <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">
+            <label className="text-xs font-medium text-tx-2 block mb-1">
               Até {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
             </label>
             <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Centro de Custo</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">Centro de Custo</label>
             <select name="costCenterId" defaultValue={searchParams.costCenterId} className="fp-input">
               <option value="">Todos</option>
               {costCenters.map((c) => (
@@ -138,17 +138,17 @@ export default async function ReceitasPage({
               ))}
             </select>
           </div>
-          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 transition-colors">
             Filtrar
           </button>
           <a
             href={exportHref}
-            className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5 transition-colors"
           >
             <Download size={15} /> Exportar .xlsx
           </a>
           {(searchParams.from || searchParams.to || searchParams.costCenterId || searchParams.q || searchParams.categoryId) && (
-            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2">
+            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx px-2">
               Limpar filtros
             </Link>
           )}
@@ -209,8 +209,8 @@ export default async function ReceitasPage({
         />
       </Card>
       <style>{`
-        .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }
-        .fp-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .fp-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }
+        .fp-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
       `}</style>
     </div>
   );
@@ -222,8 +222,8 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
       href={href}
       className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
         active
-          ? "bg-navy-900 text-white dark:bg-white/10 dark:text-cream-50"
-          : "bg-white dark:bg-navy-900 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"
+          ? "bg-acao text-acao-tx"
+          : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
       }`}
     >
       {label}

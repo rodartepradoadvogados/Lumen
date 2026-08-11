@@ -4,8 +4,8 @@ import { useState } from "react";
 import { changeOwnPassword } from "@/lib/actions/settings";
 
 const inputClass =
-  "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
-const labelClass = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+const labelClass = "text-xs font-medium text-tx-2";
 
 // Versão mobile compacta do ChangePasswordForm do desktop (mesma server action
 // changeOwnPassword) — disponível para qualquer usuário logado, sem depender de nenhuma
@@ -51,7 +51,7 @@ export default function MobileChangePasswordForm() {
         <input name="confirmPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       {error && (
-        <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-500/10 border border-bordo-500/20 rounded-lg px-2.5 py-1.5">
+        <p className="text-xs text-urgente bg-urgente-bg border border-urgente rounded-lg px-2.5 py-1.5">
           {error}
         </p>
       )}
@@ -63,7 +63,7 @@ export default function MobileChangePasswordForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-navy-900 dark:bg-gold-600 text-white text-sm font-semibold rounded-lg px-4 py-2.5 disabled:opacity-50"
+        className="w-full bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 disabled:opacity-50"
       >
         {loading ? "Salvando..." : "Alterar senha"}
       </button>

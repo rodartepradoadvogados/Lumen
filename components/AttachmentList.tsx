@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil, LayoutGrid, List as ListIcon, Table2 } from "lucide-react";
+import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil, LayoutGrid, List as ListIcon, Table2, FolderPlus } from "lucide-react";
 import { createAttachment, deleteAttachment, finalizeAttachmentUpload, updateAttachmentDocType } from "@/lib/actions/attachments";
+import { createCaseSubfolder } from "@/lib/actions/driveFolders";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isRecursoQueEscalaInstancia } from "@/lib/documentTypes";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { formatDate } from "@/components/ui";
@@ -68,6 +69,16 @@ export default function AttachmentList({
   const [dateTo, setDateTo] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [viewMode, changeViewMode] = useViewModePreference(VIEW_MODE_KEY);
+
+  // Criação de pasta a pedido, dentro do processo/caso — só existe quando há caseId (Atendimento
+  // não tem pasta própria no armazenamento). Mesmo padrão de "Adicionar demanda" na Assessoria
+  // (ver AssessoriaProcessosCasosTab.tsx): antes disso, a pasta só nascia como efeito colateral do
+  // primeiro anexo enviado, o que incomodava quem queria preparar a estrutura de pastas antes de
+  // ter documento nenhum para subir.
+  const [folderMode, setFolderMode] = useState(false);
+  const [folderName, setFolderName] = useState("");
+  const [folderPending, setFolderPending] = useState(false);
+  const [folderError, setFolderError] = useState<string | null>(null);
 
   // "Parecer" só faz sentido como anexo de Processo — Atendimento não tem esse conceito.
   const excludeParecer = !caseId ? ["PARECER"] : undefined;
@@ -211,8 +222,80 @@ export default function AttachmentList({
     });
   }
 
+  async function handleCreateFolder(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = folderName.trim();
+    if (!trimmed || !caseId) return;
+    setFolderError(null);
+    setFolderPending(true);
+    try {
+      const result = await createCaseSubfolder(caseId, trimmed);
+      if (result.error) {
+        setFolderError(result.error);
+      } else {
+        setFolderName("");
+        setFolderMode(false);
+        router.refresh();
+      }
+    } catch (e) {
+      // createCaseSubfolder já traduz as falhas conhecidas (ver translateDriveError em
+      // lib/googleDrive.ts) e devolve { error } sem lançar — este catch cobre só uma falha na
+      // própria chamada da server action (ex.: conexão caindo antes da resposta voltar). Sem
+      // ele, a pasta "falhava" em silêncio e a pessoa achava que tinha sido criada.
+      setFolderError(e instanceof Error ? `Erro ao criar pasta: ${e.message}` : "Erro ao criar pasta. Verifique sua conexão.");
+    } finally {
+      setFolderPending(false);
+    }
+  }
+
   return (
     <div>
+      {caseId && (
+        <div className="mb-3">
+          {folderMode ? (
+            <form onSubmit={handleCreateFolder} className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg border border-regua bg-sf-apoio">
+              <input
+                autoFocus
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                placeholder="Nome da pasta"
+                className="flex-1 min-w-[160px] text-xs border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+              />
+              <button
+                type="submit"
+                disabled={folderPending || !folderName.trim()}
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              >
+                {folderPending ? "Criando..." : "Criar pasta"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFolderMode(false);
+                  setFolderName("");
+                  setFolderError(null);
+                }}
+                disabled={folderPending}
+                className="text-xs font-semibold text-tx-2 hover:text-tx px-2 py-1.5"
+              >
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setFolderMode(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
+            >
+              <FolderPlus size={13} /> Nova pasta
+            </button>
+          )}
+          {folderError && (
+            <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-lg px-2.5 py-1.5 mt-2">{folderError}</p>
+          )}
+        </div>
+      )}
+
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           <div className="relative flex-1 min-w-[160px]">
@@ -315,6 +398,7 @@ export default function AttachmentList({
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
                       className="w-full text-[10px] border border-regua bg-sf text-tx rounded px-1 py-1"
+                      allowCreate
                     />
                   </div>
                 ) : (
@@ -377,6 +461,7 @@ export default function AttachmentList({
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
                       className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[180px]"
+                      allowCreate
                     />
                   </div>
                 ) : (
@@ -453,6 +538,7 @@ export default function AttachmentList({
                         onChange={(v) => handleUpdateDocType(a.id, v)}
                         excludeKeys={excludeParecer}
                         className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1"
+                        allowCreate
                       />
                     ) : (
                       getDocumentTypeLabel(a.docType)
@@ -542,6 +628,7 @@ export default function AttachmentList({
             onChange={setStagedDocType}
             excludeKeys={excludeParecer}
             className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            allowCreate
           />
           <div className="flex gap-2">
             <button
@@ -591,7 +678,8 @@ export default function AttachmentList({
                 onChange={setLinkDocType}
                 excludeKeys={excludeParecer}
                 className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
-              />
+            allowCreate
+          />
             </div>
             <div className="flex gap-2">
               <button

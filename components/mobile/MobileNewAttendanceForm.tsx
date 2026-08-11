@@ -13,8 +13,8 @@ import { Send, UploadCloud, X, AlertTriangle } from "lucide-react";
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
 const inputClass =
-  "w-full mt-1 border border-navy-800/12 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-gold-500/40";
-const labelClass = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+const labelClass = "text-xs font-medium text-tx-2";
 
 function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -221,8 +221,8 @@ export default function MobileNewAttendanceForm({
         />
       </div>
 
-      <div className="border-t border-navy-800/8 dark:border-white/10 pt-3">
-        <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Honorário pretendido</p>
+      <div className="border-t border-regua pt-3">
+        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Honorário pretendido</p>
         <div className="flex gap-1.5 mb-2">
           {(["DINHEIRO", "PERCENTUAL", "AMBOS"] as const).map((m) => (
             <button
@@ -231,8 +231,8 @@ export default function MobileNewAttendanceForm({
               onClick={() => setFeeMode(m)}
               className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors ${
                 feeMode === m
-                  ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-                  : "bg-white dark:bg-navy-900 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15"
+                  ? "bg-acao text-acao-tx border-acao"
+                  : "bg-sf text-tx-2 border-regua"
               }`}
             >
               {m === "DINHEIRO" ? "Dinheiro" : m === "PERCENTUAL" ? "Percentual" : "Ambos"}
@@ -274,13 +274,13 @@ export default function MobileNewAttendanceForm({
         </div>
       </div>
 
-      <div className="border-t border-navy-800/8 dark:border-white/10 pt-3">
-        <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Pendências</p>
+      <div className="border-t border-regua pt-3">
+        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Pendências</p>
         <PendenciasEditor rows={pendenciaRows} onChange={setPendenciaRows} users={users} compact />
       </div>
 
-      <div className="border-t border-navy-800/8 dark:border-white/10 pt-3">
-        <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">Anexos</p>
+      <div className="border-t border-regua pt-3">
+        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
           <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-1.5">
@@ -303,12 +303,12 @@ export default function MobileNewAttendanceForm({
               onClick={() => fileInputRef.current?.click()}
               className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
                 dragOver
-                  ? "border-gold-500 bg-gold-500/5"
-                  : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-cream-50 dark:hover:bg-white/5"
+                  ? "border-acao bg-acao-bg"
+                  : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
               }`}
             >
-              <UploadCloud size={18} className="text-navy-800/40 dark:text-cream-50/40" />
-              <p className="text-xs text-navy-800/60 dark:text-cream-50/60 text-center">
+              <UploadCloud size={18} className="text-tx-2" />
+              <p className="text-xs text-tx-2 text-center">
                 Toque para escolher um ou mais arquivos
               </p>
               <input
@@ -328,21 +328,21 @@ export default function MobileNewAttendanceForm({
                 {stagedAttachments.map((att) => (
                   <div
                     key={att.key}
-                    className="flex items-center gap-2 p-2.5 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10"
+                    className="flex items-center gap-2 p-2.5 rounded-lg bg-sf-apoio border border-regua"
                   >
-                    <span className="flex-1 min-w-0 text-xs font-medium text-navy-900 dark:text-cream-50 truncate" title={att.name}>
+                    <span className="flex-1 min-w-0 text-xs font-medium text-tx truncate" title={att.name}>
                       {att.name}
                     </span>
                     <DocumentTypeSelect
                       value={att.docType}
                       onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                       excludeKeys={["PARECER"]}
-                      className="text-[11px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1.5 py-1 max-w-[140px] shrink-0"
+                      className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"
                     />
                     <button
                       type="button"
                       onClick={() => setStagedAttachments((prev) => prev.filter((a) => a.key !== att.key))}
-                      className="shrink-0 text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400"
+                      className="shrink-0 text-tx-2 hover:text-atencao"
                     >
                       <X size={16} />
                     </button>
@@ -351,7 +351,7 @@ export default function MobileNewAttendanceForm({
               </div>
             )}
 
-            <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1.5">
+            <p className="text-[11px] text-tx-2 mt-1.5">
               Os arquivos só sobem para a pasta do atendimento no Drive depois que ele é criado.
             </p>
           </>
@@ -368,16 +368,16 @@ export default function MobileNewAttendanceForm({
         </div>
       )}
 
-      {error && <p className="text-xs font-semibold text-bordo-600 dark:text-bordo-400">{error}</p>}
+      {error && <p className="text-xs font-semibold text-urgente">{error}</p>}
 
       {loading && progressText && (
-        <p className="text-xs font-semibold text-gold-700 dark:text-gold-400">{progressText}</p>
+        <p className="text-xs font-semibold text-acao">{progressText}</p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
       >
         <Send size={15} /> {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Criar atendimento"}
       </button>

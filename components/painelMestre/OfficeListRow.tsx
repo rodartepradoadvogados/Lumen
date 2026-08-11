@@ -13,22 +13,22 @@ export default function OfficeListRow({ office }: { office: TenantOfficeSummary 
   return (
     <Link
       href={office.isInternal ? "#" : `/painel-mestre/${office.id}`}
-      className={`flex items-center gap-3 px-5 py-3.5 ${office.isInternal ? "cursor-default" : "hover:bg-cream-50 dark:hover:bg-white/5"}`}
+      className={`flex items-center gap-3 px-5 py-3.5 ${office.isInternal ? "cursor-default" : "hover:bg-white/5"}`}
     >
-      <span className="h-9 w-9 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
+      <span className="h-9 w-9 rounded-lg bg-white/5 text-white/80 flex items-center justify-center shrink-0">
         <Building2 size={16} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 truncate">{office.name}</p>
-        <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 font-mono tabular-nums">
+        <p className="text-sm font-semibold text-white truncate">{office.name}</p>
+        <p className="text-[11px] text-white/45 font-mono tabular-nums">
           {office.isInternal ? "conta interna" : office.monthlyFee ? `${formatCurrency(office.monthlyFee)}/mês` : "sem plano cadastrado"}
         </p>
       </div>
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-navy-800/60 dark:text-cream-50/60 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/60 whitespace-nowrap">
         <LumenStatusDot tone={office.isInternal ? "slate" : STATUS_TONE[office.status] ?? "slate"} />
         {office.isInternal ? "Interno" : STATUS_LABEL[office.status] ?? office.status}
       </span>
-      {!office.isInternal && office.status === "SUSPENSA" && <Lock size={14} className="text-bordo-700 dark:text-bordo-400" />}
+      {!office.isInternal && office.status === "SUSPENSA" && <Lock size={14} className="text-urgente" />}
     </Link>
   );
 }

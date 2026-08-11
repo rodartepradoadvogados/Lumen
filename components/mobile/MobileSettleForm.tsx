@@ -58,13 +58,13 @@ export default function MobileSettleForm({
               }
             })
           }
-          className={`flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 ${
+          className={`flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 rounded-lg hover:bg-sf-apoio ${
             pending ? "opacity-50" : ""
           }`}
         >
           <RotateCcw size={12} /> Reabrir
         </button>
-        {error && <p className="text-[10px] text-bordo-700 dark:text-bordo-400">{error}</p>}
+        {error && <p className="text-[10px] text-urgente">{error}</p>}
       </div>
     );
   }
@@ -74,7 +74,7 @@ export default function MobileSettleForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 rounded-lg"
+        className="flex items-center gap-1 text-[11px] font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1.5 rounded-lg"
       >
         <Check size={12} /> Dar Baixa
       </button>
@@ -84,15 +84,15 @@ export default function MobileSettleForm({
   return (
     <div className="w-full rounded-lg border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-400/5 p-3 space-y-2.5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-navy-900 dark:text-cream-50">Confirmar baixa</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40" aria-label="Cancelar">
+        <p className="text-xs font-semibold text-tx">Confirmar baixa</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Cancelar">
           <X size={14} />
         </button>
       </div>
       {alreadyPaid > 0 && (
-        <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60 bg-white/60 dark:bg-white/5 rounded-lg px-2.5 py-1.5">
-          Já pago: <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
-          <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(saldoAtual)}</span>
+        <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-2.5 py-1.5">
+          Já pago: <span className="font-semibold text-tx">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
+          <span className="font-semibold text-tx">{formatCurrency(saldoAtual)}</span>
         </p>
       )}
       <form
@@ -119,7 +119,7 @@ export default function MobileSettleForm({
       >
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Valor pago (R$)</label>
+            <label className="text-[11px] font-medium text-tx-2">Valor pago (R$)</label>
             <input
               name="paidAmount"
               type="number"
@@ -132,7 +132,7 @@ export default function MobileSettleForm({
             />
           </div>
           <div>
-            <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
+            <label className="text-[11px] font-medium text-tx-2">Data</label>
             <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="mobile-input" />
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function MobileSettleForm({
           </p>
         )}
         <div>
-          <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Conta bancária</label>
+          <label className="text-[11px] font-medium text-tx-2">Conta bancária</label>
           <select name="bankAccountId" defaultValue="" className="mobile-input">
             <option value="">Nenhuma</option>
             {bankAccounts.map((b) => (
@@ -153,7 +153,7 @@ export default function MobileSettleForm({
           </select>
         </div>
         <div>
-          <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Forma de pagamento</label>
+          <label className="text-[11px] font-medium text-tx-2">Forma de pagamento</label>
           <select name="paymentMethod" required defaultValue="" className="mobile-input">
             <option value="" disabled>
               Selecione...
@@ -166,10 +166,10 @@ export default function MobileSettleForm({
           </select>
         </div>
         <div>
-          <label className="text-[11px] font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional)</label>
+          <label className="text-[11px] font-medium text-tx-2">Nº do comprovante (opcional)</label>
           <input name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
-        {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}

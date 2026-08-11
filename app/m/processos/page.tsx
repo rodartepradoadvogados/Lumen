@@ -97,8 +97,8 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Processos ativos</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">{cases.length} registro(s)</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Processos ativos</h1>
+        <p className="text-sm text-tx-2">{cases.length} registro(s)</p>
       </div>
 
       {/* Pílulas de natureza roláveis horizontalmente — padrão de toque, não abas de desktop
@@ -112,8 +112,8 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
               href={pillHref(p.natureza)}
               className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
                 active
-                  ? "bg-navy-900 border-navy-900 text-cream-50 dark:bg-gold-500 dark:border-gold-500 dark:text-navy-950"
-                  : "bg-white border-navy-800/12 text-navy-800/55 dark:bg-navy-900 dark:border-white/10 dark:text-cream-50/55"
+                  ? "bg-acao border-acao text-acao-tx"
+                  : "bg-sf border-regua text-tx-2"
               }`}
             >
               {p.label}
@@ -128,16 +128,16 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
             silenciosamente pra "Todos". */}
         {natureza && <input type="hidden" name="natureza" value={natureza.toLowerCase()} />}
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
           <input
             type="text"
             name="q"
             defaultValue={q}
             placeholder="Buscar por nome, número ou cliente"
-            className="w-full border border-navy-800/12 dark:border-white/10 bg-white dark:bg-navy-900 text-navy-900 dark:text-cream-50 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+            className="w-full border border-regua bg-sf text-tx rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
           />
         </div>
-        <button type="submit" className="bg-navy-900 dark:bg-gold-600 text-white text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
           Buscar
         </button>
       </form>
@@ -146,25 +146,25 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
         {cases.length === 0 ? (
           <EmptyState title="Nenhum processo encontrado" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {cases.map((c) => {
               const nat = naturezaOf(c.type);
               return (
                 <Link key={c.id} href={`/m/processos/${c.id}`} className="flex items-center gap-3 px-4 py-3.5">
-                  <span className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/5 text-navy-800 dark:text-cream-50/80 flex items-center justify-center shrink-0">
+                  <span className="h-10 w-10 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                     <Scale size={18} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <NaturezaBadge natureza={nat} className="mb-1" />
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
+                      <p className="text-sm font-medium text-tx truncate">{c.title}</p>
                       {c.materias.map((m) => (
                         <Badge key={m} color="gold">
                           {m}
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 truncate">
+                    <p className="text-xs text-tx-2 mt-0.5 truncate">
                       {nat === "ADMINISTRATIVO"
                         ? [c.processNumber, c.tribunalSigla, c.adminMateria ? MATERIA_LABELS[c.adminMateria] : null]
                             .filter(Boolean)

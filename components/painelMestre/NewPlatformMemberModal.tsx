@@ -62,7 +62,7 @@ export default function NewPlatformMemberModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
       >
         <Plus size={16} /> Novo membro
       </button>
@@ -74,7 +74,7 @@ export default function NewPlatformMemberModal({
             <button
               onClick={() => { setTab("vincular"); setError(null); }}
               className={`flex-1 text-xs font-semibold uppercase tracking-wide py-3 border-b-2 transition-colors ${
-                tab === "vincular" ? "border-gold-400 text-cream-50" : "border-transparent text-cream-50/40 hover:text-cream-50/70"
+                tab === "vincular" ? "border-marca text-white" : "border-transparent text-white/40 hover:text-white/70"
               }`}
             >
               Vincular usuário existente
@@ -82,7 +82,7 @@ export default function NewPlatformMemberModal({
             <button
               onClick={() => { setTab("cadastrar"); setError(null); }}
               className={`flex-1 text-xs font-semibold uppercase tracking-wide py-3 border-b-2 transition-colors ${
-                tab === "cadastrar" ? "border-gold-400 text-cream-50" : "border-transparent text-cream-50/40 hover:text-cream-50/70"
+                tab === "cadastrar" ? "border-marca text-white" : "border-transparent text-white/40 hover:text-white/70"
               }`}
             >
               Pessoa exclusiva da Lúmen
@@ -92,13 +92,13 @@ export default function NewPlatformMemberModal({
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             {tab === "vincular" ? (
               <form action={handleVincular} className="p-5 space-y-3">
-                <p className="text-xs text-cream-50/50">
+                <p className="text-xs text-white/50">
                   Vincula um usuário que já tem conta em algum escritório — ele passa a existir também do lado da Lúmen, com
                   o papel escolhido abaixo. Não cria acesso ao Painel da Empresa.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-cream-50/60">Usuário</label>
+                    <label className="text-xs font-medium text-white/60">Usuário</label>
                     <select name="userId" required defaultValue="" className="pmm-input">
                       <option value="" disabled>
                         Selecione um usuário
@@ -111,11 +111,11 @@ export default function NewPlatformMemberModal({
                       ))}
                     </select>
                     {eligibleUsers.length === 0 && (
-                      <p className="text-[11px] text-cream-50/40 mt-1">Todos os usuários elegíveis já são membros da Lúmen.</p>
+                      <p className="text-[11px] text-white/40 mt-1">Todos os usuários elegíveis já são membros da Lúmen.</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-cream-50/60">Papel</label>
+                    <label className="text-xs font-medium text-white/60">Papel</label>
                     <select name="roleId" required defaultValue="" className="pmm-input">
                       <option value="" disabled>
                         Selecione um papel
@@ -128,34 +128,34 @@ export default function NewPlatformMemberModal({
                     </select>
                   </div>
                 </div>
-                {error && <p className="text-xs text-bordo-400">{error}</p>}
-                <button type="submit" disabled={loading || eligibleUsers.length === 0} className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50">
+                {error && <p className="text-xs text-atencao">{error}</p>}
+                <button type="submit" disabled={loading || eligibleUsers.length === 0} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50">
                   {loading ? "Vinculando..." : "Vincular"}
                 </button>
               </form>
             ) : (
               <form action={handleCadastrar} className="p-5 space-y-3">
-                <p className="text-xs text-cream-50/50">
+                <p className="text-xs text-white/50">
                   Cadastra alguém exclusivo da Lúmen, sem vínculo com nenhum escritório. Isto não cria capacidade de login —
                   é só preenchimento de dados para um passo futuro.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-cream-50/60">Nome</label>
+                    <label className="text-xs font-medium text-white/60">Nome</label>
                     <input name="name" required className="pmm-input" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-cream-50/60">E-mail</label>
+                    <label className="text-xs font-medium text-white/60">E-mail</label>
                     <input name="email" type="email" required className="pmm-input" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-cream-50/60">Senha</label>
+                    <label className="text-xs font-medium text-white/60">Senha</label>
                     <input name="password" type="password" required className="pmm-input" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-cream-50/60">Papel</label>
+                    <label className="text-xs font-medium text-white/60">Papel</label>
                     <select name="roleId" required defaultValue="" className="pmm-input">
                       <option value="" disabled>
                         Selecione um papel
@@ -168,8 +168,8 @@ export default function NewPlatformMemberModal({
                     </select>
                   </div>
                 </div>
-                {error && <p className="text-xs text-bordo-400">{error}</p>}
-                <button type="submit" disabled={loading} className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50">
+                {error && <p className="text-xs text-atencao">{error}</p>}
+                <button type="submit" disabled={loading} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50">
                   {loading ? "Cadastrando..." : "Cadastrar"}
                 </button>
               </form>
@@ -183,14 +183,14 @@ export default function NewPlatformMemberModal({
           margin-top: 0.25rem;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #fdfaf3;
+          color: white;
           border-radius: 0.5rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
         }
         .pmm-input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--marca) 40%, transparent);
         }
       `}</style>
     </>

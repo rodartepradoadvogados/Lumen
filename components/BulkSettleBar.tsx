@@ -35,15 +35,15 @@ export default function BulkSettleBar({
   return (
     <>
       <div className="sticky bottom-4 z-30 mt-4">
-        <div className="bg-navy-900 text-white rounded-xl shadow-pop px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
+        <div className="bg-grafite-800 text-white rounded-xl shadow-pop px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold">{count} selecionada(s)</span>
-            <span className="text-sm text-gold-300 font-bold">Total: {formatCurrency(total)}</span>
+            <span className="text-sm text-marca font-bold">Total: {formatCurrency(total)}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOpen(true)}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg"
+              className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
             >
               <CheckCheck size={14} /> Dar Baixa em Bloco
             </button>
@@ -55,11 +55,11 @@ export default function BulkSettleBar({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Confirmar Baixa em Bloco</h3>
-              <button onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-regua">
+              <h3 className="font-bold text-tx text-sm">Confirmar Baixa em Bloco</h3>
+              <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx dark:hover:text-tx">
                 <X size={16} />
               </button>
             </div>
@@ -83,16 +83,16 @@ export default function BulkSettleBar({
               }}
               className="p-5 space-y-3"
             >
-              <p className="text-xs text-navy-800/60 dark:text-cream-50/60">
+              <p className="text-xs text-tx-2">
                 {count} lançamento(s) selecionado(s) · Total <strong>{formatCurrency(total)}</strong>. Baixa em bloco é sempre <strong>integral</strong> —
                 cada lançamento é quitado pelo próprio saldo em aberto.
               </p>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data do pagamento</label>
-                <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">Data do pagamento</label>
+                <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input" />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Conta bancária</label>
+                <label className="text-xs font-medium text-tx-2">Conta bancária</label>
                 <EntityPicker
                   name="bankAccountId"
                   options={bankAccounts}
@@ -103,8 +103,8 @@ export default function BulkSettleBar({
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Modalidade de pagamento</label>
-                <select name="paymentMethod" required defaultValue="" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+                <label className="text-xs font-medium text-tx-2">Modalidade de pagamento</label>
+                <select name="paymentMethod" required defaultValue="" className="settle-input">
                   <option value="" disabled>Selecione...</option>
                   {PAYMENT_METHOD_OPTIONS.map((m) => (
                     <option key={m.value} value={m.value}>
@@ -114,14 +114,14 @@ export default function BulkSettleBar({
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional, único para todos)</label>
-                <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">Nº do comprovante (opcional, único para todos)</label>
+                <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input" />
               </div>
-              {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50"
+                className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors"
               >
                 {loading ? "Confirmando..." : `Confirmar Baixa de ${count} Lançamento(s)`}
               </button>
@@ -133,14 +133,17 @@ export default function BulkSettleBar({
         .settle-input {
           width: 100%;
           margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
+          background-color: var(--sf);
+          color: var(--tx);
         }
         .settle-input:focus {
           outline: none;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
+          border-color: var(--acao);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
         }
       `}</style>
     </>

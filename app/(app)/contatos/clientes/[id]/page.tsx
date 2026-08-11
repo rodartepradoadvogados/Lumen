@@ -29,8 +29,8 @@ function field(label: string, value: string | null | undefined) {
   if (!value) return null;
   return (
     <div>
-      <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{label}</p>
-      <p className="text-sm text-navy-900 dark:text-cream-50 mt-0.5">{value}</p>
+      <p className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">{label}</p>
+      <p className="text-sm text-tx mt-0.5">{value}</p>
     </div>
   );
 }
@@ -75,14 +75,14 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-5">
-      <Link href="/contatos/clientes" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 flex items-center gap-1">
+      <Link href="/contatos/clientes" className="text-xs font-semibold text-tx-3 hover:text-tx flex items-center gap-1">
         <ArrowLeft size={14} /> Clientes
       </Link>
 
       <Card>
-        <div className="flex items-start justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-regua">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">{client.name}</h1>
+            <h1 className="text-xl font-bold text-tx">{client.name}</h1>
             <Badge color={client.type === "PJ" ? "navy" : "slate"}>{client.type === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"}</Badge>
           </div>
           <EditClientModal client={client} />
@@ -100,8 +100,8 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         </div>
         {client.notes && (
           <div className="px-5 pb-5">
-            <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">Observações</p>
-            <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-0.5 whitespace-pre-wrap">{client.notes}</p>
+            <p className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">Observações</p>
+            <p className="text-sm text-tx/80 mt-0.5 whitespace-pre-wrap">{client.notes}</p>
           </div>
         )}
       </Card>
@@ -111,15 +111,15 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         {clientCases.length === 0 ? (
           <EmptyState title="Nenhum processo vinculado" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {clientCases.map((c) => (
-              <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
-                <div className="h-9 w-9 rounded-lg bg-navy-900/5 text-navy-800 dark:bg-white/10 dark:text-cream-50 flex items-center justify-center shrink-0">
+              <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors">
+                <div className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                   <Scale size={16} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{c.title}</p>
+                    <p className="text-sm font-medium text-tx truncate">{c.title}</p>
                     <Badge color={caseStatusColors[c.status]}>{c.status}</Badge>
                     {c.materias.map((m) => (
                       <Badge key={m} color="gold">
@@ -127,12 +127,12 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                       </Badge>
                     ))}
                   </div>
-                  <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 truncate">
+                  <p className="text-xs text-tx-3 mt-0.5 truncate">
                     {c.processNumber ? `${c.processNumber} · ` : ""}
                     {c.responsible?.name ?? "Sem responsável"}
                   </p>
                 </div>
-                {c.caseValue != null && <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{formatCurrency(c.caseValue)}</p>}
+                {c.caseValue != null && <p className="text-sm font-semibold text-tx shrink-0">{formatCurrency(c.caseValue)}</p>}
               </Link>
             ))}
           </div>
@@ -145,7 +145,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           {receivables.length === 0 ? (
             <EmptyState title="Nenhum lançamento a receber" />
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {receivables.map((r) => {
                 const isApurar = r.status === "A_APURAR";
                 const effectiveStatus = r.status === "PENDENTE" && r.dueDate < now && !r.noDueDate ? "ATRASADO" : r.status;
@@ -153,10 +153,10 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                 return (
                   <div key={r.id} className="flex items-center gap-4 px-5 py-3.5">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{r.description}</p>
-                      <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                      <p className="text-sm font-medium text-tx">{r.description}</p>
+                      <p className="text-xs text-tx-3 mt-0.5">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                     </div>
-                    <p className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{isApurar ? "—" : formatCurrency(liquido)}</p>
+                    <p className="text-sm font-semibold text-tx shrink-0">{isApurar ? "—" : formatCurrency(liquido)}</p>
                     <Badge color={recStatusColor[effectiveStatus] ?? "amber"}>{isApurar ? "A apurar" : effectiveStatus}</Badge>
                   </div>
                 );
@@ -171,24 +171,24 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         {client.publications.length === 0 ? (
           <EmptyState title="Nenhuma publicação vinculada" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {client.publications.map((p) => (
               <div key={p.id} className="flex items-start gap-3 px-5 py-3.5">
-                <div className="h-9 w-9 rounded-lg bg-navy-900/5 text-navy-800 dark:bg-white/10 dark:text-cream-50 flex items-center justify-center shrink-0">
+                <div className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                   <FileText size={16} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge color={p.kind === "PUBLICACAO" ? "blue" : "gold"}>{p.kind === "PUBLICACAO" ? "Publicação" : "Andamento"}</Badge>
                     {p.reads.length === 0 && <Badge color="gold">Não lida</Badge>}
-                    <span className="text-xs text-navy-800/40 dark:text-cream-50/40">{formatDate(p.publishedAt)}</span>
+                    <span className="text-xs text-tx-3">{formatDate(p.publishedAt)}</span>
                   </div>
                   {p.case && (
-                    <Link href={`/processos/${p.case.id}`} className="text-xs font-medium text-gold-700 dark:text-gold-400 hover:underline mt-0.5 block">
+                    <Link href={`/processos/${p.case.id}`} className="text-xs font-medium text-acao hover:underline mt-0.5 block">
                       {p.case.title}
                     </Link>
                   )}
-                  <p className="text-sm text-navy-800 dark:text-cream-50/80 mt-1 line-clamp-2">{p.content}</p>
+                  <p className="text-sm text-tx/80 mt-1 line-clamp-2">{p.content}</p>
                 </div>
               </div>
             ))}

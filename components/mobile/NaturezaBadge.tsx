@@ -1,14 +1,15 @@
 import { NATUREZA_LABELS, type CaseNatureza } from "@/lib/caseNatureza";
 
 // Etiqueta pequena de natureza reutilizada na listagem e no detalhe do processo mobile —
-// mesma paleta em qualquer tema (Manhã/Noite), só a intensidade do fundo muda: dourado
-// para Judicial (cor de destaque principal da marca), bordô para Administrativo (cor
-// secundária, mesma associação já usada em Assessoria/Licitações) e navy para Caso (o
-// "resto" — extrajudicial e os legados Atendimento/Consultivo, ver lib/caseNatureza.ts).
+// mesma paleta em qualquer tema (Manhã/Noite, via tokens semânticos): azul-tinta (--acao)
+// para Judicial (a categoria principal do fluxo do escritório), neutro de apoio para
+// Administrativo (categoria secundária) e para Caso (o "resto" — extrajudicial e os
+// legados Atendimento/Consultivo, ver lib/caseNatureza.ts). Ouro fica reservado à marca e
+// à seção ativa (DESIGN-SYSTEM.md §7) — não é mais cor de categoria aqui.
 const TONE: Record<CaseNatureza, string> = {
-  JUDICIAL: "bg-gold-500/15 text-gold-800 dark:bg-gold-400/15 dark:text-gold-400",
-  ADMINISTRATIVO: "bg-bordo-100 text-bordo-700 dark:bg-bordo-400/15 dark:text-bordo-400",
-  CASO: "bg-navy-900/10 text-navy-900 dark:bg-white/10 dark:text-cream-50",
+  JUDICIAL: "bg-acao-bg text-acao",
+  ADMINISTRATIVO: "bg-sf-apoio text-tx-2",
+  CASO: "bg-sf-apoio text-tx",
 };
 
 export default function NaturezaBadge({ natureza, className = "" }: { natureza: CaseNatureza; className?: string }) {

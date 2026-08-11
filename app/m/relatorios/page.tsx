@@ -137,24 +137,24 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50">
+      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Relatórios</h1>
-          <p className="text-sm text-navy-800/50 dark:text-cream-50/50">
+          <h1 className="font-serif text-xl font-bold text-tx">Relatórios</h1>
+          <p className="text-sm text-tx-2">
             {monthLabel(start)} a {monthLabel(now)}
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-white dark:bg-navy-800 border border-navy-800/10 dark:border-white/10 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-sf-apoio border border-regua rounded-lg p-1">
           {periodOptions.map((opt) => (
             <Link
               key={opt.value}
               href={`/m/relatorios?meses=${opt.value}`}
               className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                meses === opt.value ? "bg-navy-900 text-white" : "text-navy-800/60 dark:text-cream-50/60"
+                meses === opt.value ? "bg-tx text-sf" : "text-tx-2"
               }`}
             >
               {opt.label}
@@ -165,18 +165,18 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       {/* PRODUTIVIDADE */}
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <Users size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Produtividade</h3>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <Users size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm">Produtividade</h3>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between border-b border-navy-800/5 dark:border-white/10">
-          <span className="text-xs text-navy-800/50 dark:text-cream-50/50">Tarefas concluídas no período</span>
-          <span className="text-lg font-serif font-bold text-navy-900 dark:text-cream-50">{doneTasks.length}</span>
+        <div className="px-4 py-3 flex items-center justify-between border-b border-regua">
+          <span className="text-xs text-tx-2">Tarefas concluídas no período</span>
+          <span className="text-lg font-serif font-bold text-tx">{doneTasks.length}</span>
         </div>
         {prodRanking.length === 0 ? (
           <EmptyState title="Nenhuma tarefa concluída no período" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {prodRanking.map((r, i) => (
               <div key={r.user.id} className="px-4 py-3 flex items-center gap-3">
                 <span
@@ -185,9 +185,9 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
                 >
                   {i + 1}
                 </span>
-                <span className="flex-1 text-sm font-medium text-navy-900 dark:text-cream-50 truncate">{r.user.name}</span>
-                <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{r.points} pts</span>
-                <span className="text-xs text-navy-800/45 dark:text-cream-50/45 shrink-0">{r.count} tarefa(s)</span>
+                <span className="flex-1 text-sm font-medium text-tx truncate">{r.user.name}</span>
+                <span className="text-sm font-semibold text-tx shrink-0">{r.points} pts</span>
+                <span className="text-xs text-tx-2 shrink-0">{r.count} tarefa(s)</span>
               </div>
             ))}
           </div>
@@ -196,42 +196,42 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       {/* PROCESSOS */}
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <Scale size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Processos</h3>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <Scale size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm">Processos</h3>
         </div>
         <div className="px-4 pt-3 pb-1">
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">
             Por área/matéria (processos ativos)
           </p>
         </div>
         {areaRows.length === 0 ? (
           <EmptyState title="Nenhum processo ativo" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {areaRows.map((r) => (
               <div key={r.label} className="px-4 py-2.5 flex items-center justify-between gap-3">
-                <span className="text-sm text-navy-800 dark:text-cream-50/85 truncate">{r.label}</span>
-                <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">
+                <span className="text-sm text-tx-2 truncate">{r.label}</span>
+                <span className="text-sm font-semibold text-tx shrink-0">
                   {r.value} · {totalActiveCases > 0 ? ((r.value / totalActiveCases) * 100).toFixed(0) : 0}%
                 </span>
               </div>
             ))}
           </div>
         )}
-        <div className="px-4 pt-3 pb-1 border-t border-navy-800/8 dark:border-white/10 mt-1">
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">
+        <div className="px-4 pt-3 pb-1 border-t border-regua mt-1">
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">
             Por status (todos os processos)
           </p>
         </div>
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {CASE_STATUS_ORDER.map((s) => (
             <div key={s} className="px-4 py-2.5 flex items-center justify-between gap-3">
-              <span className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50/85">
+              <span className="flex items-center gap-1.5 text-sm text-tx-2">
                 <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: caseStatusColor[s] }} />
                 {caseStatusLabels[s]}
               </span>
-              <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{statusCounts[s]}</span>
+              <span className="text-sm font-semibold text-tx shrink-0">{statusCounts[s]}</span>
             </div>
           ))}
         </div>
@@ -239,29 +239,29 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       {/* FUNIL COMERCIAL */}
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <Target size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm flex-1">Funil Comercial</h3>
-          <span className="text-xs text-navy-800/50 dark:text-cream-50/50">
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <Target size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm flex-1">Funil Comercial</h3>
+          <span className="text-xs text-tx-2">
             Conversão:{" "}
             {conversionRate !== null ? (
               <span className="font-semibold text-emerald-700 dark:text-emerald-400">{conversionRate.toFixed(0)}%</span>
             ) : (
-              <span className="text-navy-800/40 dark:text-cream-50/40">—</span>
+              <span className="text-tx-2">—</span>
             )}
           </span>
         </div>
         {attendances.length === 0 ? (
           <EmptyState title="Nenhum atendimento no período" />
         ) : (
-          <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+          <div className="divide-y divide-regua">
             {stageCounts.map((s) => (
               <div key={s.stage} className="px-4 py-2.5 flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50/85">
+                <span className="flex items-center gap-1.5 text-sm text-tx-2">
                   <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: stageColor[s.stage] }} />
                   {stageLabels[s.stage]}
                 </span>
-                <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 shrink-0">{s.count}</span>
+                <span className="text-sm font-semibold text-tx shrink-0">{s.count}</span>
               </div>
             ))}
           </div>
@@ -270,28 +270,28 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       {/* PUBLICAÇÕES */}
       <Card>
-        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <Newspaper size={16} className="text-gold-600" />
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Publicações</h3>
+        <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
+          <Newspaper size={16} className="text-marca-tx" />
+          <h3 className="font-serif font-bold text-tx text-sm">Publicações</h3>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between border-b border-navy-800/5 dark:border-white/10">
-          <span className="text-xs text-navy-800/50 dark:text-cream-50/50">Volume no período</span>
-          <span className="text-lg font-serif font-bold text-navy-900 dark:text-cream-50">{publications.length}</span>
+        <div className="px-4 py-3 flex items-center justify-between border-b border-regua">
+          <span className="text-xs text-tx-2">Volume no período</span>
+          <span className="text-lg font-serif font-bold text-tx">{publications.length}</span>
         </div>
         <div className="p-4">
-          <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide mb-2">
+          <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">
             Pendências de triagem
           </p>
           <div className="grid grid-cols-3 gap-3">
             {triageRows.map((t) => (
               <div
                 key={t.status}
-                className="rounded-lg bg-cream-100/70 dark:bg-navy-800/70 border border-navy-800/8 dark:border-white/10 p-3 text-center"
+                className="rounded-lg bg-sf-apoio border border-regua p-3 text-center"
               >
-                <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50">{t.value}</p>
+                <p className="font-serif font-bold text-lg text-tx">{t.value}</p>
                 <div className="flex items-center justify-center gap-1 mt-1">
                   <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: triageColor[t.status] }} />
-                  <span className="text-[10px] text-navy-800/55 dark:text-cream-50/55">{triageLabels[t.status]}</span>
+                  <span className="text-[10px] text-tx-2">{triageLabels[t.status]}</span>
                 </div>
               </div>
             ))}

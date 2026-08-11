@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatCalendarDate } from "@/components/ui";
+import { typeMeta } from "@/components/AgendaView";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { Check, MessageSquare } from "lucide-react";
@@ -67,16 +68,18 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
             onDragLeave={() => setDragOverCol(null)}
             onDrop={(e) => handleDrop(e, col.id)}
             className={clsx(
-              "w-80 shrink-0 rounded-xl bg-cream-100/70 dark:bg-navy-900 border flex flex-col max-h-full",
-              dragOverCol === col.id ? "border-gold-500 dark:border-gold-400 bg-gold-500/5 dark:bg-gold-400/10" : "border-navy-800/8 dark:border-white/10"
+              // Coluna: fundo de apoio + régua; o card branco é a única coisa clara dentro dela —
+              // é isso que comunica que ele é o que se pega (DESIGN-SYSTEM.md §12).
+              "w-80 shrink-0 rounded-xl bg-sf-apoio border flex flex-col max-h-full",
+              dragOverCol === col.id ? "border-acao bg-acao-bg" : "border-regua"
             )}
           >
-            <div className="px-4 py-3 flex items-center justify-between border-b border-navy-800/8 dark:border-white/10 sticky top-0">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-regua sticky top-0">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.color }} />
-                <h3 className="font-semibold text-sm text-navy-900 dark:text-cream-50">{col.name}</h3>
+                <h3 className="font-semibold text-sm text-tx">{col.name}</h3>
               </div>
-              <span className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 bg-white dark:bg-white/10 rounded-full px-2 py-0.5">
+              <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-[9px] px-2 py-0.5">
                 {colTasks.length}
               </span>
             </div>
@@ -85,7 +88,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
                 <TaskCard key={task.id} task={task} onToggle={() => startTransition(async () => { await toggleTaskDone(task.id); router.refresh(); })} />
               ))}
               {colTasks.length === 0 && (
-                <p className="text-xs text-center text-navy-800/30 dark:text-cream-50/30 py-6">Arraste um card para cá</p>
+                <p className="text-xs text-center text-tx-3 py-6">Arraste um card para cá</p>
               )}
             </div>
           </div>
@@ -99,6 +102,8 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
   const overdue = new Date(task.dueDate) < new Date() && task.status !== "CONCLUIDO";
   const done = task.status === "CONCLUIDO";
   const [open, setOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const filete = (typeMeta[task.type] || typeMeta.TAREFA).filete;
   const completedTip =
     done && task.completedBy && task.completedAt
       ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
@@ -107,10 +112,20 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
   return (
     <div
       draggable
-      onDragStart={(e) => e.dataTransfer.setData("text/plain", task.id)}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", task.id);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
       className={clsx(
-        "bg-white dark:bg-navy-900 rounded-lg border p-3 shadow-card cursor-grab active:cursor-grabbing transition-shadow hover:shadow-pop",
-        done ? "border-emerald-200 dark:border-emerald-400/30 opacity-60" : overdue ? "border-red-300 dark:border-bordo-400/40" : "border-navy-800/8 dark:border-white/10"
+        // Card: fundo --sf-superficie, borda 1px --regua, filete esquerdo de 3px na cor do tipo
+        // de tarefa. Sombra só enquanto está sendo arrastado; concluído leva opacidade 72% +
+        // riscado (DESIGN-SYSTEM.md §12).
+        "bg-sf rounded-lg border p-3 cursor-grab active:cursor-grabbing border-l-[3px] transition-shadow",
+        filete,
+        overdue ? "border-urgente" : "border-regua",
+        dragging && "shadow-arrasto",
+        done && "opacity-[.72]"
       )}
     >
       <div className="flex items-center justify-between mb-1.5">
@@ -121,7 +136,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
             data-tip={done ? completedTip || "Reabrir" : "Concluir"}
             className={clsx(
               "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
-              done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 text-transparent hover:border-emerald-500"
+              done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
             )}
           >
             <Check size={12} strokeWidth={3} />
@@ -133,21 +148,21 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
           comentários — mesmo card usado em Central de Alertas/Atividades do processo. Só o
           título é clicável (não o card inteiro), pra não atrapalhar o drag-and-drop entre colunas. */}
       <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
-        <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 leading-snug", done && "line-through")}>{task.title}</p>
+        <p className={clsx("text-sm font-medium text-tx leading-snug", done && "line-through")}>{task.title}</p>
       </button>
-      {task.case && <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-1 truncate">{task.case.title}</p>}
+      {task.case && <p className="text-xs text-tx-3 mt-1 truncate">{task.case.title}</p>}
 
       <div className="flex items-center justify-between mt-2.5">
         <div className="flex items-center gap-1.5">
           <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>
           {task._count.comments > 0 && (
-            <span className="flex items-center gap-0.5 text-[11px] text-navy-800/40 dark:text-cream-50/40">
+            <span className="flex items-center gap-0.5 text-[11px] text-tx-3">
               <MessageSquare size={11} /> {task._count.comments}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <span className={clsx("text-[11px] font-semibold", overdue ? "text-red-600 dark:text-bordo-400" : "text-navy-800/50 dark:text-cream-50/50")}>
+          <span className={clsx("text-[11px] font-semibold", overdue ? "text-urgente" : "text-tx-3")}>
             {formatCalendarDate(task.dueDate)}
           </span>
           {task.responsible && (

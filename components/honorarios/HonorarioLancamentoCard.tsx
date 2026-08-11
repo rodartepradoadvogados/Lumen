@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatCurrency, formatDate, Badge } from "@/components/ui";
+import { formatCurrency, formatDate } from "@/components/ui";
 import SettleButton from "@/components/SettleButton";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { updateHonorarioLancamentoParcelas, type ParcelaEdicao } from "@/lib/actions/honorarioLancamento";
 import { VALUE_TYPE_LABELS, PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS, estimatePercentualAmount, type CaseValueBases } from "@/lib/honorarioLancamento";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 
 type Option = { id: string; name: string };
 
@@ -104,25 +105,10 @@ function DivergenceNote({ valorTotalIndicado, parcelas }: { valorTotalIndicado: 
   const diff = soma - valorTotalIndicado;
   if (Math.abs(diff) < 0.01) return null;
   return (
-    <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5 mt-2">
+    <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5 mt-2">
       A soma das parcelas vinculadas ao total ({formatCurrency(soma)}) {diff > 0 ? "excede" : "é menor que"} o valor indicado ({formatCurrency(valorTotalIndicado)}) em {formatCurrency(Math.abs(diff))}.
     </p>
   );
-}
-
-// PENDENTE/ATRASADO seguem o mesmo tom âmbar de antes; PAGO verde, PARCIAL âmbar também (ainda
-// está em aberto, só que parcialmente) e A_APURAR ganha um tom neutro (slate) — não é nem "aberto"
-// nem "pago", é uma estimativa sem valor real ainda (ver lib/financeQuery.ts).
-function statusBadgeColor(status: string): "green" | "red" | "amber" | "slate" {
-  if (status === "PAGO") return "green";
-  if (status === "ATRASADO") return "red";
-  if (status === "A_APURAR") return "slate";
-  return "amber";
-}
-
-function statusLabel(status: string): string {
-  if (status === "A_APURAR") return "A apurar";
-  return status;
 }
 
 export default function HonorarioLancamentoCard({
@@ -172,14 +158,14 @@ export default function HonorarioLancamentoCard({
   }
 
   return (
-    <div className="px-5 py-3 border-b border-navy-800/5 dark:border-white/10 last:border-0">
+    <div className="px-5 py-3 border-b border-regua last:border-0">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">
+          <p className="text-sm font-semibold text-tx">
             Honorário parcelado{lancamento.valorTotalIndicado != null && <> — total indicado {formatCurrency(lancamento.valorTotalIndicado)}</>}
           </p>
           {lancamento.payerType !== "CLIENTE" && (
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50">
+            <p className="text-xs text-tx-2">
               Pagador: {lancamento.payerType === "OUTRO" ? lancamento.payerName || "Outro" : PAYER_TYPE_LABELS[lancamento.payerType]}
             </p>
           )}
@@ -188,7 +174,7 @@ export default function HonorarioLancamentoCard({
           <button
             onClick={() => setEditing(true)}
             data-tip="Editar parcelas"
-            className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10"
+            className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio"
           >
             <Pencil size={14} />
           </button>
@@ -209,8 +195,8 @@ export default function HonorarioLancamentoCard({
           return (
             <div key={p.id} className="flex justify-between items-center">
               <div>
-                <p className="text-sm text-navy-900 dark:text-cream-50">{p.description}</p>
-                <p className="text-xs text-navy-800/40 dark:text-cream-50/40">
+                <p className="text-sm text-tx">{p.description}</p>
+                <p className="text-xs text-tx-3">
                   {isApurar
                     ? `${p.percentual}% de ${PERCENTUAL_BASE_LABELS[p.percentualBase ?? ""] ?? "base não definida"} — a apurar no desfecho`
                     : p.noDueDate
@@ -231,9 +217,15 @@ export default function HonorarioLancamentoCard({
               </div>
               <div className="flex items-center gap-1">
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                  {p.status === "PARCIAL" && <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">saldo {formatCurrency(saldo)}</p>}
-                  <Badge color={statusBadgeColor(p.status)}>{statusLabel(p.status)}</Badge>
+                  <p
+                    className={`text-sm font-semibold tabular-nums ${
+                      p.status === "CANCELADO" ? "line-through text-tx-3" : "text-tx"
+                    }`}
+                  >
+                    {isApurar ? "—" : formatCurrency(liquido)}
+                  </p>
+                  {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
+                  <FinanceStatusBadge status={p.status} />
                 </div>
                 {!isApurar && (
                   <SettleButton id={p.id} kind="receivable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />
@@ -252,22 +244,22 @@ export default function HonorarioLancamentoCard({
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-              <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Editar parcelas</h3>
-              <button onClick={() => setEditing(false)} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+          <div className="bg-sf rounded-xl shadow-pop w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+              <h3 className="font-bold text-tx">Editar parcelas</h3>
+              <button onClick={() => setEditing(false)} className="text-tx-3 hover:text-tx dark:hover:text-tx">
                 <X size={18} />
               </button>
             </div>
             <div className="p-5 space-y-3">
-              {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
               {pagas.length > 0 && (
-                <div className="p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10">
-                  <p className="text-[11px] font-medium text-navy-800/50 dark:text-cream-50/50 mb-1">Parcelas já pagas (não editáveis)</p>
+                <div className="p-3 rounded-lg bg-sf-apoio border border-regua">
+                  <p className="text-[11px] font-medium text-tx-2 mb-1">Parcelas já pagas (não editáveis)</p>
                   {pagas.map((p) => (
-                    <div key={p.id} className="flex justify-between text-xs text-navy-800/70 dark:text-cream-50/70 py-0.5">
+                    <div key={p.id} className="flex justify-between text-xs text-tx-2 py-0.5">
                       <span>{p.description}</span>
                       <span className="font-semibold">{formatCurrency(p.paidAmount ?? p.amount)}</span>
                     </div>
@@ -276,13 +268,13 @@ export default function HonorarioLancamentoCard({
               )}
 
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor total indicado (R$)</label>
+                <label className="text-xs font-medium text-tx-2">Valor total indicado (R$)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={valorTotalIndicado}
                   onChange={(e) => setValorTotalIndicado(e.target.value)}
-                  className="fin-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+                  className="fin-input"
                 />
               </div>
               <DivergenceNote
@@ -299,18 +291,18 @@ export default function HonorarioLancamentoCard({
 
               <div className="space-y-3">
                 {linhas.map((l) => (
-                  <div key={l.key} className="p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2">
+                  <div key={l.key} className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <input
                         value={l.description}
                         onChange={(e) => updateLinha(l.key, { description: e.target.value })}
                         placeholder="Descrição da parcela"
-                        className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 flex-1"
+                        className="fin-input flex-1"
                       />
                       <button
                         type="button"
                         onClick={() => setLinhas((prev) => prev.filter((x) => x.key !== l.key))}
-                        className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400"
+                        className="p-1.5 rounded-lg text-tx-3 hover:text-atencao"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -323,8 +315,8 @@ export default function HonorarioLancamentoCard({
                           onClick={() => updateLinha(l.key, { valueType: vt })}
                           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
                             l.valueType === vt
-                              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-                              : "bg-white dark:bg-navy-900 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15"
+                              ? "bg-acao text-acao-tx border-acao"
+                              : "bg-sf text-tx-2 border-regua-forte"
                           }`}
                         >
                           {VALUE_TYPE_LABELS[vt]}
@@ -338,7 +330,7 @@ export default function HonorarioLancamentoCard({
                         placeholder="Valor (R$)"
                         value={l.amount}
                         onChange={(e) => updateLinha(l.key, { amount: e.target.value })}
-                        className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                        className="fin-input"
                       />
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
@@ -348,12 +340,12 @@ export default function HonorarioLancamentoCard({
                           placeholder="%"
                           value={l.percentual}
                           onChange={(e) => updateLinha(l.key, { percentual: e.target.value })}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          className="fin-input"
                         />
                         <select
                           value={l.percentualBase}
                           onChange={(e) => updateLinha(l.key, { percentualBase: e.target.value })}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          className="fin-input"
                         >
                           {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
                             <option key={value} value={value}>
@@ -367,10 +359,10 @@ export default function HonorarioLancamentoCard({
                       placeholder="Nº do boleto"
                       value={l.installmentBoleto}
                       onChange={(e) => updateLinha(l.key, { installmentBoleto: e.target.value })}
-                      className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                      className="fin-input"
                     />
                     <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-1.5 text-xs text-navy-800/70 dark:text-cream-50/70">
+                      <label className="flex items-center gap-1.5 text-xs text-tx-2">
                         <input type="checkbox" checked={l.noDueDate} onChange={(e) => updateLinha(l.key, { noDueDate: e.target.checked })} />
                         Sem vencimento
                       </label>
@@ -379,11 +371,11 @@ export default function HonorarioLancamentoCard({
                           type="date"
                           value={l.dueDate}
                           onChange={(e) => updateLinha(l.key, { dueDate: e.target.value })}
-                          className="fin-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                          className="fin-input"
                         />
                       )}
                     </div>
-                    <label className="flex items-center gap-1.5 text-xs text-navy-800/70 dark:text-cream-50/70">
+                    <label className="flex items-center gap-1.5 text-xs text-tx-2">
                       <input type="checkbox" checked={l.vinculadoAoTotal} onChange={(e) => updateLinha(l.key, { vinculadoAoTotal: e.target.checked })} />
                       Conta no total indicado acima
                     </label>
@@ -393,7 +385,7 @@ export default function HonorarioLancamentoCard({
               <button
                 type="button"
                 onClick={() => setLinhas((prev) => [...prev, novaLinha()])}
-                className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50"
+                className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx"
               >
                 <Plus size={14} /> Adicionar parcela
               </button>
@@ -401,7 +393,7 @@ export default function HonorarioLancamentoCard({
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {loading ? "Salvando..." : "Salvar alterações"}
               </button>
@@ -410,8 +402,8 @@ export default function HonorarioLancamentoCard({
         </div>
       )}
       <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .fin-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
+        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
       `}</style>
     </div>
   );

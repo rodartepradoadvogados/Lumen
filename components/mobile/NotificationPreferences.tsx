@@ -121,7 +121,7 @@ export default function NotificationPreferences() {
 
   if (!supported) {
     return (
-      <p className="px-4 py-3 text-xs text-navy-800/50 dark:text-cream-50/50">
+      <p className="px-4 py-3 text-xs text-tx-2">
         Este navegador/aparelho não suporta notificações push. No iPhone, o app precisa estar instalado na tela de início (Compartilhar → Adicionar à Tela de Início) e o iOS precisa estar atualizado.
       </p>
     );
@@ -131,10 +131,10 @@ export default function NotificationPreferences() {
     <div>
       <div className="px-4 py-3.5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          {subscribed ? <Bell size={16} className="text-gold-600" /> : <BellOff size={16} className="text-navy-800/40 dark:text-cream-50/40" />}
+          {subscribed ? <Bell size={16} className="text-marca-tx" /> : <BellOff size={16} className="text-tx-2" />}
           <div>
-            <p className="text-sm font-medium text-navy-900 dark:text-cream-50">Notificações neste aparelho</p>
-            <p className="text-xs text-navy-800/45 dark:text-cream-50/45">{subscribed ? "Ativadas" : "Desativadas"}</p>
+            <p className="text-sm font-medium text-tx">Notificações neste aparelho</p>
+            <p className="text-xs text-tx-2">{subscribed ? "Ativadas" : "Desativadas"}</p>
           </div>
         </div>
         <button
@@ -143,26 +143,26 @@ export default function NotificationPreferences() {
           onClick={subscribed ? handleDisable : handleEnable}
           className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
             subscribed
-              ? "bg-cream-100 dark:bg-white/10 text-navy-800/70 dark:text-cream-50/70"
-              : "bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white"
+              ? "bg-sf-apoio text-tx-2"
+              : "bg-acao hover:bg-acao-hover text-acao-tx"
           }`}
         >
           {busy ? "Aguarde..." : subscribed ? "Desativar" : "Ativar"}
         </button>
       </div>
 
-      {error && <p className="px-4 pb-2 text-xs font-semibold text-bordo-600 dark:text-bordo-400">{error}</p>}
+      {error && <p className="px-4 pb-2 text-xs font-semibold text-urgente">{error}</p>}
 
       {subscribed && prefs && (
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/8 dark:border-white/10">
+        <div className="divide-y divide-regua border-t border-regua">
           {TYPE_OPTIONS.map((opt) => (
             <label key={opt.key} className="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer">
-              <span className="text-sm text-navy-800 dark:text-cream-50/85">{opt.label}</span>
+              <span className="text-sm text-tx-2">{opt.label}</span>
               <input
                 type="checkbox"
                 checked={prefs[opt.key]}
                 onChange={() => handleTogglePref(opt.key)}
-                className="h-4 w-4 accent-gold-600 cursor-pointer"
+                className="h-4 w-4 accent-acao cursor-pointer"
               />
             </label>
           ))}

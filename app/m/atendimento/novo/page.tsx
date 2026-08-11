@@ -31,14 +31,14 @@ export default async function MobileNewAttendancePage() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
 
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Novo Atendimento</h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">Registre um novo contato rapidamente</p>
+        <h1 className="font-serif text-xl font-bold text-tx">Novo Atendimento</h1>
+        <p className="text-sm text-tx-2">Registre um novo contato rapidamente</p>
       </div>
 
       <Card className="p-4">

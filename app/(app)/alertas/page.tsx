@@ -37,11 +37,17 @@ const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
   CONTA_RECEBER: { label: "Conta a Receber", icon: Wallet },
 };
 
+// Severidade da Central de Alertas: filete esquerdo de 3px, altura total da linha. Nenhum dos
+// doze tipos de alerta (kindMeta acima) ganha cor própria — só a severidade fala aqui.
+// Ver DESIGN-SYSTEM.md §8.
 const severityStyle: Record<string, string> = {
-  alta: "border-l-4 border-red-500 dark:border-bordo-400",
-  media: "border-l-4 border-gold-500",
-  baixa: "border-l-4 border-slate-300 dark:border-white/20",
+  alta: "border-l-[3px] border-urgente",
+  media: "border-l-[3px] border-marca",
+  baixa: "border-l-[3px] border-tx-3",
 };
+
+// Rótulo do tipo de alerta acima do título: 9,5px caixa alta, tracking .1em, --tx-2.
+const kindLabelClass = "text-[9.5px] font-semibold text-tx-2 uppercase tracking-[.1em]";
 
 export default async function AlertasPage({ searchParams }: { searchParams: { tab?: string } }) {
   const tab = searchParams.tab === "hoje" ? "hoje" : "pendentes";
@@ -69,13 +75,13 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
       <div className="flex gap-2">
         <Link
           href="/alertas?tab=pendentes"
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "pendentes" ? "bg-navy-900 text-white" : "bg-white dark:bg-navy-800 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"}`}
+          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "pendentes" ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"}`}
         >
           Pendentes
         </Link>
         <Link
           href="/alertas?tab=hoje"
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "hoje" ? "bg-navy-900 text-white" : "bg-white dark:bg-navy-800 text-navy-800/60 dark:text-cream-50/60 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/5"}`}
+          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "hoje" ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"}`}
         >
           Hoje
         </Link>
@@ -104,7 +110,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
             {alerts.length === 0 ? (
               <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
             ) : (
-              <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+              <div className="divide-y divide-regua">
                 {alerts.map((a) => {
                   const meta = kindMeta[a.kind];
                   const Icon = meta.icon;
@@ -115,17 +121,17 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                       entityId={a.entityId}
                       rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
                     >
-                      <AlertRow alert={a} className="flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors w-full text-left">
-                        <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
+                      <AlertRow alert={a} className="flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors w-full text-left">
+                        <div className="p-2 rounded-lg bg-sf-apoio text-tx shrink-0">
                           <Icon size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
-                          <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{a.title}</p>
-                          {a.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{a.subtitle}</p>}
+                          <p className={kindLabelClass}>{meta.label}</p>
+                          <p className="text-sm font-medium text-tx mt-0.5">{a.title}</p>
+                          {a.subtitle && <p className="text-xs text-tx-3 mt-0.5">{a.subtitle}</p>}
                           {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
                         </div>
-                        <span className="text-xs text-navy-800/40 dark:text-cream-50/40 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
+                        <span className="text-xs text-tx-3 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
                       </AlertRow>
                     </DismissibleAlertRow>
                   );
@@ -141,7 +147,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
           {todayItems.length === 0 ? (
             <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
           ) : (
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {todayItems.map((item) => {
                 const meta = todayMeta[item.kind];
                 const Icon = meta.icon;
@@ -149,17 +155,17 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                   <Link
                     key={item.id}
                     href={item.href}
-                    className={`flex items-start gap-3 px-5 py-3.5 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors ${dueStatusClassName(item.dueStatus)}`}
+                    className={`flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors ${dueStatusClassName(item.dueStatus)}`}
                   >
-                    <div className="p-2 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50 shrink-0">
+                    <div className="p-2 rounded-lg bg-sf-apoio text-tx shrink-0">
                       <Icon size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">{meta.label}</p>
-                      <p className="text-sm font-medium text-navy-900 dark:text-cream-50 mt-0.5">{item.title}</p>
-                      {item.subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{item.subtitle}</p>}
+                      <p className={kindLabelClass}>{meta.label}</p>
+                      <p className="text-sm font-medium text-tx mt-0.5">{item.title}</p>
+                      {item.subtitle && <p className="text-xs text-tx-3 mt-0.5">{item.subtitle}</p>}
                     </div>
-                    {item.time && <span className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 shrink-0">{item.time}</span>}
+                    {item.time && <span className="text-xs font-semibold text-tx-3 shrink-0">{item.time}</span>}
                   </Link>
                 );
               })}

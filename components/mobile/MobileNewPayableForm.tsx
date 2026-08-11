@@ -29,8 +29,8 @@ function Segmented<T extends string>({
           onClick={() => onChange(opt.value)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
             value === opt.value
-              ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-              : "bg-white dark:bg-navy-900 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15"
+              ? "bg-acao text-acao-tx border-acao"
+              : "bg-sf text-tx-2 border-regua"
           }`}
         >
           {opt.label}
@@ -40,7 +40,7 @@ function Segmented<T extends string>({
   );
 }
 
-const labelCls = "text-xs font-medium text-navy-800/60 dark:text-cream-50/60";
+const labelCls = "text-xs font-medium text-tx-2";
 
 // Versão compacta do NewPayableModal do desktop: sem parcelamento e sem cadastro rápido de
 // fornecedor/centro de custo (usa <select> simples em vez do EntityPicker com busca) — mantém só
@@ -85,7 +85,7 @@ export default function MobileNewPayableForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
       >
         <Plus size={16} /> Nova Conta a Pagar
       </button>
@@ -93,17 +93,17 @@ export default function MobileNewPayableForm({
   }
 
   return (
-    <div className={startOpen ? "space-y-3" : "rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-100 dark:bg-white/5 p-3 space-y-3"}>
+    <div className={startOpen ? "space-y-3" : "rounded-lg border border-regua bg-sf-apoio p-3 space-y-3"}>
       {!startOpen && (
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Nova Conta a Pagar</p>
-          <button type="button" onClick={() => setOpen(false)} className="text-navy-800/40 dark:text-cream-50/40" aria-label="Fechar">
+          <p className="text-sm font-semibold text-tx">Nova Conta a Pagar</p>
+          <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Fechar">
             <X size={16} />
           </button>
         </div>
       )}
 
-      {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {
@@ -173,7 +173,7 @@ export default function MobileNewPayableForm({
             />
           </div>
         </div>
-        <label className="flex items-center gap-2 text-xs text-navy-800/70 dark:text-cream-50/70">
+        <label className="flex items-center gap-2 text-xs text-tx-2">
           <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
           Sem vencimento definido
         </label>
@@ -238,12 +238,12 @@ export default function MobileNewPayableForm({
               </div>
             </div>
             {expensePayer === "CLIENTE" && (
-              <div className="rounded-lg bg-gold-500/10 px-3 py-2.5">
-                <label className="flex items-center gap-2 text-xs font-medium text-navy-800/80 dark:text-cream-50/80">
+              <div className="rounded-lg bg-acao-bg px-3 py-2.5">
+                <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
                   <input type="checkbox" checked={createReimbursement} onChange={(e) => setCreateReimbursement(e.target.checked)} />
                   Criar conta a receber vinculada para reembolso deste valor pelo cliente?
                 </label>
-                <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1 ml-6">
+                <p className="text-[11px] text-tx-2 mt-1 ml-6">
                   Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor total desta despesa.
                 </p>
               </div>
@@ -254,7 +254,7 @@ export default function MobileNewPayableForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-1.5 bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
         >
           {startOpen && <Send size={14} />} {loading ? "Salvando..." : startOpen ? "Salvar lançamento" : "Criar"}
         </button>

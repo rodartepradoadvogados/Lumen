@@ -71,19 +71,19 @@ export default function MobileCommentForm({
           onChange={handleChange}
           placeholder="Escreva um comentário... use @ para mencionar alguém"
           rows={3}
-          className="w-full border border-navy-800/12 dark:border-white/10 bg-white dark:bg-navy-950 text-navy-900 dark:text-cream-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+          className="w-full border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
           onKeyDown={(e) => {
             if (e.key === "Escape") setMentionQuery(null);
           }}
         />
         {mentionQuery !== null && mentionCandidates.length > 0 && (
-          <div className="absolute left-0 bottom-full mb-1 w-56 bg-white dark:bg-navy-900 rounded-lg border border-navy-800/10 dark:border-white/10 shadow-pop z-20 overflow-hidden max-h-48 overflow-y-auto scrollbar-thin">
+          <div className="absolute left-0 bottom-full mb-1 w-56 bg-sf rounded-lg border border-regua shadow-pop z-20 overflow-hidden max-h-48 overflow-y-auto scrollbar-thin">
             {mentionCandidates.map((u) => (
               <button
                 key={u.id}
                 type="button"
                 onClick={() => selectMention(u.name)}
-                className="flex items-center w-full px-3 py-2 text-sm text-navy-900 dark:text-cream-50 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors text-left"
+                className="flex items-center w-full px-3 py-2 text-sm text-tx hover:bg-sf-apoio transition-colors text-left"
               >
                 {u.name}
               </button>
@@ -96,7 +96,7 @@ export default function MobileCommentForm({
           type="button"
           onClick={submit}
           disabled={pending || !content.trim()}
-          className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-gold-600 dark:hover:bg-gold-700 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-40 text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
         >
           <Send size={13} /> {pending ? "Enviando..." : "Enviar"}
         </button>

@@ -43,7 +43,7 @@ export default function MobileNovaAnotacaoForm({ linkType, entityId }: { linkTyp
         onChange={(e) => setText(e.target.value)}
         placeholder="Escreva sua anotação..."
         rows={4}
-        className="w-full rounded-lg border border-navy-800/15 dark:border-white/15 bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 text-sm px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+        className="w-full rounded-lg border border-regua bg-sf-apoio text-tx text-sm px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-acao/40"
       />
       <div className="flex items-center gap-1.5">
         <label className="sr-only" htmlFor="mobile-anotacao-data">
@@ -54,22 +54,22 @@ export default function MobileNovaAnotacaoForm({ linkType, entityId }: { linkTyp
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="flex-1 min-w-0 rounded-lg border border-navy-800/15 dark:border-white/15 bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+          className="flex-1 min-w-0 rounded-lg border border-regua bg-sf-apoio text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-acao/40"
         />
         <button
           type="button"
           onClick={() => setDate(todayIsoDate())}
-          className="shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-cream-100 dark:bg-white/10 text-navy-800/70 dark:text-cream-50/70"
+          className="shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-sf-apoio text-tx-2"
         >
           Hoje
         </button>
       </div>
-      {error && <p className="text-[11px] text-bordo-600 dark:text-bordo-400">{error}</p>}
+      {error && <p className="text-[11px] text-urgente">{error}</p>}
       <button
         type="button"
         onClick={handleSave}
         disabled={pending}
-        className="w-full text-xs font-semibold text-white bg-bordo-600 hover:bg-bordo-700 rounded-lg px-3.5 py-2 disabled:opacity-50 transition-colors"
+        className="w-full text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover rounded-lg px-3.5 py-2 disabled:opacity-50 transition-colors"
       >
         {pending ? "Salvando..." : "Salvar anotação"}
       </button>

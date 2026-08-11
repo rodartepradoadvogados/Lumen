@@ -62,7 +62,7 @@ export default function MobileNewTaskForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-bordo-700 dark:hover:bg-bordo-600 text-cream-50 text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
       >
         <Plus size={16} /> Agendar Compromisso
       </button>
@@ -70,13 +70,13 @@ export default function MobileNewTaskForm({
   }
 
   return (
-    <div className="rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-100 dark:bg-white/5 p-3 space-y-3">
+    <div className="rounded-lg border border-regua bg-sf-apoio p-3 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-navy-900 dark:text-cream-50">Agendar Compromisso</p>
+        <p className="text-sm font-semibold text-tx">Agendar Compromisso</p>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-navy-800/40 dark:text-cream-50/40"
+          className="text-tx-2"
           aria-label="Fechar"
         >
           <X size={16} />
@@ -85,12 +85,12 @@ export default function MobileNewTaskForm({
 
       <form action={handleSubmit} className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título</label>
+          <label className="text-xs font-medium text-tx-2">Título</label>
           <input name="title" required className="mobile-input" placeholder="Ex: Audiência de instrução" />
         </div>
 
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+          <label className="text-xs font-medium text-tx-2">Tipo</label>
           <select name="type" className="mobile-input" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="TAREFA">Tarefa</option>
             <option value="EVENTO">Evento / Reunião</option>
@@ -102,19 +102,19 @@ export default function MobileNewTaskForm({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data</label>
+            <label className="text-xs font-medium text-tx-2">Data</label>
             <input type="date" name="dueDate" required className="mobile-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora (opcional)</label>
+            <label className="text-xs font-medium text-tx-2">Hora (opcional)</label>
             <input type="time" name="dueTime" className="mobile-input" />
           </div>
         </div>
 
         {(type === "EVENTO" || type === "AUDIENCIA") && (
-          <div className="rounded-lg border border-gold-500/25 dark:border-gold-400/25 bg-gold-500/5 dark:bg-gold-400/5 p-3 space-y-2.5">
+          <div className="rounded-lg border border-regua bg-sf-apoio p-3 space-y-2.5">
             <div className="flex gap-4">
-              <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50/85">
+              <label className="flex items-center gap-1.5 text-sm text-tx-2">
                 <input
                   type="radio"
                   name="meetingType"
@@ -124,7 +124,7 @@ export default function MobileNewTaskForm({
                 />
                 Presencial
               </label>
-              <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50/85">
+              <label className="flex items-center gap-1.5 text-sm text-tx-2">
                 <input
                   type="radio"
                   name="meetingType"
@@ -137,12 +137,12 @@ export default function MobileNewTaskForm({
             </div>
             {meetingType === "PRESENCIAL" ? (
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço (opcional)</label>
+                <label className="text-xs font-medium text-tx-2">Endereço (opcional)</label>
                 <input name="location" className="mobile-input" placeholder="Ex: Rua X, nº 123 - Goiânia/GO" />
               </div>
             ) : (
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+                <label className="text-xs font-medium text-tx-2">
                   {type === "AUDIENCIA" ? "Link da audiência" : "Link da reunião"} (opcional)
                 </label>
                 <input name="meetingUrl" type="url" className="mobile-input" placeholder="https://meet.google.com/..." />
@@ -152,23 +152,23 @@ export default function MobileNewTaskForm({
         )}
 
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
+          <label className="text-xs font-medium text-tx-2">Descrição (opcional)</label>
           <textarea name="description" rows={2} className="mobile-input" />
         </div>
 
         {type === "AUDIENCIA" && (
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+            <label className="text-xs font-medium text-tx-2">Estratégia (opcional)</label>
             <textarea name="strategy" rows={2} className="mobile-input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
           </div>
         )}
 
-        {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-bordo-600 hover:bg-bordo-700 dark:bg-bordo-500 dark:hover:bg-bordo-600 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? "Salvando..." : "Criar"}
         </button>

@@ -12,12 +12,13 @@ export const dynamic = "force-dynamic";
 
 const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
 
+// Cores lidas das variáveis CSS (app/globals.css) — nenhum hex cravado aqui (DESIGN-SYSTEM.md §16).
 const stageDot: Record<string, string> = {
-  NOVO: "#f59e0b",
-  QUALIFICACAO: "#3b82f6",
-  PROPOSTA: "#c6a05c",
-  FECHADO: "#10b981",
-  PERDIDO: "#ef4444",
+  NOVO: "var(--aviso)",
+  QUALIFICACAO: "var(--acao)",
+  PROPOSTA: "var(--marca)",
+  FECHADO: "var(--concluido)",
+  PERDIDO: "var(--urgente)",
 };
 
 const leadSourceLabels: Record<string, string> = {
@@ -70,7 +71,7 @@ export default async function FunilPage() {
         action={
           <Link
             href="/atendimento"
-            className="inline-flex items-center gap-1.5 bg-white dark:bg-navy-900 text-navy-800/70 dark:text-cream-50/70 border border-navy-800/10 dark:border-white/10 hover:bg-cream-100 dark:hover:bg-white/10 text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 bg-sf text-tx-2 border border-regua hover:bg-sf-apoio text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
           >
             <List size={16} /> Lista de Atendimentos
           </Link>
@@ -79,10 +80,10 @@ export default async function FunilPage() {
 
       <div className="mb-4">
         {conversionRate !== null && (
-          <p className="text-sm text-navy-800/60 dark:text-cream-50/60">
+          <p className="text-sm text-tx-2">
             Taxa de conversão:{" "}
-            <span className="font-semibold text-emerald-700 dark:text-emerald-400">{conversionRate.toFixed(0)}%</span>{" "}
-            <span className="text-xs text-navy-800/40 dark:text-cream-50/40">
+            <span className="font-semibold text-concluido tabular-nums">{conversionRate.toFixed(0)}%</span>{" "}
+            <span className="text-xs text-tx-3">
               ({closed} fechado(s) de {closed + lost} decididos)
             </span>
           </p>
@@ -94,22 +95,22 @@ export default async function FunilPage() {
           const cards = byStage[stage];
           const total = totals.find((t) => t.stage === stage)!;
           return (
-            <div key={stage} className="w-80 shrink-0 rounded-xl bg-cream-100/70 dark:bg-navy-900 border border-navy-800/8 dark:border-white/10 flex flex-col">
-              <div className="px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
+            <div key={stage} className="w-80 shrink-0 rounded-xl bg-sf-apoio border border-regua flex flex-col">
+              <div className="px-4 py-3 border-b border-regua">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
-                    <h3 className="font-semibold text-sm text-navy-900 dark:text-cream-50">{stageLabels[stage]}</h3>
+                    <h3 className="font-semibold text-sm text-tx">{stageLabels[stage]}</h3>
                   </div>
-                  <span className="text-xs font-semibold text-navy-800/40 dark:text-cream-50/40 bg-white dark:bg-white/10 rounded-full px-2 py-0.5">{total.count}</span>
+                  <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-[9px] px-2 py-0.5">{total.count}</span>
                 </div>
                 {total.sum > 0 && (
-                  <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-1">{formatCurrency(total.sum)} estimado</p>
+                  <p className="text-xs text-tx-3 mt-1">{formatCurrency(total.sum)} estimado</p>
                 )}
               </div>
               <div className="p-2.5 space-y-2">
                 {cards.length === 0 ? (
-                  <p className="text-xs text-center text-navy-800/30 dark:text-cream-50/30 py-6">Sem atendimentos neste estágio</p>
+                  <p className="text-xs text-center text-tx-3 py-6">Sem atendimentos neste estágio</p>
                 ) : (
                   cards.map((a) => {
                     const stageSince = a.stageChangedAt ?? a.createdAt;
@@ -117,25 +118,25 @@ export default async function FunilPage() {
                     const followupLate =
                       a.nextContactAt && a.nextContactAt < now && !["FECHADO", "PERDIDO"].includes(a.stage);
                     return (
-                      <div key={a.id} className="bg-white dark:bg-navy-800 rounded-lg border border-navy-800/8 dark:border-white/10 shadow-card">
-                        <Link href={`/atendimento/${a.id}`} className="block p-3 hover:bg-cream-50 dark:hover:bg-white/5 rounded-t-lg transition-colors">
-                          <p className="text-sm font-medium text-navy-900 dark:text-cream-50 leading-snug">{a.clientName}</p>
-                          <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5 line-clamp-2">{a.subject}</p>
+                      <div key={a.id} className="bg-sf rounded-lg border border-regua shadow-card">
+                        <Link href={`/atendimento/${a.id}`} className="block p-3 hover:bg-sf-apoio rounded-t-lg transition-colors">
+                          <p className="text-sm font-medium text-tx leading-snug">{a.clientName}</p>
+                          <p className="text-xs text-tx-3 mt-0.5 line-clamp-2">{a.subject}</p>
                           <div className="flex items-center gap-1.5 flex-wrap mt-2">
                             {a.estimatedValue != null && a.estimatedValue > 0 && (
                               <Badge color="green">{formatCurrency(a.estimatedValue)}</Badge>
                             )}
                             {a.leadSource && <Badge color="navy">{leadSourceLabels[a.leadSource] || a.leadSource}</Badge>}
                           </div>
-                          <div className="flex items-center justify-between mt-2 text-[11px] text-navy-800/45 dark:text-cream-50/45">
+                          <div className="flex items-center justify-between mt-2 text-[11px] text-tx-3">
                             <span>{days} dia(s) no estágio</span>
                             {a.responsible && <span className="truncate max-w-[45%]">{a.responsible.name}</span>}
                           </div>
                           {followupLate && (
-                            <p className="text-[11px] font-semibold text-red-600 dark:text-bordo-400 mt-1.5">follow-up atrasado</p>
+                            <p className="text-[11px] font-semibold text-urgente mt-1.5">follow-up atrasado</p>
                           )}
                           {a.stage === "PERDIDO" && a.lostReason && (
-                            <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1.5 italic">Motivo: {a.lostReason}</p>
+                            <p className="text-[11px] text-tx-3 mt-1.5 italic">Motivo: {a.lostReason}</p>
                           )}
                         </Link>
                         <div className="px-3 pb-2.5">

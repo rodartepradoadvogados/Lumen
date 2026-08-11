@@ -88,11 +88,11 @@ export default async function MobileHome() {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">
+        <h1 className="font-serif text-xl font-bold text-tx">
           {greeting()}
           {firstName ? `, ${firstName}` : ""}
         </h1>
-        <p className="text-sm text-navy-800/50 dark:text-cream-50/50">O que você quer resolver agora?</p>
+        <p className="text-sm text-tx-2">O que você quer resolver agora?</p>
       </div>
 
       <MobileGlobalSearch />
@@ -120,8 +120,8 @@ export default async function MobileHome() {
             <Link href="/m/atendimento/novo" className="block h-full">
               <Card className="p-4 h-full">
                 <TileBadge icon={Phone} tone="bordo" />
-                <p className="text-sm font-bold text-navy-900 dark:text-cream-50 mt-2.5">Novo Atendimento</p>
-                <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-0.5">Abrir caso ou contato</p>
+                <p className="text-sm font-bold text-tx mt-2.5">Novo Atendimento</p>
+                <p className="text-[11px] text-tx-2 mt-0.5">Abrir caso ou contato</p>
               </Card>
             </Link>
           )}
@@ -178,8 +178,8 @@ export default async function MobileHome() {
 type Tone = "bordo" | "navy";
 
 const BADGE_TONE: Record<Tone, string> = {
-  bordo: "bg-bordo-700",
-  navy: "bg-navy-900",
+  bordo: "bg-atencao",
+  navy: "bg-grafite-800",
 };
 
 // Selo do ícone em "squircle" (quadrado bem arredondado, não círculo) — mesma cor em todo
@@ -222,14 +222,14 @@ function TileLink({
     <Link href={href} className="block h-full">
       <Card className="p-3.5 h-full">
         <TileBadge icon={icon} tone={tone} size={17} />
-        <p className="text-[13px] font-bold text-navy-900 dark:text-cream-50 mt-2.5 leading-tight">{title}</p>
+        <p className="text-[13px] font-bold text-tx mt-2.5 leading-tight">{title}</p>
         <p className="text-xs mt-0.5">
-          <span className={`font-extrabold tabular-nums ${countTone === "bordo" ? "text-bordo-700 dark:text-bordo-400" : "text-navy-900 dark:text-cream-50"}`}>
+          <span className={`font-extrabold tabular-nums ${countTone === "bordo" ? "text-urgente" : "text-tx"}`}>
             {count}
           </span>{" "}
-          <span className="text-navy-800/50 dark:text-cream-50/50">{countLabel}</span>
+          <span className="text-tx-2">{countLabel}</span>
         </p>
-        {subCaption && <p className="text-[10px] text-navy-800/40 dark:text-cream-50/40 mt-0.5 tabular-nums">{subCaption}</p>}
+        {subCaption && <p className="text-[10px] text-tx-2 mt-0.5 tabular-nums">{subCaption}</p>}
       </Card>
     </Link>
   );
@@ -257,24 +257,24 @@ function HubCard({
   wide?: boolean;
 }) {
   return (
-    <details className="group rounded-xl2 border border-navy-800/8 dark:border-white/10 bg-white dark:bg-navy-900 shadow-card open:shadow-pop transition-shadow">
+    <details className="group rounded-xl2 border border-regua bg-sf shadow-card open:shadow-pop transition-shadow">
       {wide ? (
         <summary className="flex items-center gap-3 px-4 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <TileBadge icon={Icon} tone={tone} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-navy-900 dark:text-cream-50">{title}</p>
-            {subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 truncate">{subtitle}</p>}
+            <p className="text-sm font-bold text-tx">{title}</p>
+            {subtitle && <p className="text-xs text-tx-2 truncate">{subtitle}</p>}
           </div>
-          <ChevronDown size={16} className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-180 shrink-0" />
+          <ChevronDown size={16} className="text-tx-3 transition-transform group-open:rotate-180 shrink-0" />
         </summary>
       ) : (
         <summary className="flex flex-col p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <div className="flex items-start justify-between">
             <TileBadge icon={Icon} tone={tone} />
-            <ChevronDown size={15} className="text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-180 mt-1.5" />
+            <ChevronDown size={15} className="text-tx-3 transition-transform group-open:rotate-180 mt-1.5" />
           </div>
-          <p className="text-sm font-bold text-navy-900 dark:text-cream-50 mt-2.5">{title}</p>
-          {subtitle && <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-0.5">{subtitle}</p>}
+          <p className="text-sm font-bold text-tx mt-2.5">{title}</p>
+          {subtitle && <p className="text-[11px] text-tx-2 mt-0.5">{subtitle}</p>}
         </summary>
       )}
       <div className="px-4 pb-4 grid grid-cols-2 gap-2">
@@ -292,7 +292,7 @@ function HubChip({ href, label, icon: Icon }: Chip) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 rounded-lg border border-navy-800/12 dark:border-white/15 text-navy-800/70 dark:text-cream-50/70 px-3 py-2.5 text-xs font-semibold hover:bg-navy-900/5 dark:hover:bg-white/5 transition-colors"
+      className="flex items-center gap-2 rounded-lg border border-regua text-tx-2 px-3 py-2.5 text-xs font-semibold hover:bg-sf-apoio transition-colors"
     >
       <Icon size={15} className="shrink-0" />
       <span className="truncate">{label}</span>

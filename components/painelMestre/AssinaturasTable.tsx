@@ -59,10 +59,10 @@ const NIVEL_ICON: Record<NivelSaudeCobranca, typeof CheckCircle2> = {
   NAO_CONFIGURADA: HelpCircle,
 };
 const NIVEL_TEXT_CLASS: Record<NivelSaudeCobranca, string> = {
-  OK: "text-emerald-400",
-  ATENCAO: "text-gold-400",
-  PROBLEMA: "text-bordo-400",
-  NAO_CONFIGURADA: "text-cream-50/50",
+  OK: "text-concluido",
+  ATENCAO: "text-aviso",
+  PROBLEMA: "text-urgente",
+  NAO_CONFIGURADA: "text-white/50",
 };
 
 type SubscriptionInfo = {
@@ -226,14 +226,14 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
     <div>
       {(error || message) && (
         <div className="px-5 pt-4">
-          {error && <p className="text-xs text-bordo-400 bg-bordo-400/15 rounded-lg px-3 py-2 mb-2">{error}</p>}
-          {message && <p className="text-xs text-emerald-400 bg-emerald-400/15 rounded-lg px-3 py-2 mb-2">{message}</p>}
+          {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2 mb-2">{error}</p>}
+          {message && <p className="text-xs text-concluido bg-concluido-bg rounded-lg px-3 py-2 mb-2">{message}</p>}
         </div>
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[10px] font-semibold text-cream-50/40 uppercase tracking-wide border-b border-white/10">
+            <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
               <th className="px-5 py-2.5 font-semibold">Escritório</th>
               <th className="px-3 py-2.5 font-semibold">Ciclo</th>
               <th className="px-3 py-2.5 font-semibold">Valor</th>
@@ -257,40 +257,40 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                 <Fragment key={o.id}>
                   <tr>
                     <td className="px-5 py-3 align-top">
-                      <span className="text-cream-50 font-medium">{o.name}</span>
+                      <span className="text-white font-medium">{o.name}</span>
                       {o.isInternal && (
-                        <span className="ml-2 inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-cream-50/40 border border-white/15 rounded px-1.5 py-0.5">
+                        <span className="ml-2 inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-white/40 border border-white/15 rounded px-1.5 py-0.5">
                           interno
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-3 align-top text-cream-50/80">
+                    <td className="px-3 py-3 align-top text-white/80">
                       {s ? (s.billingCycle === "SEMESTRAL" ? (s.discountPercent ? `Semestral (${s.discountPercent}% desc.)` : "Semestral") : "Mensal") : "—"}
                     </td>
-                    <td className="px-3 py-3 align-top font-mono tabular-nums text-cream-50">{s ? formatCurrency(s.monthlyFee) : "—"}</td>
-                    <td className="px-3 py-3 align-top text-cream-50/80">
+                    <td className="px-3 py-3 align-top font-mono tabular-nums text-white">{s ? formatCurrency(s.monthlyFee) : "—"}</td>
+                    <td className="px-3 py-3 align-top text-white/80">
                       {s?.paymentMethod ? PAYMENT_METHOD_LABEL[s.paymentMethod] ?? s.paymentMethod : "Não configurada"}
                     </td>
-                    <td className="px-3 py-3 align-top font-mono tabular-nums text-cream-50/80 whitespace-nowrap">
-                      {o.ultimaFatura ? formatDate(o.ultimaFatura.dueDate) : <span className="text-cream-50/40 font-sans">sem fatura gerada</span>}
+                    <td className="px-3 py-3 align-top font-mono tabular-nums text-white/80 whitespace-nowrap">
+                      {o.ultimaFatura ? formatDate(o.ultimaFatura.dueDate) : <span className="text-white/40 font-sans">sem fatura gerada</span>}
                     </td>
                     <td className="px-3 py-3 align-top whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cream-50/80">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
                         <LumenStatusDot tone={situacao.tone} /> {situacao.label}
                       </span>
                     </td>
                     <td className="px-3 py-3 align-top">
                       {s ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cream-50/80">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
                           <LumenStatusDot tone={STATUS_TONE[s.status] ?? "slate"} /> {STATUS_LABEL[s.status] ?? s.status}
                         </span>
                       ) : (
-                        <span className="text-xs text-cream-50/40">sem assinatura</span>
+                        <span className="text-xs text-white/40">sem assinatura</span>
                       )}
                     </td>
                     <td className="px-3 py-3 align-top whitespace-nowrap">
                       {o.isInternal || !o.saude ? (
-                        <span className="text-xs text-cream-50/40">— interno —</span>
+                        <span className="text-xs text-white/40">— interno —</span>
                       ) : (
                         <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${NIVEL_TEXT_CLASS[o.saude.nivel]}`}>
                           {NivelIcon && <NivelIcon size={13} />}
@@ -302,7 +302,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                       <button
                         type="button"
                         onClick={() => (isEditing ? setEditingId(null) : openEdit(o))}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-gold-400 hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-marca hover:underline"
                       >
                         {isEditing ? <X size={13} /> : <Pencil size={13} />}
                         {isEditing ? "Cancelar" : "Editar"}
@@ -316,8 +316,8 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                   {!isEditing && !o.isInternal && s?.paymentMethod && (
                     <tr>
                       <td colSpan={9} className="px-5 py-2.5 bg-white/[0.02]">
-                        <p className="text-[11px] text-cream-50/60">
-                          <span className="font-semibold text-cream-50/70">Entrega da cobrança: </span>
+                        <p className="text-[11px] text-white/60">
+                          <span className="font-semibold text-white/70">Entrega da cobrança: </span>
                           {entrega}
                         </p>
                         {o.saude && o.saude.nivel !== "OK" && o.saude.motivos.length > 0 && (
@@ -336,7 +336,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                   {!isEditing && !o.isInternal && !s?.paymentMethod && o.saude && (
                     <tr>
                       <td colSpan={9} className="px-5 py-2.5 bg-white/[0.02]">
-                        <p className="text-[11px] text-cream-50/60">{o.saude.motivos[0]}</p>
+                        <p className="text-[11px] text-white/60">{o.saude.motivos[0]}</p>
                       </td>
                     </tr>
                   )}
@@ -346,7 +346,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                       <td colSpan={9} className="px-5 py-4 bg-white/5">
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                           <div>
-                            <label className="text-[11px] text-cream-50/50">Ciclo</label>
+                            <label className="text-[11px] text-white/50">Ciclo</label>
                             <select
                               value={form.billingCycle}
                               onChange={(e) =>
@@ -356,18 +356,18 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                                   discountPercent: e.target.value === "MENSAL" ? "" : p.discountPercent,
                                 }))
                               }
-                              className="mt-1 w-full border border-white/15 bg-navy-800 text-cream-50 rounded-lg px-2.5 py-1.5 text-xs"
+                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
                             >
                               <option value="MENSAL">Mensal</option>
                               <option value="SEMESTRAL">Semestral</option>
                             </select>
                           </div>
                           <div>
-                            <label className="text-[11px] text-cream-50/50">Forma de pagamento</label>
+                            <label className="text-[11px] text-white/50">Forma de pagamento</label>
                             <select
                               value={form.paymentMethod}
                               onChange={(e) => setForm((p) => ({ ...p, paymentMethod: e.target.value as PaymentMethodOption }))}
-                              className="mt-1 w-full border border-white/15 bg-navy-800 text-cream-50 rounded-lg px-2.5 py-1.5 text-xs"
+                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
                             >
                               <option value="">Não configurado</option>
                               <option value="PIX_AUTOMATICO">Pix Automático</option>
@@ -376,7 +376,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             </select>
                           </div>
                           <div>
-                            <label className="text-[11px] text-cream-50/50">Desconto (%)</label>
+                            <label className="text-[11px] text-white/50">Desconto (%)</label>
                             <input
                               type="number"
                               min={0}
@@ -384,14 +384,14 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                               disabled={form.billingCycle !== "SEMESTRAL"}
                               value={form.discountPercent}
                               onChange={(e) => setForm((p) => ({ ...p, discountPercent: e.target.value }))}
-                              className="mt-1 w-full border border-white/15 bg-navy-800 text-cream-50 rounded-lg px-2.5 py-1.5 text-xs disabled:opacity-40"
+                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs disabled:opacity-40"
                             />
                           </div>
                           <button
                             type="button"
                             disabled={pending}
                             onClick={() => save(o.id)}
-                            className="bg-bordo-700 hover:bg-bordo-600 disabled:opacity-50 text-cream-50 text-xs font-semibold rounded-lg px-4 py-2"
+                            className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-xs font-semibold rounded-lg px-4 py-2 transition-colors"
                           >
                             Salvar
                           </button>
@@ -408,17 +408,17 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             type="button"
                             disabled={pending || !asaasConfigured}
                             onClick={() => generateAutomatico(o.id)}
-                            className="inline-flex items-center gap-1.5 bg-navy-800 hover:bg-navy-700 disabled:opacity-40 text-cream-50 text-xs font-semibold rounded-lg px-3 py-1.5"
+                            className="inline-flex items-center gap-1.5 bg-grafite-700 hover:bg-grafite-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg px-3 py-1.5"
                           >
                             <QrCode size={13} /> Gerar autorização Pix Automático
                           </button>
                           {s.pixAuthorizationStatus && (
-                            <span className="text-[11px] text-cream-50/50">
+                            <span className="text-[11px] text-white/50">
                               Autorização: {PIX_AUTH_STATUS_LABEL[s.pixAuthorizationStatus] ?? s.pixAuthorizationStatus}
                             </span>
                           )}
                           {!asaasConfigured && (
-                            <span className="text-[11px] text-cream-50/40">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>
+                            <span className="text-[11px] text-white/40">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>
                           )}
                         </div>
                         {qr?.officeId === o.id && <QrPanel qr={qr} />}
@@ -434,12 +434,12 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             type="button"
                             disabled={pending || !asaasConfigured}
                             onClick={() => testQrCode(o.id)}
-                            className="inline-flex items-center gap-1.5 bg-navy-800 hover:bg-navy-700 disabled:opacity-40 text-cream-50 text-xs font-semibold rounded-lg px-3 py-1.5"
+                            className="inline-flex items-center gap-1.5 bg-grafite-700 hover:bg-grafite-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg px-3 py-1.5"
                           >
                             <QrCode size={13} /> Testar geração de QR Code
                           </button>
                           {!asaasConfigured && (
-                            <span className="text-[11px] text-cream-50/40">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>
+                            <span className="text-[11px] text-white/40">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>
                           )}
                         </div>
                         {qr?.officeId === o.id && <QrPanel qr={qr} />}
@@ -451,7 +451,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
             })}
             {offices.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-5 py-8 text-center text-cream-50/40 text-sm">
+                <td colSpan={9} className="px-5 py-8 text-center text-white/40 text-sm">
                   Nenhum escritório cadastrado ainda.
                 </td>
               </tr>
@@ -465,21 +465,21 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
 
 function QrPanel({ qr }: { qr: QrResult }) {
   return (
-    <div className="mt-3 flex items-start gap-4 flex-wrap bg-navy-950/40 border border-white/10 rounded-lg p-3">
+    <div className="mt-3 flex items-start gap-4 flex-wrap bg-grafite-900/40 border border-white/10 rounded-lg p-3">
       {qr.image && (
         // eslint-disable-next-line @next/next/no-img-element -- base64 gerado em runtime, não é um asset estático
         <img src={`data:image/png;base64,${qr.image}`} alt="QR Code Pix" className="h-32 w-32 rounded" />
       )}
       {qr.payload && (
         <div className="flex-1 min-w-[220px]">
-          <p className="text-[11px] text-cream-50/50 mb-1">Pix Copia e Cola</p>
+          <p className="text-[11px] text-white/50 mb-1">Pix Copia e Cola</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-[11px] text-cream-50 bg-white/5 border border-white/10 rounded px-2 py-1.5 break-all">{qr.payload}</code>
+            <code className="flex-1 text-[11px] text-white bg-white/5 border border-white/10 rounded px-2 py-1.5 break-all">{qr.payload}</code>
             <CopyButton text={qr.payload} label="Copiar" />
           </div>
         </div>
       )}
-      {!qr.image && !qr.payload && <p className="text-xs text-cream-50/50">Gerado, mas a Asaas não devolveu QR Code desta vez.</p>}
+      {!qr.image && !qr.payload && <p className="text-xs text-white/50">Gerado, mas a Asaas não devolveu QR Code desta vez.</p>}
     </div>
   );
 }

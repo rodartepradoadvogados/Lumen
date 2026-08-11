@@ -41,13 +41,17 @@ const MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-// A cor de cada compromisso representa o seu TIPO.
-const typeMeta: Record<string, { dot: string; chip: string }> = {
-  TAREFA: { dot: "bg-slate-400", chip: "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-cream-50/70" },
-  EVENTO: { dot: "bg-blue-500", chip: "bg-blue-100 text-blue-700 dark:bg-blue-400/15 dark:text-blue-400" },
-  AUDIENCIA: { dot: "bg-gold-500", chip: "bg-gold-500/20 text-gold-800 dark:bg-gold-400/15 dark:text-gold-400" },
-  PERICIA: { dot: "bg-amber-500", chip: "bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-400" },
-  PRAZO: { dot: "bg-red-500", chip: "bg-red-100 text-red-700 dark:bg-bordo-400/15 dark:text-bordo-400" },
+// A cor de cada compromisso representa o seu TIPO — tabela exata em DESIGN-SYSTEM.md §7. A
+// mesma cor aparece em três formas: bolinha de legenda (10px, `dot`), chip de rótulo (`chip`,
+// fundo+texto) e filete esquerdo de 3px no chip do calendário (`filete`) e no card do Kanban
+// (reexportado daqui — ver components/KanbanBoard.tsx). Áudiência é a única exceção autorizada
+// ao ouro fora da marca (ver §7); as demais batem 1:1 com um token semântico já existente.
+export const typeMeta: Record<string, { dot: string; chip: string; filete: string }> = {
+  TAREFA: { dot: "bg-tx-2", chip: "bg-sf-apoio text-tx-2", filete: "border-tx-2" },
+  EVENTO: { dot: "bg-acao", chip: "bg-acao-bg text-acao", filete: "border-acao" },
+  AUDIENCIA: { dot: "bg-marca", chip: "bg-marca-bg text-marca-tx", filete: "border-marca" },
+  PERICIA: { dot: "bg-aviso", chip: "bg-aviso-bg text-aviso", filete: "border-aviso" },
+  PRAZO: { dot: "bg-urgente", chip: "bg-urgente-bg text-urgente", filete: "border-urgente" },
 };
 
 function ymd(d: Date) {
@@ -123,7 +127,7 @@ export default function AgendaView({
 
   const controls = (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      <div className="flex gap-1 bg-cream-100 dark:bg-white/5 rounded-lg border border-navy-800/10 dark:border-white/10 p-1">
+      <div className="flex gap-1 bg-sf-apoio rounded-lg border border-regua p-1">
         {[
           { key: "mes", label: "Mês" },
           { key: "semana", label: "Semana" },
@@ -135,8 +139,8 @@ export default function AgendaView({
             className={clsx(
               "text-xs font-semibold px-3 py-1.5 rounded-md transition-colors",
               visao === v.key
-                ? "bg-bordo-700 dark:bg-bordo-500 text-white"
-                : "text-navy-800/60 dark:text-cream-50/60 hover:bg-white/70 dark:hover:bg-white/10"
+                ? "bg-acao text-acao-tx"
+                : "text-tx-2 hover:bg-sf"
             )}
           >
             {v.label}
@@ -147,7 +151,7 @@ export default function AgendaView({
       <select
         value={responsibleId}
         onChange={(e) => onFilterChange("responsibleId", e.target.value)}
-        className="text-xs font-medium border border-navy-800/12 dark:border-white/15 rounded-lg px-2.5 py-2 bg-white dark:bg-navy-800 dark:text-cream-50"
+        className="text-xs font-medium border border-regua-forte rounded-lg px-2.5 py-2 bg-sf text-tx"
       >
         <option value="">Todos os responsáveis</option>
         {users.map((u) => (
@@ -160,7 +164,7 @@ export default function AgendaView({
       <select
         value={tipo}
         onChange={(e) => onFilterChange("tipo", e.target.value)}
-        className="text-xs font-medium border border-navy-800/12 dark:border-white/15 rounded-lg px-2.5 py-2 bg-white dark:bg-navy-800 dark:text-cream-50"
+        className="text-xs font-medium border border-regua-forte rounded-lg px-2.5 py-2 bg-sf text-tx"
       >
         <option value="">Todos os tipos</option>
         {Object.keys(typeMeta).map((k) => (
@@ -171,9 +175,9 @@ export default function AgendaView({
       </select>
 
       <div className="flex items-center gap-3 flex-wrap ml-auto">
-        <span className="text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase tracking-wide">Cores por tipo:</span>
+        <span className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">Cores por tipo:</span>
         {Object.entries(typeMeta).map(([k, m]) => (
-          <span key={k} className="flex items-center gap-1.5 text-[11px] text-navy-800/60 dark:text-cream-50/60">
+          <span key={k} className="flex items-center gap-1.5 text-[11px] text-tx-2">
             <span className={clsx("h-2.5 w-2.5 rounded-full", m.dot)} />
             {taskTypeLabels[k]}
           </span>
@@ -228,11 +232,14 @@ export default function AgendaView({
   );
 }
 
-// Prazo de segurança usa uma cor de aviso FIXA (âmbar), sempre diferente da cor por tipo —
-// é a mesma tarefa do prazo fatal, mas o objetivo aqui é chamar atenção de urgência, não
-// repetir a cor do tipo (que já aparece no dia do prazo fatal).
-const safetyChip = "bg-amber-500/20 text-amber-800 dark:bg-amber-400/20 dark:text-amber-300 ring-1 ring-inset ring-amber-500/40";
+// Prazo de segurança usa uma cor de aviso FIXA, sempre diferente da cor por tipo — é a mesma
+// tarefa do prazo fatal, mas o objetivo aqui é chamar atenção de urgência, não repetir a cor do
+// tipo (que já aparece no dia do prazo fatal).
+const safetyChip = "bg-aviso-bg text-aviso";
 
+// Chip do calendário (mês/semana): filete esquerdo de 3px na cor do tipo — mesma régua usada no
+// card do Kanban (DESIGN-SYSTEM.md §7/§12), em vez da bolinha (que fica só na legenda "Cores por
+// tipo", 10px).
 function EventChip({ t }: { t: TaskData }) {
   const done = t.status === "CONCLUIDO";
   const isSafety = t.entryKind === "seguranca";
@@ -242,12 +249,12 @@ function EventChip({ t }: { t: TaskData }) {
     <div
       data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : doneTip || undefined}
       className={clsx(
-        "text-[10px] px-1 py-0.5 rounded truncate font-medium flex items-center gap-1",
-        isSafety ? safetyChip : meta.chip,
+        "text-[10px] pl-1.5 pr-1 py-0.5 rounded-r truncate font-medium flex items-center gap-1 border-l-[3px]",
+        isSafety ? clsx(safetyChip, "border-aviso") : clsx(meta.chip, meta.filete),
         done && "line-through opacity-60"
       )}
     >
-      {isSafety ? <Hourglass size={9} className="shrink-0" /> : <span className={clsx("h-1.5 w-1.5 rounded-full shrink-0", typeMeta[t.type]?.dot)} />}
+      {isSafety && <Hourglass size={9} className="shrink-0" />}
       {t.dueTime && <span className="opacity-70">{t.dueTime}</span>}
       <span className="truncate">{t.title}</span>
     </div>
@@ -292,27 +299,27 @@ function MonthView({
   const nextMonthHref = buildHref({ year: String(month === 11 ? year + 1 : year), month: String(month === 11 ? 0 : month + 1) });
 
   return (
-    <div className="bg-white dark:bg-navy-900 rounded-xl border border-navy-800/8 dark:border-white/10 shadow-card flex flex-col min-h-0">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-lg">
+    <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+        <h3 className="font-bold text-tx text-lg">
           {MONTHS[month]} {year}
         </h3>
         <div className="flex items-center gap-1">
-          <Link href={prevMonthHref} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
+          <Link href={prevMonthHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-gold-700 dark:text-gold-400 px-2 py-1 rounded-lg hover:bg-gold-500/10 dark:hover:bg-gold-400/10">
+          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao px-2 py-1 rounded-lg hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={nextMonthHref} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
+          <Link href={nextMonthHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
             <ChevronRight size={18} />
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-navy-800/8 dark:border-white/10">
+      <div className="grid grid-cols-7 border-b border-regua">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="text-center text-[11px] font-semibold text-navy-800/40 dark:text-cream-50/40 py-2 uppercase tracking-wide">
+          <div key={w} className="text-center text-[11px] font-semibold text-tx-3 py-2 uppercase tracking-wide">
             {w}
           </div>
         ))}
@@ -329,15 +336,15 @@ function MonthView({
               key={key}
               onClick={() => setSelected(key)}
               className={clsx(
-                "border-b border-r border-navy-800/5 dark:border-white/10 p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
-                !inMonth && "bg-cream-50/60 dark:bg-white/5 text-navy-800/25 dark:text-cream-50/20",
-                isSelected && "bg-gold-500/10 dark:bg-gold-400/10 ring-1 ring-inset ring-gold-500/40 dark:ring-gold-400/40"
+                "border-b border-r border-regua p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
+                !inMonth && "bg-sf-apoio text-tx-3",
+                isSelected && "bg-acao-bg ring-1 ring-inset ring-acao"
               )}
             >
               <span
                 className={clsx(
                   "text-xs font-semibold h-5 w-5 flex items-center justify-center rounded-full",
-                  isToday ? "bg-bordo-500 dark:bg-bordo-400 text-white dark:text-navy-950" : "text-navy-800/70 dark:text-cream-50/70"
+                  isToday ? "bg-acao text-acao-tx" : "text-tx-2"
                 )}
               >
                 {date.getDate()}
@@ -346,7 +353,7 @@ function MonthView({
                 {dayTasks.slice(0, 3).map((t) => (
                   <EventChip key={t.id} t={t} />
                 ))}
-                {dayTasks.length > 3 && <p className="text-[10px] text-navy-800/40 dark:text-cream-50/40 pl-1">+{dayTasks.length - 3} mais</p>}
+                {dayTasks.length > 3 && <p className="text-[10px] text-tx-3 pl-1">+{dayTasks.length - 3} mais</p>}
               </div>
             </button>
           );
@@ -378,17 +385,17 @@ function WeekView({
   const label = `${start.getDate()}/${String(start.getMonth() + 1).padStart(2, "0")} – ${days[6].getDate()}/${String(days[6].getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <div className="bg-white dark:bg-navy-900 rounded-xl border border-navy-800/8 dark:border-white/10 shadow-card flex flex-col min-h-0">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-lg">Semana de {label}</h3>
+    <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+        <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
-          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
+          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-gold-700 dark:text-gold-400 px-2 py-1 rounded-lg hover:bg-gold-500/10 dark:hover:bg-gold-400/10">
+          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao px-2 py-1 rounded-lg hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
+          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -404,16 +411,16 @@ function WeekView({
               key={key}
               onClick={() => setSelected(key)}
               className={clsx(
-                "border-r border-navy-800/5 dark:border-white/10 last:border-r-0 p-1.5 text-left flex flex-col overflow-hidden transition-colors",
-                isSelected && "bg-gold-500/10 dark:bg-gold-400/10"
+                "border-r border-regua last:border-r-0 p-1.5 text-left flex flex-col overflow-hidden transition-colors",
+                isSelected && "bg-acao-bg"
               )}
             >
               <div className="flex flex-col items-center mb-1.5">
-                <span className="text-[10px] font-semibold text-navy-800/40 dark:text-cream-50/40 uppercase">{WEEKDAYS[date.getDay()]}</span>
+                <span className="text-[10px] font-semibold text-tx-3 uppercase">{WEEKDAYS[date.getDay()]}</span>
                 <span
                   className={clsx(
                     "text-xs font-semibold h-6 w-6 flex items-center justify-center rounded-full",
-                    isToday ? "bg-bordo-500 dark:bg-bordo-400 text-white dark:text-navy-950" : "text-navy-800/70 dark:text-cream-50/70"
+                    isToday ? "bg-acao text-acao-tx" : "text-tx-2"
                   )}
                 >
                   {date.getDate()}
@@ -436,26 +443,26 @@ function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
   const days = Object.keys(tasksByDay).sort();
 
   return (
-    <div className="bg-white dark:bg-navy-900 rounded-xl border border-navy-800/8 dark:border-white/10 shadow-card flex-1 min-h-0 overflow-y-auto scrollbar-thin">
-      {days.length === 0 && <p className="text-center text-sm text-navy-800/35 dark:text-cream-50/35 py-16">Nada agendado nos próximos 30 dias</p>}
+    <div className="bg-sf rounded-xl border border-regua shadow-card flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+      {days.length === 0 && <p className="text-center text-sm text-tx-3 py-16">Nada agendado nos próximos 30 dias</p>}
       {days.map((day) => {
         const items = tasksByDay[day].sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
         const date = new Date(day + "T00:00:00");
         return (
           <div key={day}>
-            <div className="sticky top-0 bg-cream-50 dark:bg-navy-800 px-5 py-2 border-y border-navy-800/8 dark:border-white/10">
-              <p className="text-xs font-semibold text-navy-900 dark:text-cream-50 capitalize">
+            <div className="sticky top-0 bg-sf-apoio px-5 py-2 border-y border-regua">
+              <p className="text-xs font-semibold text-tx capitalize">
                 {date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </p>
             </div>
-            <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <div className="divide-y divide-regua">
               {items.map((t) => {
                 const done = t.status === "CONCLUIDO";
                 const isSafety = t.entryKind === "seguranca";
                 return (
                   <div key={`${t.id}-${t.entryKind}`} className="px-5 py-3 flex items-start gap-3">
                     {isSafety ? (
-                      <Hourglass size={11} className="mt-1 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <Hourglass size={11} className="mt-1 shrink-0 text-aviso" />
                     ) : (
                       <span className={clsx("mt-1 h-2.5 w-2.5 rounded-full shrink-0", typeMeta[t.type]?.dot)} />
                     )}
@@ -463,17 +470,17 @@ function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                         {isSafety && <Badge color="gold">Prazo de segurança (24h antes)</Badge>}
-                        {t.dueTime && <span className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50">{t.dueTime}</span>}
+                        {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
                       </div>
-                      <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 mt-1", done && "line-through text-navy-800/40 dark:text-cream-50/40")}>{t.title}</p>
+                      <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
                       {t.case && (
-                        <Link href={`/processos/${t.case.id}`} className="text-xs text-gold-700 dark:text-gold-400 hover:underline block truncate">
+                        <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline block truncate">
                           {t.case.title}
                         </Link>
                       )}
-                      {t.responsible && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">Responsável: {t.responsible.name}</p>}
+                      {t.responsible && <p className="text-[11px] text-tx-3 mt-0.5">Responsável: {t.responsible.name}</p>}
                       {done && completedLabel(t) && (
-                        <p className="text-[11px] text-navy-800/35 dark:text-cream-50/35 mt-0.5">{completedLabel(t)}</p>
+                        <p className="text-[11px] text-tx-3 mt-0.5">{completedLabel(t)}</p>
                       )}
                     </div>
                   </div>
@@ -505,18 +512,18 @@ function DayPanel({
   const selectedTasks = (tasksByDay[selected] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
 
   return (
-    <div className="bg-white dark:bg-navy-900 rounded-xl border border-navy-800/8 dark:border-white/10 shadow-card flex flex-col min-h-0">
-      <div className="px-5 py-4 border-b border-navy-800/8 dark:border-white/10 flex items-start justify-between gap-3">
+    <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
+      <div className="px-5 py-4 border-b border-regua flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">
+          <h3 className="font-bold text-tx">
             {new Date(selected + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
           </h3>
-          <p className="text-xs text-navy-800/45 dark:text-cream-50/45 mt-0.5">{selectedTasks.length} item(ns) neste dia</p>
+          <p className="text-xs text-tx-3 mt-0.5">{selectedTasks.length} item(ns) neste dia</p>
         </div>
         <NewTaskModal key={selected} cases={cases} users={users} columns={columns} defaultDate={selected} label="+ Nova neste dia" />
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-navy-800/5 dark:divide-white/10">
-        {selectedTasks.length === 0 && <p className="text-center text-sm text-navy-800/35 dark:text-cream-50/35 py-10">Nada agendado para este dia</p>}
+      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua">
+        {selectedTasks.length === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}
         {selectedTasks.map((t) => {
           const done = t.status === "CONCLUIDO";
           const isSafety = t.entryKind === "seguranca";
@@ -527,7 +534,7 @@ function DayPanel({
                 data-tip={done ? completedLabel(t) || undefined : undefined}
                 className={clsx(
                   "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
-                  done ? "bg-emerald-500 border-emerald-500 text-white" : "border-navy-800/20 dark:border-white/20 text-transparent hover:border-emerald-500"
+                  done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
                 )}
               >
                 <Check size={12} strokeWidth={3} />
@@ -542,21 +549,21 @@ function DayPanel({
                       Prazo de segurança (24h antes)
                     </Badge>
                   )}
-                  {t.dueTime && <span className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50">{t.dueTime}</span>}
+                  {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
                   <span className="ml-auto">
                     <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir "${t.title}" da agenda?`} />
                   </span>
                 </div>
-                <p className={clsx("text-sm font-medium text-navy-900 dark:text-cream-50 mt-1", done && "line-through text-navy-800/40 dark:text-cream-50/40")}>{t.title}</p>
+                <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
                 {t.case && (
-                  <Link href={`/processos/${t.case.id}`} className="text-xs text-gold-700 dark:text-gold-400 hover:underline mt-0.5 block truncate">
+                  <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline mt-0.5 block truncate">
                     {t.case.title}
                   </Link>
                 )}
-                {t.responsible && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-1">Responsável: {t.responsible.name}</p>}
-                {t.meetingType === "PRESENCIAL" && t.location && <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50 mt-1">📍 {t.location}</p>}
+                {t.responsible && <p className="text-[11px] text-tx-3 mt-1">Responsável: {t.responsible.name}</p>}
+                {t.meetingType === "PRESENCIAL" && t.location && <p className="text-[11px] text-tx-3 mt-1">📍 {t.location}</p>}
                 {t.meetingType === "ONLINE" && t.meetingUrl && (
-                  <a href={t.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline mt-1 block truncate">
+                  <a href={t.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-acao hover:underline mt-1 block truncate">
                     🔗 {t.meetingUrl}
                   </a>
                 )}

@@ -243,3 +243,59 @@ export async function moveDriveFile(fileId: string, newParentId: string, officeI
       await googleDrive.moveDriveFile(fileId, newParentId, officeId);
   }
 }
+
+// Cria uma subpasta com nome exato dentro de outra pasta (por id), a pedido do usuário — nunca
+// reaproveita uma homônima já existente (ao contrário de getOrCreateCategoryFolder acima). Usado
+// por lib/actions/driveFolders.ts (criar pasta a pedido em processo/caso). Ver
+// createNamedDriveFolder em lib/googleDrive.ts para o equivalente Google (reaproveitado aqui, não
+// duplicado) e createNamedFolder em lib/oneDriveStorage.ts/lib/dropboxStorage.ts para os outros
+// dois provedores.
+export async function createNamedFolder(parentFolderId: string, name: string, officeId: string): Promise<{ id: string }> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.createNamedFolder(parentFolderId, name, officeId);
+    case "DROPBOX":
+      return dropboxStorage.createNamedFolder(parentFolderId, name, officeId);
+    default: {
+      const id = await googleDrive.createNamedDriveFolder(parentFolderId, name, officeId);
+      return { id };
+    }
+  }
+}
+
+// ============ STATUS DE CONEXÃO (agnóstico de provedor) ============
+// Google, OneDrive e Dropbox cada um tem seu próprio getStatus (accountEmail + connected) — esta
+// função escolhe o certo pelo provedor DESTE escritório e devolve um formato único. Existe porque
+// a área de arrastar do produto inteiro hoje é liberada por `driveConnected`, que é sempre
+// `getDriveStatus(...).connected` — específico do Google (ver lib/googleDrive.ts) — então um
+// escritório em OneDrive/Dropbox nunca vê onde soltar arquivo, mesmo com a conta perfeitamente
+// conectada. As páginas que hoje calculam `driveConnected` não são posse desta entrega (ver
+// relatório para a lista exata de arquivos de UI que precisam trocar a chamada por esta aqui) —
+// esta função só fica pronta, tipada, esperando a troca.
+export type StorageConnectionStatus = { connected: boolean; provider: StorageProvider; accountEmail?: string; message?: string };
+
+export async function getStorageConnectionStatus(officeId: string): Promise<StorageConnectionStatus> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE": {
+      const s = await oneDriveStorage.getOneDriveStatus(officeId);
+      return { connected: s.connected, provider, accountEmail: s.accountEmail };
+    }
+    case "DROPBOX": {
+      const s = await dropboxStorage.getDropboxStatus(officeId);
+      return { connected: s.connected, provider, accountEmail: s.accountEmail };
+    }
+    default: {
+      // getDriveStatus valida de verdade (renova o token, confere escopo — ver lib/googleDrive.ts)
+      // em vez de só checar se existe linha no banco.
+      const s = await googleDrive.getDriveStatus(officeId);
+      return { connected: s.connected, provider, accountEmail: s.accountEmail, message: s.message };
+    }
+  }
+}
+
+// Atalho booleano pro caso comum (gate de UI: mostra ou esconde a área de arrastar).
+export async function isStorageConnected(officeId: string): Promise<boolean> {
+  return (await getStorageConnectionStatus(officeId)).connected;
+}

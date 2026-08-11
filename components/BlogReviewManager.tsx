@@ -86,7 +86,7 @@ export default function BlogReviewManager({ posts, photos = [] }: { posts: Pendi
     return <EmptyState title="Nenhuma matéria aguardando revisão" subtitle="Os rascunhos enviados pelo robô de conteúdo aparecem aqui." />;
   }
   return (
-    <div className="divide-y divide-navy-800/8">
+    <div className="divide-y divide-regua">
       {posts.map((post) => (
         <ReviewCard key={post.id} post={post} photos={photos} />
       ))}
@@ -163,16 +163,16 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
   return (
     <div className="p-5 space-y-3">
-      {error && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
 
       <div className="flex items-start gap-2 flex-wrap">
         <div className="flex-1 min-w-[220px]">
           {editing ? (
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="cfg-input w-full font-serif font-bold text-navy-900" />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className="cfg-input w-full font-bold text-tx" />
           ) : (
-            <h4 className="font-serif font-bold text-navy-900 text-base">{title}</h4>
+            <h4 className="font-bold text-tx text-base">{title}</h4>
           )}
-          <p className="text-[11px] text-navy-800/40 mt-0.5">
+          <p className="text-[11px] text-tx-3 mt-0.5">
             Enviado pelo robô em {new Date(post.createdAt).toLocaleString("pt-BR")}
           </p>
         </div>
@@ -181,7 +181,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
             <button
               onClick={() => setEditing(true)}
               disabled={pending}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-navy-800 border border-navy-800/15 hover:bg-cream-100 disabled:opacity-40"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
             >
               <Pencil size={13} /> Editar
             </button>
@@ -191,14 +191,14 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
               <button
                 onClick={handleSave}
                 disabled={pending}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-navy-900 hover:bg-navy-800 disabled:opacity-40"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
               >
                 <Check size={13} /> Salvar
               </button>
               <button
                 onClick={handleCancelEdit}
                 disabled={pending}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-navy-800 border border-navy-800/15 hover:bg-cream-100 disabled:opacity-40"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
               >
                 <X size={13} /> Cancelar
               </button>
@@ -210,22 +210,22 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
       {editing ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label className="text-[11px] font-medium text-navy-800/55">Área</label>
+            <label className="text-[11px] font-medium text-tx-2">Área</label>
             <input value={area} onChange={(e) => setArea(e.target.value)} className="cfg-input w-full" />
           </div>
           <div>
-            <label className="text-[11px] font-medium text-navy-800/55">Formato</label>
+            <label className="text-[11px] font-medium text-tx-2">Formato</label>
             <select value={type} onChange={(e) => setType(e.target.value)} className="cfg-input w-full">
               <option value="NOTICIA">Notícia curta</option>
               <option value="ANALISE">Análise aprofundada</option>
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="text-[11px] font-medium text-navy-800/55">Resumo</label>
+            <label className="text-[11px] font-medium text-tx-2">Resumo</label>
             <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="cfg-input w-full" />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-[11px] font-medium text-navy-800/55">Conteúdo</label>
+            <label className="text-[11px] font-medium text-tx-2">Conteúdo</label>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={10} className="cfg-input w-full font-mono text-xs" />
           </div>
         </div>
@@ -235,8 +235,8 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
             <Badge color="navy">{area}</Badge>
             <Badge color="gold">{TYPE_LABELS[type] ?? type}</Badge>
           </div>
-          <p className="text-sm text-navy-800/70 italic">{summary}</p>
-          <div className="text-sm text-navy-900 space-y-2 max-h-72 overflow-y-auto bg-cream-50 rounded-lg p-3 border border-navy-800/8">
+          <p className="text-sm text-tx-2 italic">{summary}</p>
+          <div className="text-sm text-tx space-y-2 max-h-72 overflow-y-auto bg-sf-apoio rounded-lg p-3 border border-regua">
             {content.split(/\n+/).filter(Boolean).map((para, i) => (
               <p key={i}>{para}</p>
             ))}
@@ -246,11 +246,11 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
       {sourceLinks.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-navy-800/55 uppercase mb-1">Fontes usadas</p>
+          <p className="text-[11px] font-semibold text-tx-2 uppercase mb-1">Fontes usadas</p>
           <ul className="space-y-0.5">
             {sourceLinks.map((url, i) => (
               <li key={i}>
-                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-gold-700 hover:underline break-all">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-acao hover:underline break-all">
                   {url}
                 </a>
               </li>
@@ -260,25 +260,25 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
       )}
 
       {photos.length > 0 && (
-        <div className="pt-2 border-t border-navy-800/8 space-y-2">
+        <div className="pt-2 border-t border-regua space-y-2">
           {suggestedPhotos.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold text-navy-800/55 uppercase mb-1">Sugeridas para &ldquo;{area}&rdquo;</p>
+              <p className="text-[11px] font-semibold text-tx-2 uppercase mb-1">Sugeridas para &ldquo;{area}&rdquo;</p>
               <PhotoPickerGrid photos={suggestedPhotos} imageUrl={imageUrl} onSelect={setImageUrl} />
             </div>
           )}
           {otherPhotos.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold text-navy-800/55 uppercase mb-1">Outras fotos</p>
+              <p className="text-[11px] font-semibold text-tx-2 uppercase mb-1">Outras fotos</p>
               <PhotoPickerGrid photos={otherPhotos} imageUrl={imageUrl} onSelect={setImageUrl} />
             </div>
           )}
         </div>
       )}
 
-      <div className="flex items-end gap-2 flex-wrap pt-2 border-t border-navy-800/8">
+      <div className="flex items-end gap-2 flex-wrap pt-2 border-t border-regua">
         <div className="flex-1 min-w-[220px]">
-          <label className="text-[11px] font-medium text-navy-800/55">URL da imagem (opcional, adicione antes de publicar)</label>
+          <label className="text-[11px] font-medium text-tx-2">URL da imagem (opcional, adicione antes de publicar)</label>
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
@@ -289,14 +289,14 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
         <button
           onClick={handleReject}
           disabled={pending}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-vinho border border-regua hover:bg-sf-apoio disabled:opacity-40"
         >
           <Ban size={14} /> Rejeitar
         </button>
         <button
           onClick={handlePublish}
           disabled={pending}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
         >
           <Check size={14} /> Confirmar e publicar
         </button>

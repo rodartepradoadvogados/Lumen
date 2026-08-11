@@ -40,45 +40,45 @@ export default function NewOfficeForm() {
 
   return (
     <form action={handleSubmit} className="space-y-4">
-      {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 rounded-lg px-3 py-2">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Nome do escritório</label>
-          <input name="officeName" required placeholder="Ex.: Andrade & Vasconcelos Advocacia" className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm" />
+          <label className="text-xs font-semibold text-white/60">Nome do escritório</label>
+          <input name="officeName" required placeholder="Ex.: Andrade & Vasconcelos Advocacia" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">E-mail de cobrança</label>
-          <input name="billingEmail" type="email" required placeholder="financeiro@escritorio.adv.br" className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm" />
+          <label className="text-xs font-semibold text-white/60">E-mail de cobrança</label>
+          <input name="billingEmail" type="email" required placeholder="financeiro@escritorio.adv.br" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Nome do administrador</label>
-          <input name="adminName" required placeholder="Nome de quem vai logar" className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm" />
+          <label className="text-xs font-semibold text-white/60">Nome do administrador</label>
+          <input name="adminName" required placeholder="Nome de quem vai logar" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">E-mail do administrador</label>
-          <input name="adminEmail" type="email" required placeholder="recebe o convite pra definir senha" className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm" />
+          <label className="text-xs font-semibold text-white/60">E-mail do administrador</label>
+          <input name="adminEmail" type="email" required placeholder="recebe o convite pra definir senha" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Mensalidade (R$)</label>
-          <input name="monthlyFee" type="number" min={0} step="0.01" required defaultValue="890" className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm" />
+          <label className="text-xs font-semibold text-white/60">Mensalidade (R$)</label>
+          <input name="monthlyFee" type="number" min={0} step="0.01" required defaultValue="890" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Dia de vencimento</label>
-          <input name="billingDueDay" type="number" min={1} max={28} required defaultValue="5" className="mt-1 w-full border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm" />
+          <label className="text-xs font-semibold text-white/60">Dia de vencimento</label>
+          <input name="billingDueDay" type="number" min={1} max={28} required defaultValue="5" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 mb-2 block">Módulos do plano</label>
+        <label className="text-xs font-semibold text-white/60 mb-2 block">Módulos do plano</label>
         <div className="grid grid-cols-2 gap-2">
           {MODULE_OPTIONS.map((m) => (
-            <label key={m.key} className="flex items-center gap-2 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm text-navy-800 dark:text-cream-50/85 cursor-pointer">
+            <label key={m.key} className="flex items-center gap-2 border border-white/15 rounded-lg px-3 py-2 text-sm text-white/85 cursor-pointer">
               <input
                 type="checkbox"
                 checked={modules[m.key]}
                 onChange={(e) => setModules((prev) => ({ ...prev, [m.key]: e.target.checked }))}
-                className="h-4 w-4 accent-gold-600"
+                className="h-4 w-4 accent-marca"
               />
               {m.label}
             </label>
@@ -86,7 +86,7 @@ export default function NewOfficeForm() {
         </div>
       </div>
 
-      <button type="submit" disabled={loading} className="bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-4 py-2.5">
+      <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5">
         {loading ? "Criando..." : "Criar escritório e enviar convite"}
       </button>
     </form>

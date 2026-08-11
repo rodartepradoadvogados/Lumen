@@ -46,16 +46,16 @@ export default function ClientQualificationModal({
   useEscapeToClose(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10 shrink-0">
+    <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+      <div className="bg-sf rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
           <div>
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Complete o cadastro do cliente</h3>
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+            <h3 className="font-bold text-tx">Complete o cadastro do cliente</h3>
+            <p className="text-xs text-tx-3 mt-0.5">
               Atendimento criado com sucesso. Complete a qualificação agora ou faça isso depois.
             </p>
           </div>
-          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+          <button onClick={onClose} className="text-tx-3 hover:text-tx">
             <X size={18} />
           </button>
         </div>
@@ -64,75 +64,85 @@ export default function ClientQualificationModal({
           <form action={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
-                <select name="type" defaultValue="PF" className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+                <label className="text-xs font-medium text-tx-2">Tipo</label>
+                <select name="type" defaultValue="PF" className="cqm-input">
                   <option value="PF">Pessoa Física</option>
                   <option value="PJ">Pessoa Jurídica</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF/CNPJ</label>
-                <MaskedInput name="document" mask={maskCpfCnpj} className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">CPF/CNPJ</label>
+                <MaskedInput name="document" mask={maskCpfCnpj} className="cqm-input" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">RG</label>
-                <input name="rg" className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">RG</label>
+                <input name="rg" className="cqm-input" />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nacionalidade</label>
-                <input name="nationality" className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">Nacionalidade</label>
+                <input name="nationality" className="cqm-input" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estado civil</label>
-                <input name="maritalStatus" className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">Estado civil</label>
+                <input name="maritalStatus" className="cqm-input" />
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Profissão</label>
-                <input name="profession" className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+                <label className="text-xs font-medium text-tx-2">Profissão</label>
+                <input name="profession" className="cqm-input" />
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço</label>
-              <input name="address" className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+              <label className="text-xs font-medium text-tx-2">Endereço</label>
+              <input name="address" className="cqm-input" />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Observações</label>
-              <textarea name="notes" rows={2} className="cqm-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+              <label className="text-xs font-medium text-tx-2">Observações</label>
+              <textarea name="notes" rows={2} className="cqm-input" />
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="submit"
                 disabled={pending}
-                className="bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {pending ? "Salvando..." : "Salvar"}
               </button>
-              {saved && !pending && <span className="text-xs font-semibold text-green-700 dark:text-emerald-400">Cadastro atualizado.</span>}
-              {error && !pending && (
-                <span className="text-xs font-semibold text-bordo-700 dark:text-bordo-400">{error}</span>
-              )}
+              {saved && !pending && <span className="text-xs font-semibold text-concluido">Cadastro atualizado.</span>}
+              {error && !pending && <span className="text-xs font-semibold text-urgente">{error}</span>}
             </div>
           </form>
 
-          <div className="border-t border-navy-800/8 dark:border-white/10 pt-4">
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mb-2">Se já for possível, transforme este atendimento em Caso ou Processo agora.</p>
+          <div className="border-t border-regua pt-4">
+            <p className="text-xs text-tx-2 mb-2">Se já for possível, transforme este atendimento em Caso ou Processo agora.</p>
             <ConvertAttendanceForm attendanceId={attendanceId} />
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-navy-800/8 dark:border-white/10 flex justify-end shrink-0">
-          <button onClick={onClose} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="px-5 py-3 border-t border-regua flex justify-end shrink-0">
+          <button onClick={onClose} className="text-xs font-semibold text-tx-3 hover:text-tx">
             Fechar
           </button>
         </div>
       </div>
       <style jsx global>{`
-        .cqm-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .cqm-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .cqm-input {
+          width: 100%;
+          margin-top: 0.25rem;
+          border: 1px solid var(--regua-forte);
+          border-radius: 0.3125rem;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+          background: var(--sf-superficie);
+          color: var(--tx);
+        }
+        .cqm-input:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px var(--acao-bg);
+        }
       `}</style>
     </div>
   );

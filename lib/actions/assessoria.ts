@@ -46,11 +46,17 @@ export async function createAssessoria(data: {
 
   // Cria a estrutura de pastas no Drive de forma best-effort — se o Drive não estiver
   // conectado ou a chamada falhar, a Assessoria é criada normalmente mesmo assim (o
-  // catálogo de Documentos só usa link colado, não depende da pasta existir).
+  // catálogo de Documentos só usa link colado, não depende da pasta existir). ANTES este catch
+  // engolia o erro em silêncio (nem log, nem aviso) — a pasta "aparecia criada" com o campo vazio
+  // no banco e ninguém sabia por quê. Agora o erro fica registrado (console.error, para aparecer
+  // nos logs da Vercel) e a tela da Assessoria (app/(app)/assessoria/[id]/page.tsx) mostra um
+  // aviso com "Tentar criar pasta de novo" (ver retryAssessoriaDriveFolder) sempre que
+  // driveFolderId ficar nulo com o Drive conectado.
   let driveFolderId: string | null = null;
   try {
     driveFolderId = await getOrCreateAssessoriaCompanyFolder(client.name, user.officeId);
-  } catch {
+  } catch (err) {
+    console.error(`[assessoria] falha ao criar pasta no Drive para "${client.name}" (office ${user.officeId}):`, err);
     driveFolderId = null;
   }
 
@@ -244,8 +250,14 @@ export async function createParecer(
 
   try {
     await getOrCreateParecerFolder(created.id, assessoria.client.name, created.name, user.officeId);
-  } catch {
-    // Sem Drive conectado (ou falha pontual) — a pasta é criada/retomada no primeiro upload.
+  } catch (err) {
+    // Sem Drive conectado (ou falha pontual): a pasta é RETOMADA no primeiro upload de documento
+    // (getOrCreateParecerFolder é chamado de novo, com o mesmo resultado idempotente, em
+    // app/api/assessoria/documentos/upload/route.ts) — então isto nunca bloqueia o cadastro. Mas
+    // o erro não pode mais sumir em silêncio: registrado aqui, e a linha desta demanda em
+    // AssessoriaProcessosCasosTab.tsx mostra "Tentar criar pasta de novo" (ver
+    // retryParecerDriveFolder) enquanto driveFolderId continuar nulo.
+    console.error(`[assessoria] falha ao criar pasta de parecer "${created.name}" (assessoria ${assessoriaId}):`, err);
   }
 
   revalidatePath(`/assessoria/${assessoriaId}`);
@@ -272,6 +284,55 @@ export async function updateParecer(
     },
   });
   revalidatePath(`/assessoria/${existing.assessoriaId}`);
+  return {};
+}
+
+// Repete a criação da pasta da EMPRESA no Drive/OneDrive/Dropbox — botão "Tentar criar pasta de
+// novo" na tela da Assessoria (app/(app)/assessoria/[id]/page.tsx), visível quando
+// Assessoria.driveFolderId está nulo (falha silenciosa antiga em createAssessoria, agora com erro
+// registrado e recuperável em vez de só logado). getOrCreateAssessoriaCompanyFolder é a mesma
+// função chamada na criação — idempotente, então repetir não duplica nada no armazenamento.
+export async function retryAssessoriaDriveFolder(assessoriaId: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId }, include: { client: true } });
+  if (!assessoria) return { error: "Assessoria não encontrada." };
+  if (assessoria.driveFolderId) return {}; // já tem pasta — nada a fazer
+
+  try {
+    const driveFolderId = await getOrCreateAssessoriaCompanyFolder(assessoria.client.name, user.officeId);
+    await prisma.assessoria.update({ where: { id: assessoriaId }, data: { driveFolderId } });
+  } catch (err) {
+    console.error(`[assessoria] retry de pasta no Drive falhou para "${assessoria.client.name}" (office ${user.officeId}):`, err);
+    return { error: "Não foi possível criar a pasta agora. Verifique se o armazenamento em nuvem está conectado (Configurações) e tente de novo." };
+  }
+
+  revalidatePath(`/assessoria/${assessoriaId}`);
+  return {};
+}
+
+// Mesma ideia, para a pasta de um Parecer (demanda) específico — botão "Tentar criar pasta de
+// novo" em cada linha de AssessoriaProcessosCasosTab.tsx quando Parecer.driveFolderId está nulo.
+export async function retryParecerDriveFolder(parecerId: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const parecer = await prisma.parecer.findFirst({
+    where: { id: parecerId, officeId: user.officeId },
+    include: { assessoria: { include: { client: true } } },
+  });
+  if (!parecer) return { error: "Demanda não encontrada." };
+  if (parecer.driveFolderId) return {};
+
+  try {
+    await getOrCreateParecerFolder(parecer.id, parecer.assessoria.client.name, parecer.name, user.officeId);
+  } catch (err) {
+    console.error(`[assessoria] retry de pasta de parecer "${parecer.name}" (assessoria ${parecer.assessoriaId}) falhou:`, err);
+    return { error: "Não foi possível criar a pasta agora. Verifique se o armazenamento em nuvem está conectado (Configurações) e tente de novo." };
+  }
+
+  revalidatePath(`/assessoria/${parecer.assessoriaId}`);
   return {};
 }
 

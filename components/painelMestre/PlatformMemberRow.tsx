@@ -47,20 +47,20 @@ export default function PlatformMemberRow({
     <Fragment>
       <tr>
         <td className="px-5 py-3">
-          <span className="inline-flex items-center gap-1.5 text-cream-50 font-medium">
+          <span className="inline-flex items-center gap-1.5 text-white font-medium">
             <LumenStatusDot tone={member.active ? "ok" : "slate"} /> {member.name}
           </span>
         </td>
-        <td className="px-3 py-3 text-cream-50/70">{member.email}</td>
+        <td className="px-3 py-3 text-white/70">{member.email}</td>
         <td className="px-3 py-3">
           <select
             value={member.roleId}
             disabled={pending}
             onChange={(e) => handleRoleChange(e.target.value)}
-            className="bg-white/5 border border-white/15 text-cream-50 text-xs rounded-lg px-2 py-1.5 disabled:opacity-50"
+            className="bg-white/5 border border-white/15 text-white text-xs rounded-lg px-2 py-1.5 disabled:opacity-50"
           >
             {roles.map((r) => (
-              <option key={r.id} value={r.id} className="text-navy-900">
+              <option key={r.id} value={r.id} className="text-grafite-900">
                 {r.name}
               </option>
             ))}
@@ -71,7 +71,7 @@ export default function PlatformMemberRow({
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={member.active ? "Desativar" : "Reativar"}
-            className="p-1.5 rounded-lg text-cream-50/40 hover:text-gold-400 hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-lg text-white/40 hover:text-marca-tx hover:bg-white/10 transition-colors disabled:opacity-40"
           >
             <Power size={14} />
           </button>
@@ -80,7 +80,7 @@ export default function PlatformMemberRow({
       {error && (
         <tr>
           <td colSpan={4} className="px-5 pb-2 pt-0">
-            <span className="inline-block text-[11px] bg-bordo-900/60 text-bordo-400 border border-bordo-400/20 rounded-lg px-2.5 py-1.5">
+            <span className="inline-block text-[11px] bg-atencao/15 text-atencao border border-atencao/20 rounded-lg px-2.5 py-1.5">
               {error}
             </span>
           </td>

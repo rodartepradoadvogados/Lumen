@@ -23,10 +23,10 @@ export default function MobileSecaoLancamento({
   return (
     <details open={defaultOpen} className={`secao-lancamento secao-lancamento--${tone} group rounded-lg border-l-[3px]`}>
       <summary className="flex items-center justify-between gap-2 px-3.5 py-2.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-        <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-navy-800/55 dark:text-cream-50/55">{title}</h4>
-        <ChevronDown size={14} className="shrink-0 text-navy-800/30 dark:text-cream-50/30 transition-transform group-open:rotate-180" />
+        <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tx-2">{title}</h4>
+        <ChevronDown size={14} className="shrink-0 text-tx-3 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="px-3.5 pb-3.5 pt-2.5 space-y-3 border-t border-navy-800/10 dark:border-white/10">{children}</div>
+      <div className="px-3.5 pb-3.5 pt-2.5 space-y-3 border-t border-regua">{children}</div>
     </details>
   );
 }

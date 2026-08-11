@@ -50,11 +50,11 @@ export default function MobileTeamMonitor() {
     }
   }
 
-  if (error) return <p className="text-xs text-bordo-600 dark:text-bordo-400 p-4">{error}</p>;
-  if (!summaries) return <p className="text-xs text-navy-800/50 dark:text-cream-50/50 p-4">Carregando...</p>;
+  if (error) return <p className="text-xs text-urgente p-4">{error}</p>;
+  if (!summaries) return <p className="text-xs text-tx-2 p-4">Carregando...</p>;
 
   return (
-    <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+    <div className="divide-y divide-regua">
       {summaries.map((s) => (
         <div key={s.id}>
           <div className="flex items-center gap-3 px-4 py-3">
@@ -62,35 +62,35 @@ export default function MobileTeamMonitor() {
               {s.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{s.name}</p>
-              <p className="text-[11px] text-navy-800/50 dark:text-cream-50/50">
+              <p className="text-sm font-medium text-tx">{s.name}</p>
+              <p className="text-[11px] text-tx-2">
                 Último login: {formatDateTime(s.lastLoginAt)} · Timesheet: {formatHMS(s.todaySeconds)}
               </p>
             </div>
-            <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-[11px] font-semibold text-gold-700 dark:text-gold-400 shrink-0">
+            <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-[11px] font-semibold text-acao shrink-0">
               Histórico
               <ChevronDown size={12} className={`transition-transform ${expanded === s.id ? "rotate-180" : ""}`} />
             </button>
           </div>
           {expanded === s.id && (
-            <div className="bg-cream-50 dark:bg-white/5 px-4 py-2">
-              {!history[s.id] && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 py-1">Carregando histórico...</p>}
-              {history[s.id]?.length === 0 && <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 py-1">Sem registros recentes.</p>}
+            <div className="bg-sf-apoio px-4 py-2">
+              {!history[s.id] && <p className="text-[11px] text-tx-2 py-1">Carregando histórico...</p>}
+              {history[s.id]?.length === 0 && <p className="text-[11px] text-tx-2 py-1">Sem registros recentes.</p>}
               {history[s.id]?.map((h) => (
-                <div key={h.date} className="py-1.5 border-b border-navy-800/5 dark:border-white/10 last:border-0">
+                <div key={h.date} className="py-1.5 border-b border-regua last:border-0">
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-navy-800/60 dark:text-cream-50/60">
+                    <span className="text-tx-2">
                       {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")} · primeiro login {formatTime(h.firstLogin)}
                     </span>
-                    <span className="font-semibold text-navy-900 dark:text-cream-50">{formatHMS(h.seconds)}</span>
+                    <span className="font-semibold text-tx">{formatHMS(h.seconds)}</span>
                   </div>
                   {/* Mais de um segmento no dia = sessão nova no meio do dia (voltou de
                       inatividade ou logou de novo), com uma pausa sem contar entre um segmento
                       e o outro — é o que permite enxergar se a pessoa ficou fora. */}
                   {h.sessions.length > 1 && (
-                    <div className="mt-1 pl-2 border-l-2 border-navy-800/10 dark:border-white/10 space-y-0.5">
+                    <div className="mt-1 pl-2 border-l-2 border-regua space-y-0.5">
                       {h.sessions.map((seg, i) => (
-                        <p key={i} className="text-[10px] text-navy-800/45 dark:text-cream-50/45 font-mono">
+                        <p key={i} className="text-[10px] text-tx-2 font-mono">
                           {formatTime(seg.loginAt)}–{formatTime(seg.lastPingAt)} ({formatHMS(seg.seconds)})
                         </p>
                       ))}

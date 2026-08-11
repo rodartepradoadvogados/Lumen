@@ -78,7 +78,7 @@ export default async function DrePage({
 
   return (
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
-      <Link href="/financeiro" className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader
@@ -87,18 +87,18 @@ export default async function DrePage({
         action={
           !usingCustomRange ? (
             <div className="flex items-center gap-1">
-              <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
+              <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx-2">
                 <ChevronLeft size={18} />
               </Link>
-              <span className="text-sm font-semibold text-navy-900 dark:text-cream-50 px-2">
+              <span className="text-sm font-semibold text-tx px-2">
                 {MONTHS[month]} {year}
               </span>
-              <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5 text-navy-800 dark:text-cream-50/80">
+              <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx-2">
                 <ChevronRight size={18} />
               </Link>
             </div>
           ) : (
-            <span className="text-sm font-semibold text-navy-900 dark:text-cream-50">
+            <span className="text-sm font-semibold text-tx">
               {start.toLocaleDateString("pt-BR")} — {end.toLocaleDateString("pt-BR")}
             </span>
           )
@@ -108,15 +108,15 @@ export default async function DrePage({
       <Card className="mb-5">
         <form className="p-4 flex flex-wrap items-end gap-3">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">De (opcional, substitui o mês)</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">De (opcional, substitui o mês)</label>
             <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Até</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">Até</label>
             <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Centro de Custo</label>
+            <label className="text-xs font-medium text-tx-2 block mb-1">Centro de Custo</label>
             <select name="costCenterId" defaultValue={searchParams.costCenterId} className="fp-input">
               <option value="">Todos</option>
               {costCenters.map((c) => (
@@ -126,11 +126,11 @@ export default async function DrePage({
               ))}
             </select>
           </div>
-          <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 transition-colors">
             Filtrar
           </button>
           {usingCustomRange && (
-            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2">
+            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx px-2">
               Voltar para visão mensal
             </Link>
           )}
@@ -139,72 +139,72 @@ export default async function DrePage({
 
       <Card className="mb-5">
         <CardHeader title="Receitas" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {Object.keys(receitasPorCategoria).length === 0 && <EmptyState title="Nenhuma receita no período" />}
           {Object.entries(receitasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-5 py-2.5 text-sm">
-              <span className="text-navy-800 dark:text-cream-50">{cat}</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</span>
+              <span className="text-tx">{cat}</span>
+              <span className="font-semibold tabular-nums text-concluido">{formatCurrency(val)}</span>
             </div>
           ))}
-          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-cream-50 dark:bg-navy-800">
+          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-sf-apoio">
             <span>Total de Receitas</span>
-            <span className="text-emerald-700 dark:text-emerald-400">{formatCurrency(totalReceitas)}</span>
+            <span className="tabular-nums text-concluido">{formatCurrency(totalReceitas)}</span>
           </div>
         </div>
       </Card>
 
       <Card className="mb-5">
         <CardHeader title="Despesas" />
-        <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+        <div className="divide-y divide-regua">
           {Object.keys(despesasPorCategoria).length === 0 && <EmptyState title="Nenhuma despesa no período" />}
           {Object.entries(despesasPorCategoria).map(([cat, val]) => (
             <div key={cat} className="flex justify-between px-5 py-2.5 text-sm">
-              <span className="text-navy-800 dark:text-cream-50">{cat}</span>
-              <span className="font-semibold text-red-500 dark:text-bordo-400">{formatCurrency(val)}</span>
+              <span className="text-tx">{cat}</span>
+              <span className="font-semibold tabular-nums text-urgente">{formatCurrency(val)}</span>
             </div>
           ))}
-          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-cream-50 dark:bg-navy-800">
+          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-sf-apoio">
             <span>Total de Despesas</span>
-            <span className="text-red-600 dark:text-bordo-400">{formatCurrency(totalDespesas)}</span>
+            <span className="tabular-nums text-urgente">{formatCurrency(totalDespesas)}</span>
           </div>
         </div>
       </Card>
 
       {(totalAdiantado > 0 || totalReembolsado > 0) && (
-        <Card className="mb-5 border border-dashed border-navy-800/15 dark:border-white/15">
+        <Card className="mb-5 border border-dashed border-regua-forte">
           <CardHeader title="Adiantamentos a Clientes" subtitle="Informativo — não entra na Receita, na Despesa nem no Resultado do Período" />
-          <div className="px-5 py-4 flex items-start gap-2 text-xs text-navy-800/60 dark:text-cream-50/60">
+          <div className="px-5 py-4 flex items-start gap-2 text-xs text-tx-2">
             <Info size={14} className="shrink-0 mt-0.5" />
             <p>
               Despesas do processo pagas pelo escritório por conta do cliente (com reembolso vinculado) não são custo nem receita da
               atividade do escritório — são um adiantamento que volta. Por isso ficam de fora do resultado acima e aparecem só aqui.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-navy-800/5 dark:divide-white/10 border-t border-navy-800/8 dark:border-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-regua border-t border-regua">
             <div className="px-5 py-3.5">
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Adiantado no período</p>
-              <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalAdiantado)}</p>
+              <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Adiantado no período</p>
+              <p className="font-bold text-lg tabular-nums text-tx mt-1">{formatCurrency(totalAdiantado)}</p>
             </div>
             <div className="px-5 py-3.5">
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Reembolsado no período</p>
-              <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(totalReembolsado)}</p>
+              <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Reembolsado no período</p>
+              <p className="font-bold text-lg tabular-nums text-tx mt-1">{formatCurrency(totalReembolsado)}</p>
             </div>
             <div className="px-5 py-3.5">
-              <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Saldo do período (adiantado − reembolsado)</p>
-              <p className="font-serif font-bold text-lg text-navy-900 dark:text-cream-50 mt-1">{formatCurrency(saldoAdiantamentos)}</p>
+              <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Saldo do período (adiantado − reembolsado)</p>
+              <p className="font-bold text-lg tabular-nums text-tx mt-1">{formatCurrency(saldoAdiantamentos)}</p>
             </div>
           </div>
         </Card>
       )}
 
-      <Card className={`p-5 flex justify-between items-center ${resultado >= 0 ? "bg-gold-500/10 dark:bg-gold-400/15" : "bg-red-50 dark:bg-bordo-400/15"}`}>
-        <span className="font-serif font-bold text-navy-900 dark:text-cream-50">Resultado do Período</span>
-        <span className={`font-serif font-bold text-xl ${resultado >= 0 ? "text-gold-800 dark:text-gold-400" : "text-red-600 dark:text-bordo-400"}`}>{formatCurrency(resultado)}</span>
+      <Card className={`p-5 flex justify-between items-center ${resultado >= 0 ? "bg-concluido-bg" : "bg-urgente-bg"}`}>
+        <span className="font-bold text-tx">Resultado do Período</span>
+        <span className={`font-bold text-xl tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>{formatCurrency(resultado)}</span>
       </Card>
       <style>{`
-        .fp-input { border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; }
-        .fp-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
+        .fp-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }
+        .fp-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
       `}</style>
     </div>
   );
