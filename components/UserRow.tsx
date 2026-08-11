@@ -138,26 +138,26 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
 
   if (editing) {
     return (
-      <form action={handleSave} className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
+      <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input name="name" defaultValue={user.name} required placeholder="Nome" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="email" type="email" defaultValue={user.email} required placeholder="E-mail" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <select name="role" defaultValue={user.role} className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50">
+          <input name="name" defaultValue={user.name} required placeholder="Nome" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
+          <input name="email" type="email" defaultValue={user.email} required placeholder="E-mail" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
+          <select name="role" defaultValue={user.role} className="cfg-input bg-sf border border-regua text-tx">
             {ROLE_OPTIONS.map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
             ))}
           </select>
-          <input name="oab" defaultValue={user.oab ?? ""} placeholder="OAB (opcional)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <MaskedInput name="phone" mask={maskPhone} defaultValue={user.phone ?? ""} placeholder="Telefone (opcional)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="color" type="color" defaultValue={user.color} className="cfg-input dark:bg-navy-900 dark:border-white/15 h-9 p-1" />
+          <input name="oab" defaultValue={user.oab ?? ""} placeholder="OAB (opcional)" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
+          <MaskedInput name="phone" mask={maskPhone} defaultValue={user.phone ?? ""} placeholder="Telefone (opcional)" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
+          <input name="color" type="color" defaultValue={user.color} className="cfg-input bg-sf border border-regua h-9 p-1" />
         </div>
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
             Cancelar
           </button>
         </div>
@@ -170,15 +170,15 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
       ? new Date(linkResult.expiresAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
       : null;
     return (
-      <div className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
-        <p className="text-xs font-semibold text-navy-900 dark:text-cream-50">Link de redefinição de senha — {user.name}</p>
+      <div className="px-5 py-3 space-y-2 bg-sf-apoio">
+        <p className="text-xs font-semibold text-tx">Link de redefinição de senha — {user.name}</p>
         {!linkResult ? (
           <>
-            <p className="text-[11px] text-navy-800/60 dark:text-cream-50/60">
+            <p className="text-[11px] text-tx-2">
               Gera um link de uso único para {user.name} escolher uma nova senha, sem depender de e-mail — entregue por WhatsApp ou pessoalmente.
             </p>
             {linkError && (
-              <p className="text-[11px] text-bordo-700 bg-bordo-100 border border-bordo-100 rounded-lg px-2.5 py-1.5 dark:bg-bordo-900/40 dark:border-bordo-400/20 dark:text-bordo-400">
+              <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-2.5 py-1.5">
                 {linkError}
               </p>
             )}
@@ -187,7 +187,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                 type="button"
                 onClick={handleGenerateLink}
                 disabled={linkPending}
-                className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
               >
                 {linkPending ? "Gerando..." : "Gerar link"}
               </button>
@@ -197,7 +197,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                   setLinkOpen(false);
                   setLinkError(null);
                 }}
-                className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
               >
                 Cancelar
               </button>
@@ -210,13 +210,13 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                 readOnly
                 value={linkResult.url}
                 onFocus={(e) => e.currentTarget.select()}
-                className="cfg-input flex-1 text-xs font-mono dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+                className="cfg-input flex-1 text-xs font-mono bg-sf border border-regua text-tx"
               />
               <button
                 type="button"
                 onClick={handleCopyLink}
                 data-tip="Copiar"
-                className="p-2 rounded-lg text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 shrink-0"
+                className="p-2 rounded-lg text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0"
               >
                 {linkCopied ? <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={14} />}
               </button>
@@ -232,7 +232,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                   setLinkResult(null);
                   setLinkError(null);
                 }}
-                className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
               >
                 Fechar
               </button>
@@ -245,8 +245,8 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
 
   if (credOpen) {
     return (
-      <form action={handleSaveCredentials} className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
-        <p className="text-xs font-semibold text-navy-900 dark:text-cream-50">
+      <form action={handleSaveCredentials} className="px-5 py-3 space-y-2 bg-sf-apoio">
+        <p className="text-xs font-semibold text-tx">
           {user.username ? `Redefinir senha de acesso — ${user.name}` : `Definir acesso — ${user.name}`}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -257,14 +257,14 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             minLength={4}
             autoComplete="off"
             placeholder="Apelido de usuário"
-            className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+            className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
           />
-          <input name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Senha (mín. 6)" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
-          <input name="confirm" type="password" required minLength={6} autoComplete="new-password" placeholder="Confirmar senha" className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30" />
+          <input name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Senha (mín. 6)" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
+          <input name="confirm" type="password" required minLength={6} autoComplete="new-password" placeholder="Confirmar senha" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
         </div>
-        {credError && <p className="text-[11px] text-bordo-700 bg-bordo-100 border border-bordo-100 rounded-lg px-2.5 py-1.5 dark:bg-bordo-900/40 dark:border-bordo-400/20 dark:text-bordo-400">{credError}</p>}
+        {credError && <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-2.5 py-1.5">{credError}</p>}
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
             {pending ? "Salvando..." : user.username ? "Redefinir senha" : "Definir acesso"}
           </button>
           <button
@@ -273,7 +273,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               setCredOpen(false);
               setCredError(null);
             }}
-            className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+            className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
           >
             Cancelar
           </button>
@@ -288,8 +288,8 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{user.name}</p>
-        <p className="text-xs text-navy-800/45 dark:text-cream-50/45 truncate">
+        <p className="text-sm font-medium text-tx">{user.name}</p>
+        <p className="text-xs text-tx-2 truncate">
           {user.role} {user.oab && `· ${user.oab}`} · {user.email}
           {user.phone && ` · ${user.phone}`}
           {user.username && ` · login: ${user.username}`}
@@ -307,7 +307,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             setLinkOpen(true);
           }}
           data-tip="Gerar link de redefinição de senha"
-          className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-gold-700 dark:hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
+          className="p-1.5 rounded-lg text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
         >
           <Link2 size={14} />
         </button>
@@ -321,7 +321,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               setCredOpen(true);
             }}
             data-tip={user.username ? "Redefinir senha" : "Definir acesso"}
-            className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-gold-700 dark:hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
+            className="p-1.5 rounded-lg text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
           >
             <KeyRound size={14} />
           </button>
@@ -331,30 +331,30 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
             className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
               user.financeAccess
-                ? "text-emerald-600 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10"
-                : "text-navy-800/30 dark:text-cream-50/30 hover:text-emerald-600 hover:bg-emerald-50"
+                ? "text-emerald-600 hover:text-atencao hover:bg-atencao/10"
+                : "text-tx-3 hover:text-emerald-600 hover:bg-emerald-50"
             }`}
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
           </button>
-          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors">
+          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
             <Pencil size={14} />
           </button>
           <button
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={user.active ? "Inativar" : "Reativar"}
-            className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-lg text-tx-3 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40"
           >
             <Power size={14} />
           </button>
-          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10 dark:hover:bg-bordo-400/10 transition-colors disabled:opacity-40">
+          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40">
             <Trash2 size={14} />
           </button>
         </div>
       )}
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-bordo-100 dark:bg-bordo-900/40 text-bordo-700 dark:text-bordo-400 border border-bordo-100 dark:border-bordo-400/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />

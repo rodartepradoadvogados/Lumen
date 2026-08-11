@@ -63,14 +63,14 @@ export default function RecursoEscalaPrompt({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-navy-950/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-white dark:bg-navy-950 rounded-xl border-2 border-gold-300 dark:border-gold-400/30 shadow-pop overflow-hidden"
+        className="w-full max-w-sm bg-sf rounded-xl border-2 border-marca/40 shadow-pop overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-navy-800/8 dark:border-white/10">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Vincular a um tribunal superior?</h3>
-          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-regua">
+          <h3 className="font-serif font-bold text-tx text-sm">Vincular a um tribunal superior?</h3>
+          <button onClick={onClose} className="text-tx-3 hover:text-tx">
             <X size={16} />
           </button>
         </div>
@@ -78,19 +78,19 @@ export default function RecursoEscalaPrompt({
         <div className="p-4 space-y-3">
           {step === "ASK" && (
             <>
-              <p className="text-sm text-navy-800/70 dark:text-cream-50/70">
+              <p className="text-sm text-tx-2">
                 <strong>{docTypeLabel}</strong> anexado. Esse tipo de recurso costuma subir de instância — quer indicar agora para qual tribunal este
                 processo está indo?
               </p>
               <div className="flex gap-2">
-                <button onClick={onClose} className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/10">
+                <button onClick={onClose} className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio">
                   Agora não
                 </button>
                 <TribunalPickerModal
                   tribunais={tribunais}
                   onSelect={handlePick}
                   trigger={
-                    <span className="inline-flex text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-white px-3 py-1.5 rounded-lg cursor-pointer">
+                    <span className="inline-flex text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg cursor-pointer">
                       Vincular tribunal →
                     </span>
                   }
@@ -101,15 +101,15 @@ export default function RecursoEscalaPrompt({
 
           {step === "CONFIRM" && picked && (
             <>
-              <p className="text-sm text-navy-800 dark:text-cream-50">
+              <p className="text-sm text-tx">
                 <strong>{picked.sigla}</strong> — {picked.nome}
               </p>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Instância atual</label>
+                <label className="text-xs font-medium text-tx-2">Instância atual</label>
                 <select
                   value={instancia}
                   onChange={(e) => setInstancia(e.target.value)}
-                  className="w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm"
+                  className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
                 >
                   {INSTANCIA_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -119,26 +119,26 @@ export default function RecursoEscalaPrompt({
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Seção/Câmara/Turma (opcional)</label>
+                <label className="text-xs font-medium text-tx-2">Seção/Câmara/Turma (opcional)</label>
                 <input
                   value={detalhe}
                   onChange={(e) => setDetalhe(e.target.value)}
                   placeholder="Ex.: 3ª Câmara Cível do TJGO"
-                  className="w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm"
+                  className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
                 />
               </div>
-              {error && <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep("ASK")}
-                  className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 px-3 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/10"
+                  className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={confirm}
                   disabled={saving}
-                  className="flex-1 text-xs font-semibold bg-bordo-700 hover:bg-bordo-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  className="flex-1 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg disabled:opacity-50"
                 >
                   {saving ? "Salvando..." : "Confirmar"}
                 </button>

@@ -10,7 +10,7 @@ type Item = { type: string; points: number };
 
 export default function TaskTypePointsManager({ items }: { items: Item[] }) {
   return (
-    <div className="divide-y divide-navy-800/5">
+    <div className="divide-y divide-regua">
       {items.map((item) => (
         <PointsRow key={item.type} item={item} />
       ))}
@@ -54,11 +54,11 @@ function PointsRow({ item }: { item: Item }) {
         }}
         className="cfg-input w-24 text-right"
       />
-      <span className="text-xs text-navy-800/40">pts</span>
+      <span className="text-xs text-tx-3">pts</span>
       <button
         onClick={handleSave}
         disabled={pending}
-        className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+        className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
       >
         {pending ? "Salvando..." : "Salvar"}
       </button>

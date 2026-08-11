@@ -17,7 +17,7 @@ export default function NewSupplierModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
       >
         <Plus size={16} /> Novo Fornecedor
       </button>
@@ -43,31 +43,31 @@ export default function NewSupplierModal() {
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nome</label>
+                  <label className="text-xs font-medium text-tx-2">Nome</label>
                   <input name="name" required className="cl-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">E-mail</label>
+                  <label className="text-xs font-medium text-tx-2">E-mail</label>
                   <input name="email" type="email" className="cl-input" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF/CNPJ</label>
+                  <label className="text-xs font-medium text-tx-2">CPF/CNPJ</label>
                   <MaskedInput name="document" mask={maskCpfCnpj} className="cl-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Telefone</label>
+                  <label className="text-xs font-medium text-tx-2">Telefone</label>
                   <MaskedInput name="phone" mask={maskPhone} className="cl-input" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Observações</label>
+                <label className="text-xs font-medium text-tx-2">Observações</label>
                 <textarea name="notes" rows={3} className="cl-input" />
               </div>
             </div>
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
-              <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+            <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Salvar"}
               </button>
             </div>

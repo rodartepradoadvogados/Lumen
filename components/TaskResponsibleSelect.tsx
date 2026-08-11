@@ -31,7 +31,7 @@ export default function TaskResponsibleSelect({
           router.refresh();
         })
       }
-      className="mt-0.5 text-xs text-navy-800/60 dark:text-cream-50/60 bg-transparent border-none p-0 focus:outline-none focus:underline cursor-pointer disabled:opacity-50"
+      className="mt-0.5 text-xs text-tx-2 bg-transparent border-none p-0 focus:outline-none focus:underline cursor-pointer disabled:opacity-50"
     >
       <option value="">Sem responsável</option>
       {users.map((u) => (

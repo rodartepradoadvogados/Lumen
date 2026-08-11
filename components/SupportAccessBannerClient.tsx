@@ -49,9 +49,9 @@ export default function SupportAccessBannerClient({
   const startedLabel = new Date(startedAtIso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    // dark:bg-bordo-600 sólido (não translúcido) continua opaco e legível nos dois temas. Ver
-    // o mesmo raciocínio em components/ActingOfficeBanner.tsx.
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-bordo-700 dark:bg-bordo-600 text-cream-50 text-xs sm:text-sm font-semibold px-4 py-2 shrink-0 text-center">
+    // `bg-atencao` (vinho) opaco e legível nos dois temas — mesmo raciocínio em
+    // components/ActingOfficeBanner.tsx.
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-atencao text-white text-xs sm:text-sm font-semibold px-4 py-2 shrink-0 text-center">
       <ShieldAlert size={15} className="shrink-0" />
       <span>
         Suporte da Lúmen ativo: <strong>{memberName}</strong> entrou às {startedLabel} — motivo: {reasonLabel}.

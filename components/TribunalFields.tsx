@@ -39,12 +39,12 @@ export default function TribunalFields({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tribunal</label>
+        <label className="text-xs font-medium text-tx-2">Tribunal</label>
         <TribunalPickerModal
           tribunais={tribunais}
           onSelect={handleSelect}
           trigger={
-            <button type="button" className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline">
+            <button type="button" className="text-xs font-semibold text-marca-tx hover:underline">
               Selecionar da lista
             </button>
           }

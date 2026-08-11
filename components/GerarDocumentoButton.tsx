@@ -111,7 +111,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
         <FilePlus size={16} /> Gerar Documento
       </button>
@@ -127,20 +127,20 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-400/30 rounded-lg px-3 py-2.5">
                     <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-800 dark:text-amber-300">
-                      Nenhum campo foi preenchido — o modelo não tem os placeholders <code className="bg-white dark:bg-navy-950 px-1 rounded">{"{{CLIENTE}}"}</code>,
+                      Nenhum campo foi preenchido — o modelo não tem os placeholders <code className="bg-sf px-1 rounded">{"{{CLIENTE}}"}</code>,
                       etc. no texto. O documento saiu igual ao modelo original. Veja em Configurações → Modelos de Documento como escrever
                       um modelo que preenche os dados.
                     </p>
                   </div>
                 )}
 
-                <p className="text-sm text-navy-800/70 dark:text-cream-50/70">O que você quer fazer com <strong>{generated.name}</strong>?</p>
+                <p className="text-sm text-tx-2">O que você quer fazer com <strong>{generated.name}</strong>?</p>
 
                 <a
                   href={generated.driveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold py-2.5 rounded-lg"
+                  className="w-full flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg"
                 >
                   <Download size={16} /> Abrir / Baixar (Google Docs)
                 </a>
@@ -148,7 +148,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   href={generated.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-white dark:bg-navy-800 border border-navy-800/15 dark:border-white/15 hover:bg-cream-50 dark:hover:bg-white/10 text-navy-900 dark:text-cream-50 text-sm font-semibold py-2.5 rounded-lg"
+                  className="w-full flex items-center justify-center gap-2 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold py-2.5 rounded-lg"
                 >
                   <FileDown size={16} /> Baixar como PDF
                 </a>
@@ -162,7 +162,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                     <button
                       onClick={handleAttach}
                       disabled={attaching}
-                      className="w-full flex items-center justify-center gap-2 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50"
                     >
                       <Paperclip size={16} /> {attaching ? "Inserindo..." : "Inserir nos Anexos"}
                     </button>
@@ -173,7 +173,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                     {error}
                   </p>
                 )}
-                <button onClick={handleClose} className="w-full text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 py-1.5">
+                <button onClick={handleClose} className="w-full text-xs font-semibold text-tx-2 hover:text-tx py-1.5">
                   Fechar
                 </button>
               </div>
@@ -181,7 +181,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
               <div className="p-5 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Categoria</label>
+                    <label className="text-xs font-medium text-tx-2">Categoria</label>
                     <select
                       value={category}
                       onChange={(e) => {
@@ -198,7 +198,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Modelo</label>
+                    <label className="text-xs font-medium text-tx-2">Modelo</label>
                     <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="gd-input" disabled={!templates}>
                       <option value="">{templates ? "Selecione..." : "Carregando..."}</option>
                       {filtered.map((t) => (
@@ -210,12 +210,12 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   </div>
                 </div>
                 {templates && filtered.length === 0 && (
-                  <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45">Nenhum modelo cadastrado nessa categoria ainda. Adicione em Configurações → Modelos de Documento.</p>
+                  <p className="text-[11px] text-tx-2">Nenhum modelo cadastrado nessa categoria ainda. Adicione em Configurações → Modelos de Documento.</p>
                 )}
 
                 {isContrato && (
-                  <div className="border-t border-navy-800/8 dark:border-white/10 pt-3 space-y-3">
-                    <p className="text-[11px] font-semibold text-navy-800/45 dark:text-cream-50/45 uppercase tracking-wide">Forma de cobrança dos honorários</p>
+                  <div className="border-t border-regua pt-3 space-y-3">
+                    <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Forma de cobrança dos honorários</p>
                     <div>
                       <select value={formaCobranca} onChange={(e) => setFormaCobranca(e.target.value as FormaCobranca)} className="gd-input">
                         {FORMA_COBRANCA_OPTIONS.map((f) => (
@@ -229,28 +229,28 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {EXITO_FORMAS.includes(formaCobranca) && (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Percentual sobre o êxito (%)</label>
+                          <label className="text-xs font-medium text-tx-2">Percentual sobre o êxito (%)</label>
                           <input type="number" step="0.01" value={percentualExito} onChange={(e) => setPercentualExito(e.target.value)} className="gd-input" />
                         </div>
                       )}
 
                       {formaCobranca === "FIXO" && (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor fixo (R$)</label>
+                          <label className="text-xs font-medium text-tx-2">Valor fixo (R$)</label>
                           <input type="number" step="0.01" value={valorFixo} onChange={(e) => setValorFixo(e.target.value)} className="gd-input" />
                         </div>
                       )}
 
                       {formaCobranca === "MENSALIDADE" && (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor da mensalidade (R$)</label>
+                          <label className="text-xs font-medium text-tx-2">Valor da mensalidade (R$)</label>
                           <input type="number" step="0.01" value={valorMensalidade} onChange={(e) => setValorMensalidade(e.target.value)} className="gd-input" />
                         </div>
                       )}
 
                       {(formaCobranca === "ENTRADA_EXITO" || formaCobranca === "SO_ENTRADA") && (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor de entrada (R$)</label>
+                          <label className="text-xs font-medium text-tx-2">Valor de entrada (R$)</label>
                           <input type="number" step="0.01" value={valorEntrada} onChange={(e) => setValorEntrada(e.target.value)} className="gd-input" />
                         </div>
                       )}
@@ -259,7 +259,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                     {PARCELAVEL_FORMAS.includes(formaCobranca) && (
                       <div className="flex items-center gap-2">
                         <input type="checkbox" id="parcelado" checked={parcelado} onChange={(e) => setParcelado(e.target.checked)} />
-                        <label htmlFor="parcelado" className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Parcelado</label>
+                        <label htmlFor="parcelado" className="text-xs font-medium text-tx-2">Parcelado</label>
                         {parcelado && (
                           <input
                             type="number"
@@ -275,7 +275,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Forma de pagamento</label>
+                        <label className="text-xs font-medium text-tx-2">Forma de pagamento</label>
                         <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento)} className="gd-input">
                           <option value="">Não especificar</option>
                           {FORMA_PAGAMENTO_OPTIONS.map((f) => (
@@ -287,7 +287,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                       </div>
                       {formaPagamento === "BOLETO" && (
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nº do boleto</label>
+                          <label className="text-xs font-medium text-tx-2">Nº do boleto</label>
                           <input value={numeroBoleto} onChange={(e) => setNumeroBoleto(e.target.value)} className="gd-input" />
                         </div>
                       )}
@@ -295,7 +295,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
 
                     <div className="flex items-center gap-2">
                       <input type="checkbox" id="notaFiscal" checked={notaFiscal} onChange={(e) => setNotaFiscal(e.target.checked)} />
-                      <label htmlFor="notaFiscal" className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Emitir nota fiscal</label>
+                      <label htmlFor="notaFiscal" className="text-xs font-medium text-tx-2">Emitir nota fiscal</label>
                     </div>
                   </div>
                 )}
@@ -308,7 +308,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !templateId}
-                  className="w-full bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                  className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50"
                 >
                   {loading ? "Gerando..." : "Gerar"}
                 </button>

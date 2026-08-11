@@ -32,20 +32,20 @@ export default function ChangePasswordForm() {
   return (
     <form id="change-password-form" action={submit} className="space-y-3 max-w-sm">
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Senha atual</label>
+        <label className="text-xs font-medium text-tx-2">Senha atual</label>
         <input name="currentPassword" type="password" required className="cfg-input w-full" />
       </div>
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nova senha</label>
+        <label className="text-xs font-medium text-tx-2">Nova senha</label>
         <input name="newPassword" type="password" required minLength={6} className="cfg-input w-full" />
       </div>
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Confirmar nova senha</label>
+        <label className="text-xs font-medium text-tx-2">Confirmar nova senha</label>
         <input name="confirmPassword" type="password" required minLength={6} className="cfg-input w-full" />
       </div>
       {error && <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">{error}</p>}
       {success && <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">Senha alterada com sucesso.</p>}
-      <button type="submit" disabled={loading} className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50">
+      <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50">
         {loading ? "Salvando..." : "Alterar senha"}
       </button>
     </form>

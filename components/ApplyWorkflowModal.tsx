@@ -47,7 +47,7 @@ export default function ApplyWorkflowModal({
         onClick={() => setOpen(true)}
         disabled={templates.length === 0}
         title={templates.length === 0 ? "Nenhum workflow ativo cadastrado" : undefined}
-        className="flex items-center gap-1.5 bg-white dark:bg-navy-800 border border-navy-800/15 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/10 text-navy-900 dark:text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors disabled:opacity-50"
       >
         <Workflow size={16} /> Aplicar Workflow
       </button>
@@ -58,16 +58,16 @@ export default function ApplyWorkflowModal({
         <ModalShell size="medio" title="Aplicar Workflow" onClose={() => setOpen(false)}>
           <form action={handleSubmit} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
-              <p className="text-xs text-navy-800/55 dark:text-cream-50/55">
+              <p className="text-xs text-tx-2">
                 As tarefas do workflow serão criadas neste processo, com prazos contados a partir de hoje.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Workflow</label>
+                  <label className="text-xs font-medium text-tx-2">Workflow</label>
                   <select
                     name="templateId"
                     required
-                    className="w-full mt-1 border border-navy-800/10 dark:border-white/15 dark:bg-navy-800 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+                    className="w-full mt-1 border border-regua bg-sf rounded-lg px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
                     defaultValue=""
                   >
                     <option value="" disabled>
@@ -81,10 +81,10 @@ export default function ApplyWorkflowModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Responsável padrão</label>
+                  <label className="text-xs font-medium text-tx-2">Responsável padrão</label>
                   <select
                     name="responsibleId"
-                    className="w-full mt-1 border border-navy-800/10 dark:border-white/15 dark:bg-navy-800 rounded-lg px-3 py-2 text-sm text-navy-900 dark:text-cream-50 focus:outline-none focus:ring-2 focus:ring-gold-500/40"
+                    className="w-full mt-1 border border-regua bg-sf rounded-lg px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
                     defaultValue=""
                   >
                     <option value="">Não definido</option>
@@ -96,7 +96,7 @@ export default function ApplyWorkflowModal({
                   </select>
                 </div>
               </div>
-              <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40">
+              <p className="text-[11px] text-tx-3">
                 Passos com cargo definido tentam usar o membro correspondente; caso contrário, usam este responsável.
               </p>
               {error && (
@@ -105,11 +105,11 @@ export default function ApplyWorkflowModal({
                 </p>
               )}
             </div>
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
+            <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
               <button
                 type="submit"
                 disabled={pending}
-                className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 {pending ? "Aplicando..." : "Aplicar workflow"}
               </button>

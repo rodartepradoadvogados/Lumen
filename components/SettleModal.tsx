@@ -63,11 +63,11 @@ export default function SettleModal({
   useEscapeToClose(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-800/8 dark:border-white/10">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-sm">Confirmar Baixa</h3>
-          <button onClick={onClose} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+    <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
+      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-regua">
+          <h3 className="font-serif font-bold text-tx text-sm">Confirmar Baixa</h3>
+          <button onClick={onClose} className="text-tx-3 hover:text-tx">
             <X size={16} />
           </button>
         </div>
@@ -101,13 +101,13 @@ export default function SettleModal({
           className="p-5 space-y-3"
         >
           {alreadyPaid > 0 && (
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 bg-cream-50 dark:bg-navy-800 rounded-lg px-3 py-2">
-              Já pago: <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
-              <span className="font-semibold text-navy-900 dark:text-cream-50">{formatCurrency(saldoAtual)}</span>
+            <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+              Já pago: <span className="font-semibold text-tx">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
+              <span className="font-semibold text-tx">{formatCurrency(saldoAtual)}</span>
             </p>
           )}
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor pago (R$)</label>
+            <label className="text-xs font-medium text-tx-2">Valor pago (R$)</label>
             <input
               name="paidAmount"
               type="number"
@@ -116,15 +116,15 @@ export default function SettleModal({
               value={paidAmount}
               onChange={(e) => setPaidAmount(e.target.value)}
               required
-              className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+              className="settle-input bg-sf border border-regua text-tx"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data do pagamento</label>
-            <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+            <label className="text-xs font-medium text-tx-2">Data do pagamento</label>
+            <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="settle-input bg-sf border border-regua text-tx" />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Conta bancária</label>
+            <label className="text-xs font-medium text-tx-2">Conta bancária</label>
             <EntityPicker
               name="bankAccountId"
               options={bankAccounts}
@@ -135,8 +135,8 @@ export default function SettleModal({
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Modalidade de pagamento</label>
-            <select name="paymentMethod" required defaultValue="" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+            <label className="text-xs font-medium text-tx-2">Modalidade de pagamento</label>
+            <select name="paymentMethod" required defaultValue="" className="settle-input bg-sf border border-regua text-tx">
               <option value="" disabled>
                 Selecione...
               </option>
@@ -148,8 +148,8 @@ export default function SettleModal({
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nº do comprovante (opcional)</label>
-            <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+            <label className="text-xs font-medium text-tx-2">Nº do comprovante (opcional)</label>
+            <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input bg-sf border border-regua text-tx" />
           </div>
           <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} existingUrl={existingReceiptUrl} existingName={existingReceiptName} />
           {ficaParcial && (
@@ -158,7 +158,7 @@ export default function SettleModal({
               após esta baixa.
             </p>
           )}
-          {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={loading || valorNum <= 0}

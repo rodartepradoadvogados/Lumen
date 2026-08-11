@@ -59,11 +59,11 @@ export default function SettleButton({
             }}
             disabled={loading}
             data-tip={isParcial ? "Reabrir e apagar os pagamentos parciais já lançados" : "Reabrir e desfazer a baixa"}
-            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2 py-1 rounded-lg hover:bg-cream-100 dark:hover:bg-white/10 disabled:opacity-50"
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
           >
             <RotateCcw size={12} /> Reabrir
           </button>
-          {error && <p className="text-[10px] text-bordo-700 dark:text-bordo-400">{error}</p>}
+          {error && <p className="text-[10px] text-urgente">{error}</p>}
         </div>
       )}
       {!isPago && (

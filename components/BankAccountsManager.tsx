@@ -32,27 +32,27 @@ function Fields({ defaults }: { defaults?: Partial<BankAccount> }) {
         defaultValue={defaults?.name ?? ""}
         required
         placeholder="Apelido (ex: Itaú Principal)"
-        className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+        className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
       />
       <input
         name="bank"
         defaultValue={defaults?.bank ?? ""}
         placeholder="Banco"
-        className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+        className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
       />
       <input
         name="agency"
         defaultValue={defaults?.agency ?? ""}
         placeholder="Agência"
-        className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+        className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
       />
       <input
         name="accountNumber"
         defaultValue={defaults?.accountNumber ?? ""}
         placeholder="Conta"
-        className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+        className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
       />
-      <select name="type" defaultValue={defaults?.type ?? "CORRENTE"} className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50">
+      <select name="type" defaultValue={defaults?.type ?? "CORRENTE"} className="cfg-input bg-sf border border-regua text-tx">
         {Object.entries(TYPE_LABELS).map(([value, label]) => (
           <option key={value} value={value}>
             {label}
@@ -65,13 +65,13 @@ function Fields({ defaults }: { defaults?: Partial<BankAccount> }) {
         step="0.01"
         defaultValue={defaults?.initialBalance ?? 0}
         placeholder="Saldo inicial (R$)"
-        className="cfg-input dark:bg-navy-900 dark:border-white/15 dark:text-cream-50"
+        className="cfg-input bg-sf border border-regua text-tx"
       />
       <input
         name="notes"
         defaultValue={defaults?.notes ?? ""}
         placeholder="Observações (opcional)"
-        className="cfg-input sm:col-span-2 dark:bg-navy-900 dark:border-white/15 dark:text-cream-50 dark:placeholder:text-cream-50/30"
+        className="cfg-input sm:col-span-2 bg-sf border border-regua text-tx placeholder:text-tx-3"
       />
     </div>
   );
@@ -115,14 +115,14 @@ function BankAccountRow({ account }: { account: BankAccount }) {
 
   if (editing) {
     return (
-      <form action={handleSave} className="px-5 py-3 space-y-2 bg-cream-50 dark:bg-navy-800">
+      <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <Fields defaults={account} />
-        {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+          <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
             Cancelar
           </button>
         </div>
@@ -133,8 +133,8 @@ function BankAccountRow({ account }: { account: BankAccount }) {
   return (
     <div className="flex items-center gap-3 px-5 py-3 relative">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-navy-900 dark:text-cream-50">{account.name}</p>
-        <p className="text-xs text-navy-800/45 dark:text-cream-50/45 truncate">
+        <p className="text-sm font-medium text-tx">{account.name}</p>
+        <p className="text-xs text-tx-2 truncate">
           {[account.bank, account.agency && `Ag. ${account.agency}`, account.accountNumber && `Cc ${account.accountNumber}`, TYPE_LABELS[account.type]]
             .filter(Boolean)
             .join(" · ")}
@@ -143,20 +143,20 @@ function BankAccountRow({ account }: { account: BankAccount }) {
       </div>
       <Badge color={account.active ? "green" : "slate"}>{account.active ? "Ativa" : "Inativa"}</Badge>
       <div className="flex items-center gap-1">
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors">
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
           <Pencil size={14} />
         </button>
         <button
           onClick={handleToggle}
           disabled={pending}
           data-tip={account.active ? "Desativar" : "Reativar"}
-          className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40"
+          className="p-1.5 rounded-lg text-tx-3 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40"
         >
           <Power size={14} />
         </button>
       </div>
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-bordo-100 dark:bg-bordo-900/40 text-bordo-700 dark:text-bordo-400 border border-bordo-100 dark:border-bordo-400/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />
@@ -196,30 +196,30 @@ export default function BankAccountsManager({ accounts }: { accounts: BankAccoun
 
   return (
     <div>
-      <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+      <div className="divide-y divide-regua">
         {accounts.length === 0 && !adding && (
-          <p className="px-5 py-4 text-sm text-navy-800/40 dark:text-cream-50/40">Nenhuma conta bancária cadastrada.</p>
+          <p className="px-5 py-4 text-sm text-tx-3">Nenhuma conta bancária cadastrada.</p>
         )}
         {accounts.map((a) => (
           <BankAccountRow key={a.id} account={a} />
         ))}
       </div>
       {adding ? (
-        <form action={handleCreate} className="p-5 space-y-2 border-t border-navy-800/8 dark:border-white/10 bg-cream-50 dark:bg-navy-800">
+        <form action={handleCreate} className="p-5 space-y-2 border-t border-regua bg-sf-apoio">
           <Fields />
-          {error && <p className="text-[11px] text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-2.5 py-1.5">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
             </button>
-            <button type="button" onClick={() => setAdding(false)} className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50">
+            <button type="button" onClick={() => setAdding(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
               Cancelar
             </button>
           </div>
         </form>
       ) : (
-        <div className="p-5 border-t border-navy-800/8 dark:border-white/10">
-          <button onClick={() => setAdding(true)} className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+        <div className="p-5 border-t border-regua">
+          <button onClick={() => setAdding(true)} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
             Nova conta bancária
           </button>
         </div>

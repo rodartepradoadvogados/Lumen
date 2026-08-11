@@ -60,21 +60,21 @@ export default function InactivityNotice() {
   if (!idle) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-navy-950/70 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm p-6 text-center space-y-4">
-        <div className="mx-auto h-12 w-12 rounded-full bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] bg-grafite-900/70 flex items-center justify-center p-4">
+      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm p-6 text-center space-y-4">
+        <div className="mx-auto h-12 w-12 rounded-full bg-marca-bg text-marca-tx flex items-center justify-center">
           <AlarmClock size={24} />
         </div>
         <div className="space-y-1">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Você ficou inativo por um tempo</h3>
-          <p className="text-sm text-navy-800/60 dark:text-cream-50/60">Deseja continuar de onde parou ou sair do sistema?</p>
+          <h3 className="font-serif font-bold text-tx text-base">Você ficou inativo por um tempo</h3>
+          <p className="text-sm text-tx-2">Deseja continuar de onde parou ou sair do sistema?</p>
         </div>
         <div className="flex gap-2">
           <form action={logout} className="flex-1">
             <button
               type="submit"
               disabled={isPending}
-              className="w-full bg-cream-100 dark:bg-navy-800 hover:bg-cream-200 dark:hover:bg-navy-700 text-navy-900 dark:text-cream-50 font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              className="w-full bg-sf-apoio hover:bg-sf-apoio text-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
             >
               Sair
             </button>
@@ -82,7 +82,7 @@ export default function InactivityNotice() {
           <button
             onClick={handleResume}
             disabled={isPending}
-            className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
           >
             {isPending ? "Retomando..." : "Continuar"}
           </button>

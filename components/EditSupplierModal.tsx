@@ -24,7 +24,7 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar fornecedor" className="p-1.5 rounded-lg text-navy-800/30 dark:text-cream-50/30 hover:text-navy-900 dark:hover:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/5 transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar fornecedor" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
@@ -49,31 +49,31 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nome</label>
+                  <label className="text-xs font-medium text-tx-2">Nome</label>
                   <input name="name" required defaultValue={supplier.name} className="cl-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">E-mail</label>
+                  <label className="text-xs font-medium text-tx-2">E-mail</label>
                   <input name="email" type="email" defaultValue={supplier.email || ""} className="cl-input" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF/CNPJ</label>
+                  <label className="text-xs font-medium text-tx-2">CPF/CNPJ</label>
                   <MaskedInput name="document" mask={maskCpfCnpj} defaultValue={supplier.document || ""} className="cl-input" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Telefone</label>
+                  <label className="text-xs font-medium text-tx-2">Telefone</label>
                   <MaskedInput name="phone" mask={maskPhone} defaultValue={supplier.phone || ""} className="cl-input" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Observações</label>
+                <label className="text-xs font-medium text-tx-2">Observações</label>
                 <textarea name="notes" rows={3} defaultValue={supplier.notes || ""} className="cl-input" />
               </div>
             </div>
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
-              <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+            <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Salvar"}
               </button>
             </div>

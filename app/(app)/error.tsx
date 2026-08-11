@@ -17,23 +17,23 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   return (
     <div className="p-6 flex items-center justify-center min-h-[50vh]">
       <div className="max-w-md text-center space-y-4">
-        <div className="mx-auto h-12 w-12 rounded-full bg-bordo-700/10 dark:bg-bordo-400/15 flex items-center justify-center">
-          <AlertTriangle size={22} className="text-bordo-700 dark:text-bordo-400" />
+        <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
+          <AlertTriangle size={22} className="text-atencao" />
         </div>
-        <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Algo deu errado</h1>
-        <p className="text-sm text-navy-800/60 dark:text-cream-50/60">
+        <h1 className="font-serif text-xl font-bold text-tx">Algo deu errado</h1>
+        <p className="text-sm text-tx-2">
           Não foi possível carregar esta página. Tente novamente ou volte para o Painel.
         </p>
         <div className="flex items-center justify-center gap-3 pt-1">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
+            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
           >
             <RotateCw size={15} /> Tentar novamente
           </button>
           <Link
             href="/painel"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-navy-800/70 dark:text-cream-50/70 hover:text-navy-900 dark:hover:text-cream-50 px-4 py-2.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/10"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-tx-2 hover:text-tx px-4 py-2.5 rounded-lg hover:bg-sf-apoio"
           >
             Voltar ao Painel
           </Link>

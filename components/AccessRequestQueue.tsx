@@ -52,25 +52,25 @@ export default function AccessRequestQueue({ requests }: { requests: PendingAcce
   }
 
   return (
-    <div className="divide-y divide-navy-800/5 dark:divide-white/10">
+    <div className="divide-y divide-regua">
       {requests.map((req) => (
         <div key={req.id} className="p-5 flex items-start justify-between gap-3 flex-wrap">
-          <div className="text-sm text-navy-900 dark:text-cream-50">
+          <div className="text-sm text-tx">
             <p>
               <strong>{req.requesterName}</strong> — {req.reasonLabel}
             </p>
-            <p className="text-xs text-navy-800/60 dark:text-cream-50/60 mt-0.5">Chamado: {req.ticketSubject}</p>
+            <p className="text-xs text-tx-2 mt-0.5">Chamado: {req.ticketSubject}</p>
             {describeScope(req) && (
-              <p className="text-xs font-semibold text-gold-700 dark:text-gold-400 mt-1 flex items-center gap-1">
+              <p className="text-xs font-semibold text-marca-tx mt-1 flex items-center gap-1">
                 <Eye size={12} className="shrink-0" /> Suporte Lúmen {describeScope(req)}
               </p>
             )}
             {req.reasonNote && (
-              <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5 italic">“{req.reasonNote}”</p>
+              <p className="text-xs text-tx-2 mt-0.5 italic">“{req.reasonNote}”</p>
             )}
-            <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 mt-1">Pedido {timeAgo(req.requestedAt)}</p>
+            <p className="text-[11px] text-tx-2 mt-1">Pedido {timeAgo(req.requestedAt)}</p>
             {errors[req.id] && (
-              <p className="text-[11px] text-red-600 dark:text-bordo-400 mt-1">{errors[req.id]}</p>
+              <p className="text-[11px] text-urgente mt-1">{errors[req.id]}</p>
             )}
           </div>
           <div className="flex gap-2 shrink-0">
@@ -86,7 +86,7 @@ export default function AccessRequestQueue({ requests }: { requests: PendingAcce
               type="button"
               disabled={pending}
               onClick={() => decide(req.id, false)}
-              className="inline-flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-cream-50 text-xs font-semibold rounded-lg px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-atencao hover:opacity-90 text-white text-xs font-semibold rounded-lg px-3 py-2 disabled:opacity-50"
             >
               <X size={13} /> Negar
             </button>

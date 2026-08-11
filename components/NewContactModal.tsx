@@ -61,7 +61,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-cream-50 text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
         <Plus size={16} /> {titles[kind]}
       </button>
@@ -70,26 +70,26 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
           <form action={submit} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4">
               {error && (
-                <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2 mb-3">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2 mb-3">{error}</p>
               )}
               <div className={kind === "client" ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start" : "space-y-3"}>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nome / Razão Social</label>
+                    <label className="text-xs font-medium text-tx-2">Nome / Razão Social</label>
                     <input name="name" required className="ct-input" />
                   </div>
 
                   {kind !== "lawyer" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                        <label className="text-xs font-medium text-tx-2">Tipo</label>
                         <select name="type" className="ct-input">
                           <option value="PF">Pessoa Física</option>
                           <option value="PJ">Pessoa Jurídica</option>
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">CPF/CNPJ</label>
+                        <label className="text-xs font-medium text-tx-2">CPF/CNPJ</label>
                         <MaskedInput name="document" mask={maskCpfCnpj} className="ct-input" />
                       </div>
                     </div>
@@ -98,11 +98,11 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                   {kind === "lawyer" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">OAB</label>
+                        <label className="text-xs font-medium text-tx-2">OAB</label>
                         <input name="oab" className="ct-input" />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Lado</label>
+                        <label className="text-xs font-medium text-tx-2">Lado</label>
                         <select name="side" className="ct-input">
                           <option value="PARCEIRO">Parceiro</option>
                           <option value="ADVERSO">Adverso</option>
@@ -113,32 +113,32 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
 
                   {kind === "lawyer" && (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Escritório</label>
+                      <label className="text-xs font-medium text-tx-2">Escritório</label>
                       <input name="firm" className="ct-input" />
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">E-mail</label>
+                      <label className="text-xs font-medium text-tx-2">E-mail</label>
                       <input name="email" type="email" className="ct-input" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Telefone</label>
+                      <label className="text-xs font-medium text-tx-2">Telefone</label>
                       <MaskedInput name="phone" mask={maskPhone} className="ct-input" />
                     </div>
                   </div>
 
                   {kind === "client" && (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço</label>
+                      <label className="text-xs font-medium text-tx-2">Endereço</label>
                       <input name="address" className="ct-input" />
                     </div>
                   )}
 
                   {kind === "lawyer" && (
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Observações</label>
+                      <label className="text-xs font-medium text-tx-2">Observações</label>
                       <textarea name="notes" rows={3} className="ct-input" />
                     </div>
                   )}
@@ -146,32 +146,32 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
 
                 {kind === "client" && (
                   <div className="space-y-3">
-                    <div className="border border-navy-800/8 dark:border-white/10 rounded-lg p-3 space-y-3">
-                      <p className="text-[11px] font-semibold text-navy-800/45 dark:text-cream-50/45 uppercase tracking-wide">Dados para geração de documentos (opcional)</p>
+                    <div className="border border-regua rounded-lg p-3 space-y-3">
+                      <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Dados para geração de documentos (opcional)</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Nacionalidade</label>
+                          <label className="text-xs font-medium text-tx-2">Nacionalidade</label>
                           <input name="nationality" placeholder="brasileiro(a)" className="ct-input" />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estado civil</label>
+                          <label className="text-xs font-medium text-tx-2">Estado civil</label>
                           <input name="maritalStatus" placeholder="solteiro(a), casado(a)..." className="ct-input" />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Profissão</label>
+                          <label className="text-xs font-medium text-tx-2">Profissão</label>
                           <input name="profession" className="ct-input" />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">RG</label>
+                          <label className="text-xs font-medium text-tx-2">RG</label>
                           <input name="rg" className="ct-input" />
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Observações</label>
+                      <label className="text-xs font-medium text-tx-2">Observações</label>
                       <textarea name="notes" rows={5} className="ct-input" />
                     </div>
                   </div>
@@ -179,8 +179,8 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
-              <button type="submit" disabled={loading} className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+            <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
                 {loading ? "Salvando..." : "Criar"}
               </button>
             </div>

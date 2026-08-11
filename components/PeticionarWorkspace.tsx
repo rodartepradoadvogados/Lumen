@@ -27,19 +27,19 @@ function NoteBox({ storageKey, index }: { storageKey: string; index: number }) {
         localStorage.setItem(storageKey, e.target.value);
       }}
       placeholder={`Anotação ${index + 1}`}
-      className="w-full h-40 resize-none rounded-lg border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 p-3 text-sm focus:outline-none focus:border-gold-500"
+      className="w-full h-40 resize-none rounded-lg border border-regua bg-sf text-tx p-3 text-sm focus:outline-none focus:border-acao"
     />
   );
 }
 
 export default function PeticionarWorkspace() {
   return (
-    <div className="min-h-screen bg-cream-50 dark:bg-navy-950 p-5 space-y-5">
+    <div className="min-h-screen bg-sf-fundo p-5 space-y-5">
       <div className="flex items-center gap-2">
         <LumenMark size={28} />
         <div>
-          <h1 className="font-serif text-lg font-bold text-navy-900 dark:text-cream-50">Espaço de peticionamento</h1>
-          <p className="text-xs text-navy-800/50 dark:text-cream-50/50">Pesquisa e anotações — deixe esta aba aberta ao lado do documento</p>
+          <h1 className="font-serif text-lg font-bold text-tx">Espaço de peticionamento</h1>
+          <p className="text-xs text-tx-2">Pesquisa e anotações — deixe esta aba aberta ao lado do documento</p>
         </div>
       </div>
 
@@ -50,7 +50,7 @@ export default function PeticionarWorkspace() {
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm font-semibold text-navy-900 dark:text-cream-50 bg-white dark:bg-navy-900 border border-navy-800/12 dark:border-white/15 px-3.5 py-2 rounded-lg hover:border-gold-500"
+            className="flex items-center gap-1.5 text-sm font-semibold text-tx bg-sf border border-regua px-3.5 py-2 rounded-lg hover:border-acao"
           >
             {link.label} <ExternalLink size={13} />
           </a>

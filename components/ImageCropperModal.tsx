@@ -101,11 +101,11 @@ export default function ImageCropperModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-navy-950/60 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Ajustar foto</h3>
-          <button onClick={onCancel} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+    <div className="fixed inset-0 z-[60] bg-grafite-900/60 flex items-center justify-center p-4">
+      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+          <h3 className="font-serif font-bold text-tx">Ajustar foto</h3>
+          <button onClick={onCancel} className="text-tx-3 hover:text-tx">
             <X size={18} />
           </button>
         </div>
@@ -115,7 +115,7 @@ export default function ImageCropperModal({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="relative rounded-full overflow-hidden bg-navy-950/5 dark:bg-black/30 cursor-grab active:cursor-grabbing touch-none select-none"
+            className="relative rounded-full overflow-hidden bg-grafite-900/5 dark:bg-black/30 cursor-grab active:cursor-grabbing touch-none select-none"
             style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
           >
             {imageUrl && (
@@ -137,7 +137,7 @@ export default function ImageCropperModal({
             )}
           </div>
           <div className="w-full flex items-center gap-2">
-            <ZoomIn size={16} className="text-navy-800/45 dark:text-cream-50/45 shrink-0" />
+            <ZoomIn size={16} className="text-tx-2 shrink-0" />
             <input
               type="range"
               min={1}
@@ -145,15 +145,15 @@ export default function ImageCropperModal({
               step={0.01}
               value={zoom}
               onChange={(e) => handleZoomChange(Number(e.target.value))}
-              className="w-full accent-gold-600"
+              className="w-full accent-acao"
             />
           </div>
-          <p className="text-[11px] text-navy-800/45 dark:text-cream-50/45 text-center">Arraste a foto para posicionar e use o controle para dar zoom.</p>
+          <p className="text-[11px] text-tx-2 text-center">Arraste a foto para posicionar e use o controle para dar zoom.</p>
           <div className="flex gap-2 w-full">
-            <button onClick={onCancel} className="flex-1 text-sm font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 py-2.5 rounded-lg border border-navy-800/12 dark:border-white/15">
+            <button onClick={onCancel} className="flex-1 text-sm font-semibold text-tx-2 hover:text-tx py-2.5 rounded-lg border border-regua">
               Cancelar
             </button>
-            <button onClick={handleConfirm} className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2.5 rounded-lg">
+            <button onClick={handleConfirm} className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg">
               Usar foto
             </button>
           </div>

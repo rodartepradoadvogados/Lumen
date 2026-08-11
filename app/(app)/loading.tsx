@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 export default function Loading() {
   return (
     <div className="p-6 flex items-center justify-center min-h-[50vh]">
-      <div className="flex items-center gap-2.5 text-navy-800/50 dark:text-cream-50/50">
+      <div className="flex items-center gap-2.5 text-tx-2">
         <Loader2 size={18} className="animate-spin" />
         <span className="text-sm font-medium">Carregando...</span>
       </div>

@@ -80,10 +80,10 @@ export default function AttendanceCommercialForm({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Comercial (Funil)</h4>
+          <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Comercial (Funil)</h4>
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx"
           >
             <Pencil size={12} /> Editar
           </button>
@@ -91,9 +91,9 @@ export default function AttendanceCommercialForm({
         <Row label="Honorário pretendido" value={feeSummary(feeMode, estimatedValue, feePercentual, feePercentualBase)} />
         <Row label="Origem do lead" value={leadSource ? leadSourceLabels[leadSource] || leadSource : null} />
         <Row label="Próximo contato" value={nextContactAt ? formatDate(nextContactAt) : null} />
-        <div className="flex justify-between text-sm border-b border-navy-800/5 dark:border-white/10 pb-2">
-          <span className="text-navy-800/50 dark:text-cream-50/50">Prazo de resposta ao lead</span>
-          <span className={`font-medium text-right ${responseDeadlineOverdue ? "text-bordo-600 dark:text-bordo-400" : "text-navy-900 dark:text-cream-50"}`}>
+        <div className="flex justify-between text-sm border-b border-regua pb-2">
+          <span className="text-tx-2">Prazo de resposta ao lead</span>
+          <span className={`font-medium text-right ${responseDeadlineOverdue ? "text-urgente" : "text-tx"}`}>
             {responseDeadline ? `${formatDate(responseDeadline)} ${new Date(responseDeadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "—"}
           </span>
         </div>
@@ -106,7 +106,7 @@ export default function AttendanceCommercialForm({
           <button
             onClick={handleMarkResponded}
             disabled={pending}
-            className="text-xs font-semibold text-gold-700 dark:text-gold-400 hover:underline disabled:opacity-50"
+            className="text-xs font-semibold text-marca-tx hover:underline disabled:opacity-50"
           >
             {pending ? "Marcando..." : "Marcar como respondido"}
           </button>
@@ -137,11 +137,11 @@ export default function AttendanceCommercialForm({
       }}
       className="space-y-3"
     >
-      <h4 className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Comercial (Funil)</h4>
+      <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Comercial (Funil)</h4>
 
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Forma de cobrança pretendida</label>
-        <select value={feeModeEdit} onChange={(e) => setFeeModeEdit(e.target.value)} className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+        <label className="text-xs font-medium text-tx-2">Forma de cobrança pretendida</label>
+        <select value={feeModeEdit} onChange={(e) => setFeeModeEdit(e.target.value)} className="acf-input bg-sf border border-regua text-tx">
           <option value="DINHEIRO">Dinheiro</option>
           <option value="PERCENTUAL">Percentual</option>
           <option value="AMBOS">Dinheiro + Percentual</option>
@@ -149,14 +149,14 @@ export default function AttendanceCommercialForm({
       </div>
       {feeModeEdit !== "PERCENTUAL" && (
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor em dinheiro (R$)</label>
+          <label className="text-xs font-medium text-tx-2">Valor em dinheiro (R$)</label>
           <input
             name="estimatedValue"
             type="number"
             step="0.01"
             min="0"
             defaultValue={estimatedValue ?? ""}
-            className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+            className="acf-input bg-sf border border-regua text-tx"
             placeholder="0,00"
           />
         </div>
@@ -164,19 +164,19 @@ export default function AttendanceCommercialForm({
       {feeModeEdit !== "DINHEIRO" && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Percentual (%)</label>
+            <label className="text-xs font-medium text-tx-2">Percentual (%)</label>
             <input
               name="feePercentual"
               type="number"
               step="0.01"
               min="0"
               defaultValue={feePercentual ?? ""}
-              className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+              className="acf-input bg-sf border border-regua text-tx"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Base</label>
-            <select name="feePercentualBase" defaultValue={feePercentualBase || "VALOR_CAUSA"} className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+            <label className="text-xs font-medium text-tx-2">Base</label>
+            <select name="feePercentualBase" defaultValue={feePercentualBase || "VALOR_CAUSA"} className="acf-input bg-sf border border-regua text-tx">
               {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -187,8 +187,8 @@ export default function AttendanceCommercialForm({
         </div>
       )}
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Origem do lead</label>
-        <select name="leadSource" defaultValue={leadSource || ""} className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50">
+        <label className="text-xs font-medium text-tx-2">Origem do lead</label>
+        <select name="leadSource" defaultValue={leadSource || ""} className="acf-input bg-sf border border-regua text-tx">
           <option value="">Não definida</option>
           <option value="INDICACAO">Indicação</option>
           <option value="INSTAGRAM">Instagram</option>
@@ -199,30 +199,30 @@ export default function AttendanceCommercialForm({
         </select>
       </div>
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Próximo contato / follow-up</label>
-        <input name="nextContactAt" type="date" defaultValue={nextContactValue} className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50" />
+        <label className="text-xs font-medium text-tx-2">Próximo contato / follow-up</label>
+        <input name="nextContactAt" type="date" defaultValue={nextContactValue} className="acf-input bg-sf border border-regua text-tx" />
       </div>
       <div>
-        <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prazo de resposta ao lead</label>
+        <label className="text-xs font-medium text-tx-2">Prazo de resposta ao lead</label>
         <input
           name="responseDeadline"
           type="datetime-local"
           defaultValue={toDatetimeLocal(responseDeadline)}
-          className="acf-input dark:bg-navy-800 dark:border-white/15 dark:text-cream-50"
+          className="acf-input bg-sf border border-regua text-tx"
         />
       </div>
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={pending}
-          className="bg-bordo-700 hover:bg-bordo-600 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
         >
           {pending ? "Salvando..." : "Salvar"}
         </button>
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+          className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
         >
           Cancelar
         </button>
@@ -237,9 +237,9 @@ export default function AttendanceCommercialForm({
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex justify-between text-sm border-b border-navy-800/5 dark:border-white/10 pb-2">
-      <span className="text-navy-800/50 dark:text-cream-50/50">{label}</span>
-      <span className="font-medium text-navy-900 dark:text-cream-50 text-right">{value || "—"}</span>
+    <div className="flex justify-between text-sm border-b border-regua pb-2">
+      <span className="text-tx-2">{label}</span>
+      <span className="font-medium text-tx text-right">{value || "—"}</span>
     </div>
   );
 }

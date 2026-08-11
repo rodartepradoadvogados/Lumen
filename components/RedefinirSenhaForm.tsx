@@ -30,7 +30,7 @@ export default function RedefinirSenhaForm({ token }: { token: string }) {
         <p className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-lg px-3 py-2">
           Senha redefinida com sucesso.
         </p>
-        <a href="/" className="inline-block mt-4 text-sm font-semibold text-navy-900 dark:text-cream-50 underline">
+        <a href="/" className="inline-block mt-4 text-sm font-semibold text-tx underline">
           Voltar para o login
         </a>
       </div>
@@ -47,7 +47,7 @@ export default function RedefinirSenhaForm({ token }: { token: string }) {
         placeholder="Nova senha (mín. 6 caracteres)"
         value={newPassword}
         onChange={(e) => setNewPassword(e.target.value)}
-        className="border border-navy-900/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 dark:placeholder:text-cream-50/30 rounded-lg px-3 py-2 text-sm"
+        className="border border-regua bg-sf text-tx placeholder:text-tx-3 rounded-lg px-3 py-2 text-sm"
       />
       <input
         type="password"
@@ -57,13 +57,13 @@ export default function RedefinirSenhaForm({ token }: { token: string }) {
         placeholder="Confirme a nova senha"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
-        className="border border-navy-900/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 dark:placeholder:text-cream-50/30 rounded-lg px-3 py-2 text-sm"
+        className="border border-regua bg-sf text-tx placeholder:text-tx-3 rounded-lg px-3 py-2 text-sm"
       />
-      {error && <p className="text-sm text-red-600 dark:text-bordo-400">{error}</p>}
+      {error && <p className="text-sm text-urgente">{error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="bg-bordo-700 hover:bg-bordo-600 disabled:opacity-50 text-cream-50 font-semibold rounded-lg px-4 py-2 text-sm"
+        className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold rounded-lg px-4 py-2 text-sm"
       >
         {pending ? "Salvando..." : "Redefinir senha"}
       </button>

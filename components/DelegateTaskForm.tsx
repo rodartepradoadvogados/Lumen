@@ -73,10 +73,10 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
       <span
         className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
           done
-            ? "bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950"
+            ? "bg-acao text-acao-tx"
             : active
-              ? "bg-gold-500 text-navy-950"
-              : "bg-navy-800/10 dark:bg-white/10 text-navy-800/40 dark:text-cream-50/40"
+              ? "bg-marca text-grafite-900"
+              : "bg-sf-apoio text-tx-3"
         }`}
       >
         {done ? <Check size={12} /> : label}
@@ -200,8 +200,8 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
         <span className="h-12 w-12 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center">
           <Check size={22} />
         </span>
-        <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-lg">Delegado com sucesso!</h3>
-        <p className="text-sm text-navy-800/60 dark:text-cream-50/60 max-w-sm">
+        <h3 className="font-serif font-bold text-tx text-lg">Delegado com sucesso!</h3>
+        <p className="text-sm text-tx-2 max-w-sm">
           &ldquo;{success.title}&rdquo; foi atribuído a{" "}
           <span className="font-semibold">
             {success.responsibleNames.length > 1
@@ -216,14 +216,14 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
             consequência que passa despercebida se não for dita — quem delega precisa saber que
             acabou de baixar o item para os colegas também. */}
         {initial?.publicationId && (
-          <p className="text-sm text-navy-800/60 dark:text-cream-50/60 max-w-sm">
+          <p className="text-sm text-tx-2 max-w-sm">
             Como agora existe responsável, a publicação sai da lista de pendências de <span className="font-semibold">todo o escritório</span> —
             continua acessível na aba <span className="font-semibold">Lidas</span> e dentro do processo.
           </p>
         )}
         <button
           onClick={resetAll}
-          className="mt-2 inline-flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2"
+          className="mt-2 inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2"
         >
           <UserPlus size={15} /> Delegar outra
         </button>
@@ -235,43 +235,43 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
     <div className="p-5">
       <div className="flex items-center gap-2 mb-6">
         <StepDot active={state.step === 1} done={state.step > 1} label="1" />
-        <span className="h-px flex-1 bg-navy-800/10 dark:bg-white/10" />
+        <span className="h-px flex-1 bg-sf-apoio" />
         <StepDot active={state.step === 2} done={state.step > 2} label="2" />
-        <span className="h-px flex-1 bg-navy-800/10 dark:bg-white/10" />
+        <span className="h-px flex-1 bg-sf-apoio" />
         <StepDot active={state.step === 3} done={state.step > 3} label="3" />
-        <span className="h-px flex-1 bg-navy-800/10 dark:bg-white/10" />
+        <span className="h-px flex-1 bg-sf-apoio" />
         <StepDot active={state.step === 4} done={false} label="4" />
       </div>
 
       {state.step === 1 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Quem vai receber?</h3>
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">
+            <h3 className="font-serif font-bold text-tx text-base">Quem vai receber?</h3>
+            <p className="text-xs text-tx-2 mt-0.5">
               Selecione um ou mais membros da equipe — cada um recebe sua própria tarefa.
             </p>
           </div>
-          <div className="border border-navy-800/12 dark:border-white/15 rounded-lg divide-y divide-navy-800/8 dark:divide-white/10 max-h-64 overflow-y-auto scrollbar-thin">
+          <div className="border border-regua rounded-lg divide-y divide-regua max-h-64 overflow-y-auto scrollbar-thin">
             {users.map((u) => {
               const checked = state.responsibleIds.includes(u.id);
               return (
                 <label
                   key={u.id}
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100 dark:hover:bg-white/5"
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-sf-apoio"
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleResponsible(u.id)}
-                    className="h-4 w-4 rounded border-navy-800/25 dark:border-white/25 text-gold-600 focus:ring-gold-500/40"
+                    className="h-4 w-4 rounded border-regua text-acao focus:ring-acao/40"
                   />
-                  <span className="text-navy-900 dark:text-cream-50">{u.name}</span>
+                  <span className="text-tx">{u.name}</span>
                 </label>
               );
             })}
           </div>
           {state.responsibleIds.length > 0 && (
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50">
+            <p className="text-xs text-tx-2">
               {state.responsibleIds.length} pessoa{state.responsibleIds.length > 1 ? "s" : ""} selecionada{state.responsibleIds.length > 1 ? "s" : ""}
             </p>
           )}
@@ -281,8 +281,8 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
       {state.step === 2 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Qual o tipo de compromisso?</h3>
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Escolha o tipo — igual ao que já existe em Kanban/Agenda.</p>
+            <h3 className="font-serif font-bold text-tx text-base">Qual o tipo de compromisso?</h3>
+            <p className="text-xs text-tx-2 mt-0.5">Escolha o tipo — igual ao que já existe em Kanban/Agenda.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {TYPE_OPTIONS.map((t) => (
@@ -292,8 +292,8 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
                 onClick={() => setState((s) => ({ ...s, type: t.value }))}
                 className={`text-sm font-semibold px-4 py-2 rounded-lg border transition-colors ${
                   state.type === t.value
-                    ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-                    : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx border-acao"
+                    : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
                 }`}
               >
                 {t.label}
@@ -306,8 +306,8 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
       {state.step === 3 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">A que se refere?</h3>
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Isso filtra a busca a seguir.</p>
+            <h3 className="font-serif font-bold text-tx text-base">A que se refere?</h3>
+            <p className="text-xs text-tx-2 mt-0.5">Isso filtra a busca a seguir.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {REFER_OPTIONS.map((r) => (
@@ -319,8 +319,8 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
                 }
                 className={`text-sm font-semibold px-4 py-2 rounded-lg border transition-colors ${
                   state.referTo === r.value
-                    ? "bg-navy-900 text-white border-navy-900 dark:bg-gold-500 dark:text-navy-950 dark:border-gold-500"
-                    : "bg-white dark:bg-navy-800 text-navy-800/70 dark:text-cream-50/70 border-navy-800/12 dark:border-white/15 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx border-acao"
+                    : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
                 }`}
               >
                 {r.label}
@@ -331,12 +331,12 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
           {needsLink && (
             <div className="pt-2">
               {state.selectedLink ? (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-navy-800/12 dark:border-white/15 px-3 py-2 bg-cream-50 dark:bg-white/5">
-                  <span className="text-sm text-navy-900 dark:text-cream-50 truncate">{state.selectedLink.label}</span>
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-regua px-3 py-2 bg-sf-apoio">
+                  <span className="text-sm text-tx truncate">{state.selectedLink.label}</span>
                   <button
                     type="button"
                     onClick={() => setState((s) => ({ ...s, selectedLink: null, linkQuery: "" }))}
-                    className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 shrink-0"
+                    className="text-xs font-semibold text-tx-2 hover:text-tx shrink-0"
                   >
                     Trocar
                   </button>
@@ -344,25 +344,25 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               ) : (
                 <>
                   <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3" />
                     <input
                       value={state.linkQuery}
                       onChange={(e) => setState((s) => ({ ...s, linkQuery: e.target.value }))}
                       placeholder={
                         state.referTo === "ATENDIMENTO" ? "Buscar por cliente ou assunto..." : "Buscar por título ou número..."
                       }
-                      className="w-full border border-navy-800/12 dark:border-white/15 rounded-lg pl-8 pr-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                      className="w-full border border-regua rounded-lg pl-8 pr-3 py-2 text-sm bg-sf text-tx"
                     />
                   </div>
-                  {searching && <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1.5">Buscando...</p>}
+                  {searching && <p className="text-xs text-tx-3 mt-1.5">Buscando...</p>}
                   {!searching && linkResults.length > 0 && (
-                    <div className="mt-1.5 border border-navy-800/10 dark:border-white/10 rounded-lg divide-y divide-navy-800/5 dark:divide-white/10 max-h-48 overflow-y-auto scrollbar-thin">
+                    <div className="mt-1.5 border border-regua rounded-lg divide-y divide-regua max-h-48 overflow-y-auto scrollbar-thin">
                       {linkResults.map((hit) => (
                         <button
                           key={hit.id}
                           type="button"
                           onClick={() => setState((s) => ({ ...s, selectedLink: hit, linkQuery: "" }))}
-                          className="w-full text-left px-3 py-2 text-sm text-navy-900 dark:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/5"
+                          className="w-full text-left px-3 py-2 text-sm text-tx hover:bg-sf-apoio"
                         >
                           {hit.label}
                         </button>
@@ -370,7 +370,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
                     </div>
                   )}
                   {!searching && state.linkQuery.trim().length >= 2 && linkResults.length === 0 && (
-                    <p className="text-xs text-navy-800/40 dark:text-cream-50/40 mt-1.5">Nenhum resultado encontrado.</p>
+                    <p className="text-xs text-tx-3 mt-1.5">Nenhum resultado encontrado.</p>
                   )}
                 </>
               )}
@@ -382,43 +382,43 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
       {state.step === 4 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 text-base">Dados do compromisso</h3>
-            <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">Por último, os detalhes do que está sendo delegado.</p>
+            <h3 className="font-serif font-bold text-tx text-base">Dados do compromisso</h3>
+            <p className="text-xs text-tx-2 mt-0.5">Por último, os detalhes do que está sendo delegado.</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título</label>
+            <label className="text-xs font-medium text-tx-2">Título</label>
             <input
               value={state.title}
               onChange={(e) => setState((s) => ({ ...s, title: e.target.value }))}
               placeholder="Ex: Elaborar contestação"
-              className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
             />
           </div>
 
-          <div className="rounded-lg border border-navy-800/10 dark:border-white/10 bg-cream-50 dark:bg-white/5 px-3 py-2">
-            <p className="text-[11px] font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">Data da solicitação</p>
-            <p className="text-sm text-navy-900 dark:text-cream-50 mt-0.5">
+          <div className="rounded-lg border border-regua bg-sf-apoio px-3 py-2">
+            <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Data da solicitação</p>
+            <p className="text-sm text-tx mt-0.5">
               {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })} (hoje)
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prazo fatal</label>
+              <label className="text-xs font-medium text-tx-2">Prazo fatal</label>
               <input
                 type="date"
                 value={state.dueDate}
                 onChange={(e) => setState((s) => ({ ...s, dueDate: e.target.value }))}
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Hora do prazo fatal (opcional)</label>
+              <label className="text-xs font-medium text-tx-2">Hora do prazo fatal (opcional)</label>
               <input
                 type="time"
                 value={state.dueTime}
                 onChange={(e) => setState((s) => ({ ...s, dueTime: e.target.value }))}
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
           </div>
@@ -439,11 +439,11 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
           )}
 
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Prioridade</label>
+            <label className="text-xs font-medium text-tx-2">Prioridade</label>
             <select
               value={state.priority}
               onChange={(e) => setState((s) => ({ ...s, priority: e.target.value }))}
-              className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+              className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
             >
               <option value="BAIXA">Baixa</option>
               <option value="MEDIA">Média</option>
@@ -452,12 +452,12 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
             </select>
           </div>
           {(state.type === "EVENTO" || state.type === "AUDIENCIA") && (
-            <div className="rounded-lg border border-gold-500/25 bg-gold-500/5 dark:bg-gold-400/10 p-3 space-y-3">
-              <p className="text-xs font-semibold text-gold-800 dark:text-gold-400 uppercase tracking-wide">
+            <div className="rounded-lg border border-marca/25 bg-marca-bg p-3 space-y-3">
+              <p className="text-xs font-semibold text-marca-tx uppercase tracking-wide">
                 {state.type === "AUDIENCIA" ? "Local da audiência (opcional)" : "Reunião (opcional)"}
               </p>
               <div className="flex gap-4">
-                <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                <label className="flex items-center gap-1.5 text-sm text-tx">
                   <input
                     type="radio"
                     checked={state.meetingType === "PRESENCIAL"}
@@ -465,7 +465,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
                   />
                   Presencial
                 </label>
-                <label className="flex items-center gap-1.5 text-sm text-navy-800 dark:text-cream-50">
+                <label className="flex items-center gap-1.5 text-sm text-tx">
                   <input
                     type="radio"
                     checked={state.meetingType === "ONLINE"}
@@ -476,17 +476,17 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
               </div>
               {state.meetingType === "PRESENCIAL" ? (
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Endereço (opcional)</label>
+                  <label className="text-xs font-medium text-tx-2">Endereço (opcional)</label>
                   <input
                     value={state.location}
                     onChange={(e) => setState((s) => ({ ...s, location: e.target.value }))}
                     placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO"
-                    className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                    className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
                   />
                 </div>
               ) : (
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+                  <label className="text-xs font-medium text-tx-2">
                     {state.type === "AUDIENCIA" ? "Link da audiência (opcional)" : "Link da reunião (opcional)"}
                   </label>
                   <input
@@ -494,7 +494,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
                     value={state.meetingUrl}
                     onChange={(e) => setState((s) => ({ ...s, meetingUrl: e.target.value }))}
                     placeholder="https://meet.google.com/..."
-                    className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50"
+                    className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
                   />
                 </div>
               )}
@@ -502,38 +502,38 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
           )}
 
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (opcional)</label>
+            <label className="text-xs font-medium text-tx-2">Descrição (opcional)</label>
             <textarea
               value={state.description}
               onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
               rows={3}
-              className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y max-h-[40vh]"
+              className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y max-h-[40vh]"
             />
           </div>
 
           {state.type === "AUDIENCIA" && (
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Estratégia (opcional)</label>
+              <label className="text-xs font-medium text-tx-2">Estratégia (opcional)</label>
               <textarea
                 value={state.strategy}
                 onChange={(e) => setState((s) => ({ ...s, strategy: e.target.value }))}
                 rows={3}
                 placeholder="Teses, pontos de atenção, preparo para a audiência..."
-                className="w-full mt-1 border border-navy-800/12 dark:border-white/15 rounded-lg px-3 py-2 text-sm bg-white dark:bg-navy-800 text-navy-900 dark:text-cream-50 resize-y max-h-[40vh]"
+                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y max-h-[40vh]"
               />
             </div>
           )}
         </div>
       )}
 
-      {error && <p className="text-xs font-medium text-bordo-600 dark:text-bordo-400 mt-3">{error}</p>}
+      {error && <p className="text-xs font-medium text-urgente mt-3">{error}</p>}
 
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-navy-800/8 dark:border-white/10">
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-regua">
         <button
           type="button"
           onClick={() => goTo(state.step - 1)}
           disabled={state.step === 1}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-navy-800/60 dark:text-cream-50/60 hover:text-navy-900 dark:hover:text-cream-50 disabled:opacity-0 px-3 py-2"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-tx-2 hover:text-tx disabled:opacity-0 px-3 py-2"
         >
           <ChevronLeft size={15} /> Voltar
         </button>
@@ -542,7 +542,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
             type="button"
             onClick={() => goTo(state.step + 1)}
             disabled={!canAdvanceFromStep(state.step)}
-            className="inline-flex items-center gap-1 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Avançar <ChevronRight size={15} />
           </button>
@@ -551,7 +551,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold rounded-lg px-5 py-2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-5 py-2 disabled:opacity-50"
           >
             <UserPlus size={15} /> {loading ? "Delegando..." : "Delegar"}
           </button>

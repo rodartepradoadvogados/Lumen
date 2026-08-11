@@ -24,7 +24,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 dark:bg-bordo-700 dark:hover:bg-bordo-600 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
       >
         <Mail size={15} /> Enviar E-mail
       </button>
@@ -51,16 +51,16 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
           >
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3 flex flex-col">
               {error && (
-                <p className="text-xs text-bordo-700 dark:text-bordo-400 bg-bordo-100 dark:bg-bordo-400/15 rounded-lg px-3 py-2">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Destinatário</label>
+                    <label className="text-xs font-medium text-tx-2">Destinatário</label>
                     <button
                       type="button"
                       onClick={() => setUseOther((v) => !v)}
-                      className="text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+                      className="text-[11px] font-semibold text-marca-tx hover:underline"
                     >
                       {useOther ? "Escolher membro da equipe" : "Digitar outro e-mail"}
                     </button>
@@ -71,13 +71,13 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
                       type="email"
                       required
                       placeholder="nome@exemplo.com"
-                      className="w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm"
+                      className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
                     />
                   ) : (
                     <select
                       name="toUser"
                       required
-                      className="w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm"
+                      className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
                     >
                       <option value="">Selecionar...</option>
                       {users.map((u) => (
@@ -89,28 +89,28 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Assunto</label>
+                  <label className="text-xs font-medium text-tx-2">Assunto</label>
                   <input
                     name="subject"
                     required
-                    className="w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm"
+                    className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
               </div>
               <div className="flex-1 flex flex-col min-h-[12rem]">
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Mensagem</label>
+                <label className="text-xs font-medium text-tx-2">Mensagem</label>
                 <textarea
                   name="body"
                   required
-                  className="flex-1 w-full mt-1 border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-3 py-2 text-sm resize-none"
+                  className="flex-1 w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm resize-none"
                 />
               </div>
             </div>
-            <div className="shrink-0 border-t border-navy-800/8 dark:border-white/10 px-5 py-3 flex justify-end bg-cream-50/60 dark:bg-white/5">
+            <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-bordo-700 hover:bg-bordo-600 text-white font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
               >
                 {loading ? "Enviando..." : "Enviar agora"}
               </button>

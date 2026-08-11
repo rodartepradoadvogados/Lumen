@@ -57,19 +57,19 @@ export default function ModalShell({
   useEscapeToClose(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/40 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
       <div
-        className={`bg-white dark:bg-navy-900 rounded-xl shadow-pop flex flex-col overflow-hidden motion-safe:animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
+        className={`bg-sf rounded-xl shadow-pop flex flex-col overflow-hidden motion-safe:animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
       >
-        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b border-navy-800/8 dark:border-white/10">
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b border-regua">
           <div className="min-w-0">
-            <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50 truncate">{title}</h3>
-            {subtitle && <p className="text-xs text-navy-800/50 dark:text-cream-50/50 mt-0.5">{subtitle}</p>}
+            <h3 className="font-serif font-bold text-tx truncate">{title}</h3>
+            {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50"
+            className="shrink-0 text-tx-3 hover:text-tx"
           >
             <X size={18} />
           </button>

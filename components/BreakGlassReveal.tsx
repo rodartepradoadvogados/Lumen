@@ -70,7 +70,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
       <button
         type="button"
         onClick={openAndTry}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-gold-700 dark:text-gold-400 hover:underline"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-marca-tx hover:underline"
         title={`Este ${label} está mascarado pelo Vidro Fosco — pedir para ver os dados reais`}
       >
         <Lock size={11} /> Revelar dados reais
@@ -79,31 +79,31 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-gold-600/30 dark:border-gold-400/30 bg-gold-500/5 dark:bg-gold-400/5 p-3 text-xs space-y-2 max-w-md">
+    <div className="mt-2 rounded-lg border border-marca/30 bg-marca-bg p-3 text-xs space-y-2 max-w-md">
       <div className="flex items-center justify-between">
-        <p className="font-semibold text-navy-900 dark:text-cream-50 flex items-center gap-1.5">
+        <p className="font-semibold text-tx flex items-center gap-1.5">
           <Eye size={13} /> Quebra-vidro — {label}
         </p>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50"
+          className="text-tx-3 hover:text-tx"
         >
           <X size={14} />
         </button>
       </div>
 
-      {pending && <p className="text-navy-800/50 dark:text-cream-50/50">Verificando…</p>}
+      {pending && <p className="text-tx-2">Verificando…</p>}
 
       {!pending && data && (
         <div className="space-y-1">
           {Object.entries(data).map(([field, value]) => (
             <p key={field}>
-              <span className="text-navy-800/50 dark:text-cream-50/50">{FIELD_LABELS[field] ?? field}: </span>
-              <span className="text-navy-900 dark:text-cream-50 font-medium">{formatRevealedValue(kinds[field], value)}</span>
+              <span className="text-tx-2">{FIELD_LABELS[field] ?? field}: </span>
+              <span className="text-tx font-medium">{formatRevealedValue(kinds[field], value)}</span>
             </p>
           ))}
-          <p className="text-[10px] text-navy-800/40 dark:text-cream-50/40 pt-1">
+          <p className="text-[10px] text-tx-3 pt-1">
             Esta leitura foi registrada no histórico de acessos do escritório.
           </p>
         </div>
@@ -111,15 +111,15 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
 
       {!pending && !data && (
         <div className="space-y-2">
-          {error && <p className="text-bordo-700 dark:text-bordo-400">{error}</p>}
+          {error && <p className="text-urgente">{error}</p>}
           {requested ? (
             <>
-              <p className="text-gold-700 dark:text-gold-400">Pedido enviado — aguardando aprovação de um sócio do escritório.</p>
+              <p className="text-marca-tx">Pedido enviado — aguardando aprovação de um sócio do escritório.</p>
               <button
                 type="button"
                 disabled={pending}
                 onClick={attemptReveal}
-                className="inline-flex items-center gap-1 bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white font-semibold rounded-lg px-2.5 py-1.5"
+                className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold rounded-lg px-2.5 py-1.5"
               >
                 Já aprovaram? Tentar revelar
               </button>
@@ -127,11 +127,11 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
           ) : needsRequest ? (
             <div className="space-y-2">
               <div>
-                <label className="block text-navy-800 dark:text-cream-50 font-semibold mb-1">Motivo</label>
+                <label className="block text-tx font-semibold mb-1">Motivo</label>
                 <select
                   value={reasonCode}
                   onChange={(e) => setReasonCode(e.target.value as AccessReasonCode)}
-                  className="w-full border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-md px-2 py-1.5"
+                  className="w-full border border-regua bg-sf text-tx rounded-md px-2 py-1.5"
                 >
                   {Object.entries(ACCESS_REASONS).map(([code, lbl]) => (
                     <option key={code} value={code}>
@@ -141,19 +141,19 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
                 </select>
               </div>
               <div>
-                <label className="block text-navy-800 dark:text-cream-50 font-semibold mb-1">Observação (opcional)</label>
+                <label className="block text-tx font-semibold mb-1">Observação (opcional)</label>
                 <textarea
                   value={reasonNote}
                   onChange={(e) => setReasonNote(e.target.value)}
                   rows={2}
-                  className="w-full border border-navy-800/15 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-md px-2 py-1.5"
+                  className="w-full border border-regua bg-sf text-tx rounded-md px-2 py-1.5"
                 />
               </div>
               <button
                 type="button"
                 disabled={pending}
                 onClick={sendRequest}
-                className="inline-flex items-center gap-1 bg-bordo-700 hover:bg-bordo-600 disabled:opacity-50 text-white font-semibold rounded-lg px-2.5 py-1.5"
+                className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold rounded-lg px-2.5 py-1.5"
               >
                 Solicitar acesso a este registro
               </button>

@@ -37,13 +37,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { status: true, name: true } });
   if (office && office.status !== "ATIVA" && !user.isPlatformOwner) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream-50 dark:bg-navy-950 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-sf-fundo p-6">
         <div className="max-w-md text-center space-y-4">
-          <div className="mx-auto h-12 w-12 rounded-full bg-bordo-700/10 dark:bg-bordo-400/15 flex items-center justify-center">
-            <Lock size={22} className="text-bordo-700 dark:text-bordo-400" />
+          <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
+            <Lock size={22} className="text-atencao" />
           </div>
-          <h1 className="font-serif text-xl font-bold text-navy-900 dark:text-cream-50">Acesso temporariamente suspenso</h1>
-          <p className="text-sm text-navy-800/60 dark:text-cream-50/60">
+          <h1 className="font-serif text-xl font-bold text-tx">Acesso temporariamente suspenso</h1>
+          <p className="text-sm text-tx-2">
             O acesso do escritório <strong>{office.name}</strong> está suspenso. Entre em contato com o Rodarte Prado Advogados
             para regularizar a situação e liberar o acesso novamente.
           </p>

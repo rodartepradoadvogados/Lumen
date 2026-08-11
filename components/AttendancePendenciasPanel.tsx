@@ -86,7 +86,7 @@ export default function AttendancePendenciasPanel({
 
   return (
     <div className="space-y-3">
-      {abertas.length === 0 && !adding && <p className="text-sm text-navy-800/45 dark:text-cream-50/45">Nenhuma pendência em aberto.</p>}
+      {abertas.length === 0 && !adding && <p className="text-sm text-tx-2">Nenhuma pendência em aberto.</p>}
 
       {abertas.length > 0 && (
         <div className="space-y-2">
@@ -97,19 +97,19 @@ export default function AttendancePendenciasPanel({
                 key={p.id}
                 className={`flex items-start justify-between gap-3 rounded-lg border px-3 py-2 ${
                   overdue
-                    ? "border-bordo-300 dark:border-bordo-400/40 bg-bordo-50 dark:bg-bordo-900/20"
-                    : "border-navy-800/8 dark:border-white/10 bg-cream-50 dark:bg-navy-800"
+                    ? "border-urgente/40 bg-urgente-bg"
+                    : "border-regua bg-sf-apoio"
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy-900 dark:text-cream-50">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 mr-1.5">
+                  <p className="text-sm font-medium text-tx">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-tx-2 mr-1.5">
                       {PENDENCIA_DIRECTION_LABELS[p.direction as "SOLICITAR" | "ENVIAR"] || p.direction}
                     </span>
                     {pendenciaKindLabel(p.direction, p.kind)}
                   </p>
-                  {p.description && <p className="text-xs text-navy-800/50 dark:text-cream-50/50">{p.description}</p>}
-                  <p className="text-[11px] text-navy-800/40 dark:text-cream-50/40 mt-0.5">
+                  {p.description && <p className="text-xs text-tx-2">{p.description}</p>}
+                  <p className="text-[11px] text-tx-3 mt-0.5">
                     {p.responsible?.name ? `${p.responsible.name} · ` : ""}
                     {p.dueDate ? (overdue ? `Vencida em ${formatCalendarDate(p.dueDate)}` : `Prazo: ${formatCalendarDate(p.dueDate)}`) : "Sem prazo"}
                   </p>
@@ -119,7 +119,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleComplete(p.id)}
                     disabled={pending}
                     title="Concluir"
-                    className="p-1.5 rounded-md text-navy-800/40 dark:text-cream-50/40 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10"
+                    className="p-1.5 rounded-md text-tx-3 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10"
                   >
                     <Check size={14} />
                   </button>
@@ -127,7 +127,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleDelete(p.id)}
                     disabled={pending}
                     title="Excluir"
-                    className="p-1.5 rounded-md text-navy-800/40 dark:text-cream-50/40 hover:text-bordo-600 dark:hover:text-bordo-400 hover:bg-bordo-500/10"
+                    className="p-1.5 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10"
                   >
                     <X size={14} />
                   </button>
@@ -140,16 +140,16 @@ export default function AttendancePendenciasPanel({
 
       {concluidas.length > 0 && (
         <details className="text-xs">
-          <summary className="cursor-pointer font-semibold text-navy-800/45 dark:text-cream-50/45">
+          <summary className="cursor-pointer font-semibold text-tx-2">
             {concluidas.length} concluída(s)
           </summary>
           <div className="mt-2 space-y-1.5">
             {concluidas.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 text-navy-800/50 dark:text-cream-50/50">
+              <div key={p.id} className="flex items-center justify-between gap-2 text-tx-2">
                 <span className="line-through">
                   {PENDENCIA_DIRECTION_LABELS[p.direction as "SOLICITAR" | "ENVIAR"] || p.direction} · {pendenciaKindLabel(p.direction, p.kind)}
                 </span>
-                <button onClick={() => handleReopen(p.id)} disabled={pending} className="flex items-center gap-1 text-gold-700 dark:text-gold-400 hover:underline shrink-0">
+                <button onClick={() => handleReopen(p.id)} disabled={pending} className="flex items-center gap-1 text-marca-tx hover:underline shrink-0">
                   <Undo2 size={11} /> Reabrir
                 </button>
               </div>
@@ -159,13 +159,13 @@ export default function AttendancePendenciasPanel({
       )}
 
       {adding ? (
-        <div className="space-y-3 border-t border-navy-800/8 dark:border-white/10 pt-3">
+        <div className="space-y-3 border-t border-regua pt-3">
           <PendenciasEditor rows={newRows} onChange={setNewRows} users={users} compact />
           <div className="flex gap-2">
             <button
               onClick={handleSaveNew}
               disabled={saving}
-              className="bg-bordo-700 hover:bg-bordo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
               {saving ? "Salvando..." : "Salvar pendência(s)"}
             </button>
@@ -174,7 +174,7 @@ export default function AttendancePendenciasPanel({
                 setAdding(false);
                 setNewRows([]);
               }}
-              className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+              className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
             >
               Cancelar
             </button>
@@ -183,7 +183,7 @@ export default function AttendancePendenciasPanel({
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2.5 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+          className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
         >
           <Plus size={13} /> Adicionar pendência
         </button>

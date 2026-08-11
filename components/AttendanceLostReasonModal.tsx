@@ -28,25 +28,25 @@ export default function AttendanceLostReasonModal({
   useEscapeToClose(true, onCancel);
 
   return (
-    <div className="fixed inset-0 z-[70] bg-navy-950/40 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-navy-900 rounded-xl shadow-pop w-full max-w-sm p-5 space-y-4">
+    <div className="fixed inset-0 z-[70] bg-grafite-900/40 flex items-center justify-center p-4">
+      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-serif font-bold text-navy-900 dark:text-cream-50">Motivo da perda</h3>
-          <button onClick={onCancel} className="text-navy-800/40 dark:text-cream-50/40 hover:text-navy-900 dark:hover:text-cream-50">
+          <h3 className="font-serif font-bold text-tx">Motivo da perda</h3>
+          <button onClick={onCancel} className="text-tx-3 hover:text-tx">
             <X size={18} />
           </button>
         </div>
-        <p className="text-xs text-navy-800/50 dark:text-cream-50/50">
+        <p className="text-xs text-tx-2">
           Obrigatório para mover este atendimento para &quot;Perdido&quot; — é o que alimenta o relatório de captação.
         </p>
         <div className="space-y-1.5">
           {CLOSED_REASONS.map((r) => (
-            <label key={r} className="flex items-center gap-2 text-sm text-navy-800/80 dark:text-cream-50/80 cursor-pointer">
+            <label key={r} className="flex items-center gap-2 text-sm text-tx-2 cursor-pointer">
               <input type="radio" name="lostReason" checked={selected === r} onChange={() => setSelected(r)} />
               {r}
             </label>
           ))}
-          <label className="flex items-center gap-2 text-sm text-navy-800/80 dark:text-cream-50/80 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-tx-2 cursor-pointer">
             <input type="radio" name="lostReason" checked={isOther} onChange={() => setSelected("Outro")} />
             Outro
           </label>
@@ -56,7 +56,7 @@ export default function AttendanceLostReasonModal({
               onChange={(e) => setOtherText(e.target.value)}
               placeholder="Descreva o motivo"
               autoFocus
-              className="w-full mt-1 text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+              className="w-full mt-1 text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
             />
           )}
         </div>
@@ -64,13 +64,13 @@ export default function AttendanceLostReasonModal({
           <button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="flex-1 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
+            className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
           >
             Confirmar
           </button>
           <button
             onClick={onCancel}
-            className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+            className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
           >
             Cancelar
           </button>

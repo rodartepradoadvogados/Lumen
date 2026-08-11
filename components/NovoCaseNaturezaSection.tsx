@@ -35,7 +35,7 @@ export default function NovoCaseNaturezaSection({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">
+          <label className="text-xs font-medium text-tx-2">
             {isAdministrativo ? "Número do processo administrativo" : "Número do Processo"}
           </label>
           <input
@@ -46,7 +46,7 @@ export default function NovoCaseNaturezaSection({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Vara/Comarca</label>
+          <label className="text-xs font-medium text-tx-2">Vara/Comarca</label>
           <input name="court" className={inputClassName} />
         </div>
       </div>

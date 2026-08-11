@@ -90,9 +90,9 @@ export default function ProcessosFiltroForm({
         {materia && <input type="hidden" name="materia" value={materia} />}
 
         <div className="flex-1 min-w-[200px] relative">
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Buscar</label>
+          <label className="text-xs font-medium text-tx-2 block mb-1">Buscar</label>
           <div className="relative">
-            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
             <input
               type="text"
               name="q"
@@ -109,19 +109,19 @@ export default function ProcessosFiltroForm({
           </div>
 
           {showPreview && hasCriteria && (
-            <div className="absolute left-0 top-full mt-1 w-full min-w-[320px] z-30 bg-white dark:bg-navy-900 rounded-xl border border-navy-800/10 dark:border-white/10 shadow-pop overflow-hidden max-h-[60vh] overflow-y-auto scrollbar-thin">
-              {loading && <p className="px-4 py-3 text-sm text-navy-800/50 dark:text-cream-50/50">Buscando...</p>}
-              {!loading && preview.length === 0 && <p className="px-4 py-3 text-sm text-navy-800/50 dark:text-cream-50/50">Nada encontrado.</p>}
+            <div className="absolute left-0 top-full mt-1 w-full min-w-[320px] z-30 bg-sf rounded-xl border border-regua shadow-pop overflow-hidden max-h-[60vh] overflow-y-auto scrollbar-thin">
+              {loading && <p className="px-4 py-3 text-sm text-tx-2">Buscando...</p>}
+              {!loading && preview.length === 0 && <p className="px-4 py-3 text-sm text-tx-2">Nada encontrado.</p>}
               {!loading &&
                 preview.map((r) => (
                   <Link
                     key={r.id}
                     href={r.href}
                     onClick={() => setShowPreview(false)}
-                    className="flex flex-col items-start w-full px-4 py-2.5 text-left hover:bg-cream-50 dark:hover:bg-white/5 transition-colors border-b border-navy-800/5 dark:border-white/10 last:border-0"
+                    className="flex flex-col items-start w-full px-4 py-2.5 text-left hover:bg-sf-apoio transition-colors border-b border-regua last:border-0"
                   >
-                    <span className="text-sm font-medium text-navy-900 dark:text-cream-50 truncate w-full">{r.titulo}</span>
-                    {r.subtitulo && <span className="text-xs text-navy-800/50 dark:text-cream-50/50 truncate w-full">{r.subtitulo}</span>}
+                    <span className="text-sm font-medium text-tx truncate w-full">{r.titulo}</span>
+                    {r.subtitulo && <span className="text-xs text-tx-2 truncate w-full">{r.subtitulo}</span>}
                   </Link>
                 ))}
             </div>
@@ -129,7 +129,7 @@ export default function ProcessosFiltroForm({
         </div>
 
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Área</label>
+          <label className="text-xs font-medium text-tx-2 block mb-1">Área</label>
           <select name="area" value={area} onChange={(e) => setArea(e.target.value)} className="pr-input">
             <option value="">Todas</option>
             {areas.map((a) => (
@@ -140,7 +140,7 @@ export default function ProcessosFiltroForm({
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Responsável</label>
+          <label className="text-xs font-medium text-tx-2 block mb-1">Responsável</label>
           <select name="responsibleId" value={responsibleId} onChange={(e) => setResponsibleId(e.target.value)} className="pr-input">
             <option value="">Todos</option>
             {users.map((u) => (
@@ -151,7 +151,7 @@ export default function ProcessosFiltroForm({
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60 block mb-1">Ordenar por</label>
+          <label className="text-xs font-medium text-tx-2 block mb-1">Ordenar por</label>
           <select name="sort" value={sort} onChange={(e) => setSort(e.target.value)} className="pr-input">
             {Object.entries(sortLabels).map(([k, label]) => (
               <option key={k} value={k}>
@@ -160,13 +160,13 @@ export default function ProcessosFiltroForm({
             ))}
           </select>
         </div>
-        <button type="submit" className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
           Aplicar
         </button>
         {clearHref && (
           <Link
             href={clearHref}
-            className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2"
+            className="text-xs font-semibold text-tx-2 hover:text-tx px-2"
           >
             Limpar filtros
           </Link>
