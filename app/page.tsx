@@ -16,9 +16,11 @@ import styles from "./homepage.module.css";
 // lib/actions/auth.ts e middleware.ts). Busca matérias reais do blog jurídico a cada
 // request, no mesmo padrão de app/blog/page.tsx.
 //
-// Tipografia: Cormorant Garamond (--font-serif) e Inter (--font-sans), carregadas uma
-// única vez em app/layout.tsx e compartilhadas por toda a marca Lúmen — esta página não
-// carrega fonte própria (antes usava Newsreader/Public Sans à parte).
+// Tipografia: só Archivo (--font-sans), igual ao resto do produto (manual v2, ver
+// DESIGN-SYSTEM.md §14) — carregada uma única vez em app/layout.tsx e compartilhada por toda
+// a marca Lúmen. Esta página não carrega fonte própria; a serifa saiu inteira daqui (ela só
+// sobrevive como exceção deliberada dentro do blog público, ver app/blog/layout.tsx). Cor: ver
+// o comentário no topo de ./homepage.module.css.
 export const dynamic = "force-dynamic";
 
 export const metadata = {
