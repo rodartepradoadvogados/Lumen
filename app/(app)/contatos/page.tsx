@@ -72,7 +72,9 @@ export default async function ContatosPage() {
               </div>
               <h3 className="font-bold text-tx mt-3">{m.label}</h3>
               <p className="text-xs text-tx-3 mt-1 mb-2">{m.desc}</p>
-              <p className="text-2xl font-bold text-acao tabular-nums">{m.count}</p>
+              {/* Único destaque do card, agora que o ícone perdeu a cor decorativa — em
+                  --marca-tx (DESIGN-SYSTEM.md §2, rótulo curto). */}
+              <p className="text-2xl font-bold text-marca-tx tabular-nums">{m.count}</p>
             </Card>
           </Link>
         ))}

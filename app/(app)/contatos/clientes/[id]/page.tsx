@@ -9,11 +9,14 @@ import { ArrowLeft, Scale, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const caseStatusColors: Record<string, "green" | "amber" | "slate" | "red"> = {
+// Mesmo mapa da lista de Processos e Casos: arquivar é encerramento deliberado, não dado
+// vencido — por isso ARQUIVADO é neutro, igual a ENCERRADO, e não urgente. As duas telas
+// mostram o mesmo dado e precisam mostrá-lo igual.
+const caseStatusColors: Record<string, "green" | "amber" | "slate"> = {
   ATIVO: "green",
   SUSPENSO: "amber",
   ENCERRADO: "slate",
-  ARQUIVADO: "red",
+  ARQUIVADO: "slate",
 };
 
 const recStatusColor: Record<string, "green" | "red" | "amber" | "slate"> = {
@@ -122,7 +125,8 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                     <p className="text-sm font-medium text-tx truncate">{c.title}</p>
                     <Badge color={caseStatusColors[c.status]}>{c.status}</Badge>
                     {c.materias.map((m) => (
-                      <Badge key={m} color="gold">
+                      // Matéria é classificação, não destaque: ouro é marca e seção ativa.
+                      <Badge key={m} color="slate">
                         {m}
                       </Badge>
                     ))}

@@ -23,11 +23,13 @@ import { Scale } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+// ARQUIVADO usa o mesmo chip neutro de ENCERRADO — --urgente é reservado para dado vencido/KPI
+// negativo (DESIGN-SYSTEM.md §2), e arquivar é encerramento deliberado, não isso.
 const statusColors: Record<string, "green" | "amber" | "slate" | "red"> = {
   ATIVO: "green",
   SUSPENSO: "amber",
   ENCERRADO: "slate",
-  ARQUIVADO: "red",
+  ARQUIVADO: "slate",
 };
 
 const SORTS: Record<string, Prisma.CaseOrderByWithRelationInput> = {
@@ -44,14 +46,15 @@ const sortLabels: Record<string, string> = {
   recente: "Mais recente",
 };
 
-// Cor da etiqueta de natureza na listagem e no cabeçalho do processo — dourado (cor de destaque
-// da marca) para Judicial, bordô (cor secundária) para Administrativo, navy para "Caso" (nem
-// judicial nem administrativo, ver lib/caseNatureza.ts). Continua usando as chaves de cor do
-// Badge (components/ui.tsx) — só cor de detalhe direta no JSX é que migra para os tokens novos.
-const naturezaBadgeColor: Record<CaseNatureza, "gold" | "bordo" | "navy"> = {
+// Cor da etiqueta de natureza na listagem e no cabeçalho do processo — --vinho é reservado para
+// marca e ação destrutiva (DESIGN-SYSTEM.md §2), então uma etiqueta de natureza não usa bordô.
+// Judicial (a mais frequente na tela) fica com o único destaque em ouro autorizado fora do chip
+// de Audiência; Administrativo vira chip neutro; Caso usa --acao. Continua usando as chaves de
+// cor do Badge (components/ui.tsx) — só cor de detalhe direta no JSX é que migra para os tokens novos.
+const naturezaBadgeColor: Record<CaseNatureza, "gold" | "slate" | "blue"> = {
   JUDICIAL: "gold",
-  ADMINISTRATIVO: "bordo",
-  CASO: "navy",
+  ADMINISTRATIVO: "slate",
+  CASO: "blue",
 };
 
 export default async function ProcessosPage({
@@ -234,8 +237,10 @@ export default async function ProcessosPage({
                       <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
                       <p className="font-medium text-tx truncate">{c.title}</p>
                       <Badge color={statusColors[c.status]}>{c.status}</Badge>
+                      {/* Etiqueta de matéria não repete o ouro da natureza — vira chip neutro, para a
+                          natureza continuar sendo o único elemento em destaque de cada linha. */}
                       {c.materias.map((m) => (
-                        <Badge key={m} color="gold">
+                        <Badge key={m} color="slate">
                           {m}
                         </Badge>
                       ))}

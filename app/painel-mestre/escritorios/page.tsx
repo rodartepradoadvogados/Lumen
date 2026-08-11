@@ -24,9 +24,11 @@ export default async function EscritoriosPage() {
             Escritórios-clientes da plataforma — acesso restrito a Jairo e Rodrigo
           </p>
         </div>
+        {/* Secundário — "Novo" está na lista explícita de botões secundários do DESIGN-SYSTEM.md
+            §4; cadastrar um escritório não é a ação primária desta tela. */}
         <Link
           href="/painel-mestre/novo"
-          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
+          className="inline-flex items-center gap-1.5 bg-grafite-800 hover:bg-grafite-700 border border-white/10 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
         >
           <Plus size={16} /> Novo escritório
         </Link>

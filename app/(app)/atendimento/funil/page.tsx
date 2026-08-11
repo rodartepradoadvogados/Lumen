@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
 const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
 
 // Cores lidas das variáveis CSS (app/globals.css) — nenhum hex cravado aqui (DESIGN-SYSTEM.md §16).
+// Remapeado por significado, não por posição — mesmo mapa da seção "Funil Comercial" de
+// Relatórios: Novo = neutro (ainda sem opinião), Qualificação = --acao (em andamento), Proposta =
+// --aviso (aguardando decisão do cliente), Fechado = --concluido, Perdido = --urgente.
 const stageDot: Record<string, string> = {
-  NOVO: "var(--aviso)",
+  NOVO: "var(--tx-3)",
   QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--marca)",
+  PROPOSTA: "var(--aviso)",
   FECHADO: "var(--concluido)",
   PERDIDO: "var(--urgente)",
 };
@@ -118,7 +121,14 @@ export default async function FunilPage() {
                     const followupLate =
                       a.nextContactAt && a.nextContactAt < now && !["FECHADO", "PERDIDO"].includes(a.stage);
                     return (
-                      <div key={a.id} className="bg-sf rounded-lg border border-regua shadow-card">
+                      // Filete esquerdo de 3px na cor do estágio — extensão do mesmo princípio
+                      // visual do Kanban de tarefas (DESIGN-SYSTEM.md §12/§7): o cartão sinaliza
+                      // sua categoria por uma faixa lateral, aqui aplicada ao estágio do funil.
+                      <div
+                        key={a.id}
+                        className="bg-sf rounded-lg border border-regua shadow-card border-l-[3px]"
+                        style={{ borderLeftColor: stageDot[stage] }}
+                      >
                         <Link href={`/atendimento/${a.id}`} className="block p-3 hover:bg-sf-apoio rounded-t-lg transition-colors">
                           <p className="text-sm font-medium text-tx leading-snug">{a.clientName}</p>
                           <p className="text-xs text-tx-3 mt-0.5 line-clamp-2">{a.subject}</p>
@@ -126,7 +136,7 @@ export default async function FunilPage() {
                             {a.estimatedValue != null && a.estimatedValue > 0 && (
                               <Badge color="green">{formatCurrency(a.estimatedValue)}</Badge>
                             )}
-                            {a.leadSource && <Badge color="navy">{leadSourceLabels[a.leadSource] || a.leadSource}</Badge>}
+                            {a.leadSource && <Badge color="blue">{leadSourceLabels[a.leadSource] || a.leadSource}</Badge>}
                           </div>
                           <div className="flex items-center justify-between mt-2 text-[11px] text-tx-3">
                             <span>{days} dia(s) no estágio</span>
