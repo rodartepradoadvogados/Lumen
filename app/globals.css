@@ -158,6 +158,18 @@ body {
   background: var(--background);
 }
 
+/* Nenhum dos ~26 <input type="checkbox"/"radio"> do site definia accent-color — sem essa
+   propriedade, o navegador desenha a caixa marcada com o azul de sistema (no Chrome/Edge no
+   Windows, um azul bem parecido com o navy antigo da marca), que ficava destoando mesmo depois
+   da paleta inteira já ter migrado pra grafite/ouro/vinho. Uma regra global em vez de editar
+   cada input: troca pela cor de ação do produto, nos dois temas, sem precisar caçar arquivo
+   por arquivo — className `text-emerald-*`/`text-acao` num checkbox nativo não fazia nada (o
+   projeto não usa o plugin @tailwindcss/forms; é accent-color que manda). */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--acao);
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

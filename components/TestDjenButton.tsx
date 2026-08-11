@@ -37,7 +37,10 @@ export default function TestDjenButton() {
               </p>
               {r.error && <p className="text-xs text-vinho mt-1">{r.error}</p>}
               {r.sample !== undefined && (
-                <pre className="text-[11px] bg-sf rounded-lg p-2 mt-2 overflow-x-auto max-h-64 whitespace-pre-wrap break-words">
+                // Cor explícita: um <pre> sem text-* herda do ancestral mais próximo que definir
+                // color — qualquer card acima na árvore que não tenha migrado pra token deixa este
+                // bloco ilegível no Noite sem nenhum aviso. Não depender de herança.
+                <pre className="text-[11px] text-tx bg-sf rounded-lg p-2 mt-2 overflow-x-auto max-h-64 whitespace-pre-wrap break-words">
                   {JSON.stringify(r.sample, null, 2)}
                 </pre>
               )}

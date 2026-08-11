@@ -218,10 +218,10 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                 data-tip="Copiar"
                 className="p-2 rounded-lg text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0"
               >
-                {linkCopied ? <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={14} />}
+                {linkCopied ? <Check size={14} className="text-concluido" /> : <Copy size={14} />}
               </button>
             </div>
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+            <p className="text-[11px] text-aviso">
               Válido até {expiresLabel} (expira em 1 hora) e só pode ser usado uma vez.
             </p>
             <div className="flex gap-2">
@@ -331,8 +331,8 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
             className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
               user.financeAccess
-                ? "text-emerald-600 hover:text-atencao hover:bg-atencao/10"
-                : "text-tx-3 hover:text-emerald-600 hover:bg-emerald-50"
+                ? "text-concluido hover:text-atencao hover:bg-atencao/10"
+                : "text-tx-3 hover:text-concluido hover:bg-concluido-bg"
             }`}
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
@@ -344,7 +344,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={user.active ? "Inativar" : "Reativar"}
-            className="p-1.5 rounded-lg text-tx-3 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
           >
             <Power size={14} />
           </button>

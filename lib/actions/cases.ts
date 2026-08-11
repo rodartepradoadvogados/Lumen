@@ -398,32 +398,43 @@ export type CaseNamingResult = {
   withoutClient: { id: string; title: string; processNumber: string | null }[];
 };
 
-// Ação administrativa avulsa (mesmo padrão de lib/actions/driveReorg.ts:reorganizeExistingAttachments):
-// aplica a convenção "Cliente x Parte Adversa" nos processos JÁ EXISTENTES do escritório, pra
-// quem cadastrou antes dessa regra existir. Só renomeia quando cliente E parte adversa estão
-// cadastrados (senão não tem como montar o "x"); quando não há cliente vinculado, devolve o
-// processo na lista withoutClient em vez de tentar adivinhar — quem está rodando a ação decide
-// o que fazer (vincular um cliente e rodar de novo, ou deixar como está).
-export async function applyClientOpponentNamingConvention(): Promise<CaseNamingResult | { error: string }> {
+export type CaseNamingSuggestion = {
+  id: string;
+  currentTitle: string;
+  newTitle: string;
+  processNumber: string | null;
+};
+
+export type CaseNamingPreview = {
+  suggestions: CaseNamingSuggestion[];
+  withoutClient: { id: string; title: string; processNumber: string | null }[];
+};
+
+// Monta a lista do que a convenção "Cliente x Parte Adversa" mudaria, SEM gravar nada — é o que
+// abastece a tabela "nome atual / como ficará" da janela de revisão em
+// components/RenameCasesToConventionButton.tsx. Mesmo critério de elegibilidade de sempre (precisa
+// de cliente E parte adversa cadastrados) mais o filtro novo: processo marcado como
+// `namingConventionIgnored` (usuário já disse "descartar sugestão futura" numa rodada anterior)
+// nunca mais aparece aqui, mesmo que o título ainda destoe do padrão.
+export async function previewClientOpponentNamingConvention(): Promise<CaseNamingPreview | { error: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão inválida." };
   if (!viewer.isAdmin) return { error: "Apenas administradores podem fazer isso." };
 
   const cases = await prisma.case.findMany({
-    where: { officeId: viewer.officeId },
+    where: { officeId: viewer.officeId, namingConventionIgnored: false },
     select: {
       id: true,
       title: true,
       processNumber: true,
       opposingPartyName: true,
-      driveFolderId: true,
       clientId: true,
       client: { select: { name: true } },
     },
+    orderBy: { title: "asc" },
   });
 
-  let renamed = 0;
-  let driveRenameErrors = 0;
+  const suggestions: CaseNamingSuggestion[] = [];
   const withoutClient: { id: string; title: string; processNumber: string | null }[] = [];
 
   for (const c of cases) {
@@ -432,6 +443,50 @@ export async function applyClientOpponentNamingConvention(): Promise<CaseNamingR
       continue;
     }
     if (!c.opposingPartyName) continue; // sem parte adversa cadastrada — não dá pra montar "Cliente x Adversa", mantém como está
+
+    const newTitle = `${c.client.name} x ${c.opposingPartyName}`;
+    if (newTitle === c.title) continue;
+
+    suggestions.push({ id: c.id, currentTitle: c.title, newTitle, processNumber: c.processNumber });
+  }
+
+  return { suggestions, withoutClient };
+}
+
+// Ação administrativa avulsa (mesmo padrão de lib/actions/driveReorg.ts:reorganizeExistingAttachments):
+// aplica a convenção "Cliente x Parte Adversa" só nos processos que o usuário aprovou na janela de
+// revisão — `applyIds` ("Aplicar em tudo" manda todos os sugeridos, "Aplicar nos selecionados" manda
+// só os marcados). `discardIds` são os processos com a flag "descartar sugestões futuras" ligada:
+// NUNCA são renomeados por esta chamada (mesmo que também estejam em `applyIds` por engano) e saem
+// para sempre da conferência seguinte via `namingConventionIgnored`. Os dois conjuntos são
+// independentes — dá pra descartar uma sugestão sem aplicar nenhuma outra, só marcando os que quer
+// descartar e clicando em qualquer um dos dois botões de aplicar.
+export async function applyClientOpponentNamingConvention(
+  applyIds: string[],
+  discardIds: string[]
+): Promise<CaseNamingResult | { error: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  if (!viewer.isAdmin) return { error: "Apenas administradores podem fazer isso." };
+
+  const discardSet = new Set(discardIds);
+  const idsToRename = applyIds.filter((id) => !discardSet.has(id));
+
+  const cases = idsToRename.length
+    ? await prisma.case.findMany({
+        where: { id: { in: idsToRename }, officeId: viewer.officeId },
+        select: { id: true, title: true, opposingPartyName: true, driveFolderId: true, clientId: true, client: { select: { name: true } } },
+      })
+    : [];
+
+  let renamed = 0;
+  let driveRenameErrors = 0;
+  const withoutClient: { id: string; title: string; processNumber: string | null }[] = [];
+
+  for (const c of cases) {
+    // Revalida no servidor em vez de confiar cegamente no que o preview mandou — o cadastro pode
+    // ter mudado entre a conferência e o clique em aplicar (ex.: outra aba editou o processo).
+    if (!c.clientId || !c.client || !c.opposingPartyName) continue;
 
     const newTitle = `${c.client.name} x ${c.opposingPartyName}`;
     if (newTitle === c.title) continue;
@@ -447,6 +502,13 @@ export async function applyClientOpponentNamingConvention(): Promise<CaseNamingR
         console.error(`[cases] falha ao renomear a pasta do processo ${c.id} no armazenamento (aplicação retroativa da convenção):`, e);
       }
     }
+  }
+
+  if (discardIds.length) {
+    await prisma.case.updateMany({
+      where: { id: { in: discardIds }, officeId: viewer.officeId },
+      data: { namingConventionIgnored: true },
+    });
   }
 
   revalidatePath("/processos");
