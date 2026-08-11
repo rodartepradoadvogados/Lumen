@@ -9,10 +9,12 @@ import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, visibleSectionItems, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Painel de 224px que abre ao lado do rail (components/NavRail.tsx) — mostra os itens da seção
+// Painel de 190px que abre ao lado do rail (components/NavRail.tsx) — mostra os itens da seção
 // ativa. Some por completo quando a seção é "painel" (ver AppShell.tsx: painelAberto é forçado
-// a false nesse caso) ou quando o usuário recolhe pelo ChevronsLeft (preferência persistida em
-// localStorage). Ver proposta de remodelação do portal, "Arquitetura de navegação".
+// a false nesse caso), quando o usuário recolhe pelo ChevronsLeft (preferência persistida em
+// localStorage), ou no modo de visualização Bancada (onde components/SubTabsBar.tsx cumpre este
+// papel horizontalmente). Ver proposta de remodelação do portal, "Arquitetura de navegação", e
+// DESIGN-SYSTEM.md §3.
 export default function SectionPanel({
   section,
   hasFinanceAccess = true,
@@ -63,14 +65,17 @@ export default function SectionPanel({
   const items = visibleSectionItems(def, { hasFinanceAccess, modules });
 
   return (
-    <div className="w-[224px] shrink-0 hidden md:flex flex-col h-full bg-white dark:bg-navy-950 border-r border-navy-800/8 dark:border-white/10">
-      <div className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-navy-800/8 dark:border-white/10">
-        <h2 className="font-serif font-bold text-[21px] text-navy-900 dark:text-cream-50">{def.label}</h2>
+    <div className="w-[190px] shrink-0 hidden md:flex flex-col h-full bg-sf border-r border-regua">
+      <div className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-regua">
+        {/* Cabeçalho em 10px caixa alta, --tx-2 (DESIGN-SYSTEM.md §3) — era um título de 21px
+            em font-serif; a seção já está identificada no rail ao lado, não precisa repetir
+            em destaque aqui. */}
+        <h2 className="text-[10px] font-semibold uppercase tracking-[.08em] text-tx-2">{def.label}</h2>
         <button
           type="button"
           onClick={onCollapse}
           data-tip="Recolher"
-          className="p-1.5 rounded-lg text-navy-800/40 dark:text-cream-50/40 hover:bg-navy-900/5 dark:hover:bg-white/10 hover:text-navy-900 dark:hover:text-cream-50 transition-colors"
+          className="p-1.5 rounded-lg text-tx-3 hover:bg-sf-apoio hover:text-tx transition-colors"
         >
           <ChevronsLeft size={16} />
         </button>
@@ -95,9 +100,11 @@ export default function SectionPanel({
                 onClick={(e) => handleClick(e, item.href, item.label)}
                 className={clsx(
                   "block px-3 py-2 rounded-lg text-sm transition-colors",
+                  // Item ativo: fundo --sf-apoio, peso 700, sem filete (DESIGN-SYSTEM.md §3) —
+                  // era um destaque bordô com fundo/texto translúcidos.
                   active
-                    ? "bg-[rgba(110,13,37,0.08)] text-[#6e0d25] dark:bg-[rgba(201,106,128,0.14)] dark:text-[#c96a80] font-semibold"
-                    : "text-navy-800/70 dark:text-cream-50/70 font-medium hover:bg-navy-900/5 dark:hover:bg-white/5 hover:text-navy-900 dark:hover:text-cream-50"
+                    ? "bg-sf-apoio text-tx font-bold"
+                    : "text-tx-2 font-medium hover:bg-sf-apoio hover:text-tx"
                 )}
               >
                 {item.label}
@@ -116,8 +123,8 @@ export default function SectionPanel({
                         className={clsx(
                           "block px-3 py-1.5 rounded-md text-[13px] transition-colors",
                           subActive
-                            ? "bg-[rgba(110,13,37,0.08)] text-[#6e0d25] dark:bg-[rgba(201,106,128,0.14)] dark:text-[#c96a80] font-semibold"
-                            : "text-navy-800/60 dark:text-cream-50/60 hover:bg-navy-900/5 dark:hover:bg-white/5 hover:text-navy-900 dark:hover:text-cream-50"
+                            ? "bg-sf-apoio text-tx font-semibold"
+                            : "text-tx-2 hover:bg-sf-apoio hover:text-tx"
                         )}
                       >
                         {sub.label}
@@ -131,7 +138,7 @@ export default function SectionPanel({
         })}
       </nav>
 
-      <div className="px-4 py-3 border-t border-navy-800/8 dark:border-white/10 text-[10px] text-navy-800/40 dark:text-cream-50/40">
+      <div className="px-4 py-3 border-t border-regua text-[10px] text-tx-3">
         Duplo clique abre em aba fixa
       </div>
     </div>

@@ -25,7 +25,7 @@ export default function SyncPublicationsButton() {
           })
         }
         disabled={pending}
-        className="flex items-center gap-1.5 bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
       >
         <RefreshCw size={15} className={pending ? "animate-spin" : ""} />
         {pending ? "Sincronizando..." : "Sincronizar publicações e andamentos processuais"}
@@ -33,12 +33,12 @@ export default function SyncPublicationsButton() {
       {result && (
         <div className="text-sm mt-3 space-y-2">
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">E-mail</p>
-            <p className="text-navy-800 dark:text-cream-50/80">
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">E-mail</p>
+            <p className="text-tx">
               {result.email.accountsScanned} caixa(s) verificada(s), {result.email.found} e-mail(s) encontrado(s), {result.email.created} lançamento(s) criado(s), {result.email.skipped} já existente(s)
             </p>
             {result.email.errors.length > 0 && (
-              <ul className="text-red-600 dark:text-bordo-400 list-disc list-inside">
+              <ul className="text-urgente list-disc list-inside">
                 {result.email.errors.map((e, i) => (
                   <li key={i}>{e}</li>
                 ))}
@@ -46,12 +46,12 @@ export default function SyncPublicationsButton() {
             )}
           </div>
           <div>
-            <p className="text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 uppercase tracking-wide">DJEN / Datajud (robô)</p>
-            <p className="text-navy-800 dark:text-cream-50/80">
+            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">DJEN / Datajud (robô)</p>
+            <p className="text-tx">
               {result.robo.publicacoesCriadas} publicação(ões), {result.robo.andamentosCriados} andamento(s), {result.robo.processosMonitoradosCriados} processo(s) novo(s) monitorado(s)
             </p>
             {result.robo.erros.length > 0 && (
-              <ul className="text-red-600 dark:text-bordo-400 list-disc list-inside">
+              <ul className="text-urgente list-disc list-inside">
                 {result.robo.erros.map((e, i) => (
                   <li key={i}>{e}</li>
                 ))}

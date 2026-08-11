@@ -11,6 +11,7 @@ import {
   resolveIsDark,
   type ThemeMode,
 } from "@/lib/theme";
+import SegmentedControl from "@/components/SegmentedControl";
 
 const ICONS: Record<ThemeMode, typeof Sun> = {
   light: Sun,
@@ -23,9 +24,12 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 //
 // variant="menu" (ver proposta de remodelação do portal: ThemeToggle sai da TopBar e entra no
 // menu do avatar, components/TeamMonitorPanel.tsx) renderiza uma linha de menu com rótulo, em
-// vez do botão-ícone isolado. O app mobile tem seu próprio toggle, decoupled deste (ver
+// vez do botão-ícone isolado. variant="segmented" é o formato definitivo dentro do menu do
+// avatar (DESIGN-SYSTEM.md §5): components/SegmentedControl.tsx com as opções Manhã/Noite — a
+// lógica de leitura/persistência do tema continua só aqui, o controle segmentado só invoca
+// setMode(). O app mobile tem seu próprio toggle, decoupled deste (ver
 // components/mobile/MobileThemeToggle.tsx — 3 estados, Dia/Tarde/Noite, não 2).
-export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" }) {
+export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" }) {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -52,8 +56,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
     window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: mode }));
   }, [mode, mounted]);
 
-  function cycle() {
-    const next = THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length];
+  function applyMode(next: ThemeMode) {
     setMode(next);
     try {
       localStorage.setItem(THEME_KEY, next);
@@ -62,13 +65,28 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
     }
   }
 
+  function cycle() {
+    applyMode(THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length]);
+  }
+
   if (!mounted) {
     // Evita mismatch de hidratação até sabermos a preferência real; ocupa o mesmo espaço do botão.
-    return <span className={variant === "menu" ? "block h-9" : "h-9 w-9 shrink-0"} aria-hidden="true" />;
+    return <span className={variant === "icon" ? "h-9 w-9 shrink-0" : "block h-9"} aria-hidden="true" />;
   }
 
   const Icon = ICONS[mode];
   const nextLabel = THEME_LABEL[THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length]];
+
+  if (variant === "segmented") {
+    return (
+      <SegmentedControl
+        ariaLabel="Tema"
+        value={mode}
+        onChange={applyMode}
+        options={THEME_ORDER.map((m) => ({ value: m, label: THEME_LABEL[m] }))}
+      />
+    );
+  }
 
   if (variant === "menu") {
     return (
@@ -76,11 +94,11 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
         type="button"
         onClick={cycle}
         aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-navy-900 dark:text-cream-50 hover:bg-cream-100 dark:hover:bg-white/5"
+        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-tx hover:bg-sf-apoio"
       >
-        <Icon size={15} className="text-navy-800/50 dark:text-cream-50/50" />
+        <Icon size={15} className="text-tx-2" />
         Tema: {THEME_LABEL[mode]}
-        <span className="ml-auto text-[11px] text-navy-800/40 dark:text-cream-50/40">Mudar p/ {nextLabel}</span>
+        <span className="ml-auto text-[11px] text-tx-3">Mudar p/ {nextLabel}</span>
       </button>
     );
   }
@@ -92,7 +110,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
       data-tip={`Tema: ${THEME_LABEL[mode]} (clique p/ ${nextLabel})`}
       data-tip-pos="bottom"
       aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-      className="p-2 rounded-lg hover:bg-navy-900/5 dark:hover:bg-white/10 transition-colors text-navy-800 dark:text-cream-50/80"
+      className="p-2 rounded-lg hover:bg-sf-apoio transition-colors text-tx"
     >
       <Icon size={20} />
     </button>

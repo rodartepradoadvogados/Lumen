@@ -4,8 +4,12 @@ import { Suspense, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import NavRail from "@/components/NavRail";
 import SectionPanel from "@/components/SectionPanel";
+import GuiasBar from "@/components/GuiasBar";
+import TopMenuBar from "@/components/TopMenuBar";
+import SubTabsBar from "@/components/SubTabsBar";
 import TabsProvider, { useTabs } from "@/components/TabsProvider";
 import TabTitleSync from "@/components/TabTitleSync";
+import ViewModeProvider, { useViewMode } from "@/components/ViewModeProvider";
 import { sectionForPathname, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
@@ -84,21 +88,27 @@ function AppShellInner({
   }
 
   return (
-    <TabsProvider>
-      <ShellChrome
-        sidebarProps={sidebarProps}
-        topBar={topBar}
-        supportBanner={supportBanner}
-        inactivityNotice={inactivityNotice}
-        badgeSync={badgeSync}
-        backgroundLayer={backgroundLayer}
-        actingBanner={actingBanner}
-        claudeWidget={claudeWidget}
-        anotacoesPanel={anotacoesPanel}
-      >
-        {children}
-      </ShellChrome>
-    </TabsProvider>
+    // ViewModeProvider envolve o TabsProvider (não o contrário): tanto o ShellChrome (decide
+    // qual conjunto de casca montar) quanto o menu do avatar dentro da TopBar (onde o usuário
+    // troca de modo, ver TeamMonitorPanel) precisam ler/escrever o modo — e os dois já estão
+    // dentro da árvore do TabsProvider. Ver DESIGN-SYSTEM.md §5.
+    <ViewModeProvider>
+      <TabsProvider>
+        <ShellChrome
+          sidebarProps={sidebarProps}
+          topBar={topBar}
+          supportBanner={supportBanner}
+          inactivityNotice={inactivityNotice}
+          badgeSync={badgeSync}
+          backgroundLayer={backgroundLayer}
+          actingBanner={actingBanner}
+          claudeWidget={claudeWidget}
+          anotacoesPanel={anotacoesPanel}
+        >
+          {children}
+        </ShellChrome>
+      </TabsProvider>
+    </ViewModeProvider>
   );
 }
 
@@ -118,11 +128,14 @@ function ShellChrome({
 }: Omit<AppShellProps, "topBar"> & { topBar: React.ReactNode }) {
   const pathname = usePathname();
   const { tabs, activeTabId } = useTabs();
+  const { viewMode } = useViewMode();
 
-  // Seção ativa do rail: deriva do pathname (não é estado "de verdade" — ver proposta), mas
-  // clicar num ícone do rail precisa refletir na hora, antes da navegação terminar (o pathname
-  // só muda depois que o router resolve) — por isso um estado local que é (re)sincronizado com
-  // o pathname sempre que ele muda de verdade (navegação por link, botão voltar/avançar etc.).
+  // Seção ativa do rail (Régua) / menu (Bancada): deriva do pathname (não é estado "de verdade"
+  // — ver proposta), mas clicar num item precisa refletir na hora, antes da navegação terminar
+  // (o pathname só muda depois que o router resolve) — por isso um estado local que é
+  // (re)sincronizado com o pathname sempre que ele muda de verdade (navegação por link, botão
+  // voltar/avançar etc.). Usado pelos dois modos: NavRail+SectionPanel na Régua,
+  // TopMenuBar+SubTabsBar na Bancada.
   const [section, setSection] = useState<SectionKey | "painel" | null>(() => sectionForPathname(pathname));
   useEffect(() => {
     setSection(sectionForPathname(pathname));
@@ -163,28 +176,59 @@ function ShellChrome({
   }
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const panelOpen = section !== null && section !== "painel" && !collapsedByUser;
+  const isRegua = viewMode === "regua";
+  const panelOpen = isRegua && section !== null && section !== "painel" && !collapsedByUser;
+  const subTabsSection = !isRegua && section !== null && section !== "painel" ? section : null;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {supportBanner}
-      <div className="flex flex-1 overflow-hidden">
-        {inactivityNotice}
-        {badgeSync}
+      {/* Bancada: guias, barra de menus e sub-abas substituem rail + painel de seção — nesta
+          ordem, a primeira ("primeira linha da janela") acima até do supportBanner. Ver
+          DESIGN-SYSTEM.md §3 e §5, e components/ViewModeProvider.tsx. */}
+      {!isRegua && (
         <Suspense fallback={null}>
-          <NavRail
+          <GuiasBar />
+        </Suspense>
+      )}
+      {supportBanner}
+      {!isRegua && (
+        <Suspense fallback={null}>
+          <TopMenuBar
             hasFinanceAccess={sidebarProps.hasFinanceAccess}
-            unreadPublications={sidebarProps.unreadPublications}
-            totalAlerts={sidebarProps.totalAlerts}
-            todayAgendaCount={sidebarProps.todayAgendaCount}
             modules={sidebarProps.modules}
             activeSection={section}
             onSelectSection={handleSelectSection}
-            mobileOpen={mobileNavOpen}
-            onOpenMobile={() => setMobileNavOpen(true)}
-            onCloseMobile={() => setMobileNavOpen(false)}
           />
         </Suspense>
+      )}
+      {!isRegua && subTabsSection && (
+        <Suspense fallback={null}>
+          <SubTabsBar
+            section={subTabsSection}
+            hasFinanceAccess={sidebarProps.hasFinanceAccess}
+            modules={sidebarProps.modules}
+          />
+        </Suspense>
+      )}
+      <div className="flex flex-1 overflow-hidden">
+        {inactivityNotice}
+        {badgeSync}
+        {isRegua && (
+          <Suspense fallback={null}>
+            <NavRail
+              hasFinanceAccess={sidebarProps.hasFinanceAccess}
+              unreadPublications={sidebarProps.unreadPublications}
+              totalAlerts={sidebarProps.totalAlerts}
+              todayAgendaCount={sidebarProps.todayAgendaCount}
+              modules={sidebarProps.modules}
+              activeSection={section}
+              onSelectSection={handleSelectSection}
+              mobileOpen={mobileNavOpen}
+              onOpenMobile={() => setMobileNavOpen(true)}
+              onCloseMobile={() => setMobileNavOpen(false)}
+            />
+          </Suspense>
+        )}
         {panelOpen && section && (
           <Suspense fallback={null}>
             <SectionPanel

@@ -65,6 +65,17 @@
   --concluido: #1c6b52;
   --concluido-bg: rgba(28, 107, 82, 0.1);
 
+  /* Texto sobre as superfícies que são grafite nos DOIS temas (rail, barra de menus da
+     Bancada, faixa de guias). Não dá para usar --tx-2 aqui: ele é escuro no tema Manhã e
+     sumiria sobre o grafite. Ver DESIGN-SYSTEM.md §3. */
+  --rail-tx: #9aa3ad; /* item inativo do rail e da faixa de guias */
+  --menu-tx: #aeb6be; /* menu inativo da barra superior no modo Bancada */
+
+  /* Fonte da publicação (DESIGN-SYSTEM.md §9). Cinco das sete reaproveitam tokens semânticos
+     (--acao, --aviso, --tx-2, --vinho, --concluido); o PJE precisa de um azul distinto do
+     azul-tinta de ação, senão DJE e PJE ficam indistinguíveis num filete de 3px. */
+  --fonte-pje: #2f6fb0;
+
   --sombra-menu: 0 10px 30px rgba(22, 25, 29, 0.18);
   --sombra-modal: 0 12px 40px rgba(22, 25, 29, 0.2);
   --sombra-arrasto: 0 8px 24px rgba(22, 25, 29, 0.18);
@@ -103,6 +114,10 @@
   --aviso-bg: rgba(208, 160, 42, 0.14);
   --concluido: #4fb28c;
   --concluido-bg: rgba(79, 178, 140, 0.14);
+
+  --rail-tx: #8b949e;
+  --menu-tx: #8b949e;
+  --fonte-pje: #93c0f0;
 
   --sombra-menu: 0 10px 30px rgba(0, 0, 0, 0.45);
   --sombra-modal: 0 12px 40px rgba(0, 0, 0, 0.5);

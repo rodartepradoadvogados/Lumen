@@ -1,13 +1,10 @@
-// Camada de fundo decorativa, de baixa opacidade, atrás da área de CONTEÚDO do
-// sistema (nunca atrás da Sidebar) — mesma foto do escritório usada no banner "O direito
-// muda todo dia" da homepage pública (public/backgrounds/escritorio.webp), pra manter a
-// identidade visual consistente entre a landing e o setor interno.
+// A textura de fundo (grid dourado / foto do escritório atrás do conteúdo) saiu do produto
+// (DESIGN-SYSTEM.md §13: "`.brand-texture` ... é removida, junto com `SiteBackgroundLayer` se
+// ele só existir para isso" — era exatamente o caso). O componente continua existindo, como
+// no-op, só porque app/(app)/layout.tsx — arquivo de outro agente, fora da posse desta tarefa —
+// ainda importa e instancia `<SiteBackgroundLayer />` via a prop `backgroundLayer` de
+// components/AppShell.tsx; apagar o arquivo quebraria a build deles. Quando esse import sair de
+// lá, este arquivo pode ser apagado de vez.
 export default function SiteBackgroundLayer() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.20] dark:opacity-[0.09]"
-      style={{ backgroundImage: "url(/backgrounds/escritorio.webp)" }}
-    />
-  );
+  return null;
 }

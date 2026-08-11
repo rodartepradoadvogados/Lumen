@@ -31,6 +31,10 @@ export default function PeticionarButton({ compact, caseId }: { compact?: boolea
 
   return (
     <div className="relative">
+      {/* Botão mais visível do produto (DESIGN-SYSTEM.md §4, "o caso que você citou"): primário
+          de verdade, --acao/--acao-tx — nunca bordô/vinho, nunca `text-white` cravado (no Noite
+          o azul de ação CLAREIA, e o texto vai ESCURO por cima dele; --acao-tx já resolve isso
+          nos dois temas sozinho). */}
       <button
         type="button"
         onClick={handleClick}
@@ -38,14 +42,14 @@ export default function PeticionarButton({ compact, caseId }: { compact?: boolea
         title="Gera uma cópia nova do timbrado do escritório no Google Docs para peticionar"
         className={
           compact
-            ? "flex items-center gap-1 text-[11px] font-semibold text-bordo-700 dark:text-bordo-400 hover:text-bordo-800 dark:hover:text-bordo-300 px-2.5 py-1 rounded-lg bg-bordo-500/10 hover:bg-bordo-500/20 dark:bg-bordo-400/10 dark:hover:bg-bordo-400/20 disabled:opacity-50"
-            : "hidden sm:flex items-center gap-1.5 bg-bordo-700 hover:bg-bordo-600 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition-colors disabled:opacity-50"
+            ? "flex items-center gap-1 text-[11px] font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg bg-acao-bg hover:bg-acao/20 disabled:opacity-50"
+            : "hidden sm:flex items-center gap-1.5 h-8 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 rounded-lg transition-colors disabled:opacity-50"
         }
       >
         <FileEdit size={compact ? 12 : 16} /> {pending ? "Gerando..." : "Peticionar"}
       </button>
       {error && (
-        <p className="absolute top-full left-0 mt-1 w-56 text-[11px] text-red-600 bg-white dark:bg-navy-900 border border-red-200 rounded-lg px-2 py-1 z-30 shadow-pop">
+        <p className="absolute top-full left-0 mt-1 w-56 text-[11px] text-urgente bg-sf border border-urgente/30 rounded-lg px-2 py-1 z-30 shadow-menu">
           {error}
         </p>
       )}

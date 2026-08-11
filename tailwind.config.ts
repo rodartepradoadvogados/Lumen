@@ -75,6 +75,13 @@ const config: Config = {
         acao: { DEFAULT: "var(--acao)", hover: "var(--acao-hover)", tx: "var(--acao-tx)", bg: "var(--acao-bg)" },
         marca: { DEFAULT: "var(--marca)", tx: "var(--marca-tx)", bg: "var(--marca-bg)" },
         atencao: "var(--vinho)",
+        // Texto sobre as superfícies que são grafite nos dois temas (rail, barra de menus da
+        // Bancada, faixa de guias) — --tx-2 não serve ali, sumiria no tema Manhã.
+        rail: { tx: "var(--rail-tx)" },
+        menu: { tx: "var(--menu-tx)" },
+        // Azul distinto do azul-tinta de ação, para o filete de fonte PJE não se confundir
+        // com o do DJE (DESIGN-SYSTEM.md §9).
+        fonte: { pje: "var(--fonte-pje)" },
         urgente: { DEFAULT: "var(--urgente)", bg: "var(--urgente-bg)" },
         aviso: { DEFAULT: "var(--aviso)", bg: "var(--aviso-bg)" },
         concluido: { DEFAULT: "var(--concluido)", bg: "var(--concluido-bg)" },

@@ -28,7 +28,7 @@ export default function PublicationRespFilter({
       value={value || ""}
       onChange={handleChange}
       className={`text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${
-        active ? "bg-navy-900 text-white border-navy-900" : "bg-white text-navy-800/60 border-navy-800/10 hover:bg-cream-100"
+        active ? "bg-acao text-acao-tx border-acao" : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
       }`}
     >
       <option value="">Responsável: Todos</option>

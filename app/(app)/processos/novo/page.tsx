@@ -113,7 +113,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       <Card className="p-6">
         <form action={submit} className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Título do Caso</label>
+            <label className="text-xs font-medium text-tx-2">Título do Caso</label>
             <input name="title" required defaultValue={searchParams.title} className="input" placeholder="Ex: Fulano de Tal x Empresa XYZ" />
           </div>
 
@@ -127,7 +127,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
               />
               <CaseMateriaField />
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Data da distribuição</label>
+                <label className="text-xs font-medium text-tx-2">Data da distribuição</label>
                 <input name="distributedAt" type="date" className="input" />
               </div>
             </>
@@ -143,7 +143,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             // não trocando o Tipo dentro de "Novo Caso".
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Tipo</label>
+                <label className="text-xs font-medium text-tx-2">Tipo</label>
                 <select name="type" defaultValue={defaultType} className="input">
                   <option value="EXTRAJUDICIAL">Extrajudicial</option>
                   <option value="ATENDIMENTO">Atendimento</option>
@@ -159,12 +159,12 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
           <div className={isProcessoFlow ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : ""}>
             {isProcessoFlow && (
               <div>
-                <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Valor da Causa (R$)</label>
+                <label className="text-xs font-medium text-tx-2">Valor da Causa (R$)</label>
                 <input name="caseValue" type="number" step="0.01" className="input" />
               </div>
             )}
             <div>
-              <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Advogado Responsável</label>
+              <label className="text-xs font-medium text-tx-2">Advogado Responsável</label>
               <select name="responsibleId" className="input">
                 <option value="">Não definido</option>
                 {users.map((u) => (
@@ -188,7 +188,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
           <AssuntosField inputClassName="input" />
 
           <div>
-            <label className="text-xs font-medium text-navy-800/60 dark:text-cream-50/60">Descrição (observações livres)</label>
+            <label className="text-xs font-medium text-tx-2">Descrição (observações livres)</label>
             <textarea name="description" rows={2} className="input" />
           </div>
 
@@ -199,9 +199,8 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
       </Card>
 
       <style>{`
-        .input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #14213d; background: #fff; }
-        .input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-        .dark .input { border-color: rgba(255,255,255,0.15); background: #0f1f3d; color: #fbfaf7; }
+        .input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: var(--tx); background: var(--sf-superficie); }
+        .input:focus { outline: none; box-shadow: 0 0 0 2px var(--acao-bg); }
       `}</style>
     </div>
   );

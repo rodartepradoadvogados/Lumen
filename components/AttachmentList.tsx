@@ -216,12 +216,12 @@ export default function AttachmentList({
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           <div className="relative flex-1 min-w-[160px]">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-800/30 dark:text-cream-50/30" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome"
-              className="w-full text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg pl-7 pr-2.5 py-1.5"
+              className="w-full text-xs border border-regua bg-sf text-tx rounded-lg pl-7 pr-2.5 py-1.5"
             />
           </div>
           <DocumentTypeSelect
@@ -230,33 +230,33 @@ export default function AttachmentList({
             allowAll
             includeLegacy
             excludeKeys={excludeParecer}
-            className="text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1.5 max-w-[180px]"
+            className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5 max-w-[180px]"
           />
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             title="Enviado a partir de"
-            className="text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1.5"
+            className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
           />
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             title="Enviado até"
-            className="text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1.5"
+            className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
           />
         </div>
       )}
 
       {attachments.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <label className="flex items-center gap-1.5 text-xs text-navy-800/50 dark:text-cream-50/50">
+          <label className="flex items-center gap-1.5 text-xs text-tx-2">
             Ordenar por
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="text-xs border border-navy-800/12 dark:border-white/15 dark:bg-navy-800 dark:text-cream-50 rounded-lg px-2 py-1.5"
+              className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -266,7 +266,7 @@ export default function AttachmentList({
             </select>
           </label>
 
-          <div className="flex items-center gap-0.5 border border-navy-800/12 dark:border-white/15 rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 border border-regua rounded-lg p-0.5">
             {(
               [
                 { mode: "icons" as const, icon: LayoutGrid, label: "Ícones" },
@@ -281,8 +281,8 @@ export default function AttachmentList({
                 data-tip={label}
                 className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
                   viewMode === mode
-                    ? "bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950"
-                    : "text-navy-800/50 dark:text-cream-50/50 hover:bg-cream-100 dark:hover:bg-white/5"
+                    ? "bg-acao text-acao-tx"
+                    : "text-tx-2 hover:bg-sf-apoio"
                 }`}
               >
                 <ModeIcon size={13} />
@@ -300,35 +300,35 @@ export default function AttachmentList({
             return (
               <div
                 key={a.id}
-                className="group relative bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 rounded-lg p-3 hover:border-gold-500/40 transition-colors"
+                className="group relative bg-sf-apoio border border-regua rounded-lg p-3 hover:border-acao/40 transition-colors"
               >
                 {editingId === a.id ? (
                   <div className="flex flex-col items-center text-center gap-1.5">
-                    <div className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-lg bg-sf text-tx-2 flex items-center justify-center">
                       <Icon size={18} />
                     </div>
-                    <p className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate w-full" title={a.name}>
+                    <p className="text-xs font-medium text-tx truncate w-full" title={a.name}>
                       {a.name}
                     </p>
                     <DocumentTypeSelect
                       value={a.docType}
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
-                      className="w-full text-[10px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1 py-1"
+                      className="w-full text-[10px] border border-regua bg-sf text-tx rounded px-1 py-1"
                     />
                   </div>
                 ) : (
                   <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-1.5">
-                    <div className="h-10 w-10 rounded-lg bg-navy-900/5 dark:bg-white/10 text-navy-800 dark:text-cream-50/80 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-lg bg-sf text-tx-2 flex items-center justify-center">
                       <Icon size={18} />
                     </div>
-                    <p className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate w-full" title={a.name}>
+                    <p className="text-xs font-medium text-tx truncate w-full" title={a.name}>
                       {a.name}
                     </p>
-                    <p className="text-[10px] text-navy-800/45 dark:text-cream-50/45 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
+                    <p className="text-[10px] text-tx-2 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
                       {getDocumentTypeLabel(a.docType)}
                     </p>
-                    <span className="flex items-center gap-0.5 text-[10px] text-gold-700 dark:text-gold-400">
+                    <span className="flex items-center gap-0.5 text-[10px] text-marca-tx">
                       <ExternalLink size={10} /> {getLinkSourceLabel(a.driveUrl)}
                     </span>
                   </a>
@@ -338,7 +338,7 @@ export default function AttachmentList({
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                     disabled={pending}
                     data-tip="Editar tipo de documento"
-                    className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-gold-700 hover:bg-gold-50 dark:hover:bg-gold-950/30 transition-colors"
+                    className="p-1 rounded-md text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
                   >
                     <Pencil size={11} />
                   </button>
@@ -346,7 +346,7 @@ export default function AttachmentList({
                     onClick={() => handleDelete(a.id)}
                     disabled={pending}
                     data-tip="Excluir anexo"
-                    className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                    className="p-1 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
                   >
                     <X size={12} />
                   </button>
@@ -355,7 +355,7 @@ export default function AttachmentList({
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-xs text-navy-800/40 dark:text-cream-50/40 col-span-full py-2">
+            <p className="text-xs text-tx-2 col-span-full py-2">
               {attachments.length === 0 ? "Nenhum anexo ainda." : "Nenhum anexo encontrado com esse filtro."}
             </p>
           )}
@@ -363,39 +363,39 @@ export default function AttachmentList({
       )}
 
       {viewMode === "list" && (
-        <div className="mb-3 divide-y divide-navy-800/8 dark:divide-white/10 border-y border-navy-800/8 dark:border-white/10">
+        <div className="mb-3 divide-y divide-regua border-y border-regua">
           {sorted.map((a) => {
             const Icon = getDocumentTypeIcon(a.docType);
             return (
               <div key={a.id} className="group flex items-center gap-2 py-1.5">
-                <Icon size={14} className="shrink-0 text-navy-800/40 dark:text-cream-50/40" />
+                <Icon size={14} className="shrink-0 text-tx-2" />
                 {editingId === a.id ? (
                   <div className="flex-1 flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate">{a.name}</span>
+                    <span className="text-xs font-medium text-tx truncate">{a.name}</span>
                     <DocumentTypeSelect
                       value={a.docType}
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
-                      className="text-[10px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1.5 py-1 max-w-[180px]"
+                      className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[180px]"
                     />
                   </div>
                 ) : (
-                  <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-2 min-w-0 hover:text-gold-700 dark:hover:text-gold-400">
-                    <span className="text-xs font-medium text-navy-900 dark:text-cream-50 truncate" title={a.name}>
+                  <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-2 min-w-0 hover:text-marca-tx">
+                    <span className="text-xs font-medium text-tx truncate" title={a.name}>
                       {a.name}
                     </span>
-                    <span className="hidden sm:inline text-[10px] text-navy-800/45 dark:text-cream-50/45 shrink-0">
+                    <span className="hidden sm:inline text-[10px] text-tx-2 shrink-0">
                       {getDocumentTypeLabel(a.docType)}
                     </span>
                   </a>
                 )}
-                <span className="shrink-0 text-[10px] text-navy-800/40 dark:text-cream-50/40">{formatDate(a.createdAt)}</span>
+                <span className="shrink-0 text-[10px] text-tx-2">{formatDate(a.createdAt)}</span>
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                   <button
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                     disabled={pending}
                     data-tip="Editar tipo de documento"
-                    className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-gold-700 hover:bg-gold-50 dark:hover:bg-gold-950/30 transition-colors"
+                    className="p-1 rounded-md text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
                   >
                     <Pencil size={11} />
                   </button>
@@ -403,7 +403,7 @@ export default function AttachmentList({
                     onClick={() => handleDelete(a.id)}
                     disabled={pending}
                     data-tip="Excluir anexo"
-                    className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                    className="p-1 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
                   >
                     <X size={12} />
                   </button>
@@ -412,7 +412,7 @@ export default function AttachmentList({
             );
           })}
           {sorted.length === 0 && (
-            <p className="text-xs text-navy-800/40 dark:text-cream-50/40 py-2">
+            <p className="text-xs text-tx-2 py-2">
               {attachments.length === 0 ? "Nenhum anexo ainda." : "Nenhum anexo encontrado com esse filtro."}
             </p>
           )}
@@ -423,7 +423,7 @@ export default function AttachmentList({
         <div className="mb-3 overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-[10px] uppercase tracking-wide text-navy-800/45 dark:text-cream-50/45 border-b border-navy-800/10 dark:border-white/10">
+              <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2 border-b border-regua">
                 <th className="pb-2 pr-3">Nome</th>
                 <th className="pb-2 pr-3">Tipo</th>
                 <th className="pb-2 pr-3">Enviado em</th>
@@ -431,7 +431,7 @@ export default function AttachmentList({
                 <th className="pb-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800/5 dark:divide-white/10">
+            <tbody className="divide-y divide-regua">
               {sorted.map((a) => (
                 <tr key={a.id} className="group">
                   <td className="py-2 pr-3">
@@ -439,34 +439,34 @@ export default function AttachmentList({
                       href={a.driveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 font-medium text-gold-700 dark:text-gold-400 hover:underline"
+                      className="inline-flex items-center gap-1.5 font-medium text-marca-tx hover:underline"
                       title={a.driveUrl}
                     >
                       <ExternalLink size={11} className="shrink-0" />
                       {a.name}
                     </a>
                   </td>
-                  <td className="py-2 pr-3 text-navy-800/60 dark:text-cream-50/60">
+                  <td className="py-2 pr-3 text-tx-2">
                     {editingId === a.id ? (
                       <DocumentTypeSelect
                         value={a.docType}
                         onChange={(v) => handleUpdateDocType(a.id, v)}
                         excludeKeys={excludeParecer}
-                        className="text-[10px] border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded px-1.5 py-1"
+                        className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1"
                       />
                     ) : (
                       getDocumentTypeLabel(a.docType)
                     )}
                   </td>
-                  <td className="py-2 pr-3 text-navy-800/60 dark:text-cream-50/60 whitespace-nowrap">{formatDate(a.createdAt)}</td>
-                  <td className="py-2 pr-3 text-navy-800/60 dark:text-cream-50/60">{a.uploadedBy?.name || "—"}</td>
+                  <td className="py-2 pr-3 text-tx-2 whitespace-nowrap">{formatDate(a.createdAt)}</td>
+                  <td className="py-2 pr-3 text-tx-2">{a.uploadedBy?.name || "—"}</td>
                   <td className="py-2">
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                       <button
                         onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                         disabled={pending}
                         data-tip="Editar tipo de documento"
-                        className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-gold-700 hover:bg-gold-50 dark:hover:bg-gold-950/30 transition-colors"
+                        className="p-1 rounded-md text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
                       >
                         <Pencil size={11} />
                       </button>
@@ -474,7 +474,7 @@ export default function AttachmentList({
                         onClick={() => handleDelete(a.id)}
                         disabled={pending}
                         data-tip="Excluir anexo"
-                        className="p-1 rounded-md text-navy-800/25 dark:text-cream-50/25 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                        className="p-1 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -485,7 +485,7 @@ export default function AttachmentList({
             </tbody>
           </table>
           {sorted.length === 0 && (
-            <p className="text-xs text-navy-800/40 dark:text-cream-50/40 py-2">
+            <p className="text-xs text-tx-2 py-2">
               {attachments.length === 0 ? "Nenhum anexo ainda." : "Nenhum anexo encontrado com esse filtro."}
             </p>
           )}
@@ -493,7 +493,7 @@ export default function AttachmentList({
       )}
 
       {!driveConnected && (
-        <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-1.5 mb-2">
+        <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-lg px-2.5 py-1.5 mb-2">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações, ou cole um link manualmente abaixo.
         </p>
       )}
@@ -508,11 +508,11 @@ export default function AttachmentList({
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
-            dragOver ? "border-gold-500 bg-gold-500/5" : "border-navy-800/15 dark:border-white/15 hover:border-gold-500/40 hover:bg-cream-50 dark:hover:bg-white/5"
+            dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
           }`}
         >
-          <UploadCloud size={20} className="text-navy-800/40 dark:text-cream-50/40" />
-          <p className="text-xs text-navy-800/60 dark:text-cream-50/60 text-center">
+          <UploadCloud size={20} className="text-tx-2" />
+          <p className="text-xs text-tx-2 text-center">
             Arraste um arquivo aqui, ou clique para selecionar do computador
           </p>
           <input
@@ -529,32 +529,32 @@ export default function AttachmentList({
       )}
 
       {stagedFile && (
-        <div className="p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2">
-          <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60">Esse documento é:</p>
+        <div className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2">
+          <p className="text-xs font-semibold text-tx-2">Esse documento é:</p>
           <input
             value={stagedName}
             onChange={(e) => setStagedName(e.target.value)}
             placeholder="Nome do documento"
-            className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
           />
           <DocumentTypeSelect
             value={stagedDocType}
             onChange={setStagedDocType}
             excludeKeys={excludeParecer}
-            className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
           />
           <div className="flex gap-2">
             <button
               onClick={confirmStagedFile}
               disabled={uploading}
-              className="flex-1 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
             >
               {uploading ? "Enviando..." : "Enviar para o Drive"}
             </button>
             <button
               onClick={() => setStagedFile(null)}
               disabled={uploading}
-              className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+              className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
             >
               Cancelar
             </button>
@@ -563,41 +563,41 @@ export default function AttachmentList({
       )}
 
       {error && (
-        <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-lg px-2.5 py-1.5 mt-2">
+        <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-lg px-2.5 py-1.5 mt-2">
           {error}
         </p>
       )}
 
       <div className="mt-2">
         {linkMode ? (
-          <form action={handleAddLink} className="p-3 rounded-lg bg-cream-50 dark:bg-navy-800 border border-navy-800/8 dark:border-white/10 space-y-2">
+          <form action={handleAddLink} className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2">
             <input
               name="name"
               required
               placeholder="Nome do documento"
-              className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+              className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
             />
             <input
               name="driveUrl"
               type="url"
               required
               placeholder="Link do Google Drive, Dropbox, OneDrive..."
-              className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+              className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
             />
             <div>
-              <p className="text-xs font-semibold text-navy-800/60 dark:text-cream-50/60 mb-1">Esse documento é:</p>
+              <p className="text-xs font-semibold text-tx-2 mb-1">Esse documento é:</p>
               <DocumentTypeSelect
                 value={linkDocType}
                 onChange={setLinkDocType}
                 excludeKeys={excludeParecer}
-                className="w-full text-sm border border-navy-800/12 dark:border-white/15 dark:bg-navy-900 dark:text-cream-50 rounded-lg px-2.5 py-1.5"
+                className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
               />
             </div>
             <div className="flex gap-2">
               <button
                 type="submit"
                 disabled={pending}
-                className="flex-1 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-600 dark:text-navy-950 text-white text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+                className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
               >
                 {pending ? "Salvando..." : "Salvar anexo"}
               </button>
@@ -607,7 +607,7 @@ export default function AttachmentList({
                   setLinkMode(false);
                   setLinkDocType("OUTRO");
                 }}
-                className="px-3 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50"
+                className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
               >
                 Cancelar
               </button>
@@ -616,7 +616,7 @@ export default function AttachmentList({
         ) : (
           <button
             onClick={() => setLinkMode(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-navy-800/50 dark:text-cream-50/50 hover:text-navy-900 dark:hover:text-cream-50 px-2.5 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-white/5"
+            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
           >
             <LinkIcon size={13} /> ou colar um link (Google Drive, Dropbox, OneDrive...)
           </button>

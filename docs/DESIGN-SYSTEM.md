@@ -94,7 +94,7 @@ Largura **62px**. O rail é grafite nos **dois** temas.
 | Elemento | Manhã | Noite |
 |---|---|---|
 | Fundo | `#16191d` | `#16191d` |
-| Item inativo (ícone + rótulo) | `#9aa3ad` | `#8b949e` |
+| Item inativo (ícone + rótulo) | `#9aa3ad` (`--rail-tx`) | `#8b949e` |
 | Item ativo — fundo | `#22272e` | `#1b2026` |
 | Item ativo — texto/ícone | `#ffffff` | `#ffffff` |
 | **Item ativo — filete esquerdo 3px** | `#c9962f` | `#d9a93a` |
@@ -122,7 +122,7 @@ Altura **36px**, fundo `#16191d` nos dois temas.
 
 | Elemento | Manhã | Noite |
 |---|---|---|
-| Menu inativo | `#aeb6be` | `#8b949e` |
+| Menu inativo | `#aeb6be` (`--menu-tx`) | `#8b949e` |
 | Menu ativo — texto | `#ffffff` | `#ffffff` |
 | **Menu ativo — filete inferior 2px** | `#c9962f` | `#d9a93a` |
 | Campo de busca — fundo | `rgba(255,255,255,.09)` | `rgba(255,255,255,.09)` |
@@ -133,7 +133,7 @@ Altura **36px**, fundo `#16191d` nos dois temas.
 
 | Elemento | Manhã | Noite |
 |---|---|---|
-| Guia inativa — texto | `#9aa3ad` | `#8b949e` |
+| Guia inativa — texto | `#9aa3ad` (`--rail-tx`) | `#8b949e` |
 | Guia ativa — fundo | `--sf-superficie` | `--sf-superficie` |
 | Guia ativa — texto | `--tx` | `--tx` |
 | **Guia ativa — filete superior 2px** | `--acao` | `--acao` |
@@ -282,7 +282,7 @@ foi justamente aqui que estava o bug corrigido na rodada anterior.
 | Fonte | Manhã | Noite |
 |---|---|---|
 | `DJE` | `#17325c` | `#7ea6dd` |
-| `PJE` | `#2f6fb0` | `#93c0f0` |
+| `PJE` | `#2f6fb0` (`--fonte-pje`) | `#93c0f0` |
 | `ESAJ` | `#9a6700` | `#d0a02a` |
 | `PROJUDI` | `#5b646e` | `#98a1ab` |
 | `MANUAL` | `#7d1330` | `#cd5f77` |
