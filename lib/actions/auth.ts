@@ -56,7 +56,14 @@ export async function login(email: string, password: string, next?: string): Pro
 }
 
 export async function logout() {
-  cookies().delete(SESSION_COOKIE_NAME);
+  // O cookie de sessão é sempre gravado com path "/" (ver login() acima). `delete(name)` sem
+  // opções usa como path padrão o diretório da própria URL da Server Action — que só coincide
+  // com "/" quando "Sair" é clicado a partir de uma rota de 1 nível (ex.: /painel). Clicado de
+  // uma rota mais profunda (ex.: /processos/123), o Set-Cookie de exclusão nasce com path
+  // "/processos" e nunca chega a sobrescrever o cookie original: o navegador mantém os dois,
+  // a sessão nunca é derrubada de fato e o usuário parece preso, sempre logado de novo depois
+  // do redirect. Path explícito garante que a exclusão sempre mira o mesmo cookie do login.
+  cookies().delete({ name: SESSION_COOKIE_NAME, path: "/" });
   redirect("/");
 }
 

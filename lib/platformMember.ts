@@ -99,5 +99,8 @@ export async function enterPlatformContext(password: string): Promise<{ error?: 
 }
 
 export async function exitPlatformContext(): Promise<void> {
-  cookies().delete(PLATFORM_CTX_COOKIE);
+  // Path explícito: o cookie nasce com path "/" (ver acima) — sem isso aqui, sair a partir de
+  // uma rota de mais de 1 nível grava o Set-Cookie de exclusão num path diferente do original e
+  // a sessão de contexto de plataforma nunca é derrubada de fato (mesmo bug de lib/actions/auth.ts:logout).
+  cookies().delete({ name: PLATFORM_CTX_COOKIE, path: "/" });
 }

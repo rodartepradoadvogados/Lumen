@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import {
-  createUser,
   createKanbanColumn,
   deleteKanbanColumn,
   createFinancialCategory,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/actions/settings";
 import DeleteButton from "@/components/DeleteButton";
 import UserRow from "@/components/UserRow";
+import AddUserForm from "@/components/AddUserForm";
 import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ImportManualModal from "@/components/ImportManualModal";
@@ -279,20 +279,6 @@ export default async function ConfiguracoesPage({
   const ultimoLogDjen = roboExecucaoLogs.find((l) => l.fonte === "DJEN");
 
   const allCategoriesForParentSelect = [...categories].sort(sortByCode);
-
-  async function submitUser(formData: FormData) {
-    "use server";
-    const result = await createUser({
-      name: String(formData.get("name")),
-      email: String(formData.get("email")),
-      role: String(formData.get("role")),
-      oab: String(formData.get("oab") || ""),
-      color: String(formData.get("color") || "#0f1f3d"),
-    });
-    if (result?.error) {
-      console.error(result.error);
-    }
-  }
 
   async function submitColumn(formData: FormData) {
     "use server";
@@ -937,24 +923,7 @@ export default async function ConfiguracoesPage({
             <UserRow key={u.id} user={u} canManage={isAdmin} />
           ))}
         </div>
-        <form action={submitUser} className="p-5 grid grid-cols-1 sm:grid-cols-5 gap-2 border-t border-regua">
-          <input name="name" required placeholder="Nome" className="cfg-input sm:col-span-2" />
-          <input name="email" type="email" required placeholder="E-mail" className="cfg-input sm:col-span-2" />
-          <select name="role" className="cfg-input">
-            <option value="Advogado">Advogado</option>
-            <option value="Sócio">Sócio</option>
-            <option value="Estagiário">Estagiário</option>
-            <option value="Financeiro">Financeiro</option>
-            <option value="Recepcionista">Recepcionista</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Contador">Contador</option>
-          </select>
-          <input name="oab" placeholder="OAB (opcional)" className="cfg-input" />
-          <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1" />
-          <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-3 transition-colors">
-            Adicionar membro
-          </button>
-        </form>
+        <AddUserForm />
       </Card>
       )}
 
