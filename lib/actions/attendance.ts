@@ -265,6 +265,26 @@ export async function updateAttendanceStatus(id: string, status: string) {
   revalidatePath(`/m/atendimento/${id}`);
 }
 
+// Renomeia o assunto do atendimento — é o texto usado em toda lista/vínculo (ex.: "Casos
+// vinculados" da Assessoria, ver AssessoriaProcessosCasosTab.tsx), mas até aqui só era definido na
+// criação, sem jeito de corrigir depois.
+export async function updateAttendanceSubject(id: string, subject: string): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "Sessão inválida." };
+  const trimmed = subject.trim();
+  if (!trimmed) return { error: "Preencha o assunto." };
+
+  const existing = await prisma.attendance.findFirst({ where: { id, officeId: viewer.officeId }, select: { id: true } });
+  if (!existing) return { error: "Atendimento não encontrado." };
+
+  await prisma.attendance.update({ where: { id }, data: { subject: trimmed } });
+  revalidatePath("/atendimento");
+  revalidatePath(`/atendimento/${id}`);
+  revalidatePath("/m/atendimento");
+  revalidatePath(`/m/atendimento/${id}`);
+  return {};
+}
+
 // ===== Funil comercial (CRM de captação) — eixo independente do status operacional =====
 
 export async function setAttendanceStage(id: string, stage: string, lostReason?: string): Promise<{ error?: string }> {

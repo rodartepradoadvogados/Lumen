@@ -422,6 +422,7 @@ export default async function CaseDetailPage({
                 <EditCaseModal
                   caseData={{
                     id: c.id,
+                    title: c.title,
                     type: c.type,
                     responsibleId: c.responsibleId,
                     court: c.court,

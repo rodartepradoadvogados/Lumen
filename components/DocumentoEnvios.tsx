@@ -14,7 +14,14 @@ import {
   type ContatoEnvio,
   type EnvioOrigem,
 } from "@/lib/actions/documentoEnvios";
-import { DOCUMENTO_ENVIO_METODO_LABELS, buildWhatsAppLink, formatEnvioMensagem, type DocumentoEnvioMetodo } from "@/lib/documentoEnvios";
+import {
+  DOCUMENTO_ENVIO_METODO_LABELS,
+  buildWhatsAppLink,
+  formatEnvioMensagem,
+  formatDocumentosLinks,
+  mensagemPadraoEnvio,
+  type DocumentoEnvioMetodo,
+} from "@/lib/documentoEnvios";
 import { looseIncludes } from "@/lib/textNormalize";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { formatDate } from "@/components/ui";
@@ -114,8 +121,13 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
   const [contatos, setContatos] = useState<ContatoEnvio[] | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const [mensagem, setMensagem] = useState("");
-  const [mensagemTocada, setMensagemTocada] = useState(false); // mesma ideia de contatoTocado: depois de editada à mão, parar de sobrescrever ao trocar a seleção de documentos
+  // Só a introdução, digitável livremente — a lista de links dos documentos NUNCA mora aqui: ela é
+  // sempre recalculada a partir de `selected` e colada embaixo na hora de enviar (ver
+  // mensagemFinal), pra escolher documentos continuar funcionando mesmo depois que a pessoa já
+  // escreveu um texto próprio. Antes essa lista vinha misturada dentro do mesmo campo e parava de
+  // se atualizar assim que a pessoa tocava no texto — bug relatado: "seleciono os documentos e os
+  // links não estão indo".
+  const [mensagem, setMensagem] = useState(() => mensagemPadraoEnvio(entity.titulo));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -149,17 +161,13 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
     [selected, attachments]
   );
 
-  // Mensagem padrão — um ponto de partida editável, já que para EMAIL ela sai de verdade e a
-  // pessoa perde a chance de revisar no próprio cliente de e-mail. Só recalcula enquanto a pessoa
-  // não editou o texto à mão (mesmo padrão de contatoTocado acima).
-  useEffect(() => {
-    if (mensagemTocada) return;
-    setMensagem(
-      selectedAttachments.length > 0
-        ? formatEnvioMensagem(entity.titulo, selectedAttachments.map((a) => ({ nome: a.name, url: a.driveUrl })))
-        : ""
-    );
-  }, [selectedAttachments, entity.titulo, mensagemTocada]);
+  // Sempre em dia com a seleção atual, independente do que a pessoa escreveu em `mensagem` — é o
+  // pedaço colado embaixo na hora de enviar (ver mensagemFinal).
+  const linksBlock = useMemo(
+    () => formatDocumentosLinks(selectedAttachments.map((a) => ({ nome: a.name, url: a.driveUrl }))),
+    [selectedAttachments]
+  );
+  const mensagemFinal = linksBlock ? `${mensagem.trim()}\n\n${linksBlock}` : mensagem.trim();
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -169,7 +177,6 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
     if (!nome.trim()) return setError("Informe o nome do destinatário.");
     if (!contato.trim()) return setError(metodo === "EMAIL" ? "Informe o e-mail do destinatário." : "Informe o telefone do destinatário.");
     if (selected.length === 0) return setError("Selecione ao menos um documento.");
-    if (!mensagem.trim()) return setError("Escreva uma mensagem.");
 
     setLoading(true);
     setError("");
@@ -183,7 +190,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
         destinatarioNome: nome.trim(),
         destinatarioContato: contato.trim(),
         documentoIds: selected,
-        mensagem: mensagem.trim(),
+        mensagem: mensagemFinal,
       });
       setLoading(false);
       if (res.error) {
@@ -210,7 +217,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
       return;
     }
     try {
-      window.open(buildWhatsAppLink(contato.trim(), mensagem.trim()), "_blank", "noopener,noreferrer");
+      window.open(buildWhatsAppLink(contato.trim(), mensagemFinal), "_blank", "noopener,noreferrer");
     } catch {
       // silencioso — o registro já foi salvo, o link é só conveniência
     }
@@ -310,17 +317,20 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
               <label className="text-xs font-medium text-tx-2">Mensagem</label>
               <textarea
                 value={mensagem}
-                onChange={(e) => {
-                  setMensagem(e.target.value);
-                  setMensagemTocada(true);
-                }}
-                rows={5}
-                placeholder="Selecione os documentos ao lado para gerar um texto inicial, ou escreva a sua própria mensagem"
+                onChange={(e) => setMensagem(e.target.value)}
+                rows={4}
+                placeholder="Escreva a introdução da mensagem"
                 className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y"
               />
               <p className="text-[11px] text-tx-3 mt-1">
-                {metodo === "EMAIL" ? "Vira o corpo do e-mail — revise antes de confirmar." : "Vira o texto da mensagem do WhatsApp — revise antes de confirmar."}
+                {metodo === "EMAIL" ? "Vira o corpo do e-mail." : "Vira o texto da mensagem do WhatsApp."} O link de cada documento
+                selecionado é colado logo abaixo automaticamente, sempre em dia com a seleção atual — revise tudo antes de confirmar.
               </p>
+              {linksBlock && (
+                <pre className="mt-1.5 whitespace-pre-wrap break-all text-[11px] text-tx-2 bg-sf-apoio border border-regua rounded-lg px-2.5 py-2 font-mono">
+                  {linksBlock}
+                </pre>
+              )}
             </div>
 
             {selectedAttachments.length > 0 && (

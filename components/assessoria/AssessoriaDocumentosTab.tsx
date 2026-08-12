@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { addDocumento, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { formatDate } from "@/components/ui";
-import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel } from "@/lib/documentTypes";
+import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isEmpresaDocumentType } from "@/lib/documentTypes";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
-import { Plus, Search, UploadCloud, ExternalLink, FolderOpen, LayoutGrid, List as ListIcon, Table2 } from "lucide-react";
+import { Plus, Search, UploadCloud, ExternalLink, FolderOpen, LayoutGrid, List as ListIcon, Table2, Building2 } from "lucide-react";
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
@@ -79,6 +79,16 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
         typeLabel: (d) => getDocumentTypeLabel(d.docType),
       }),
     [filtered, sortBy]
+  );
+
+  // Recorte por categoria sobre o MESMO catálogo (não uma pasta física à parte) — contrato
+  // social, procurações, alterações contratuais, alvarás e afins (ver isEmpresaDocumentType,
+  // lib/documentTypes.ts). Documentos já cadastrados com uma dessas categorias entram aqui
+  // sozinhos, sem precisar de nenhuma migração; a busca/filtros do catálogo geral acima não
+  // afetam esta lista, que é independente.
+  const documentosEmpresa = useMemo(
+    () => sortByOption(assessoria.documents.filter((d) => isEmpresaDocumentType(d.docType)), "recent", { dateKey: (d) => new Date(d.date).toISOString(), name: (d) => d.name, typeLabel: () => "" }),
+    [assessoria.documents]
   );
 
   function handleSubmit(formData: FormData) {
@@ -162,6 +172,55 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
 
   return (
     <div>
+      {/* Catálogo da própria empresa — contrato social, procurações, alterações contratuais,
+          alvarás e afins (ver isEmpresaDocumentType, lib/documentTypes.ts). Recorte por
+          categoria sobre o MESMO catálogo abaixo, não uma pasta física à parte: um documento
+          aparece aqui E na lista geral, sem duplicar o cadastro. */}
+      <div className="bg-sf rounded-lg border border-regua p-4 mb-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
+            <Building2 size={13} /> Documentos da Empresa
+          </h4>
+          <button
+            onClick={() => {
+              setLinkDocType("CONTRATO_SOCIAL");
+              setFormOpen(true);
+            }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+          >
+            <Plus size={13} /> Adicionar documento da empresa
+          </button>
+        </div>
+        {documentosEmpresa.length === 0 ? (
+          <p className="text-sm text-tx-3">
+            Nenhum documento da empresa cadastrado ainda — contrato social, procuração, alteração contratual, alvará...
+          </p>
+        ) : (
+          <div className="divide-y divide-regua">
+            {documentosEmpresa.map((d) => {
+              const Icon = getDocumentTypeIcon(d.docType);
+              return (
+                <a
+                  key={d.id}
+                  href={d.driveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 py-2 hover:bg-sf-apoio -mx-1 px-1 rounded"
+                >
+                  <Icon size={14} className="shrink-0 text-tx-2" />
+                  <span className="text-sm font-medium text-tx truncate" title={d.name}>
+                    {d.name}
+                  </span>
+                  <span className="hidden sm:inline text-[11px] text-tx-2 shrink-0">{getDocumentTypeLabel(d.docType)}</span>
+                  <span className="flex-1" />
+                  <span className="shrink-0 text-[11px] text-tx-2">{formatDate(d.date)}</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <div className="flex flex-wrap gap-2 flex-1">
           <div className="relative flex-1 min-w-[160px]">

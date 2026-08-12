@@ -8,6 +8,7 @@ import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttend
 import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
+import EditAttendanceSubject from "@/components/EditAttendanceSubject";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,9 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-tx leading-tight">{a.clientName}</h1>
-          <p className="text-sm text-tx-2 mt-0.5">{a.subject}</p>
+          <div className="mt-0.5">
+            <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
+          </div>
         </div>
         <MobileAttendanceStatusSelect attendanceId={a.id} status={a.status} />
       </div>

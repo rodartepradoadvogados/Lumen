@@ -50,15 +50,26 @@ export function buildWhatsAppLink(phone: string, text: string): string {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
-// Texto padrão da mensagem — lista cada documento com o respectivo link (Attachment.driveUrl ou
-// AssessoriaDocumento.driveUrl), não só o nome, para o destinatário conseguir abrir o arquivo a
-// partir da própria mensagem (essencial no WhatsApp, que não anexa arquivo de verdade;
-// inofensivo/redundante no e-mail, que já leva o arquivo anexado de verdade — mas serve de
-// referência mesmo assim, e a mensagem é editável antes de confirmar em ambos os métodos). `url`
-// pode ser um aviso textual em vez de um link de verdade quando o documento original já foi
-// excluído (ver HistoricoEnvios). `titulo` é neutro de propósito (nome do processo ou da empresa
-// da assessoria) — funciona para as duas origens sem precisar saber qual é.
+// Lista de links, um documento por linha — o pedaço que precisa ficar sempre em dia com a seleção
+// atual de documentos, mesmo depois que a pessoa já editou a mensagem à mão (ver
+// components/DocumentoEnvios.tsx: a mensagem livre e este bloco de links são compostos
+// separadamente na hora de enviar, exatamente para a escolha de documentos nunca deixar de
+// aparecer só porque a pessoa escreveu um texto antes). `url` pode ser um aviso textual em vez de
+// um link de verdade quando o documento original já foi excluído (ver HistoricoEnvios).
+export function formatDocumentosLinks(documentos: { nome: string; url: string }[]): string {
+  return documentos.map((d) => `- ${d.nome}: ${d.url}`).join("\n");
+}
+
+// Texto inicial sugerido para o campo de mensagem — só a introdução, sem a lista de documentos
+// (essa vem sempre à parte, ver formatDocumentosLinks acima). `titulo` é neutro de propósito (nome
+// do processo ou da empresa da assessoria) — funciona para as duas origens sem precisar saber qual
+// é.
+export function mensagemPadraoEnvio(titulo: string): string {
+  return `Segue(m) o(s) documento(s) referente(s) a "${titulo}":`;
+}
+
+// Mensagem completa (introdução + lista) — usada onde não há edição manual em jogo, como ao
+// reabrir o WhatsApp de um envio já registrado no histórico (reabrirWhatsApp).
 export function formatEnvioMensagem(titulo: string, documentos: { nome: string; url: string }[]): string {
-  const lista = documentos.map((d) => `- ${d.nome}: ${d.url}`).join("\n");
-  return `Segue(m) o(s) documento(s) referente(s) a "${titulo}":\n\n${lista}`;
+  return `${mensagemPadraoEnvio(titulo)}\n\n${formatDocumentosLinks(documentos)}`;
 }

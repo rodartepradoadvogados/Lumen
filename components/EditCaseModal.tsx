@@ -18,6 +18,12 @@ import { formatDate } from "@/components/ui";
 
 type CaseData = {
   id: string;
+  // Título mostrado em toda lista/vínculo do processo (ex.: "Casos vinculados" da Assessoria).
+  // Por padrão é recalculado sozinho como "Cliente(s) x Parte(s)" sempre que os dois lados estão
+  // preenchidos (ver computeCaseTitle, lib/actions/cases.ts) — editar este campo aqui só o
+  // sobrepõe quando o texto digitado for DIFERENTE do que a convenção geraria; deixando como está
+  // (sem mexer), o comportamento automático de sempre continua igual a antes deste campo existir.
+  title?: string;
   // Natureza do processo (ver lib/caseNatureza.ts) — decide se os campos de esfera/matéria
   // administrativa abaixo aparecem. Não é editável aqui (mudar de natureza é uma operação mais
   // delicada, fora do escopo deste modal); só serve pra ligar/desligar a seção. Opcional (e
@@ -131,6 +137,7 @@ export default function EditCaseModal({
                 const result = await updateCase(caseData.id, {
                   clients: parsedClients,
                   parties: parsedParties,
+                  title: String(formData.get("title") || ""),
                   responsibleId: String(formData.get("responsibleId") || ""),
                   court: String(formData.get("court") || ""),
                   caseValue: String(formData.get("caseValue") || ""),
@@ -169,6 +176,15 @@ export default function EditCaseModal({
               {error && (
                 <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>
               )}
+
+              <div>
+                <label className="text-xs font-medium text-tx-2">Título</label>
+                <input name="title" defaultValue={caseData.title ?? ""} className={inputClass} />
+                <p className="text-[11px] text-tx-3 mt-1">
+                  Por padrão segue sozinho a convenção &ldquo;Cliente(s) x Parte(s)&rdquo; ao trocar cliente/parte. Editar aqui
+                  substitui esse texto automático.
+                </p>
+              </div>
 
               {/* Duas colunas a partir de md — só faz sentido porque a janela agora tem largura
                   de sobra (80%); em telas estreitas cai pra uma coluna só, igual antes. */}

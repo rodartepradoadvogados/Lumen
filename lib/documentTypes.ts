@@ -43,6 +43,7 @@ import {
   UserX,
   BellRing,
   BadgeCheck,
+  Building2,
 } from "lucide-react";
 
 // Taxonomia única de tipos de documento, usada tanto pelos Anexos de Processo/Caso/Atendimento
@@ -141,6 +142,21 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
       { key: "COMPROVANTE_ENDERECO", label: "Comprovante de Endereço", icon: Home },
     ],
   },
+  // Catálogo da própria empresa cliente (aba Documentos da Assessoria) — separado de "Documentos
+  // pessoais e societários" acima, que é sobre a PESSOA (sócio/parte), não sobre a empresa em si.
+  // Ver EMPRESA_DOCUMENT_TYPE_KEYS/isEmpresaDocumentType abaixo: junto com PROCURACAO (grupo
+  // "Procuração e contratação"), estes tipos formam a seção "Documentos da Empresa" da Assessoria
+  // (AssessoriaDocumentosTab.tsx) — um recorte por categoria sobre o mesmo catálogo, não uma
+  // pasta física à parte.
+  {
+    group: "Documentos da empresa",
+    types: [
+      { key: "CONTRATO_SOCIAL", label: "Contrato Social", icon: Building2 },
+      { key: "ALTERACAO_CONTRATUAL", label: "Alteração Contratual", icon: FileEdit },
+      { key: "ALVARA", label: "Alvará", icon: Stamp },
+      { key: "CARTAO_CNPJ", label: "Cartão CNPJ", icon: IdCard },
+    ],
+  },
   {
     group: "Contratos",
     types: [
@@ -199,6 +215,32 @@ export const DOCUMENT_TYPE_GROUPS: DocumentTypeGroup[] = [
 ];
 
 export const DOCUMENT_TYPES: DocumentType[] = DOCUMENT_TYPE_GROUPS.flatMap((g) => g.types);
+
+// Recorte curado de tipos que compõem o catálogo da própria empresa cliente (aba Documentos da
+// Assessoria — ver AssessoriaDocumentosTab.tsx, seção "Documentos da Empresa"): contrato social,
+// alterações contratuais, alvarás e cartão CNPJ (grupo "Documentos da empresa" acima), mais
+// PROCURACAO (a empresa outorgando poderes) e o catch-all legado DOC_PESSOAL_PF_PJ/
+// COMPROVANTE_ENDERECO, usado para documentos societários antes de existirem categorias
+// dedicadas — é assim que documentos JÁ cadastrados no site entram automaticamente nesta seção,
+// sem precisar de nenhuma migração.
+export const EMPRESA_DOCUMENT_TYPE_KEYS = [
+  "CONTRATO_SOCIAL",
+  "ALTERACAO_CONTRATUAL",
+  "ALVARA",
+  "CARTAO_CNPJ",
+  "PROCURACAO",
+  "DOC_PESSOAL_PF_PJ",
+  "COMPROVANTE_ENDERECO",
+];
+
+// officeTypes é opcional: quando a tela já tem o catálogo do escritório carregado (ver
+// OfficeDocumentTypeEntry acima), um tipo próprio cadastrado dentro da seção "Documentos da
+// empresa" também conta — sem isso, um tipo criado pelo próprio escritório para este fim nunca
+// apareceria na seção, mesmo escolhendo a seção certa ao criar (ver NewDocumentTypeDialog.tsx).
+export function isEmpresaDocumentType(docType: string, officeTypes?: OfficeDocumentTypeEntry[]): boolean {
+  if (EMPRESA_DOCUMENT_TYPE_KEYS.includes(docType)) return true;
+  return officeTypes?.some((t) => t.chave === docType && t.secao === "Documentos da empresa") ?? false;
+}
 
 const DOCUMENT_TYPE_MAP: Record<string, DocumentType> = Object.fromEntries(DOCUMENT_TYPES.map((t) => [t.key, t]));
 

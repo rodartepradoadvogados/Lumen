@@ -1,7 +1,7 @@
 import { Card, EmptyState, formatDate } from "@/components/ui";
-import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
+import { getDocumentTypeIcon, getDocumentTypeLabel, isEmpresaDocumentType } from "@/lib/documentTypes";
 import MobileDocumentUpload from "@/components/mobile/MobileDocumentUpload";
-import { ChevronDown, ExternalLink, FolderOpen } from "lucide-react";
+import { ChevronDown, ExternalLink, FolderOpen, Building2 } from "lucide-react";
 
 type DocumentoItem = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
 
@@ -45,6 +45,11 @@ export default function MobileAssessoriaDocumentsSection({
 }) {
   const soltos = documents.filter((d) => !d.parecer);
   const total = documents.length;
+  // Recorte por categoria sobre o MESMO catálogo (contrato social, procuração, alteração
+  // contratual, alvará... ver isEmpresaDocumentType, lib/documentTypes.ts) — não remove nada das
+  // listas abaixo, só destaca em cima, mesmo espírito do equivalente desktop
+  // (AssessoriaDocumentosTab.tsx).
+  const empresaDocs = documents.filter((d) => isEmpresaDocumentType(d.docType));
   // Uma pasta pode existir sem nenhum documento dentro ainda — o total de documentos seria 0
   // mesmo com a pasta lá. Some para o estado vazio só quando não há NEM pasta NEM documento
   // nenhum E não há como enviar um novo; do contrário o card precisa continuar visível.
@@ -65,6 +70,19 @@ export default function MobileAssessoriaDocumentsSection({
         <EmptyState title="Nenhum documento cadastrado" />
       ) : (
         <>
+          {empresaDocs.length > 0 && (
+            <div className="border-b border-regua">
+              <p className="px-4 pt-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
+                <Building2 size={12} /> Documentos da Empresa
+              </p>
+              <div className="divide-y divide-regua">
+                {empresaDocs.map((d) => (
+                  <DocumentoRow key={d.id} doc={d} />
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="divide-y divide-regua">
             {pareceres.map((p) => (
               <ParecerFolderMobileRow key={p.id} parecer={p} assessoriaId={assessoriaId} storageConnected={storageConnected} />
