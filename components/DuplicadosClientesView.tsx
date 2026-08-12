@@ -29,6 +29,29 @@ function resumoAtividade(c: ClienteCandidato): string {
   return partes.length > 0 ? partes.join(" · ") : "Sem nenhuma atividade registrada";
 }
 
+// Grupo já resolvido antes (grupo.pendente === false): o cadastro duplicado não foi apagado
+// porque ainda tem uma Assessoria ENCERRADA presa nele (histórico), mas não sobra mais que um
+// cadastro "vivo" — não há mais nada a fazer aqui. Cartão só-leitura, sem radio nem botão de
+// unificar, pra não pedir ação de novo pra sempre sobre algo que já foi resolvido.
+function GrupoCardHistorico({ grupo }: { grupo: GrupoClientesDuplicados }) {
+  return (
+    <div className="border border-regua rounded-xl overflow-hidden bg-sf opacity-70">
+      <div className="px-4 py-3 flex items-center gap-2">
+        <CheckCircle2 size={15} className="text-concluido shrink-0" />
+        <span className="font-semibold text-tx text-sm">{grupo.clientes[0].nome}</span>
+        <span className="text-xs text-tx-3">— já unificado, mantido como histórico</span>
+      </div>
+      <div className="px-4 pb-3 flex flex-wrap gap-x-4 gap-y-1">
+        {grupo.clientes.map((c) => (
+          <span key={c.id} className="text-[11px] text-tx-3">
+            {c.nome} <span className="text-tx-3/70">({c.assessoriaStatus === "ENCERRADA" ? "Assessoria encerrada" : "cadastrado " + dataBR(c.criadoEm)})</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
   const router = useRouter();
   const [canonicoId, setCanonicoId] = useState(grupo.clientes[0].id);
@@ -270,9 +293,7 @@ export default function DuplicadosClientesView({ grupos }: { grupos: GrupoClient
   }
   return (
     <div className="space-y-4">
-      {grupos.map((g) => (
-        <GrupoCard key={g.chave} grupo={g} />
-      ))}
+      {grupos.map((g) => (g.pendente ? <GrupoCard key={g.chave} grupo={g} /> : <GrupoCardHistorico key={g.chave} grupo={g} />))}
     </div>
   );
 }

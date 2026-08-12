@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader } from "@/components/ui";
 import { listarClientesDuplicados } from "@/lib/actions/clientDuplicates";
 import DuplicadosClientesView from "@/components/DuplicadosClientesView";
+import PastasParecidasDriveView from "@/components/PastasParecidasDriveView";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,14 @@ export default async function DuplicadosPage() {
       </div>
 
       {error ? <p className="text-sm text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p> : <DuplicadosClientesView grupos={grupos ?? []} />}
+
+      <div className="pt-2">
+        <PageHeader
+          title="Pastas parecidas no Drive (Assessoria)"
+          subtitle="Olha direto pro Drive, independente do cadastro no banco — inclusive pastas soltas ou cujo nome só bate por causa do CPF/CNPJ escrito nele"
+        />
+      </div>
+      <PastasParecidasDriveView />
     </div>
   );
 }

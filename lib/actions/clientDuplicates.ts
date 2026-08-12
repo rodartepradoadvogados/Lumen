@@ -22,7 +22,14 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
-import { listDriveChildren, moveDriveFile, trashDriveFile, DRIVE_FOLDER_MIME_TYPE } from "@/lib/googleDrive";
+import {
+  listDriveChildren,
+  moveDriveFile,
+  trashDriveFile,
+  getAssessoriaRootFolderId,
+  hasPrimaryDriveCredential,
+  DRIVE_FOLDER_MIME_TYPE,
+} from "@/lib/googleDrive";
 
 // Mesma normalização de nome (ignora acento/caixa/espaço) que lib/actions/driveParentMigration.ts
 // e lib/actions/driveFolderMigration.ts já usam, cada uma com sua própria cópia local enxuta —
@@ -62,7 +69,69 @@ export type ClienteCandidato = {
   publicacoes: number;
 };
 
-export type GrupoClientesDuplicados = { chave: string; clientes: ClienteCandidato[] };
+export type GrupoClientesDuplicados = {
+  chave: string;
+  clientes: ClienteCandidato[];
+  // false = todo membro além de um já está com a Assessoria ENCERRADA (ver
+  // confirmarUnificacaoClientes) — já foi unificado antes; mostrado como histórico, sem botão de
+  // ação. Evita o grupo continuar pedindo ação pra sempre só porque o cadastro duplicado em si
+  // nunca é apagado quando a Assessoria dele virou histórico (Assessoria.clientId não pode
+  // apontar pra outro lugar sem violar o @unique).
+  pendente: boolean;
+};
+
+// Só dígitos — compara CPF/CNPJ ignorando pontuação e formatação diferente entre os dois
+// cadastros ("04.681.814/0001-05" vs "04.681.8140001-05" vs "04681814000105"). Documento com
+// menos de 8 dígitos é ignorado como chave de agrupamento — curto demais pra ser um CPF/CNPJ de
+// verdade, arriscaria juntar cadastros que só têm o campo mal preenchido em comum.
+function normalizarDocumento(doc: string | null): string | null {
+  if (!doc) return null;
+  const digitos = doc.replace(/\D/g, "");
+  return digitos.length >= 8 ? digitos : null;
+}
+
+// Une itens em grupos por QUALQUER chave em comum entre eles (nome normalizado, CPF/CNPJ, o que
+// for passado em `chaves`) — não só uma única chave. É o que resolve o caso em que a mesma
+// empresa foi cadastrada com nomes bem diferentes (ex.: "P França" e "P. França Ltda — CNPJ
+// 04.681.814/0001-05"): o nome sozinho não encontra o par, mas o CNPJ em comum encontra.
+// Implementado como union-find simples: cada item nasce no próprio grupo, e toda chave repetida
+// entre dois itens funde os dois grupos. Reaproveitado tanto para Client (nome + documento)
+// quanto para pastas do Drive (nome normalizado + dígitos extraídos do nome — ver
+// auditarPastasAssessoriaNoDrive), então fica genérico em vez de saber o que é "cliente".
+function unirPorChavesComuns(itens: { id: string; chaves: (string | null)[] }[]): Map<string, string[]> {
+  const pai = new Map<string, string>(itens.map((i) => [i.id, i.id]));
+  function raiz(id: string): string {
+    while (pai.get(id) !== id) {
+      pai.set(id, pai.get(pai.get(id)!)!);
+      id = pai.get(id)!;
+    }
+    return id;
+  }
+  function unir(a: string, b: string) {
+    const ra = raiz(a);
+    const rb = raiz(b);
+    if (ra !== rb) pai.set(ra, rb);
+  }
+
+  const primeiroPorChave = new Map<string, string>();
+  for (const item of itens) {
+    for (const chave of item.chaves) {
+      if (!chave) continue;
+      const primeiro = primeiroPorChave.get(chave);
+      if (primeiro) unir(item.id, primeiro);
+      else primeiroPorChave.set(chave, item.id);
+    }
+  }
+
+  const grupos = new Map<string, string[]>();
+  for (const item of itens) {
+    const r = raiz(item.id);
+    const lista = grupos.get(r) ?? [];
+    lista.push(item.id);
+    grupos.set(r, lista);
+  }
+  return grupos;
+}
 
 export async function listarClientesDuplicados(): Promise<{ error?: string; grupos?: GrupoClientesDuplicados[] }> {
   const auth = await exigirAdmin();
@@ -73,6 +142,7 @@ export async function listarClientesDuplicados(): Promise<{ error?: string; grup
     select: {
       id: true,
       name: true,
+      document: true,
       createdAt: true,
       assessoria: { select: { id: true, status: true, driveFolderId: true } },
       _count: { select: { cases: true, receivables: true, honorarioLancamentos: true, publications: true } },
@@ -103,22 +173,22 @@ export async function listarClientesDuplicados(): Promise<{ error?: string; grup
     honorarios: c._count.honorarioLancamentos,
     publicacoes: c._count.publications,
   }));
+  const candidatoPorId = new Map(candidatos.map((c) => [c.id, c]));
 
-  const porNome = new Map<string, ClienteCandidato[]>();
-  for (const c of candidatos) {
-    const chave = normalizarNome(c.nome);
-    const grupo = porNome.get(chave) ?? [];
-    grupo.push(c);
-    porNome.set(chave, grupo);
-  }
+  const gruposPorRaiz = unirPorChavesComuns(
+    clientes.map((c) => ({ id: c.id, chaves: [normalizarNome(c.name), normalizarDocumento(c.document)] }))
+  );
 
-  const grupos: GrupoClientesDuplicados[] = Array.from(porNome.entries())
-    .filter(([, membros]) => membros.length > 1)
-    .map(([chave, membros]) => ({
-      chave,
-      clientes: membros.sort((a, b) => a.criadoEm.localeCompare(b.criadoEm)),
-    }))
-    .sort((a, b) => a.chave.localeCompare(b.chave, "pt-BR"));
+  const grupos: GrupoClientesDuplicados[] = Array.from(gruposPorRaiz.values())
+    .filter((ids) => ids.length > 1)
+    .map((ids) => {
+      const membros = ids.map((id) => candidatoPorId.get(id)!).sort((a, b) => a.criadoEm.localeCompare(b.criadoEm));
+      // "Ainda vivo" = não é o rastro de uma unificação anterior. Se sobrar só um "vivo" no
+      // grupo, não há nada pendente — os demais já foram unificados nele.
+      const vivos = membros.filter((m) => m.assessoriaStatus !== "ENCERRADA");
+      return { chave: normalizarNome(membros[0].nome), clientes: membros, pendente: vivos.length > 1 };
+    })
+    .sort((a, b) => Number(b.pendente) - Number(a.pendente) || a.chave.localeCompare(b.chave, "pt-BR"));
 
   return { grupos };
 }
@@ -265,6 +335,12 @@ export type ResultadoUnificacao = {
   // pasta, ou nenhum dos dois tinha Assessoria).
   pastaDuplicataEsvaziada: boolean | null;
   avisos: string[];
+  // true = o cadastro de cliente duplicado ficou sem nada apontando pra ele (nenhum processo,
+  // atendimento, financeiro nem Assessoria) e foi excluído de vez — some da lista de duplicados
+  // sozinho. false = ainda tem algo preso nele (o caso mais comum: uma Assessoria que virou
+  // ENCERRADA, que nunca é apagada) — ele continua existindo como registro histórico, mas some
+  // da lista de PENDENTES porque não sobrou mais que um cadastro "vivo" no grupo.
+  clienteDuplicadoRemovido: boolean;
 };
 
 // Igual a preverMesclaDePasta, mas executa de verdade: move o que não tem homônimo, substitui
@@ -423,11 +499,193 @@ export async function confirmarUnificacaoClientes(canonicoId: string, duplicataI
     }
   }
 
+  // Depois de mover tudo, o cadastro duplicado pode ter ficado com ZERO relação apontando pra
+  // ele — é o caso comum de um cadastro criado sem nunca ter sido usado (nenhum processo,
+  // nenhuma Assessoria). Nesse caso ele é excluído de vez, e some sozinho da lista de
+  // duplicados na próxima conferência — sem isso, "unificação concluída" parecia não ter feito
+  // efeito nenhum, porque o cadastro vazio continuava lá, sendo achado nome a nome de novo.
+  // Quando ainda sobra algo (o caso mais comum: a Assessoria que acabou de virar ENCERRADA
+  // acima, que nunca é apagada), a exclusão falha por causa da chave estrangeira — e está
+  // certo que falhe: esse cadastro agora é um registro histórico de verdade, não lixo.
+  let clienteDuplicadoRemovido = false;
+  try {
+    await prisma.client.delete({ where: { id: duplicataId } });
+    clienteDuplicadoRemovido = true;
+  } catch {
+    clienteDuplicadoRemovido = false;
+  }
+
   revalidatePath("/assessoria");
   revalidatePath("/contatos/clientes");
   revalidatePath("/configuracoes");
+  revalidatePath("/configuracoes/duplicados");
 
   return {
-    resultado: { movidos, conflitosPastaDrive, pastaDuplicataEsvaziada, avisos },
+    resultado: { movidos, conflitosPastaDrive, pastaDuplicataEsvaziada, avisos, clienteDuplicadoRemovido },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Auditoria do lado do DRIVE — pastas de empresa que nunca viraram um cadastro
+// duplicado, ou cujos nomes nem se parecem o suficiente pra bater no agrupamento acima
+// ---------------------------------------------------------------------------
+
+// A busca acima (listarClientesDuplicados) só encontra duplicidade que existe no BANCO — dois
+// registros de Client. Mas uma pasta de empresa solta dentro de "Assessoria" no Drive, sem
+// nenhum Assessoria.driveFolderId apontando pra ela, nunca aparece lá: pode ter sido criada à
+// mão, ser sobra de uma reorganização manual, ou ter um nome tão diferente do cadastro (ex.:
+// levando o CNPJ escrito no próprio nome da pasta) que nem o agrupamento por CPF/CNPJ do cliente
+// ajuda, porque não é o CAMPO documento que diverge — é o nome da pasta em si. Esta auditoria
+// olha direto pro Drive: lista as pastas de empresa de verdade, marca quais estão vinculadas a
+// um cadastro (Assessoria.driveFolderId bate) e quais estão soltas, e agrupa as que têm nome
+// parecido — inclusive por uma sequência de dígitos longa em comum no nome (é assim que duas
+// pastas tipo "P. FRANCA LTDA - CNPJ 04.681.814 0001-05" e "P. FRANCA LTDA - CNPJ
+// 04.681.8140001-05" se encontram, mesmo com o CNPJ formatado de um jeito diferente em cada
+// uma). Só lê — não move nem apaga nada; é o passo anterior a decidir o que fazer com "Cadastros
+// de cliente parecidos" acima ou uma mesclagem manual direto no Drive.
+export type PastaAssessoriaInfo = {
+  id: string;
+  nome: string;
+  webViewLink: string | null;
+  vinculada: boolean;
+  clienteVinculado: string | null;
+};
+
+export type GrupoPastasParecidas = { chave: string; pastas: PastaAssessoriaInfo[] };
+
+function normalizarAlnum(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+// Mesmo raciocínio de normalizarDocumento, mas para uma sequência de dígitos ACHADA dentro do
+// nome de uma pasta (não um campo de cadastro à parte) — pega todos os dígitos do nome inteiro,
+// ignorando pontuação/espaço no meio, porque é exatamente aí que a formatação diverge entre duas
+// pastas do mesmo CNPJ ("04.681.814 0001" tem os dígitos quebrados por um espaço que
+// "04.681.8140001" não tem).
+function digitosDoNome(nome: string): string | null {
+  const digitos = nome.replace(/\D/g, "");
+  return digitos.length >= 8 ? digitos : null;
+}
+
+export async function auditarPastasAssessoriaNoDrive(): Promise<{
+  error?: string;
+  conectado: boolean;
+  pastas?: PastaAssessoriaInfo[];
+  gruposParecidos?: GrupoPastasParecidas[];
+}> {
+  const auth = await exigirAdmin();
+  if ("error" in auth) return { ...auth, conectado: false };
+
+  const officeId = auth.user.officeId;
+  const conectado = await hasPrimaryDriveCredential(officeId);
+  if (!conectado) return { conectado: false };
+
+  const [rootId, assessorias] = await Promise.all([
+    getAssessoriaRootFolderId(officeId),
+    prisma.assessoria.findMany({
+      where: { officeId, driveFolderId: { not: null } },
+      select: { driveFolderId: true, client: { select: { name: true } } },
+    }),
+  ]);
+  const vinculadaPorId = new Map(assessorias.map((a) => [a.driveFolderId as string, a.client.name]));
+
+  const filhos = (await listDriveChildren(officeId, rootId)).filter((f) => f.mimeType === DRIVE_FOLDER_MIME_TYPE);
+
+  const pastas: PastaAssessoriaInfo[] = filhos.map((f) => ({
+    id: f.id,
+    nome: f.name,
+    webViewLink: f.webViewLink ?? null,
+    vinculada: vinculadaPorId.has(f.id),
+    clienteVinculado: vinculadaPorId.get(f.id) ?? null,
+  }));
+
+  const gruposPorRaiz = unirPorChavesComuns(
+    filhos.map((f) => ({ id: f.id, chaves: [normalizarAlnum(f.name), digitosDoNome(f.name)] }))
+  );
+  const pastaPorId = new Map(pastas.map((p) => [p.id, p]));
+  const gruposParecidos: GrupoPastasParecidas[] = Array.from(gruposPorRaiz.values())
+    .filter((ids) => ids.length > 1)
+    .map((ids) => ({ chave: ids[0], pastas: ids.map((id) => pastaPorId.get(id)!) }))
+    .sort((a, b) => a.pastas[0].nome.localeCompare(b.pastas[0].nome, "pt-BR"));
+
+  return { conectado: true, pastas, gruposParecidos };
+}
+
+// ---------------------------------------------------------------------------
+// Mesclar duas pastas soltas do Drive encontradas pela auditoria acima — mesmo
+// desenho de simular→confirmar, mas atuando direto em ids de pasta, sem depender de
+// nenhum Client/Assessoria (é exatamente o caso em que uma das duas está órfã).
+// ---------------------------------------------------------------------------
+
+async function pastasDaRaizAssessoria(officeId: string, aId: string, bId: string) {
+  const rootId = await getAssessoriaRootFolderId(officeId);
+  const filhos = await listDriveChildren(officeId, rootId);
+  return { a: filhos.find((f) => f.id === aId), b: filhos.find((f) => f.id === bId) };
+}
+
+export async function simularMesclaDePastasNoDrive(
+  canonicoFolderId: string,
+  duplicataFolderId: string
+): Promise<{ error?: string; conflitosPastaDrive?: ConflitoPasta[] }> {
+  const auth = await exigirAdmin();
+  if ("error" in auth) return auth;
+  if (canonicoFolderId === duplicataFolderId) return { error: "Selecione duas pastas diferentes." };
+
+  const { a: canonico, b: duplicata } = await pastasDaRaizAssessoria(auth.user.officeId, canonicoFolderId, duplicataFolderId);
+  if (!canonico || !duplicata) return { error: "Pasta não encontrada na raiz de Assessoria deste escritório." };
+
+  const conflitosPastaDrive: ConflitoPasta[] = [];
+  await preverMesclaDePasta(auth.user.officeId, duplicataFolderId, canonicoFolderId, duplicata.name, conflitosPastaDrive);
+  return { conflitosPastaDrive };
+}
+
+export async function confirmarMesclaDePastasNoDrive(
+  canonicoFolderId: string,
+  duplicataFolderId: string
+): Promise<{ error?: string; resultado?: { conflitosPastaDrive: ConflitoPasta[]; pastaDuplicataEsvaziada: boolean } }> {
+  const auth = await exigirAdmin();
+  if ("error" in auth) return auth;
+  if (canonicoFolderId === duplicataFolderId) return { error: "Selecione duas pastas diferentes." };
+
+  const officeId = auth.user.officeId;
+  const { a: canonico, b: duplicata } = await pastasDaRaizAssessoria(officeId, canonicoFolderId, duplicataFolderId);
+  if (!canonico || !duplicata) return { error: "Pasta não encontrada na raiz de Assessoria deste escritório." };
+
+  // Trava: se as DUAS já estão vinculadas a cadastros de cliente diferentes, isto não é uma
+  // pasta órfã perdida — são duas Assessorias de verdade, cada uma com seu Client. Mesclar aqui
+  // deixaria as duas apontando pra mesma pasta física, misturando os documentos de dois clientes
+  // na tela de cada um. O caminho certo pra esse caso é "Cadastros de cliente parecidos" acima,
+  // que também unifica o cadastro no banco, não só a pasta.
+  const [vincCanonico, vincDuplicata] = await Promise.all([
+    prisma.assessoria.findFirst({ where: { officeId, driveFolderId: canonicoFolderId }, select: { clientId: true } }),
+    prisma.assessoria.findFirst({ where: { officeId, driveFolderId: duplicataFolderId }, select: { clientId: true } }),
+  ]);
+  if (vincCanonico && vincDuplicata && vincCanonico.clientId !== vincDuplicata.clientId) {
+    return {
+      error:
+        "As duas pastas já pertencem a cadastros de cliente diferentes — mesclar aqui misturaria os documentos de dois clientes. Use \"Cadastros de cliente parecidos\", que também unifica o cadastro no banco antes de mexer nas pastas.",
+    };
+  }
+
+  const conflitosPastaDrive: ConflitoPasta[] = [];
+  await mesclarPastaDeVerdade(officeId, duplicataFolderId, canonicoFolderId, duplicata.name, conflitosPastaDrive);
+  const restou = await listDriveChildren(officeId, duplicataFolderId);
+  const pastaDuplicataEsvaziada = restou.length === 0;
+
+  if (pastaDuplicataEsvaziada) {
+    // Se alguma Assessoria ainda apontava pra pasta que está indo pra Lixeira, reaponta pra
+    // canônica ANTES de trashear — senão a tela daquela Assessoria ficaria sem pasta nenhuma.
+    await prisma.assessoria.updateMany({ where: { officeId, driveFolderId: duplicataFolderId }, data: { driveFolderId: canonicoFolderId } });
+    await trashDriveFile(duplicataFolderId, officeId);
+  }
+
+  revalidatePath("/assessoria");
+  revalidatePath("/configuracoes");
+  revalidatePath("/configuracoes/duplicados");
+
+  return { resultado: { conflitosPastaDrive, pastaDuplicataEsvaziada } };
 }
