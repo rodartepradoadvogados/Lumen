@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { AlertTriangle, ExternalLink, FileDown, Loader2, Save, Trash2 } from "lucide-react";
+import { AlertTriangle, ExternalLink, FileDown, FileType2, Loader2, Save, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import ModalShell from "@/components/ModalShell";
 import ChipsFiltro, { type OpcaoChip } from "@/components/relatorios/ChipsFiltro";
@@ -137,11 +137,21 @@ export default function RelatorioPersonalizadoView() {
     [opcoes.usuarios]
   );
 
+  function filtrosCodificados() {
+    return typeof window !== "undefined" ? window.btoa(encodeURIComponent(JSON.stringify(filtros))) : "";
+  }
+
   function abrirImpressao() {
     // `embed=1` faz o AppShell suprimir rail/TopBar/abas (ver components/AppShell.tsx) — sem isso
     // a casca do app sairia impressa junto com o relatório.
-    const payload = typeof window !== "undefined" ? window.btoa(encodeURIComponent(JSON.stringify(filtros))) : "";
-    window.open(`/relatorios/personalizado/imprimir?embed=1&f=${encodeURIComponent(payload)}`, "_blank", "noopener,noreferrer");
+    window.open(`/relatorios/personalizado/imprimir?embed=1&f=${encodeURIComponent(filtrosCodificados())}`, "_blank", "noopener,noreferrer");
+  }
+
+  // Download direto (a rota devolve Content-Disposition: attachment) — o Word é o formato que se
+  // anexa a e-mail e a processo, e sai dentro do papel timbrado do escritório quando ele estiver
+  // cadastrado em .docx (ver Configurações → Geral → Papel timbrado dos relatórios).
+  function baixarWord() {
+    window.location.href = `/api/relatorios/personalizado/word?f=${encodeURIComponent(filtrosCodificados())}`;
   }
 
   function confirmarSalvar() {
@@ -238,10 +248,17 @@ export default function RelatorioPersonalizadoView() {
             </button>
             <button
               type="button"
+              onClick={baixarWord}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2"
+            >
+              <FileType2 size={13} /> Baixar em Word
+            </button>
+            <button
+              type="button"
               onClick={abrirImpressao}
               className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2"
             >
-              <FileDown size={13} /> Exportar PDF
+              <FileDown size={13} /> Imprimir / PDF
             </button>
             <button
               type="button"

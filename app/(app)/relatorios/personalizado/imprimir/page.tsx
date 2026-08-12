@@ -12,15 +12,22 @@ import ImprimirAoAbrir from "@/components/relatorios/ImprimirAoAbrir";
 
 export const dynamic = "force-dynamic";
 
-// Folha imprimível do Relatório Personalizado. Não existe biblioteca de PDF no projeto (e uma
-// serverless da Vercel é um lugar ruim pra renderizar PDF pesado) — em vez disso, esta rota é uma
-// página A4 com folha de estilo de impressão, e o "Exportar PDF" é o próprio "Salvar como PDF" do
-// navegador. Vantagem: o PDF sai com o timbrado do escritório renderizado por CSS, sem depender de
-// converter imagem nenhuma, e acompanha automaticamente qualquer mudança no relatório.
+// Folha imprimível do Relatório Personalizado — o caminho RÁPIDO ("Imprimir / PDF"). Não existe
+// biblioteca de PDF no projeto (e uma serverless da Vercel é um lugar ruim pra renderizar PDF
+// pesado): esta rota é uma página A4 com folha de estilo de impressão, e o PDF é o próprio
+// "Salvar como PDF" do navegador.
 //
-// MULTI-TENANT: o cabeçalho é SEMPRE do escritório de quem está imprimindo (Office.logoUrl,
-// Office.name, Office.cnpj, Office.timbradoRodape) — nunca do Rodarte Prado. Escritório sem
-// logotipo cadastrado cai no cabeçalho tipográfico, que usa dados que todo Office tem.
+// O formato oficial de entrega é o Word (botão "Baixar em Word", ver
+// app/api/relatorios/personalizado/word/route.ts) — é ele que sai dentro do papel timbrado e é o
+// que se anexa a e-mail e a processo.
+//
+// MULTI-TENANT: o cabeçalho é SEMPRE do escritório de quem está imprimindo (Office.name,
+// Office.cnpj) — nunca do Rodarte Prado.
+//
+// O papel timbrado cadastrado em Configurações (Office.timbradoUrl) NÃO entra aqui: ele é um
+// arquivo .docx/.pdf, que não tem como ser embutido numa página HTML. Quem sai dentro do papel
+// timbrado de verdade é o relatório em Word (ver lib/relatorioDocx.ts) — esta folha é o caminho
+// rápido de impressão, com a identificação textual do escritório.
 function decodificar(f?: string): RelatorioFiltros {
   if (!f) return filtrosPadrao();
   try {
@@ -42,7 +49,7 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
   const [office, r] = await Promise.all([
     prisma.office.findUnique({
       where: { id: viewer.officeId },
-      select: { name: true, cnpj: true, logoUrl: true, timbradoRodape: true },
+      select: { name: true, cnpj: true },
     }),
     gerarRelatorio(filtros),
   ]);
@@ -66,7 +73,6 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
         .folha td { padding:4px 6px 4px 0; border-bottom:1px solid #e5e7ea; vertical-align:top; }
         .folha tr { break-inside: avoid; }
         .cab-timbre { border-bottom:2px solid #c9962f; }
-        .rodape-timbre { border-top:1px solid #c9cdd3; }
         @media print { .nao-imprimir { display:none !important; } }
         @media screen { .folha { max-width:820px; margin:0 auto; padding:28px; box-shadow:0 8px 30px rgba(0,0,0,.12); } }
         /* A rota é aberta com ?embed=1, então a casca do app não é montada (ver
@@ -82,15 +88,9 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
       <div className="folha">
         {/* ---------- TIMBRADO DO ESCRITÓRIO ---------- */}
         <div className="cab-timbre" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, paddingBottom: 10, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {office?.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={office.logoUrl} alt="" style={{ maxHeight: 46, maxWidth: 190, objectFit: "contain" }} />
-            ) : null}
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>{office?.name ?? "—"}</div>
-              {office?.cnpj && <div style={{ fontSize: 9.5, color: "#5b646e" }}>CNPJ {office.cnpj}</div>}
-            </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>{office?.name ?? "—"}</div>
+            {office?.cnpj && <div style={{ fontSize: 9.5, color: "#5b646e" }}>CNPJ {office.cnpj}</div>}
           </div>
           <div style={{ textAlign: "right", fontSize: 9.5, color: "#5b646e" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#16191d" }}>Relatório de produção</div>
@@ -203,11 +203,6 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
           </>
         )}
 
-        {office?.timbradoRodape && (
-          <div className="rodape-timbre" style={{ marginTop: 22, paddingTop: 8, fontSize: 8.5, color: "#5b646e", textAlign: "center" }}>
-            {office.timbradoRodape}
-          </div>
-        )}
       </div>
     </>
   );

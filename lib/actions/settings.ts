@@ -53,22 +53,29 @@ export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE" |
   return {};
 }
 
-// Timbrado das folhas impressas/PDF do escritório (hoje usado pelo Relatório Personalizado —
-// app/(app)/relatorios/personalizado/imprimir/page.tsx). Multi-tenant por construção: grava sempre
-// no Office de quem está logado, então cada escritório imprime no próprio timbrado.
-export async function salvarTimbrado(data: { logoUrl?: string | null; rodape?: string | null }): Promise<{ error?: string }> {
+// Papel timbrado do escritório para os relatórios (ver lib/relatorioDocx.ts). Multi-tenant por
+// construção: grava sempre no Office de quem está logado, então cada escritório emite no próprio
+// timbrado. Passar url/nomeArquivo/formato nulos remove o timbrado cadastrado.
+export async function salvarTimbrado(data: {
+  url: string | null;
+  nomeArquivo: string | null;
+  formato: string | null;
+}): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
-  if (!viewer?.isAdmin) return { error: "Apenas administradores podem alterar o timbrado." };
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem alterar o papel timbrado." };
 
-  const logoUrl = data.logoUrl?.trim() || null;
-  // Aceita só http(s): um `javascript:`/`data:` colado aqui viraria <img src> na folha impressa.
-  if (logoUrl && !/^https?:\/\//i.test(logoUrl)) {
-    return { error: "O endereço do logotipo precisa começar com http:// ou https://" };
+  const url = data.url?.trim() || null;
+  // Aceita só http(s): a URL é buscada pelo servidor na hora de gerar o Word — um `file:` ou
+  // endereço interno aqui viraria uma requisição do servidor para onde quem enviou quisesse.
+  if (url && !/^https?:\/\//i.test(url)) {
+    return { error: "O endereço do arquivo precisa começar com http:// ou https://" };
   }
+  const formato = data.formato === "DOCX" || data.formato === "PDF" ? data.formato : null;
+  if (url && !formato) return { error: "Envie o papel timbrado em .docx (Word) ou .pdf." };
 
   await prisma.office.update({
     where: { id: viewer.officeId },
-    data: { logoUrl, timbradoRodape: data.rodape?.trim() || null },
+    data: { timbradoUrl: url, timbradoNomeArquivo: data.nomeArquivo?.trim() || null, timbradoFormato: formato },
   });
   revalidatePath("/configuracoes");
   return {};
