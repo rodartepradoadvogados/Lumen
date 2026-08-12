@@ -53,6 +53,27 @@ export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE" |
   return {};
 }
 
+// Timbrado das folhas impressas/PDF do escritório (hoje usado pelo Relatório Personalizado —
+// app/(app)/relatorios/personalizado/imprimir/page.tsx). Multi-tenant por construção: grava sempre
+// no Office de quem está logado, então cada escritório imprime no próprio timbrado.
+export async function salvarTimbrado(data: { logoUrl?: string | null; rodape?: string | null }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem alterar o timbrado." };
+
+  const logoUrl = data.logoUrl?.trim() || null;
+  // Aceita só http(s): um `javascript:`/`data:` colado aqui viraria <img src> na folha impressa.
+  if (logoUrl && !/^https?:\/\//i.test(logoUrl)) {
+    return { error: "O endereço do logotipo precisa começar com http:// ou https://" };
+  }
+
+  await prisma.office.update({
+    where: { id: viewer.officeId },
+    data: { logoUrl, timbradoRodape: data.rodape?.trim() || null },
+  });
+  revalidatePath("/configuracoes");
+  return {};
+}
+
 // Soma os resultados de Gmail e Outlook num só SyncResult — pro botão/cron não precisar saber
 // que existem duas fontes de e-mail por baixo (mesma ideia de runFullPublicationsSync somando
 // e-mail + robô).

@@ -101,6 +101,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
         subParam: "secao",
         subDefaultValue: "produtividade",
         subItems: [
+          { label: "Personalizado", value: "personalizado" },
           { label: "Produtividade", value: "produtividade" },
           { label: "Processos", value: "processos" },
           { label: "Funil Comercial", value: "funil" },

@@ -61,6 +61,17 @@ model Office {
   // Pix QR Code de verdade (rejeita a cobrança sem isso, mesmo com o "customer" já criado).
   cnpj          String?
 
+  // Timbrado dos relatórios impressos/PDF (multi-tenant: cada escritório imprime no PRÓPRIO
+  // timbrado, nunca no do Rodarte Prado). Guarda a URL pública do logotipo enviado em
+  // Configurações → Geral (Vercel Blob, mesma infra dos anexos). Nulo = o cabeçalho impresso
+  // usa só a identificação textual do escritório (nome + CNPJ), que sempre existe.
+  // Não confundir com o timbrado do "Peticionar", que é um Google Doc (DocumentTemplate,
+  // categoria TIMBRADO) — aquele é folha de petição, este é cabeçalho de relatório.
+  logoUrl       String?
+  // Linha livre de rodapé do timbrado (endereço, telefone, OAB/seccional) — texto puro,
+  // impresso no pé de cada página do relatório.
+  timbradoRodape String?
+
   // Dias corridos de tolerância após o vencimento antes do bloqueio automático (usado pelo
   // cron de cobrança, lib/actions/billing.ts:runBillingCycle) — por escritório, pra dar
   // flexibilidade caso algum cliente específico precise de mais ou menos prazo.
@@ -178,6 +189,9 @@ model Office {
 
   // Pendências do Atendimento (Fase 5) — ver model AtendimentoPendencia mais abaixo.
   atendimentoPendencias AtendimentoPendencia[]
+
+  // Modelos salvos do Relatório Personalizado — ver model RelatorioModelo mais abaixo.
+  relatorioModelos RelatorioModelo[]
 }
 
 // ============ EQUIPE ============
@@ -259,6 +273,7 @@ model User {
   publicationsAssigned        Publication[]          @relation("PublicationAssignee")
   googleCredentials           GoogleCredential[]
   officeDocumentTypes         OfficeDocumentType[]
+  relatorioModelos            RelatorioModelo[]
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]             @relation("BlogPostReviewer")
   emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
@@ -2878,5 +2893,33 @@ model OfficeDocumentType {
   createdBy   User?   @relation(fields: [createdById], references: [id])
 
   @@unique([officeId, chave])
+  @@index([officeId])
+}
+
+// ============ RELATÓRIO PERSONALIZADO (modelos salvos) ============
+
+// Um conjunto de filtros do Relatório Personalizado salvo com nome ("Relatório mensal — Guapó"),
+// para não remontar tudo a cada mês. `filtros` guarda o RelatorioFiltros inteiro como JSON (ver
+// lib/relatorioPersonalizado.ts) — de propósito não é normalizado em colunas: o formato do filtro
+// muda junto com a tela, e uma coluna por dimensão obrigaria migração a cada dimensão nova.
+//
+// Os ids gravados aqui (assessoria, usuário) podem deixar de existir depois — por isso salvar
+// SEMPRE revalida a existência de cada valor antes de gravar (ver salvarModelo em
+// lib/actions/relatorioPersonalizado.ts) e carregar avisa o que sumiu, em vez de filtrar por um
+// id fantasma e devolver relatório vazio sem explicar por quê.
+model RelatorioModelo {
+  id        String   @id @default(cuid())
+  nome      String
+  filtros   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  @@unique([officeId, nome])
   @@index([officeId])
 }
