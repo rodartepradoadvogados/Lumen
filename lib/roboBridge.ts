@@ -4,6 +4,7 @@
 // (Publication/Case). Segue o mesmo padrão de lib/jusbrasilEmailSync.ts.
 
 import { prisma } from "@/lib/prisma";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { broadcastPushIfEnabled } from "@/lib/push";
 
 export type RoboBridgeResult = {
@@ -215,7 +216,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               officeId,
               kind: "PUBLICACAO",
               source: "DJEN",
-              content: pub.teor ?? pub.tipoComunicacao ?? "(sem teor)",
+              content: decodificarEntidadesHtml(pub.teor ?? pub.tipoComunicacao ?? "(sem teor)"),
               publishedAt: parseDataOuFallback(pub.dataDisponibilizacao, pub.dataCaptura),
               emailMessageId,
               processNumberRaw: pub.numeroProcesso,
@@ -254,7 +255,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               officeId,
               kind: "ANDAMENTO",
               source: "DATAJUD",
-              content: and.descricaoMovimento ?? and.codigoMovimento,
+              content: decodificarEntidadesHtml(and.descricaoMovimento ?? and.codigoMovimento),
               publishedAt: parseDataOuFallback(and.dataMovimentacao, and.dataCaptura),
               emailMessageId,
               processNumberRaw: and.numeroProcesso,

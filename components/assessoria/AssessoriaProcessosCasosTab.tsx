@@ -11,6 +11,7 @@ import { Plus, Search, ExternalLink, Link2, X, FolderOpen } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
 import ParecerFolderRow from "@/components/assessoria/ParecerFolderRow";
 import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
+import { SORT_OPTIONS_SEM_TIPO, sortByOption, type SortOption } from "@/lib/attachmentControls";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type CaseOption = { id: string; title: string; processNumber: string | null };
@@ -39,6 +40,11 @@ export default function AssessoriaProcessosCasosTab({
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Ordenação da lista de demandas — mesma máquina de ordenar da aba Documentos
+  // (lib/attachmentControls.ts), então os dois lugares oferecem os mesmos critérios com os mesmos
+  // rótulos. "Mais recente primeiro" é o padrão: demanda nova é a que se procura no dia a dia.
+  const [demandaSort, setDemandaSort] = useState<SortOption>("recent");
 
   const [parecerFormOpen, setParecerFormOpen] = useState(false);
   const [parecerError, setParecerError] = useState<string | null>(null);
@@ -121,12 +127,50 @@ export default function AssessoriaProcessosCasosTab({
     setError(null);
   }
 
+  const pareceresOrdenados = useMemo(
+    () =>
+      sortByOption(assessoria.pareceres, demandaSort, {
+        dateKey: (p) => new Date(p.date).toISOString(),
+        name: (p) => p.name,
+        typeLabel: () => "",
+      }),
+    [assessoria.pareceres, demandaSort]
+  );
+
+  // Os pareceres legados (sem pasta) seguem o MESMO critério — seria confuso a lista de cima
+  // reordenar e a de baixo, que é a continuação dela, ficar parada.
+  const pareceresSoltosOrdenados = useMemo(
+    () =>
+      sortByOption(pareceresSoltos, demandaSort, {
+        dateKey: (d) => new Date(d.date).toISOString(),
+        name: (d) => d.name,
+        typeLabel: () => "",
+      }),
+    [pareceresSoltos, demandaSort]
+  );
+
   return (
     <div className="space-y-5">
       <div className="bg-sf rounded-lg border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Demandas</h4>
           <div className="flex items-center gap-2 flex-wrap">
+            {(assessoria.pareceres.length > 0 || pareceresSoltos.length > 0) && (
+              <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+                Ordenar
+                <select
+                  value={demandaSort}
+                  onChange={(e) => setDemandaSort(e.target.value as SortOption)}
+                  className="text-[11px] border border-regua bg-sf text-tx rounded-lg px-1.5 py-1"
+                >
+                  {SORT_OPTIONS_SEM_TIPO.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <EnviarDocumentosButton entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} attachments={todosDocumentos} />
             <button
               onClick={() => setParecerFormOpen((v) => !v)}
@@ -168,7 +212,7 @@ export default function AssessoriaProcessosCasosTab({
           <p className="text-sm text-tx-3">Nenhuma demanda cadastrada ainda.</p>
         ) : (
           <div className="space-y-2">
-            {assessoria.pareceres.map((p) => (
+            {pareceresOrdenados.map((p) => (
               <div key={p.id} className="space-y-1.5">
                 <ParecerFolderRow parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} />
                 {/* driveFolderId nulo com o armazenamento conectado só acontece se a criação da
@@ -187,7 +231,7 @@ export default function AssessoriaProcessosCasosTab({
             {/* Pareceres antigos (um arquivo = um parecer), ainda sem pasta — ver comentário em
                 pareceresSoltos acima. Listados soltos, com o mesmo visual de antes desta entrega,
                 até o backfill rodar. */}
-            {pareceresSoltos.map((d) => (
+            {pareceresSoltosOrdenados.map((d) => (
               <a
                 key={d.id}
                 href={d.driveUrl}

@@ -102,7 +102,9 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
         </div>
 
         <div className="overflow-y-auto flex-1 p-6">
-          <div className="max-w-[900px] mx-auto animate-fade-in">
+          {/* Largura cheia — mesmo motivo do Processo: quem define o espaço é a casca do modo
+              de visualização, não um teto fixo aqui. */}
+          <div className="w-full animate-fade-in">
             <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
               <h1 className="text-2xl font-bold text-tx">{a.clientName}</h1>
               <div className="flex items-center gap-2 flex-wrap">

@@ -18,6 +18,12 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "type", label: "Tipo de documento" },
 ];
 
+// Comparação de nome com `numeric: true`: ordenação ALFANUMÉRICA, não puramente alfabética —
+// "Demanda 2" vem antes de "Demanda 10", e não depois, como aconteceria comparando caractere a
+// caractere. Vale para todas as listas que usam este helper (anexos e demandas), porque em todas
+// elas o nome costuma terminar em número.
+const compararNome = (a: string, b: string) => a.localeCompare(b, "pt-BR", { numeric: true });
+
 // Mesma lógica de comparação que o AttachmentList sempre teve (ver switch original), só que
 // parametrizada por getters em vez de campos fixos (`createdAt`/`name`/`docType`) — assim serve
 // tanto para anexos (campo `createdAt`, string ISO) quanto para documentos da Assessoria (campo
@@ -37,17 +43,21 @@ export function sortByOption<T>(
       arr.sort((a, b) => keys.dateKey(a).localeCompare(keys.dateKey(b)));
       break;
     case "name_asc":
-      arr.sort((a, b) => keys.name(a).localeCompare(keys.name(b), "pt-BR"));
+      arr.sort((a, b) => compararNome(keys.name(a), keys.name(b)));
       break;
     case "name_desc":
-      arr.sort((a, b) => keys.name(b).localeCompare(keys.name(a), "pt-BR"));
+      arr.sort((a, b) => compararNome(keys.name(b), keys.name(a)));
       break;
     case "type":
-      arr.sort((a, b) => keys.typeLabel(a).localeCompare(keys.typeLabel(b), "pt-BR") || keys.name(a).localeCompare(keys.name(b), "pt-BR"));
+      arr.sort((a, b) => keys.typeLabel(a).localeCompare(keys.typeLabel(b), "pt-BR") || compararNome(keys.name(a), keys.name(b)));
       break;
   }
   return arr;
 }
+
+// Subconjunto para listas que não têm "tipo" — hoje as demandas da Assessoria
+// (components/assessoria/AssessoriaProcessosCasosTab.tsx).
+export const SORT_OPTIONS_SEM_TIPO = SORT_OPTIONS.filter((o) => o.value !== "type");
 
 // Guarda o modo de visualização escolhido (ícones/lista/detalhes) no navegador, por tela —
 // `storageKey` isola a preferência de cada lista (Anexos de Processo/Atendimento continuam usando
