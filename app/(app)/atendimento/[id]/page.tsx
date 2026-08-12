@@ -14,6 +14,7 @@ import GerarDocumentoButton from "@/components/GerarDocumentoButton";
 import WhatsappReplyBox from "@/components/WhatsappReplyBox";
 import EmailReplyPanel from "@/components/EmailReplyPanel";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
+import EditAttendanceSubject from "@/components/EditAttendanceSubject";
 import { isStorageConnected } from "@/lib/storageProvider";
 import { isWhatsappConfigured } from "@/lib/whatsapp";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -118,7 +119,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 />
               </div>
             </div>
-            <p className="text-sm text-tx-3">{a.subject}</p>
+            <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
             <p className="text-xs italic text-tx-3 mt-1.5 mb-5">
               Use os seletores acima para mudar o estágio comercial e o status operacional deste atendimento a qualquer momento.
             </p>

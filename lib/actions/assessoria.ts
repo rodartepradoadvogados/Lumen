@@ -243,6 +243,34 @@ export async function deleteDocumento(id: string): Promise<{ error?: string }> {
   return {};
 }
 
+// Renomeia/recategoriza um documento — cobre tanto um documento solto na aba "Documentos" quanto
+// um "parecer solto" legado (docType="PARECER" sem parecerId, ver pareceresSoltos em
+// AssessoriaProcessosCasosTab.tsx): antes do backfill (scripts/backfill-pareceres.ts) rodar em
+// produção, essas demandas antigas não viram uma pasta de verdade, então não passam pelo "Editar"
+// de ParecerFolderRow — esta ação dá a elas o mesmo direito de renomear.
+export async function updateDocumento(
+  id: string,
+  data: { name?: string; docType?: string; date?: string }
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const doc = await prisma.assessoriaDocumento.findFirst({ where: { id, officeId: user.officeId } });
+  if (!doc) return { error: "Documento não encontrado." };
+  if (data.name !== undefined && !data.name.trim()) return { error: "Preencha o nome do documento." };
+
+  await prisma.assessoriaDocumento.update({
+    where: { id },
+    data: {
+      name: data.name !== undefined ? data.name.trim() : undefined,
+      docType: data.docType,
+      date: data.date ? new Date(data.date) : undefined,
+    },
+  });
+  revalidatePath(`/assessoria/${doc.assessoriaId}`);
+  return {};
+}
+
 // ============ PARECERES (pastas de documentos — ver model Parecer) ============
 //
 // Um Parecer é um agrupador: nasce com nome/data/descrição e pasta própria no armazenamento

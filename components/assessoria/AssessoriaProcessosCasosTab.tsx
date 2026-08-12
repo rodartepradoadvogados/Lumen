@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { setCaseAssessoria, createParecer, retryParecerDriveFolder, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
-import { getDocumentTypeLabel } from "@/lib/documentTypes";
-import { Plus, Search, ExternalLink, Link2, X, FolderOpen } from "lucide-react";
+import { Plus, Search, ExternalLink, Link2, X } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
 import ParecerFolderRow from "@/components/assessoria/ParecerFolderRow";
+import ParecerSoltoRow from "@/components/assessoria/ParecerSoltoRow";
 import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
 import { SORT_OPTIONS_SEM_TIPO, sortByOption, type SortOption } from "@/lib/attachmentControls";
 
@@ -232,20 +232,7 @@ export default function AssessoriaProcessosCasosTab({
                 pareceresSoltos acima. Listados soltos, com o mesmo visual de antes desta entrega,
                 até o backfill rodar. */}
             {pareceresSoltosOrdenados.map((d) => (
-              <a
-                key={d.id}
-                href={d.driveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex justify-between items-center gap-3 py-2 px-3 text-sm border border-regua rounded-lg hover:bg-sf-apoio"
-              >
-                <span className="flex items-center gap-2 min-w-0">
-                  <FolderOpen size={14} className="shrink-0 text-tx-3" />
-                  <span className="font-medium text-tx truncate">{d.name}</span>
-                  <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
-                </span>
-                <span className="text-tx-2 whitespace-nowrap text-xs shrink-0">{formatDate(d.date)}</span>
-              </a>
+              <ParecerSoltoRow key={d.id} documento={d} />
             ))}
           </div>
         )}
@@ -298,16 +285,16 @@ export default function AssessoriaProcessosCasosTab({
 
       <div className="bg-sf rounded-lg border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Casos (atendimentos) vinculados</h4>
-          {/* Auditoria apontou que esta seção não tinha botão de criar — abre o modal "Novo
-              Atendimento" (components/NewAttendanceModal.tsx, de outro agente) já aberto
-              (?novo=1) e, quando aquele componente passar a aceitar o valor inicial, com esta
-              assessoria pré-selecionada (?assessoriaId=...). Ver relatório desta entrega. */}
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Casos vinculados</h4>
+          {/* Abre o modal "Novo Atendimento" (components/NewAttendanceModal.tsx) já aberto
+              (?novo=1), com esta assessoria pré-selecionada (?assessoriaId=...). O rótulo é "Novo
+              caso" de propósito (o termo do dia a dia) — continua criando um Atendimento por
+              baixo, que depois pode virar um Processo/Caso de verdade. */}
           <Link
             href={`/atendimento?novo=1&assessoriaId=${assessoria.id}`}
             className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
           >
-            <Plus size={13} /> Novo atendimento
+            <Plus size={13} /> Novo caso
           </Link>
         </div>
         {assessoria.linkedAttendances.length === 0 ? (

@@ -275,6 +275,11 @@ export async function createCase(data: {
 export async function updateCase(
   caseId: string,
   data: {
+    // Ver comentário em EditCaseModal.tsx (CaseData.title): só sobrepõe a convenção automática
+    // "Cliente(s) x Parte(s)" quando o texto vier DIFERENTE do que ela geraria a partir dos
+    // clients/parties enviados junto — deixar o campo como veio do formulário (sem editar) produz
+    // o mesmo texto que computeCaseTitle já geraria, então o comportamento de sempre não muda.
+    title?: string;
     clients?: ClientInput[];
     parties?: PartyInput[];
     responsibleId?: string;
@@ -333,11 +338,13 @@ export async function updateCase(
   // Reaplica a convenção "Cliente(s) x Parte(s)" se a edição deixou os dois lados disponíveis —
   // mesmo se o título ainda não seguia o padrão (ex.: processo antigo). Sem os dois, mantém o
   // título já salvo (nunca apaga um título manual por falta de um dos lados).
-  const newTitle = computeCaseTitle(
+  const autoTitle = computeCaseTitle(
     resolvedClients.map((c) => c.name),
     resolvedParties.map((p) => p.name),
     existing.title
   );
+  const manualTitle = data.title?.trim();
+  const newTitle = manualTitle && manualTitle !== autoTitle ? manualTitle : autoTitle;
 
   // Substitui a lista inteira de clientes/partes em vez de tentar diffar item a item — mais
   // simples e não corre risco de deixar linha órfã de uma edição anterior.
