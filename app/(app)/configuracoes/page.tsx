@@ -853,6 +853,16 @@ export default async function ConfiguracoesPage({
               </div>
               <MigrarPastaMaeButton />
             </div>
+
+            <div className="p-5 space-y-1.5">
+              <p className="text-[15px] font-semibold text-tx">Onde cada processo, caso e assessoria está sendo salvo</p>
+              <p className="text-xs text-tx-2">
+                Lista de todos os ativos com o caminho de pasta que a convenção do sistema usa, e se ela já existe ou nasce no primeiro anexo
+              </p>
+              <Link href="/configuracoes/relatorio-pastas" className="inline-block text-xs font-semibold text-acao hover:underline mt-1">
+                Ver relatório →
+              </Link>
+            </div>
           </div>
         </Card>
       )}
