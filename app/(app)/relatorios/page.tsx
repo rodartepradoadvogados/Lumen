@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
-import { Users, Target, Newspaper, Wallet, Scale, Info } from "lucide-react";
+import { Users, Target, Newspaper, Wallet, Scale, Info, SlidersHorizontal } from "lucide-react";
+import RelatorioPersonalizadoView from "@/components/relatorios/RelatorioPersonalizadoView";
 import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
 
@@ -140,6 +141,9 @@ const NAVY = "var(--acao)";
 // ---------- seções (cada uma busca só os dados de que precisa) ----------
 
 const SECOES = [
+  // Personalizado vem primeiro: é a única seção em que o usuário monta a pergunta: as demais são
+  // painéis fechados de leitura rápida.
+  { key: "personalizado", label: "Personalizado", icon: SlidersHorizontal, financeOnly: false },
   { key: "produtividade", label: "Produtividade", icon: Users, financeOnly: false },
   { key: "processos", label: "Processos", icon: Scale, financeOnly: false },
   { key: "funil", label: "Funil Comercial", icon: Target, financeOnly: false },
@@ -720,6 +724,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
         })}
       </div>
 
+      {secao === "personalizado" && <RelatorioPersonalizadoView />}
       {secao === "produtividade" && <ProdutividadeSection start={start} end={end} months={months} officeId={viewer.officeId} />}
       {secao === "processos" && <ProcessosSection start={start} end={end} officeId={viewer.officeId} />}
       {secao === "funil" && <FunilSection start={start} end={end} officeId={viewer.officeId} />}

@@ -13,6 +13,7 @@ import {
 import DeleteButton from "@/components/DeleteButton";
 import UserRow from "@/components/UserRow";
 import AddUserForm from "@/components/AddUserForm";
+import TimbradoForm from "@/components/TimbradoForm";
 import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ImportManualModal from "@/components/ImportManualModal";
@@ -223,7 +224,7 @@ export default async function ConfiguracoesPage({
       // lib/roboBridge.ts). Usadas só pra mostrar o status real das últimas execuções.
       prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
       prisma.roboProcessoMonitorado.count(),
-      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true } }),
+      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, logoUrl: true, timbradoRodape: true } }),
       getOneDriveStatus(officeId),
       getDropboxStatus(officeId),
       getOwnOfficeBilling(),
@@ -912,6 +913,16 @@ export default async function ConfiguracoesPage({
           <Swatch color="var(--vinho)" label="Vinho" />
           <Swatch color="var(--sf-fundo)" label="Fundo" border />
         </div>
+      </Card>
+      )}
+
+      {isAdmin && secao === "geral" && (
+      <Card>
+        <CardHeader
+          title="Timbrado dos relatórios"
+          subtitle="Cabeçalho das folhas impressas e dos PDFs gerados pelo escritório (ex.: Relatórios → Personalizado)"
+        />
+        <TimbradoForm logoUrl={office?.logoUrl ?? null} rodape={office?.timbradoRodape ?? null} />
       </Card>
       )}
 
