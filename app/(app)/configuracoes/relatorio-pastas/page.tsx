@@ -60,7 +60,7 @@ export default async function RelatorioPastasPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto animate-fade-in space-y-6">
-      <Link href="/configuracoes?secao=modelos" className="inline-flex items-center gap-1.5 text-xs text-tx-2 hover:text-tx">
+      <Link href="/configuracoes?secao=modelos&cat=documentos" className="inline-flex items-center gap-1.5 text-xs text-tx-2 hover:text-tx">
         <ArrowLeft size={13} /> Voltar para Modelos &amp; Integrações
       </Link>
 

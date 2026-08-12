@@ -164,13 +164,61 @@ const STORAGE_LABELS: Record<string, string> = {
   DROPBOX: "Dropbox",
 };
 
+// Categorias DENTRO de "Modelos & Integrações". A aba reunia sete cartões pesados numa rolagem
+// só, misturando coisas que não são nem modelo nem integração (colunas do Kanban, manutenção do
+// Drive), e ainda separava o botão "Sincronizar publicações" do painel de robôs que trata
+// exatamente do mesmo assunto. Aqui a aba vira um índice de categorias: "Tudo" continua sendo o
+// padrão (ninguém perde de vista o que já conhecia), e cada chip filtra para um assunto só.
+const MODELOS_CATEGORIAS = [
+  { key: "tudo", label: "Tudo" },
+  { key: "conexoes", label: "Conexões" },
+  { key: "captura", label: "Captura automática" },
+  { key: "documentos", label: "Documentos e pastas" },
+  { key: "fluxo", label: "Fluxo de trabalho" },
+] as const;
+
+type ModelosCategoria = (typeof MODELOS_CATEGORIAS)[number]["key"];
+
+// Barra de categorias da aba. Segue o mesmo desenho dos chips de seção logo acima dela, um nível
+// abaixo na hierarquia (menor, sem ícone) para ficar claro que filtra dentro da aba, não troca de aba.
+function CategoriasModelosNav({ atual }: { atual: ModelosCategoria }) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {MODELOS_CATEGORIAS.map((c) => (
+        <Link
+          key={c.key}
+          href={`/configuracoes?secao=modelos&cat=${c.key}`}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+            atual === c.key
+              ? "bg-acao text-acao-tx border-transparent"
+              : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
+          }`}
+        >
+          {c.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// Cabeçalho de categoria — só aparece na visão "Tudo", onde serve para separar os grupos. Ao
+// filtrar por uma categoria, o chip aceso já diz onde a pessoa está, e repetir o título seria ruído.
+function CategoriaModelos({ titulo, descricao }: { titulo: string; descricao: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 pt-2">
+      <h2 className="text-[11px] font-bold uppercase tracking-[.13em] text-marca-tx">{titulo}</h2>
+      <p className="text-xs text-tx-2">{descricao}</p>
+    </div>
+  );
+}
+
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
 
 export default async function ConfiguracoesPage({
   searchParams,
 }: {
-  searchParams: { google?: string; microsoft?: string; dropbox?: string; msg?: string; secao?: string; blogTab?: string };
+  searchParams: { google?: string; microsoft?: string; dropbox?: string; msg?: string; secao?: string; blogTab?: string; cat?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) {
@@ -285,6 +333,14 @@ export default async function ConfiguracoesPage({
     return allowed && (s.key !== "blog" || blogAccess);
   });
   const secao = availableSecoes.some((s) => s.key === requestedSecao) ? requestedSecao : "geral";
+
+  // Categoria dentro de "Modelos & Integrações" (ver MODELOS_CATEGORIAS). Valor desconhecido cai
+  // em "tudo" — nunca numa tela vazia.
+  const emModelos = secao === "modelos";
+  const cat: ModelosCategoria = MODELOS_CATEGORIAS.some((c) => c.key === searchParams.cat)
+    ? (searchParams.cat as ModelosCategoria)
+    : "tudo";
+  const mostraCat = (c: ModelosCategoria) => emModelos && (cat === "tudo" || cat === c);
   const viewerInitials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const ultimoLogDatajud = roboExecucaoLogs.find((l) => l.fonte === "DATAJUD");
   const ultimoLogDjen = roboExecucaoLogs.find((l) => l.fonte === "DJEN");
@@ -508,24 +564,16 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
-      {canConfig && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="Sincronizar publicações e andamentos processuais"
-            subtitle="Varre agora os e-mails conectados (Jusbrasil e outras fontes) e busca o que o robô de DJEN/Datajud já capturou — sem esperar o próximo ciclo automático"
-          />
-          <div className="p-5">
-            <SyncPublicationsButton />
-          </div>
-        </Card>
-      )}
+      {emModelos && <CategoriasModelosNav atual={cat} />}
+
+      {emModelos && cat === "tudo" && <CategoriaModelos titulo="Conexões" descricao="Contas de Google, Microsoft e Dropbox usadas pelo escritório" />}
 
       {/* Painel "Contas conectadas" (redesenho aprovado — ver figura 11 · Modelos & Integrações):
           reúne as cinco integrações de conta em um único cartão, na mesma ordem da proposta —
           Google, Outlook, publicações por e-mail por usuário, armazenamento de anexos, envio de
           e-mail no Atendimento. Cada uma mantém seu rótulo, subtítulo e funcionalidade originais,
           só a casca em cartões separados é que vira seções dentro de um cartão só. */}
-      {canConfig && secao === "modelos" && viewer && (() => {
+      {canConfig && mostraCat("conexoes") && viewer && (() => {
         const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
         const minhaConexaoMs = microsoftAccounts.find((a) => a.userId === viewer.id);
         return (
@@ -727,10 +775,12 @@ export default async function ConfiguracoesPage({
         );
       })()}
 
+      {emModelos && cat === "tudo" && <CategoriaModelos titulo="Captura automática" descricao="De onde publicações, andamentos e mensagens chegam sozinhos" />}
+
       {/* Painel "Robôs de captura": cada linha traz o filete de severidade à esquerda —
           --concluido funcionando, --urgente falhando, --tx-3 não configurado/sem execução — e a
           última execução como subtítulo, exatamente como na figura 11 do redesenho aprovado. */}
-      {canConfig && secao === "modelos" && (
+      {canConfig && mostraCat("captura") && (
         <Card>
           <CardHeader title="Robôs de captura" subtitle="DJEN, Datajud, e-mail diário da agenda e WhatsApp — origem automática de publicações, andamentos e mensagens" />
           <div className="p-5 space-y-3">
@@ -814,10 +864,51 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
+      {canConfig && mostraCat("captura") && (
+        <Card>
+          <CardHeader
+            title="Sincronizar publicações e andamentos processuais"
+            subtitle="Varre agora os e-mails conectados (Jusbrasil e outras fontes) e busca o que o robô de DJEN/Datajud já capturou — sem esperar o próximo ciclo automático"
+          />
+          <div className="p-5">
+            <SyncPublicationsButton />
+          </div>
+        </Card>
+      )}
+
+      {emModelos && cat === "tudo" && <CategoriaModelos titulo="Documentos e pastas" descricao="Modelos, padrão de nome e organização do armazenamento" />}
+
+      {isAdmin && mostraCat("documentos") && (
+        <Card>
+          <CardHeader
+            title="Modelos de Documento"
+            subtitle="Contratos, procurações, declarações e petições — usados no botão “Gerar Documento” de cada processo/atendimento"
+          />
+          <div className="p-5">
+            <DocumentTemplatesManager
+              templates={documentTemplates.map((t) => ({ id: t.id, name: t.name, category: t.category, driveUrl: t.driveUrl }))}
+              driveConnected={driveStatus.connected}
+            />
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && mostraCat("documentos") && (
+        <Card>
+          <CardHeader
+            title="Nomenclatura de processos"
+            subtitle='Todo processo novo com cliente e parte adversa cadastrados já nasce com o título "Cliente x Parte Adversa" — este botão aplica o mesmo padrão aos processos já existentes'
+          />
+          <div className="p-5">
+            <RenameCasesToConventionButton />
+          </div>
+        </Card>
+      )}
+
       {/* Painel "Manutenção do Drive": organização de anexos, pastas fora do lugar, e a Tarefa A
           — a migração da pasta-mãe do Lúmen (lib/actions/driveParentMigration.ts), que antes não
           tinha nenhuma interface que a chamasse. */}
-      {canConfig && secao === "modelos" && driveStatus.connected && (
+      {canConfig && mostraCat("documentos") && driveStatus.connected && (
         <Card>
           <CardHeader title="Manutenção do Drive" subtitle="Organização de anexos, pastas fora do lugar e migração da pasta-mãe do Lúmen" />
           <div className="divide-y divide-regua">
@@ -864,31 +955,34 @@ export default async function ConfiguracoesPage({
         </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="Nomenclatura de processos"
-            subtitle='Todo processo novo com cliente e parte adversa cadastrados já nasce com o título "Cliente x Parte Adversa" — este botão aplica o mesmo padrão aos processos já existentes'
-          />
-          <div className="p-5">
-            <RenameCasesToConventionButton />
-          </div>
-        </Card>
-      )}
+      {emModelos && cat === "tudo" && <CategoriaModelos titulo="Fluxo de trabalho" descricao="Etapas pelas quais uma tarefa passa no Kanban" />}
 
-      {isAdmin && secao === "modelos" && (
-        <Card>
-          <CardHeader
-            title="Modelos de Documento"
-            subtitle="Contratos, procurações, declarações e petições — usados no botão “Gerar Documento” de cada processo/atendimento"
-          />
-          <div className="p-5">
-            <DocumentTemplatesManager
-              templates={documentTemplates.map((t) => ({ id: t.id, name: t.name, category: t.category, driveUrl: t.driveUrl }))}
-              driveConnected={driveStatus.connected}
-            />
-          </div>
-        </Card>
+      {isAdmin && mostraCat("fluxo") && (
+      <Card>
+        <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
+        <div className="divide-y divide-regua">
+          {columns.map((c) => (
+            <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
+              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }} />
+              <p className="text-sm text-tx flex-1">{c.name}</p>
+              {c.isDoneCol && <Badge color="green">Coluna de conclusão</Badge>}
+              <span className="text-xs text-tx-3">{c._count.tasks} tarefa(s)</span>
+              <DeleteButton
+                id={c.id}
+                confirmMessage={`Excluir a coluna "${c.name}"? Só é possível se não houver tarefas nela.`}
+                action={deleteKanbanColumn}
+              />
+            </div>
+          ))}
+        </div>
+        <form action={submitColumn} className="p-5 flex gap-2 border-t border-regua">
+          <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1" />
+          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1" />
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
+            Adicionar
+          </button>
+        </form>
+      </Card>
       )}
 
       {isAdmin && secao === "geral" && (
@@ -966,33 +1060,6 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
-      {isAdmin && secao === "modelos" && (
-      <Card>
-        <CardHeader title="Colunas do Kanban" subtitle="Personalize as etapas do fluxo de trabalho" />
-        <div className="divide-y divide-regua">
-          {columns.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }} />
-              <p className="text-sm text-tx flex-1">{c.name}</p>
-              {c.isDoneCol && <Badge color="green">Coluna de conclusão</Badge>}
-              <span className="text-xs text-tx-3">{c._count.tasks} tarefa(s)</span>
-              <DeleteButton
-                id={c.id}
-                confirmMessage={`Excluir a coluna "${c.name}"? Só é possível se não houver tarefas nela.`}
-                action={deleteKanbanColumn}
-              />
-            </div>
-          ))}
-        </div>
-        <form action={submitColumn} className="p-5 flex gap-2 border-t border-regua">
-          <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1" />
-          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1" />
-          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
-            Adicionar
-          </button>
-        </form>
-      </Card>
-      )}
 
       {isAdmin && secao === "financeiro" && (
       <>
