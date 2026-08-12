@@ -951,6 +951,17 @@ export default async function ConfiguracoesPage({
                 Ver relatório →
               </Link>
             </div>
+
+            <div className="p-5 space-y-1.5">
+              <p className="text-[15px] font-semibold text-tx">Cadastros de cliente parecidos</p>
+              <p className="text-xs text-tx-2">
+                Encontra clientes com o mesmo nome cadastrados duas vezes — a causa da mesma empresa aparecer com
+                duas pastas em Assessoria — e unifica os dois, no banco e no Drive, com conferência antes de aplicar
+              </p>
+              <Link href="/configuracoes/duplicados" className="inline-block text-xs font-semibold text-acao hover:underline mt-1">
+                Ver e unificar →
+              </Link>
+            </div>
           </div>
         </Card>
       )}
