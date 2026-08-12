@@ -5,19 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { naturezaOf, NATUREZA_LABELS } from "@/lib/caseNatureza";
+import { RAIZ_ROTULO, type RaizKey } from "@/lib/driveNaming";
+import { nomeacaoDoEscritorio } from "@/lib/driveNamingOffice";
 
 export const dynamic = "force-dynamic";
-
-// Nomes de raiz — idênticos nos três provedores (ver lib/googleDrive.ts, lib/oneDriveStorage.ts,
-// lib/dropboxStorage.ts: as constantes *_ROOT_NAME têm o mesmo valor nos três arquivos). Repetidos
-// aqui como string literal, e não importados, porque essas constantes não são exportadas — são
-// implementação interna de cada módulo de armazenamento; duplicar 5 strings é mais simples e mais
-// seguro do que exportar constantes internas só para uma tela de relatório ler.
-const RAIZ = {
-  processos: "Lúmen - Processos",
-  casos: "Lúmen - Casos",
-  assessoria: "Lúmen - Assessoria",
-} as const;
 
 const PROVIDER_LABELS: Record<string, string> = {
   GOOGLE_DRIVE: "Google Drive",
@@ -30,7 +21,12 @@ export default async function RelatorioPastasPage() {
   if (!viewer) redirect("/");
   if (!viewer.isAdmin) redirect("/configuracoes");
 
-  const [office, casesRaw, assessoriasRaw] = await Promise.all([
+  // Os nomes vêm da MESMA fonte que o sistema usa para criar as pastas (lib/driveNaming.ts) e são
+  // os DESTE escritório. Antes esta tela repetia os literais "Lúmen - *" por conta própria, com um
+  // comentário admitindo a duplicação — o que a deixaria livre para divergir do que o sistema
+  // realmente cria assim que a nomenclatura virasse configurável.
+  const [nomeacao, office, casesRaw, assessoriasRaw, atendimentosCount] = await Promise.all([
+    nomeacaoDoEscritorio(viewer.officeId),
     prisma.office.findUnique({ where: { id: viewer.officeId }, select: { storageProvider: true } }),
     prisma.case.findMany({
       where: { officeId: viewer.officeId, status: "ATIVO" },
@@ -49,12 +45,18 @@ export default async function RelatorioPastasPage() {
       select: { id: true, driveFolderId: true, client: { select: { name: true } } },
       orderBy: { client: { name: "asc" } },
     }),
+    prisma.attendance.count({ where: { officeId: viewer.officeId } }),
   ]);
 
   const providerLabel = PROVIDER_LABELS[office?.storageProvider ?? "GOOGLE_DRIVE"] ?? office?.storageProvider ?? "—";
 
   const processos = casesRaw.filter((c) => naturezaOf(c.type) !== "CASO");
   const casos = casesRaw.filter((c) => naturezaOf(c.type) === "CASO");
+
+  const caminho = (raiz: RaizKey, item?: string) =>
+    [nomeacao.pastaMae, nomeacao.raizes[raiz], item].filter(Boolean).join(" › ");
+
+  const raizes = Object.keys(RAIZ_ROTULO) as RaizKey[];
 
   return (
     <div className="p-6 max-w-5xl mx-auto animate-fade-in space-y-6">
@@ -69,17 +71,34 @@ export default async function RelatorioPastasPage() {
 
       <div className="bg-acao-bg border border-regua rounded-xl px-4 py-3 text-xs text-tx-2 space-y-1">
         <p>
-          O <strong className="text-tx">caminho</strong> abaixo é o que a convenção do sistema usa para criar pasta nova — a mesma
-          regra de <code className="bg-sf px-1 rounded">getOrCreateCaseFolder</code>/<code className="bg-sf px-1 rounded">getOrCreateAssessoriaCompanyFolder</code>. A
+          O <strong className="text-tx">caminho</strong> abaixo é o que a convenção deste escritório usa para criar pasta nova. A
           coluna <strong className="text-tx">Pasta</strong> mostra se ela já existe de fato: quando ainda não existe, nasce
           automaticamente no primeiro anexo enviado, exatamente nesse caminho.
         </p>
         <p>
-          Se uma pasta foi criada antes da migração para a pasta-mãe &ldquo;Lúmen&rdquo;, ela pode ainda estar solta na raiz do
-          armazenamento, fora do caminho mostrado aqui, até você rodar &ldquo;Conferir migração da pasta-mãe&rdquo; em Modelos &amp;
-          Integrações → Manutenção do Drive.
+          Os nomes vêm de{" "}
+          <Link href="/configuracoes?secao=geral" className="text-acao font-semibold hover:underline">
+            Configurações → Geral → Pastas no armazenamento
+          </Link>
+          . Mudar a configuração lá muda o caminho das pastas <strong className="text-tx">novas</strong>; as que já existem
+          continuam onde estão, com os links intactos.
         </p>
       </div>
+
+      <Card>
+        <CardHeader
+          title="Estrutura deste escritório"
+          subtitle={`Pasta-mãe “${nomeacao.pastaMae}” · ${raizes.length} pastas de sistema`}
+        />
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          {raizes.map((r) => (
+            <div key={r} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-regua">
+              <span className="text-xs text-tx-2 shrink-0">{RAIZ_ROTULO[r]}</span>
+              <span className="text-[11px] font-mono text-tx truncate">{nomeacao.raizes[r]}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card>
         <CardHeader title="Processos" subtitle={`${processos.length} ativo(s) — Judicial e Administrativo`} />
@@ -90,7 +109,7 @@ export default async function RelatorioPastasPage() {
             titulo: c.title,
             detalhe: c.processNumber ?? undefined,
             tag: NATUREZA_LABELS[naturezaOf(c.type)],
-            caminho: `Lúmen › ${RAIZ.processos} › ${c.title}`,
+            caminho: caminho("processos", c.title),
             temPasta: Boolean(c.driveFolderId),
           }))}
           semRegistro="Nenhum processo ativo."
@@ -106,10 +125,10 @@ export default async function RelatorioPastasPage() {
             titulo: c.title,
             detalhe: c.assessoria?.client.name ? `Vinculado a ${c.assessoria.client.name}` : undefined,
             tag: NATUREZA_LABELS.CASO,
-            // Caso vinculado a assessoria continua indo pra Lúmen - Casos por decisão do dono do
+            // Caso vinculado a assessoria continua indo pra raiz de Casos por decisão do dono do
             // escritório (ver PR #6): fica fora da pasta da empresa de propósito, pra não gerar
             // erro de organização — não existe um caminho "dentro da assessoria" a mostrar aqui.
-            caminho: `Lúmen › ${RAIZ.casos} › ${c.title}`,
+            caminho: caminho("casos", c.title),
             temPasta: Boolean(c.driveFolderId),
           }))}
           semRegistro="Nenhum caso ativo."
@@ -124,12 +143,22 @@ export default async function RelatorioPastasPage() {
             href: `/assessoria/${a.id}`,
             titulo: a.client.name,
             tag: "Assessoria",
-            caminho: `Lúmen › ${RAIZ.assessoria} › ${a.client.name}`,
+            caminho: caminho("assessoria", a.client.name),
             temPasta: Boolean(a.driveFolderId),
           }))}
           semRegistro="Nenhuma assessoria ativa."
         />
       </Card>
+
+      {atendimentosCount > 0 && (
+        <Card>
+          <CardHeader title="Atendimentos" subtitle={`${atendimentosCount} cadastrado(s)`} />
+          <p className="text-sm text-tx-2 p-5">
+            Cada atendimento com anexo ganha uma pasta em{" "}
+            <code className="bg-sf-apoio px-1 rounded font-mono text-xs">{caminho("atendimentos", "{assunto}")}</code>.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

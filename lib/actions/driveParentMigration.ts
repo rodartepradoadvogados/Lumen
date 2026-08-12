@@ -44,7 +44,7 @@ import {
   getOrCreateAssessoriaCompanyFolder,
   getOrCreateParecerFolder,
   ASSESSORIA_DOC_TYPE_FOLDERS,
-  ALL_ROOT_FOLDER_NAMES,
+  allRootFolderNames,
   DRIVE_FOLDER_MIME_TYPE,
   type DriveChildEntry,
 } from "@/lib/googleDrive";
@@ -101,8 +101,8 @@ function normalizarNome(s: string): string {
 // ============ ETAPA (a): raízes "Lúmen - *" soltas em 'root' -> pasta-mãe "Lúmen" ============
 
 async function encontrarRaizesLumenSoltas(officeId: string): Promise<DriveChildEntry[]> {
-  const topLevel = await listDriveChildren(officeId, "root");
-  return topLevel.filter((f) => f.mimeType === DRIVE_FOLDER_MIME_TYPE && ALL_ROOT_FOLDER_NAMES.includes(f.name));
+  const [topLevel, nomes] = await Promise.all([listDriveChildren(officeId, "root"), allRootFolderNames(officeId)]);
+  return topLevel.filter((f) => f.mimeType === DRIVE_FOLDER_MIME_TYPE && nomes.includes(f.name));
 }
 
 async function moverRaizesLumenSoltas(officeId: string, soltas: DriveChildEntry[], simulacao: boolean): Promise<string[]> {

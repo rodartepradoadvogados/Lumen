@@ -14,6 +14,7 @@ import DeleteButton from "@/components/DeleteButton";
 import UserRow from "@/components/UserRow";
 import AddUserForm from "@/components/AddUserForm";
 import TimbradoForm from "@/components/TimbradoForm";
+import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
 import TestEmailButton from "@/components/TestEmailButton";
 import DocumentTemplatesManager from "@/components/DocumentTemplatesManager";
 import ImportManualModal from "@/components/ImportManualModal";
@@ -47,6 +48,7 @@ import ModulesManager from "@/components/ModulesManager";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
+import { PASTA_MAE_PADRAO, PREFIXO_PADRAO } from "@/lib/driveNaming";
 
 export const dynamic = "force-dynamic";
 
@@ -154,6 +156,14 @@ const SECAO_ICONS = {
   cobranca: CreditCard,
 } as const;
 
+// Rótulo legível de cada provedor de armazenamento — usado nos textos de "Pastas no
+// armazenamento", que precisam dizer "no Google Drive"/"no Dropbox" em vez do valor cru do banco.
+const STORAGE_LABELS: Record<string, string> = {
+  GOOGLE_DRIVE: "Google Drive",
+  ONEDRIVE: "OneDrive",
+  DROPBOX: "Dropbox",
+};
+
 const TASK_TYPES_ORDER = ["TAREFA", "EVENTO", "AUDIENCIA", "PERICIA", "PRAZO"];
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
 
@@ -224,7 +234,7 @@ export default async function ConfiguracoesPage({
       // lib/roboBridge.ts). Usadas só pra mostrar o status real das últimas execuções.
       prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
       prisma.roboProcessoMonitorado.count(),
-      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true } }),
+      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true, drivePastaMae: true, drivePrefixo: true } }),
       getOneDriveStatus(officeId),
       getDropboxStatus(officeId),
       getOwnOfficeBilling(),
@@ -913,6 +923,20 @@ export default async function ConfiguracoesPage({
           <Swatch color="var(--vinho)" label="Vinho" />
           <Swatch color="var(--sf-fundo)" label="Fundo" border />
         </div>
+      </Card>
+      )}
+
+      {isAdmin && secao === "geral" && (
+      <Card>
+        <CardHeader
+          title="Pastas no armazenamento"
+          subtitle={`Como as pastas deste escritório se chamam no ${STORAGE_LABELS[storageProvider] ?? storageProvider} · vale para as pastas criadas daqui pra frente`}
+        />
+        <NomeacaoDriveForm
+          pastaMae={office?.drivePastaMae ?? PASTA_MAE_PADRAO}
+          prefixo={office?.drivePrefixo ?? PREFIXO_PADRAO}
+          provedor={STORAGE_LABELS[storageProvider] ?? storageProvider}
+        />
       </Card>
       )}
 

@@ -3,6 +3,8 @@ import { Readable } from "stream";
 import { prisma } from "@/lib/prisma";
 import { PROTOCOLOS_FOLDER_NAME } from "@/lib/protocolos";
 import { naturezaOf } from "@/lib/caseNatureza";
+import { type RaizKey } from "@/lib/driveNaming";
+import { nomeacaoDoEscritorio } from "@/lib/driveNamingOffice";
 
 // "drive" (acesso completo), não "drive.file" + "drive.readonly" como antes: drive.file só
 // permite ESCREVER (mover, renomear, mandar pra Lixeira) em arquivos que o próprio app criou via
@@ -24,10 +26,12 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
+// O NOME de cada pasta vem da configuração do escritório (lib/driveNaming.ts); aqui fica só a
+// ligação entre a raiz e o campo da credencial onde o id dela é cacheado.
 const FOLDERS = {
-  anexos: { name: "Lúmen - Anexos", field: "folderId" as const },
-  modelos: { name: "Lúmen - Modelos de Documento", field: "templatesFolderId" as const },
-  gerados: { name: "Lúmen - Documentos Gerados", field: "generatedFolderId" as const },
+  anexos: { raiz: "anexos" as RaizKey, field: "folderId" as const },
+  modelos: { raiz: "modelos" as RaizKey, field: "templatesFolderId" as const },
+  gerados: { raiz: "gerados" as RaizKey, field: "generatedFolderId" as const },
 };
 
 export function getOAuthClient() {
@@ -284,8 +288,6 @@ async function getDriveClient(officeId: string) {
   return { drive: google.drive({ version: "v3", auth: client }), docs: google.docs({ version: "v1", auth: client }), cred };
 }
 
-const LUMEN_PARENT_FOLDER_NAME = "Lúmen";
-
 // Pasta-mãe que passa a conter TODAS as raízes do sistema (Processos, Casos, Atendimentos,
 // Assessoria, Anexos, Modelos, Documentos Gerados, Financeiro-Despesas, Financeiro-Receitas) —
 // mesmo desenho que OneDrive/Dropbox já usam (rootFolderId cacheado na credencial de
@@ -295,12 +297,14 @@ const LUMEN_PARENT_FOLDER_NAME = "Lúmen";
 // mexer em qualquer coisa).
 async function getOrCreateLumenParentFolder(
   drive: ReturnType<typeof google.drive>,
-  cred: { id: string; rootFolderId: string | null }
+  cred: { id: string; rootFolderId: string | null },
+  officeId: string
 ): Promise<string> {
   if (cred.rootFolderId) return cred.rootFolderId;
 
+  const { pastaMae } = await nomeacaoDoEscritorio(officeId);
   const res = await drive.files.list({
-    q: `name='${LUMEN_PARENT_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
+    q: `name='${pastaMae}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`,
     fields: "files(id,name)",
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
@@ -308,28 +312,29 @@ async function getOrCreateLumenParentFolder(
   let parentId = res.data.files?.[0]?.id;
   if (!parentId) {
     const created = await drive.files.create({
-      requestBody: { name: LUMEN_PARENT_FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" },
+      requestBody: { name: pastaMae, mimeType: "application/vnd.google-apps.folder" },
       fields: "id",
       supportsAllDrives: true,
     });
     parentId = created.data.id ?? undefined;
   }
-  if (!parentId) throw new Error('Não foi possível criar a pasta-mãe "Lúmen" no Google Drive.');
+  if (!parentId) throw new Error(`Não foi possível criar a pasta-mãe "${pastaMae}" no Google Drive.`);
   await prisma.googleCredential.update({ where: { id: cred.id }, data: { rootFolderId: parentId } });
   return parentId;
 }
 
 async function getOrCreateFolderId(kind: keyof typeof FOLDERS, officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  const { name, field } = FOLDERS[kind];
+  const { raiz, field } = FOLDERS[kind];
+  const name = (await nomeacaoDoEscritorio(officeId)).raizes[raiz];
   const existingId = cred[field];
   if (existingId) return existingId;
 
-  // Dentro da pasta-mãe "Lúmen" (ver getOrCreateLumenParentFolder), não mais solta em qualquer
+  // Dentro da pasta-mãe do escritório (ver getOrCreateLumenParentFolder), não mais solta em qualquer
   // lugar do Drive — a busca antiga não filtrava nem por pasta-mãe nem por 'root', então uma
   // pasta homônima criada por acidente em qualquer lugar do Drive conectado seria "encontrada" e
   // reaproveitada por engano.
-  const parentId = await getOrCreateLumenParentFolder(drive, cred);
+  const parentId = await getOrCreateLumenParentFolder(drive, cred, officeId);
   const res = await drive.files.list({
     q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
     fields: "files(id,name)",
@@ -538,7 +543,6 @@ export async function copyAndFillTemplate(
   return { id: newFileId, webViewLink: file.data.webViewLink, pdfUrl, matchedCount };
 }
 
-const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
 // Mapeia cada tipo de documento do catálogo da Assessoria (ver prisma/schema.prisma,
 // AssessoriaDocumento.docType) para o nome da subpasta correspondente — ACAO_VINCULADA e
 // OUTRO não têm pasta própria (a primeira já vive em Processos; a segunda cai na raiz da
@@ -578,9 +582,11 @@ async function findOrCreateChildFolder(drive: ReturnType<typeof google.drive>, p
 async function getOrCreateRootFolder(
   drive: ReturnType<typeof google.drive>,
   cred: { id: string; rootFolderId: string | null },
-  rootName: string
+  raiz: RaizKey,
+  officeId: string
 ): Promise<string> {
-  const parentId = await getOrCreateLumenParentFolder(drive, cred);
+  const parentId = await getOrCreateLumenParentFolder(drive, cred, officeId);
+  const rootName = (await nomeacaoDoEscritorio(officeId)).raizes[raiz];
   const res = await drive.files.list({
     q: `name='${rootName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
     fields: "files(id,name)",
@@ -606,7 +612,7 @@ async function getOrCreateRootFolder(
 // empresa fica salvo em Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
 export async function getOrCreateAssessoriaCompanyFolder(companyName: string, officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
+  const rootId = await getOrCreateRootFolder(drive, cred, "assessoria", officeId);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   for (const subName of Object.values(ASSESSORIA_DOC_TYPE_FOLDERS)) {
     await findOrCreateChildFolder(drive, companyFolderId, subName);
@@ -639,7 +645,7 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
   }
 
   const { drive, cred } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
+  const rootId = await getOrCreateRootFolder(drive, cred, "assessoria", officeId);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   const pareceresFolderId = await findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER);
   const folderId = await findOrCreateChildFolder(drive, pareceresFolderId, parecerName);
@@ -652,7 +658,7 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
 // dela.
 export async function getAssessoriaRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
+  return getOrCreateRootFolder(drive, cred, "assessoria", officeId);
 }
 
 // Subpasta "Pareceres" dentro da pasta da empresa (garante a estrutura completa) — usado pela
@@ -662,20 +668,17 @@ export async function getAssessoriaRootFolderId(officeId: string): Promise<strin
 // descobrir o PAI correto pra mover a pasta que esse id aponta — não reencontrá-la pelo id.
 export async function getAssessoriaPareceresContainerFolderId(companyName: string, officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, cred, ASSESSORIA_ROOT_NAME);
+  const rootId = await getOrCreateRootFolder(drive, cred, "assessoria", officeId);
   const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
   return findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER);
 }
 
-const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
-const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
 // Raiz nova (separada de "Lúmen - Processos") para Case cuja natureza é "CASO" — ver
 // lib/caseNatureza.ts: qualquer type que não seja JUDICIAL nem ADMINISTRATIVO (EXTRAJUDICIAL, e os
 // legados ATENDIMENTO/CONSULTIVO). Antes desta mudança, TODO Case (processo ou caso) caía em
-// PROCESSOS_ROOT_NAME; pastas que já existiam lá antes desta entrega só migram para cá através de
+// da raiz de processos; pastas que já existiam lá antes desta entrega só migram para cá através de
 // scripts/migrar-pastas-casos.ts (nunca automaticamente) — ver getOrCreateCaseFolder abaixo, que
 // só decide a raiz para pasta NOVA (Case.driveFolderId ainda nulo).
-const CASOS_ROOT_NAME = "Lúmen - Casos";
 
 // Pasta própria de um processo/caso no Drive ("Lúmen - Processos/{título}" ou "Lúmen -
 // Casos/{título}", conforme Case.type — ver naturezaOf), criada sob demanda no primeiro anexo — o
@@ -710,8 +713,8 @@ export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, o
   // Fallback conservador (existing null, ex.: caseId inválido — não deveria acontecer, pois quem
   // chama já validou o caseId antes) mantém o comportamento anterior a esta mudança: raiz de
   // Processos.
-  const rootName = existing && naturezaOf(existing.type) === "CASO" ? CASOS_ROOT_NAME : PROCESSOS_ROOT_NAME;
-  const rootId = await getOrCreateRootFolder(drive, cred, rootName);
+  const raiz: RaizKey = existing && naturezaOf(existing.type) === "CASO" ? "casos" : "processos";
+  const rootId = await getOrCreateRootFolder(drive, cred, raiz, officeId);
   const folderId = await findOrCreateChildFolder(drive, rootId, caseTitle);
   await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -733,7 +736,7 @@ export async function getOrCreateAttendanceFolder(attendanceId: string, subject:
   }
 
   const { drive, cred } = await getDriveClient(officeId);
-  const rootId = await getOrCreateRootFolder(drive, cred, ATENDIMENTOS_ROOT_NAME);
+  const rootId = await getOrCreateRootFolder(drive, cred, "atendimentos", officeId);
   const folderId = await findOrCreateChildFolder(drive, rootId, subject);
   await prisma.attendance.updateMany({ where: { id: attendanceId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -864,12 +867,12 @@ export async function listDriveChildren(officeId: string, folderId: string): Pro
 // precisar de um Case/Attendance específico em mãos.
 export async function getProcessosRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, cred, PROCESSOS_ROOT_NAME);
+  return getOrCreateRootFolder(drive, cred, "processos", officeId);
 }
 
 export async function getAtendimentosRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, cred, ATENDIMENTOS_ROOT_NAME);
+  return getOrCreateRootFolder(drive, cred, "atendimentos", officeId);
 }
 
 // Id da raiz "Lúmen - Casos" deste escritório (cria se ainda não existir) — exportado para o sync
@@ -877,7 +880,7 @@ export async function getAtendimentosRootFolderId(officeId: string): Promise<str
 // resolver o destino das pastas de caso movidas.
 export async function getCasosRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, cred, CASOS_ROOT_NAME);
+  return getOrCreateRootFolder(drive, cred, "casos", officeId);
 }
 
 // Comprovantes do Financeiro (Contas a Pagar/Contas a Receber) — duas raízes FLAT, sem pasta por
@@ -886,42 +889,35 @@ export async function getCasosRootFolderId(officeId: string): Promise<string> {
 // conta só acrescentaria clique sem organizar nada a mais — a lista já é ordenável por nome no
 // próprio Drive. "Despesas" (Payable) e "Receitas" (Receivable) são raízes SEPARADAS (não uma
 // única "Lúmen - Financeiro" com duas subpastas) para ficar no mesmo padrão flat de
-// PROCESSOS_ROOT_NAME/ATENDIMENTOS_ROOT_NAME/ASSESSORIA_ROOT_NAME acima — todas raiz direta da
+// processos/atendimentos/assessoria acima — todas raiz direta da
 // pasta-mãe "Lúmen", nenhuma aninhada dentro de outra.
-const FINANCEIRO_DESPESAS_ROOT_NAME = "Lúmen - Financeiro - Despesas";
-const FINANCEIRO_RECEITAS_ROOT_NAME = "Lúmen - Financeiro - Receitas";
 
 export async function getFinanceDespesasRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, cred, FINANCEIRO_DESPESAS_ROOT_NAME);
+  return getOrCreateRootFolder(drive, cred, "financeiroDespesas", officeId);
 }
 
 export async function getFinanceReceitasRootFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateRootFolder(drive, cred, FINANCEIRO_RECEITAS_ROOT_NAME);
+  return getOrCreateRootFolder(drive, cred, "financeiroReceitas", officeId);
 }
 
 // Id da pasta-mãe "Lúmen" (cria se ainda não existir) — exportado para
 // lib/actions/driveParentMigration.ts mover as raízes legadas soltas pra dentro dela.
 export async function getLumenParentFolderId(officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
-  return getOrCreateLumenParentFolder(drive, cred);
+  return getOrCreateLumenParentFolder(drive, cred, officeId);
 }
 
-// As nove raízes que hoje nascem dentro da pasta-mãe "Lúmen" (ver getOrCreateRootFolder) — usado
-// só pela migração (lib/actions/driveParentMigration.ts) para reconhecer, por nome, qualquer uma
-// delas que ainda esteja solta direto em 'root' de uma conexão anterior a esta entrega.
-export const ALL_ROOT_FOLDER_NAMES: string[] = [
-  FOLDERS.anexos.name,
-  FOLDERS.modelos.name,
-  FOLDERS.gerados.name,
-  ASSESSORIA_ROOT_NAME,
-  PROCESSOS_ROOT_NAME,
-  ATENDIMENTOS_ROOT_NAME,
-  CASOS_ROOT_NAME,
-  FINANCEIRO_DESPESAS_ROOT_NAME,
-  FINANCEIRO_RECEITAS_ROOT_NAME,
-];
+// As nove raízes que nascem dentro da pasta-mãe (ver getOrCreateRootFolder) — usado só pela
+// migração (lib/actions/driveParentMigration.ts) para reconhecer, por nome, qualquer uma delas
+// que ainda esteja solta direto em 'root' de uma conexão anterior à pasta-mãe existir.
+//
+// Virou função (antes era uma constante) porque o nome das raízes agora é escolhido por cada
+// escritório — ver lib/driveNaming.ts.
+export async function allRootFolderNames(officeId: string): Promise<string[]> {
+  return (await nomeacaoDoEscritorio(officeId)).todasAsRaizes;
+}
 
 // ============ MIGRAÇÃO DE PASTAS LEGADAS (ver lib/actions/driveFolderMigration.ts) ============
 

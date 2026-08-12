@@ -21,13 +21,14 @@
 // `path` — a Dropbox já devolve `.id` nesse formato, então isso é um no-op na prática, mas deixa o
 // código resiliente e autodocumentado em vez de depender de um detalhe implícito da API.
 import { prisma } from "@/lib/prisma";
+import { type RaizKey } from "@/lib/driveNaming";
+import { nomeacaoDoEscritorio } from "@/lib/driveNamingOffice";
 import { getDropboxAccessToken, exchangeDropboxCodeForTokens } from "@/lib/dropbox";
 import { ASSESSORIA_DOC_TYPE_FOLDERS } from "@/lib/oneDriveStorage";
 import { naturezaOf } from "@/lib/caseNatureza";
 
 const API_BASE = "https://api.dropboxapi.com/2";
 const CONTENT_BASE = "https://content.dropboxapi.com/2";
-const ROOT_FOLDER_NAME = "Lúmen";
 
 export { ASSESSORIA_DOC_TYPE_FOLDERS };
 
@@ -84,6 +85,8 @@ export async function getOrCreateRootFolder(officeId: string): Promise<string> {
   if (cred.rootFolderId) return cred.rootFolderId;
 
   const accessToken = await getDropboxAccessToken(cred.refreshToken);
+  // Nome da pasta-mãe escolhido por este escritório (lib/driveNaming.ts).
+  const ROOT_FOLDER_NAME = (await nomeacaoDoEscritorio(officeId)).pastaMae;
   const rootPath = `/${ROOT_FOLDER_NAME}`;
   const createRes = await dbxFetch("/files/create_folder_v2", accessToken, { path: rootPath, autorename: false });
 
@@ -143,18 +146,13 @@ export async function createNamedFolder(parentFolderId: string, name: string, of
   return { id: asIdPath(created.metadata.id) };
 }
 
-const PROCESSOS_ROOT_NAME = "Lúmen - Processos";
-const ATENDIMENTOS_ROOT_NAME = "Lúmen - Atendimentos";
-const ASSESSORIA_ROOT_NAME = "Lúmen - Assessoria";
 // Raiz nova para Case cuja natureza é "CASO" (ver lib/caseNatureza.ts e o mesmo ponto em
 // lib/googleDrive.ts) — mesma regra, mesmo comentário de fundo, só o provedor muda.
-const CASOS_ROOT_NAME = "Lúmen - Casos";
 // Comprovantes do Financeiro — duas raízes FLAT (sem pasta por conta), mesmo raciocínio do lado
 // Google (ver lib/googleDrive.ts, mesmo comentário): o arquivo já nasce catalogado pelo nome.
-const FINANCEIRO_DESPESAS_ROOT_NAME = "Lúmen - Financeiro - Despesas";
-const FINANCEIRO_RECEITAS_ROOT_NAME = "Lúmen - Financeiro - Receitas";
 
-async function getOrCreateNamedRootFolder(rootName: string, officeId: string): Promise<string> {
+async function getOrCreateNamedRootFolder(raiz: RaizKey, officeId: string): Promise<string> {
+  const rootName = (await nomeacaoDoEscritorio(officeId)).raizes[raiz];
   const lumenRootId = await getOrCreateRootFolder(officeId);
   return getOrCreateChildFolder(lumenRootId, rootName, officeId);
 }
@@ -172,8 +170,8 @@ export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, o
   const existing = await prisma.case.findFirst({ where: { id: caseId, officeId }, select: { driveFolderId: true, type: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const rootName = existing && naturezaOf(existing.type) === "CASO" ? CASOS_ROOT_NAME : PROCESSOS_ROOT_NAME;
-  const rootId = await getOrCreateNamedRootFolder(rootName, officeId);
+  const raiz: RaizKey = existing && naturezaOf(existing.type) === "CASO" ? "casos" : "processos";
+  const rootId = await getOrCreateNamedRootFolder(raiz, officeId);
   const folderId = await getOrCreateChildFolder(rootId, caseTitle, officeId);
   await prisma.case.updateMany({ where: { id: caseId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -184,7 +182,7 @@ export async function getOrCreateAttendanceFolder(attendanceId: string, subject:
   const existing = await prisma.attendance.findFirst({ where: { id: attendanceId, officeId }, select: { driveFolderId: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const rootId = await getOrCreateNamedRootFolder(ATENDIMENTOS_ROOT_NAME, officeId);
+  const rootId = await getOrCreateNamedRootFolder("atendimentos", officeId);
   const folderId = await getOrCreateChildFolder(rootId, subject, officeId);
   await prisma.attendance.updateMany({ where: { id: attendanceId, officeId }, data: { driveFolderId: folderId } });
   return folderId;
@@ -194,11 +192,11 @@ export async function getOrCreateAttendanceFolder(attendanceId: string, subject:
 // — exportados para scripts/migrar-pastas-casos.ts (Tarefa B), mesmo papel de
 // getProcessosRootFolderId/getCasosRootFolderId em lib/googleDrive.ts e lib/oneDriveStorage.ts.
 export async function getProcessosRootFolderId(officeId: string): Promise<string> {
-  return getOrCreateNamedRootFolder(PROCESSOS_ROOT_NAME, officeId);
+  return getOrCreateNamedRootFolder("processos", officeId);
 }
 
 export async function getCasosRootFolderId(officeId: string): Promise<string> {
-  return getOrCreateNamedRootFolder(CASOS_ROOT_NAME, officeId);
+  return getOrCreateNamedRootFolder("casos", officeId);
 }
 
 // Lê id + nome + caminho do PAI atual de um item do Dropbox (arquivo ou pasta) — usado só por
@@ -223,11 +221,11 @@ export async function getDropboxItemInfo(fileId: string, officeId: string): Prom
 }
 
 export async function getFinanceDespesasRootFolderId(officeId: string): Promise<string> {
-  return getOrCreateNamedRootFolder(FINANCEIRO_DESPESAS_ROOT_NAME, officeId);
+  return getOrCreateNamedRootFolder("financeiroDespesas", officeId);
 }
 
 export async function getFinanceReceitasRootFolderId(officeId: string): Promise<string> {
-  return getOrCreateNamedRootFolder(FINANCEIRO_RECEITAS_ROOT_NAME, officeId);
+  return getOrCreateNamedRootFolder("financeiroReceitas", officeId);
 }
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:
@@ -235,7 +233,7 @@ export async function getFinanceReceitasRootFolderId(officeId: string): Promise<
 // Reaproveita o mesmo mapa ASSESSORIA_DOC_TYPE_FOLDERS de lib/oneDriveStorage.ts (reexportado
 // acima) — é só um Record<string,string> sem dependência de provedor.
 export async function getOrCreateAssessoriaCompanyFolder(companyName: string, officeId: string): Promise<string> {
-  const rootId = await getOrCreateNamedRootFolder(ASSESSORIA_ROOT_NAME, officeId);
+  const rootId = await getOrCreateNamedRootFolder("assessoria", officeId);
   const companyFolderId = await getOrCreateChildFolder(rootId, companyName, officeId);
   for (const subName of Object.values(ASSESSORIA_DOC_TYPE_FOLDERS)) {
     await getOrCreateChildFolder(companyFolderId, subName, officeId);
@@ -250,7 +248,7 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
   const existing = await prisma.parecer.findFirst({ where: { id: parecerId, officeId }, select: { driveFolderId: true } });
   if (existing?.driveFolderId) return existing.driveFolderId;
 
-  const rootId = await getOrCreateNamedRootFolder(ASSESSORIA_ROOT_NAME, officeId);
+  const rootId = await getOrCreateNamedRootFolder("assessoria", officeId);
   const companyFolderId = await getOrCreateChildFolder(rootId, companyName, officeId);
   const pareceresFolderId = await getOrCreateChildFolder(companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.PARECER, officeId);
   const folderId = await getOrCreateChildFolder(pareceresFolderId, parecerName, officeId);
