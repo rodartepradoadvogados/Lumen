@@ -224,7 +224,7 @@ export default async function ConfiguracoesPage({
       // lib/roboBridge.ts). Usadas só pra mostrar o status real das últimas execuções.
       prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
       prisma.roboProcessoMonitorado.count(),
-      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, logoUrl: true, timbradoRodape: true } }),
+      prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, timbradoUrl: true, timbradoNomeArquivo: true, timbradoFormato: true } }),
       getOneDriveStatus(officeId),
       getDropboxStatus(officeId),
       getOwnOfficeBilling(),
@@ -919,10 +919,14 @@ export default async function ConfiguracoesPage({
       {isAdmin && secao === "geral" && (
       <Card>
         <CardHeader
-          title="Timbrado dos relatórios"
-          subtitle="Cabeçalho das folhas impressas e dos PDFs gerados pelo escritório (ex.: Relatórios → Personalizado)"
+          title="Papel timbrado dos relatórios"
+          subtitle="O relatório em Word é gerado dentro deste arquivo (ex.: Relatórios → Personalizado)"
         />
-        <TimbradoForm logoUrl={office?.logoUrl ?? null} rodape={office?.timbradoRodape ?? null} />
+        <TimbradoForm
+          timbradoUrl={office?.timbradoUrl ?? null}
+          timbradoNomeArquivo={office?.timbradoNomeArquivo ?? null}
+          timbradoFormato={office?.timbradoFormato ?? null}
+        />
       </Card>
       )}
 

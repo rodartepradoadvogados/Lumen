@@ -61,16 +61,20 @@ model Office {
   // Pix QR Code de verdade (rejeita a cobrança sem isso, mesmo com o "customer" já criado).
   cnpj          String?
 
-  // Timbrado dos relatórios impressos/PDF (multi-tenant: cada escritório imprime no PRÓPRIO
-  // timbrado, nunca no do Rodarte Prado). Guarda a URL pública do logotipo enviado em
-  // Configurações → Geral (Vercel Blob, mesma infra dos anexos). Nulo = o cabeçalho impresso
-  // usa só a identificação textual do escritório (nome + CNPJ), que sempre existe.
+  // Papel timbrado DESTE escritório para os relatórios (multi-tenant: cada escritório emite no
+  // PRÓPRIO timbrado, nunca no do Rodarte Prado). É o arquivo do papel timbrado em si, enviado em
+  // Configurações → Geral (Vercel Blob, mesma infra dos anexos) — não um logotipo solto.
+  //
+  // Quando o formato é DOCX, o relatório em Word é gerado DENTRO deste arquivo: o conteúdo é
+  // acrescentado ao corpo e todo o resto do pacote (cabeçalho, rodapé, margens, fontes) é
+  // preservado intacto — ver lib/relatorioDocx.ts. PDF é aceito e guardado, mas não serve de
+  // recipiente para um .docx; nesse caso o Word sai com cabeçalho textual (nome + CNPJ).
+  //
   // Não confundir com o timbrado do "Peticionar", que é um Google Doc (DocumentTemplate,
-  // categoria TIMBRADO) — aquele é folha de petição, este é cabeçalho de relatório.
-  logoUrl       String?
-  // Linha livre de rodapé do timbrado (endereço, telefone, OAB/seccional) — texto puro,
-  // impresso no pé de cada página do relatório.
-  timbradoRodape String?
+  // categoria TIMBRADO) — aquele é folha de petição, este é papel timbrado de relatório.
+  timbradoUrl         String?
+  timbradoNomeArquivo String?
+  timbradoFormato     String? // DOCX | PDF
 
   // Dias corridos de tolerância após o vencimento antes do bloqueio automático (usado pelo
   // cron de cobrança, lib/actions/billing.ts:runBillingCycle) — por escritório, pra dar

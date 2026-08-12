@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { Printer } from "lucide-react";
 
 // Dispara a janela de impressão do navegador assim que a folha termina de renderizar — é ela que
-// oferece "Salvar como PDF". Um pequeno atraso garante que o logotipo do timbrado (imagem remota,
-// ver Office.logoUrl) já tenha carregado: chamar print() antes disso imprime o cabeçalho sem a
-// marca. O botão fica na tela para reimprimir sem recarregar a página.
+// oferece "Salvar como PDF". O pequeno atraso dá tempo de a folha assentar antes do diálogo abrir
+// (chamar print() no mesmo tique do mount imprime a página ainda a meio caminho). O botão fica na
+// tela para reimprimir sem precisar recarregar.
 export default function ImprimirAoAbrir() {
   useEffect(() => {
     const t = setTimeout(() => window.print(), 700);
