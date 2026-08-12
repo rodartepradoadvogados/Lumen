@@ -7,7 +7,7 @@ import { ChevronDown, ChevronRight, ExternalLink, FolderOpen, Loader2, Pencil, T
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { formatDate } from "@/components/ui";
-import { updateParecer, deleteParecer } from "@/lib/actions/assessoria";
+import { updateParecer, deleteParecer, deleteDocumento } from "@/lib/actions/assessoria";
 
 type ParecerDocumento = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
 
@@ -53,6 +53,22 @@ export default function ParecerFolderRow({
 
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePending, startDeleteTransition] = useTransition();
+
+  const [docDeleteError, setDocDeleteError] = useState<string | null>(null);
+  const [docDeletingId, setDocDeletingId] = useState<string | null>(null);
+  const [, startDocDeleteTransition] = useTransition();
+
+  function handleDeleteDocumento(doc: ParecerDocumento) {
+    if (!window.confirm(`Excluir o documento "${doc.name}"? Essa ação também remove o arquivo do armazenamento.`)) return;
+    setDocDeleteError(null);
+    setDocDeletingId(doc.id);
+    startDocDeleteTransition(async () => {
+      const result = await deleteDocumento(doc.id);
+      setDocDeletingId(null);
+      if (result.error) setDocDeleteError(result.error);
+      else router.refresh();
+    });
+  }
 
   function addFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -203,22 +219,33 @@ export default function ParecerFolderRow({
               {parecer.documents.map((d) => {
                 const Icon = getDocumentTypeIcon(d.docType);
                 return (
-                  <a
-                    key={d.id}
-                    href={d.driveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 py-1.5 text-sm hover:bg-sf-apoio -mx-1 px-1 rounded"
-                  >
-                    <Icon size={13} className="shrink-0 text-tx-3" />
-                    <span className="flex-1 min-w-0 truncate text-tx">{d.name}</span>
-                    <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
-                    <ExternalLink size={11} className="shrink-0 text-tx-3" />
-                  </a>
+                  <div key={d.id} className="flex items-center gap-1 py-1.5 -mx-1 px-1 rounded hover:bg-sf-apoio">
+                    <a
+                      href={d.driveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 flex-1 min-w-0 text-sm"
+                    >
+                      <Icon size={13} className="shrink-0 text-tx-3" />
+                      <span className="flex-1 min-w-0 truncate text-tx">{d.name}</span>
+                      <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
+                      <ExternalLink size={11} className="shrink-0 text-tx-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDocumento(d)}
+                      disabled={docDeletingId === d.id}
+                      data-tip="Excluir documento"
+                      className="p-1 text-tx-3 hover:text-atencao shrink-0 disabled:opacity-50"
+                    >
+                      {docDeletingId === d.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
+          {docDeleteError && <p className="text-[11px] text-urgente">{docDeleteError}</p>}
 
           {driveConnected && (
             <div

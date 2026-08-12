@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder } from "@/lib/storageProvider";
+import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder, deleteDriveFile, type StorageProvider } from "@/lib/storageProvider";
+import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
 import { markReceivablePaid } from "@/lib/actions/financeiro";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
@@ -211,6 +212,34 @@ export async function addDocumento(
     },
   });
   revalidatePath(`/assessoria/${assessoriaId}`);
+  return {};
+}
+
+// Exclui um documento (solto ou dentro de uma demanda/Parecer) — mesmo padrão de deleteAttachment
+// em lib/actions/attachments.ts: apaga o arquivo de verdade no provedor certo (best-effort — se
+// falhar lá, segue removendo o vínculo mesmo assim, pra não travar quem está apagando por um
+// arquivo já removido manualmente) e só depois o registro. Documentos antigos (pré-migração de
+// storageFileId, só com driveUrl) caem no fallback de extrair o id pela URL do Google Drive.
+export async function deleteDocumento(id: string): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+
+  const doc = await prisma.assessoriaDocumento.findFirst({ where: { id, officeId: user.officeId } });
+  if (!doc) return { error: "Documento não encontrado." };
+
+  if (doc.storageFileId) {
+    const provider: StorageProvider =
+      doc.storageProvider === "ONEDRIVE" ? "ONEDRIVE" : doc.storageProvider === "DROPBOX" ? "DROPBOX" : "GOOGLE_DRIVE";
+    await deleteDriveFile(doc.storageFileId, user.officeId, provider).catch(() => {});
+  } else {
+    const fileId = extractDriveFileId(doc.driveUrl);
+    if (fileId) {
+      await deleteGoogleDriveFile(fileId, user.officeId).catch(() => {});
+    }
+  }
+
+  await prisma.assessoriaDocumento.delete({ where: { id } });
+  revalidatePath(`/assessoria/${doc.assessoriaId}`);
   return {};
 }
 

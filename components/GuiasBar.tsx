@@ -6,28 +6,21 @@ import { useTabs } from "@/components/TabsProvider";
 
 // Primeira linha da janela no modo de visualização Bancada (DESIGN-SYSTEM.md §3) — mesmas abas
 // internas de components/InternalTabsBar.tsx, consumindo o MESMO TabsProvider (nenhum estado
-// novo de abas). A diferença é só onde a barra aparece: aqui é sempre visível (mesmo sem
-// nenhuma aba aberta, já que esta barra É a própria primeira linha da janela, acima até da barra
-// de menus — components/TopMenuBar.tsx), enquanto InternalTabsBar (modo Régua, dentro da
-// TopBar) some por completo sem abas. components/AppShell.tsx decide qual dos dois monta,
-// conforme components/ViewModeProvider.tsx.
+// novo de abas). Some por completo sem nenhuma aba aberta (mesmo critério de InternalTabsBar, o
+// equivalente no modo Régua) — nesse caso a "primeira linha da janela" passa a ser a faixa de
+// menus logo abaixo (components/TopMenuBar.tsx). components/AppShell.tsx decide qual dos dois
+// (esta ou InternalTabsBar) monta, conforme components/ViewModeProvider.tsx.
 export default function GuiasBar() {
-  const { tabs, activeTabId, activateTab, closeTab, goToLiveView } = useTabs();
+  const { tabs, activeTabId, activateTab, closeTab } = useTabs();
+
+  // O botão "Principal" saiu (agora quem leva de volta à visão principal é qualquer clique
+  // simples num item do menu — components/TopMenuBar.tsx — e fechar a última guia já chama
+  // closeTab, que zera activeTabId sozinho, ver components/TabsProvider.tsx). Sem guias abertas,
+  // esta faixa não tem mais nada pra mostrar: 0px de altura em vez de uma barra vazia.
+  if (tabs.length === 0) return null;
 
   return (
     <div className="h-[27px] shrink-0 flex items-end bg-grafite-800 px-2 gap-0.5 overflow-x-auto scrollbar-thin">
-      <button
-        type="button"
-        onClick={goToLiveView}
-        className={clsx(
-          "shrink-0 h-[27px] flex items-center px-3 text-[11px] font-semibold rounded-t border-t-2 transition-colors",
-          activeTabId === null
-            ? "bg-sf text-tx border-acao"
-            : "text-rail-tx border-transparent hover:text-white"
-        )}
-      >
-        Principal
-      </button>
       {tabs.map((tab) => (
         <div
           key={tab.id}
