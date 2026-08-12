@@ -3,6 +3,7 @@
 // (importadas do módulo Gmail) para as duas fontes não divergirem em como interpretam o mesmo
 // tipo de e-mail. Dormente sem MICROSOFT_CLIENT_ID/MICROSOFT_CLIENT_SECRET (ver lib/microsoftGraph.ts).
 import { prisma } from "@/lib/prisma";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { getOutlookMessagesForOffice, isMicrosoftConfigured, type OutlookMessage } from "@/lib/microsoftGraph";
 import { broadcastPushIfEnabled } from "@/lib/push";
 import {
@@ -20,7 +21,9 @@ import {
 } from "@/lib/jusbrasilEmailSync";
 
 async function processMessage(msg: OutlookMessage, officeId: string, result: SyncResult) {
-  const bodyText = msg.bodyText.trim();
+  // Mesma decodificação do caminho do Gmail (ver lib/jusbrasilEmailSync.ts): antes da extração,
+  // para as regex de rótulo acentuado casarem.
+  const bodyText = decodificarEntidadesHtml(msg.bodyText.trim());
   const subject = msg.subject;
   const senderAddress = msg.from;
   const isKnownJusbrasilSender = RELEVANT_SENDERS.includes(senderAddress);

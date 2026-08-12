@@ -9,6 +9,7 @@
 // (TermoVigilancia.ultimoHitAt, FonteAdministrativa).
 
 import { prisma } from "@/lib/prisma";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 
 export type DouBridgeResult = {
   processadas: number;
@@ -109,7 +110,7 @@ export async function syncDouParaSite(): Promise<DouBridgeResult> {
             officeId: item.officeId,
             kind: "PUBLICACAO",
             source: "DOU",
-            content: montarConteudo(item),
+            content: decodificarEntidadesHtml(montarConteudo(item)),
             publishedAt: formatarDataPublicacao(item.dataPublicacao, item.dataCaptura),
             emailMessageId,
             triageStatus: "PENDENTE",

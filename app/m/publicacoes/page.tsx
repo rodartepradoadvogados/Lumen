@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
@@ -61,7 +62,10 @@ export default async function MobilePublicacoes() {
     id: p.id,
     kind: p.kind,
     source: p.source,
-    content: p.content,
+    // Publicação já gravada antes da correção pode ter o teor escapado em HTML; decodificar na
+  // leitura conserta o histórico sem precisar reescrever o banco. É inócuo em texto já limpo,
+  // porque nele não sobra nenhuma sequência "&...;" para converter.
+    content: decodificarEntidadesHtml(p.content),
     publishedAt: p.publishedAt.toISOString(),
     read: p.reads.length > 0,
     caseId: p.case?.id ?? null,

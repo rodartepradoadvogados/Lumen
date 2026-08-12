@@ -320,8 +320,13 @@ export default async function CaseDetailPage({
     })),
   }));
 
+  // Largura cheia, sem teto e sem centralizar: a área útil já é o que sobra da casca, e ela muda
+  // sozinha conforme o modo de visualização — Régua (rail de 62px), Régua com o painel de seção
+  // aberto (mais 190px) ou Bancada (sem rail nenhum, ver components/AppShell.tsx). Um `max-w`
+  // fixo aqui desperdiçava a tela larga e deixava faixas vazias dos dois lados justamente no
+  // modo que existe para caber mais informação.
   return (
-    <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
+    <div className="p-6 w-full animate-fade-in">
       <Link href="/processos" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-tx mb-3">
         <ArrowLeft size={13} /> Processos e Casos
       </Link>

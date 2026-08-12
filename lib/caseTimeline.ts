@@ -3,6 +3,8 @@
 // cronológica eventos que já vêm carregados na página do Processo (nenhuma query nova aqui,
 // só reorganização do que já existe) — criação/distribuição do processo, escaladas de
 // instância, tarefas concluídas, comentários, publicações recebidas e protocolos enviados.
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
+
 export type CaseTimelineEvent = {
   id: string;
   date: string; // ISO
@@ -81,7 +83,10 @@ export function buildCaseTimeline(
       date: p.publishedAt.toISOString(),
       kind: "publicacao",
       title: p.kind === "ANDAMENTO" ? `Andamento (${p.source})` : `Publicação (${p.source})`,
-      detail: p.content.length > 120 ? `${p.content.slice(0, 120)}…` : p.content,
+      detail: (() => {
+        const teor = decodificarEntidadesHtml(p.content);
+        return teor.length > 120 ? `${teor.slice(0, 120)}…` : teor;
+      })(),
     });
   }
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { normalizeProcessNumber, processNumberIncludes } from "@/lib/processNumber";
@@ -203,7 +204,7 @@ export async function getPendingPublicationsForDistribution(): Promise<{
       id: pub.id,
       processNumber: pub.case?.processNumber ?? null,
       title: pub.case?.title ?? (pub.client ? `Cliente compatível: ${pub.client.name}` : "Sem processo vinculado"),
-      content: pub.content,
+      content: decodificarEntidadesHtml(pub.content),
       suggestedUserId,
     };
   });

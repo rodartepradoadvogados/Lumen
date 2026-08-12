@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
 import { getOAuthClient } from "@/lib/googleDrive";
@@ -154,7 +155,9 @@ async function processMessage(
 
   const baseMessageId = parsed.messageId || `gmail-${messageId}`;
   const senderAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || "";
-  const bodyText = (parsed.text || "").trim();
+  // Decodificado ANTES da extração: as regex que quebram o corpo em blocos procuram por
+  // rótulos acentuados ("Publicação", "Órgão"), que não casariam com o texto escapado.
+  const bodyText = decodificarEntidadesHtml((parsed.text || "").trim());
   const subject = parsed.subject || "";
   const source = isKnownJusbrasilSender ? "JUSBRASIL_EMAIL" : detectCourtSystemSource(senderAddress);
 

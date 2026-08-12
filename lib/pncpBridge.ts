@@ -12,6 +12,7 @@
 // DE UM escritório (cada um com seu próprio termo), ou para nenhum.
 
 import { prisma } from "@/lib/prisma";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 
 export type PncpBridgeResult = {
   processadas: number;
@@ -180,7 +181,7 @@ export async function syncPncpParaSite(): Promise<PncpBridgeResult> {
                   officeId,
                   kind: "PUBLICACAO",
                   source: "PNCP",
-                  content: montarConteudo(lic),
+                  content: decodificarEntidadesHtml(montarConteudo(lic)),
                   publishedAt: (() => {
                     if (!lic.dataPublicacao) return lic.dataCaptura;
                     const parsed = new Date(lic.dataPublicacao);

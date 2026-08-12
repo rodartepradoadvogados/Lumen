@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -106,7 +107,10 @@ export default async function PublicacoesPage({
     id: p.id,
     kind: p.kind,
     source: p.source,
-    content: p.content,
+    // Publicação já gravada antes da correção pode ter o teor escapado em HTML; decodificar na
+  // leitura conserta o histórico sem precisar reescrever o banco. É inócuo em texto já limpo,
+  // porque nele não sobra nenhuma sequência "&...;" para converter.
+    content: decodificarEntidadesHtml(p.content),
     publishedAt: p.publishedAt.toISOString(),
     read: p.reads.length > 0,
     deadlineGenerated: p.deadlineGenerated,
