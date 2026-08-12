@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
+import TopBarActions from "@/components/TopBarActions";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
 import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
@@ -98,6 +99,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             modules,
           }}
           topBar={<TopBar />}
+          topBarActions={<TopBarActions />}
           supportBanner={<SupportAccessBanner />}
           inactivityNotice={<InactivityNotice />}
           badgeSync={<AppBadgeSync initialCount={totalAlerts} />}

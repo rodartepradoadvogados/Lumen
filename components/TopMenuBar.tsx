@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
+import { ChevronDown, LayoutDashboard } from "lucide-react";
 import LumenMark from "@/components/LumenMark";
 import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, isSectionVisible, sectionForPathname, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Barra de menus do modo de visualização Bancada (DESIGN-SYSTEM.md §3) — as mesmas 6 seções do
-// rail (components/NavRail.tsx), aqui como itens de menu horizontal em vez de ícones verticais.
-// Clique simples navega; duplo clique abre em aba nova — mesmo mecanismo de NavRail/SectionPanel,
-// reaproveitado ao pé da letra (ver comentário lá para o motivo do timer).
+// Barra de menus do modo de visualização Bancada (DESIGN-SYSTEM.md §3). As 6 seções do rail
+// (components/NavRail.tsx) não ficam mais expostas como cards horizontais fixos — moraram para
+// dentro de um menu suspenso, disparado pelo próprio ícone da marca (pedido do dono do
+// escritório: "menu representado pelo próprio ícone da logomarca", pra a faixa ocupar menos
+// espaço). Clique simples num item navega; duplo clique abre em aba nova — mesmo mecanismo de
+// sempre (NavRail/SectionPanel/SubTabsBar), só que agora dentro do popover em vez de inline.
 //
-// A marca (LumenMark) à esquerda NÃO está na lista original de "as 6 seções como menus" da
-// tarefa — foi uma decisão própria: sem ela não haveria nenhum jeito de voltar ao Painel a
-// partir da Bancada (hoje só o rail, ausente neste modo, carrega esse link). Ver relato final.
+// O botão "Principal" da GuiasBar saiu junto (ver components/GuiasBar.tsx) — "Painel", fixo no
+// topo deste menu, cumpre o mesmo papel de "voltar para a visão principal".
 export default function TopMenuBar({
   hasFinanceAccess = true,
   modules,
@@ -31,6 +33,16 @@ export default function TopMenuBar({
   const router = useRouter();
   const pathname = usePathname();
   const { openTab, goToLiveView } = useTabs();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [open]);
 
   const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   useEffect(() => {
@@ -44,6 +56,7 @@ export default function TopMenuBar({
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
     onSelectSection(section);
+    setOpen(false);
 
     const pending = clickTimers.current[href];
     if (pending) {
@@ -63,34 +76,50 @@ export default function TopMenuBar({
   const currentSection = activeSection ?? sectionForPathname(pathname);
 
   return (
-    <div className="h-9 shrink-0 flex items-stretch bg-grafite-800 px-1 gap-0.5 overflow-x-auto scrollbar-thin">
-      <Link
-        href="/painel"
-        onClick={(e) => handleClick(e, "/painel", "Painel", "painel")}
-        data-tip="Painel"
+    <div className="h-9 shrink-0 flex items-center bg-grafite-800 px-2 relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-tip="Menu"
         data-tip-pos="bottom"
-        className="shrink-0 flex items-center px-2"
+        className="flex items-center gap-1.5 py-1.5 pr-1.5 -ml-1 rounded-lg hover:bg-white/5 transition-colors"
       >
         <LumenMark size={18} />
-      </Link>
-      {visibleSections.map((section) => {
-        const active = currentSection === section.key;
-        return (
+        <ChevronDown size={13} className={clsx("text-menu-tx transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute left-2 top-full mt-1.5 w-56 bg-sf rounded-xl border border-regua shadow-menu z-50 overflow-hidden py-1">
           <Link
-            key={section.key}
-            href={section.items[0].href}
-            onClick={(e) => handleClick(e, section.items[0].href, section.label, section.key)}
+            href="/painel"
+            onClick={(e) => handleClick(e, "/painel", "Painel", "painel")}
             className={clsx(
-              "shrink-0 flex items-center px-3 text-[13px] border-b-2 transition-colors",
-              active
-                ? "text-white font-semibold border-marca"
-                : "text-menu-tx font-medium border-transparent hover:text-white"
+              "flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold border-b border-regua mb-1 transition-colors",
+              currentSection === "painel" ? "text-acao" : "text-tx hover:bg-sf-apoio"
             )}
           >
-            {section.label}
+            <LayoutDashboard size={15} /> Painel
           </Link>
-        );
-      })}
+          {visibleSections.map((section) => {
+            const active = currentSection === section.key;
+            const Icon = section.icon;
+            return (
+              <Link
+                key={section.key}
+                href={section.items[0].href}
+                onClick={(e) => handleClick(e, section.items[0].href, section.label, section.key)}
+                className={clsx(
+                  "flex items-center gap-2.5 px-3.5 py-2 text-sm transition-colors",
+                  active ? "text-acao font-semibold bg-acao-bg" : "text-tx font-medium hover:bg-sf-apoio"
+                )}
+              >
+                <Icon size={15} className="shrink-0" />
+                {section.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

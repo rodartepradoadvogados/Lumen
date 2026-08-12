@@ -26,6 +26,10 @@ type AppShellProps = {
     modules: OfficeModules;
   };
   topBar: React.ReactNode;
+  // Cluster de ações (Peticionar/Novo/Timesheet/Alertas/avatar) para o modo Bancada — mora na
+  // faixa de menus compacta (ao lado de components/TopMenuBar.tsx) em vez de numa faixa própria;
+  // ver components/TopBarActions.tsx. Sem uso no modo Régua (lá quem mostra é a própria topBar).
+  topBarActions: React.ReactNode;
   supportBanner: React.ReactNode;
   inactivityNotice: React.ReactNode;
   badgeSync: React.ReactNode;
@@ -56,6 +60,7 @@ type AppShellProps = {
 function AppShellInner({
   sidebarProps,
   topBar,
+  topBarActions,
   supportBanner,
   inactivityNotice,
   badgeSync,
@@ -97,6 +102,7 @@ function AppShellInner({
         <ShellChrome
           sidebarProps={sidebarProps}
           topBar={topBar}
+          topBarActions={topBarActions}
           supportBanner={supportBanner}
           inactivityNotice={inactivityNotice}
           badgeSync={badgeSync}
@@ -117,6 +123,7 @@ function AppShellInner({
 function ShellChrome({
   sidebarProps,
   topBar,
+  topBarActions,
   supportBanner,
   inactivityNotice,
   badgeSync,
@@ -181,84 +188,96 @@ function ShellChrome({
   const subTabsSection = !isRegua && section !== null && section !== "painel" ? section : null;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      {/* Bancada: guias, barra de menus e sub-abas substituem rail + painel de seção — nesta
-          ordem, a primeira ("primeira linha da janela") acima até do supportBanner. Ver
-          DESIGN-SYSTEM.md §3 e §5, e components/ViewModeProvider.tsx. */}
-      {!isRegua && (
-        <Suspense fallback={null}>
-          <GuiasBar />
-        </Suspense>
-      )}
-      {supportBanner}
-      {!isRegua && (
-        <Suspense fallback={null}>
-          <TopMenuBar
-            hasFinanceAccess={sidebarProps.hasFinanceAccess}
-            modules={sidebarProps.modules}
-            activeSection={section}
-            onSelectSection={handleSelectSection}
-          />
-        </Suspense>
-      )}
-      {!isRegua && subTabsSection && (
-        <Suspense fallback={null}>
-          <SubTabsBar
-            section={subTabsSection}
-            hasFinanceAccess={sidebarProps.hasFinanceAccess}
-            modules={sidebarProps.modules}
-          />
-        </Suspense>
-      )}
-      <div className="flex flex-1 overflow-hidden">
-        {inactivityNotice}
-        {badgeSync}
-        {isRegua && (
+    // Linha mais externa: coluna com toda a casca (guias/menus/rail/conteúdo) à esquerda e o
+    // painel de Anotações à direita, ocupando a altura INTEIRA da janela (inclusive ao lado das
+    // faixas do modo Bancada) — pedido do dono do escritório pra a barra de Anotações "seguir até
+    // o topo, e não acabar antes de chegar na extremidade superior". Antes esse painel entrava
+    // como irmão só da linha de conteúdo (abaixo de guias/menus/sub-abas), então parava mais
+    // baixo que o topo real da janela no modo Bancada.
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Bancada: guias, faixa de menus (com o cluster de ações à direita) e sub-abas
+            substituem rail + painel de seção — nesta ordem, a primeira ("primeira linha da
+            janela") acima até do supportBanner. Ver DESIGN-SYSTEM.md §3 e §5, e
+            components/ViewModeProvider.tsx. */}
+        {!isRegua && (
           <Suspense fallback={null}>
-            <NavRail
+            <GuiasBar />
+          </Suspense>
+        )}
+        {supportBanner}
+        {!isRegua && (
+          <div className="h-9 shrink-0 flex items-center justify-between bg-grafite-800 pr-2 gap-3">
+            <Suspense fallback={null}>
+              <TopMenuBar
+                hasFinanceAccess={sidebarProps.hasFinanceAccess}
+                modules={sidebarProps.modules}
+                activeSection={section}
+                onSelectSection={handleSelectSection}
+              />
+            </Suspense>
+            {topBarActions}
+          </div>
+        )}
+        {!isRegua && subTabsSection && (
+          <Suspense fallback={null}>
+            <SubTabsBar
+              section={subTabsSection}
               hasFinanceAccess={sidebarProps.hasFinanceAccess}
-              unreadPublications={sidebarProps.unreadPublications}
-              totalAlerts={sidebarProps.totalAlerts}
-              todayAgendaCount={sidebarProps.todayAgendaCount}
               modules={sidebarProps.modules}
-              activeSection={section}
-              onSelectSection={handleSelectSection}
-              mobileOpen={mobileNavOpen}
-              onOpenMobile={() => setMobileNavOpen(true)}
-              onCloseMobile={() => setMobileNavOpen(false)}
             />
           </Suspense>
         )}
-        {panelOpen && section && (
-          <Suspense fallback={null}>
-            <SectionPanel
-              section={section}
-              hasFinanceAccess={sidebarProps.hasFinanceAccess}
-              isAdmin={sidebarProps.isAdmin}
-              canConfigureIntegrations={sidebarProps.canConfigureIntegrations}
-              modules={sidebarProps.modules}
-              onCollapse={handleCollapsePanel}
-            />
-          </Suspense>
-        )}
-        <div className="flex-1 flex flex-col min-w-0 relative">
-          <Suspense fallback={null}>{backgroundLayer}</Suspense>
-          {actingBanner}
-          {topBar}
+        <div className="flex flex-1 overflow-hidden">
+          {inactivityNotice}
+          {badgeSync}
+          {isRegua && (
+            <Suspense fallback={null}>
+              <NavRail
+                hasFinanceAccess={sidebarProps.hasFinanceAccess}
+                unreadPublications={sidebarProps.unreadPublications}
+                totalAlerts={sidebarProps.totalAlerts}
+                todayAgendaCount={sidebarProps.todayAgendaCount}
+                modules={sidebarProps.modules}
+                activeSection={section}
+                onSelectSection={handleSelectSection}
+                mobileOpen={mobileNavOpen}
+                onOpenMobile={() => setMobileNavOpen(true)}
+                onCloseMobile={() => setMobileNavOpen(false)}
+              />
+            </Suspense>
+          )}
+          {panelOpen && section && (
+            <Suspense fallback={null}>
+              <SectionPanel
+                section={section}
+                hasFinanceAccess={sidebarProps.hasFinanceAccess}
+                isAdmin={sidebarProps.isAdmin}
+                canConfigureIntegrations={sidebarProps.canConfigureIntegrations}
+                modules={sidebarProps.modules}
+                onCollapse={handleCollapsePanel}
+              />
+            </Suspense>
+          )}
+          <div className="flex-1 flex flex-col min-w-0 relative">
+            <Suspense fallback={null}>{backgroundLayer}</Suspense>
+            {actingBanner}
+            {topBar}
 
-          <main className={activeTabId === null ? "flex-1 overflow-y-auto scrollbar-thin" : "hidden"}>{children}</main>
-          {tabs.map((tab) => (
-            <iframe
-              key={tab.id}
-              src={`${tab.href}${tab.href.includes("?") ? "&" : "?"}embed=1&tabId=${tab.id}`}
-              className={activeTabId === tab.id ? "flex-1 w-full border-0" : "hidden"}
-              title={tab.label}
-            />
-          ))}
+            <main className={activeTabId === null ? "flex-1 overflow-y-auto scrollbar-thin" : "hidden"}>{children}</main>
+            {tabs.map((tab) => (
+              <iframe
+                key={tab.id}
+                src={`${tab.href}${tab.href.includes("?") ? "&" : "?"}embed=1&tabId=${tab.id}`}
+                className={activeTabId === tab.id ? "flex-1 w-full border-0" : "hidden"}
+                title={tab.label}
+              />
+            ))}
+          </div>
+          {claudeWidget}
         </div>
-        {claudeWidget}
-        {anotacoesPanel}
       </div>
+      {anotacoesPanel}
     </div>
   );
 }

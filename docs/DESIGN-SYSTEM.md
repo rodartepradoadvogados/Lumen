@@ -116,20 +116,26 @@ Cabeçalho em 10px caixa alta, `--tx-2`, com o botão de recolher em `--tx-3`.
 Altura **42px**, fundo `--sf-superficie`, borda inferior `--regua`. **Sem `backdrop-blur`**
 e sem borda dourada — hoje tem `border-gold-500/20`, que sai.
 
-### Barra de menus (modo Bancada) — `components/TopMenuBar.tsx` *(novo)*
+### Barra de menus (modo Bancada) — `components/TopMenuBar.tsx`
 
-Altura **36px**, fundo `#16191d` nos dois temas.
+Altura **36px**, fundo `#16191d` nos dois temas. Desde 2026-08-12, as 6 seções não ficam mais
+expostas como cards horizontais fixos: moram num menu suspenso disparado pelo próprio ícone da
+marca (logo + seta), com "Painel" fixo no topo. Na mesma faixa, à direita, mora o cluster de
+ações que antes vivia numa `TopBar` própria (Peticionar/Novo/Timesheet/Painel Mestre/Alertas/
+avatar — ver `components/TopBarActions.tsx`), como uma ilha clara (`--sf-superficie`) flutuando
+sobre o fundo escuro — mesmo raciocínio do campo de busca abaixo.
 
 | Elemento | Manhã | Noite |
 |---|---|---|
-| Menu inativo | `#aeb6be` (`--menu-tx`) | `#8b949e` |
-| Menu ativo — texto | `#ffffff` | `#ffffff` |
-| **Menu ativo — filete inferior 2px** | `#c9962f` | `#d9a93a` |
+| Menu inativo (dentro do suspenso) | `#aeb6be` (`--menu-tx`) | `#8b949e` |
+| Menu ativo — fundo/texto | `--acao-bg` / `--acao` | `--acao-bg` / `--acao` |
 | Campo de busca — fundo | `rgba(255,255,255,.09)` | `rgba(255,255,255,.09)` |
 
-### Guias de duplo clique — `components/GuiasBar.tsx` *(novo)*
+### Guias de duplo clique — `components/GuiasBar.tsx`
 
-**Primeira linha da janela, acima da barra de menus.** Altura 27px, fundo `#16191d`.
+**Primeira linha da janela, acima da barra de menus — só quando há pelo menos uma guia aberta**
+(o botão "Principal" saiu: sem guias, esta faixa não renderiza nada, 0px). Altura 27px, fundo
+`#16191d`.
 
 | Elemento | Manhã | Noite |
 |---|---|---|
@@ -140,6 +146,13 @@ Altura **36px**, fundo `#16191d` nos dois temas.
 | Botão de fechar | `--tx-2` a 45% | `--tx-2` a 45% |
 
 Largura máxima 210px com reticências. Raio 4px só nos cantos de cima.
+
+### Painel de Anotações — altura no modo Bancada
+
+O painel (`components/anotacoes/AnotacoesPanel.tsx`) ocupa a altura **inteira** da janela, desde
+o topo real (y=0) até a base — inclusive ao lado de guias/menus/sub-abas do modo Bancada, não só
+ao lado do conteúdo. É por isso que em `components/AppShell.tsx` ele é irmão da coluna inteira
+da casca (não só da linha de conteúdo abaixo das faixas).
 
 ### Sub-abas (modo Bancada) — `components/SubTabsBar.tsx` *(novo)*
 
