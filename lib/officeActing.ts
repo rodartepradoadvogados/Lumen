@@ -74,5 +74,7 @@ export async function stopActingAsOffice(): Promise<void> {
     }
   }
 
-  cookies().delete(ACTING_OFFICE_COOKIE);
+  // Path explícito: o cookie nasce com path "/" (ver acima) — mesmo bug de
+  // lib/actions/auth.ts:logout se omitido aqui.
+  cookies().delete({ name: ACTING_OFFICE_COOKIE, path: "/" });
 }

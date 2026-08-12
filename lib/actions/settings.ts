@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendDailyAgendaEmail } from "@/lib/email";
@@ -107,9 +108,19 @@ export async function runDjenConnectionTest(): Promise<{ error?: string; results
 export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem cadastrar membros da equipe." };
-  await prisma.user.create({
-    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, officeId: viewer.officeId },
-  });
+  try {
+    await prisma.user.create({
+      data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, officeId: viewer.officeId },
+    });
+  } catch (err) {
+    // E-mail é único GLOBALMENTE (ver lib/actions/auth.ts:login) — já pode pertencer a outro
+    // escritório. Sem esse catch, o erro do Prisma sobe sem tratamento e derruba a página inteira
+    // (error.tsx), em vez de avisar o admin que precisa de outro e-mail.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "Já existe um usuário cadastrado com este e-mail." };
+    }
+    throw err;
+  }
   revalidatePath("/configuracoes");
   revalidatePath("/contatos/equipe");
   return {};
@@ -123,10 +134,17 @@ export async function updateUser(
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem editar membros da equipe." };
   const user = await prisma.user.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!user) return { error: "Usuário não encontrado." };
-  await prisma.user.update({
-    where: { id },
-    data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, phone: data.phone || null },
-  });
+  try {
+    await prisma.user.update({
+      where: { id },
+      data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, phone: data.phone || null },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: "Já existe um usuário cadastrado com este e-mail." };
+    }
+    throw err;
+  }
   revalidatePath("/configuracoes");
   revalidatePath("/contatos/equipe");
   return {};
