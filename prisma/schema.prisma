@@ -99,6 +99,15 @@ model Office {
   // armazenamento (ver lib/oneDriveStorage.ts / lib/dropboxStorage.ts).
   storageProvider String @default("GOOGLE_DRIVE")
 
+  // Como as pastas deste escritório se chamam no armazenamento (ver lib/driveNaming.ts). Nulos =
+  // padrão do produto ("Lúmen" / "Lúmen - "), que reproduz exatamente a nomenclatura anterior a
+  // esta configuração existir — nenhum escritório já criado muda de estrutura sem pedir.
+  // Existem para o escritório-cliente não ficar com a marca da Lúmen carimbada dentro do próprio
+  // Drive. `drivePrefixo` vazio (string "") é uma escolha válida e diferente de nulo: significa
+  // pastas sem prefixo nenhum ("Processos", "Casos"…).
+  drivePastaMae String?
+  drivePrefixo  String?
+
   // Diferente dos módulos acima (contratáveis, autosserviço do próprio escritório em
   // Configurações), o Blog Jurídico público é um recurso da PLATAFORMA: só o escritório dono
   // (Rodarte Prado) produz/edita/aprova matérias, ou quem ele conceder acesso no futuro — não

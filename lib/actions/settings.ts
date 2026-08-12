@@ -11,6 +11,7 @@ import { testDjenConnection, type DjenTestResult } from "@/lib/djenSync";
 import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
+import { validarNomeacao } from "@/lib/driveNaming";
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   const viewer = await getCurrentUser();
@@ -50,6 +51,30 @@ export async function setStorageProvider(provider: "GOOGLE_DRIVE" | "ONEDRIVE" |
 
   await prisma.office.update({ where: { id: viewer.officeId }, data: { storageProvider: provider } });
   revalidatePath("/configuracoes");
+  return {};
+}
+
+// Como as pastas deste escritório se chamam no armazenamento (ver lib/driveNaming.ts).
+//
+// Mudar isto NÃO renomeia nada do que já existe: pasta já criada continua com o nome dela e com o
+// id que os processos/atendimentos/assessorias têm gravado, então nenhum link quebra. O que muda é
+// o nome das pastas criadas DAQUI PRA FRENTE — por isso a tela avisa antes, em vez de tratar a
+// troca como uma preferência inofensiva.
+export async function salvarNomeacaoDrive(data: { pastaMae: string; prefixo: string }): Promise<{ error?: string }> {
+  const viewer = await getCurrentUser();
+  if (!viewer?.isAdmin) return { error: "Apenas administradores podem alterar os nomes das pastas." };
+
+  const erro = validarNomeacao(data.pastaMae, data.prefixo);
+  if (erro) return { error: erro };
+
+  await prisma.office.update({
+    where: { id: viewer.officeId },
+    // Prefixo é gravado como veio (inclusive vazio, que é uma escolha válida: pastas sem prefixo).
+    // Só a pasta-mãe é normalizada, porque espaço nas pontas ali vira nome de pasta com espaço.
+    data: { drivePastaMae: data.pastaMae.trim(), drivePrefixo: data.prefixo },
+  });
+  revalidatePath("/configuracoes");
+  revalidatePath("/configuracoes/relatorio-pastas");
   return {};
 }
 
