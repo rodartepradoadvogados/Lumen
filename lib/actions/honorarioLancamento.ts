@@ -479,8 +479,14 @@ export async function updateHonorarioLancamentoParcelas(
   const bases = await caseValueBases(lancamento.caseId, officeId);
 
   await prisma.$transaction(async (tx) => {
+    // Preserva toda parcela que JÁ TEM RECEBIMENTO, não só a que está PAGO. O guard antigo era
+    // `status: { not: "PAGO" }`, escrito quando só existiam PENDENTE e PAGO — desde que a baixa
+    // parcial passou a existir (statusPorPagamentos, lib/financeCalc.ts, devolve PARCIAL), uma
+    // parcela PARCIAL caía neste deleteMany; e como FinancePayment.receivable é onDelete: Cascade
+    // (prisma/schema.prisma), o histórico do dinheiro que de fato entrou ia junto, sem lixeira.
+    // `payments: { none: {} }` é o predicado certo: só some o que nunca recebeu nada.
     await tx.receivable.deleteMany({
-      where: { honorarioLancamentoId: lancamentoId, status: { not: "PAGO" } },
+      where: { honorarioLancamentoId: lancamentoId, payments: { none: {} } },
     });
     for (const p of data.parcelas) {
       const amount =

@@ -111,14 +111,17 @@ async function performDelete(entityType: string, entityId: string, officeId: str
   } else if (entityType === "HONORARIO_LANCAMENTO") {
     const lancamento = await prisma.honorarioLancamento.findFirst({ where: { id: entityId, officeId } });
     if (!lancamento) return {};
-    // As parcelas já PAGAS são registro financeiro definitivo — excluir o lançamento inteiro só
-    // desvincula essas parcelas (viram Receivable soltas, preservando o histórico de baixa) e
-    // apaga as parcelas ainda pendentes junto com o cabeçalho.
+    // As parcelas que JÁ RECEBERAM ALGO são registro financeiro definitivo — excluir o lançamento
+    // inteiro só desvincula essas parcelas (viram Receivable soltas, preservando o histórico de
+    // baixa) e apaga as que nunca receberam nada, junto com o cabeçalho.
+    // O critério é "tem FinancePayment", não `status === "PAGO"`: uma parcela PARCIAL (baixa
+    // parcial, ver statusPorPagamentos em lib/financeCalc.ts) também é dinheiro que entrou, e
+    // apagá-la levava junto os pagamentos por onDelete: Cascade (prisma/schema.prisma).
     await prisma.receivable.updateMany({
-      where: { honorarioLancamentoId: entityId, status: "PAGO" },
+      where: { honorarioLancamentoId: entityId, payments: { some: {} } },
       data: { honorarioLancamentoId: null },
     });
-    await prisma.receivable.deleteMany({ where: { honorarioLancamentoId: entityId, status: { not: "PAGO" } } });
+    await prisma.receivable.deleteMany({ where: { honorarioLancamentoId: entityId, payments: { none: {} } } });
     await prisma.honorarioLancamento.delete({ where: { id: entityId } });
     revalidatePath("/financeiro");
     revalidatePath("/financeiro/receitas");
@@ -203,7 +206,10 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
         scope === "FOLLOWING"
           ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
           : { groupId: anchor.groupId, officeId };
-      await prisma.payable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, status: { not: "PAGO" } } });
+      // Mesmo critério do lado de Receivable: fora do includePago (exclusão deliberada de tudo),
+      // preserva a conta que já teve pagamento — inclusive PARCIAL. FinancePayment.payable também
+      // é onDelete: Cascade (prisma/schema.prisma), então apagar levaria o histórico junto.
+      await prisma.payable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, payments: { none: {} } } });
     } else {
       // Avulso (sem parcelamento nem recorrência) — "seguintes"/"todos" não têm o que agrupar,
       // comporta-se como ONLY.
@@ -236,8 +242,10 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       // diferente: lá é "apaguei sem querer o cabeçalho", aqui é "quero mesmo excluir tudo").
       await prisma.receivable.deleteMany({ where: siblingsWhere });
     } else {
-      await prisma.receivable.updateMany({ where: { ...siblingsWhere, status: "PAGO" }, data: { honorarioLancamentoId: null } });
-      await prisma.receivable.deleteMany({ where: { ...siblingsWhere, status: { not: "PAGO" } } });
+      // Mesmo critério de performDelete/HONORARIO_LANCAMENTO: preserva o que já recebeu algo
+      // (inclusive PARCIAL), não só o que está PAGO — senão o FinancePayment ia junto em cascata.
+      await prisma.receivable.updateMany({ where: { ...siblingsWhere, payments: { some: {} } }, data: { honorarioLancamentoId: null } });
+      await prisma.receivable.deleteMany({ where: { ...siblingsWhere, payments: { none: {} } } });
     }
     // Cabeçalho órfão (nenhuma parcela mais vinculada) some junto — mesma limpeza de
     // performDelete/HONORARIO_LANCAMENTO, olhando o lançamento inteiro (não só o escopo desta
@@ -271,7 +279,9 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       scope === "FOLLOWING"
         ? { groupId: anchor.groupId, officeId, installmentNumber: { gte: anchor.installmentNumber ?? 0 } }
         : { groupId: anchor.groupId, officeId };
-    await prisma.receivable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, status: { not: "PAGO" } } });
+    // includePago = a pessoa pediu explicitamente para apagar tudo, pagas incluídas. Fora disso,
+    // preserva o que já recebeu algo (inclusive PARCIAL) — não só o que está PAGO.
+    await prisma.receivable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, payments: { none: {} } } });
     revalidateCaseScoped(anchor.caseId);
   } else {
     // Avulso — sem agrupamento nenhum, comporta-se como ONLY.

@@ -125,8 +125,15 @@ export default function HonorarioLancamentoCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [valorTotalIndicado, setValorTotalIndicado] = useState(String(lancamento.valorTotalIndicado ?? ""));
-  const [linhas, setLinhas] = useState<LinhaEdicao[]>(() => lancamento.parcelas.filter((p) => p.status !== "PAGO").map(toLinha));
-  const pagas = lancamento.parcelas.filter((p) => p.status === "PAGO");
+  // Editável = parcela que NÃO recebeu nada ainda. PARCIAL entra em `pagas` (a lista só-leitura)
+  // junto com PAGO, e não em `linhas`: salvar a edição recria as parcelas no servidor, e recriar
+  // uma parcela que já tem FinancePayment apagaria o recebimento em cascata (ver o deleteMany em
+  // lib/actions/honorarioLancamento.ts). O status PARCIAL vem de statusPorPagamentos
+  // (lib/financeCalc.ts) — antes daqui ele caía no filtro `!== "PAGO"` e era oferecido para
+  // edição como se nada tivesse sido recebido.
+  const jaRecebeu = (p: { status: string }) => p.status === "PAGO" || p.status === "PARCIAL";
+  const [linhas, setLinhas] = useState<LinhaEdicao[]>(() => lancamento.parcelas.filter((p) => !jaRecebeu(p)).map(toLinha));
+  const pagas = lancamento.parcelas.filter(jaRecebeu);
 
   function updateLinha(key: string, patch: Partial<LinhaEdicao>) {
     setLinhas((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -182,7 +189,7 @@ export default function HonorarioLancamentoCard({
             entityType="HONORARIO_LANCAMENTO"
             entityId={lancamento.id}
             entityLabel="Honorário parcelado"
-            confirmMessage="Excluir este lançamento de honorários? Parcelas já pagas continuam em Contas a Receber; as pendentes são apagadas."
+            confirmMessage="Excluir este lançamento de honorários? Parcelas que já receberam algo (pagas ou parciais) continuam em Contas a Receber, com o histórico de recebimento; as que nunca receberam nada são apagadas."
           />
         </div>
       </div>
@@ -257,11 +264,17 @@ export default function HonorarioLancamentoCard({
 
               {pagas.length > 0 && (
                 <div className="p-3 rounded-lg bg-sf-apoio border border-regua">
-                  <p className="text-[11px] font-medium text-tx-2 mb-1">Parcelas já pagas (não editáveis)</p>
+                  <p className="text-[11px] font-medium text-tx-2 mb-1">Parcelas que já receberam algo (não editáveis)</p>
                   {pagas.map((p) => (
                     <div key={p.id} className="flex justify-between text-xs text-tx-2 py-0.5">
-                      <span>{p.description}</span>
-                      <span className="font-semibold">{formatCurrency(p.paidAmount ?? p.amount)}</span>
+                      <span>
+                        {p.description}
+                        {p.status === "PARCIAL" && <span className="ml-1.5 text-[10px] font-semibold text-aviso">recebimento parcial</span>}
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(p.paidAmount ?? p.amount)}
+                        {p.status === "PARCIAL" && <span className="font-normal text-tx-3"> de {formatCurrency(p.amount)}</span>}
+                      </span>
                     </div>
                   ))}
                 </div>
