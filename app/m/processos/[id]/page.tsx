@@ -154,7 +154,10 @@ export default async function MobileCaseDetail({
   const tab =
     (requestedTab === "financeiro" && !hasFinanceAccess) ||
     (requestedTab === "vigilancia" && natureza !== "ADMINISTRATIVO") ||
-    (requestedTab === "protocolos" && natureza === "CASO")
+    (requestedTab === "protocolos" && natureza === "CASO") ||
+    // Caso (extrajudicial) nunca recebe publicação de tribunal/órgão — mesmo motivo do site
+    // desktop (app/(app)/processos/[id]/page.tsx).
+    (requestedTab === "publicacoes" && natureza === "CASO")
       ? "visao-geral"
       : requestedTab;
 
@@ -255,7 +258,8 @@ export default async function MobileCaseDetail({
     (t) =>
       (t.key !== "financeiro" || hasFinanceAccess) &&
       (t.key !== "vigilancia" || natureza === "ADMINISTRATIVO") &&
-      (t.key !== "protocolos" || natureza !== "CASO")
+      (t.key !== "protocolos" || natureza !== "CASO") &&
+      (t.key !== "publicacoes" || natureza !== "CASO")
   );
 
   return (
