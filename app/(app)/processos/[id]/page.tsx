@@ -796,6 +796,7 @@ export default async function CaseDetailPage({
                 categories={payableCategories}
                 cases={cases.map((x) => ({ id: x.id, name: x.title }))}
                 suppliers={suppliers}
+                teamMembers={users.map((u) => ({ id: u.id, name: u.name }))}
                 costCenters={costCenters}
                 responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                 bankAccounts={bankAccounts}
@@ -865,6 +866,7 @@ export default async function CaseDetailPage({
                         categories={payableCategories}
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
                         suppliers={suppliers}
+                        teamMembers={users.map((u) => ({ id: u.id, name: u.name }))}
                         costCenters={costCenters}
                         responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                       />

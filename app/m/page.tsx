@@ -207,7 +207,7 @@ export default async function MobileHome() {
             icon={FileBarChart}
             tone="navy"
             title="Relatórios"
-            subtitle="Produtividade, processos, funil e publicações"
+            subtitle="Produtividade, processos, funil, publicações e personalizado"
           />
           {modules.assessoria && (
             <TileLink href="/m/assessoria" icon={Building2} tone="navy" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
