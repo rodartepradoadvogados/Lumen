@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, formatDate } from "@/components/ui";
 import MobileAttendanceStatusSelect from "@/components/mobile/MobileAttendanceStatusSelect";
+import FunnelStageSelect from "@/components/FunnelStageSelect";
 import MobileConvertAttendanceForm from "@/components/mobile/MobileConvertAttendanceForm";
 import MobileCaseAttachmentsTab from "@/components/mobile/MobileCaseAttachmentsTab";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
@@ -69,7 +70,15 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
             <EditAttendanceSubject attendanceId={a.id} subject={a.subject} />
           </div>
         </div>
-        <MobileAttendanceStatusSelect attendanceId={a.id} status={a.status} />
+        {/* Estágio do funil comercial (Novo/Qualificação/Proposta/Fechado/Perdido) — faltava no
+            app: só dava pra ver a contagem agregada em Relatórios, sem jeito de mudar o estágio
+            de quem atendeu por telefone fora do escritório. Mesmo componente do site
+            (components/FunnelStageSelect.tsx) — já é autônomo e mobile-friendly, sem precisar de
+            uma versão "Mobile" própria. */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
+          <MobileAttendanceStatusSelect attendanceId={a.id} status={a.status} />
+        </div>
       </div>
 
       <Card className="p-4 space-y-2.5">

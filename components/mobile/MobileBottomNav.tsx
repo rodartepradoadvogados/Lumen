@@ -2,14 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Bell, Newspaper, Menu } from "lucide-react";
+import { Home, Calendar, Bell, Newspaper, Menu } from "lucide-react";
 
-// Barra reduzida a 4 abas fixas (Agenda, Alertas, Publicações, Menu) — Início deixou de ser
-// uma aba própria (o logo/nome do escritório no cabeçalho leva pra lá, ver app/m/layout.tsx)
-// e Processos saiu daqui (fica a 1 toque na grade da Início e ganhou atalho em Menu, ver
-// app/m/mais/page.tsx) pra abrir espaço sem disputar com o que se usa todo dia. Alertas e
-// Publicações usam o MESMO ícone da grade da Início — reforça que é o mesmo destino, não um
-// atalho novo pra aprender.
+// Barra com 5 abas fixas (Início, Agenda, Alertas, Publicações, Menu). Início já foi tirada
+// daqui uma vez (o logo/nome do escritório no cabeçalho levava pra lá, ver app/m/layout.tsx) —
+// voltou porque a auditoria de navegação (2026-08) achou que ninguém descobria sozinho que o
+// logo era clicável: sem NENHUM afordance visual de botão, "tocar o logo pra voltar" não é um
+// gesto que se aprende por tentativa, é conhecimento que só quem já usou apps assim tem. Uma
+// aba fixa, rotulada, é o jeito mais garantido de resolver "como eu volto pro início" — mesmo
+// custando 1 ícone a mais na barra. O link do logo em app/m/layout.tsx continua existindo (não
+// atrapalha), só deixou de ser o ÚNICO caminho.
+//
+// Processos segue fora daqui (fica a 1 toque na grade da Início e no Menu, ver
+// app/m/mais/page.tsx) — abrir espaço pra ele empurraria a barra pra 6 abas, e ele já tem 2
+// caminhos sem estar preso a nenhuma tela específica primeiro. Alertas e Publicações usam o
+// MESMO ícone da grade da Início — reforça que é o mesmo destino, não um atalho novo pra aprender.
 //
 // Ícone ativo fica em DOURADO de propósito (não bordô, que virou a cor de ação em todo o
 // resto do app com a Fase 3 da Início — ver app/m/page.tsx) — decisão explícita do dono do
@@ -17,6 +24,7 @@ import { Calendar, Bell, Newspaper, Menu } from "lucide-react";
 // "criar". Dourado aqui não é decorativo, é sinal de "onde eu estou" — papel diferente de
 // "ação", por isso pode usar a cor que em todo resto do app ficou reservada só a acento.
 const items = [
+  { href: "/m", label: "Início", Icon: Home, exact: true, badge: null },
   { href: "/m/agenda", label: "Agenda", Icon: Calendar, exact: false, badge: "agenda" as const },
   { href: "/m/alertas", label: "Alertas", Icon: Bell, exact: false, badge: "alerts" as const },
   { href: "/m/publicacoes", label: "Publicações", Icon: Newspaper, exact: false, badge: null },

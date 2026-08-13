@@ -2,12 +2,13 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
-import { getAlertsCount } from "@/lib/alerts";
+import { getAlerts, type AlertItem } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { naturezaWhere } from "@/lib/caseNatureza";
 import { Card, formatCurrency } from "@/components/ui";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
+import AlertRow from "@/components/AlertRow";
 import {
   CalendarPlus,
   ListTodo,
@@ -24,9 +25,18 @@ import {
   LineChart,
   BookOpen,
   ChevronDown,
+  ChevronRight,
   Building2,
   type LucideIcon,
 } from "lucide-react";
+
+// Ordem de urgência pra escolher os alertas da prévia da Início — mesma leitura de severidade
+// da Central de Alertas (DESIGN-SYSTEM.md §8), só usada aqui pra ordenar, não pra pintar nada
+// de novo (a cor já vem de severityStripe abaixo).
+const SEVERITY_RANK: Record<AlertItem["severity"], number> = { alta: 0, media: 1, baixa: 2 };
+function maisUrgentesPrimeiro(a: AlertItem, b: AlertItem): number {
+  return SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || b.date.getTime() - a.date.getTime();
+}
 
 export const dynamic = "force-dynamic";
 
@@ -60,13 +70,13 @@ async function getMonthlyNetFlow(officeId: string) {
 
 export default async function MobileHome() {
   const user = await getCurrentUser();
-  const [unreadPublicationsRaw, totalAlerts, assessoriaCount, activeCasesCount, activeJudicialCount, activeAdministrativoCount, blockedSet] = await Promise.all([
+  const [unreadPublicationsRaw, alerts, assessoriaCount, activeCasesCount, activeJudicialCount, activeAdministrativoCount, blockedSet] = await Promise.all([
     user
       ? prisma.publication.findMany({ where: { officeId: user.officeId, reads: { none: { userId: user.id } } }, select: { id: true, processNumberRaw: true, publishedAt: true } })
       : Promise.resolve([]),
-    // Total de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas — ver
-    // lib/alerts.ts) — alimenta o atalho "Central de Alertas" abaixo.
-    user ? getAlertsCount(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin) : Promise.resolve(0),
+    // Lista completa (não só a contagem) — alimenta tanto o número do atalho quanto a prévia
+    // dos alertas mais urgentes logo abaixo, sem precisar de uma segunda consulta.
+    user ? getAlerts(user.officeId, Boolean(user.isAdmin || user.financeAccess), user.id, user.isAdmin) : Promise.resolve([]),
     user ? prisma.assessoria.count({ where: { status: "ATIVA", officeId: user.officeId } }) : Promise.resolve(0),
     user ? prisma.case.count({ where: { officeId: user.officeId, status: "ATIVO" } }) : Promise.resolve(0),
     // Divisão judicial/administrativo do atalho "Processos" abaixo — duas contagens leves a mais
@@ -79,6 +89,10 @@ export default async function MobileHome() {
   // Bloqueio de processo é por usuário — não conta pro badge de quem bloqueou. Contagem por
   // GRUPO (mesmo processo), não por linha — ver lib/publicationGrouping.ts.
   const unreadCount = countUnreadPublicationGroups(unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)));
+  const totalAlerts = alerts.length;
+  // Os 3 mais urgentes primeiro — é o que transforma o cartão de "link repetido pro sino e pra
+  // barra de baixo" em informação nova de verdade: decide se vale abrir sem precisar entrar.
+  const alertsPreview = [...alerts].sort(maisUrgentesPrimeiro).slice(0, 3);
 
   const firstName = user?.name.split(" ")[0] ?? "";
   const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
@@ -127,8 +141,53 @@ export default async function MobileHome() {
           )}
         </div>
 
+        {/* Prévia real dos alertas mais urgentes — não é mais um link repetindo o mesmo número
+            do sino e da aba de baixo: mostra o que de fato está pendente, pra decidir se vale
+            abrir sem precisar entrar. Card largo (não tile) de propósito: uma lista de verdade
+            não cabe direito no formato compacto dos atalhos de "Acompanhar" abaixo. */}
+        <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-tx-2">
+            <Bell size={12} /> Central de Alertas
+          </span>
+          {totalAlerts > 0 && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-urgente">
+              {totalAlerts} pendente{totalAlerts > 1 ? "s" : ""} <ChevronRight size={13} />
+            </span>
+          )}
+        </Link>
+        {totalAlerts === 0 ? (
+          <Link href="/m/alertas" className="block">
+            <Card className="px-4 py-3.5">
+              <p className="text-sm text-tx-2">Tudo em dia — nenhum alerta pendente.</p>
+            </Card>
+          </Link>
+        ) : (
+          <Card className="divide-y divide-regua overflow-hidden">
+            {alertsPreview.map((a) => (
+              <AlertRow
+                key={a.id}
+                alert={a}
+                className={`flex items-start justify-between gap-3 px-4 py-3 w-full text-left border-l-[3px] ${
+                  a.severity === "alta" ? "border-urgente" : a.severity === "media" ? "border-marca" : "border-tx-3"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-tx truncate">{a.title}</span>
+                  {a.subtitle && <span className="block text-xs text-tx-2 mt-0.5 truncate">{a.subtitle}</span>}
+                </span>
+                <span className="text-[11px] text-tx-3 shrink-0 whitespace-nowrap">{a.date.toLocaleDateString("pt-BR")}</span>
+              </AlertRow>
+            ))}
+            {totalAlerts > alertsPreview.length && (
+              <Link href="/m/alertas" className="block px-4 py-2.5 text-xs font-semibold text-acao hover:underline">
+                Ver todos os {totalAlerts} alertas →
+              </Link>
+            )}
+          </Card>
+        )}
+
         {/* Acompanhar: cada atalho já mostra a contagem — decide se vale abrir sem precisar
-            entrar. Alertas e Publicações usam o mesmo ícone da barra de baixo de propósito. */}
+            entrar. Publicações usa o mesmo ícone da barra de baixo de propósito. */}
         <div className="grid grid-cols-2 gap-3">
           <TileLink
             href="/m/processos"
@@ -142,8 +201,14 @@ export default async function MobileHome() {
             // (sem poluir com "0 adm." pra ninguém).
             subCaption={activeAdministrativoCount > 0 ? `${activeJudicialCount} jud. · ${activeAdministrativoCount} adm.` : undefined}
           />
-          <TileLink href="/m/alertas" icon={Bell} tone="navy" title="Central de Alertas" count={totalAlerts} countLabel="pendente(s)" countTone="bordo" />
           <TileLink href="/m/publicacoes" icon={Newspaper} tone="navy" title="Publicações" count={unreadCount} countLabel="não lida(s)" />
+          <TileLink
+            href="/m/relatorios"
+            icon={FileBarChart}
+            tone="navy"
+            title="Relatórios"
+            subtitle="Produtividade, processos, funil e publicações"
+          />
           {modules.assessoria && (
             <TileLink href="/m/assessoria" icon={Building2} tone="navy" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
           )}
@@ -203,13 +268,16 @@ function TileLink({
   countLabel,
   subCaption,
   countTone,
+  subtitle,
 }: {
   href: string;
   icon: LucideIcon;
   tone: Tone;
   title: string;
-  count: number;
-  countLabel: string;
+  // Sem contagem ao vivo (ex.: Relatórios, que cobre várias seções sem um número único que as
+  // resuma), usa `subtitle` no lugar — texto fixo em vez de dado; nunca os dois juntos.
+  count?: number;
+  countLabel?: string;
   // Legenda pequena opcional abaixo da contagem (ex.: "96 jud. · 27 adm.") — hoje só o atalho
   // Processos usa isso, pra abrir a divisão por natureza sem precisar entrar na lista.
   subCaption?: string;
@@ -217,18 +285,23 @@ function TileLink({
   // pra manter uma pista visual de urgência mesmo com o selo do ícone virando navy neutro
   // (ver proposta Nível 3: "navy + número em bordô").
   countTone?: "bordo";
+  subtitle?: string;
 }) {
   return (
     <Link href={href} className="block h-full">
       <Card className="p-3.5 h-full">
         <TileBadge icon={icon} tone={tone} size={17} />
         <p className="text-[13px] font-bold text-tx mt-2.5 leading-tight">{title}</p>
-        <p className="text-xs mt-0.5">
-          <span className={`font-extrabold tabular-nums ${countTone === "bordo" ? "text-urgente" : "text-tx"}`}>
-            {count}
-          </span>{" "}
-          <span className="text-tx-2">{countLabel}</span>
-        </p>
+        {count !== undefined ? (
+          <p className="text-xs mt-0.5">
+            <span className={`font-extrabold tabular-nums ${countTone === "bordo" ? "text-urgente" : "text-tx"}`}>
+              {count}
+            </span>{" "}
+            <span className="text-tx-2">{countLabel}</span>
+          </p>
+        ) : (
+          subtitle && <p className="text-[11px] text-tx-2 mt-0.5 leading-snug">{subtitle}</p>
+        )}
         {subCaption && <p className="text-[10px] text-tx-2 mt-0.5 tabular-nums">{subCaption}</p>}
       </Card>
     </Link>

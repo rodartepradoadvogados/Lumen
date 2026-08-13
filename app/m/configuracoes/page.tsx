@@ -175,11 +175,15 @@ export default async function MobileConfiguracoes() {
           <details className="group" open>
             <Group icon={Plug} title="Modelos & Integrações" meta="8 itens">
               <Card className="!rounded-t-none border-t-0">
-                <div className="p-4 space-y-3">
-                  <div>
-                    <p className="text-xs font-semibold text-tx-2 mb-1">Sincronizar publicações e andamentos</p>
-                    <SyncPublicationsButton />
-                  </div>
+                {/* Mesmas 3 categorias do site (Conexões / Captura automática / Documentos e
+                    pastas — "Fluxo de trabalho" fica de fora aqui porque as colunas do Kanban só
+                    são configuráveis no computador, ver ConfiguracoesPage). Antes era uma lista
+                    só, linear, com os 8 itens abaixo sem nenhum agrupamento — a auditoria de
+                    navegação (2026-08) apontou que essa era a única seção do app que não
+                    acompanhou a reorganização que o site já tinha. */}
+                <div className="px-4 pt-4 pb-1">
+                  <p className="text-[10.5px] font-bold uppercase tracking-wide text-marca-tx">Conexões</p>
+                  <p className="text-[11px] text-tx-2 mt-0.5">Contas de Google usadas pelo escritório</p>
                 </div>
 
                 <div className="p-4 border-t border-regua">
@@ -224,6 +228,16 @@ export default async function MobileConfiguracoes() {
                   </a>
                 </div>
 
+                <div className="px-4 pt-4 pb-1 border-t border-regua mt-1">
+                  <p className="text-[10.5px] font-bold uppercase tracking-wide text-marca-tx">Captura automática</p>
+                  <p className="text-[11px] text-tx-2 mt-0.5">De onde publicações, andamentos e mensagens chegam sozinhos</p>
+                </div>
+
+                <div className="p-4 border-t border-regua">
+                  <p className="text-xs font-semibold text-tx-2 mb-1">Sincronizar publicações e andamentos</p>
+                  <SyncPublicationsButton />
+                </div>
+
                 <div className="p-4 border-t border-regua">
                   <p className="text-xs font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><Gavel size={13} /> DJEN (CNJ)</p>
                   <p className="text-[11px] text-tx-2 mb-2">OABs cadastradas em Equipe, no computador.</p>
@@ -257,10 +271,16 @@ export default async function MobileConfiguracoes() {
                 )}
 
                 {driveStatus.connected && (
-                  <div className="p-4 border-t border-regua">
-                    <p className="text-xs font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><FolderCog size={13} /> Anexos do Drive</p>
-                    <ReorganizeAttachmentsButton />
-                  </div>
+                  <>
+                    <div className="px-4 pt-4 pb-1 border-t border-regua mt-1">
+                      <p className="text-[10.5px] font-bold uppercase tracking-wide text-marca-tx">Documentos e pastas</p>
+                      <p className="text-[11px] text-tx-2 mt-0.5">Organização do armazenamento</p>
+                    </div>
+                    <div className="p-4 border-t border-regua">
+                      <p className="text-xs font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><FolderCog size={13} /> Anexos do Drive</p>
+                      <ReorganizeAttachmentsButton />
+                    </div>
+                  </>
                 )}
               </Card>
             </Group>

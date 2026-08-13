@@ -4,7 +4,7 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
-import { Phone, DollarSign, BarChart, Settings, LogOut, Lock, Newspaper, Briefcase, User } from "lucide-react";
+import { Phone, DollarSign, BarChart, Settings, LogOut, Lock, Briefcase, User, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -26,16 +26,15 @@ export default async function MobileMais() {
 
   const items = [
     // Processos saiu da barra inferior (ver components/mobile/MobileBottomNav.tsx) — continua
-    // a 1 toque na grade da Início, e ganha este atalho aqui pelo mesmo motivo de Publicações
-    // logo abaixo: garantir que dá pra chegar lá de qualquer tela, não só da Início.
+    // a 1 toque na grade da Início, e ganha este atalho aqui: garante que dá pra chegar lá de
+    // qualquer tela, não só da Início.
     { href: "/m/processos", label: "Processos", Icon: Briefcase, color: "neutral" as const, show: true },
-    // A aba do sino no menu inferior leva pra Central de Alertas (/m/alertas), não mais
-    // direto pra Publicações — este atalho garante que Publicações continue alcançável a
-    // partir do menu inferior existente (além do card na Início).
-    { href: "/m/publicacoes", label: "Publicações", Icon: Newspaper, color: "neutral" as const, show: true },
     { href: "/m/atendimento", label: "Atendimento", Icon: Phone, color: "accent" as const, show: modules.atendimento },
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, color: "money" as const, show: showFinance },
     { href: "/m/relatorios", label: "Relatórios", Icon: BarChart, color: "neutral" as const, show: true },
+    // Busca + ligar/WhatsApp direto — nasceu da auditoria de navegação (2026-08): único gap com
+    // uso claro fora do escritório. Cadastro e edição continuam só no site (ver app/m/contatos).
+    { href: "/m/contatos", label: "Contatos", Icon: Users, color: "neutral" as const, show: true },
     // Nome/foto do perfil saíram do cabeçalho (ver app/m/layout.tsx) — este é o único caminho
     // pra /m/perfil agora, então precisa continuar aqui mesmo o card acima já mostrando nome/foto.
     { href: "/m/perfil", label: "Meu Perfil", Icon: User, color: "neutral" as const, show: true },
