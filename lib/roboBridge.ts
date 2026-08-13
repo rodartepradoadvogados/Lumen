@@ -4,7 +4,7 @@
 // (Publication/Case). Segue o mesmo padrão de lib/jusbrasilEmailSync.ts.
 
 import { prisma } from "@/lib/prisma";
-import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
+import { converterHtmlParaTextoSimples } from "@/lib/htmlEntities";
 import { broadcastPushIfEnabled } from "@/lib/push";
 
 export type RoboBridgeResult = {
@@ -216,7 +216,12 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               officeId,
               kind: "PUBLICACAO",
               source: "DJEN",
-              content: decodificarEntidadesHtml(pub.teor ?? pub.tipoComunicacao ?? "(sem teor)"),
+              // pub.teor chega como o HTML inteiro da página de detalhe do DJEN (<html><head>
+              // <style>...) — converterHtmlParaTextoSimples tira a marcação e decodifica as
+              // entidades numa passada só, pra sobrar só a redação corrida que o teor tem por
+              // trás da tag. Se não tiver teor nenhum, cai no tipo de comunicação (texto simples,
+              // não precisa de conversão — a função detecta sozinha e devolve como veio).
+              content: converterHtmlParaTextoSimples(pub.teor ?? pub.tipoComunicacao ?? "(sem teor)"),
               publishedAt: parseDataOuFallback(pub.dataDisponibilizacao, pub.dataCaptura),
               emailMessageId,
               processNumberRaw: pub.numeroProcesso,
@@ -255,7 +260,10 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               officeId,
               kind: "ANDAMENTO",
               source: "DATAJUD",
-              content: decodificarEntidadesHtml(and.descricaoMovimento ?? and.codigoMovimento),
+              // O Datajud normalmente já entrega descrição de movimento em texto simples, mas
+              // passa pela mesma limpeza por segurança — converterHtmlParaTextoSimples não mexe
+              // em texto que não tem tag nenhuma.
+              content: converterHtmlParaTextoSimples(and.descricaoMovimento ?? and.codigoMovimento),
               publishedAt: parseDataOuFallback(and.dataMovimentacao, and.dataCaptura),
               emailMessageId,
               processNumberRaw: and.numeroProcesso,

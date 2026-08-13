@@ -1,4 +1,6 @@
-// Decodificação de entidades HTML no texto de publicações e andamentos.
+// Limpeza do texto de publicações e andamentos: decodificação de entidades HTML e, quando o
+// teor chega como um documento HTML inteiro (caso do DJEN — ver converterHtmlParaTextoSimples
+// abaixo), remoção da marcação também.
 //
 // O teor que chega dos diários oficiais e dos e-mails do Jusbrasil vem com o texto escapado em
 // HTML — "PROTOCOLO N&ordm; ... A&Ccedil;&Atilde;O: PROCESSO C&Iacute;VEL". Nada no caminho de
@@ -90,4 +92,56 @@ export function decodificarEntidadesHtml(texto: string): string {
 // todas as origens (ver lib/roboBridge.ts, lib/jusbrasilEmailSync.ts).
 export function decodificarOpcional<T extends string | null | undefined>(texto: T): T {
   return (typeof texto === "string" ? decodificarEntidadesHtml(texto) : texto) as T;
+}
+
+// Elementos de BLOCO — o fechamento de cada um vira quebra de linha, porque é o que separa uma
+// linha de tabela da próxima, um parágrafo do seguinte etc. Célula de tabela (td/th) fica de
+// fora de propósito: no teor real do DJEN cada <tr> tem só duas células ("RÓTULO" + ": valor"),
+// e concatenar as duas sem separador reproduz a frase certa ("EMBARGANTE: fulano") — o DJEN
+// nunca usa tabela de grade de verdade, então não há por que inserir separador entre células.
+const RE_FECHO_BLOCO = /<\/(p|div|tr|table|thead|tbody|section|article|header|footer|li|ul|ol|h[1-6])\s*>/gi;
+
+// O teor bruto do DJEN (RoboPublicacao.teor) é um documento HTML inteiro — <html><head>
+// <style>...</style></head><body><article>... — porque é assim que o robô Python captura a
+// página de detalhe da comunicação processual. Sem isto, a marcação inteira (inclusive o CSS
+// dentro de <style>) ia parar direto no campo Publication.content e aparecia crua na tela (ver
+// relato do dono do escritório com print do teor cheio de <html>/<section>/<span>).
+//
+// Propositalmente NÃO usa nenhuma lib de parsing HTML (cheerio/jsdom): o formato de entrada é
+// estável (mesmo gerador, o robô sempre entrega a mesma estrutura) e um stripper com regex,
+// hand-rolled, resolve sem adicionar dependência nova — mesmo raciocínio de
+// decodificarEntidadesHtml acima.
+export function converterHtmlParaTextoSimples(html: string | null | undefined): string {
+  if (!html) return html ?? "";
+  // Sem nenhuma tag — não é HTML, devolve como veio (não mexe no teor de fontes que já chegam
+  // em texto simples, ex.: e-mail do Jusbrasil já convertido por mailparser).
+  if (!/<[a-z][\s\S]*>/i.test(html)) return html;
+
+  const semMarcacao = html
+    // <head>, <style> e <script> inteiros somem — CONTEÚDO incluso: é onde mora CSS/metadado
+    // que nunca deveria virar texto visível.
+    .replace(/<head[\s\S]*?<\/head>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(RE_FECHO_BLOCO, "\n")
+    // Todo o resto da marcação (abertura de tag, tag sem par como <meta>/<div>) só some — o
+    // texto de dentro já ficou no lugar certo pelas trocas acima.
+    .replace(/<[^>]+>/g, "");
+
+  const texto = decodificarEntidadesHtml(semMarcacao);
+
+  // Colapsa: cada linha perde espaço/tab repetido nas pontas, e uma sequência de linhas em
+  // branco (parágrafo vazio, várias tags de bloco fechando em sequência) vira no máximo UMA —
+  // sem isto o teor sai com dezenas de linhas em branco entre cada frase.
+  const linhas: string[] = [];
+  for (const bruta of texto.split("\n")) {
+    const linha = bruta.replace(/[ \t]+/g, " ").trim();
+    if (linha === "" && (linhas.length === 0 || linhas[linhas.length - 1] === "")) continue;
+    linhas.push(linha);
+  }
+  while (linhas.length > 0 && linhas[linhas.length - 1] === "") linhas.pop();
+
+  return linhas.join("\n");
 }
