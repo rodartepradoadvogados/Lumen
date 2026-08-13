@@ -28,6 +28,7 @@ import TaskActivityRow from "@/components/TaskActivityRow";
 import SendCaseEmailModal from "@/components/SendCaseEmailModal";
 import TermosVigilanciaPanel from "@/components/TermosVigilanciaPanel";
 import ProtocolosTab from "@/components/protocolos/ProtocolosTab";
+import { EnviarDocumentosButton, HistoricoEnvios } from "@/components/DocumentoEnvios";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import BreakGlassReveal from "@/components/BreakGlassReveal";
 import { ArrowLeft, ExternalLink, Presentation } from "lucide-react";
@@ -166,7 +167,10 @@ export default async function CaseDetailPage({
   const tab =
     (requestedTab === "financeiro" && !hasFinanceAccess) ||
     (requestedTab === "vigilancia" && nat !== "ADMINISTRATIVO") ||
-    (requestedTab === "protocolos" && nat === "CASO")
+    (requestedTab === "protocolos" && nat === "CASO") ||
+    // Caso (extrajudicial) nunca recebe publicação de tribunal/órgão — a aba só existiria pra
+    // mostrar "Nenhuma publicação vinculada" pra sempre. Ver mesmo filtro na lista de TABS abaixo.
+    (requestedTab === "publicacoes" && nat === "CASO")
       ? "visao-geral"
       : requestedTab;
 
@@ -393,7 +397,8 @@ export default async function CaseDetailPage({
           (t) =>
             (t.key !== "financeiro" || hasFinanceAccess) &&
             (t.key !== "vigilancia" || nat === "ADMINISTRATIVO") &&
-            (t.key !== "protocolos" || nat !== "CASO")
+            (t.key !== "protocolos" || nat !== "CASO") &&
+            (t.key !== "publicacoes" || nat !== "CASO")
         ).map((t) => (
           <Link
             key={t.key}
@@ -905,12 +910,20 @@ export default async function CaseDetailPage({
 
       {tab === "anexos" && (
         <div className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {/* Caso (extrajudicial) não tem aba Protocolos (não protocola em tribunal/órgão — ver
+                filtro de TABS acima), que é onde "Enviar E-mail/WhatsApp" mora para
+                Judicial/Administrativo (ver ProtocolosTab.tsx). Sem isto, um Caso não tinha
+                NENHUM jeito de mandar documento pro cliente por e-mail/WhatsApp. */}
+            {nat === "CASO" && (
+              <EnviarDocumentosButton entity={{ tipo: "CASE", id: c.id, titulo: c.title }} attachments={serializedAttachments} />
+            )}
             <GerarDocumentoButton caseId={c.id} />
           </div>
           <Card className="p-5">
             <AttachmentList attachments={serializedAttachments} caseId={c.id} driveConnected={storageConnected} tribunais={tribunais} />
           </Card>
+          {nat === "CASO" && <HistoricoEnvios entity={{ tipo: "CASE", id: c.id, titulo: c.title }} envios={serializedEnvios} />}
         </div>
       )}
 
