@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
-import { ArrowLeft, Users, Scale, Target, Newspaper } from "lucide-react";
+import { ArrowLeft, Users, Scale, Target, Newspaper, SlidersHorizontal, ChevronRight } from "lucide-react";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +14,10 @@ export const dynamic = "force-dynamic";
 // Financeiro fica de fora: já existe dedicada em `/m/financeiro/relatorios`.
 // Regras de acesso: nenhuma daquelas 4 seções é restrita no desktop (só o
 // Financeiro exige financeAccess/isAdmin), então esta página não faz gate algum.
+//
+// A 5ª seção, "Personalizado", não é resumida aqui — é o único bloco onde a pessoa MONTA a
+// pergunta (filtros, modelos salvos, exportar em Word/PDF), então vira uma tela própria
+// (/m/relatorios/personalizado) em vez de um card de resumo, com o mesmo componente do site.
 
 const MES_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -164,6 +168,19 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
           ))}
         </div>
       </div>
+
+      <Link href="/m/relatorios/personalizado" className="block">
+        <Card className="flex items-center gap-3 px-4 py-3.5">
+          <span className="h-9 w-9 rounded-lg bg-acao-bg text-acao flex items-center justify-center shrink-0">
+            <SlidersHorizontal size={16} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-tx">Relatório Personalizado</p>
+            <p className="text-xs text-tx-2">Monte a pergunta: filtros, modelos salvos, Word e PDF</p>
+          </div>
+          <ChevronRight size={16} className="text-tx-3 shrink-0" />
+        </Card>
+      </Link>
 
       {/* PRODUTIVIDADE */}
       <Card>
