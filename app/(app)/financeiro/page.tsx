@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, StatCard, Card, formatCurrency } from "@/components/ui";
 import { valorLiquido } from "@/lib/financeCalc";
+import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 import { TrendingDown, TrendingUp, Wallet, BookOpen, PieChart, ArrowRight, ListChecks } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -15,17 +16,18 @@ export default async function FinanceiroPage() {
   // status in ["PENDENTE","ATRASADO"] já exclui A_APURAR (provisão sem valor real, Fase 1) e
   // PARCIAL (que tem saldo em aberto próprio, ver alertas/relatórios) das somas de "a receber" —
   // o ajuste desta fase é trocar o amount BRUTO por valorLiquido() (desconto/acréscimo).
-  const [payablesPending, receivablesPending, payablesPaidMonth, receivablesPaidMonth] = await Promise.all([
+  const [payablesPending, receivablesPending, movimentosDoMes] = await Promise.all([
     prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] } } }),
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] } } }),
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: startOfMonth() } } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: startOfMonth() } } }),
+    // "Recebido/Pago este mês" é regime de caixa: lê FinancePayment, então inclui baixa PARCIAL
+    // e conta cada pagamento no mês em que ele ocorreu. Ver lib/caixaMovimentos.ts.
+    listarMovimentosCaixa(viewer.officeId, { de: startOfMonth() }),
   ]);
 
   const totalPayable = payablesPending.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
   const totalReceivable = receivablesPending.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
-  const paidThisMonth = payablesPaidMonth.reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0);
-  const receivedThisMonth = receivablesPaidMonth.reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0);
+  const paidThisMonth = movimentosDoMes.filter((m) => m.tipo === "SAIDA").reduce((s, m) => s + m.valor, 0);
+  const receivedThisMonth = movimentosDoMes.filter((m) => m.tipo === "ENTRADA").reduce((s, m) => s + m.valor, 0);
 
   const modules = [
     { href: "/financeiro/receitas", label: "Receitas", icon: TrendingUp, desc: "Honorários contratuais, sucumbenciais e reembolsos" },

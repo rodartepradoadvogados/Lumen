@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
 import { valorLiquido } from "@/lib/financeCalc";
+import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -30,22 +31,26 @@ export default async function MobileRelatoriosFinanceiro() {
   const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [paidReceivables, paidPayables, overdueReceivables, allReceivables] = await Promise.all([
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } } }),
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
+  const [movimentos, overdueReceivables, allReceivables] = await Promise.all([
+    // Regime de caixa via FinancePayment — antes filtrava `status: "PAGO"`, o que descartava a
+    // baixa PARCIAL e jogava a quitação inteira no mês do último pagamento. Ver
+    // lib/caixaMovimentos.ts.
+    listarMovimentosCaixa(viewer.officeId, { de: start, ate: end, ateExclusivo: true }),
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
     // A_APURAR fora do denominador de inadimplência — é provisão sem valor real ainda (Fase 1),
     // não "a receber" de verdade (nem CANCELADO, que já estava de fora).
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] } }, select: { amount: true, discount: true, surcharge: true } }),
   ]);
 
+  // Adiantamento a Cliente e seu reembolso ficam de fora de Receita/Despesa — são transferência,
+  // não resultado. O desktop (/relatorios?secao=financeiro e /financeiro/dre) já excluía; aqui não
+  // excluía, e os mesmos 6 meses davam Recebido/Pago diferentes nas duas telas.
+  const doResultado = movimentos.filter((m) => !m.ehAdiantamento && !m.ehReembolso);
+
   const financeMonthly = months.map((m) => {
-    const receita = paidReceivables
-      .filter((r) => r.paidDate && monthKey(r.paidDate) === m.key)
-      .reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0);
-    const despesa = paidPayables
-      .filter((p) => p.paidDate && monthKey(p.paidDate) === m.key)
-      .reduce((s, p) => s + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), 0);
+    const doMes = doResultado.filter((mov) => monthKey(mov.data) === m.key);
+    const receita = doMes.filter((mov) => mov.tipo === "ENTRADA").reduce((s, mov) => s + mov.valor, 0);
+    const despesa = doMes.filter((mov) => mov.tipo === "SAIDA").reduce((s, mov) => s + mov.valor, 0);
     return { ...m, receita, despesa, saldo: receita - despesa };
   });
 
@@ -54,9 +59,10 @@ export default async function MobileRelatoriosFinanceiro() {
   const saldoPeriodo = totalRecebido - totalPago;
 
   const expenseByCat: Record<string, number> = {};
-  for (const p of paidPayables) {
-    const key = p.category?.name ?? "Sem categoria";
-    expenseByCat[key] = (expenseByCat[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
+  for (const mov of doResultado) {
+    if (mov.tipo !== "SAIDA") continue;
+    const key = mov.categoriaNome ?? "Sem categoria";
+    expenseByCat[key] = (expenseByCat[key] ?? 0) + mov.valor;
   }
   const topExpenses = Object.entries(expenseByCat)
     .map(([label, value]) => ({ label, value }))

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, formatCurrency, formatDate, EmptyState } from "@/components/ui";
-import { valorLiquido } from "@/lib/financeCalc";
+import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 
 export const dynamic = "force-dynamic";
 
@@ -12,19 +11,23 @@ export default async function LivroCaixaPage() {
   if (!viewer) redirect("/");
 
   const now = new Date();
-  const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { lte: now } }, include: { client: true } }),
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { lte: now } } }),
-  ]);
+  // Cada FinancePayment vira uma linha própria, na data em que o dinheiro de fato se moveu — é o
+  // que faz o recebimento parcial aparecer aqui (antes esta tela filtrava status "PAGO" e a baixa
+  // parcial sumia inteira) e o que põe cada parcela de uma quitação no mês certo. Lançamentos
+  // legados, baixados antes de FinancePayment existir, entram pela segunda fonte da função.
+  // Ver lib/caixaMovimentos.ts.
+  const movimentos = await listarMovimentosCaixa(viewer.officeId, { ate: now });
 
-  // status "PAGO" já exclui A_APURAR sozinho (provisão percentual nunca é baixada direto como
-  // paga). paidAmount é o valor de fato movimentado; o fallback para amount (registro legado sem
-  // paidAmount) passa por valorLiquido para respeitar desconto/acréscimo.
+  // O Livro Caixa é extrato puro de movimentação: mostra TUDO que entrou e saiu, inclusive
+  // adiantamento a cliente e o reembolso dele (que o DRE separa por não serem resultado) — o
+  // dinheiro passou pela conta do escritório, então tem de constar aqui.
   type Entry = { date: Date; description: string; value: number; type: "entrada" | "saida" };
-  const entries: Entry[] = [
-    ...receivables.map((r) => ({ date: r.paidDate!, description: `${r.description}${r.client ? ` — ${r.client.name}` : ""}`, value: r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge), type: "entrada" as const })),
-    ...payables.map((p) => ({ date: p.paidDate!, description: p.description, value: -(p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)), type: "saida" as const })),
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const entries: Entry[] = movimentos.map((m) => ({
+    date: m.data,
+    description: `${m.descricao}${m.clienteNome ? ` — ${m.clienteNome}` : ""}`,
+    value: m.tipo === "ENTRADA" ? m.valor : -m.valor,
+    type: m.tipo === "ENTRADA" ? ("entrada" as const) : ("saida" as const),
+  }));
 
   let running = 0;
   const withBalance = entries.map((e) => {
