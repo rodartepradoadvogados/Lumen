@@ -7,6 +7,7 @@ import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import ActingOfficeBanner from "@/components/ActingOfficeBanner";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
+import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { AnotacoesProvider } from "@/components/anotacoes/AnotacoesContext";
 import AnotacoesPanel from "@/components/anotacoes/AnotacoesPanel";
@@ -18,7 +19,6 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
-import { Lock } from "lucide-react";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
@@ -37,20 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // bloqueado, mas a query roda igual — é barata e evita duplicar a lógica de "é interno").
   const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { status: true, name: true } });
   if (office && office.status !== "ATIVA" && !user.isPlatformOwner) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-sf-fundo p-6">
-        <div className="max-w-md text-center space-y-4">
-          <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
-            <Lock size={22} className="text-atencao" />
-          </div>
-          <h1 className="font-serif text-xl font-bold text-tx">Acesso temporariamente suspenso</h1>
-          <p className="text-sm text-tx-2">
-            O acesso do escritório <strong>{office.name}</strong> está suspenso. Entre em contato com o Rodarte Prado Advogados
-            para regularizar a situação e liberar o acesso novamente.
-          </p>
-        </div>
-      </div>
-    );
+    return <OfficeSuspendedNotice officeName={office.name} />;
   }
 
   const hasFinanceAccess = user.isAdmin || user.financeAccess;

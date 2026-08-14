@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
@@ -11,6 +12,7 @@ import InactivityNotice from "@/components/InactivityNotice";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import LumenMark from "@/components/LumenMark";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
+import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
 
@@ -44,28 +46,41 @@ const THEME_INIT_SCRIPT = `
 `;
 
 export default async function MobileLayout({ children }: { children: React.ReactNode }) {
-  // Auth já é garantida pelo middleware global; aqui só lemos o usuário para o cabeçalho.
+  // Auth (assinatura do token) já é garantida pelo middleware global, que roda no Edge sem
+  // acesso ao banco — por isso não pega uma conta desativada DEPOIS de o token já emitido
+  // (até 30 dias de validade). O layout do site (app/(app)/layout.tsx) já reconferia isso a
+  // cada requisição; aqui não conferia, e um usuário desativado continuava com acesso total
+  // pelo PWA até o token expirar.
   const user = await getCurrentUser();
-  const hasFinanceAccess = user ? Boolean(user.isAdmin || user.financeAccess) : false;
+  if (!user || !user.active) redirect("/");
+
+  // Escritório suspenso/cancelado por inadimplência (Painel Mestre): mesmo gate do site
+  // (app/(app)/layout.tsx), que faltava aqui — o bloqueio de cobrança só existia no desktop,
+  // e o PWA continuava de pé pro escritório inteiro.
+  const office = await prisma.office.findUnique({ where: { id: user.officeId }, select: { status: true, name: true } });
+  if (office && office.status !== "ATIVA" && !user.isPlatformOwner) {
+    return <OfficeSuspendedNotice officeName={office.name} />;
+  }
+
+  const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
   // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas,
   // publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone do PWA
   // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
-  const [totalAlerts, todayAgendaCount, sessionSeconds, office] = await Promise.all([
-    user ? getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin) : Promise.resolve(0),
+  const [totalAlerts, todayAgendaCount, sessionSeconds] = await Promise.all([
+    getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
     // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
     // bolinha da aba "Agenda" no menu inferior, separada da bolinha de Alertas.
-    user ? getTodayAgendaCount(user.officeId) : Promise.resolve(0),
-    user ? getCurrentSessionElapsedSeconds(user.id) : Promise.resolve(0),
-    user ? prisma.office.findUnique({ where: { id: user.officeId }, select: { name: true } }) : Promise.resolve(null),
+    getTodayAgendaCount(user.officeId),
+    getCurrentSessionElapsedSeconds(user.id),
   ]);
 
   return (
     <UndoToastProvider>
     <div className="min-h-screen bg-sf-fundo transition-colors">
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      {user && <InactivityNotice />}
+      <InactivityNotice />
       <AppBadgeSync initialCount={totalAlerts} />
       {/* `sticky` (não `fixed`) de propósito: empilhado num flex-col junto com a faixa de
           suporte abaixo, este bloco fica colado no topo ao rolar sem precisar saber de
@@ -94,25 +109,23 @@ export default async function MobileLayout({ children }: { children: React.React
             </div>
           </Link>
           <div className="flex items-center gap-1.5 shrink-0">
-            {user && (
-              <Link
-                href="/m/alertas"
-                aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
-                className="relative h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
-              >
-                <Bell size={16} />
-                {totalAlerts > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-vinho-500 text-white text-[9px] font-bold flex items-center justify-center border border-grafite-800">
-                    {totalAlerts > 99 ? "99+" : totalAlerts}
-                  </span>
-                )}
-              </Link>
-            )}
+            <Link
+              href="/m/alertas"
+              aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
+              className="relative h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
+            >
+              <Bell size={16} />
+              {totalAlerts > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-vinho-500 text-white text-[9px] font-bold flex items-center justify-center border border-grafite-800">
+                  {totalAlerts > 99 ? "99+" : totalAlerts}
+                </span>
+              )}
+            </Link>
             <MobileThemeToggle />
             {/* Ping silencioso de timesheet: o componente fica "hidden lg:flex" (nunca visível
                 na largura do app mobile), mas mantém o mecanismo de contagem de sessão do dia
                 rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
-            {user && <TimesheetTimer initialSeconds={sessionSeconds} />}
+            <TimesheetTimer initialSeconds={sessionSeconds} />
           </div>
         </header>
       </div>
