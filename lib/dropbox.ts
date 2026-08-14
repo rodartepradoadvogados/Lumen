@@ -18,16 +18,21 @@ function redirectUri(): string {
   return process.env.DROPBOX_REDIRECT_URI || "https://lumen-flax-chi.vercel.app/api/dropbox/callback";
 }
 
-// Sem `mode`/`state` — diferente de getMicrosoftAuthUrl, Dropbox nesta entrega só serve para
-// armazenamento (nunca e-mail), então a URL de autorização não precisa distinguir "modo".
-// token_access_type=offline é o equivalente Dropbox do offline_access (Microsoft)/access_type=
-// offline (Google): necessário para ganhar um refresh_token.
-export function getDropboxAuthUrl(): string {
+// Sem `mode` — diferente de getMicrosoftAuthUrl, Dropbox nesta entrega só serve para
+// armazenamento (nunca e-mail), então a URL de autorização não precisa distinguir "modo" de
+// verdade. `state` ainda é obrigatório do lado de quem chama (ver lib/oauthState.ts): mesmo
+// com um único fluxo possível, o callback continua sendo um GET com efeito colateral
+// persistente, e sem nonce anti-CSRF é sequestrável do mesmo jeito que Google/Microsoft (achado
+// A61 da revisão gauntlet). token_access_type=offline é o equivalente Dropbox do
+// offline_access (Microsoft)/access_type=offline (Google): necessário para ganhar um
+// refresh_token.
+export function getDropboxAuthUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: process.env.DROPBOX_CLIENT_ID!,
     response_type: "code",
     redirect_uri: redirectUri(),
     token_access_type: "offline",
+    state,
   });
   return `${AUTHORIZE_URL}?${params.toString()}`;
 }
