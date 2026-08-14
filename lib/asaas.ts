@@ -105,7 +105,22 @@ export async function getOrCreateAsaasCustomer(office: OfficeForAsaas): Promise<
 // Pix Automático (débito recorrente autorizado uma vez — feature BACEN 16/06/2025)
 // ---------------------------------------------------------------------------
 
-type SubscriptionForAsaas = { id: string; officeId: string; monthlyFee: number; billingCycle: string };
+type SubscriptionForAsaas = { id: string; officeId: string; monthlyFee: number; billingCycle: string; discountPercent?: number | null };
+
+// Valor de fato cobrado por ciclo: SEMESTRAL cobra a mensalidade x 6 de uma vez, com o desconto
+// (se houver) aplicado sobre o total; MENSAL cobra a mensalidade cheia. Único lugar que faz essa
+// conta — a autorização de Pix Automático recorrente logo abaixo, o preview de teste
+// (lib/actions/subscriptionBilling.ts:previewPixQrCode) e a geração de fatura
+// (lib/actions/painelMestre.ts:generateAndSendInvoice) chamam esta função em vez de repetir a
+// fórmula, para não voltarem a divergir entre si — era exatamente essa divergência (cada
+// chamada lendo monthlyFee cru, sem olhar billingCycle/discountPercent) que fazia o ciclo
+// SEMESTRAL cobrar 1/6 do valor certo, sem nunca aplicar o desconto prometido ao cliente.
+export function calcularValorCobranca(subscription: { monthlyFee: number; billingCycle: string; discountPercent?: number | null }): number {
+  if (subscription.billingCycle !== "SEMESTRAL") return subscription.monthlyFee;
+  const bruto = subscription.monthlyFee * 6;
+  const desconto = subscription.discountPercent ? bruto * (subscription.discountPercent / 100) : 0;
+  return Math.round((bruto - desconto) * 100) / 100;
+}
 
 export type PixAutomaticoAuthorizationResult = {
   authorizationId: string;
@@ -149,7 +164,7 @@ export async function createPixAutomaticoAuthorization(
     body: JSON.stringify({
       customerId: asaasCustomerId,
       contractId: subscription.id,
-      value: subscription.monthlyFee,
+      value: calcularValorCobranca(subscription),
       frequency,
       description: `Assinatura Lúmen — ${office.name}`,
     }),
