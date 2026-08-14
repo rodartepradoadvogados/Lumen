@@ -3,12 +3,18 @@ import { prisma } from "../lib/prisma";
 const contentKey = (content: string) => content.slice(0, 200);
 
 // Encontra publicações duplicadas pelo mesmo critério do sync:
-// mesma data de publicação (dia) + mesmo processNumberRaw + primeiros 200 chars do conteúdo.
-// Mantém a mais antiga (createdAt asc) e apaga as demais.
+// MESMO ESCRITÓRIO + mesma data de publicação (dia) + mesmo processNumberRaw + primeiros 200
+// chars do conteúdo. Mantém a mais antiga (createdAt asc) e apaga as demais.
+//
+// officeId faz parte da chave e não é opcional: dois escritórios-clientes podem acompanhar o
+// MESMO processo — é o caso normal de partes contrárias, cada uma com seu advogado — e recebem a
+// mesma publicação, com o mesmo teor, no mesmo dia. Sem officeId na chave as duas caíam no mesmo
+// grupo e a publicação de um escritório era apagada como se fosse duplicata do outro: perda de
+// publicação processual causada por dado de outro tenant, ou seja, prazo perdido.
 async function main() {
   const pubs = await prisma.publication.findMany({
     orderBy: { createdAt: "asc" },
-    select: { id: true, publishedAt: true, processNumberRaw: true, content: true },
+    select: { id: true, officeId: true, publishedAt: true, processNumberRaw: true, content: true },
   });
 
   const seen = new Map<string, string>(); // groupKey -> id da mais antiga
@@ -18,7 +24,7 @@ async function main() {
     const day = new Date(p.publishedAt.getFullYear(), p.publishedAt.getMonth(), p.publishedAt.getDate())
       .toISOString()
       .slice(0, 10);
-    const groupKey = `${day}|${p.processNumberRaw ?? ""}|${contentKey(p.content)}`;
+    const groupKey = `${p.officeId}|${day}|${p.processNumberRaw ?? ""}|${contentKey(p.content)}`;
     if (seen.has(groupKey)) {
       toDelete.push(p.id);
     } else {
