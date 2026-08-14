@@ -508,35 +508,53 @@ export async function markHonorarioPaid(honorarioId: string, paidAmount: number,
 // Chamado pelo cron mensal (app/api/cron/assessoria-honorarios/route.ts). Gera, para cada
 // assessoria ativa, o Honorario + Receivable do mês corrente, se ainda não existir — nunca
 // duplica (protegido pela constraint única assessoriaId+competencia).
-export async function generateAllMonthlyHonorarios(): Promise<{ created: number }> {
+export async function generateAllMonthlyHonorarios(): Promise<{ created: number; failed: number }> {
   const now = new Date();
   const competencia = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const assessorias = await prisma.assessoria.findMany({ where: { status: "ATIVA" }, include: { client: true } });
 
   let created = 0;
+  let failed = 0;
   for (const a of assessorias) {
-    const exists = await prisma.honorario.findUnique({
-      where: { assessoriaId_competencia: { assessoriaId: a.id, competencia } },
-    });
-    if (exists) continue;
+    try {
+      const exists = await prisma.honorario.findUnique({
+        where: { assessoriaId_competencia: { assessoriaId: a.id, competencia } },
+      });
+      if (exists) continue;
 
-    const dueDate = new Date(now.getFullYear(), now.getMonth(), a.dueDay);
-    const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const dueDate = new Date(now.getFullYear(), now.getMonth(), a.dueDay);
+      const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
-    const receivable = await prisma.receivable.create({
-      data: {
-        officeId: a.officeId,
-        description: `Honorário de assessoria — ${a.client.name} — ${monthLabel}`,
-        amount: a.monthlyFee,
-        dueDate,
-        kind: "HONORARIOS_CONTRATUAIS",
-        clientId: a.clientId,
-      },
-    });
-    await prisma.honorario.create({ data: { officeId: a.officeId, assessoriaId: a.id, competencia, receivableId: receivable.id } });
-    created++;
+      // $transaction: Receivable e Honorario nascem juntos ou não nascem — antes eram duas
+      // escritas independentes com a idempotência ancorada só no Honorario (findUnique acima).
+      // Se a segunda escrita falhasse (queda de conexão, timeout), o Receivable ficava gravado
+      // e órfão; como a guarda só olha Honorario, a execução seguinte não via nada e criava um
+      // SEGUNDO Receivable para a mesma assessoria/competência — cobrança duplicada em Contas a
+      // Receber, DRE e fluxo de caixa (achado A74 da revisão gauntlet).
+      await prisma.$transaction(async (tx) => {
+        const receivable = await tx.receivable.create({
+          data: {
+            officeId: a.officeId,
+            description: `Honorário de assessoria — ${a.client.name} — ${monthLabel}`,
+            amount: a.monthlyFee,
+            dueDate,
+            kind: "HONORARIOS_CONTRATUAIS",
+            clientId: a.clientId,
+          },
+        });
+        await tx.honorario.create({ data: { officeId: a.officeId, assessoriaId: a.id, competencia, receivableId: receivable.id } });
+      });
+      created++;
+    } catch (e) {
+      // try/catch por item (mesmo padrão de lib/driveSync.ts e de
+      // ensureRecurringFeeReceivables/ensureRecurringExpensePayables em lib/actions/
+      // financeiro.ts) — uma assessoria com dado ruim não pode travar a geração de todas as
+      // outras que vêm depois dela na lista (achado A75).
+      failed++;
+      console.error(`[assessoria-honorarios] falha ao gerar honorário da assessoria ${a.id} (escritório ${a.officeId}):`, e);
+    }
   }
 
   revalidatePath("/assessoria");
-  return { created };
+  return { created, failed };
 }

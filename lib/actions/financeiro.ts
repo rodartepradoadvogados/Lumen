@@ -959,7 +959,7 @@ export async function createRecurringFee(data: {
 // única (recurringFeeId, competencia) em Receivable garante que rodar todo dia em vez de só no
 // dia 1 não duplica nada. Também é quem desliga sozinho um RecurringFee cujo processo já foi
 // arquivado, sem precisar de nenhum hook em updateCaseStatus.
-export async function ensureRecurringFeeReceivables(): Promise<{ created: number; deactivated: number }> {
+export async function ensureRecurringFeeReceivables(): Promise<{ created: number; deactivated: number; failed: number }> {
   const now = new Date();
   const fees = await prisma.recurringFee.findMany({
     where: { active: true },
@@ -968,45 +968,55 @@ export async function ensureRecurringFeeReceivables(): Promise<{ created: number
 
   let created = 0;
   let deactivated = 0;
+  let failed = 0;
+  // try/catch por item (mesmo padrão de lib/driveSync.ts:syncAllOfficesDrive) — sem isso, uma
+  // exceção num único RecurringFee (FK de categoria/centro de custo já removida, timeout de
+  // conexão no meio da lista) propagava e travava a geração de TODOS os escritórios seguintes
+  // na ordem do findMany, todo dia, até alguém notar (achado A75 da revisão gauntlet).
   for (const fee of fees) {
-    if (fee.case.status === "ARQUIVADO") {
-      await prisma.recurringFee.update({ where: { id: fee.id }, data: { active: false } });
-      deactivated++;
-      continue;
-    }
-    for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
-      const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const year = target.getFullYear();
-      const month0 = target.getMonth();
-      const competencia = competenciaFor(year, month0);
-      const exists = await prisma.receivable.findUnique({
-        where: { recurringFeeId_competencia: { recurringFeeId: fee.id, competencia } },
-      });
-      if (exists) continue;
+    try {
+      if (fee.case.status === "ARQUIVADO") {
+        await prisma.recurringFee.update({ where: { id: fee.id }, data: { active: false } });
+        deactivated++;
+        continue;
+      }
+      for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
+        const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const year = target.getFullYear();
+        const month0 = target.getMonth();
+        const competencia = competenciaFor(year, month0);
+        const exists = await prisma.receivable.findUnique({
+          where: { recurringFeeId_competencia: { recurringFeeId: fee.id, competencia } },
+        });
+        if (exists) continue;
 
-      const dueDate = dueDateFor(year, month0, fee.dueDay);
-      const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-      await prisma.receivable.create({
-        data: {
-          officeId: fee.officeId,
-          description: `${fee.description} — ${monthLabel}`,
-          amount: fee.amount,
-          dueDate,
-          kind: fee.kind,
-          categoryId: fee.categoryId,
-          costCenterId: fee.costCenterId,
-          clientId: fee.case.clientId,
-          caseId: fee.caseId,
-          recurringFeeId: fee.id,
-          competencia,
-        },
-      });
-      created++;
+        const dueDate = dueDateFor(year, month0, fee.dueDay);
+        const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        await prisma.receivable.create({
+          data: {
+            officeId: fee.officeId,
+            description: `${fee.description} — ${monthLabel}`,
+            amount: fee.amount,
+            dueDate,
+            kind: fee.kind,
+            categoryId: fee.categoryId,
+            costCenterId: fee.costCenterId,
+            clientId: fee.case.clientId,
+            caseId: fee.caseId,
+            recurringFeeId: fee.id,
+            competencia,
+          },
+        });
+        created++;
+      }
+    } catch (e) {
+      failed++;
+      console.error(`[recurring-fees] falha ao gerar receivable do RecurringFee ${fee.id} (escritório ${fee.officeId}):`, e);
     }
   }
 
   revalidateFinance();
-  return { created, deactivated };
+  return { created, deactivated, failed };
 }
 
 // Encerra manualmente um honorário até o arquivamento antes do processo ser arquivado (ex.:
@@ -1074,46 +1084,55 @@ export async function createRecurringExpense(data: {
 // constraint única (recurringExpenseId, competencia) em Payable que RecurringFee usa do lado das
 // Receivable. Diferente de ensureRecurringFeeReceivables: NUNCA desativa sozinha (não existe
 // processo pra arquivar aqui) — só para quando o usuário encerra manualmente.
-export async function ensureRecurringExpensePayables(): Promise<{ created: number }> {
+export async function ensureRecurringExpensePayables(): Promise<{ created: number; failed: number }> {
   const now = new Date();
   const expenses = await prisma.recurringExpense.findMany({ where: { active: true } });
 
   let created = 0;
+  let failed = 0;
+  // try/catch por item — mesmo raciocínio de ensureRecurringFeeReceivables acima (achado A75):
+  // uma despesa recorrente com dado ruim não pode travar a geração das despesas de todos os
+  // outros escritórios que vêm depois dela na lista.
   for (const expense of expenses) {
-    const supplierName = await payablePayeeDisplayName(expense.supplierId ?? undefined, expense.payeeUserId ?? undefined, expense.officeId);
-    for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
-      const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const year = target.getFullYear();
-      const month0 = target.getMonth();
-      const competencia = competenciaFor(year, month0);
-      const exists = await prisma.payable.findUnique({
-        where: { recurringExpenseId_competencia: { recurringExpenseId: expense.id, competencia } },
-      });
-      if (exists) continue;
+    try {
+      const supplierName = await payablePayeeDisplayName(expense.supplierId ?? undefined, expense.payeeUserId ?? undefined, expense.officeId);
+      for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
+        const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const year = target.getFullYear();
+        const month0 = target.getMonth();
+        const competencia = competenciaFor(year, month0);
+        const exists = await prisma.payable.findUnique({
+          where: { recurringExpenseId_competencia: { recurringExpenseId: expense.id, competencia } },
+        });
+        if (exists) continue;
 
-      const dueDate = dueDateFor(year, month0, expense.dueDay);
-      const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-      await prisma.payable.create({
-        data: {
-          officeId: expense.officeId,
-          description: `${expense.description} — ${monthLabel}`,
-          amount: expense.amount,
-          dueDate,
-          categoryId: expense.categoryId,
-          costCenterId: expense.costCenterId,
-          supplierId: expense.supplierId,
-          payeeUserId: expense.payeeUserId,
-          supplier: supplierName,
-          recurringExpenseId: expense.id,
-          competencia,
-        },
-      });
-      created++;
+        const dueDate = dueDateFor(year, month0, expense.dueDay);
+        const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        await prisma.payable.create({
+          data: {
+            officeId: expense.officeId,
+            description: `${expense.description} — ${monthLabel}`,
+            amount: expense.amount,
+            dueDate,
+            categoryId: expense.categoryId,
+            costCenterId: expense.costCenterId,
+            supplierId: expense.supplierId,
+            payeeUserId: expense.payeeUserId,
+            supplier: supplierName,
+            recurringExpenseId: expense.id,
+            competencia,
+          },
+        });
+        created++;
+      }
+    } catch (e) {
+      failed++;
+      console.error(`[recurring-expenses] falha ao gerar payable do RecurringExpense ${expense.id} (escritório ${expense.officeId}):`, e);
     }
   }
 
   revalidateFinance();
-  return { created };
+  return { created, failed };
 }
 
 // Encerra manualmente uma despesa recorrente (ex.: contrato do advogado/estagiário terminou,

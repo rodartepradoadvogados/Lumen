@@ -462,6 +462,14 @@ export type ParcelaEdicao = {
   noDueDate?: boolean;
   isSuccessPortion?: boolean;
   vinculadoAoTotal: boolean;
+  // Sem controle próprio no formulário de edição — só carregam de volta o que a parcela já
+  // tinha (ver toLinha/novaLinha em HonorarioLancamentoCard.tsx), para não se perderem no
+  // apagar-e-recriar abaixo. abaterEntrada é a cláusula "com abatimento da entrada já paga" do
+  // contrato ENTRADA_EXITO (lib/financeCalc.ts) — perdê-la faz a Apuração do Êxito cobrar de
+  // novo um valor que o cliente já pagou como entrada.
+  abaterEntrada?: boolean;
+  discount?: number;
+  surcharge?: number;
 };
 
 // Edita TODAS as parcelas não pagas de um lançamento de uma vez (apagar todas e recriar — mesmo
@@ -523,6 +531,9 @@ export async function updateHonorarioLancamentoParcelas(
           percentual: p.valueType === "PERCENTUAL" ? parseFloat(p.percentual || "0") : null,
           percentualBase: p.valueType === "PERCENTUAL" ? p.percentualBase || null : null,
           vinculadoAoTotal: p.vinculadoAoTotal,
+          abaterEntrada: p.abaterEntrada ?? false,
+          discount: p.discount ?? 0,
+          surcharge: p.surcharge ?? 0,
           honorarioLancamentoId: lancamentoId,
           ...(status ? { status } : {}),
         },
