@@ -5,6 +5,7 @@ import { AlertTriangle, ExternalLink, FileDown, FileType2, Loader2, Save, Trash2
 import clsx from "clsx";
 import ModalShell from "@/components/ModalShell";
 import ChipsFiltro, { type OpcaoChip } from "@/components/relatorios/ChipsFiltro";
+import SelecaoItensRelatorioModal from "@/components/relatorios/SelecaoItensRelatorioModal";
 import {
   carregarModelo,
   excluirModelo,
@@ -91,6 +92,10 @@ export default function RelatorioPersonalizadoView() {
   // exatamente o quê, em vez de um "erro ao salvar" genérico.
   const [inexistentes, setInexistentes] = useState<FiltroInexistente[] | null>(null);
 
+  // Janela de conferência (SelecaoItensRelatorioModal) aberta antes de imprimir/baixar em Word —
+  // `acao` guarda qual dos dois disparou, pra saber o que fazer quando a seleção for confirmada.
+  const [selecao, setSelecao] = useState<{ aberto: boolean; acao: "imprimir" | "word" | null }>({ aberto: false, acao: null });
+
   useEffect(() => {
     listarOpcoes().then(setOpcoes);
     listarModelos().then(setModelos);
@@ -137,21 +142,38 @@ export default function RelatorioPersonalizadoView() {
     [opcoes.usuarios]
   );
 
-  function filtrosCodificados() {
-    return typeof window !== "undefined" ? window.btoa(encodeURIComponent(JSON.stringify(filtros))) : "";
+  function filtrosCodificados(itensExcluidos?: string[]) {
+    const payload = itensExcluidos && itensExcluidos.length > 0 ? { ...filtros, itensExcluidos } : filtros;
+    return typeof window !== "undefined" ? window.btoa(encodeURIComponent(JSON.stringify(payload))) : "";
   }
 
-  function abrirImpressao() {
+  function abrirImpressao(itensExcluidos?: string[]) {
     // `embed=1` faz o AppShell suprimir rail/TopBar/abas (ver components/AppShell.tsx) — sem isso
     // a casca do app sairia impressa junto com o relatório.
-    window.open(`/relatorios/personalizado/imprimir?embed=1&f=${encodeURIComponent(filtrosCodificados())}`, "_blank", "noopener,noreferrer");
+    window.open(`/relatorios/personalizado/imprimir?embed=1&f=${encodeURIComponent(filtrosCodificados(itensExcluidos))}`, "_blank", "noopener,noreferrer");
   }
 
   // Download direto (a rota devolve Content-Disposition: attachment) — o Word é o formato que se
   // anexa a e-mail e a processo, e sai dentro do papel timbrado do escritório quando ele estiver
   // cadastrado em .docx (ver Configurações → Geral → Papel timbrado dos relatórios).
-  function baixarWord() {
-    window.location.href = `/api/relatorios/personalizado/word?f=${encodeURIComponent(filtrosCodificados())}`;
+  function baixarWord(itensExcluidos?: string[]) {
+    window.location.href = `/api/relatorios/personalizado/word?f=${encodeURIComponent(filtrosCodificados(itensExcluidos))}`;
+  }
+
+  // As duas ações acima nunca disparam direto de um clique no botão — sempre passam primeiro
+  // pela janela de conferência (SelecaoItensRelatorioModal), que usa o `resultado` já na tela
+  // pra listar o que entraria no relatório. `resultado` sempre existe quando os botões estão
+  // habilitados (ver disabled={!resultado} nos botões).
+  function pedirConferencia(acao: "imprimir" | "word") {
+    if (!resultado) return;
+    setSelecao({ aberto: true, acao });
+  }
+
+  function confirmarSelecao(itensExcluidos: string[]) {
+    const acao = selecao.acao;
+    setSelecao({ aberto: false, acao: null });
+    if (acao === "imprimir") abrirImpressao(itensExcluidos);
+    else if (acao === "word") baixarWord(itensExcluidos);
   }
 
   function confirmarSalvar() {
@@ -248,15 +270,17 @@ export default function RelatorioPersonalizadoView() {
             </button>
             <button
               type="button"
-              onClick={baixarWord}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2"
+              onClick={() => pedirConferencia("word")}
+              disabled={!resultado || gerando}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2 disabled:opacity-50"
             >
               <FileType2 size={13} /> Baixar em Word
             </button>
             <button
               type="button"
-              onClick={abrirImpressao}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2"
+              onClick={() => pedirConferencia("imprimir")}
+              disabled={!resultado || gerando}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2 disabled:opacity-50"
             >
               <FileDown size={13} /> Imprimir / PDF
             </button>
@@ -525,6 +549,15 @@ export default function RelatorioPersonalizadoView() {
             </button>
           </div>
         </ModalShell>
+      )}
+
+      {/* ---------------- MODAL: conferir itens antes de imprimir/baixar ---------------- */}
+      {selecao.aberto && resultado && (
+        <SelecaoItensRelatorioModal
+          resultado={resultado}
+          onConfirmar={confirmarSelecao}
+          onFechar={() => setSelecao({ aberto: false, acao: null })}
+        />
       )}
     </div>
   );

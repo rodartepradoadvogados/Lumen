@@ -471,7 +471,13 @@ export async function gerarRelatorio(filtros: RelatorioFiltros): Promise<{ error
     coletar(user.officeId, filtros, anteriorInicio, anteriorFim, officeTypes),
   ]);
 
-  const atual = aplicarFiltros(brutoAtual, filtros);
+  // Seleção manual da janela de conferência (ver itensExcluidos em lib/relatorioPersonalizado.ts)
+  // — só tira item do período ATUAL, nunca do anterior: o período anterior é só a base de
+  // comparação (▲/▼), curadoria manual de HOJE não faz sentido aplicada a um período que já
+  // passou e que a pessoa nem está revisando.
+  const excluidos = new Set(filtros.itensExcluidos ?? []);
+  const atualBruto = aplicarFiltros(brutoAtual, filtros);
+  const atual = excluidos.size > 0 ? atualBruto.filter((i) => !excluidos.has(i.id)) : atualBruto;
   const anterior = aplicarFiltros(brutoAnterior, filtros);
 
   const conta = (lista: ItemNormalizado[], especie: ItemNormalizado["especie"]) => lista.filter((i) => i.especie === especie).length;
@@ -550,6 +556,8 @@ export async function gerarRelatorio(filtros: RelatorioFiltros): Promise<{ error
   const ordenados = [...atual].sort((a, b) => b.data.getTime() - a.data.getTime());
   const detalhes: LinhaDetalhe[] = ordenados.slice(0, TETO_DETALHE).map((i) => ({
     id: i.id,
+    especie: i.especie,
+    audiencia: i.audiencia,
     nome: i.nome,
     tipoLabel: i.tipoLabel,
     driveUrl: i.driveUrl,
