@@ -11,6 +11,10 @@ export type RoboBridgeResult = {
   publicacoesCriadas: number;
   andamentosCriados: number;
   semCasoVinculado: number;
+  // Itens capturados que não puderam ser atribuídos a nenhum escritório (nenhum Case com aquele
+  // número, nenhuma OAB conhecida). Ficam na fila de origem para triagem em vez de irem parar no
+  // escritório do dono da plataforma — ver resolverOffice.
+  naoRoteados: number;
   processosMonitoradosCriados: number;
   erros: string[];
 };
@@ -64,21 +68,33 @@ function oabKey(numero: string, uf: string): string {
 // Índices carregados uma vez por sincronização (não por item) para resolver, pra cada
 // publicação/andamento capturado pelo robô, a QUAL escritório ele pertence:
 //   1ª tentativa: número de processo bate com um Case existente (de qualquer escritório).
-//   2ª tentativa: OAB do advogado bate com um usuário ativo de algum escritório.
-//   fallback final: escritório interno (Rodarte Prado) — nunca perde o dado, só assume o
-//   dono da plataforma quando não há nenhum sinal de a qual escritório-cliente pertence.
+//   2ª tentativa: OAB do advogado bate com um usuário de algum escritório.
+//   sem nenhum sinal: NÃO ROTEIA — ver resolverOffice abaixo.
+//
+// A QUEM O DADO PERTENCE NÃO DEPENDE DE PAGAMENTO. Estes índices já incluíram só escritórios
+// `status: "ATIVA"`, e a combinação disso com o antigo fallback "cai no escritório interno"
+// produzia um vazamento grave: o cron de billing marca um escritório inadimplente como SUSPENSA
+// sozinho (lib/actions/billing.ts), o robô continuava capturando os processos dele, o roteamento
+// deixava de encontrá-lo e a intimação — com nome de parte e teor de decisão — era gravada
+// DENTRO do escritório do dono da plataforma, visível em /publicacoes para outra banca. Sigilo
+// profissional quebrado entre escritórios concorrentes, fora do Vidro Fosco, sem AccessSession e
+// sem nada em AccessAuditLog, justamente contra o cliente que está devendo.
+//
+// Status do escritório decide se ele é NOTIFICADO, não a quem o dado pertence — por isso o
+// filtro saiu daqui e vive só no bloco de push (fim de syncRoboParaSite). Uma publicação de
+// escritório suspenso é gravada normalmente no escritório dele: quando a fatura for paga, já
+// está lá, no lugar certo, sem precisar de reprocessamento.
 type RoteamentoIndices = {
   casoPorProcesso: Map<string, { caseId: string; officeId: string }>;
   officePorOab: Map<string, string>;
-  officeFallbackId: string | null;
 };
 
 async function carregarIndicesDeRoteamento(): Promise<RoteamentoIndices> {
-  const [casos, usuarios, officeInterno, officeMaisAntigo] = await Promise.all([
-    prisma.case.findMany({ where: { processNumber: { not: null }, office: { status: "ATIVA" } }, select: { id: true, officeId: true, processNumber: true } }),
-    prisma.user.findMany({ where: { active: true, oab: { not: null }, office: { status: "ATIVA" } }, select: { oab: true, officeId: true } }),
-    prisma.office.findFirst({ where: { isInternal: true }, select: { id: true } }),
-    prisma.office.findFirst({ orderBy: { createdAt: "asc" }, select: { id: true } }),
+  const [casos, usuarios] = await Promise.all([
+    prisma.case.findMany({ where: { processNumber: { not: null } }, select: { id: true, officeId: true, processNumber: true } }),
+    // `active: true` continua (um advogado desativado não deve atrair publicação nova para o
+    // escritório dele por OAB), mas o filtro por status do ESCRITÓRIO saiu pelo motivo acima.
+    prisma.user.findMany({ where: { active: true, oab: { not: null } }, select: { oab: true, officeId: true } }),
   ]);
 
   const casoPorProcesso = new Map<string, { caseId: string; officeId: string }>();
@@ -93,7 +109,7 @@ async function carregarIndicesDeRoteamento(): Promise<RoteamentoIndices> {
     if (parsed) officePorOab.set(oabKey(parsed.numero, parsed.uf), u.officeId);
   }
 
-  return { casoPorProcesso, officePorOab, officeFallbackId: officeInterno?.id ?? officeMaisAntigo?.id ?? null };
+  return { casoPorProcesso, officePorOab };
 }
 
 // Bloqueio de processo (botão "Bloquear" em LinkPublicationMenu.tsx) é POR USUÁRIO — a Publication
@@ -118,7 +134,14 @@ function resolverOffice(
     const officeId = indices.officePorOab.get(oabKey(oabNumero, oabUf));
     if (officeId) return { caseId: null, officeId };
   }
-  return { caseId: null, officeId: indices.officeFallbackId };
+  // SEM SINAL NENHUM = NÃO ROTEIA. Antes caía num fallback para o escritório interno (dono da
+  // plataforma), o que significava gravar teor de comunicação judicial de origem desconhecida
+  // dentro de um escritório que não é o dono dela. "Nunca perder o dado" continua valendo, mas
+  // quem garante isso é o RoboPublicacao/RoboAndamento de origem, que fica com statusLido=false
+  // e volta na próxima execução — não um palpite de dono. Ver syncRoboParaSite: item não roteado
+  // é contado em `naoRoteados` e permanece na fila para triagem, em vez de virar Publication no
+  // tenant errado.
+  return { caseId: null, officeId: null };
 }
 
 // dataDisponibilizacao/dataMovimentacao vêm como string livre do robô — tenta parsear
@@ -137,6 +160,12 @@ function parseDataOuFallback(raw: string | null | undefined, fallback: Date): Da
 // de todos os processos do escritório, mesmo enquanto a descoberta automática via DJEN
 // não funcionar. Idempotente (skipDuplicates): não sobrescreve processos já monitorados,
 // sejam eles descobertos via DJEN ou cadastrados manualmente pelo próprio robô.
+//
+// Aqui o filtro por `status: "ATIVA"` CONTINUA valendo, e agora é só uma decisão de negócio
+// (não gastar chamada de robô com escritório que parou de pagar), sem efeito colateral: mesmo
+// que o robô siga capturando um processo cujo escritório foi suspenso depois — a lista global
+// nunca é podada —, o roteamento entrega a publicação ao dono correto (ver
+// carregarIndicesDeRoteamento). Antes essa combinação era justamente o que vazava o dado.
 async function seedProcessosMonitoradosFromCases(): Promise<number> {
   const casos = await prisma.case.findMany({
     where: { processNumber: { not: null }, office: { status: "ATIVA" } },
@@ -173,15 +202,15 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     publicacoesCriadas: 0,
     andamentosCriados: 0,
     semCasoVinculado: 0,
+    naoRoteados: 0,
     processosMonitoradosCriados: 0,
     erros: [],
   };
 
+  // Não há mais guarda de "escritório de fallback existe?": o roteamento não usa fallback
+  // nenhum (ver resolverOffice). Com os índices vazios, todo item simplesmente fica não roteado
+  // e permanece na fila — que é o comportamento correto, não um erro de configuração.
   const indices = await carregarIndicesDeRoteamento();
-  if (!indices.officeFallbackId) {
-    result.erros.push("Nenhum escritório cadastrado.");
-    return result;
-  }
 
   try {
     result.processosMonitoradosCriados = await seedProcessosMonitoradosFromCases();
@@ -232,6 +261,14 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
           result.publicacoesCriadas++;
           contar(officeId, "publicacoes");
           if (!caseId) result.semCasoVinculado++;
+        } else {
+          // Não roteado: nenhum Case e nenhuma OAB conhecida apontam para um escritório. NÃO cria
+          // Publication (antes ia para o escritório interno, ver resolverOffice) e NÃO marca como
+          // lido — o registro de origem fica na fila e volta na próxima execução, então nada se
+          // perde e nada entra no tenant errado. Se o processo/OAB for cadastrado depois, a
+          // publicação é roteada corretamente no ciclo seguinte, sozinha.
+          result.naoRoteados++;
+          continue;
         }
       }
 
@@ -273,6 +310,10 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
           result.andamentosCriados++;
           contar(officeId, "andamentos");
           if (!caseId) result.semCasoVinculado++;
+        } else {
+          // Mesma regra da publicação acima: sem escritório identificado, fica na fila.
+          result.naoRoteados++;
+          continue;
         }
       }
 
@@ -287,6 +328,12 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
   // inundar quem ativou notificações caso o robô traga muitas de uma vez num único ciclo.
   for (const [officeId, contagem] of porOffice) {
     if (contagem.publicacoes === 0 && contagem.andamentos === 0) continue;
+    // É AQUI que o status do escritório importa — e só aqui. Escritório suspenso por
+    // inadimplência tem a publicação GRAVADA normalmente no lugar certo (o dado é dele), mas não
+    // recebe notificação enquanto não regularizar. Separar as duas coisas é o que evita o
+    // vazamento que existia quando o status filtrava o roteamento (ver carregarIndicesDeRoteamento).
+    const office = await prisma.office.findUnique({ where: { id: officeId }, select: { status: true } });
+    if (office?.status !== "ATIVA") continue;
     const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId }, select: { id: true } })).map((u) => u.id);
     if (contagem.publicacoes > 0) {
       broadcastPushIfEnabled(activeUserIds, officeId, "publicacoes", {

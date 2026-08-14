@@ -50,6 +50,15 @@ export default function SyncPublicationsButton() {
             <p className="text-tx">
               {result.robo.publicacoesCriadas} publicação(ões), {result.robo.andamentosCriados} andamento(s), {result.robo.processosMonitoradosCriados} processo(s) novo(s) monitorado(s)
             </p>
+            {/* Itens capturados que não puderam ser atribuídos a nenhum escritório. Ficam na fila
+                do robô (não são perdidos) e voltam sozinhos quando o processo ou a OAB for
+                cadastrado — ver resolverOffice em lib/roboBridge.ts. */}
+            {result.robo.naoRoteados > 0 && (
+              <p className="text-aviso">
+                {result.robo.naoRoteados} item(ns) sem escritório identificado — seguem na fila até o processo ou a OAB
+                serem cadastrados.
+              </p>
+            )}
             {result.robo.erros.length > 0 && (
               <ul className="text-urgente list-disc list-inside">
                 {result.robo.erros.map((e, i) => (
