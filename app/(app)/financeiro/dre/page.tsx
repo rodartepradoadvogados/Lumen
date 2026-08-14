@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, formatCurrency, EmptyState } from "@/components/ui";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
-import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
+import { listarMovimentosCaixa, apurarResultado } from "@/lib/caixaMovimentos";
 
 export const dynamic = "force-dynamic";
 
@@ -27,50 +27,30 @@ export default async function DrePage({
 
   const costCenterId = searchParams.costCenterId || undefined;
 
-  // status "PAGO" (exato, não uma lista/negação) já exclui A_APURAR sozinho — uma provisão
-  // percentual nunca é baixada como paga sem antes ser apurada. paidAmount é o valor
-  // efetivamente pago/recebido (regime de caixa de verdade); o fallback para amount só cobre
-  // registro legado sem paidAmount, e nesse caso ainda passa por valorLiquido (desconto/
-  // acréscimo) para não subestimar/superestimar o período.
-  const [receivables, payables, costCenters] = await Promise.all([
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId }, include: { category: true } }),
-    prisma.payable.findMany({
-      where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end }, costCenterId },
-      include: { category: true, reimbursementReceivable: { select: { id: true } } },
-    }),
+  // Regime de caixa lido do FinancePayment: cada pagamento entra com seu próprio valor e sua
+  // própria data. Antes esta tela filtrava `status: "PAGO"` e somava paidAmount, o que tinha dois
+  // efeitos em valor — a baixa PARCIAL sumia do resultado, e uma conta quitada em vários meses
+  // caía inteira no mês do último pagamento (paidDate guarda só o mais recente). Ver
+  // lib/caixaMovimentos.ts, que também cobre os lançamentos legados sem FinancePayment.
+  const [movimentos, costCenters] = await Promise.all([
+    listarMovimentosCaixa(viewer.officeId, { de: start, ate: end, ateExclusivo: true, costCenterId }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
   // Adiantamentos a Clientes (Despesas do Processo com reembolso vinculado) são uma transferência,
-  // não Receita/Despesa de verdade do escritório — ver comentário de isAdiantamentoPayable/
-  // isReembolsoReceivable em lib/financeCalc.ts. Excluídos aqui do resultado normal e somados à
-  // parte, numa seção informativa própria (mais abaixo).
-  let totalAdiantado = 0;
-  let totalReembolsado = 0;
-
-  const receitasPorCategoria: Record<string, number> = {};
-  for (const r of receivables) {
-    if (isReembolsoReceivable(r)) {
-      totalReembolsado += r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge);
-      continue;
-    }
-    const key = r.category?.name ?? "Outras Receitas";
-    receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge));
-  }
-  const despesasPorCategoria: Record<string, number> = {};
-  for (const p of payables) {
-    if (isAdiantamentoPayable(p)) {
-      totalAdiantado += p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge);
-      continue;
-    }
-    const key = p.category?.name ?? "Outras Despesas";
-    despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
-  }
-
-  const totalReceitas = Object.values(receitasPorCategoria).reduce((s, v) => s + v, 0);
-  const totalDespesas = Object.values(despesasPorCategoria).reduce((s, v) => s + v, 0);
-  const resultado = totalReceitas - totalDespesas;
-  const saldoAdiantamentos = totalAdiantado - totalReembolsado;
+  // não Receita/Despesa de verdade do escritório — ver isAdiantamentoPayable/isReembolsoReceivable
+  // em lib/financeCalc.ts. apurarResultado já os separa do resultado e devolve os totais à parte,
+  // para a seção informativa mais abaixo.
+  const {
+    receitasPorCategoria,
+    despesasPorCategoria,
+    totalReceitas,
+    totalDespesas,
+    resultado,
+    totalAdiantado,
+    totalReembolsado,
+    saldoAdiantamentos,
+  } = apurarResultado(movimentos);
 
   const carryParams = costCenterId ? `&costCenterId=${costCenterId}` : "";
   const prevHref = `/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}${carryParams}`;

@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
 import { ArrowLeft, ChevronLeft, ChevronRight, Info } from "lucide-react";
-import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
+import { listarMovimentosCaixa, apurarResultado } from "@/lib/caixaMovimentos";
 
 export const dynamic = "force-dynamic";
 
@@ -28,44 +27,24 @@ export default async function MobileDre({
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 1);
 
-  const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } }, include: { category: true } }),
-    prisma.payable.findMany({
-      where: { officeId: viewer.officeId, status: "PAGO", paidDate: { gte: start, lt: end } },
-      include: { category: true, reimbursementReceivable: { select: { id: true } } },
-    }),
-  ]);
+  // Mesma fonte da página desktop (/financeiro/dre): FinancePayment, com cada pagamento no seu
+  // próprio valor e na sua própria data — antes o filtro `status: "PAGO"` descartava a baixa
+  // PARCIAL e jogava a quitação inteira no mês do último pagamento. Ver lib/caixaMovimentos.ts.
+  const movimentos = await listarMovimentosCaixa(viewer.officeId, { de: start, ate: end, ateExclusivo: true });
 
-  // status "PAGO" (exato) já exclui A_APURAR sozinho — ver comentário equivalente na página
-  // desktop (/financeiro/dre). Adiantamentos a Clientes (despesa CLIENTE com reembolso vinculado)
-  // também seguem a mesma lógica de exclusão do resultado normal — ver isAdiantamentoPayable/
-  // isReembolsoReceivable em lib/financeCalc.ts.
-  let totalAdiantado = 0;
-  let totalReembolsado = 0;
-
-  const receitasPorCategoria: Record<string, number> = {};
-  for (const r of receivables) {
-    if (isReembolsoReceivable(r)) {
-      totalReembolsado += r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge);
-      continue;
-    }
-    const key = r.category?.name ?? "Outras Receitas";
-    receitasPorCategoria[key] = (receitasPorCategoria[key] ?? 0) + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge));
-  }
-  const despesasPorCategoria: Record<string, number> = {};
-  for (const p of payables) {
-    if (isAdiantamentoPayable(p)) {
-      totalAdiantado += p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge);
-      continue;
-    }
-    const key = p.category?.name ?? "Outras Despesas";
-    despesasPorCategoria[key] = (despesasPorCategoria[key] ?? 0) + (p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge));
-  }
-
-  const totalReceitas = Object.values(receitasPorCategoria).reduce((s, v) => s + v, 0);
-  const totalDespesas = Object.values(despesasPorCategoria).reduce((s, v) => s + v, 0);
-  const resultado = totalReceitas - totalDespesas;
-  const saldoAdiantamentos = totalAdiantado - totalReembolsado;
+  // Adiantamento a Cliente e seu reembolso são transferência, não resultado — apurarResultado
+  // separa os dois e devolve os totais à parte (ver isAdiantamentoPayable/isReembolsoReceivable
+  // em lib/financeCalc.ts).
+  const {
+    receitasPorCategoria,
+    despesasPorCategoria,
+    totalReceitas,
+    totalDespesas,
+    resultado,
+    totalAdiantado,
+    totalReembolsado,
+    saldoAdiantamentos,
+  } = apurarResultado(movimentos);
 
   const prevHref = `/m/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}`;
   const nextHref = `/m/financeiro/dre?year=${month === 11 ? year + 1 : year}&month=${month === 11 ? 0 : month + 1}`;

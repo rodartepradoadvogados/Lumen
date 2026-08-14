@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
-import { valorLiquido } from "@/lib/financeCalc";
+import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 
 export const dynamic = "force-dynamic";
 
@@ -20,28 +19,17 @@ export default async function MobileLivroCaixa() {
   if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
 
   const now = new Date();
-  const [receivables, payables] = await Promise.all([
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { lte: now } }, include: { client: true } }),
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: "PAGO", paidDate: { lte: now } } }),
-  ]);
+  // Mesma fonte da página desktop (/financeiro/livro-caixa): lê FinancePayment, então recebimento
+  // parcial aparece e cada pagamento cai na sua própria data. Ver lib/caixaMovimentos.ts.
+  const movimentos = await listarMovimentosCaixa(viewer.officeId, { ate: now });
 
-  // status "PAGO" já exclui A_APURAR sozinho — ver comentário equivalente na página desktop
-  // (/financeiro/livro-caixa).
   type Entry = { date: Date; description: string; value: number; type: "entrada" | "saida" };
-  const entries: Entry[] = [
-    ...receivables.map((r) => ({
-      date: r.paidDate!,
-      description: `${r.description}${r.client ? ` — ${r.client.name}` : ""}`,
-      value: r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge),
-      type: "entrada" as const,
-    })),
-    ...payables.map((p) => ({
-      date: p.paidDate!,
-      description: p.description,
-      value: -(p.paidAmount ?? valorLiquido(p.amount, p.discount, p.surcharge)),
-      type: "saida" as const,
-    })),
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const entries: Entry[] = movimentos.map((m) => ({
+    date: m.data,
+    description: `${m.descricao}${m.clienteNome ? ` — ${m.clienteNome}` : ""}`,
+    value: m.tipo === "ENTRADA" ? m.valor : -m.valor,
+    type: m.tipo === "ENTRADA" ? ("entrada" as const) : ("saida" as const),
+  }));
 
   let running = 0;
   const withBalance = entries.map((e) => {
