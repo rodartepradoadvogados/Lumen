@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
-import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured } from "@/lib/asaas";
+import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured, calcularValorCobranca } from "@/lib/asaas";
 
 // Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate,
 // em vez de duplicar a checagem de isPlatformOwner num segundo lugar.
@@ -207,10 +207,16 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
   let dueDate = new Date(now.getFullYear(), now.getMonth(), office.billingDueDay);
   if (dueDate < today) dueDate = today;
 
+  // Valor cobrado de fato: se este escritório tem Subscription com ciclo SEMESTRAL, é a
+  // mensalidade x 6 com o desconto aplicado (calcularValorCobranca, lib/asaas.ts) — nunca a
+  // mensalidade crua. Sem Subscription (maioria dos escritórios hoje, ver comentário em
+  // updateSubscriptionBilling), mantém o comportamento de sempre: mensalidade cheia, mensal.
+  const amount = office.subscription ? calcularValorCobranca(office.subscription) : office.monthlyFee;
+
   let invoice = await prisma.tenantInvoice.findUnique({ where: { officeId_competencia: { officeId, competencia } } });
   if (!invoice) {
     invoice = await prisma.tenantInvoice.create({
-      data: { officeId, competencia, amount: office.monthlyFee, dueDate, status: "PENDENTE" },
+      data: { officeId, competencia, amount, dueDate, status: "PENDENTE" },
     });
   } else if (invoice.status === "PENDENTE" && invoice.dueDate < today) {
     // Fatura já existia (ex.: tentativa anterior antes deste fix) com um vencimento que ficou no

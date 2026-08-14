@@ -14,7 +14,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { requirePlatformOwner } from "@/lib/actions/painelMestre";
-import { createPixAutomaticoAuthorization, createPixQrCodeCharge } from "@/lib/asaas";
+import { createPixAutomaticoAuthorization, createPixQrCodeCharge, calcularValorCobranca } from "@/lib/asaas";
 
 // Mesma mensagem de validação usada por generateAndSendInvoice (lib/actions/painelMestre.ts)
 // quando falta dado básico de cobrança do escritório — reaproveitada aqui de propósito, em vez
@@ -85,7 +85,7 @@ export async function triggerPixAutomaticoAuthorization(
     // app do próprio banco, para autorizar o débito recorrente — createPixAutomaticoAuthorization
     // já salva pixAuthorizationId/pixAuthorizationStatus na Subscription (lib/asaas.ts).
     const result = await createPixAutomaticoAuthorization(
-      { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
+      { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle, discountPercent: subscription.discountPercent },
       { id: office.id, name: office.name, billingEmail: office.billingEmail, cnpj: office.cnpj }
     );
     revalidatePath("/painel-mestre/assinaturas");
@@ -127,10 +127,13 @@ export async function previewPixQrCode(
   if (dueDate < today) dueDate = today;
 
   try {
+    // calcularValorCobranca (lib/asaas.ts): sem isso, o teste sempre mostrava a mensalidade
+    // crua mesmo pra assinatura SEMESTRAL — o valor de teste mentia sobre o que seria cobrado
+    // de verdade.
     const charge = await createPixQrCodeCharge(
-      { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle },
+      { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle, discountPercent: subscription.discountPercent },
       { id: office.id, name: office.name, billingEmail: office.billingEmail, cnpj: office.cnpj },
-      { value: subscription.monthlyFee, dueDate, description: `Teste de cobrança Lúmen — ${office.name}` }
+      { value: calcularValorCobranca(subscription), dueDate, description: `Teste de cobrança Lúmen — ${office.name}` }
     );
     revalidatePath("/painel-mestre/assinaturas");
     return { qrCodePayload: charge.qrCodePayload ?? undefined, qrCodeImage: charge.qrCodeImage ?? undefined };
