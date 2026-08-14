@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getAuthUrl } from "@/lib/googleDrive";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
+import { buildOAuthState } from "@/lib/oauthState";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (!user?.active) {
       return NextResponse.redirect(new URL("/configuracoes", request.url));
     }
-    return NextResponse.redirect(getAuthUrl("jusbrasil"));
+    return NextResponse.redirect(getAuthUrl(buildOAuthState("jusbrasil")));
   }
 
   // Conexão principal (Drive/Docs) — sócios administram, e também o suporte em sessão
@@ -20,5 +21,5 @@ export async function GET(request: NextRequest) {
   if (!canConfigureIntegrations(user)) {
     return NextResponse.redirect(new URL("/configuracoes", request.url));
   }
-  return NextResponse.redirect(getAuthUrl("drive"));
+  return NextResponse.redirect(getAuthUrl(buildOAuthState("drive")));
 }

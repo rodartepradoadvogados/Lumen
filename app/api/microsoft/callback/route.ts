@@ -3,17 +3,23 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { saveMicrosoftTokensFromCode } from "@/lib/microsoftGraph";
 import { saveOneDriveTokensFromCode } from "@/lib/oneDriveStorage";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
+import { verifyAndConsumeOAuthState } from "@/lib/oauthState";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  const state = request.nextUrl.searchParams.get("state");
   const code = request.nextUrl.searchParams.get("code");
   if (!code) {
     return NextResponse.redirect(new URL("/configuracoes?microsoft=erro", request.url));
   }
 
+  // Nonce anti-CSRF (achado A61) — ver lib/oauthState.ts.
+  const verified = verifyAndConsumeOAuthState(request.nextUrl.searchParams.get("state"));
+  if (!verified) {
+    return NextResponse.redirect(new URL("/configuracoes?microsoft=erro&msg=state", request.url));
+  }
+
   try {
-    if (state === "onedrive") {
+    if (verified.mode === "onedrive") {
       // Conexão de armazenamento (OneDrive) é do ESCRITÓRIO — admin ou suporte mascarado, mesmo
       // padrão da conexão principal do Google Drive.
       if (!canConfigureIntegrations(user)) return NextResponse.redirect(new URL("/configuracoes", request.url));
