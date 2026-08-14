@@ -97,6 +97,13 @@ export type RelatorioFiltros = {
   gruposPeca: string[]; // nomes de grupo de lib/documentTypes.ts
   tiposCompromisso: TipoCompromisso[];
   criterioAutoria: CriterioAutoria;
+  // Seleção manual item a item (LinhaDetalhe.id) feita na janela de conferência antes de
+  // imprimir/baixar em Word (ver SelecaoItensRelatorioModal) — não é um filtro de verdade
+  // (não muda o que existe no escritório), é uma curadoria pontual DESTA emissão: serve, por
+  // exemplo, pra contar só uma das versões de um documento que foi reanexado, sem apagar a
+  // outra. Nunca preenchido a partir da tela de filtros nem gravado num modelo salvo — só
+  // populado momentos antes de imprimir/baixar (ver RelatorioPersonalizadoView.tsx).
+  itensExcluidos?: string[];
 };
 
 export function filtrosPadrao(): RelatorioFiltros {
@@ -113,6 +120,7 @@ export function filtrosPadrao(): RelatorioFiltros {
     gruposPeca: [],
     tiposCompromisso: [],
     criterioAutoria: "ANEXOU",
+    itensExcluidos: [],
   };
 }
 
@@ -127,8 +135,15 @@ export function dimensaoAtiva(valores: string[]): boolean {
 
 // ---------- Resultado ----------
 
+// Mesma espécie de lib/actions/relatorioPersonalizado.ts:ItemNormalizado — reexportada aqui
+// (contrato compartilhado com a tela) para SelecaoItensRelatorioModal recalcular os cards de
+// indicador ao vivo, sem duplicar a contagem por bloco que já existe em gerarRelatorio.
+export type Especie = "PECA" | "COMPROMISSO" | "PROCESSO" | "ATENDIMENTO" | "DEMANDA" | "PUBLICACAO";
+
 export type LinhaDetalhe = {
   id: string;
+  especie: Especie;
+  audiencia?: boolean;
   nome: string;
   tipoLabel: string;
   // Link direto para o arquivo no armazenamento (Drive/OneDrive/Dropbox) — só existe para peça;
@@ -145,6 +160,23 @@ export type LinhaDetalhe = {
 export type LinhaAgregada = { chave: string; rotulo: string; pecas: number; compromissos: number; total: number; cor?: string };
 
 export type BlocoContagem = { chave: Contagem | "PUBLICACOES" | "AUDIENCIAS"; rotulo: string; valor: number; anterior: number; detalhe?: string };
+
+// Mesmo critério usado em gerarRelatorio (lib/actions/relatorioPersonalizado.ts) pra decidir
+// quem entra em cada bloco de indicador — reaproveitado por SelecaoItensRelatorioModal pra
+// recalcular os cards ao vivo conforme a seleção manual muda, sem duplicar a regra em dois
+// lugares que podem divergir.
+export function itemPertenceAoBloco(chave: BlocoContagem["chave"], item: { especie: Especie; audiencia?: boolean }): boolean {
+  if (chave === "AUDIENCIAS") return Boolean(item.audiencia);
+  if (chave === "PUBLICACOES") return item.especie === "PUBLICACAO";
+  const porEspecie: Record<Contagem, Especie> = {
+    PECAS: "PECA",
+    COMPROMISSOS: "COMPROMISSO",
+    PROCESSOS: "PROCESSO",
+    ATENDIMENTOS: "ATENDIMENTO",
+    DEMANDAS: "DEMANDA",
+  };
+  return item.especie === porEspecie[chave];
+}
 
 export type RelatorioResultado = {
   periodo: { de: string; ate: string; anteriorDe: string; anteriorAte: string };

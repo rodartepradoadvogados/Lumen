@@ -70,7 +70,11 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
         .folha table { border-collapse:collapse; width:100%; }
         .folha th { text-align:left; font-size:8.5px; text-transform:uppercase; letter-spacing:.08em;
                     color:#5b646e; border-bottom:1px solid #c9cdd3; padding:0 6px 4px 0; }
-        .folha td { padding:4px 6px 4px 0; border-bottom:1px solid #e5e7ea; vertical-align:top; }
+        /* overflow-wrap/word-break: nome de arquivo sem espaço (ex.: "RELATORIO_PARA_DEFESA_...")
+           é uma palavra só pro navegador — sem isso ele não quebra linha, o texto vaza da célula
+           e sobrepõe visualmente a coluna seguinte na impressão/PDF (bug relatado). */
+        .folha td { padding:4px 6px 4px 0; border-bottom:1px solid #e5e7ea; vertical-align:top; overflow-wrap:anywhere; word-break:break-word; }
+        .folha .tabela-detalhe { table-layout:fixed; }
         .folha tr { break-inside: avoid; }
         .cab-timbre { border-bottom:2px solid #c9962f; }
         @media print { .nao-imprimir { display:none !important; } }
@@ -172,7 +176,19 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
             <h2 style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: ".08em", color: "#5b646e", marginBottom: 6 }}>
               Detalhamento — {resultado.detalhes.length} de {resultado.detalhesTotal}
             </h2>
-            <table>
+            {/* table-layout:fixed + colgroup (mesma proporção 34/14/18/14/12/8 da tabela do Word,
+                ver lib/relatorioDocx.ts): sem largura de coluna fixa, o navegador deixava a
+                coluna Item crescer até caber o nome do arquivo inteiro numa linha só, vazando
+                por cima da coluna Tipo quando o nome não tinha espaço nenhum pra quebrar. */}
+            <table className="tabela-detalhe">
+              <colgroup>
+                <col style={{ width: "34%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "8%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Item</th>
@@ -186,7 +202,7 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
               <tbody>
                 {resultado.detalhes.map((d) => (
                   <tr key={d.id}>
-                    <td style={{ maxWidth: 220 }}>
+                    <td>
                       {/* Mesmo no papel o link é útil: o PDF costuma ser enviado por e-mail, e o
                           destinatário clica direto no documento. */}
                       {d.driveUrl ? <a href={d.driveUrl}>{d.nome}</a> : d.nome}
