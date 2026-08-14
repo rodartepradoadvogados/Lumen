@@ -32,6 +32,7 @@ type Parcela = {
   installmentBoleto: string | null;
   payerType: string;
   payerName: string | null;
+  abaterEntrada: boolean;
 };
 
 type Lancamento = {
@@ -57,6 +58,13 @@ type LinhaEdicao = {
   noDueDate: boolean;
   isSuccessPortion: boolean;
   vinculadoAoTotal: boolean;
+  // Sem campo próprio neste formulário — só passam de volta pro servidor no submit, pra editar
+  // parcela (descrição, vencimento etc.) não apagar silenciosamente a cláusula de abatimento de
+  // entrada nem descontos/acréscimos já aplicados (ver ParcelaEdicao em
+  // lib/actions/honorarioLancamento.ts).
+  abaterEntrada: boolean;
+  discount: number;
+  surcharge: number;
 };
 
 function toLinha(p: Parcela): LinhaEdicao {
@@ -72,6 +80,9 @@ function toLinha(p: Parcela): LinhaEdicao {
     noDueDate: p.noDueDate,
     isSuccessPortion: p.isSuccessPortion,
     vinculadoAoTotal: p.vinculadoAoTotal,
+    abaterEntrada: p.abaterEntrada,
+    discount: p.discount,
+    surcharge: p.surcharge,
   };
 }
 
@@ -88,6 +99,9 @@ function novaLinha(): LinhaEdicao {
     noDueDate: false,
     isSuccessPortion: false,
     vinculadoAoTotal: true,
+    abaterEntrada: false,
+    discount: 0,
+    surcharge: 0,
   };
 }
 
@@ -146,6 +160,9 @@ export default function HonorarioLancamentoCard({
       noDueDate: l.noDueDate,
       isSuccessPortion: l.isSuccessPortion,
       vinculadoAoTotal: l.vinculadoAoTotal,
+      abaterEntrada: l.abaterEntrada,
+      discount: l.discount,
+      surcharge: l.surcharge,
     }));
     const result = await updateHonorarioLancamentoParcelas(lancamento.id, { valorTotalIndicado: valorTotalIndicado || undefined, parcelas });
     setLoading(false);

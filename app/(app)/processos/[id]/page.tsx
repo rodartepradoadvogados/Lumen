@@ -695,6 +695,7 @@ export default async function CaseDetailPage({
                     installmentBoleto: p.installmentBoleto,
                     payerType: p.payerType,
                     payerName: p.payerName,
+                    abaterEntrada: p.abaterEntrada,
                   })),
                 }}
                 bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue }}
