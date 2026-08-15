@@ -16,6 +16,18 @@ const GROUP_ORDER: SearchResult["type"][] = ["Processos", "Clientes", "Tarefas",
 // digita-se direto na própria barra, como sempre foi.
 const MIN_INLINE_WIDTH_PX = 151;
 
+// Faixa morta (histerese) entre o limite de "ficou estreito" e o de "voltou a caber" — bug
+// relatado como o cabeçalho "piscando e oscilando, como duas informações competindo". Causa: o
+// botão-gatilho (modo estreito) e a barra normal (modo largo) têm bordas/paddings levemente
+// diferentes, então RENDERIZAR um dos dois muda o offsetWidth medido em alguns pixels — se esse
+// valor cruzar de volta o MESMO limite de 151px, o ResizeObserver dispara de novo, troca o modo
+// outra vez, muda a largura nos mesmos pixels, e o ciclo se repete indefinidamente (loop clássico
+// de ResizeObserver "auto-referente": medir a própria caixa para decidir o que renderizar dentro
+// dela). Com limites DIFERENTES para apertar (151px) e para voltar a abrir (190px), uma pequena
+// variação de alguns pixels entre os dois modos cai dentro da faixa morta e não derruba o estado
+// de novo — só uma mudança de largura de verdade (redimensionar a janela) atravessa os 39px.
+const MAX_INLINE_WIDTH_HYSTERESIS_PX = 190;
+
 function SearchResultsList({
   loading,
   results,
@@ -94,7 +106,10 @@ export default function GlobalSearch() {
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const measure = () => setNarrow(el.offsetWidth < MIN_INLINE_WIDTH_PX);
+    const measure = () => {
+      const width = el.offsetWidth;
+      setNarrow((jaEstreito) => (jaEstreito ? width < MAX_INLINE_WIDTH_HYSTERESIS_PX : width < MIN_INLINE_WIDTH_PX));
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
