@@ -127,8 +127,8 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className={kindLabelClass}>{meta.label}</p>
-                          <p className="text-sm font-medium text-tx mt-0.5">{a.title}</p>
-                          {a.subtitle && <p className="text-xs text-tx-3 mt-0.5">{a.subtitle}</p>}
+                          <p className="text-sm font-medium text-tx mt-0.5 break-words">{a.title}</p>
+                          {a.subtitle && <p className="text-xs text-tx-3 mt-0.5 break-words">{a.subtitle}</p>}
                           {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
                         </div>
                         <span className="text-xs text-tx-3 shrink-0">{a.date.toLocaleDateString("pt-BR")}</span>
@@ -162,8 +162,8 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className={kindLabelClass}>{meta.label}</p>
-                      <p className="text-sm font-medium text-tx mt-0.5">{item.title}</p>
-                      {item.subtitle && <p className="text-xs text-tx-3 mt-0.5">{item.subtitle}</p>}
+                      <p className="text-sm font-medium text-tx mt-0.5 break-words">{item.title}</p>
+                      {item.subtitle && <p className="text-xs text-tx-3 mt-0.5 break-words">{item.subtitle}</p>}
                     </div>
                     {item.time && <span className="text-xs font-semibold text-tx-3 shrink-0">{item.time}</span>}
                   </Link>
