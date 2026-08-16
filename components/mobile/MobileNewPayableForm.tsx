@@ -57,6 +57,7 @@ export default function MobileNewPayableForm({
   suppliers,
   categories,
   costCenters,
+  clients,
   fixedCaseId,
   startOpen,
   afterSaveHref,
@@ -64,6 +65,11 @@ export default function MobileNewPayableForm({
   suppliers: Option[];
   categories: Option[];
   costCenters: Option[];
+  // Pago a um cliente (repasse de valor de condenação, devolução de adiantamento etc.) — botão
+  // "Cliente" só aparece quando esta prop vem preenchida (mesma ideia de ContraparteField.tsx,
+  // no desktop). Nenhuma opção de "membro da equipe" aqui: o app, diferente do site, nunca teve
+  // esse modo — fora do escopo deste pedido, que é só sobre repasse a cliente.
+  clients?: Option[];
   fixedCaseId?: string;
   startOpen?: boolean;
   afterSaveHref?: string;
@@ -76,6 +82,7 @@ export default function MobileNewPayableForm({
   const [kind, setKind] = useState("OUTROS");
   const [expensePayer, setExpensePayer] = useState<ExpensePayer>("ESCRITORIO");
   const [createReimbursement, setCreateReimbursement] = useState(true);
+  const [payeeMode, setPayeeMode] = useState<"FORNECEDOR" | "CLIENTE">("FORNECEDOR");
   // ---- Comprovante ---- mesma ideia de NewPayableModal.tsx (desktop): enviado só depois do
   // createPayable ter sucesso, quando o id real já existe.
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -113,6 +120,7 @@ export default function MobileNewPayableForm({
             const result = await createPayable({
               description: String(formData.get("description")),
               supplierId: String(formData.get("supplierId") || ""),
+              payeeClientId: String(formData.get("payeeClientId") || ""),
               amount: String(formData.get("amount")),
               dueDate: String(formData.get("dueDate") || ""),
               categoryId: String(formData.get("categoryId") || ""),
@@ -179,15 +187,38 @@ export default function MobileNewPayableForm({
         </label>
         <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
-          <label className={labelCls}>Fornecedor (opcional)</label>
-          <select name="supplierId" defaultValue="" className="mobile-input">
-            <option value="">Nenhum</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <label className={labelCls}>Pago a (opcional)</label>
+          {clients && (
+            <div className="mt-1 mb-1.5">
+              <Segmented<"FORNECEDOR" | "CLIENTE">
+                value={payeeMode}
+                onChange={setPayeeMode}
+                options={[
+                  { value: "FORNECEDOR", label: "Fornecedor" },
+                  { value: "CLIENTE", label: "Cliente" },
+                ]}
+              />
+            </div>
+          )}
+          {payeeMode === "FORNECEDOR" || !clients ? (
+            <select name="supplierId" defaultValue="" className="mobile-input">
+              <option value="">Nenhum</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select name="payeeClientId" defaultValue="" className="mobile-input">
+              <option value="">Nenhum</option>
+              {clients.map((cl) => (
+                <option key={cl.id} value={cl.id}>
+                  {cl.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

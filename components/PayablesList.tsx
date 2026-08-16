@@ -23,6 +23,8 @@ type Payable = {
   supplierId: string | null;
   // Pago a um membro da equipe em vez de a um Fornecedor — ver Payable.payeeUserId.
   payeeUserId: string | null;
+  // Pago a um cliente (repasse/devolução) — ver Payable.payeeClientId.
+  payeeClientId: string | null;
   amount: number;
   discount: number;
   surcharge: number;
@@ -74,6 +76,7 @@ export default function PayablesList({
   responsibles = [],
   bankAccounts = [],
   teamMembers = [],
+  clients,
 }: {
   payables: Payable[];
   categories: Option[];
@@ -86,6 +89,9 @@ export default function PayablesList({
   // usuários ativos do escritório usada em `responsibles`, passada solta pra deixar explícito
   // que os dois papéis (quem lançou vs. quem é pago) podem divergir.
   teamMembers?: Option[];
+  // Pago a um cliente (ver Payable.payeeClientId/EditPayableModal.tsx) — botão "Cliente" só
+  // aparece quando esta prop vem preenchida (ver ContraparteField.tsx).
+  clients?: Option[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -184,6 +190,7 @@ export default function PayablesList({
                     description: p.description,
                     supplierId: p.supplierId,
                     payeeUserId: p.payeeUserId,
+                    payeeClientId: p.payeeClientId,
                     amount: p.amount,
                     discount: p.discount,
                     surcharge: p.surcharge,
@@ -214,6 +221,7 @@ export default function PayablesList({
                   cases={cases}
                   suppliers={suppliers}
                   teamMembers={teamMembers}
+                  clients={clients}
                   costCenters={costCenters}
                   responsibles={responsibles}
                 />

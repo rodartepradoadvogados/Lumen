@@ -20,10 +20,13 @@ export default async function MobileNovaDespesaPage({ params }: { params: { id: 
   const c = await prisma.case.findFirst({ where: { id: params.id, officeId: viewer.officeId }, select: { id: true, title: true } });
   if (!c) notFound();
 
-  const [categories, suppliers, costCenters] = await Promise.all([
+  const [categories, suppliers, costCenters, clients] = await Promise.all([
     getLeafCategoryOptions("DESPESA", viewer.officeId),
     prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    // "Pago a" > Cliente (repasse de valor de condenação, devolução de adiantamento etc.) — ver
+    // components/mobile/MobileNewPayableForm.tsx.
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -44,6 +47,7 @@ export default async function MobileNovaDespesaPage({ params }: { params: { id: 
         suppliers={suppliers}
         categories={categories}
         costCenters={costCenters}
+        clients={clients}
         fixedCaseId={c.id}
         startOpen
         afterSaveHref={`/m/processos/${c.id}?tab=financeiro`}

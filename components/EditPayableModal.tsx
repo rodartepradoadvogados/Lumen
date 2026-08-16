@@ -68,6 +68,7 @@ export default function EditPayableModal({
   costCenters = [],
   responsibles = [],
   teamMembers = [],
+  clients,
 }: {
   payable: {
     id: string;
@@ -76,6 +77,8 @@ export default function EditPayableModal({
     // Pago a um membro da equipe em vez de a um Fornecedor — opcional pelo mesmo motivo dos
     // demais campos "novos" abaixo (telas mais antigas que ainda não passam este campo).
     payeeUserId?: string | null;
+    // Pago a um cliente (repasse/devolução) — mesma ideia de payeeUserId acima.
+    payeeClientId?: string | null;
     amount: number;
     // Os campos abaixo são da Fase 3 (documento/desconto/acréscimo/responsável/parcela/
     // pagamento) — opcionais aqui para telas mais antigas (ex.: aba Financeiro do Processo) que
@@ -124,6 +127,9 @@ export default function EditPayableModal({
   // Pago a um membro da equipe (ver payable.payeeUserId acima) — mesma lista de usuários ativos
   // do escritório usada em `responsibles`, ver comentário equivalente em PayablesList.tsx.
   teamMembers?: Option[];
+  // Pago a um cliente (ver payable.payeeClientId acima) — botão "Cliente" só aparece quando esta
+  // prop vem preenchida (ver ContraparteField.tsx).
+  clients?: Option[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -188,6 +194,7 @@ export default function EditPayableModal({
                     description: String(formData.get("description")),
                     supplierId: String(formData.get("supplierId") || ""),
                     payeeUserId: String(formData.get("payeeUserId") || ""),
+                    payeeClientId: String(formData.get("payeeClientId") || ""),
                     costCenterId: String(formData.get("costCenterId") || ""),
                     categoryId: String(formData.get("categoryId") || ""),
                     caseId: submittedCaseId,
@@ -239,8 +246,10 @@ export default function EditPayableModal({
                       <ContraparteField
                         suppliers={suppliers}
                         teamMembers={teamMembers}
+                        clients={clients}
                         defaultSupplierId={payable.supplierId}
                         defaultPayeeUserId={payable.payeeUserId}
+                        defaultPayeeClientId={payable.payeeClientId}
                       />
                     </div>
                     <div>

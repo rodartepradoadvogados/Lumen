@@ -26,7 +26,7 @@ export default async function DespesasPage({
   const total = filtered.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
 
-  const [categories, cases, costCenters, suppliers, responsibles, bankAccounts, recurringExpenses] = await Promise.all([
+  const [categories, cases, costCenters, suppliers, responsibles, bankAccounts, recurringExpenses, clients] = await Promise.all([
     getLeafCategoryOptions("DESPESA", viewer.officeId),
     prisma.case.findMany({ where: { officeId: viewer.officeId, status: "ATIVO" }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
@@ -36,6 +36,9 @@ export default async function DespesasPage({
     // Despesas recorrentes ativas (ver RecurringExpense, prisma/schema.prisma) — mostradas como
     // cards no topo da listagem, mesmo padrão de RecurringFeeCard dentro do Processo.
     prisma.recurringExpense.findMany({ where: { officeId: viewer.officeId, active: true }, orderBy: { createdAt: "asc" } }),
+    // "Pago a" > Cliente (repasse de valor de condenação, devolução de adiantamento etc.) — ver
+    // ContraparteField.tsx.
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const exportHref = (() => {
@@ -67,6 +70,7 @@ export default async function DespesasPage({
             costCenters={costCenters}
             suppliers={suppliers}
             teamMembers={responsibles}
+            clients={clients}
             responsibles={responsibles}
             bankAccounts={bankAccounts}
             defaultResponsibleId={viewer.id}
@@ -158,6 +162,7 @@ export default async function DespesasPage({
             supplier: p.supplier,
             supplierId: p.supplierId,
             payeeUserId: p.payeeUserId,
+            payeeClientId: p.payeeClientId,
             amount: p.amount,
             discount: p.discount,
             surcharge: p.surcharge,
@@ -198,6 +203,7 @@ export default async function DespesasPage({
           costCenters={costCenters}
           suppliers={suppliers}
           teamMembers={responsibles}
+          clients={clients}
           responsibles={responsibles}
           bankAccounts={bankAccounts}
         />

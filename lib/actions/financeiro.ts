@@ -15,7 +15,7 @@ import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceip
 // Recebimento do Lançamento de Honorários) é opcional pelo mesmo motivo dos demais: só é checado
 // quando o chamador de fato manda um valor.
 export async function assertFinanceRelationsInOffice(
-  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string; bankAccountId?: string; payeeUserId?: string },
+  data: { caseId?: string; clientId?: string; categoryId?: string; costCenterId?: string; supplierId?: string; bankAccountId?: string; payeeUserId?: string; payeeClientId?: string },
   officeId: string
 ): Promise<void> {
   if (data.caseId && !(await isCaseInOffice(data.caseId, officeId))) throw new Error("Processo não encontrado.");
@@ -25,6 +25,7 @@ export async function assertFinanceRelationsInOffice(
   if (data.supplierId && !(await isSupplierInOffice(data.supplierId, officeId))) throw new Error("Fornecedor não encontrado.");
   if (data.bankAccountId && !(await isBankAccountInOffice(data.bankAccountId, officeId))) throw new Error("Conta bancária não encontrada.");
   if (data.payeeUserId && !(await isUserInOffice(data.payeeUserId, officeId))) throw new Error("Membro da equipe não encontrado.");
+  if (data.payeeClientId && !(await isClientInOffice(data.payeeClientId, officeId))) throw new Error("Cliente não encontrado.");
 }
 
 // Não pode ser exportada (todo export de um arquivo "use server" precisa ser função async) —
@@ -341,14 +342,24 @@ async function supplierDisplayName(supplierId: string | undefined, officeId: str
 }
 
 // Nome de exibição/busca de QUEM RECEBE uma Payable (Payable.supplier, campo de texto — ver
-// comentário no schema) — Fornecedor OU membro da equipe (payeeUserId), NUNCA os dois ao mesmo
-// tempo: payeeUserId sempre vence quando os dois vierem preenchidos por engano (a UI, ver
-// components/financeiro/ContraparteField.tsx, só manda um dos dois por vez — o servidor nunca
+// comentário no schema) — Fornecedor OU membro da equipe (payeeUserId) OU cliente (payeeClientId),
+// NUNCA mais de um ao mesmo tempo: payeeUserId vence sobre payeeClientId, que vence sobre
+// supplierId, quando mais de um vier preenchido por engano (a UI, ver
+// components/financeiro/ContraparteField.tsx, só manda um dos três por vez — o servidor nunca
 // confia só nisso).
-async function payablePayeeDisplayName(supplierId: string | undefined, payeeUserId: string | undefined, officeId: string): Promise<string | null> {
+async function payablePayeeDisplayName(
+  supplierId: string | undefined,
+  payeeUserId: string | undefined,
+  officeId: string,
+  payeeClientId?: string
+): Promise<string | null> {
   if (payeeUserId) {
     const user = await prisma.user.findFirst({ where: { id: payeeUserId, officeId }, select: { name: true } });
     return user?.name ?? null;
+  }
+  if (payeeClientId) {
+    const client = await prisma.client.findFirst({ where: { id: payeeClientId, officeId }, select: { name: true } });
+    return client?.name ?? null;
   }
   return supplierDisplayName(supplierId, officeId);
 }
@@ -410,6 +421,8 @@ export async function updatePayable(id: string, data: {
   supplierId?: string;
   // Mesma ideia de CreatePayableInput.payeeUserId — vence sobre supplierId.
   payeeUserId?: string;
+  // Mesma ideia de CreatePayableInput.payeeClientId — vence sobre supplierId, perde para payeeUserId.
+  payeeClientId?: string;
   costCenterId?: string;
   categoryId?: string;
   caseId?: string;
@@ -473,10 +486,11 @@ export async function updatePayable(id: string, data: {
   const wantsReimbursement =
     !hasReimbursement && Boolean(data.createReimbursement) && expensePayer === "CLIENTE" && Boolean(effectiveCaseId);
 
-  // payeeUserId sempre vence sobre supplierId — mesma regra de createPayable.
+  // payeeUserId vence sobre payeeClientId, que vence sobre supplierId — mesma regra de createPayable.
   const payeeUserId = data.payeeUserId || undefined;
-  const supplierId = payeeUserId ? undefined : data.supplierId || undefined;
-  const payeeName = await payablePayeeDisplayName(supplierId, payeeUserId, officeId);
+  const payeeClientId = payeeUserId ? undefined : data.payeeClientId || undefined;
+  const supplierId = payeeUserId || payeeClientId ? undefined : data.supplierId || undefined;
+  const payeeName = await payablePayeeDisplayName(supplierId, payeeUserId, officeId, payeeClientId);
   const amount = parseFloat(data.amount);
   const discount = parseFloat(data.discount || "0") || 0;
   const surcharge = parseFloat(data.surcharge || "0") || 0;
@@ -491,6 +505,7 @@ export async function updatePayable(id: string, data: {
       description: data.description,
       supplierId: supplierId || null,
       payeeUserId: payeeUserId || null,
+      payeeClientId: payeeClientId || null,
       supplier: payeeName,
       costCenterId: data.costCenterId || null,
       categoryId: data.categoryId || null,
@@ -628,6 +643,9 @@ export type CreatePayableInput = {
   // Pago a um membro da equipe (advogado contratado, estagiário, funcionário) em vez de a um
   // Fornecedor — mutuamente exclusivo com supplierId, ver payablePayeeDisplayName acima.
   payeeUserId?: string;
+  // Pago a um CLIENTE (repasse de valor de condenação, devolução de adiantamento etc.) — também
+  // mutuamente exclusivo com supplierId/payeeUserId, ver payablePayeeDisplayName acima.
+  payeeClientId?: string;
   costCenterId?: string;
   categoryId?: string;
   caseId?: string;
@@ -675,11 +693,13 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
   // da Payable, mesmo que createReimbursement venha true por engano do chamador.
   const wantsReimbursement = Boolean(data.createReimbursement) && expensePayer === "CLIENTE" && Boolean(data.caseId);
 
-  // payeeUserId sempre vence sobre supplierId quando os dois vierem preenchidos — mesma regra
-  // de createRecurringExpense/updatePayable (ver payablePayeeDisplayName acima).
+  // payeeUserId vence sobre payeeClientId, que vence sobre supplierId, quando mais de um vier
+  // preenchido — mesma regra de createRecurringExpense/updatePayable (ver payablePayeeDisplayName
+  // acima).
   const payeeUserId = data.payeeUserId || undefined;
-  const supplierId = payeeUserId ? undefined : data.supplierId || undefined;
-  const payeeName = await payablePayeeDisplayName(supplierId, payeeUserId, officeId);
+  const payeeClientId = payeeUserId ? undefined : data.payeeClientId || undefined;
+  const supplierId = payeeUserId || payeeClientId ? undefined : data.supplierId || undefined;
+  const payeeName = await payablePayeeDisplayName(supplierId, payeeUserId, officeId, payeeClientId);
   const shared = {
     officeId,
     categoryId: data.categoryId || null,
@@ -687,6 +707,7 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
     caseId: data.caseId || null,
     supplierId: supplierId || null,
     payeeUserId: payeeUserId || null,
+    payeeClientId: payeeClientId || null,
     supplier: payeeName,
     responsibleId: data.responsibleId || null,
     documentType: data.documentType || null,
@@ -1047,6 +1068,7 @@ export async function createRecurringExpense(data: {
   costCenterId?: string;
   supplierId?: string;
   payeeUserId?: string;
+  payeeClientId?: string;
 }): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
   if (!data.description.trim()) return { error: "Informe a descrição." };
@@ -1056,10 +1078,11 @@ export async function createRecurringExpense(data: {
     return { error: err instanceof Error ? err.message : "Dados inválidos." };
   }
 
-  // payeeUserId sempre vence sobre supplierId quando os dois vierem preenchidos — mesma regra
-  // de createPayable/updatePayable (ver payablePayeeDisplayName acima).
+  // payeeUserId vence sobre payeeClientId, que vence sobre supplierId, quando mais de um vier
+  // preenchido — mesma regra de createPayable/updatePayable (ver payablePayeeDisplayName acima).
   const payeeUserId = data.payeeUserId || undefined;
-  const supplierId = payeeUserId ? undefined : data.supplierId || undefined;
+  const payeeClientId = payeeUserId ? undefined : data.payeeClientId || undefined;
+  const supplierId = payeeUserId || payeeClientId ? undefined : data.supplierId || undefined;
 
   await prisma.recurringExpense.create({
     data: {
@@ -1071,6 +1094,7 @@ export async function createRecurringExpense(data: {
       costCenterId: data.costCenterId || null,
       supplierId: supplierId || null,
       payeeUserId: payeeUserId || null,
+      payeeClientId: payeeClientId || null,
     },
   });
   // Materializa já os próximos meses (não espera o cron rodar amanhã) — mesmo raciocínio de
@@ -1095,7 +1119,7 @@ export async function ensureRecurringExpensePayables(): Promise<{ created: numbe
   // outros escritórios que vêm depois dela na lista.
   for (const expense of expenses) {
     try {
-      const supplierName = await payablePayeeDisplayName(expense.supplierId ?? undefined, expense.payeeUserId ?? undefined, expense.officeId);
+      const supplierName = await payablePayeeDisplayName(expense.supplierId ?? undefined, expense.payeeUserId ?? undefined, expense.officeId, expense.payeeClientId ?? undefined);
       for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
         const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
         const year = target.getFullYear();
@@ -1118,6 +1142,7 @@ export async function ensureRecurringExpensePayables(): Promise<{ created: numbe
             costCenterId: expense.costCenterId,
             supplierId: expense.supplierId,
             payeeUserId: expense.payeeUserId,
+            payeeClientId: expense.payeeClientId,
             supplier: supplierName,
             recurringExpenseId: expense.id,
             competencia,

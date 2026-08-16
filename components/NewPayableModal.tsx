@@ -116,6 +116,7 @@ export default function NewPayableModal({
   responsibles = [],
   bankAccounts = [],
   teamMembers = [],
+  clients,
   defaultResponsibleId,
   defaultCaseId,
 }: {
@@ -127,6 +128,9 @@ export default function NewPayableModal({
   bankAccounts?: Option[];
   // Pago a um membro da equipe em vez de a um Fornecedor — ver components/financeiro/ContraparteField.tsx.
   teamMembers?: Option[];
+  // Pago a um cliente (repasse/devolução) — mesmo componente, botão "Cliente" só aparece quando
+  // esta prop vem preenchida (ver ContraparteField.tsx).
+  clients?: Option[];
   defaultResponsibleId?: string;
   // Presente = entrada pelo Processo (aba Financeiro → "+ Lançar Despesa"): pré-seleciona e trava
   // o processo, exatamente como LancarHonorariosModal.tsx faz. Ausente = entrada pelo Financeiro
@@ -267,6 +271,7 @@ export default function NewPayableModal({
                   const description = String(formData.get("description") || "");
                   const supplierId = String(formData.get("supplierId") || "");
                   const payeeUserId = String(formData.get("payeeUserId") || "");
+                  const payeeClientId = String(formData.get("payeeClientId") || "");
                   const costCenterId = String(formData.get("costCenterId") || "");
                   const categoryId = String(formData.get("categoryId") || "");
 
@@ -283,6 +288,7 @@ export default function NewPayableModal({
                       costCenterId: costCenterId || undefined,
                       supplierId: supplierId || undefined,
                       payeeUserId: payeeUserId || undefined,
+                      payeeClientId: payeeClientId || undefined,
                     });
                     setLoading(false);
                     if (recResult.error) {
@@ -315,6 +321,7 @@ export default function NewPayableModal({
                     description,
                     supplierId: supplierId || undefined,
                     payeeUserId: payeeUserId || undefined,
+                    payeeClientId: payeeClientId || undefined,
                     costCenterId: costCenterId || undefined,
                     categoryId: categoryId || undefined,
                     caseId: effectiveCaseId || undefined,
@@ -366,7 +373,7 @@ export default function NewPayableModal({
                 <SecaoLancamento title="Identificação" tone="palha">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <ContraparteField suppliers={suppliers} teamMembers={teamMembers} />
+                      <ContraparteField suppliers={suppliers} teamMembers={teamMembers} clients={clients} />
                     </div>
                     <div>
                       <label className={labelCls}>Centro de custo</label>
