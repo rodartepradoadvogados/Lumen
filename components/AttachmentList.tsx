@@ -7,6 +7,7 @@ import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil, LayoutG
 import { createAttachment, deleteAttachment, finalizeAttachmentUpload, updateAttachmentDocType } from "@/lib/actions/attachments";
 import { createCaseSubfolder } from "@/lib/actions/driveFolders";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isRecursoQueEscalaInstancia } from "@/lib/documentTypes";
+import { formatoArquivo } from "@/lib/fileExtension";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { formatDate } from "@/components/ui";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
@@ -510,6 +511,7 @@ export default function AttachmentList({
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2 border-b border-regua">
                 <th className="pb-2 pr-3">Nome</th>
+                <th className="pb-2 pr-3">Formato</th>
                 <th className="pb-2 pr-3">Tipo</th>
                 <th className="pb-2 pr-3">Enviado em</th>
                 <th className="pb-2 pr-3">Enviado por</th>
@@ -531,6 +533,7 @@ export default function AttachmentList({
                       {a.name}
                     </a>
                   </td>
+                  <td className="py-2 pr-3 text-tx-2 tabular-nums">{formatoArquivo(a.name, a.driveUrl)}</td>
                   <td className="py-2 pr-3 text-tx-2">
                     {editingId === a.id ? (
                       <DocumentTypeSelect
