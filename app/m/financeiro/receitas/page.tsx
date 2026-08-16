@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
-import { getFilteredReceivables } from "@/lib/financeQuery";
+import { getFilteredReceivables, getCurrentMonthRange } from "@/lib/financeQuery";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
@@ -16,14 +16,19 @@ export const dynamic = "force-dynamic";
 
 const kindLabels = RECEIVABLE_KIND_LABELS;
 
-export default async function MobileReceitas({ searchParams }: { searchParams: { tab?: string } }) {
+export default async function MobileReceitas({ searchParams }: { searchParams: { tab?: string; from?: string; to?: string } }) {
   const viewer = await getCurrentUser();
   if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
 
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" || searchParams.tab === "apurar" ? searchParams.tab : "abertas";
+  // Mesmo padrão de app/m/financeiro/despesas/page.tsx: sem De/Até na URL, mostra só o mês
+  // corrente — evita a lista virar uma rolagem sem fim com todo o histórico de recebíveis.
+  const defaultRange = getCurrentMonthRange();
+  const from = searchParams.from || defaultRange.from;
+  const to = searchParams.to || defaultRange.to;
 
   const [receivables, categories, clients, costCenters, bankAccounts] = await Promise.all([
-    getFilteredReceivables({ tab }, viewer.officeId),
+    getFilteredReceivables({ tab, from, to }, viewer.officeId),
     getLeafCategoryOptions("RECEITA", viewer.officeId),
     prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
@@ -36,10 +41,10 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
-        href="/m"
+        href="/m/financeiro"
         className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
       >
-        <ArrowLeft size={13} /> Início
+        <ArrowLeft size={13} /> Financeiro
       </Link>
 
       <div>
@@ -50,11 +55,30 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <TabLink label="Contas a Receber" href="/m/financeiro/receitas" active={tab === "abertas"} />
-        <TabLink label="Recebidas" href="/m/financeiro/receitas?tab=pagas" active={tab === "pagas"} />
-        <TabLink label="A apurar" href="/m/financeiro/receitas?tab=apurar" active={tab === "apurar"} />
-        <TabLink label="Todas" href="/m/financeiro/receitas?tab=todas" active={tab === "todas"} />
+        <TabLink label="Contas a Receber" href={`/m/financeiro/receitas?from=${from}&to=${to}`} active={tab === "abertas"} />
+        <TabLink label="Recebidas" href={`/m/financeiro/receitas?tab=pagas&from=${from}&to=${to}`} active={tab === "pagas"} />
+        <TabLink label="A apurar" href={`/m/financeiro/receitas?tab=apurar&from=${from}&to=${to}`} active={tab === "apurar"} />
+        <TabLink label="Todas" href={`/m/financeiro/receitas?tab=todas&from=${from}&to=${to}`} active={tab === "todas"} />
       </div>
+
+      <form className="flex items-end gap-2" action="/m/financeiro/receitas">
+        {tab !== "abertas" && <input type="hidden" name="tab" value={tab} />}
+        <div className="flex-1 min-w-0">
+          <label className="text-xs font-medium text-tx-2 block mb-1">
+            De {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
+          </label>
+          <input type="date" name="from" defaultValue={from} className="mob-fin-input" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <label className="text-xs font-medium text-tx-2 block mb-1">
+            Até {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
+          </label>
+          <input type="date" name="to" defaultValue={to} className="mob-fin-input" />
+        </div>
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 shrink-0 transition-colors">
+          Filtrar
+        </button>
+      </form>
 
       {/* Mesmo pedido central da Fase 8: lançar honorários (natureza, forma de cobrança,
           parcelamento/recorrência, recebimento) sem precisar do computador — aqui fora de um
@@ -126,6 +150,10 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
           </div>
         )}
       </Card>
+      <style>{`
+        .mob-fin-input { width: 100%; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.6rem; font-size: 0.8rem; background-color: var(--sf-superficie); color: var(--tx); }
+        .mob-fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
+      `}</style>
     </div>
   );
 }

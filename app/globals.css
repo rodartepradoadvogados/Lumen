@@ -156,6 +156,17 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  /* Trava de segurança: um texto sem espaços (nome de arquivo/pasta do Drive, número de
+     processo colado, URL) dentro de qualquer card pode forçar a página inteira a ficar mais
+     larga que a tela no mobile — e navegadores mobile, ao ficarem com overflow horizontal no
+     documento, deslocam elementos `position: fixed` (como a barra inferior do app, ver
+     components/mobile/MobileBottomNav.tsx) para fora da área visível, fazendo o último ícone
+     "sumir" até a página voltar a caber na largura da tela. overflow-x: hidden aqui é o
+     cinto-de-segurança contra qualquer estouro futuro; break-words nos parágrafos de
+     título/subtítulo dos alertas (app/m/alertas/page.tsx, app/(app)/alertas/page.tsx) resolve
+     a causa concreta encontrada (subtítulo "INCONSISTÊNCIA NO DRIVE" citando nome de
+     arquivo/pasta sem espaços).*/
+  overflow-x: hidden;
 }
 
 /* Nenhum dos ~26 <input type="checkbox"/"radio"> do site definia accent-color — sem essa

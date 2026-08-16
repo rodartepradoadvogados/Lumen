@@ -14,6 +14,20 @@ export type FinanceSearchParams = {
   categoryId?: string;
 };
 
+// App mobile (Menu > Financeiro): sem filtro nenhum, a lista de Despesas/Receitas mostrava TODOS
+// os lançamentos desde sempre — no site (desktop) isso já é assim de propósito (quem quer período
+// preenche De/Até), mas no app, sem a mesma tela de filtros, a lista virava uma rolagem sem fim.
+// Este helper dá o padrão "mês corrente" só para as páginas mobile aplicarem quando o usuário
+// ainda não escolheu De/Até — ver app/m/financeiro/despesas/page.tsx e
+// app/m/financeiro/receitas/page.tsx.
+export function getCurrentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { from: fmt(first), to: fmt(last) };
+}
+
 // Só PENDENTE vira ATRASADO por data de vencimento — de propósito. PARCIAL já teve pelo menos um
 // FinancePayment lançado (não é mais "nada pago"; o alerta de atraso não faz sentido do mesmo
 // jeito) e A_APURAR nem tem valor real conhecido ainda (não existe "atraso" de uma provisão sem
