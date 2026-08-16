@@ -9,6 +9,7 @@ import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isEmpres
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { Plus, Search, UploadCloud, ExternalLink, FolderOpen, LayoutGrid, List as ListIcon, Table2, Building2 } from "lucide-react";
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
+import { formatoArquivo } from "@/lib/fileExtension";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 
@@ -502,6 +503,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
                   <th className="pb-2 pr-3">Nome</th>
+                  <th className="pb-2 pr-3">Formato</th>
                   <th className="pb-2 pr-3">Categoria</th>
                   <th className="pb-2 pr-3">Data</th>
                   <th className="pb-2 pr-3">Vinculado a</th>
@@ -521,6 +523,7 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
                           {d.parecer && <ParecerBadge name={d.parecer.name} />}
                         </span>
                       </td>
+                      <td className="py-2.5 pr-3 text-tx-2 tabular-nums">{formatoArquivo(d.name, d.driveUrl)}</td>
                       <td className="py-2.5 pr-3 text-tx-2">{getDocumentTypeLabel(d.docType)}</td>
                       <td className="py-2.5 pr-3 text-tx-2">{formatDate(d.date)}</td>
                       <td className="py-2.5 pr-3 text-tx-2">{d.case?.title || "—"}</td>
