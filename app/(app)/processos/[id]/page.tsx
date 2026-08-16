@@ -798,6 +798,7 @@ export default async function CaseDetailPage({
                 cases={cases.map((x) => ({ id: x.id, name: x.title }))}
                 suppliers={suppliers}
                 teamMembers={users.map((u) => ({ id: u.id, name: u.name }))}
+                clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
                 costCenters={costCenters}
                 responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                 bankAccounts={bankAccounts}
@@ -838,6 +839,8 @@ export default async function CaseDetailPage({
                           id: p.id,
                           description: p.description,
                           supplierId: p.supplierId,
+                          payeeUserId: p.payeeUserId,
+                          payeeClientId: p.payeeClientId,
                           amount: p.amount,
                           discount: p.discount,
                           surcharge: p.surcharge,
@@ -868,6 +871,7 @@ export default async function CaseDetailPage({
                         cases={cases.map((x) => ({ id: x.id, name: x.title }))}
                         suppliers={suppliers}
                         teamMembers={users.map((u) => ({ id: u.id, name: u.name }))}
+                        clients={clients.map((cl) => ({ id: cl.id, name: cl.name }))}
                         costCenters={costCenters}
                         responsibles={users.map((u) => ({ id: u.id, name: u.name }))}
                       />

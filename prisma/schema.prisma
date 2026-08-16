@@ -408,6 +408,9 @@ model Client {
   publications         Publication[]
   attendances          Attendance[]          @relation("AttendanceClient")
   assessoria           Assessoria?
+  // Contas a pagar em que este cliente é o BENEFICIÁRIO do pagamento (Payable.payeeClientId) —
+  // ver comentário lá.
+  payablesAsPayee      Payable[]             @relation("PayablePayeeClient")
 
   // Termos de vigilância (Radar de Publicações Administrativas) vigiando o nome deste cliente,
   // independente de já haver um processo aberto — ver model TermoVigilancia mais abaixo.
@@ -1699,6 +1702,14 @@ model Payable {
   payeeUserId String?
   payeeUser   User?   @relation("PayablePayee", fields: [payeeUserId], references: [id])
 
+  // Pagamento a um CLIENTE (repasse de valor de condenação, devolução de adiantamento etc.) em
+  // vez de a um Fornecedor ou membro da equipe — mutuamente exclusivo com supplierId/payeeUserId
+  // (a Server Action garante isso, não o schema; mesma regra de payeeUserId acima). Distinto de
+  // expensePayer/reimbursementReceivable (isso é "quem ARCA com o custo"; payeeClientId é só
+  // "para quem o dinheiro vai") — os dois podem coexistir sem relação nenhuma entre si.
+  payeeClientId String?
+  payeeClient   Client? @relation("PayablePayeeClient", fields: [payeeClientId], references: [id])
+
   // Quem lançou esta conta — só para exibição ("lançado por"), não afeta quem enxerga
   // (isso é por officeId, como sempre).
   responsibleId String?
@@ -1911,16 +1922,17 @@ model RecurringFee {
 // supplierId/payeeUserId espelham os mesmos dois campos de Payable (ver comentário lá) — exatamente
 // UM dos dois preenchido, nunca os dois, validado pela Server Action.
 model RecurringExpense {
-  id           String   @id @default(cuid())
-  description  String
-  amount       Float
-  dueDay       Int // dia do mês de vencimento (clampado 1-28, mesmo padrão de RecurringFee.dueDay)
-  categoryId   String?
-  costCenterId String?
-  supplierId   String?
-  payeeUserId  String?
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  description   String
+  amount        Float
+  dueDay        Int // dia do mês de vencimento (clampado 1-28, mesmo padrão de RecurringFee.dueDay)
+  categoryId    String?
+  costCenterId  String?
+  supplierId    String?
+  payeeUserId   String?
+  payeeClientId String? // mesma ideia de Payable.payeeClientId — sem @relation aqui, mesmo padrão de supplierId/payeeUserId acima
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])

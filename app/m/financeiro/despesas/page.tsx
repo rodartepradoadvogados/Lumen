@@ -25,12 +25,15 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
   const from = searchParams.from || defaultRange.from;
   const to = searchParams.to || defaultRange.to;
 
-  const [payables, categories, suppliers, costCenters, bankAccounts] = await Promise.all([
+  const [payables, categories, suppliers, costCenters, bankAccounts, clients] = await Promise.all([
     getFilteredPayables({ tab, from, to }, viewer.officeId),
     getLeafCategoryOptions("DESPESA", viewer.officeId),
     prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    // "Pago a" > Cliente (repasse de valor de condenação, devolução de adiantamento etc.) — ver
+    // components/mobile/MobileNewPayableForm.tsx.
+    prisma.client.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
@@ -77,7 +80,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
         </button>
       </form>
 
-      <MobileNewPayableForm suppliers={suppliers} categories={categories} costCenters={costCenters} />
+      <MobileNewPayableForm suppliers={suppliers} categories={categories} costCenters={costCenters} clients={clients} />
 
       <Card>
         {payables.length === 0 ? (
