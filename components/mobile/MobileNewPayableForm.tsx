@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPayable } from "@/lib/actions/financeiro";
 import { PAYABLE_KIND_OPTIONS, EXPENSE_PAYER_LABELS } from "@/lib/despesaProcesso";
+import MoneyInput from "@/components/MoneyInput";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 import { Plus, X, Send } from "lucide-react";
@@ -168,7 +169,7 @@ export default function MobileNewPayableForm({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Valor (R$)</label>
-            <input name="amount" type="number" step="0.01" required className="mobile-input" />
+            <MoneyInput name="amount" required className="mobile-input" />
           </div>
           <div>
             <label className={labelCls}>Vencimento</label>

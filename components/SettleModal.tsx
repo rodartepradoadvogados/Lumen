@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
+import MoneyInput from "@/components/MoneyInput";
 
 type Option = { id: string; name: string };
 
@@ -108,13 +109,10 @@ export default function SettleModal({
           )}
           <div>
             <label className="text-xs font-medium text-tx-2">Valor pago (R$)</label>
-            <input
+            <MoneyInput
               name="paidAmount"
-              type="number"
-              step="0.01"
-              min="0.01"
               value={paidAmount}
-              onChange={(e) => setPaidAmount(e.target.value)}
+              onChange={setPaidAmount}
               required
               className="settle-input bg-sf border border-regua text-tx"
             />

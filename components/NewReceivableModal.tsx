@@ -16,6 +16,7 @@ import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
+import MoneyInput from "@/components/MoneyInput";
 
 type Option = { id: string; name: string };
 
@@ -369,11 +370,9 @@ export default function NewReceivableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Valor (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
+                      <MoneyInput
                         value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        onChange={setAmount}
                         disabled={parcelado}
                         required={!parcelado}
                         className="fin-input disabled:opacity-50"
@@ -382,22 +381,18 @@ export default function NewReceivableModal({
                     </div>
                     <div>
                       <label className={labelCls}>Desconto (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
+                      <MoneyInput
                         value={discount}
-                        onChange={(e) => setDiscount(e.target.value)}
+                        onChange={setDiscount}
                         disabled={parcelado}
                         className="fin-input disabled:opacity-50"
                       />
                     </div>
                     <div>
                       <label className={labelCls}>Acréscimo (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
+                      <MoneyInput
                         value={surcharge}
-                        onChange={(e) => setSurcharge(e.target.value)}
+                        onChange={setSurcharge}
                         disabled={parcelado}
                         className="fin-input disabled:opacity-50"
                       />
@@ -440,11 +435,9 @@ export default function NewReceivableModal({
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className={labelCls}>Valor total indicado (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
+                          <MoneyInput
                             value={valorTotalIndicado}
-                            onChange={(e) => setValorTotalIndicado(e.target.value)}
+                            onChange={setValorTotalIndicado}
                             className="fin-input"
                           />
                         </div>
@@ -509,11 +502,9 @@ export default function NewReceivableModal({
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
-                                  <input
-                                    type="number"
-                                    step="0.01"
+                                  <MoneyInput
                                     value={p.amount}
-                                    onChange={(e) => updateParcela(p.key, { amount: e.target.value })}
+                                    onChange={(v) => updateParcela(p.key, { amount: v })}
                                     className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
                                   />
                                 </td>
@@ -566,11 +557,9 @@ export default function NewReceivableModal({
                       </div>
                       <div>
                         <label className={labelCls}>Valor pago (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
+                        <MoneyInput
                           value={paidAmount}
-                          onChange={(e) => setPaidAmount(e.target.value)}
+                          onChange={setPaidAmount}
                           required={recebido}
                           className="fin-input"
                         />

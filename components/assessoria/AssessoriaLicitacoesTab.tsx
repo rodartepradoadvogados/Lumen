@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/assessoria";
 import { Badge, formatCurrency, formatCalendarDate } from "@/components/ui";
 import { Plus } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type UserOption = { id: string; name: string };
@@ -101,7 +102,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
             </div>
             <div>
               <label className="text-[11px] text-tx-2">Valor estimado (R$)</label>
-              <input name="valorEstimado" type="number" step="0.01" className="lic-input" />
+              <MoneyInput name="valorEstimado" className="lic-input" />
             </div>
           </div>
           <input name="editalUrl" type="url" placeholder="Link do edital no Google Drive" className="lic-input" />

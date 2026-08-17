@@ -15,6 +15,7 @@ import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { formatCurrency, formatCalendarDate } from "@/components/ui";
 import { Gavel, X } from "lucide-react";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
+import MoneyInput from "@/components/MoneyInput";
 
 export type PendenteApurar = {
   id: string;
@@ -191,13 +192,7 @@ export default function ApurarHonorarioModal({
                 <>
                   <div>
                     <label className={labelCls}>{PERCENTUAL_BASE_LABELS[base] ?? "Valor apurado"} (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={valorApurado}
-                      onChange={(e) => setValorApurado(e.target.value)}
-                      className={inputCls}
-                    />
+                    <MoneyInput value={valorApurado} onChange={setValorApurado} className={inputCls} />
                   </div>
 
                   <label className="flex items-center gap-2 text-xs text-tx-2">

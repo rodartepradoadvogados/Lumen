@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createAssessoria } from "@/lib/actions/assessoria";
+import MoneyInput from "@/components/MoneyInput";
 
 type ClientOption = { id: string; name: string };
 type UserOption = { id: string; name: string };
@@ -43,7 +44,7 @@ export default function NewAssessoriaForm({ clients, users }: { clients: ClientO
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-medium text-tx-2">Honorário mensal (R$)</label>
-          <input name="monthlyFee" type="number" step="0.01" required className="input" placeholder="4500.00" />
+          <MoneyInput name="monthlyFee" required className="input" />
         </div>
         <div>
           <label className="text-xs font-medium text-tx-2">Dia de vencimento</label>

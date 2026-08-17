@@ -14,6 +14,7 @@ import { ORGAOS_ADMINISTRATIVOS, CATEGORIA_ORDER_ADMIN, findOrgaoBySigla } from 
 import { ESFERAS, MATERIAS_ADMIN } from "@/lib/caseNatureza";
 import CaseMateriaField from "@/components/processo/CaseMateriaField";
 import AssuntosField from "@/components/processo/AssuntosField";
+import MoneyInput from "@/components/MoneyInput";
 
 const inputClass =
   "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
@@ -368,7 +369,7 @@ export default function MobileNewCaseForm({
         {isProcessoFlow && (
           <div>
             <label className={labelClass}>Valor da Causa (R$)</label>
-            <input name="caseValue" type="number" step="0.01" className={inputClass} />
+            <MoneyInput name="caseValue" className={inputClass} />
           </div>
         )}
         <div>

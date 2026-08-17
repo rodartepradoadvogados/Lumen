@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOffice } from "@/lib/actions/painelMestre";
+import MoneyInput from "@/components/MoneyInput";
 
 const MODULE_OPTIONS: { key: "financeiro" | "whatsapp" | "atendimento" | "assessoria"; label: string }[] = [
   { key: "financeiro", label: "Financeiro" },
@@ -61,7 +62,7 @@ export default function NewOfficeForm() {
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">Mensalidade (R$)</label>
-          <input name="monthlyFee" type="number" min={0} step="0.01" required defaultValue="890" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <MoneyInput name="monthlyFee" required defaultValue="890.00" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">Dia de vencimento</label>

@@ -6,6 +6,7 @@ import { updateAttendanceCommercial, markAttendanceResponded } from "@/lib/actio
 import { formatCurrency, formatDate } from "@/components/ui";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { Pencil, CheckCircle2 } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 const leadSourceLabels: Record<string, string> = {
   INDICACAO: "Indicação",
@@ -150,14 +151,10 @@ export default function AttendanceCommercialForm({
       {feeModeEdit !== "PERCENTUAL" && (
         <div>
           <label className="text-xs font-medium text-tx-2">Valor em dinheiro (R$)</label>
-          <input
+          <MoneyInput
             name="estimatedValue"
-            type="number"
-            step="0.01"
-            min="0"
-            defaultValue={estimatedValue ?? ""}
+            defaultValue={estimatedValue != null ? String(estimatedValue) : undefined}
             className="acf-input bg-sf border border-regua text-tx"
-            placeholder="0,00"
           />
         </div>
       )}

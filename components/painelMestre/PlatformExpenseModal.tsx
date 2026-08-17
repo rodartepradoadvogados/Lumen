@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { createPlatformExpense, updatePlatformExpense, deletePlatformExpense } from "@/lib/actions/platformFinanceiro";
 import ModalShell from "@/components/ModalShell";
+import MoneyInput from "@/components/MoneyInput";
 
 type Account = { id: string; name: string; group: string | null };
 
@@ -114,7 +115,7 @@ export default function PlatformExpenseModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-white/60">Valor (R$)</label>
-                  <input name="amount" type="number" step="0.01" required defaultValue={expense?.amount} className="pm-input" />
+                  <MoneyInput name="amount" required defaultValue={expense?.amount != null ? String(expense.amount) : undefined} className="pm-input" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-white/60">Competência</label>

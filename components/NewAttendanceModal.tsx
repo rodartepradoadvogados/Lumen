@@ -18,6 +18,7 @@ import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEditor";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
+import MoneyInput from "@/components/MoneyInput";
 
 type ClientHit = { id: string; name: string; phone: string | null; email: string | null };
 type AssessoriaOption = { id: string; clientName: string; status?: string };
@@ -650,7 +651,7 @@ export default function NewAttendanceModal({
                     {feeMode !== "PERCENTUAL" && (
                       <div>
                         <label className="text-xs font-medium text-tx-2">Valor em dinheiro (R$)</label>
-                        <input name="estimatedValue" type="number" step="0.01" min="0" className="at-input" placeholder="0,00" />
+                        <MoneyInput name="estimatedValue" className="at-input" />
                       </div>
                     )}
                     {feeMode !== "DINHEIRO" && (

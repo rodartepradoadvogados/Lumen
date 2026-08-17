@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Power, X } from "lucide-react";
 import { createBankAccount, updateBankAccount, toggleBankAccountActive } from "@/lib/actions/settings";
 import { Badge, formatCurrency } from "@/components/ui";
+import MoneyInput from "@/components/MoneyInput";
 
 const TYPE_LABELS: Record<string, string> = {
   CORRENTE: "Corrente",
@@ -59,12 +60,9 @@ function Fields({ defaults }: { defaults?: Partial<BankAccount> }) {
           </option>
         ))}
       </select>
-      <input
+      <MoneyInput
         name="initialBalance"
-        type="number"
-        step="0.01"
-        defaultValue={defaults?.initialBalance ?? 0}
-        placeholder="Saldo inicial (R$)"
+        defaultValue={String(defaults?.initialBalance ?? 0)}
         className="cfg-input bg-sf border border-regua text-tx"
       />
       <input

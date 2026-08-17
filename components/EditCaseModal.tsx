@@ -15,6 +15,7 @@ import AssuntosField from "@/components/processo/AssuntosField";
 import InstanciaTribunalPanel, { type CaseInstanceHistoryEntry } from "@/components/processo/InstanciaTribunalPanel";
 import CaseLinkField from "@/components/processo/CaseLinkField";
 import { formatDate } from "@/components/ui";
+import MoneyInput from "@/components/MoneyInput";
 
 type CaseData = {
   id: string;
@@ -219,18 +220,18 @@ export default function EditCaseModal({
                     </div>
                     <div>
                       <label className="text-xs font-medium text-tx-2">Valor da Causa (R$)</label>
-                      <input name="caseValue" type="number" step="0.01" defaultValue={caseData.caseValue ?? ""} className={inputClass} />
+                      <MoneyInput name="caseValue" defaultValue={caseData.caseValue != null ? String(caseData.caseValue) : undefined} className={inputClass} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-medium text-tx-2">Proveito Econômico (R$)</label>
-                      <input name="economicBenefitValue" type="number" step="0.01" defaultValue={caseData.economicBenefitValue ?? ""} className={inputClass} />
+                      <MoneyInput name="economicBenefitValue" defaultValue={caseData.economicBenefitValue != null ? String(caseData.economicBenefitValue) : undefined} className={inputClass} />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-tx-2">Valor da Condenação (R$)</label>
-                      <input name="convictionValue" type="number" step="0.01" defaultValue={caseData.convictionValue ?? ""} className={inputClass} />
+                      <MoneyInput name="convictionValue" defaultValue={caseData.convictionValue != null ? String(caseData.convictionValue) : undefined} className={inputClass} />
                     </div>
                   </div>
                   <p className="text-[11px] text-tx-2">

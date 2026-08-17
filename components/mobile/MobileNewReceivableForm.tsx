@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReceivable } from "@/lib/actions/financeiro";
 import { RECEIVABLE_KIND_OPTIONS } from "@/lib/honorarioLancamento";
+import MoneyInput from "@/components/MoneyInput";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 import { Plus, X } from "lucide-react";
@@ -99,7 +100,7 @@ export default function MobileNewReceivableForm({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-tx-2">Valor (R$)</label>
-            <input name="amount" type="number" step="0.01" required className="mobile-input" />
+            <MoneyInput name="amount" required className="mobile-input" />
           </div>
           <div>
             <label className="text-xs font-medium text-tx-2">Vencimento</label>
