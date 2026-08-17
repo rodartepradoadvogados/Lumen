@@ -16,6 +16,7 @@ import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { formatCurrency } from "@/components/ui";
 import MobileSecaoLancamento from "@/components/mobile/MobileSecaoLancamento";
 import { Send } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 type Option = { id: string; name: string };
 type Natureza = "CONTRATUAL" | "SUCUMBENCIAL" | "ACORDO";
@@ -468,13 +469,7 @@ export default function MobileLancarHonorariosForm({
           <div className="space-y-3">
             <div>
               <label className={labelCls}>Valor total indicado (R$)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={valorTotalIndicado}
-                onChange={(e) => setValorTotalIndicado(e.target.value)}
-                className="mobile-input"
-              />
+              <MoneyInput value={valorTotalIndicado} onChange={setValorTotalIndicado} className="mobile-input" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -531,12 +526,9 @@ export default function MobileLancarHonorariosForm({
                       onChange={(e) => updateParcela(p.key, { dueDate: e.target.value, dueDateManual: true })}
                       className="mobile-input"
                     />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Valor (R$)"
+                    <MoneyInput
                       value={p.amount}
-                      onChange={(e) => updateParcela(p.key, { amount: e.target.value })}
+                      onChange={(v) => updateParcela(p.key, { amount: v })}
                       className="mobile-input"
                     />
                   </div>
@@ -560,14 +552,7 @@ export default function MobileLancarHonorariosForm({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Valor mensal (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={amountMensal}
-                  onChange={(e) => setAmountMensal(e.target.value)}
-                  required={recorrente}
-                  className="mobile-input"
-                />
+                <MoneyInput value={amountMensal} onChange={setAmountMensal} required={recorrente} className="mobile-input" />
               </div>
               <div>
                 <label className={labelCls}>Dia de vencimento</label>
@@ -604,39 +589,18 @@ export default function MobileLancarHonorariosForm({
             {cobrancaHasDinheiro && (
               <div>
                 <label className={labelCls}>Valor em dinheiro (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  disabled={parcelado}
-                  className="mobile-input disabled:opacity-50"
-                />
+                <MoneyInput value={amount} onChange={setAmount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
                 {parcelado && <p className="text-[11px] text-tx-2 mt-1">Substituído pela tabela de parcelas, acima.</p>}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Desconto (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                  disabled={parcelado}
-                  className="mobile-input disabled:opacity-50"
-                />
+                <MoneyInput value={discount} onChange={setDiscount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
               </div>
               <div>
                 <label className={labelCls}>Acréscimo (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={surcharge}
-                  onChange={(e) => setSurcharge(e.target.value)}
-                  disabled={parcelado}
-                  className="mobile-input disabled:opacity-50"
-                />
+                <MoneyInput value={surcharge} onChange={setSurcharge} disabled={parcelado} className="mobile-input disabled:opacity-50" />
               </div>
             </div>
 
@@ -721,14 +685,7 @@ export default function MobileLancarHonorariosForm({
                 </div>
                 <div>
                   <label className={labelCls}>Valor pago (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                    required={recebido}
-                    className="mobile-input"
-                  />
+                  <MoneyInput value={paidAmount} onChange={setPaidAmount} required={recebido} className="mobile-input" />
                 </div>
               </div>
               <div>

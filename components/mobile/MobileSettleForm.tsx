@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { markPayablePaid, markReceivablePaid, reopenPayable, reopenReceivable } from "@/lib/actions/financeiro";
 import { PAYMENT_METHOD_OPTIONS } from "@/lib/paymentMethods";
 import { formatCurrency } from "@/components/ui";
+import MoneyInput from "@/components/MoneyInput";
 import { Check, RotateCcw, X } from "lucide-react";
 
 type Option = { id: string; name: string };
@@ -120,13 +121,9 @@ export default function MobileSettleForm({
         <div className="grid grid-cols-2 gap-2.5">
           <div>
             <label className="text-[11px] font-medium text-tx-2">Valor pago (R$)</label>
-            <input
-              name="paidAmount"
-              type="number"
-              step="0.01"
-              min="0.01"
+            <MoneyInput
               value={paidAmount}
-              onChange={(e) => setPaidAmount(e.target.value)}
+              onChange={setPaidAmount}
               required
               className="mobile-input"
             />

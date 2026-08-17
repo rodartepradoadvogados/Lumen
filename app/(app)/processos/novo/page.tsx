@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { isStorageConnected } from "@/lib/storageProvider";
 import { createCase } from "@/lib/actions/cases";
 import { PageHeader, Card } from "@/components/ui";
+import MoneyInput from "@/components/MoneyInput";
 import ClientPicker from "@/components/ClientPicker";
 import OpposingPartyFields from "@/components/OpposingPartyFields";
 import AssessoriaSelect from "@/components/AssessoriaSelect";
@@ -174,7 +175,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
             {isProcessoFlow && (
               <div>
                 <label className="text-xs font-medium text-tx-2">Valor da Causa (R$)</label>
-                <input name="caseValue" type="number" step="0.01" className="input" />
+                <MoneyInput name="caseValue" className="input" />
               </div>
             )}
             <div>

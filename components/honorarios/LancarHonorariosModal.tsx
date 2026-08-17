@@ -21,6 +21,7 @@ import { Plus, X } from "lucide-react";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import EntityPicker from "@/components/EntityPicker";
 import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
+import MoneyInput from "@/components/MoneyInput";
 
 type Option = { id: string; name: string };
 type Natureza = "CONTRATUAL" | "SUCUMBENCIAL" | "ACORDO";
@@ -621,13 +622,7 @@ export default function LancarHonorariosModal({
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className={labelCls}>Valor total indicado (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={valorTotalIndicado}
-                            onChange={(e) => setValorTotalIndicado(e.target.value)}
-                            className="fin-input"
-                          />
+                          <MoneyInput value={valorTotalIndicado} onChange={setValorTotalIndicado} className="fin-input" />
                         </div>
                         <div>
                           <label className={labelCls}>Quantidade de parcelas</label>
@@ -690,11 +685,9 @@ export default function LancarHonorariosModal({
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
-                                  <input
-                                    type="number"
-                                    step="0.01"
+                                  <MoneyInput
                                     value={p.amount}
-                                    onChange={(e) => updateParcela(p.key, { amount: e.target.value })}
+                                    onChange={(v) => updateParcela(p.key, { amount: v })}
                                     className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
                                   />
                                 </td>
@@ -725,14 +718,7 @@ export default function LancarHonorariosModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className={labelCls}>Valor mensal (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={amountMensal}
-                            onChange={(e) => setAmountMensal(e.target.value)}
-                            required={recorrente}
-                            className="fin-input"
-                          />
+                          <MoneyInput value={amountMensal} onChange={setAmountMensal} required={recorrente} className="fin-input" />
                         </div>
                         <div>
                           <label className={labelCls}>Dia do mês de vencimento</label>
@@ -771,38 +757,17 @@ export default function LancarHonorariosModal({
                         {cobrancaHasDinheiro && (
                           <div>
                             <label className={labelCls}>Valor em dinheiro (R$)</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={amount}
-                              onChange={(e) => setAmount(e.target.value)}
-                              disabled={parcelado}
-                              className="fin-input disabled:opacity-50"
-                            />
+                            <MoneyInput value={amount} onChange={setAmount} disabled={parcelado} className="fin-input disabled:opacity-50" />
                             {parcelado && <p className="text-[11px] text-tx-2 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
                           </div>
                         )}
                         <div>
                           <label className={labelCls}>Desconto (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={discount}
-                            onChange={(e) => setDiscount(e.target.value)}
-                            disabled={parcelado}
-                            className="fin-input disabled:opacity-50"
-                          />
+                          <MoneyInput value={discount} onChange={setDiscount} disabled={parcelado} className="fin-input disabled:opacity-50" />
                         </div>
                         <div>
                           <label className={labelCls}>Acréscimo (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={surcharge}
-                            onChange={(e) => setSurcharge(e.target.value)}
-                            disabled={parcelado}
-                            className="fin-input disabled:opacity-50"
-                          />
+                          <MoneyInput value={surcharge} onChange={setSurcharge} disabled={parcelado} className="fin-input disabled:opacity-50" />
                         </div>
                       </div>
 
@@ -923,14 +888,7 @@ export default function LancarHonorariosModal({
                         </div>
                         <div>
                           <label className={labelCls}>Valor pago (R$)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={paidAmount}
-                            onChange={(e) => setPaidAmount(e.target.value)}
-                            required={recebido}
-                            className="fin-input"
-                          />
+                          <MoneyInput value={paidAmount} onChange={setPaidAmount} required={recebido} className="fin-input" />
                         </div>
                         <div>
                           <label className={labelCls}>Conta bancária</label>

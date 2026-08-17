@@ -10,6 +10,7 @@ import { VALUE_TYPE_LABELS, PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS, estimateP
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { FinanceStatusBadge } from "@/lib/financeStatus";
+import MoneyInput from "@/components/MoneyInput";
 
 type Option = { id: string; name: string };
 
@@ -299,13 +300,7 @@ export default function HonorarioLancamentoCard({
 
               <div>
                 <label className="text-xs font-medium text-tx-2">Valor total indicado (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={valorTotalIndicado}
-                  onChange={(e) => setValorTotalIndicado(e.target.value)}
-                  className="fin-input"
-                />
+                <MoneyInput value={valorTotalIndicado} onChange={setValorTotalIndicado} className="fin-input" />
               </div>
               <DivergenceNote
                 valorTotalIndicado={valorTotalIndicado ? parseFloat(valorTotalIndicado) : null}
@@ -354,12 +349,9 @@ export default function HonorarioLancamentoCard({
                       ))}
                     </div>
                     {l.valueType === "FIXO" ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Valor (R$)"
+                      <MoneyInput
                         value={l.amount}
-                        onChange={(e) => updateLinha(l.key, { amount: e.target.value })}
+                        onChange={(v) => updateLinha(l.key, { amount: v })}
                         className="fin-input"
                       />
                     ) : (

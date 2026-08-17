@@ -12,6 +12,7 @@ import {
 import StartActingModal from "@/components/painelMestre/StartActingModal";
 import CopyButton from "@/components/CopyButton";
 import { formatCurrency } from "@/components/ui";
+import MoneyInput from "@/components/MoneyInput";
 import { Send, CheckCircle2, Lock, Unlock } from "lucide-react";
 
 type Invoice = {
@@ -118,7 +119,11 @@ export default function OfficeDetailPanel({
           </div>
           <div>
             <label className="text-[11px] text-white/50">Mensalidade (R$)</label>
-            <input type="number" min={0} step="0.01" value={billing.monthlyFee} onChange={(e) => setBilling((p) => ({ ...p, monthlyFee: Number(e.target.value) }))} className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs" />
+            <MoneyInput
+              value={String(billing.monthlyFee)}
+              onChange={(v) => setBilling((p) => ({ ...p, monthlyFee: Number(v) }))}
+              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
+            />
           </div>
           <div>
             <label className="text-[11px] text-white/50">Dia de vencimento</label>

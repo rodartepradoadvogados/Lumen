@@ -18,6 +18,7 @@ import SecaoLancamento from "@/components/financeiro/SecaoLancamento";
 import ComprovanteField from "@/components/financeiro/ComprovanteField";
 import { uploadFinanceReceipt } from "@/lib/financeReceiptUpload";
 import { financeStatusLabel } from "@/lib/financeStatus";
+import MoneyInput from "@/components/MoneyInput";
 
 type Option = { id: string; name: string };
 
@@ -394,15 +395,15 @@ export default function EditPayableModal({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Valor (R$)</label>
-                      <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className="fin-input" />
+                      <MoneyInput value={amount} onChange={setAmount} required className="fin-input" />
                     </div>
                     <div>
                       <label className={labelCls}>Desconto (R$)</label>
-                      <input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="fin-input" />
+                      <MoneyInput value={discount} onChange={setDiscount} className="fin-input" />
                     </div>
                     <div>
                       <label className={labelCls}>Acréscimo (R$)</label>
-                      <input type="number" step="0.01" value={surcharge} onChange={(e) => setSurcharge(e.target.value)} className="fin-input" />
+                      <MoneyInput value={surcharge} onChange={setSurcharge} className="fin-input" />
                     </div>
                   </div>
                 </SecaoLancamento>

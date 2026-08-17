@@ -9,6 +9,7 @@ import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEdit
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { Send, UploadCloud, X, AlertTriangle } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
@@ -243,7 +244,7 @@ export default function MobileNewAttendanceForm({
           {feeMode !== "PERCENTUAL" && (
             <div>
               <label className={labelClass}>Valor (R$)</label>
-              <input name="estimatedValue" type="number" step="0.01" min="0" className={inputClass} placeholder="0,00" />
+              <MoneyInput name="estimatedValue" className={inputClass} />
             </div>
           )}
           {feeMode !== "DINHEIRO" && (

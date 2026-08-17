@@ -9,6 +9,7 @@ import { generateDocumentFromTemplate, type GeneratedDocument } from "@/lib/acti
 import { createAttachment } from "@/lib/actions/attachments";
 import { FORMA_COBRANCA_OPTIONS, FORMA_PAGAMENTO_OPTIONS, type FormaCobranca, type FormaPagamento } from "@/lib/honorarios";
 import ModalShell from "@/components/ModalShell";
+import MoneyInput from "@/components/MoneyInput";
 
 type Template = { id: string; name: string; category: string };
 
@@ -237,21 +238,21 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                       {formaCobranca === "FIXO" && (
                         <div>
                           <label className="text-xs font-medium text-tx-2">Valor fixo (R$)</label>
-                          <input type="number" step="0.01" value={valorFixo} onChange={(e) => setValorFixo(e.target.value)} className="gd-input" />
+                          <MoneyInput value={valorFixo} onChange={setValorFixo} className="gd-input" />
                         </div>
                       )}
 
                       {formaCobranca === "MENSALIDADE" && (
                         <div>
                           <label className="text-xs font-medium text-tx-2">Valor da mensalidade (R$)</label>
-                          <input type="number" step="0.01" value={valorMensalidade} onChange={(e) => setValorMensalidade(e.target.value)} className="gd-input" />
+                          <MoneyInput value={valorMensalidade} onChange={setValorMensalidade} className="gd-input" />
                         </div>
                       )}
 
                       {(formaCobranca === "ENTRADA_EXITO" || formaCobranca === "SO_ENTRADA") && (
                         <div>
                           <label className="text-xs font-medium text-tx-2">Valor de entrada (R$)</label>
-                          <input type="number" step="0.01" value={valorEntrada} onChange={(e) => setValorEntrada(e.target.value)} className="gd-input" />
+                          <MoneyInput value={valorEntrada} onChange={setValorEntrada} className="gd-input" />
                         </div>
                       )}
                     </div>

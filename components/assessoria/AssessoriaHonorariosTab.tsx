@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateAssessoria, markHonorarioPaid, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { Badge, formatCurrency, formatDate } from "@/components/ui";
+import MoneyInput from "@/components/MoneyInput";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 
@@ -60,7 +61,7 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4 p-3.5 rounded-lg border border-regua bg-sf">
         {editing ? (
           <form action={saveFee} className="flex items-center gap-2 flex-wrap">
-            <input name="monthlyFee" type="number" step="0.01" defaultValue={assessoria.monthlyFee} className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+            <MoneyInput name="monthlyFee" defaultValue={String(assessoria.monthlyFee)} className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
             <span className="text-xs text-tx-2">/mês · vence dia</span>
             <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
             <button type="submit" disabled={pending} className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 rounded-lg disabled:opacity-50">
@@ -123,12 +124,9 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
                               </div>
                               <div>
                                 <label className="block text-[10px] font-medium text-tx-2 mb-0.5">Valor pago (R$)</label>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.01"
+                                <MoneyInput
                                   value={payAmount}
-                                  onChange={(e) => setPayAmount(e.target.value)}
+                                  onChange={setPayAmount}
                                   className="w-24 text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
                                 />
                               </div>
