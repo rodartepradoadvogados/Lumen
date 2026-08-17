@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader } from "@/components/ui";
 import AgendaView from "@/components/AgendaView";
 import NewTaskModal from "@/components/NewTaskModal";
+import { getFilteredPayables, getFilteredReceivables } from "@/lib/financeQuery";
+import { valorLiquido } from "@/lib/financeCalc";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,10 @@ function startOfWeek(d: Date) {
   return s;
 }
 
+function ymd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function AgendaPage({
   searchParams,
 }: {
@@ -21,6 +27,10 @@ export default async function AgendaPage({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
+  // Pedido explícito: "para quem tem acesso ao financeiro, as contas a pagar e a receber
+  // precisam aparecer na agenda" — mesmo gate usado em todo o resto do produto (financeiro
+  // central, app mobile) para decidir quem enxerga dado financeiro.
+  const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
   const now = new Date();
   const visao = searchParams.visao === "semana" || searchParams.visao === "lista" ? searchParams.visao : "mes";
@@ -56,7 +66,11 @@ export default async function AgendaPage({
     type: searchParams.tipo || undefined,
   };
 
-  const [tasks, cases, users, columns] = await Promise.all([
+  // "todas" (sem filtro de status, ver lib/financeQuery.ts) porque a Agenda mostra VENCIMENTO,
+  // não "conta em aberto" — inclui já pagas (aparecem riscadas/com status PAGO no card) e A_APURAR,
+  // do mesmo jeito que um prazo/tarefa concluído continua aparecendo no dia riscado.
+  const financeRange = { tab: "todas", from: ymd(rangeStart), to: ymd(rangeEnd) };
+  const [tasks, cases, users, columns, payables, receivables] = await Promise.all([
     prisma.task.findMany({
       where,
       include: { case: true, responsible: true, completedBy: true },
@@ -65,7 +79,32 @@ export default async function AgendaPage({
     prisma.case.findMany({ where: { status: "ATIVO", officeId: viewer.officeId }, select: { id: true, title: true }, orderBy: { title: "asc" } }),
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.kanbanColumn.findMany({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" }, select: { id: true, name: true } }),
+    hasFinanceAccess ? getFilteredPayables(financeRange, viewer.officeId) : Promise.resolve([]),
+    hasFinanceAccess ? getFilteredReceivables(financeRange, viewer.officeId) : Promise.resolve([]),
   ]);
+
+  const serializedFinance = [
+    ...payables.map((p) => ({
+      id: p.id,
+      kind: "PAGAR" as const,
+      description: p.description,
+      amount: valorLiquido(p.amount, p.discount, p.surcharge),
+      effectiveStatus: p.effectiveStatus,
+      dueDate: p.dueDate.toISOString(),
+      noDueDate: p.noDueDate,
+      case: p.case ? { id: p.case.id, title: p.case.title } : null,
+    })),
+    ...receivables.map((r) => ({
+      id: r.id,
+      kind: "RECEBER" as const,
+      description: r.description,
+      amount: r.effectiveStatus === "A_APURAR" ? null : valorLiquido(r.amount, r.discount, r.surcharge),
+      effectiveStatus: r.effectiveStatus,
+      dueDate: r.dueDate.toISOString(),
+      noDueDate: r.noDueDate,
+      case: r.case ? { id: r.case.id, title: r.case.title } : null,
+    })),
+  ];
 
   const serialized = tasks.map((t) => ({
     id: t.id,
@@ -98,6 +137,8 @@ export default async function AgendaPage({
         month={month}
         weekStart={weekStart.toISOString()}
         tasks={serialized}
+        financeItems={serializedFinance}
+        hasFinanceAccess={hasFinanceAccess}
         users={users}
         responsibleId={searchParams.responsibleId || ""}
         tipo={searchParams.tipo || ""}

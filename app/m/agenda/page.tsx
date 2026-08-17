@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, EmptyState } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency } from "@/components/ui";
 import MobileAgendaQuickCreate from "@/components/mobile/MobileAgendaQuickCreate";
 import MobileAgendaTaskRow from "@/components/mobile/MobileAgendaTaskRow";
+import { getFilteredPayables, getFilteredReceivables } from "@/lib/financeQuery";
+import { valorLiquido } from "@/lib/financeCalc";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +40,9 @@ export default async function MobileAgenda({
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) notFound();
+  // Pedido explícito: "para quem tem acesso ao financeiro, as contas a pagar e a receber
+  // precisam aparecer na agenda" — mesmo gate do site (ver app/(app)/agenda/page.tsx).
+  const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
   const view = searchParams.view === "week" ? "week" : "day";
   const day = parseDate(searchParams.d);
@@ -47,7 +52,9 @@ export default async function MobileAgenda({
   }
 
   const novo = searchParams.novo === "1";
-  return <DayView day={day} novo={novo} tipo={normalizeTipo(searchParams.tipo)} officeId={viewer.officeId} />;
+  return (
+    <DayView day={day} novo={novo} tipo={normalizeTipo(searchParams.tipo)} officeId={viewer.officeId} hasFinanceAccess={hasFinanceAccess} />
+  );
 }
 
 async function DayView({
@@ -55,11 +62,13 @@ async function DayView({
   novo,
   tipo,
   officeId,
+  hasFinanceAccess,
 }: {
   day: Date;
   novo: boolean;
   tipo: string;
   officeId: string;
+  hasFinanceAccess: boolean;
 }) {
   const start = new Date(day);
   start.setHours(0, 0, 0, 0);
@@ -75,11 +84,41 @@ async function DayView({
   today.setHours(0, 0, 0, 0);
   const isToday = start.getTime() === today.getTime();
 
-  const tasks = await prisma.task.findMany({
-    where: { officeId, dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
-    include: { case: true, responsible: true, completedBy: true },
-    orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
-  });
+  const dayStr = toISODate(start);
+  // "todas" (sem filtro de status — ver lib/financeQuery.ts) porque a Agenda mostra VENCIMENTO,
+  // não "conta em aberto": inclui já pagas e A_APURAR, do mesmo jeito que uma tarefa concluída
+  // continua aparecendo no dia riscada. Mesmo raciocínio de app/(app)/agenda/page.tsx (site).
+  const financeRange = { tab: "todas", from: dayStr, to: dayStr };
+  const [tasks, payables, receivables] = await Promise.all([
+    prisma.task.findMany({
+      where: { officeId, dueDate: { gte: start, lte: end }, status: { not: "CANCELADO" } },
+      include: { case: true, responsible: true, completedBy: true },
+      orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
+    }),
+    hasFinanceAccess ? getFilteredPayables(financeRange, officeId) : Promise.resolve([]),
+    hasFinanceAccess ? getFilteredReceivables(financeRange, officeId) : Promise.resolve([]),
+  ]);
+  // Sem vencimento (noDueDate) não cai em nenhum dia específico — mesmo raciocínio do site.
+  const financeItems = [
+    ...payables.filter((p) => !p.noDueDate).map((p) => ({
+      id: p.id,
+      kind: "PAGAR" as const,
+      description: p.description,
+      amount: valorLiquido(p.amount, p.discount, p.surcharge),
+      effectiveStatus: p.effectiveStatus,
+      caseId: p.case?.id ?? null,
+      caseTitle: p.case?.title ?? null,
+    })),
+    ...receivables.filter((r) => !r.noDueDate).map((r) => ({
+      id: r.id,
+      kind: "RECEBER" as const,
+      description: r.description,
+      amount: r.effectiveStatus === "A_APURAR" ? null : valorLiquido(r.amount, r.discount, r.surcharge),
+      effectiveStatus: r.effectiveStatus,
+      caseId: r.case?.id ?? null,
+      caseTitle: r.case?.title ?? null,
+    })),
+  ];
 
   const label = start.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
@@ -120,8 +159,8 @@ async function DayView({
       </div>
 
       <Card>
-        {tasks.length === 0 ? (
-          <EmptyState title="Nenhuma tarefa neste dia" />
+        {tasks.length === 0 && financeItems.length === 0 ? (
+          <EmptyState title="Nada agendado para este dia" />
         ) : (
           <div className="divide-y divide-regua">
             {tasks.map((t) => (
@@ -140,10 +179,50 @@ async function DayView({
                 }}
               />
             ))}
+            {financeItems.map((f) => (
+              <MobileAgendaFinanceRow key={f.id} f={f} />
+            ))}
           </div>
         )}
       </Card>
     </div>
+  );
+}
+
+// Vencimento financeiro (Conta a Pagar/Receber) na agenda do app — mesma ideia de
+// components/AgendaView.tsx:FinanceListRow (site): sem checkbox/exclusão (não é uma Task), o
+// card inteiro é um link pra onde a conta pode de fato ser editada/baixada (aba Financeiro do
+// processo vinculado, ou a tela central de Despesas/Receitas quando avulsa).
+function MobileAgendaFinanceRow({
+  f,
+}: {
+  f: {
+    id: string;
+    kind: "PAGAR" | "RECEBER";
+    description: string;
+    amount: number | null;
+    effectiveStatus: string;
+    caseId: string | null;
+    caseTitle: string | null;
+  };
+}) {
+  const isPagar = f.kind === "PAGAR";
+  const isApurar = f.effectiveStatus === "A_APURAR";
+  const statusColor = f.effectiveStatus === "PAGO" ? "green" : f.effectiveStatus === "ATRASADO" ? "red" : isApurar ? "slate" : "amber";
+  const href = f.caseId ? `/processos/${f.caseId}?tab=financeiro` : isPagar ? "/financeiro/despesas" : "/financeiro/receitas";
+  return (
+    <Link href={href} className={`flex items-start gap-3 px-4 py-3.5 border-l-[3px] ${isPagar ? "border-l-atencao" : "border-l-concluido"}`}>
+      <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${isPagar ? "bg-atencao" : "bg-concluido"}`} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+          <span className={`text-[11px] font-semibold ${isPagar ? "text-atencao" : "text-concluido"}`}>{isPagar ? "Conta a Pagar" : "Conta a Receber"}</span>
+          <Badge color={statusColor}>{isApurar ? "A apurar" : f.effectiveStatus}</Badge>
+        </div>
+        <p className="text-sm font-medium text-tx">{f.description}</p>
+        {f.caseTitle && <p className="text-xs text-acao mt-0.5 truncate">{f.caseTitle}</p>}
+      </div>
+      <p className="text-sm font-semibold text-tx tabular-nums shrink-0">{f.amount === null ? "—" : formatCurrency(f.amount)}</p>
+    </Link>
   );
 }
 

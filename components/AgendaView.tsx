@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Check, Hourglass } from "lucide-react";
 import clsx from "clsx";
 import { toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import { Badge, formatCurrency, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewTaskModal from "@/components/NewTaskModal";
 import TaskDetailModal from "@/components/TaskDetailModal";
@@ -32,6 +32,35 @@ type TaskData = {
   // prazo fatal ("fatal") e outra no dia do prazo de segurança, 24h antes ("seguranca") — cada
   // uma com estilo visual distinto pra indicar a urgência.
   entryKind?: "fatal" | "seguranca";
+};
+
+// Vencimento financeiro (Contas a Pagar/Receber do escritório inteiro, não só deste processo) —
+// pedido explícito: "para quem tem acesso ao financeiro, as contas a pagar e a receber precisam
+// aparecer na agenda". Só chega até aqui quando o viewer tem financeAccess/isAdmin (ver
+// app/(app)/agenda/page.tsx) — sem acesso, financeItems vem vazio do servidor, então nada disto
+// aparece. Deliberadamente mais simples que TaskData: sem prioridade/hora/responsável/reunião
+// (conceitos que não existem em Payable/Receivable) e sem edição inline — clicar leva para o
+// Processo (aba Financeiro) ou para a tela central de Despesas/Receitas, que já têm o
+// CRUD completo (editar/baixar/excluir).
+type FinanceEntryData = {
+  id: string;
+  kind: "PAGAR" | "RECEBER";
+  description: string;
+  amount: number | null; // null só quando A_APURAR (percentual sobre uma base ainda sem valor definido)
+  effectiveStatus: string;
+  dueDate: string; // ISO
+  noDueDate: boolean;
+  case: { id: string; title: string } | null;
+};
+
+// Cores do financeiro na Agenda — deliberadamente FORA de typeMeta: typeMeta também alimenta o
+// filtro "Todos os tipos" (que filtra Task.type no servidor, ver app/(app)/agenda/page.tsx) e a
+// legenda "Cores por tipo"; misturar PAGAR/RECEBER lá ofereceria um filtro que não filtra nada
+// (Payable/Receivable não têm Task.type) e duplicaria a legenda sem necessidade. vinho (a pagar)
+// e concluido (a receber) são os dois únicos tons semânticos que typeMeta ainda não usa.
+const financeMeta: Record<"PAGAR" | "RECEBER", { dot: string; chip: string; filete: string; label: string }> = {
+  PAGAR: { dot: "bg-atencao", chip: "bg-atencao/10 dark:bg-atencao/15 text-atencao", filete: "border-atencao", label: "Conta a Pagar" },
+  RECEBER: { dot: "bg-concluido", chip: "bg-concluido-bg text-concluido", filete: "border-concluido", label: "Conta a Receber" },
 };
 
 type Option = { id: string; name: string };
@@ -75,6 +104,8 @@ export default function AgendaView({
   month,
   weekStart,
   tasks,
+  financeItems,
+  hasFinanceAccess,
   users,
   responsibleId,
   tipo,
@@ -86,6 +117,8 @@ export default function AgendaView({
   month: number;
   weekStart: string;
   tasks: TaskData[];
+  financeItems: FinanceEntryData[];
+  hasFinanceAccess: boolean;
   users: Option[];
   responsibleId: string;
   tipo: string;
@@ -111,6 +144,15 @@ export default function AgendaView({
       const safeKey = t.safetyDueDate.slice(0, 10);
       (tasksByDay[safeKey] ||= []).push({ ...t, entryKind: "seguranca" });
     }
+  }
+
+  // Sem vencimento (noDueDate) não entra na grade — não tem dia pra cair, mesmo raciocínio de
+  // "Sem vencimento" nas telas de Financeiro central, que também não aparece em nenhum calendário.
+  const financeByDay: Record<string, FinanceEntryData[]> = {};
+  for (const f of financeItems) {
+    if (f.noDueDate) continue;
+    const key = f.dueDate.slice(0, 10);
+    (financeByDay[key] ||= []).push(f);
   }
 
   // Preserva os filtros ativos ao trocar de visão/navegar.
@@ -183,6 +225,18 @@ export default function AgendaView({
             {taskTypeLabels[k]}
           </span>
         ))}
+        {hasFinanceAccess && (
+          <>
+            <span className="flex items-center gap-1.5 text-[11px] text-tx-2">
+              <span className={clsx("h-2.5 w-2.5 rounded-full", financeMeta.PAGAR.dot)} />
+              Conta a Pagar
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] text-tx-2">
+              <span className={clsx("h-2.5 w-2.5 rounded-full", financeMeta.RECEBER.dot)} />
+              Conta a Receber
+            </span>
+          </>
+        )}
       </div>
     </div>
   );
@@ -191,13 +245,14 @@ export default function AgendaView({
     <div className="flex flex-col min-h-0 flex-1">
       {controls}
       {visao === "lista" ? (
-        <ListView tasksByDay={tasksByDay} />
+        <ListView tasksByDay={tasksByDay} financeByDay={financeByDay} />
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 flex-1 min-h-0">
           {visao === "semana" ? (
             <WeekView
               weekStart={weekStart}
               tasksByDay={tasksByDay}
+              financeByDay={financeByDay}
               selected={selected}
               setSelected={setSelected}
               today={today}
@@ -208,6 +263,7 @@ export default function AgendaView({
               year={year}
               month={month}
               tasksByDay={tasksByDay}
+              financeByDay={financeByDay}
               selected={selected}
               setSelected={setSelected}
               today={today}
@@ -217,6 +273,7 @@ export default function AgendaView({
           <DayPanel
             selected={selected}
             tasksByDay={tasksByDay}
+            financeByDay={financeByDay}
             onToggle={(id) =>
               startTransition(async () => {
                 await toggleTaskDone(id);
@@ -262,10 +319,24 @@ function EventChip({ t }: { t: TaskData }) {
   );
 }
 
+// Chip do financeiro no calendário (mês/semana) — mesma casca visual do EventChip (filete de 3px,
+// truncate), mas sem status/hora (não fazem sentido aqui): seta indicando saída (↓, a pagar) ou
+// entrada (↑, a receber), já que não cabe um Badge inteiro num chip de 10px.
+function FinanceEventChip({ f }: { f: FinanceEntryData }) {
+  const meta = financeMeta[f.kind];
+  return (
+    <div className={clsx("text-[10px] pl-1.5 pr-1 py-0.5 rounded-r truncate font-medium flex items-center gap-1 border-l-[3px]", meta.chip, meta.filete)}>
+      <span className="shrink-0">{f.kind === "PAGAR" ? "↓" : "↑"}</span>
+      <span className="truncate">{f.description}</span>
+    </div>
+  );
+}
+
 function MonthView({
   year,
   month,
   tasksByDay,
+  financeByDay,
   selected,
   setSelected,
   today,
@@ -274,6 +345,7 @@ function MonthView({
   year: number;
   month: number;
   tasksByDay: Record<string, TaskData[]>;
+  financeByDay: Record<string, FinanceEntryData[]>;
   selected: string;
   setSelected: (v: string) => void;
   today: Date;
@@ -330,6 +402,8 @@ function MonthView({
         {cells.map(({ date, inMonth }) => {
           const key = ymd(date);
           const dayTasks = tasksByDay[key] || [];
+          const dayFinance = financeByDay[key] || [];
+          const totalCount = dayTasks.length + dayFinance.length;
           const isToday = key === ymd(today);
           const isSelected = key === selected;
           return (
@@ -354,7 +428,8 @@ function MonthView({
                 {dayTasks.slice(0, 3).map((t) => (
                   <EventChip key={t.id} t={t} />
                 ))}
-                {dayTasks.length > 3 && <p className="text-[10px] text-tx-3 pl-1">+{dayTasks.length - 3} mais</p>}
+                {dayTasks.length < 3 && dayFinance.slice(0, 3 - dayTasks.length).map((f) => <FinanceEventChip key={f.id} f={f} />)}
+                {totalCount > 3 && <p className="text-[10px] text-tx-3 pl-1">+{totalCount - 3} mais</p>}
               </div>
             </button>
           );
@@ -367,6 +442,7 @@ function MonthView({
 function WeekView({
   weekStart,
   tasksByDay,
+  financeByDay,
   selected,
   setSelected,
   today,
@@ -374,6 +450,7 @@ function WeekView({
 }: {
   weekStart: string;
   tasksByDay: Record<string, TaskData[]>;
+  financeByDay: Record<string, FinanceEntryData[]>;
   selected: string;
   setSelected: (v: string) => void;
   today: Date;
@@ -405,6 +482,7 @@ function WeekView({
         {days.map((date) => {
           const key = ymd(date);
           const dayTasks = (tasksByDay[key] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
+          const dayFinance = financeByDay[key] || [];
           const isToday = key === ymd(today);
           const isSelected = key === selected;
           return (
@@ -431,6 +509,9 @@ function WeekView({
                 {dayTasks.map((t) => (
                   <EventChip key={t.id} t={t} />
                 ))}
+                {dayFinance.map((f) => (
+                  <FinanceEventChip key={f.id} f={f} />
+                ))}
               </div>
             </button>
           );
@@ -440,14 +521,21 @@ function WeekView({
   );
 }
 
-function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
-  const days = Object.keys(tasksByDay).sort();
+function ListView({
+  tasksByDay,
+  financeByDay,
+}: {
+  tasksByDay: Record<string, TaskData[]>;
+  financeByDay: Record<string, FinanceEntryData[]>;
+}) {
+  const days = Array.from(new Set([...Object.keys(tasksByDay), ...Object.keys(financeByDay)])).sort();
 
   return (
     <div className="bg-sf rounded-xl border border-regua shadow-card flex-1 min-h-0 overflow-y-auto scrollbar-thin">
       {days.length === 0 && <p className="text-center text-sm text-tx-3 py-16">Nada agendado nos próximos 30 dias</p>}
       {days.map((day) => {
-        const items = tasksByDay[day].sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
+        const items = (tasksByDay[day] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
+        const financeItemsOfDay = financeByDay[day] || [];
         const date = new Date(day + "T00:00:00");
         return (
           <div key={day}>
@@ -487,6 +575,9 @@ function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
                   </div>
                 );
               })}
+              {financeItemsOfDay.map((f) => (
+                <FinanceListRow key={f.id} f={f} />
+              ))}
             </div>
           </div>
         );
@@ -498,6 +589,7 @@ function ListView({ tasksByDay }: { tasksByDay: Record<string, TaskData[]> }) {
 function DayPanel({
   selected,
   tasksByDay,
+  financeByDay,
   onToggle,
   cases,
   users,
@@ -505,12 +597,15 @@ function DayPanel({
 }: {
   selected: string;
   tasksByDay: Record<string, TaskData[]>;
+  financeByDay: Record<string, FinanceEntryData[]>;
   onToggle: (id: string) => void;
   cases: Option[];
   users: Option[];
   columns: Option[];
 }) {
   const selectedTasks = (tasksByDay[selected] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
+  const selectedFinance = financeByDay[selected] || [];
+  const totalCount = selectedTasks.length + selectedFinance.length;
 
   return (
     <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
@@ -519,17 +614,47 @@ function DayPanel({
           <h3 className="font-bold text-tx">
             {new Date(selected + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
           </h3>
-          <p className="text-xs text-tx-3 mt-0.5">{selectedTasks.length} item(ns) neste dia</p>
+          <p className="text-xs text-tx-3 mt-0.5">{totalCount} item(ns) neste dia</p>
         </div>
         <NewTaskModal key={selected} cases={cases} users={users} columns={columns} defaultDate={selected} label="+ Nova neste dia" />
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua">
-        {selectedTasks.length === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}
+        {totalCount === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}
         {selectedTasks.map((t) => (
           <DayPanelTaskRow key={`${t.id}-${t.entryKind}`} t={t} onToggle={onToggle} />
         ))}
+        {selectedFinance.map((f) => (
+          <FinanceListRow key={f.id} f={f} />
+        ))}
       </div>
     </div>
+  );
+}
+
+// Linha de um vencimento financeiro (Conta a Pagar/Receber) — usada tanto no painel do dia
+// quanto na visão Lista. Sem checkbox de concluir nem excluir (diferente de DayPanelTaskRow):
+// o card inteiro é um link para onde a conta pode ser de fato editada/baixada — a aba Financeiro
+// do processo, quando vinculada a um, ou a tela central de Despesas/Receitas quando avulsa. Ver
+// comentário em FinanceEntryData: aqui é só visibilidade ("precisam aparecer na agenda"), o
+// CRUD completo já existe nessas telas, sem necessidade de duplicar modal nenhum aqui.
+function FinanceListRow({ f }: { f: FinanceEntryData }) {
+  const meta = financeMeta[f.kind];
+  const isApurar = f.effectiveStatus === "A_APURAR";
+  const statusColor = f.effectiveStatus === "PAGO" ? "green" : f.effectiveStatus === "ATRASADO" ? "red" : isApurar ? "slate" : "amber";
+  const href = f.case ? `/processos/${f.case.id}?tab=financeiro` : f.kind === "PAGAR" ? "/financeiro/despesas" : "/financeiro/receitas";
+  return (
+    <Link href={href} className="px-5 py-3.5 flex items-start gap-3 hover:bg-sf-apoio transition-colors">
+      <span className={clsx("mt-1.5 h-2.5 w-2.5 rounded-full shrink-0", meta.dot)} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={clsx("text-[11px] font-semibold", f.kind === "PAGAR" ? "text-atencao" : "text-concluido")}>{meta.label}</span>
+          <Badge color={statusColor}>{isApurar ? "A apurar" : f.effectiveStatus}</Badge>
+        </div>
+        <p className="text-sm font-medium text-tx mt-1">{f.description}</p>
+        {f.case && <p className="text-xs text-acao mt-1 truncate">{f.case.title}</p>}
+      </div>
+      <p className="text-sm font-semibold text-tx tabular-nums shrink-0">{f.amount === null ? "—" : formatCurrency(f.amount)}</p>
+    </Link>
   );
 }
 
