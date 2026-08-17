@@ -19,6 +19,20 @@ const inputClass =
   "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
 const labelClass = "text-xs font-medium text-tx-2";
 
+// Mesma máscara do desktop (ver formatCnj em components/NovoCaseNaturezaSection.tsx) — duplicada
+// aqui, não importada, mesmo padrão dos demais helpers pequenos compartilhados entre site/app
+// neste projeto: NNNNNNN-DD.AAAA.J.TR.OOOO, sempre 20 dígitos, formata enquanto digita.
+function formatCnj(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 20);
+  let out = d.slice(0, 7);
+  if (d.length > 7) out += `-${d.slice(7, 9)}`;
+  if (d.length > 9) out += `.${d.slice(9, 13)}`;
+  if (d.length > 13) out += `.${d.slice(13, 14)}`;
+  if (d.length > 14) out += `.${d.slice(14, 16)}`;
+  if (d.length > 16) out += `.${d.slice(16, 20)}`;
+  return out;
+}
+
 // Duas naturezas de cadastro possíveis neste formulário — a terceira ("Caso", ver
 // lib/caseNatureza.ts) nunca é uma opção de cadastro direta, só existe como leitura do que já
 // está no banco (EXTRAJUDICIAL/ATENDIMENTO/CONSULTIVO continuam escondidos atrás do <select>
@@ -64,6 +78,9 @@ export default function MobileNewCaseForm({
   // legados) cai em Judicial, onde o <select> "Tipo" de sempre continua resolvendo o resto.
   const [natureza, setNatureza] = useState<Natureza>(defaultType === "ADMINISTRATIVO" ? "ADMINISTRATIVO" : "JUDICIAL");
   const [type, setType] = useState(defaultType === "ADMINISTRATIVO" ? "JUDICIAL" : defaultType);
+  // Só pro ramo Judicial (máscara CNJ) — o ramo Administrativo usa um <input> uncontrolled
+  // à parte (número livre, ex.: "TC 012.345/2026-7"), sem necessidade de máscara nenhuma.
+  const [processNumber, setProcessNumber] = useState(defaultProcessNumber ? formatCnj(defaultProcessNumber) : "");
   const [attachmentsUploading, setAttachmentsUploading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -266,7 +283,14 @@ export default function MobileNewCaseForm({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>Número do Processo</label>
-                  <input name="processNumber" defaultValue={defaultProcessNumber} className={inputClass} placeholder="0000000-00.0000..." />
+                  <input
+                    name="processNumber"
+                    value={processNumber}
+                    onChange={(e) => setProcessNumber(formatCnj(e.target.value))}
+                    inputMode="numeric"
+                    className={inputClass}
+                    placeholder="0000000-00.0000.0.00.0000"
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Vara/Comarca</label>

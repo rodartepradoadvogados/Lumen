@@ -37,7 +37,11 @@ function joinNames(names: string[]): string {
 // um CaseClient/CaseParty próprio (ver createCase/updateCase). Cliente pode ser um Client já
 // cadastrado (clientId) ou um nome novo, criado na hora (newClientName) — mesma lógica que já
 // existia para o cliente único, só que agora repetida por entrada.
-type ClientInput = { clientId?: string; newClientName?: string; role?: string };
+// newClientDocument/newClientAddress: mesmos dois campos que já existiam pra parte adversa
+// (PartyInput abaixo) — pedido explícito para o cliente cadastrado na hora, direto do formulário
+// do processo (ver ClientPicker.tsx), evitando que ele nascesse incompleto e precisasse ser
+// completado depois na tela de Clientes.
+type ClientInput = { clientId?: string; newClientName?: string; newClientDocument?: string; newClientAddress?: string; role?: string };
 type PartyInput = { name: string; document?: string; address?: string; role?: string };
 
 async function assertCaseRelationsInOffice(
@@ -68,7 +72,15 @@ async function resolveClientInputs(
       if (!client) continue;
       name = client.name;
     } else if (input.newClientName?.trim()) {
-      const client = await prisma.client.create({ data: { name: input.newClientName.trim(), type: "PF", officeId } });
+      const client = await prisma.client.create({
+        data: {
+          name: input.newClientName.trim(),
+          type: "PF",
+          officeId,
+          document: input.newClientDocument?.trim() || null,
+          address: input.newClientAddress?.trim() || null,
+        },
+      });
       id = client.id;
       name = client.name;
     } else {

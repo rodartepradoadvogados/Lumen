@@ -4,7 +4,15 @@ import { useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 type Client = { id: string; name: string };
-type Entry = { key: number; mode: "selecionar" | "novo"; clientId: string; newClientName: string; role: string };
+type Entry = {
+  key: number;
+  mode: "selecionar" | "novo";
+  clientId: string;
+  newClientName: string;
+  newClientDocument: string;
+  newClientAddress: string;
+  role: string;
+};
 
 export type ClientPickerInitial = { clientId?: string | null; clientName?: string; role?: string | null }[];
 
@@ -40,15 +48,20 @@ export default function ClientPicker({
         mode: i.clientId ? "selecionar" : "novo",
         clientId: i.clientId || "",
         newClientName: i.clientName || "",
+        newClientDocument: "",
+        newClientAddress: "",
         role: i.role || "",
       }));
     }
     counter.current += 1;
-    return [{ key: 0, mode: "selecionar", clientId: "", newClientName: "", role: "" }];
+    return [{ key: 0, mode: "selecionar", clientId: "", newClientName: "", newClientDocument: "", newClientAddress: "", role: "" }];
   });
 
   function addEntry() {
-    setEntries((es) => [...es, { key: counter.current++, mode: "selecionar", clientId: "", newClientName: "", role: "" }]);
+    setEntries((es) => [
+      ...es,
+      { key: counter.current++, mode: "selecionar", clientId: "", newClientName: "", newClientDocument: "", newClientAddress: "", role: "" },
+    ]);
   }
   function removeEntry(key: number) {
     setEntries((es) => (es.length > 1 ? es.filter((e) => e.key !== key) : es));
@@ -113,12 +126,31 @@ export default function ClientPicker({
               ))}
             </select>
           ) : (
-            <input
-              value={entry.newClientName}
-              onChange={(e) => update(entry.key, { newClientName: e.target.value })}
-              className={inputClassName}
-              placeholder="Nome do novo cliente"
-            />
+            <div className="space-y-2">
+              <input
+                value={entry.newClientName}
+                onChange={(e) => update(entry.key, { newClientName: e.target.value })}
+                className={inputClassName}
+                placeholder="Nome do novo cliente"
+              />
+              {/* Mesmos dois campos que já existem para parte adversa (OpposingPartyFields) —
+                  pedido explícito: cliente cadastrado na hora, direto do formulário do processo,
+                  sem CPF/endereço obrigava passar depois pela tela de Clientes pra completar. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  value={entry.newClientDocument}
+                  onChange={(e) => update(entry.key, { newClientDocument: e.target.value })}
+                  className={inputClassName}
+                  placeholder="CPF/CNPJ (opcional)"
+                />
+                <input
+                  value={entry.newClientAddress}
+                  onChange={(e) => update(entry.key, { newClientAddress: e.target.value })}
+                  className={inputClassName}
+                  placeholder="Endereço (opcional)"
+                />
+              </div>
+            </div>
           )}
 
           {!hideRole && (
@@ -141,6 +173,8 @@ export default function ClientPicker({
             value={JSON.stringify({
               clientId: entry.mode === "selecionar" ? entry.clientId : "",
               newClientName: entry.mode === "novo" ? entry.newClientName : "",
+              newClientDocument: entry.mode === "novo" ? entry.newClientDocument : "",
+              newClientAddress: entry.mode === "novo" ? entry.newClientAddress : "",
               // Com hideRole, manda vazio em vez do que estivesse em `entry.role`: sem isso, um
               // papel escolhido antes de alternar para o fluxo de Caso viajaria escondido.
               role: hideRole ? "" : entry.role,
