@@ -100,7 +100,7 @@ export default function MobileCaseFinanceTab({
               const paidSum = r.payments.reduce((s, x) => s + x.amount, 0);
               const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, paidSum);
               return (
-                <div key={r.id} className="px-4 py-3">
+                <div key={r.id} id={`receivable-${r.id}`} className="px-4 py-3 target:bg-acao-bg scroll-mt-20">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm text-tx">{r.description}</p>
@@ -149,7 +149,7 @@ export default function MobileCaseFinanceTab({
               const paidSum = p.payments.reduce((s, x) => s + x.amount, 0);
               const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, paidSum);
               return (
-                <div key={p.id} className="px-4 py-3">
+                <div key={p.id} id={`payable-${p.id}`} className="px-4 py-3 target:bg-acao-bg scroll-mt-20">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm text-tx">{p.description}</p>

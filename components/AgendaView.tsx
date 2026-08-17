@@ -641,7 +641,13 @@ function FinanceListRow({ f }: { f: FinanceEntryData }) {
   const meta = financeMeta[f.kind];
   const isApurar = f.effectiveStatus === "A_APURAR";
   const statusColor = f.effectiveStatus === "PAGO" ? "green" : f.effectiveStatus === "ATRASADO" ? "red" : isApurar ? "slate" : "amber";
-  const href = f.case ? `/processos/${f.case.id}?tab=financeiro` : f.kind === "PAGAR" ? "/financeiro/despesas" : "/financeiro/receitas";
+  // Âncora (#payable-<id>/#receivable-<id>) até a LINHA exata do lançamento — não só a tela/lista
+  // onde ela mora — pedido explícito: clicar no card da Agenda levava pra lista inteira, não pro
+  // lançamento específico. As telas de destino (PayablesList.tsx/ReceivablesList.tsx, a aba
+  // Financeiro do Processo e HonorarioLancamentoCard.tsx) têm esse id + `target:bg-acao-bg` pra
+  // rolar até a linha e destacá-la, sem precisar de JS nenhum (:target do navegador).
+  const anchor = f.kind === "PAGAR" ? `payable-${f.id}` : `receivable-${f.id}`;
+  const href = f.case ? `/processos/${f.case.id}?tab=financeiro#${anchor}` : `/financeiro/${f.kind === "PAGAR" ? "despesas" : "receitas"}#${anchor}`;
   return (
     <Link href={href} className="px-5 py-3.5 flex items-start gap-3 hover:bg-sf-apoio transition-colors">
       <span className={clsx("mt-1.5 h-2.5 w-2.5 rounded-full shrink-0", meta.dot)} />

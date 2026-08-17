@@ -365,7 +365,13 @@ export default async function CaseDetailPage({
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
           <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
           <CaseStatusSelect caseId={c.id} status={c.status} hasPendingApuracao={pendentesApurar.length > 0} />
-          <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`} />
+          <DeleteEntityButton
+            entityType="CASE"
+            entityId={c.id}
+            entityLabel={c.title}
+            confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`}
+            redirectTo="/processos"
+          />
         </div>
       </div>
       <p className="flex flex-wrap items-center text-sm text-tx-2 mb-5">
@@ -712,7 +718,7 @@ export default async function CaseDetailPage({
                   const paidSum = r.payments.reduce((s, x) => s + x.amount, 0);
                   const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, paidSum);
                   return (
-                  <div key={r.id} className="flex justify-between items-center px-5 py-3">
+                  <div key={r.id} id={`receivable-${r.id}`} className="flex justify-between items-center px-5 py-3 target:bg-acao-bg scroll-mt-20">
                     <div>
                       <p className="text-sm text-tx">{r.description}</p>
                       <p className="text-xs text-tx-2">
@@ -815,7 +821,7 @@ export default async function CaseDetailPage({
                   const paidSum = p.payments.reduce((s, x) => s + x.amount, 0);
                   const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, paidSum);
                   return (
-                  <div key={p.id} className="flex justify-between items-center px-5 py-3">
+                  <div key={p.id} id={`payable-${p.id}`} className="flex justify-between items-center px-5 py-3 target:bg-acao-bg scroll-mt-20">
                     <div>
                       <p className="text-sm text-tx">{p.description}</p>
                       <p className="text-xs text-tx-2">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>

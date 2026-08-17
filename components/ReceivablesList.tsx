@@ -113,7 +113,7 @@ export default function ReceivablesList({
           const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
           const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, r.paidSum);
           return (
-            <div key={r.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
+            <div key={r.id} id={`receivable-${r.id}`} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 target:bg-acao-bg scroll-mt-20">
               <div className="shrink-0 flex items-center">
                 {selectable ? (
                   <input

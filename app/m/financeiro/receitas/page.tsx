@@ -103,7 +103,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
               const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
               const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, r.paidSum);
               return (
-                <div key={r.id} className="px-4 py-3.5">
+                <div key={r.id} id={`receivable-${r.id}`} className="px-4 py-3.5 target:bg-acao-bg scroll-mt-20">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-tx">{r.description}</p>

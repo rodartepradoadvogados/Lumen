@@ -116,6 +116,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                   entityId={a.id}
                   entityLabel={`${a.clientName} — ${a.subject}`}
                   confirmMessage={`Excluir o atendimento de "${a.clientName}"?`}
+                  redirectTo="/atendimento"
                 />
               </div>
             </div>

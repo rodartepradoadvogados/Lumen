@@ -121,7 +121,7 @@ export default function PayablesList({
           const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
           const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
           return (
-            <div key={p.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5">
+            <div key={p.id} id={`payable-${p.id}`} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 target:bg-acao-bg scroll-mt-20">
               <div className="shrink-0 flex items-center">
                 {selectable ? (
                   <input
