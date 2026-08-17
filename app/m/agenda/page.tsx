@@ -2,28 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, EmptyState, taskTypeLabels, taskTypeColors } from "@/components/ui";
-import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
+import { Card, EmptyState } from "@/components/ui";
 import MobileAgendaQuickCreate from "@/components/mobile/MobileAgendaQuickCreate";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import MobileAgendaTaskRow from "@/components/mobile/MobileAgendaTaskRow";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
 const CREATABLE_TYPES = ["TAREFA", "PRAZO", "AUDIENCIA", "PERICIA"];
-
-// Filete esquerdo de 3px por tipo de tarefa (DESIGN-SYSTEM.md §7) — mesma chave de cor que
-// components/ui.tsx já usa pro chip (taskTypeColors), só traduzida pra classe de borda.
-const TYPE_BORDER_COLORS: Record<string, string> = {
-  slate: "border-l-tx-2",
-  blue: "border-l-acao",
-  gold: "border-l-marca",
-  amber: "border-l-aviso",
-  red: "border-l-urgente",
-};
-function taskTypeBorder(type: string): string {
-  return TYPE_BORDER_COLORS[taskTypeColors[type] ?? "slate"] ?? "border-l-tx-3";
-}
 
 function toISODate(d: Date) {
   const y = d.getFullYear();
@@ -137,46 +124,22 @@ async function DayView({
           <EmptyState title="Nenhuma tarefa neste dia" />
         ) : (
           <div className="divide-y divide-regua">
-            {tasks.map((t) => {
-              const done = t.status === "CONCLUIDO";
-              return (
-                <div
-                  key={t.id}
-                  className={`flex items-start gap-3 px-4 py-3.5 border-l-[3px] ${taskTypeBorder(t.type)}`}
-                >
-                  <div className="pt-0.5">
-                    <MobileTaskToggle taskId={t.id} done={done} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
-                      {t.dueTime && (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-tx-2">
-                          <Clock size={12} /> {t.dueTime}
-                        </span>
-                      )}
-                    </div>
-                    <p
-                      className={`text-sm font-medium ${
-                        done ? "line-through text-tx-2" : "text-tx"
-                      }`}
-                    >
-                      {t.title}
-                    </p>
-                    {t.case && <p className="text-xs text-acao mt-0.5 truncate">{t.case.title}</p>}
-                    {t.responsible && (
-                      <p className="text-xs text-tx-2 mt-0.5">{t.responsible.name}</p>
-                    )}
-                    {done && t.completedBy && t.completedAt && (
-                      <p className="text-[11px] text-tx-3 mt-0.5">
-                        Concluído por {t.completedBy.name} em {t.completedAt.toLocaleDateString("pt-BR")} às{" "}
-                        {t.completedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {tasks.map((t) => (
+              <MobileAgendaTaskRow
+                key={t.id}
+                t={{
+                  id: t.id,
+                  type: t.type,
+                  dueTime: t.dueTime,
+                  title: t.title,
+                  status: t.status,
+                  caseTitle: t.case ? t.case.title : null,
+                  responsibleName: t.responsible ? t.responsible.name : null,
+                  completedByName: t.completedBy ? t.completedBy.name : null,
+                  completedAt: t.completedAt ? t.completedAt.toISOString() : null,
+                }}
+              />
+            ))}
           </div>
         )}
       </Card>

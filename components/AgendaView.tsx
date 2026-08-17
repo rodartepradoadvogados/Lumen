@@ -9,6 +9,7 @@ import { toggleTaskDone } from "@/lib/actions/tasks";
 import { Badge, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewTaskModal from "@/components/NewTaskModal";
+import TaskDetailModal from "@/components/TaskDetailModal";
 
 type TaskData = {
   id: string;
@@ -524,54 +525,70 @@ function DayPanel({
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua">
         {selectedTasks.length === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}
-        {selectedTasks.map((t) => {
-          const done = t.status === "CONCLUIDO";
-          const isSafety = t.entryKind === "seguranca";
-          return (
-            <div key={`${t.id}-${t.entryKind}`} className="px-5 py-3.5 flex gap-3">
-              <button
-                onClick={() => onToggle(t.id)}
-                data-tip={done ? completedLabel(t) || undefined : undefined}
-                className={clsx(
-                  "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
-                  done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
-                )}
-              >
-                <Check size={12} strokeWidth={3} />
-              </button>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
-                  <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
-                  {isSafety && (
-                    <Badge color="gold">
-                      <Hourglass size={10} className="inline -mt-0.5 mr-1" />
-                      Prazo de segurança (24h antes)
-                    </Badge>
-                  )}
-                  {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
-                  <span className="ml-auto">
-                    <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir "${t.title}" da agenda?`} />
-                  </span>
-                </div>
-                <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
-                {t.case && (
-                  <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline mt-0.5 block truncate">
-                    {t.case.title}
-                  </Link>
-                )}
-                {t.responsible && <p className="text-[11px] text-tx-3 mt-1">Responsável: {t.responsible.name}</p>}
-                {t.meetingType === "PRESENCIAL" && t.location && <p className="text-[11px] text-tx-3 mt-1">📍 {t.location}</p>}
-                {t.meetingType === "ONLINE" && t.meetingUrl && (
-                  <a href={t.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-acao hover:underline mt-1 block truncate">
-                    🔗 {t.meetingUrl}
-                  </a>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {selectedTasks.map((t) => (
+          <DayPanelTaskRow key={`${t.id}-${t.entryKind}`} t={t} onToggle={onToggle} />
+        ))}
       </div>
+    </div>
+  );
+}
+
+// Linha de um compromisso no painel do dia (lista da direita) — clicar no card (título/badges/
+// responsável/local) abre o card completo do compromisso (TaskDetailModal), com edição de
+// título/tipo/prioridade/data/hora ("adiar")/responsável/reunião/descrição, concluir/reabrir e
+// excluir — antes disso, a lista era só leitura (só dava pra marcar como concluído ou excluir,
+// sem editar mais nada). Botão de concluir, excluir e o link do processo ficam FORA do botão que
+// abre o card (mesmo motivo de OverdueTaskRow.tsx/KanbanBoard.tsx: HTML não permite elemento
+// interativo aninhado dentro de outro — <button>/<a> dentro de <button> quebra a hidratação).
+function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const done = t.status === "CONCLUIDO";
+  const isSafety = t.entryKind === "seguranca";
+
+  return (
+    <div className="px-5 py-3.5 flex gap-3">
+      <button
+        onClick={() => onToggle(t.id)}
+        data-tip={done ? completedLabel(t) || undefined : undefined}
+        className={clsx(
+          "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
+          done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
+        )}
+      >
+        <Check size={12} strokeWidth={3} />
+      </button>
+      <div className="min-w-0 flex-1">
+        <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
+            <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
+            {isSafety && (
+              <Badge color="gold">
+                <Hourglass size={10} className="inline -mt-0.5 mr-1" />
+                Prazo de segurança (24h antes)
+              </Badge>
+            )}
+            {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
+          </div>
+          <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
+          {t.responsible && <p className="text-[11px] text-tx-3 mt-1">Responsável: {t.responsible.name}</p>}
+          {t.meetingType === "PRESENCIAL" && t.location && <p className="text-[11px] text-tx-3 mt-1">📍 {t.location}</p>}
+        </button>
+        {t.case && (
+          <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline mt-1 block truncate">
+            {t.case.title}
+          </Link>
+        )}
+        {t.meetingType === "ONLINE" && t.meetingUrl && (
+          <a href={t.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-acao hover:underline mt-1 block truncate">
+            🔗 {t.meetingUrl}
+          </a>
+        )}
+      </div>
+      <span className="shrink-0">
+        <DeleteEntityButton entityType="TASK" entityId={t.id} entityLabel={t.title} confirmMessage={`Excluir "${t.title}" da agenda?`} />
+      </span>
+      {open && <TaskDetailModal taskId={t.id} onClose={() => setOpen(false)} />}
     </div>
   );
 }
