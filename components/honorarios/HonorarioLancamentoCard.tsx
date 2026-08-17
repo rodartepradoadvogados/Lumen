@@ -217,7 +217,7 @@ export default function HonorarioLancamentoCard({
           const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
           const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
           return (
-            <div key={p.id} className="flex justify-between items-center">
+            <div key={p.id} id={`receivable-${p.id}`} className="flex justify-between items-center target:bg-acao-bg scroll-mt-20">
               <div>
                 <p className="text-sm text-tx">{p.description}</p>
                 <p className="text-xs text-tx-3">

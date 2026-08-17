@@ -42,6 +42,7 @@ export default function DeleteEntityButton({
   groupKind,
   linkedReimbursement,
   onDone,
+  redirectTo,
 }: {
   entityType: EntityType;
   entityId: string;
@@ -50,6 +51,15 @@ export default function DeleteEntityButton({
   groupKind?: FinanceGroupKind;
   linkedReimbursement?: LinkedReimbursement | null;
   onDone?: (result: { error?: string; pending?: boolean; warning?: string }) => void;
+  // Presente = esta entidade é exibida numa tela PRÓPRIA (ex.: /processos/[id]) que deixa de
+  // existir assim que a exclusão é confirmada — sem isto, router.refresh() abaixo recarregava a
+  // MESMA rota, que agora aponta pra um registro apagado, e o usuário caía direto no 404 do Next
+  // (bug relatado: "excluo um processo, a tela fica preta e aparece 404"). Só navega quando a
+  // exclusão realmente aconteceu (sem erro e sem "pending" — não-admin cai em fila de aprovação,
+  // o registro continua existindo, então a tela continua válida e não deve navegar pra lugar
+  // nenhum). Ausente = comportamento de sempre (refresh in-place, para exclusões feitas de dentro
+  // de uma lista que continua existindo).
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -73,7 +83,11 @@ export default function DeleteEntityButton({
         setMsg({ type: "info", text: result.warning });
       }
       onDone?.(result);
-      router.refresh();
+      if (redirectTo && !result.error && !result.pending) {
+        router.push(redirectTo);
+      } else {
+        router.refresh();
+      }
     });
   }
 

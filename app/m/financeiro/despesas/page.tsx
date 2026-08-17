@@ -91,7 +91,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
               const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
               const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
               return (
-                <div key={p.id} className="px-4 py-3.5">
+                <div key={p.id} id={`payable-${p.id}`} className="px-4 py-3.5 target:bg-acao-bg scroll-mt-20">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-tx">{p.description}</p>

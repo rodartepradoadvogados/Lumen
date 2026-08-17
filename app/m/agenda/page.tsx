@@ -180,7 +180,7 @@ async function DayView({
               />
             ))}
             {financeItems.map((f) => (
-              <MobileAgendaFinanceRow key={f.id} f={f} />
+              <MobileAgendaFinanceRow key={f.id} f={f} day={dayStr} />
             ))}
           </div>
         )}
@@ -195,6 +195,7 @@ async function DayView({
 // processo vinculado, ou a tela central de Despesas/Receitas quando avulsa).
 function MobileAgendaFinanceRow({
   f,
+  day,
 }: {
   f: {
     id: string;
@@ -205,11 +206,25 @@ function MobileAgendaFinanceRow({
     caseId: string | null;
     caseTitle: string | null;
   };
+  // Data (YYYY-MM-DD) do dia sendo visto — todo item de `financeItems` já vem filtrado por esse
+  // dia (ver financeRange acima), então serve tanto pra âncora quanto pra from/to da tela central
+  // de Despesas/Receitas do app, que por padrão só mostra o MÊS CORRENTE (ver
+  // getCurrentMonthRange em lib/financeQuery.ts) — sem isso, um vencimento de outro mês sumia da
+  // lista de destino mesmo com a âncora certa.
+  day: string;
 }) {
   const isPagar = f.kind === "PAGAR";
   const isApurar = f.effectiveStatus === "A_APURAR";
   const statusColor = f.effectiveStatus === "PAGO" ? "green" : f.effectiveStatus === "ATRASADO" ? "red" : isApurar ? "slate" : "amber";
-  const href = f.caseId ? `/processos/${f.caseId}?tab=financeiro` : isPagar ? "/financeiro/despesas" : "/financeiro/receitas";
+  // Âncora até a linha exata (ver comentário equivalente em components/AgendaView.tsx:FinanceListRow)
+  // — bug relatado: clicar no card da Agenda levava pra lista inteira, não pro lançamento
+  // específico. Rota do site (/processos/[id], sem /m — não existe versão mobile da aba
+  // Financeiro do Processo fora de /m/processos/[id]) corrigida para /m/processos/[id] aqui,
+  // que também tinha esse mesmo bug (ia pro site em vez do app).
+  const anchor = isPagar ? `payable-${f.id}` : `receivable-${f.id}`;
+  const href = f.caseId
+    ? `/m/processos/${f.caseId}?tab=financeiro#${anchor}`
+    : `/m/financeiro/${isPagar ? "despesas" : "receitas"}?tab=todas&from=${day}&to=${day}#${anchor}`;
   return (
     <Link href={href} className={`flex items-start gap-3 px-4 py-3.5 border-l-[3px] ${isPagar ? "border-l-atencao" : "border-l-concluido"}`}>
       <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${isPagar ? "bg-atencao" : "bg-concluido"}`} />
