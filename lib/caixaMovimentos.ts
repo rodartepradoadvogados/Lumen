@@ -41,6 +41,10 @@ export type MovimentoCaixa = {
   descricao: string;
   clienteNome: string | null;
   categoriaNome: string | null;
+  // Usado por lib/dreCalculo.ts (DRE Gerencial) pra montar a árvore de grupos do plano de contas
+  // via buildCategoryBreakdown (lib/cashFlowGroups.ts) — categoriaNome sozinho não basta porque
+  // essa função agrupa por ID (categorias com nomes iguais em ramos diferentes existem).
+  categoryId: string | null;
   // Adiantamento a cliente e seu reembolso são TRANSFERÊNCIA, não receita/despesa do escritório
   // (ver isAdiantamentoPayable/isReembolsoReceivable). Quem monta DRE precisa separá-los; quem
   // monta Livro Caixa (extrato puro de movimentação) mostra tudo. Por isso a classificação vem
@@ -105,6 +109,7 @@ export async function listarMovimentosCaixa(officeId: string, periodo: Periodo =
         descricao: r.description,
         clienteNome: r.client?.name ?? null,
         categoriaNome: r.category?.name ?? null,
+        categoryId: r.categoryId,
         ehAdiantamento: false,
         ehReembolso: isReembolsoReceivable(r),
       });
@@ -118,6 +123,7 @@ export async function listarMovimentosCaixa(officeId: string, periodo: Periodo =
         descricao: p.description,
         clienteNome: null,
         categoriaNome: p.category?.name ?? null,
+        categoryId: p.categoryId,
         ehAdiantamento: isAdiantamentoPayable(p),
         ehReembolso: false,
       });
@@ -138,6 +144,7 @@ export async function listarMovimentosCaixa(officeId: string, periodo: Periodo =
       descricao: r.description,
       clienteNome: r.client?.name ?? null,
       categoriaNome: r.category?.name ?? null,
+      categoryId: r.categoryId,
       ehAdiantamento: false,
       ehReembolso: isReembolsoReceivable(r),
     });
@@ -151,6 +158,7 @@ export async function listarMovimentosCaixa(officeId: string, periodo: Periodo =
       descricao: p.description,
       clienteNome: null,
       categoriaNome: p.category?.name ?? null,
+      categoryId: p.categoryId,
       ehAdiantamento: isAdiantamentoPayable(p),
       ehReembolso: false,
     });

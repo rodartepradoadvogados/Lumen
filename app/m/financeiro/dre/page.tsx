@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
-import { ArrowLeft, ChevronLeft, ChevronRight, Info } from "lucide-react";
-import { listarMovimentosCaixa, apurarResultado } from "@/lib/caixaMovimentos";
+import { Card, CardHeader, formatCurrency } from "@/components/ui";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Download } from "lucide-react";
+import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
+import { MobileDreCascataTable } from "@/components/financeiro/MobileDreCascataTable";
 
 export const dynamic = "force-dynamic";
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-// DRE simplificado: mesma lógica de cálculo da página desktop (`/financeiro/dre`) — total
-// por categoria com base em valores efetivamente pagos/recebidos (regime de caixa) — só o
-// mês corrente com navegação anterior/próximo, sem intervalo customizado nem filtro de
-// centro de custo (fora do essencial para o recorte mobile).
+// Mesma camada de cálculo da página desktop (lib/dreCalculo.ts) — cascata com subtotal por grupo,
+// % da receita e comparação com o período anterior, só que empilhada (MobileDreCascataTable) em
+// vez do grid de 5 colunas que não cabe na largura mobile.
 export default async function MobileDre({
   searchParams,
 }: {
@@ -24,30 +24,21 @@ export default async function MobileDre({
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
   const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth();
-  const start = new Date(year, month, 1);
-  const end = new Date(year, month + 1, 1);
+  const periodoAtual = { de: new Date(year, month, 1), ate: new Date(year, month + 1, 1) };
+  const periodoAnt = periodoAnterior(periodoAtual);
 
-  // Mesma fonte da página desktop (/financeiro/dre): FinancePayment, com cada pagamento no seu
-  // próprio valor e na sua própria data — antes o filtro `status: "PAGO"` descartava a baixa
-  // PARCIAL e jogava a quitação inteira no mês do último pagamento. Ver lib/caixaMovimentos.ts.
-  const movimentos = await listarMovimentosCaixa(viewer.officeId, { de: start, ate: end, ateExclusivo: true });
+  const [atual, anterior] = await Promise.all([
+    calcularDre(viewer.officeId, periodoAtual),
+    calcularDre(viewer.officeId, periodoAnt),
+  ]);
 
-  // Adiantamento a Cliente e seu reembolso são transferência, não resultado — apurarResultado
-  // separa os dois e devolve os totais à parte (ver isAdiantamentoPayable/isReembolsoReceivable
-  // em lib/financeCalc.ts).
-  const {
-    receitasPorCategoria,
-    despesasPorCategoria,
-    totalReceitas,
-    totalDespesas,
-    resultado,
-    totalAdiantado,
-    totalReembolsado,
-    saldoAdiantamentos,
-  } = apurarResultado(movimentos);
+  const { receitas, despesas, totalReceitas, resultado, totalAdiantado, totalReembolsado, saldoAdiantamentos } = atual;
+  const margemLiquida = totalReceitas ? (resultado / totalReceitas) * 100 : null;
+  const variacaoResultado = variacaoPercentual(resultado, anterior.resultado);
 
   const prevHref = `/m/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}`;
   const nextHref = `/m/financeiro/dre?year=${month === 11 ? year + 1 : year}&month=${month === 11 ? 0 : month + 1}`;
+  const exportHref = `/api/financeiro/dre/export?year=${year}&month=${month}`;
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
@@ -58,9 +49,17 @@ export default async function MobileDre({
         <ArrowLeft size={13} /> Início
       </Link>
 
-      <div>
-        <h1 className="text-xl font-bold text-tx">DRE</h1>
-        <p className="text-sm text-tx-2">Regime de caixa (pago/recebido)</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold text-tx">DRE Gerencial</h1>
+          <p className="text-sm text-tx-2">Regime de caixa · comparado ao período anterior</p>
+        </div>
+        <a
+          href={exportHref}
+          className="flex items-center gap-1 text-xs font-semibold text-tx-2 border border-regua-forte rounded-lg px-2.5 py-1.5 shrink-0"
+        >
+          <Download size={12} /> .xlsx
+        </a>
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -84,37 +83,13 @@ export default async function MobileDre({
       </div>
 
       <Card>
-        <CardHeader title="Receitas" />
-        <div className="divide-y divide-regua">
-          {Object.keys(receitasPorCategoria).length === 0 && <EmptyState title="Nenhuma receita no período" />}
-          {Object.entries(receitasPorCategoria).map(([cat, val]) => (
-            <div key={cat} className="flex justify-between px-4 py-2.5 text-sm gap-3">
-              <span className="text-tx-2 truncate">{cat}</span>
-              <span className="font-semibold tabular-nums text-concluido shrink-0">{formatCurrency(val)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between px-4 py-3 text-sm font-bold bg-sf-apoio">
-            <span className="text-tx">Total de Receitas</span>
-            <span className="tabular-nums text-concluido">{formatCurrency(totalReceitas)}</span>
-          </div>
-        </div>
+        <CardHeader title="Receita Operacional" subtitle="Toque para destrinchar" />
+        <MobileDreCascataTable title="Receita Operacional Bruta" breakdown={receitas} breakdownAnterior={anterior.receitas} totalReceitaBase={totalReceitas} tone="green" />
       </Card>
 
       <Card>
-        <CardHeader title="Despesas" />
-        <div className="divide-y divide-regua">
-          {Object.keys(despesasPorCategoria).length === 0 && <EmptyState title="Nenhuma despesa no período" />}
-          {Object.entries(despesasPorCategoria).map(([cat, val]) => (
-            <div key={cat} className="flex justify-between px-4 py-2.5 text-sm gap-3">
-              <span className="text-tx-2 truncate">{cat}</span>
-              <span className="font-semibold tabular-nums text-urgente shrink-0">{formatCurrency(val)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between px-4 py-3 text-sm font-bold bg-sf-apoio">
-            <span className="text-tx">Total de Despesas</span>
-            <span className="tabular-nums text-urgente">{formatCurrency(totalDespesas)}</span>
-          </div>
-        </div>
+        <CardHeader title="Despesas Operacionais" subtitle="Toque para destrinchar" />
+        <MobileDreCascataTable title="Total de Despesas Operacionais" breakdown={despesas} breakdownAnterior={anterior.despesas} totalReceitaBase={totalReceitas} tone="red" />
       </Card>
 
       {(totalAdiantado > 0 || totalReembolsado > 0) && (
@@ -141,11 +116,22 @@ export default async function MobileDre({
         </Card>
       )}
 
-      <Card className="p-5 flex justify-between items-center">
-        <span className="font-bold text-tx">Resultado do Período</span>
-        <span className={`font-bold text-xl tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>
-          {formatCurrency(resultado)}
-        </span>
+      <Card className={`p-4 space-y-1.5 ${resultado >= 0 ? "bg-concluido-bg" : "bg-urgente-bg"}`}>
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-tx">Resultado Líquido</span>
+          <span className={`font-bold text-lg tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>{formatCurrency(resultado)}</span>
+        </div>
+        <div className="flex justify-between items-center text-xs text-tx-2">
+          <span>Margem líquida</span>
+          <span className="tabular-nums font-medium">{margemLiquida === null ? "—" : `${margemLiquida.toFixed(1)}%`}</span>
+        </div>
+        <div className="flex justify-between items-center text-xs text-tx-2">
+          <span>Período anterior</span>
+          <span className="tabular-nums">
+            {formatCurrency(anterior.resultado)}
+            {variacaoResultado !== null && ` (${variacaoResultado >= 0 ? "+" : ""}${variacaoResultado.toFixed(1)}%)`}
+          </span>
+        </div>
       </Card>
     </div>
   );
