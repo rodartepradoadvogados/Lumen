@@ -2,14 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, CardHeader, formatCurrency, EmptyState } from "@/components/ui";
-import { ChevronLeft, ChevronRight, Info } from "lucide-react";
-import { listarMovimentosCaixa, apurarResultado } from "@/lib/caixaMovimentos";
+import { PageHeader, Card, CardHeader, formatCurrency } from "@/components/ui";
+import { ChevronLeft, ChevronRight, Info, Download } from "lucide-react";
+import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
+import { DreCascataTable } from "@/components/financeiro/DreCascataTable";
 
 export const dynamic = "force-dynamic";
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+// DRE Gerencial: cascata Receita Operacional -> Despesas Operacionais -> Resultado Líquido, com
+// análise vertical (% da Receita, convenção padrão de DRE gerencial: até as despesas mostram que
+// fatia da receita consomem) e comparação com o período anterior de mesma duração — pedido
+// explícito ("apresentar as linhas todas, completas, com os indicadores da DRE normal"). A
+// estrutura em árvore (grupo -> subgrupo, com subtotal em cada nível) é a mesma do plano de
+// contas que o Fluxo de Caixa já usa (lib/cashFlowGroups.ts) — sem inventar categorias novas
+// (Deduções/Financeiro) que o plano de contas de hoje não sustenta com dado real.
 export default async function DrePage({
   searchParams,
 }: {
@@ -26,44 +34,42 @@ export default async function DrePage({
   const end = usingCustomRange ? new Date(`${searchParams.to}T23:59:59`) : new Date(year, month + 1, 1);
 
   const costCenterId = searchParams.costCenterId || undefined;
+  const periodoAtual = { de: start, ate: end };
+  const periodoAnt = periodoAnterior(periodoAtual);
 
-  // Regime de caixa lido do FinancePayment: cada pagamento entra com seu próprio valor e sua
-  // própria data. Antes esta tela filtrava `status: "PAGO"` e somava paidAmount, o que tinha dois
-  // efeitos em valor — a baixa PARCIAL sumia do resultado, e uma conta quitada em vários meses
-  // caía inteira no mês do último pagamento (paidDate guarda só o mais recente). Ver
-  // lib/caixaMovimentos.ts, que também cobre os lançamentos legados sem FinancePayment.
-  const [movimentos, costCenters] = await Promise.all([
-    listarMovimentosCaixa(viewer.officeId, { de: start, ate: end, ateExclusivo: true, costCenterId }),
+  const [atual, anterior, costCenters] = await Promise.all([
+    calcularDre(viewer.officeId, periodoAtual, costCenterId),
+    calcularDre(viewer.officeId, periodoAnt, costCenterId),
     prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
   ]);
 
-  // Adiantamentos a Clientes (Despesas do Processo com reembolso vinculado) são uma transferência,
-  // não Receita/Despesa de verdade do escritório — ver isAdiantamentoPayable/isReembolsoReceivable
-  // em lib/financeCalc.ts. apurarResultado já os separa do resultado e devolve os totais à parte,
-  // para a seção informativa mais abaixo.
-  const {
-    receitasPorCategoria,
-    despesasPorCategoria,
-    totalReceitas,
-    totalDespesas,
-    resultado,
-    totalAdiantado,
-    totalReembolsado,
-    saldoAdiantamentos,
-  } = apurarResultado(movimentos);
+  const { receitas, despesas, totalReceitas, resultado, totalAdiantado, totalReembolsado, saldoAdiantamentos } = atual;
+  const margemLiquida = totalReceitas ? (resultado / totalReceitas) * 100 : null;
+  const variacaoResultado = variacaoPercentual(resultado, anterior.resultado);
 
   const carryParams = costCenterId ? `&costCenterId=${costCenterId}` : "";
   const prevHref = `/financeiro/dre?year=${month === 0 ? year - 1 : year}&month=${month === 0 ? 11 : month - 1}${carryParams}`;
   const nextHref = `/financeiro/dre?year=${month === 11 ? year + 1 : year}&month=${month === 11 ? 0 : month + 1}${carryParams}`;
 
+  const exportParams = new URLSearchParams();
+  if (usingCustomRange) {
+    exportParams.set("from", searchParams.from!);
+    exportParams.set("to", searchParams.to!);
+  } else {
+    exportParams.set("year", String(year));
+    exportParams.set("month", String(month));
+  }
+  if (costCenterId) exportParams.set("costCenterId", costCenterId);
+  const exportHref = `/api/financeiro/dre/export?${exportParams.toString()}`;
+
   return (
-    <div className="p-6 max-w-[900px] mx-auto animate-fade-in">
+    <div className="p-6 max-w-[1000px] mx-auto animate-fade-in">
       <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader
-        title="DRE — Demonstrativo de Resultado"
-        subtitle="Baseado em valores efetivamente pagos/recebidos (regime de caixa)"
+        title="DRE Gerencial"
+        subtitle="Regime de caixa (pago/recebido) — comparado ao período anterior de mesma duração"
         action={
           !usingCustomRange ? (
             <div className="flex items-center gap-1">
@@ -114,41 +120,31 @@ export default async function DrePage({
               Voltar para visão mensal
             </Link>
           )}
+          <a
+            href={exportHref}
+            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte rounded-lg px-3 py-2 transition-colors"
+          >
+            <Download size={13} /> Exportar (.xlsx)
+          </a>
         </form>
       </Card>
 
+      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-5 py-1.5 text-[10px] font-semibold text-tx-3 uppercase tracking-wide">
+        <span>Linha</span>
+        <span className="text-right">Valor</span>
+        <span className="text-right w-14">% Receita</span>
+        <span className="text-right">Período Anterior</span>
+        <span className="text-right">Variação</span>
+      </div>
+
       <Card className="mb-5">
-        <CardHeader title="Receitas" />
-        <div className="divide-y divide-regua">
-          {Object.keys(receitasPorCategoria).length === 0 && <EmptyState title="Nenhuma receita no período" />}
-          {Object.entries(receitasPorCategoria).map(([cat, val]) => (
-            <div key={cat} className="flex justify-between px-5 py-2.5 text-sm">
-              <span className="text-tx">{cat}</span>
-              <span className="font-semibold tabular-nums text-concluido">{formatCurrency(val)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-sf-apoio">
-            <span>Total de Receitas</span>
-            <span className="tabular-nums text-concluido">{formatCurrency(totalReceitas)}</span>
-          </div>
-        </div>
+        <CardHeader title="Receita Operacional" subtitle="Por categoria — clique numa linha com subgrupos para destrinchar" />
+        <DreCascataTable title="Receita Operacional Bruta" breakdown={receitas} breakdownAnterior={anterior.receitas} totalReceitaBase={totalReceitas} tone="green" />
       </Card>
 
       <Card className="mb-5">
-        <CardHeader title="Despesas" />
-        <div className="divide-y divide-regua">
-          {Object.keys(despesasPorCategoria).length === 0 && <EmptyState title="Nenhuma despesa no período" />}
-          {Object.entries(despesasPorCategoria).map(([cat, val]) => (
-            <div key={cat} className="flex justify-between px-5 py-2.5 text-sm">
-              <span className="text-tx">{cat}</span>
-              <span className="font-semibold tabular-nums text-urgente">{formatCurrency(val)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between px-5 py-3 text-sm font-bold bg-sf-apoio">
-            <span>Total de Despesas</span>
-            <span className="tabular-nums text-urgente">{formatCurrency(totalDespesas)}</span>
-          </div>
-        </div>
+        <CardHeader title="Despesas Operacionais" subtitle="Por categoria — clique numa linha com subgrupos para destrinchar" />
+        <DreCascataTable title="Total de Despesas Operacionais" breakdown={despesas} breakdownAnterior={anterior.despesas} totalReceitaBase={totalReceitas} tone="red" />
       </Card>
 
       {(totalAdiantado > 0 || totalReembolsado > 0) && (
@@ -178,9 +174,24 @@ export default async function DrePage({
         </Card>
       )}
 
-      <Card className={`p-5 flex justify-between items-center ${resultado >= 0 ? "bg-concluido-bg" : "bg-urgente-bg"}`}>
-        <span className="font-bold text-tx">Resultado do Período</span>
-        <span className={`font-bold text-xl tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>{formatCurrency(resultado)}</span>
+      <Card className={resultado >= 0 ? "bg-concluido-bg" : "bg-urgente-bg"}>
+        <div className="p-5 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="font-bold text-tx">Resultado Líquido do Período</span>
+            <span className={`font-bold text-xl tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>{formatCurrency(resultado)}</span>
+          </div>
+          <div className="flex justify-between items-center text-xs text-tx-2">
+            <span>Margem líquida (Resultado / Receita)</span>
+            <span className="tabular-nums font-medium">{margemLiquida === null ? "—" : `${margemLiquida.toFixed(1)}%`}</span>
+          </div>
+          <div className="flex justify-between items-center text-xs text-tx-2">
+            <span>Período anterior</span>
+            <span className="tabular-nums">
+              {formatCurrency(anterior.resultado)}
+              {variacaoResultado !== null && ` (${variacaoResultado >= 0 ? "+" : ""}${variacaoResultado.toFixed(1)}%)`}
+            </span>
+          </div>
+        </div>
       </Card>
       <style>{`
         .fp-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }

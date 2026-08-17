@@ -6,7 +6,7 @@ import { Card, CardHeader, formatCurrency } from "@/components/ui";
 import { buildCategoryBreakdown } from "@/lib/cashFlowGroups";
 import { CategoryBreakdownSection } from "@/components/CategoryBreakdownTree";
 import { valorLiquido } from "@/lib/financeCalc";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -75,9 +75,17 @@ export default async function MobileFluxoDeCaixa() {
         <ArrowLeft size={13} /> Início
       </Link>
 
-      <div>
-        <h1 className="text-xl font-bold text-tx">Fluxo de Caixa</h1>
-        <p className="text-sm text-tx-2">Entradas e saídas projetadas por mês (por vencimento)</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold text-tx">Fluxo de Caixa</h1>
+          <p className="text-sm text-tx-2">Entradas e saídas projetadas por mês (por vencimento)</p>
+        </div>
+        <a
+          href="/api/financeiro/fluxo-de-caixa/export"
+          className="flex items-center gap-1 text-xs font-semibold text-tx-2 border border-regua-forte rounded-lg px-2.5 py-1.5 shrink-0"
+        >
+          <Download size={12} /> .xlsx
+        </a>
       </div>
 
       <Card>

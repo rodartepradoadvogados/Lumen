@@ -6,6 +6,7 @@ import { PageHeader, Card, CardHeader, formatCurrency } from "@/components/ui";
 import { buildCategoryBreakdown } from "@/lib/cashFlowGroups";
 import { CategoryBreakdownSection } from "@/components/CategoryBreakdownTree";
 import { valorLiquido } from "@/lib/financeCalc";
+import { Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,18 @@ export default async function FluxoDeCaixaPage() {
       <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>
-      <PageHeader title="Fluxo de Caixa" subtitle="Entradas e saídas projetadas por mês (com base nos vencimentos) · 3 meses atrás a 3 meses à frente" />
+      <PageHeader
+        title="Fluxo de Caixa"
+        subtitle="Entradas e saídas projetadas por mês (com base nos vencimentos) · 3 meses atrás a 3 meses à frente"
+        action={
+          <a
+            href="/api/financeiro/fluxo-de-caixa/export"
+            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte rounded-lg px-3 py-2 transition-colors"
+          >
+            <Download size={13} /> Exportar (.xlsx)
+          </a>
+        }
+      />
 
       <Card className="p-6 mb-6">
         <div className="flex items-end gap-4 h-64">
