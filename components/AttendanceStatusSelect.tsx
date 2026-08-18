@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateAttendanceStatus } from "@/lib/actions/attendance";
+import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 
 const options = ["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"];
 
@@ -30,7 +31,7 @@ export default function AttendanceStatusSelect({ attendanceId, status }: { atten
     >
       {options.map((o) => (
         <option key={o} value={o}>
-          {o.replace("_", " ")}
+          {attendanceStatusLabels[o] ?? o}
         </option>
       ))}
     </select>

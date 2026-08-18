@@ -72,7 +72,24 @@ export default async function PublicacoesPage({
   const [publicationsRaw, unreadRowsRaw, users, blockedSet] = await Promise.all([
     prisma.publication.findMany({
       where,
-      include: { case: true, client: true, reads: { where: { userId: viewer.id }, select: { userId: true } } },
+      // select em vez de include para case/client: a serialização abaixo só usa
+      // id/title/processNumber e id/name — trazer a linha inteira de cada um custava caro à toa
+      // em até 3000 Publication por render (achado A70 da revisão gauntlet).
+      select: {
+        id: true,
+        kind: true,
+        source: true,
+        content: true,
+        publishedAt: true,
+        deadlineGenerated: true,
+        lawyerTag: true,
+        processNumberRaw: true,
+        assignedToId: true,
+        triageStatus: true,
+        case: { select: { id: true, title: true, processNumber: true } },
+        client: { select: { id: true, name: true } },
+        reads: { where: { userId: viewer.id }, select: { userId: true } },
+      },
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       // Sem "take" fixo pequeno aqui: cortar a query bruta ANTES de agrupar por processo corre o
       // risco de truncar um grupo no meio. O corte por aba (100 mais recentes em Lidas/Todos)
@@ -128,7 +145,9 @@ export default async function PublicacoesPage({
   // aba: só sai de Não lidas quando TODOS os itens do grupo já foram lidos pelo viewer.
   const allGroups = groupPublicationsByProcess(serializedAll);
   const tabFilteredGroups = isTodos ? allGroups : isLidas ? allGroups.filter((g) => g.allRead) : allGroups.filter((g) => !g.allRead);
-  const groups = isLidas || isTodos ? tabFilteredGroups.slice(0, 100) : tabFilteredGroups;
+  // Corte de 100 grupos aplicado às três abas — antes só cobria Lidas/Todos; a aba padrão Não
+  // lidas renderizava todos os grupos pendentes sem limite (achado A70 da revisão gauntlet).
+  const groups = tabFilteredGroups.slice(0, 100);
 
   const qs = (extra: Record<string, string | undefined>) => {
     const merged = { aba: searchParams.aba, kind: searchParams.kind, q: searchParams.q, adv: searchParams.adv, resp: searchParams.resp, ...extra };

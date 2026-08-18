@@ -3,16 +3,9 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateAttendanceStatus } from "@/lib/actions/attendance";
+import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 
 const options = ["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"];
-
-const labels: Record<string, string> = {
-  NOVO: "Novo",
-  EM_TRIAGEM: "Em Triagem",
-  CONVERTIDO: "Convertido",
-  ARQUIVADO: "Arquivado",
-  RASCUNHO: "Rascunho",
-};
 
 // Tokens semânticos (trocam de tema sozinhos, sem variante `dark:` própria — ver DESIGN-SYSTEM.md
 // §2): NOVO é aviso (pendência de triagem), EM_TRIAGEM é acao (em andamento), CONVERTIDO é
@@ -46,7 +39,7 @@ export default function MobileAttendanceStatusSelect({ attendanceId, status }: {
     >
       {allOptions.map((o) => (
         <option key={o} value={o}>
-          {labels[o] ?? o.replace("_", " ")}
+          {attendanceStatusLabels[o] ?? o}
         </option>
       ))}
     </select>

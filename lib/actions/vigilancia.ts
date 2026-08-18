@@ -11,11 +11,12 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isCaseInOffice, isClientInOffice } from "@/lib/officeScope";
 
-// Cadastra um termo vigiado. Dedup é silencioso: o @@unique([officeId, termo, caseId]) do
-// schema garante que cadastrar o mesmo termo duas vezes para o mesmo processo (ou duas vezes
-// solto, caseId null) não duplica — createMany + skipDuplicates absorve o conflito sem precisar
-// de um try/catch em cima de erro de unique constraint (mesmo padrão já usado em
-// lib/actions/publications.ts para PublicationRead).
+// Cadastra um termo vigiado. Dedup é silencioso — mas via findFirst prévio, NÃO via
+// @@unique([officeId, termo, caseId]) + skipDuplicates: no Postgres um índice único trata NULL
+// como valor distinto de qualquer outro NULL, então a constraint não pega termo solto repetido
+// (caseId null); createMany + skipDuplicates inseriria uma linha nova a cada cadastro do mesmo
+// termo LIVRE (achado A18 da revisão gauntlet). O findFirst cobre os dois casos (com ou sem
+// caseId) do mesmo jeito, sem depender do comportamento de NULL do banco.
 export async function addTermoVigilancia(data: {
   termo: string;
   tipo?: string;
@@ -31,9 +32,14 @@ export async function addTermoVigilancia(data: {
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return { error: "Processo não encontrado." };
   if (data.clientId && !(await isClientInOffice(data.clientId, viewer.officeId))) return { error: "Cliente não encontrado." };
 
-  await prisma.termoVigilancia.createMany({
-    data: [
-      {
+  const existing = await prisma.termoVigilancia.findFirst({
+    where: { officeId: viewer.officeId, termo, caseId: data.caseId || null },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    await prisma.termoVigilancia.create({
+      data: {
         termo,
         tipo: data.tipo || "LIVRE",
         officeId: viewer.officeId,
@@ -41,9 +47,8 @@ export async function addTermoVigilancia(data: {
         clientId: data.clientId || null,
         criadoPorId: viewer.id,
       },
-    ],
-    skipDuplicates: true,
-  });
+    });
+  }
 
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
   return {};

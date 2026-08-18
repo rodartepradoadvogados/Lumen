@@ -8,6 +8,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Filter } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
+import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,6 @@ const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
   CONVERTIDO: "green",
   ARQUIVADO: "slate",
   RASCUNHO: "slate",
-};
-
-const statusLabels: Record<string, string> = {
-  RASCUNHO: "Rascunho",
 };
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
@@ -106,7 +103,7 @@ export default async function AtendimentoPage({
       <div className="flex gap-2 mb-1 flex-wrap">
         <FilterLink label="Todos" href={statusHref()} active={!searchParams.status} />
         {["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO", "RASCUNHO"].map((s) => (
-          <FilterLink key={s} label={statusLabels[s] ?? s.replace("_", " ")} href={statusHref(s)} active={searchParams.status === s} />
+          <FilterLink key={s} label={attendanceStatusLabels[s] ?? s} href={statusHref(s)} active={searchParams.status === s} />
         ))}
       </div>
       <p className="text-xs italic text-tx-3 mt-1 mb-3">
@@ -142,7 +139,7 @@ export default async function AtendimentoPage({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-tx">{a.clientName}</p>
-                    <Badge color={statusColors[a.status]}>{statusLabels[a.status] ?? a.status.replace("_", " ")}</Badge>
+                    <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
                     <Badge color="navy">{channelLabels[a.channel]}</Badge>
                     {a.area && <Badge color="gold">{a.area}</Badge>}
                   </div>

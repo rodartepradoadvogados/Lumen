@@ -38,7 +38,7 @@ import { isStorageConnected } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { effectiveCaseClients, effectiveCaseParties, partyRoleLabels } from "@/lib/caseParties";
 import { naturezaOf, NATUREZA_LABELS, ESFERA_LABELS, MATERIA_LABELS } from "@/lib/caseNatureza";
-import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { valorLiquido, saldoEmAberto, totalRecebidoNoProcesso } from "@/lib/financeCalc";
 import { financeGroupKind } from "@/lib/financeGroupKind";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import { instanciaLabel } from "@/lib/caseInstance";
@@ -665,7 +665,7 @@ export default async function CaseDetailPage({
               defaultClientId={c.clientId ?? undefined}
               defaultResponsibleId={viewer.id}
               bases={{ caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue }}
-              alreadyReceivedForCase={c.receivables.filter((r) => r.status === "PAGO").reduce((s, r) => s + (r.paidAmount ?? r.amount), 0)}
+              alreadyReceivedForCase={totalRecebidoNoProcesso(c.receivables)}
               prefill={honorarioPretendidoPrefill}
               autoOpen={Boolean(honorarioPretendidoPrefill)}
             />
