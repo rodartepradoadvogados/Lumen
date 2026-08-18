@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowRight, CreditCard } from "lucide-react";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { listTenantOffices } from "@/lib/actions/painelMestre";
 import { isBtgConfigured, isBtgConnected } from "@/lib/btg";
 import { prisma } from "@/lib/prisma";
@@ -15,9 +14,7 @@ const OFFICE_PREVIEW_COUNT = 6;
 const NOVENTA_DIAS_MS = 90 * 24 * 60 * 60 * 1000;
 
 export default async function CockpitPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const noventaDiasAtras = new Date(Date.now() - NOVENTA_DIAS_MS);
   const [offices, btgConnected, accessSessions90d] = await Promise.all([

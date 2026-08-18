@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { isAsaasConfigured } from "@/lib/asaas";
 import { avaliarSaudeCobranca } from "@/lib/billingHealth";
@@ -9,9 +8,7 @@ import AssinaturasTable from "@/components/painelMestre/AssinaturasTable";
 export const dynamic = "force-dynamic";
 
 export default async function AssinaturasPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const agora = new Date();
 

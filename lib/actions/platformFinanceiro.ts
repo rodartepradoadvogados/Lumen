@@ -2,11 +2,12 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/currentUser";
+import { isPlatformStaff } from "@/lib/platformMember";
 
+// Dono da plataforma OU membro de equipe ativo — antes só o dono passava, travando esta tela
+// pra quem só está cadastrado como equipe (achado A12 da revisão gauntlet).
 async function requirePlatformOwner() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer?.isPlatformOwner) throw new Error("Apenas donos da plataforma podem gerenciar o financeiro da Lúmen.");
+  if (!(await isPlatformStaff())) throw new Error("Apenas a equipe da Lúmen pode gerenciar o financeiro da Lúmen.");
 }
 
 function revalidateFinanceiroLumen() {

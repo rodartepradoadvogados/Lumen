@@ -1,15 +1,12 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import NewOfficeForm from "@/components/painelMestre/NewOfficeForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovoEscritorioPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   return (
     <div className="p-6 max-w-[700px] mx-auto animate-fade-in space-y-6">

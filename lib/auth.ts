@@ -31,3 +31,29 @@ export async function verifySession(token: string): Promise<{ userId: string } |
     return null;
   }
 }
+
+// Sessão própria para um PlatformMember SEM User de escritório (userId nulo, ver
+// createStandalonePlatformMember em lib/actions/platformEquipe.ts) — cookie e claim distintos
+// da sessão normal de propósito: um PlatformMember standalone nunca deve ser confundido com um
+// User de escritório em nenhum código que leia SESSION_COOKIE_NAME (getCurrentUser, middleware
+// de rotas do app, etc.), já que ele não tem officeId nenhum (achado A12 da revisão gauntlet —
+// antes disto não existia NENHUM jeito de logar como PlatformMember standalone).
+export const PLATFORM_MEMBER_SESSION_COOKIE = "lumen_pm_session";
+
+export async function signPlatformMemberSession(platformMemberId: string) {
+  return new SignJWT({ platformMemberId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(secret());
+}
+
+export async function verifyPlatformMemberSession(token: string): Promise<{ platformMemberId: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    if (typeof payload.platformMemberId !== "string") return null;
+    return { platformMemberId: payload.platformMemberId };
+  } catch {
+    return null;
+  }
+}

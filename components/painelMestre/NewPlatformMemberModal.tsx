@@ -136,8 +136,8 @@ export default function NewPlatformMemberModal({
             ) : (
               <form action={handleCadastrar} className="p-5 space-y-3">
                 <p className="text-xs text-white/50">
-                  Cadastra alguém exclusivo da Lúmen, sem vínculo com nenhum escritório. Isto não cria capacidade de login —
-                  é só preenchimento de dados para um passo futuro.
+                  Cadastra alguém exclusivo da Lúmen, sem vínculo com nenhum escritório. A pessoa já pode entrar direto
+                  no Painel Mestre com este e-mail e senha, pela tela de login normal.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>

@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { LumenPanel, LumenPanelHeader } from "@/components/painelMestre/LumenUi";
 import PlatformMemberRow from "@/components/painelMestre/PlatformMemberRow";
@@ -8,9 +7,7 @@ import NewPlatformMemberModal from "@/components/painelMestre/NewPlatformMemberM
 export const dynamic = "force-dynamic";
 
 export default async function EquipeLumenPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const [members, roles, eligibleUsers] = await Promise.all([
     prisma.platformMember.findMany({
@@ -33,7 +30,9 @@ export default async function EquipeLumenPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Equipe Lúmen</h1>
           <p className="text-sm text-white/55 mt-1">
-            Quadro e papéis da empresa — preparação para o controle de acesso por sigilo, ainda não ativo
+            Quadro e papéis da empresa — dono ou membro ativo já entra direto no Painel Mestre ao logar (achado A12 da
+            revisão gauntlet); a ladder de visibilidade por papel (canManageBilling/canManageMembers/canApproveAccess) segue
+            preparada, ainda não consumida em nenhuma tela
           </p>
         </div>
         <NewPlatformMemberModal eligibleUsers={eligibleUsers} roles={roleOptions} />
