@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getPlatformOffice } from "@/lib/officeModules";
 import { Badge } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 
@@ -19,10 +20,12 @@ export const metadata = {
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
 export default async function BlogPage() {
-  // TODO(multi-tenant): sem resolução de escritório por subdomínio/URL ainda — mostra as
-  // matérias do primeiro escritório cadastrado. Revisitar quando cada escritório tiver sua
-  // própria URL pública (mesma ressalva de app/page.tsx e app/blog/[slug]/page.tsx).
-  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  // Escritório dono da plataforma (Rodarte Prado) — ver getPlatformOffice em
+  // lib/officeModules.ts. Antes resolvia pelo Office mais antigo, divergindo do critério
+  // (isInternal) que app/api/blog/draft/route.ts já usava para gravar as matérias do robô — se
+  // os dois Office não coincidissem, tudo publicado ficava invisível aqui (achado A34 da revisão
+  // gauntlet).
+  const office = await getPlatformOffice();
   const posts = office
     ? await prisma.blogPost.findMany({
         where: { officeId: office.id, status: "PUBLICADO" },

@@ -39,3 +39,16 @@ export async function hasBlogAccess(officeId: string): Promise<boolean> {
   const office = await prisma.office.findUnique({ where: { id: officeId }, select: { blogAccess: true } });
   return office?.blogAccess ?? false;
 }
+
+// Escritório dono da plataforma (Rodarte Prado) — fonte única para "qual é o escritório do
+// blog/robô/institucional". isInternal, NÃO "o Office mais antigo": um findFirst() sem esse
+// filtro já causou matéria do robô sendo associada ao Office errado assim que passou a existir
+// mais de um registro na tabela (ver app/api/blog/draft/route.ts, onde o bug foi corrigido
+// primeiro). Antes desta função, os pontos de LEITURA pública (app/blog/page.tsx, app/page.tsx)
+// não tinham recebido a mesma correção e continuavam resolvendo por `orderBy: createdAt asc` —
+// as duas pontas do mesmo fluxo respondiam "qual é o escritório do blog" de formas diferentes, e
+// matéria publicada podia ficar invisível na página pública sempre que os dois Office não
+// coincidissem (achado A34 da revisão gauntlet).
+export async function getPlatformOffice() {
+  return prisma.office.findFirst({ where: { isInternal: true } });
+}
