@@ -6,6 +6,14 @@ import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 
 export const dynamic = "force-dynamic";
 
+// Teto de linhas renderizadas — sem isto, um escritório com anos de uso e milhares de baixas
+// registradas faz o Server Component emitir uma <tr> por lançamento desde o início dos tempos,
+// crescendo pra sempre (achado A68 da revisão gauntlet). O saldo acumulado de cada linha
+// continua correto porque é calculado sobre o histórico completo, antes do corte — só a
+// RENDERIZAÇÃO é limitada às mais recentes, mesmo padrão já usado no Livro Caixa mobile
+// (app/m/financeiro/livro-caixa/page.tsx, MAX_ROWS = 60).
+const MAX_ROWS = 300;
+
 export default async function LivroCaixaPage() {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
@@ -35,6 +43,9 @@ export default async function LivroCaixaPage() {
     return { ...e, balance: running };
   });
 
+  const totalCount = withBalance.length;
+  const visible = withBalance.slice(-MAX_ROWS);
+
   return (
     <div className="p-6 max-w-[1000px] mx-auto animate-fade-in">
       <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
@@ -57,7 +68,7 @@ export default async function LivroCaixaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-regua">
-                {withBalance.map((e, i) => (
+                {visible.map((e, i) => (
                   <tr key={i}>
                     <td className="px-5 py-2.5 text-tx-2 whitespace-nowrap">{formatDate(e.date)}</td>
                     <td className="px-5 py-2.5 text-tx">{e.description}</td>
@@ -73,6 +84,12 @@ export default async function LivroCaixaPage() {
           </div>
         )}
       </Card>
+
+      {totalCount > visible.length && (
+        <p className="text-xs text-tx-2 text-center mt-3">
+          Mostrando as {visible.length} movimentações mais recentes de {totalCount}
+        </p>
+      )}
     </div>
   );
 }

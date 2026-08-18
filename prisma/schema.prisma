@@ -1745,6 +1745,10 @@ model Payable {
   @@unique([recurringExpenseId, competencia])
   @@index([officeId])
   @@index([officeId, dueDate])
+  // Cobre o filtro do Livro Caixa/DRE (lib/caixaMovimentos.ts): "PAGO" + janela de paidDate por
+  // escritório — sem isto, a query resolve lendo toda a tabela do escritório (achado A68 da
+  // revisão gauntlet).
+  @@index([officeId, status, paidDate])
 }
 
 model Receivable {
@@ -1880,6 +1884,9 @@ model Receivable {
   @@unique([recurringFeeId, competencia])
   @@index([officeId])
   @@index([officeId, dueDate])
+  // Mesmo motivo do índice equivalente em Payable — cobre o filtro "PAGO" + janela de paidDate
+  // do Livro Caixa/DRE (achado A68 da revisão gauntlet).
+  @@index([officeId, status, paidDate])
 }
 
 // Honorário "até o arquivamento": ao contrário do parcelamento comum (Receivable.installmentTotal,
@@ -2028,6 +2035,10 @@ model FinancePayment {
   @@index([officeId])
   @@index([receivableId])
   @@index([payableId])
+  // Fonte principal do Livro Caixa/DRE (lib/caixaMovimentos.ts), filtrada por officeId + janela
+  // de paidDate — sem índice composto a query resolve varrendo tudo do escritório (achado A68 da
+  // revisão gauntlet).
+  @@index([officeId, paidDate])
 }
 
 // ============ ASSESSORIA JURÍDICA ============
