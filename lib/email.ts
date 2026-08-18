@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
-import { getAlerts } from "@/lib/alerts";
 import { valorLiquido } from "@/lib/financeCalc";
 import { getOAuthClient } from "@/lib/googleDrive";
 import { getMicrosoftAccessToken } from "@/lib/microsoftGraph";
@@ -626,6 +625,7 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
 
   const users = await prisma.user.findMany({
     where: { active: true, ...(officeId ? { officeId } : {}) },
+    select: { id: true, name: true, email: true, officeId: true, isAdmin: true },
   });
   if (users.length === 0) return { sent: 0, failed: 0 };
 
@@ -639,8 +639,19 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
 
   for (const user of users) {
     try {
-      const [personalAlerts, overdueTasks, todayTasks, payablesToday, receivablesToday] = await Promise.all([
-        getAlerts(user.officeId, false, user.id),
+      const [mentions, delegatedTasks, overdueTasks, todayTasks, payablesToday, receivablesToday] = await Promise.all([
+        // Mesmas duas fontes que o digest de fato usa (era getAlerts inteiro, montado pra
+        // Central de Alertas — 12 queries, a maioria OFFICE-WIDE, repetidas por usuário do
+        // mesmo escritório e descartadas: o digest só lê MENCAO e TAREFA_DELEGADA). Direto nas
+        // duas fontes por usuário, mesmo shape de lib/alerts.ts:182 e :203-207.
+        prisma.mention.findMany({
+          where: { officeId: user.officeId, userId: user.id, read: false },
+          include: { comment: { include: { author: true } } },
+        }),
+        prisma.task.findMany({
+          where: { officeId: user.officeId, responsibleId: user.id, delegatedById: { not: null }, delegationAcknowledgedAt: null },
+          include: { case: true, delegatedBy: true },
+        }),
         prisma.task.findMany({
           where: { officeId: user.officeId, responsibleId: user.id, dueDate: { lt: todayStart }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
           include: { case: true },
@@ -659,9 +670,12 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
           : Promise.resolve([]),
       ]);
 
-      const notifications: DigestListItem[] = personalAlerts
-        .filter((a) => a.kind === "MENCAO" || a.kind === "TAREFA_DELEGADA")
-        .map((a) => ({ title: a.title, subtitle: a.subtitle, meta: a.kind === "MENCAO" ? "Menção" : "Tarefa" }));
+      // Mesmo título/subtítulo que lib/alerts.ts monta para MENCAO/TAREFA_DELEGADA (getAlerts:
+      // linhas ~390 e ~417) — só a fonte mudou, não o conteúdo exibido.
+      const notifications: DigestListItem[] = [
+        ...mentions.map((m) => ({ title: `${m.comment.author.name} mencionou você`, subtitle: m.comment.content.slice(0, 60), meta: "Menção" })),
+        ...delegatedTasks.map((t) => ({ title: `${t.delegatedBy?.name} atribuiu: ${t.title}`, subtitle: t.case?.title, meta: "Tarefa" })),
+      ];
 
       const overdue: DigestListItem[] = overdueTasks.map((t) => taskToDigestItem(t, `${daysLate(t.dueDate, now)} dia(s)`, true));
       const today: DigestListItem[] = todayTasks.map((t) => taskToDigestItem(t, t.dueTime ? `${t.dueTime} · ${typeLabels[t.type] ?? t.type}` : typeLabels[t.type] ?? t.type, false));

@@ -129,6 +129,11 @@ export async function getAlerts(
   includeDriveSync: boolean = false
 ): Promise<AlertItem[]> {
   const now = new Date();
+  // dueDate é data-calendário (meia-noite) — comparar contra `now` (timestamp com hora) marca
+  // como "vencido" tudo que vence HOJE a partir de 00:00:01. startOfDay já existe acima e é o
+  // que computeDueStatus usa para acertar essa mesma conta; as consultas abaixo usavam `now`
+  // cru e ficavam em desacordo com o próprio rótulo que este arquivo calcula.
+  const hoje = startOfDay(now);
 
   // MENCAO/FOLLOWUP_ATRASADO/PARCELA_SEM_VENCIMENTO/DRIVE_INCONSISTENCIA não têm nenhuma ação
   // de resolver — dispensados via botão "Lido" (dismissAlert em lib/actions/alerts.ts),
@@ -162,19 +167,19 @@ export async function getAlerts(
     overdueResponseDeadlines,
   ] = await Promise.all([
       prisma.task.findMany({
-        where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+        where: { officeId, dueDate: { lt: hoje }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
         include: { case: true },
         orderBy: { dueDate: "asc" },
       }),
       includeFinance
         ? prisma.payable.findMany({
-            where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false },
+            where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: hoje }, noDueDate: false },
             include: { payments: true },
           })
         : Promise.resolve([]),
       includeFinance
         ? prisma.receivable.findMany({
-            where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false },
+            where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: hoje }, noDueDate: false },
             include: { payments: true },
           })
         : Promise.resolve([]),
@@ -487,6 +492,8 @@ export async function getAlertsCount(
   includeDriveSync: boolean = false
 ): Promise<number> {
   const now = new Date();
+  // Mesma correção de getAlerts acima — ver comentário lá.
+  const hoje = startOfDay(now);
 
   const dismissedByKind = new Map<string, Set<string>>();
   if (viewerId) {
@@ -517,13 +524,13 @@ export async function getAlertsCount(
     overdueResponseDeadlinesCount,
   ] = await Promise.all([
     prisma.task.count({
-      where: { officeId, dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+      where: { officeId, dueDate: { lt: hoje }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
     }),
     includeFinance
-      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false } })
+      ? prisma.payable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: hoje }, noDueDate: false } })
       : Promise.resolve(0),
     includeFinance
-      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: now }, noDueDate: false } })
+      ? prisma.receivable.count({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, dueDate: { lt: hoje }, noDueDate: false } })
       : Promise.resolve(0),
     viewerId
       ? prisma.mention.count({ where: { officeId, userId: viewerId, read: false, ...(dismissedByKind.has("MENCAO") ? { commentId: { notIn: Array.from(dismissedByKind.get("MENCAO")!) } } : {}) } })

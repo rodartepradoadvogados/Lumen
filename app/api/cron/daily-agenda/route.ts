@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendDailyAgendaEmail } from "@/lib/email";
 import { sendDailyAgendaPushes } from "@/lib/push";
 
+// Mesma justificativa de app/api/cron/resumo-diario/route.ts — sem maxDuration, corria no
+// default da plataforma em vez de alinhado aos outros crons (60 ou 300).
+export const maxDuration = 300;
+
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET;

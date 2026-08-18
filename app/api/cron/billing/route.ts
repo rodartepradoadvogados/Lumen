@@ -8,7 +8,12 @@ import { runBillingCycle } from "@/lib/actions/billing";
 // (a condição já checa office.status === "ATIVA").
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET;
+  // Fail-closed — mesmo padrão dos outros 11 crons (app/api/cron/*/route.ts). Sem CRON_SECRET
+  // configurada, este era o único que tratava a ausência como "sem segredo exigido" em vez de
+  // "recuse", deixando o ciclo de cobrança (lembretes por e-mail e suspensão automática por
+  // inadimplência) disparável por qualquer requisição sem autenticação.
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const result = await runBillingCycle();

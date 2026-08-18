@@ -585,7 +585,7 @@ export default async function MobileCaseDetail({
           ) : (
             <div className="divide-y divide-regua">
               {publicationGroups.map((g) => (
-                <MobilePublicationCard key={g.key} group={g} />
+                <MobilePublicationCard key={g.key} group={g} users={users} />
               ))}
             </div>
           )}

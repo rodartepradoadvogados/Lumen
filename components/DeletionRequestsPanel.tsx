@@ -38,8 +38,18 @@ export default function DeletionRequestsPanel({ requests }: { requests: Req[] })
 
   function handle(id: string, action: "approve" | "reject") {
     startTransition(async () => {
-      if (action === "approve") await approveDeletion(id);
-      else await rejectDeletion(id);
+      if (action === "approve") {
+        const result = await approveDeletion(id);
+        // Sem isto, uma exclusão bloqueada (ex.: processo com honorário/protocolo vinculado)
+        // ficava com falso ar de sucesso — a Server Action já não marca mais "APROVADA" nesse
+        // caso, mas a tela precisa avisar o admin, e não só silenciar.
+        if (result.error) {
+          window.alert(result.error);
+          return;
+        }
+      } else {
+        await rejectDeletion(id);
+      }
       router.refresh();
     });
   }

@@ -56,6 +56,16 @@ export async function login(email: string, password: string, next?: string): Pro
 }
 
 export async function logout() {
+  // A PushSubscription vive presa ao NAVEGADOR (endpoint), não à sessão — sem apagar aqui, um
+  // aparelho compartilhado (tablet da recepção, celular de plantão) continua recebendo, depois
+  // do logout, as notificações (com título e teor reais — menções, tarefas delegadas) do usuário
+  // que acabou de sair, entregues a quem quer que esteja com o aparelho agora. O lado do
+  // navegador (pushManager.getSubscription().unsubscribe()) é derrubado pelo próprio botão "Sair"
+  // no cliente — ver app/m/mais/page.tsx.
+  const viewer = await getCurrentUser();
+  if (viewer) {
+    await prisma.pushSubscription.deleteMany({ where: { userId: viewer.id } });
+  }
   // O cookie de sessão é sempre gravado com path "/" (ver login() acima). `delete(name)` sem
   // opções usa como path padrão o diretório da própria URL da Server Action — que só coincide
   // com "/" quando "Sair" é clicado a partir de uma rota de 1 nível (ex.: /painel). Clicado de

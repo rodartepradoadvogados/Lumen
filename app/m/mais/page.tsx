@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getOfficeModules } from "@/lib/officeModules";
-import { logout } from "@/lib/actions/auth";
 import { Card } from "@/components/ui";
 import MobileInstallMenuItem from "@/components/mobile/MobileInstallMenuItem";
-import { Phone, DollarSign, BarChart, Settings, LogOut, Lock, Briefcase, User, Users } from "lucide-react";
+import MobileLogoutButton from "@/components/mobile/MobileLogoutButton";
+import { Phone, DollarSign, BarChart, Settings, Lock, Briefcase, User, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -84,14 +84,7 @@ export default async function MobileMais() {
         <MobileInstallMenuItem />
       </Card>
 
-      <form action={logout}>
-        <button
-          type="submit"
-          className="w-full flex items-center justify-center gap-2 border border-regua text-atencao font-semibold text-sm py-3 rounded-xl"
-        >
-          <LogOut size={16} /> Sair
-        </button>
-      </form>
+      <MobileLogoutButton />
     </div>
   );
 }
