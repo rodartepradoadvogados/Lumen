@@ -53,6 +53,14 @@ model Office {
   // de cobrança, não tem fatura gerada, nunca é bloqueado por inadimplência.
   isInternal Boolean @default(false)
 
+  // Preenchido ao final de um syncOfficeDrive bem-sucedido (lib/driveSync.ts) — nunca em caso de
+  // falha nem para escritório sem Drive conectado. syncAllOfficesDrive ordena os escritórios por
+  // este campo (nulls primeiro, depois mais antigo primeiro), formando um round-robin: se o cron
+  // estourar o teto de 300s antes de terminar todos, a próxima execução não recomeça sempre pelos
+  // mesmos escritórios do início da lista — continua de onde a rodada truncada parou (achado A69
+  // da revisão gauntlet).
+  lastDriveSyncAt DateTime?
+
   // Cobrança — preenchidos ao cadastrar o escritório no Painel Mestre (isPlatformOwner only).
   billingEmail  String? // recebe o boleto de cada fatura gerada
   monthlyFee    Float? // mensalidade combinada em contrato
