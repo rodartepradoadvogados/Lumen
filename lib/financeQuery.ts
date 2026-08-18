@@ -34,8 +34,13 @@ export function getCurrentMonthRange(): { from: string; to: string } {
 // valor). Confirmar isto aqui sempre que status novo for adicionado: promover PARCIAL/A_APURAR
 // para ATRASADO por acidente faria uma parcela parcialmente paga ou uma provisão percentual
 // aparecerem coladas com contas de verdade vencidas.
+// dueDate é data-calendário (meia-noite) — comparar contra `now` cru (timestamp com hora) marca
+// como ATRASADO uma conta que vence hoje a partir de 00:00:01, em desacordo com a mesma regra em
+// lib/alerts.ts (startOfDay). Normaliza `now` para o início do dia antes de comparar.
 function effective(status: string, dueDate: Date, noDueDate: boolean, now: Date) {
-  return status === "PENDENTE" && dueDate < now && !noDueDate ? "ATRASADO" : status;
+  const hoje = new Date(now);
+  hoje.setHours(0, 0, 0, 0);
+  return status === "PENDENTE" && dueDate < hoje && !noDueDate ? "ATRASADO" : status;
 }
 
 // "abertas" (padrão) = pendentes/atrasadas + PARCIAL — PARCIAL é dinheiro que ainda falta

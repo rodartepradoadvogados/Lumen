@@ -91,7 +91,15 @@ export async function runBillingCycle(): Promise<BillingCycleResult> {
       const remindersSent = inv.remindersSent;
       // diasParaVencer > 0: ainda não venceu. === 0 ou negativo: já venceu (dia do vencimento
       // ou depois). Ver regras de cada lembrete abaixo.
-      const diasParaVencer = Math.floor((inv.dueDate.getTime() - agora.getTime()) / 86400000);
+      // Os dois lados precisam ser normalizados para data-calendário (meia-noite) antes de
+      // subtrair — dueDate já nasce assim (painelMestre.ts:setOfficeAccess), mas `agora` é um
+      // timestamp com hora. Sem isso, na véspera do vencimento a diferença cai entre 0 e 1 dia
+      // e Math.floor devolve 0 (mesmo "dia do vencimento" que a linha 123 usa para o lembrete
+      // VENCIDA), disparando cobrança de fatura vencida um dia adiantada — e o mesmo desvio
+      // atrasa o desbloqueio em -1 dia na suspensão automática (linha 142).
+      const hoje = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate()));
+      const venc = new Date(Date.UTC(inv.dueDate.getUTCFullYear(), inv.dueDate.getUTCMonth(), inv.dueDate.getUTCDate()));
+      const diasParaVencer = Math.round((venc.getTime() - hoje.getTime()) / 86400000);
       const emailOpts = {
         pixPayload: inv.pixQrCodePayload,
         pixImage: inv.pixQrCodeImage,

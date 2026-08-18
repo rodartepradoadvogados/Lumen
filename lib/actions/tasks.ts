@@ -90,12 +90,16 @@ export async function createTask(data: {
     points = typePoints?.points ?? 10;
   }
 
+  const dueDate = new Date(data.dueDate);
   await prisma.task.create({
     data: {
       title: data.title,
       type: data.type,
-      dueDate: new Date(data.dueDate),
+      dueDate,
       dueTime: data.dueTime || null,
+      // Mesma regra de delegateTask — sem isso, uma tarefa criada por aqui (o caminho normal de
+      // cadastro) nunca ganha o aviso de 24h antes do prazo fatal na Agenda.
+      safetyDueDate: computeSafetyDueDate(dueDate),
       priority: data.priority,
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,
@@ -382,13 +386,17 @@ export async function updateTask(id: string, data: {
   const existing = await prisma.task.findFirst({ where: { id, officeId: viewer.officeId } });
   if (!existing) return;
   if (data.responsibleId && !(await isUserInOffice(data.responsibleId, viewer.officeId))) return;
+  const dueDate = new Date(data.dueDate);
   await prisma.task.update({
     where: { id },
     data: {
       title: data.title,
       type: data.type,
-      dueDate: new Date(data.dueDate),
+      dueDate,
       dueTime: data.dueTime || null,
+      // Campo derivado persistido — sem recalcular aqui, reagendar uma tarefa delegada deixava o
+      // aviso de prazo de segurança preso na data antiga (ver computeSafetyDueDate acima).
+      safetyDueDate: computeSafetyDueDate(dueDate),
       priority: data.priority,
       responsibleId: data.responsibleId || null,
       description: data.description || null,
