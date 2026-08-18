@@ -2861,7 +2861,7 @@ model AccessAuditLog {
   memberId String?
   member   PlatformMember? @relation(fields: [memberId], references: [id])
 
-  // ENTRADA | LEITURA | SAIDA | PEDIDO | APROVACAO | NEGACAO | REVOGACAO | SELAGEM
+  // ENTRADA | LEITURA | ESCRITA | SAIDA | PEDIDO | APROVACAO | NEGACAO | REVOGACAO | SELAGEM
   action    String
   // Categoria própria para acesso que NÃO passou pelo fluxo normal — emergência, exposição
   // incidental, ordem judicial. É fácil registrar o que seguiu o processo; o valor está em

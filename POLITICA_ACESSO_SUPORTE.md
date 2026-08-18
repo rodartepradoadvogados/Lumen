@@ -63,8 +63,13 @@ registro sem o pedido específico passar pela aprovação de um sócio.
 
 ## 3. Tudo fica registrado, e o controle é seu
 
-- Toda entrada, saída e leitura de dado real fica gravada num histórico de auditoria, com data,
-  hora, quem da Lúmen fez, o motivo declarado e — quando aplicável — qual registro foi visto.
+- Toda entrada, saída, leitura de dado real e **alteração** feita durante uma sessão de suporte
+  fica gravada num histórico de auditoria, com data, hora, quem da Lúmen fez, o motivo declarado
+  e — quando aplicável — qual registro foi visto ou alterado. A máscara (seção 1) impede o
+  suporte de VER o conteúdo real na tela, mas não impede a EQUIPE do seu escritório de continuar
+  operando normalmente durante a sessão nem o suporte de criar, editar ou excluir um registro a
+  seu pedido (por exemplo, ao corrigir um dado incorreto) — quando isso acontece, fica registrado
+  aqui como qualquer outro acesso.
 - O seu escritório vê esse histórico **em tempo real**, na tela de "Acessos da Lúmen"
   (Configurações → Acessos, no computador e no celular). Não é preciso pedir para a Lúmen — a
   tela é sua, sempre disponível.

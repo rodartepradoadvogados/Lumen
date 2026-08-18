@@ -66,3 +66,22 @@ export function isMaskedSupportRequest(): boolean {
     return false;
   }
 }
+
+// officeId + sessionId do cookie, para quem (lib/prisma.ts, registro de ESCRITA — ver achado
+// A33 da revisão gauntlet) precisa saber QUAL escritório/sessão, não só "é mascarado". Separado
+// de isMaskedSupportRequest() de propósito: aquela função roda em TODA leitura (o caminho
+// quente) e fica deliberadamente no formato mais barato possível (Boolean de um único get());
+// esta só é chamada no caminho frio de escrita, depois que isMaskedSupportRequest() já
+// confirmou que há sessão. O valor do cookie é sempre "officeId:sessionId" (gravado em
+// startActingAsOffice, lib/officeActing.ts) — sem banco, mesma garantia de "sem recursão".
+export function getActingSupportSession(): { officeId: string; sessionId: string } | null {
+  try {
+    const value = cookies().get(ACTING_OFFICE_COOKIE)?.value;
+    if (!value) return null;
+    const [officeId, sessionId] = value.split(":");
+    if (!officeId || !sessionId) return null;
+    return { officeId, sessionId };
+  } catch {
+    return null;
+  }
+}
