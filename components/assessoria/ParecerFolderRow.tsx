@@ -8,6 +8,7 @@ import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { formatDate } from "@/components/ui";
 import { updateParecer, deleteParecer, deleteDocumento } from "@/lib/actions/assessoria";
+import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 
 type ParecerDocumento = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
 
@@ -36,10 +37,12 @@ export default function ParecerFolderRow({
   parecer,
   assessoriaId,
   driveConnected,
+  storageMessage,
 }: {
   parecer: ParecerData;
   assessoriaId: string;
   driveConnected: boolean;
+  storageMessage?: string;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -247,7 +250,7 @@ export default function ParecerFolderRow({
           )}
           {docDeleteError && <p className="text-[11px] text-urgente">{docDeleteError}</p>}
 
-          {driveConnected && (
+          {driveConnected ? (
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -279,6 +282,10 @@ export default function ParecerFolderRow({
                 }}
               />
             </div>
+          ) : (
+            // Antes, sem armazenamento conectado, esta área simplesmente sumia — a pessoa
+            // expandia a demanda e não via nenhum jeito de anexar, sem entender por quê.
+            <StorageDisconnectedNotice message={storageMessage} />
           )}
 
           {items.length > 0 && (

@@ -11,6 +11,7 @@ import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/component
 import ParecerFolderRow from "@/components/assessoria/ParecerFolderRow";
 import ParecerSoltoRow from "@/components/assessoria/ParecerSoltoRow";
 import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
+import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 import { SORT_OPTIONS_SEM_TIPO, sortByOption, type SortOption } from "@/lib/attachmentControls";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
@@ -28,10 +29,12 @@ export default function AssessoriaProcessosCasosTab({
   assessoria,
   availableCases,
   driveConnected,
+  storageMessage,
 }: {
   assessoria: Assessoria;
   availableCases: CaseOption[];
   driveConnected: boolean;
+  storageMessage?: string;
 }) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -181,6 +184,12 @@ export default function AssessoriaProcessosCasosTab({
           </div>
         </div>
 
+        {!driveConnected && (
+          <div className="mb-3">
+            <StorageDisconnectedNotice message={storageMessage} />
+          </div>
+        )}
+
         {parecerFormOpen && (
           <form
             action={handleCreateParecer}
@@ -214,7 +223,7 @@ export default function AssessoriaProcessosCasosTab({
           <div className="space-y-2">
             {pareceresOrdenados.map((p) => (
               <div key={p.id} className="space-y-1.5">
-                <ParecerFolderRow parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} />
+                <ParecerFolderRow parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} storageMessage={storageMessage} />
                 {/* driveFolderId nulo com o armazenamento conectado só acontece se a criação da
                     pasta falhou silenciosamente (bug corrigido na Tarefa C, ver createParecer em
                     lib/actions/assessoria.ts) — o upload de documento tenta de novo sozinho, mas

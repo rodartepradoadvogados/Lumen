@@ -11,7 +11,7 @@ import AssessoriaTimelineTab from "@/components/assessoria/AssessoriaTimelineTab
 import AssessoriaProcessosCasosTab from "@/components/assessoria/AssessoriaProcessosCasosTab";
 import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
-import { isStorageConnected } from "@/lib/storageProvider";
+import { getStorageConnectionStatus } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function AssessoriaDetailPage({
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [users, availableCasesRaw, storageConnected, anotacoesRaw] = await Promise.all([
+  const [users, availableCasesRaw, storageStatus, anotacoesRaw] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
@@ -60,11 +60,16 @@ export default async function AssessoriaDetailPage({
     // Gate da área de arrastar arquivo: pergunta pelo ARMAZENAMENTO do escritório, não pelo
     // Google. Um escritório em OneDrive ou Dropbox tem armazenamento conectado e mesmo assim
     // não via onde soltar o arquivo, porque a checagem era específica do Drive.
-    isStorageConnected(viewer.officeId),
+    // Status completo (não só o booleano): quando desconectado, a área de anexar de cada
+    // demanda (Parecer) e da aba Documentos sumia da tela sem explicação nenhuma — o usuário
+    // expandia a linha e não via nada. Agora o motivo específico (token expirado, revogado,
+    // nunca conectado) aparece em vez do vazio.
+    getStorageConnectionStatus(viewer.officeId),
     // Aba "Anotações pessoais" (painel global "Anotações") — mesma regra de filtro por
     // authorId de app/(app)/processos/[id]/page.tsx e app/(app)/atendimento/[id]/page.tsx.
     prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
   ]);
+  const storageConnected = storageStatus.connected;
   const serializedAnotacoes = anotacoesRaw.map((n) => ({
     id: n.id,
     content: n.content,
@@ -141,11 +146,18 @@ export default async function AssessoriaDetailPage({
       </div>
 
       {tab === "geral" && <AssessoriaOverviewTab assessoria={assessoria} />}
-      {tab === "documentos" && <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={storageConnected} />}
+      {tab === "documentos" && (
+        <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={storageConnected} storageMessage={storageStatus.message} />
+      )}
       {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
       {tab === "processos-casos" && (
-        <AssessoriaProcessosCasosTab assessoria={assessoria} availableCases={availableCasesRaw} driveConnected={storageConnected} />
+        <AssessoriaProcessosCasosTab
+          assessoria={assessoria}
+          availableCases={availableCasesRaw}
+          driveConnected={storageConnected}
+          storageMessage={storageStatus.message}
+        />
       )}
       {tab === "linha-do-tempo" && <AssessoriaTimelineTab assessoria={assessoria} />}
       {tab === "anotacoes-pessoais" && (
