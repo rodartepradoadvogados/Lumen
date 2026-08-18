@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { getPlatformOffice } from "@/lib/officeModules";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +58,10 @@ export async function GET(req: NextRequest) {
   const days = Number.isFinite(daysParam) && daysParam > 0 ? Math.min(daysParam, 365) : 30;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  // Resolve sempre o escritório dono da plataforma (Rodarte Prado, Office.isInternal),
-  // nunca "o primeiro Office que aparecer" — um findFirst() sem filtro já causou matéria
-  // do robô sendo associada ao Office errado assim que passou a existir mais de um
-  // registro na tabela (ex.: escritórios-clientes cadastrados no Painel Mestre).
-  const office = await prisma.office.findFirst({ where: { isInternal: true } });
+  // Escritório dono da plataforma (Rodarte Prado) — ver getPlatformOffice em
+  // lib/officeModules.ts, que centraliza este critério (isInternal, nunca "o primeiro Office
+  // que aparecer") desde que os pontos de leitura pública passaram a usar o mesmo helper.
+  const office = await getPlatformOffice();
 
   const posts = await prisma.blogPost.findMany({
     where: { createdAt: { gte: since }, officeId: office?.id ?? "" },
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
   // por isInternal é correto e estável mesmo com múltiplos Offices cadastrados;
   // revisitar isso (secret/token por escritório) se blogAccess for concedido a
   // outro Office no futuro.
-  const office = await prisma.office.findFirst({ where: { isInternal: true } });
+  const office = await getPlatformOffice();
   if (!office) {
     return NextResponse.json(
       { error: "Nenhum escritório interno (Office.isInternal) cadastrado; não é possível associar a matéria." },

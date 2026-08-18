@@ -80,6 +80,12 @@ export default async function MobileLivroCaixa() {
           </div>
         )}
       </Card>
+
+      {withBalance.length > mostRecentFirst.length && (
+        <p className="text-xs text-tx-2 text-center">
+          Mostrando as {mostRecentFirst.length} mais recentes de {withBalance.length}
+        </p>
+      )}
     </div>
   );
 }

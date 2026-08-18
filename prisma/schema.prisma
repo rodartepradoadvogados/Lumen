@@ -803,6 +803,17 @@ model Task {
   licitacaoId String?
   licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
 
+  // Lembrete de vencimento (type=PRAZO) criado junto com a conta em createInstallmentReminder
+  // (lib/actions/financeiro.ts) — aponta pra exatamente uma das duas ou pra nenhuma (tarefa comum,
+  // sem vínculo financeiro). onDelete: Cascade porque o lembrete não faz sentido sem a parcela que
+  // o gerou; syncPayableStatus/syncReceivableStatus concluem esta tarefa quando a parcela é paga
+  // (achado A26 da revisão gauntlet).
+  receivableId String?
+  receivable   Receivable? @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+
+  payableId String?
+  payable   Payable? @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
   responsibleId String?
   responsible   User?   @relation("TaskResponsible", fields: [responsibleId], references: [id])
 
@@ -1719,6 +1730,11 @@ model Payable {
   // pagamento PARCIAL: a soma de payments decide entre PENDENTE/PARCIAL/PAGO.
   payments FinancePayment[]
 
+  // Lembrete de vencimento (Task type=PRAZO) criado junto com a conta em createInstallmentReminder
+  // (lib/actions/financeiro.ts) — onDelete: Cascade no lado de Task porque o lembrete não faz
+  // sentido sem a parcela (achado A26 da revisão gauntlet).
+  reminderTasks Task[]
+
   // Presente só quando esta despesa foi adiantada pelo escritório em nome do cliente
   // (expensePayer = CLIENTE) e o usuário pediu para criar a conta a receber de reembolso —
   // ver Receivable.reimbursesPayableId/kind "REEMBOLSO". Rastreável nos dois sentidos: olhando
@@ -1745,6 +1761,10 @@ model Payable {
   @@unique([recurringExpenseId, competencia])
   @@index([officeId])
   @@index([officeId, dueDate])
+  // Cobre o filtro do Livro Caixa/DRE (lib/caixaMovimentos.ts): "PAGO" + janela de paidDate por
+  // escritório — sem isto, a query resolve lendo toda a tabela do escritório (achado A68 da
+  // revisão gauntlet).
+  @@index([officeId, status, paidDate])
 }
 
 model Receivable {
@@ -1844,6 +1864,11 @@ model Receivable {
   // recebimento PARCIAL: a soma de payments decide entre PENDENTE/PARCIAL/PAGO.
   payments FinancePayment[]
 
+  // Lembrete de vencimento (Task type=PRAZO) criado junto com a conta em createInstallmentReminder
+  // (lib/actions/financeiro.ts) — onDelete: Cascade no lado de Task porque o lembrete não faz
+  // sentido sem a parcela (achado A26 da revisão gauntlet).
+  reminderTasks Task[]
+
   honorario Honorario?
 
   // Presente só quando esta parcela nasceu de um lançamento de honorários parcelado (ver model
@@ -1880,6 +1905,9 @@ model Receivable {
   @@unique([recurringFeeId, competencia])
   @@index([officeId])
   @@index([officeId, dueDate])
+  // Mesmo motivo do índice equivalente em Payable — cobre o filtro "PAGO" + janela de paidDate
+  // do Livro Caixa/DRE (achado A68 da revisão gauntlet).
+  @@index([officeId, status, paidDate])
 }
 
 // Honorário "até o arquivamento": ao contrário do parcelamento comum (Receivable.installmentTotal,
@@ -2028,6 +2056,10 @@ model FinancePayment {
   @@index([officeId])
   @@index([receivableId])
   @@index([payableId])
+  // Fonte principal do Livro Caixa/DRE (lib/caixaMovimentos.ts), filtrada por officeId + janela
+  // de paidDate — sem índice composto a query resolve varrendo tudo do escritório (achado A68 da
+  // revisão gauntlet).
+  @@index([officeId, paidDate])
 }
 
 // ============ ASSESSORIA JURÍDICA ============
@@ -2829,7 +2861,7 @@ model AccessAuditLog {
   memberId String?
   member   PlatformMember? @relation(fields: [memberId], references: [id])
 
-  // ENTRADA | LEITURA | SAIDA | PEDIDO | APROVACAO | NEGACAO | REVOGACAO | SELAGEM
+  // ENTRADA | LEITURA | ESCRITA | SAIDA | PEDIDO | APROVACAO | NEGACAO | REVOGACAO | SELAGEM
   action    String
   // Categoria própria para acesso que NÃO passou pelo fluxo normal — emergência, exposição
   // incidental, ordem judicial. É fácil registrar o que seguiu o processo; o valor está em

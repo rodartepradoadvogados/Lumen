@@ -4,6 +4,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getPlatformOffice } from "@/lib/officeModules";
 import LumenMark from "@/components/LumenMark";
 import HomepageReveal from "@/components/HomepageReveal";
 import HomepageHeroCarousel from "@/components/HomepageHeroCarousel";
@@ -138,10 +139,9 @@ export default async function HomePage() {
     redirect("/painel");
   }
 
-  // TODO(multi-tenant): esta é a homepage pública compartilhada da plataforma (ainda sem
-  // resolução de escritório por subdomínio/URL) — por ora mostra as matérias do primeiro
-  // escritório cadastrado. Revisitar quando cada escritório tiver sua própria URL pública.
-  const office = await prisma.office.findFirst({ orderBy: { createdAt: "asc" } });
+  // Escritório dono da plataforma (Rodarte Prado) — ver getPlatformOffice em
+  // lib/officeModules.ts. Mesma correção de app/blog/page.tsx (achado A34 da revisão gauntlet).
+  const office = await getPlatformOffice();
   const posts = office
     ? await prisma.blogPost.findMany({
         where: { officeId: office.id, status: "PUBLICADO" },
