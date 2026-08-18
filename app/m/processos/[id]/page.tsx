@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
+import { authorDisplayName } from "@/lib/authorDisplay";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, formatCalendarDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileCommentForm from "@/components/mobile/MobileCommentForm";
 import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
@@ -520,20 +521,23 @@ export default async function MobileCaseDetail({
             <p className="text-sm text-tx-2">Nenhum comentário ainda.</p>
           ) : (
             <div className="space-y-3">
-              {c.comments.map((cm) => (
+              {c.comments.map((cm) => {
+                const authorName = authorDisplayName(cm.author, viewer.officeId);
+                return (
                 <div key={cm.id} className="flex gap-2.5">
                   <div className="h-8 w-8 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-[11px] font-bold shrink-0">
-                    {cm.author.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                    {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm">
-                      <span className="font-semibold text-tx">{cm.author.name}</span>{" "}
+                      <span className="font-semibold text-tx">{authorName}</span>{" "}
                       <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
                     </p>
                     <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <MobileCommentForm caseId={c.id} users={users} />

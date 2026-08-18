@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
 import { hasBlogAccess } from "@/lib/officeModules";
+import { authorDisplayName } from "@/lib/authorDisplay";
 import { valorLiquido } from "@/lib/financeCalc";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
 import {
@@ -76,7 +77,7 @@ export default async function DashboardPage() {
 
   const notices = await prisma.notice.findMany({
     where: { officeId: viewer.officeId },
-    include: { author: { select: { id: true, name: true, color: true } } },
+    include: { author: { select: { id: true, name: true, color: true, officeId: true } } },
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     take: 10,
   });
@@ -85,7 +86,10 @@ export default async function DashboardPage() {
     content: n.content,
     pinned: n.pinned,
     createdAt: n.createdAt.toISOString(),
-    author: { id: n.author.id, name: n.author.name, color: n.author.color },
+    // author.officeId comparado e descartado aqui — quando o aviso foi criado por alguém de
+    // fora do escritório (só acontece durante suporte "atuar como"), o nome exibido vira um
+    // rótulo genérico (ver authorDisplayName, achado A33 da revisão gauntlet).
+    author: { id: n.author.id, name: authorDisplayName(n.author, viewer.officeId), color: n.author.color },
   }));
 
   // status filtrado em [PENDENTE, ATRASADO] já exclui A_APURAR sozinho (lista explícita, não
