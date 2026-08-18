@@ -369,7 +369,7 @@ export default async function CaseDetailPage({
             entityType="CASE"
             entityId={c.id}
             entityLabel={c.title}
-            confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados.`}
+            confirmMessage={`Excluir "${c.title}"? Essa ação remove tarefas e comentários vinculados; lançamentos financeiros e publicações serão apenas desvinculados. Se houver honorário, protocolo ou recorrência lançados neste processo, a exclusão será bloqueada até que sejam removidos primeiro.`}
             redirectTo="/processos"
           />
         </div>

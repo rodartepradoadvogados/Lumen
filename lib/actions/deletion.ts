@@ -29,6 +29,25 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     revalidatePath("/painel");
     revalidatePath("/alertas");
   } else if (entityType === "CASE") {
+    // Prisma aplica onDelete: Restrict por padrão em toda relação OBRIGATÓRIA sem `onDelete`
+    // explícito. HonorarioLancamento/ProtocoloLote/RecurringFee são registro de negócio (não
+    // derivado do processo) — apagar em cascata perderia lançamento financeiro/protocolo sem o
+    // usuário saber. Em vez de deixar a transação estourar violação de FK com um erro genérico
+    // (e, no fluxo de aprovação não-admin, ser engolida silenciosamente — ver approveDeletion),
+    // barra ANTES com uma mensagem explicando o que precisa ser resolvido primeiro.
+    const [honorarios, protocolos, recorrentes] = await Promise.all([
+      prisma.honorarioLancamento.count({ where: { caseId: entityId, officeId } }),
+      prisma.protocoloLote.count({ where: { caseId: entityId, officeId } }),
+      prisma.recurringFee.count({ where: { caseId: entityId, officeId } }),
+    ]);
+    const bloqueios: string[] = [];
+    if (honorarios > 0) bloqueios.push(`${honorarios} lançamento(s) de honorário`);
+    if (protocolos > 0) bloqueios.push(`${protocolos} protocolo(s)`);
+    if (recorrentes > 0) bloqueios.push(`${recorrentes} honorário(s) recorrente(s) até o arquivamento`);
+    if (bloqueios.length > 0) {
+      throw new Error(`Não é possível excluir: este processo tem ${bloqueios.join(", ")} vinculado(s). Exclua-os primeiro.`);
+    }
+
     await prisma.$transaction([
       prisma.mention.deleteMany({ where: { officeId, comment: { OR: [{ caseId: entityId }, { task: { caseId: entityId } }] } } }),
       prisma.comment.deleteMany({ where: { officeId, OR: [{ caseId: entityId }, { task: { caseId: entityId } }] } }),
@@ -37,6 +56,9 @@ async function performDelete(entityType: string, entityId: string, officeId: str
       prisma.payable.updateMany({ where: { officeId, caseId: entityId }, data: { caseId: null } }),
       prisma.receivable.updateMany({ where: { officeId, caseId: entityId }, data: { caseId: null } }),
       prisma.task.deleteMany({ where: { officeId, caseId: entityId } }),
+      // Derivados do processo (nada de negócio próprio) — seguros para apagar junto.
+      prisma.caseLink.deleteMany({ where: { officeId, OR: [{ caseAId: entityId }, { caseBId: entityId }] } }),
+      prisma.caseInstanceEscalation.deleteMany({ where: { caseId: entityId, case: { officeId } } }),
       prisma.case.deleteMany({ where: { id: entityId, officeId } }),
     ]);
     revalidatePath("/processos");
@@ -302,8 +324,12 @@ export async function requestDeletion(
   if (!user) return { error: "Sessão inválida." };
 
   if (user.isAdmin) {
-    const result = await performDelete(entityType, entityId, user.officeId, alsoDeleteLinked);
-    return { warning: result.warning };
+    try {
+      const result = await performDelete(entityType, entityId, user.officeId, alsoDeleteLinked);
+      return { warning: result.warning };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Não foi possível excluir." };
+    }
   }
 
   const existing = await prisma.deletionRequest.findFirst({
@@ -362,8 +388,16 @@ export async function approveDeletion(id: string): Promise<{ error?: string }> {
     } else {
       await performDelete(req.entityType, req.entityId, user.officeId, req.alsoDeleteLinked);
     }
-  } catch {
-    // entidade pode já ter sido removida por outro caminho — segue para marcar a solicitação como resolvida
+  } catch (e) {
+    // P2025 (registro já não existe — foi removido por outro caminho) é benigno: segue para
+    // marcar a solicitação como resolvida, é exatamente o caso que este catch foi escrito para
+    // cobrir. Qualquer outro erro (ex.: P2003 de violação de FK, ou o bloqueio explícito do bloco
+    // CASE acima) NÃO pode virar "APROVADA" silenciosamente — o solicitante entenderia que o
+    // registro foi excluído quando na verdade continua inteiro no sistema.
+    const isRecordNotFound = typeof e === "object" && e !== null && "code" in e && (e as { code?: string }).code === "P2025";
+    if (!isRecordNotFound) {
+      return { error: e instanceof Error ? e.message : "Não foi possível excluir." };
+    }
   }
   await prisma.deletionRequest.update({
     where: { id },
