@@ -19,6 +19,7 @@
 // README_BTG.md), comparando com o erro real que a API devolver na primeira tentativa.
 
 import { prisma } from "@/lib/prisma";
+import { getAppUrl } from "@/lib/appUrl";
 
 const ENV = process.env.BTG_ENV === "production" ? "production" : "sandbox";
 
@@ -29,9 +30,14 @@ export function isBtgConfigured(): boolean {
   return Boolean(process.env.BTG_CLIENT_ID && process.env.BTG_CLIENT_SECRET);
 }
 
+// Antes lia NEXT_PUBLIC_APP_URL — variável que não existe em mais nenhum lugar do projeto (nem
+// documentada em .env.example, nem preenchida em produção), então sempre caía no fallback fixo.
+// As outras três integrações OAuth (Google/Microsoft/Dropbox) têm sua própria variável
+// <PROVIDER>_REDIRECT_URI documentada; alinhado aqui do mesmo jeito, com getAppUrl (lib/appUrl.ts)
+// como fallback em vez de um hostname fixo — troca de domínio não quebra mais o BTG silenciosamente
+// (achado A10 da revisão gauntlet).
 function redirectUri(): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lumen-flax-chi.vercel.app";
-  return `${appUrl.replace(/\/$/, "")}/api/btg/callback`;
+  return process.env.BTG_REDIRECT_URI || `${getAppUrl().replace(/\/$/, "")}/api/btg/callback`;
 }
 
 // Credencial do app na chamada de token: Basic <client_id:client_secret> em Base64, conforme

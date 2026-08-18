@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 // escolhida ao trocar de processo.
 export default async function MobileLancarHonorariosGeralPage() {
   const viewer = await getCurrentUser();
-  if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const [cases, categories, clients, costCenters, responsibles, bankAccounts] = await Promise.all([
     prisma.case.findMany({

@@ -77,7 +77,13 @@ function Barras({ linhas, vazio }: { linhas: { chave: string; rotulo: string; pe
   );
 }
 
-export default function RelatorioPersonalizadoView() {
+// hrefBase prefixa os links de "ver detalhe" gerados no servidor (lib/actions/
+// relatorioPersonalizado.ts), sempre montados como rota de desktop (/processos/<id>,
+// /atendimento/<id> etc.) — a página mobile (app/m/relatorios/personalizado/page.tsx) passa "/m"
+// para que o componente reaproveitado (ele já é responsivo e não precisa de versão própria)
+// mande o toque para o equivalente sob /m em vez de abrir o layout do site dentro do PWA, sem
+// barra inferior nem link de volta (achado A56 da revisão gauntlet).
+export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase?: string }) {
   const [filtros, setFiltros] = useState<RelatorioFiltros>(filtrosPadrao);
   const [opcoes, setOpcoes] = useState<OpcoesRelatorio>({ assessorias: [], usuarios: [], gruposPeca: [] });
   const [modelos, setModelos] = useState<ModeloSalvo[]>([]);
@@ -440,7 +446,7 @@ export default function RelatorioPersonalizadoView() {
                               {d.nome} <ExternalLink size={11} className="shrink-0 opacity-70" />
                             </a>
                           ) : d.href ? (
-                            <a href={d.href} className="text-acao hover:underline font-medium">
+                            <a href={hrefBase + d.href} className="text-acao hover:underline font-medium">
                               {d.nome}
                             </a>
                           ) : (

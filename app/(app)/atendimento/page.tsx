@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatDate, EmptyState } from "@/components/ui";
@@ -6,6 +7,7 @@ import DeleteEntityButton from "@/components/DeleteEntityButton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Filter } from "lucide-react";
+import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -32,20 +34,21 @@ export default async function AtendimentoPage({
   if (!viewer) redirect("/");
 
   const q = (searchParams.q || "").trim();
+  // officeId/status entram aqui em baseFilters (não só no `where` abaixo) de propósito:
+  // baseFilters é repassado como extraWhere para findAttendanceIdsByLooseName (lib/
+  // looseNameSearch.ts), então o conjunto candidato da busca por nome (tolerante a
+  // acento/pontuação — mesma regra já usada na busca global e em Processos) já sai escopado.
+  const baseFilters: Prisma.AttendanceWhereInput = {
+    officeId: viewer.officeId,
+    // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
+    // na aba própria "Rascunhos" — não fazem parte da triagem normal.
+    status: searchParams.status || { not: "RASCUNHO" },
+  };
+  const matchingIds = q ? await findAttendanceIdsByLooseName(q, baseFilters) : [];
   const attendances = await prisma.attendance.findMany({
     where: {
-      officeId: viewer.officeId,
-      // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
-      // na aba própria "Rascunhos" — não fazem parte da triagem normal.
-      status: searchParams.status || { not: "RASCUNHO" },
-      ...(q
-        ? {
-            OR: [
-              { clientName: { contains: q, mode: "insensitive" } },
-              { subject: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
+      ...baseFilters,
+      ...(q ? { id: { in: matchingIds } } : {}),
     },
     include: { responsible: true },
     orderBy: { createdAt: "desc" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateAssessoria, markHonorarioPaid, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { Badge, formatCurrency, formatDate } from "@/components/ui";
 import MoneyInput from "@/components/MoneyInput";
@@ -17,11 +18,13 @@ const statusColors: Record<string, "green" | "amber" | "bordo" | "slate"> = {
 const statusLabels: Record<string, string> = { PENDENTE: "Pendente", PAGO: "Pago", ATRASADO: "Atrasado", PARCIAL: "Parcial", CANCELADO: "Cancelado" };
 
 export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: Assessoria }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payDate, setPayDate] = useState("");
+  const [payError, setPayError] = useState("");
 
   const currentYear = new Date().getFullYear();
   const recebidoNoAno = assessoria.honorarios
@@ -45,14 +48,21 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
     setPayingId(honorarioId);
     setPayAmount(String(expectedAmount));
     setPayDate(new Date().toISOString().slice(0, 10));
+    setPayError("");
   }
 
   function confirmPayHonorario(honorarioId: string) {
     const amount = parseFloat(payAmount.replace(",", "."));
     if (!amount || amount <= 0 || !payDate) return;
+    setPayError("");
     startTransition(async () => {
-      await markHonorarioPaid(honorarioId, amount, payDate);
+      const result = await markHonorarioPaid(honorarioId, amount, payDate);
+      if (result?.error) {
+        setPayError(result.error);
+        return;
+      }
       setPayingId(null);
+      router.refresh();
     });
   }
 
@@ -131,6 +141,7 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
                                 />
                               </div>
                             </div>
+                            {payError && <p className="text-[11px] text-urgente">{payError}</p>}
                             <div className="flex items-center gap-1.5">
                               <button
                                 disabled={pending}

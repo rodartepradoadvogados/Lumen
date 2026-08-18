@@ -1,6 +1,6 @@
 import { formatCurrency, formatCalendarDate, Badge, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import { PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS } from "@/lib/honorarioLancamento";
-import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { valorLiquido, saldoEmAberto, HONORARIO_LANCAMENTO_DELETE_CONFIRM } from "@/lib/financeCalc";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 
@@ -54,7 +54,7 @@ export default function MobileHonorarioLancamentoGroup({
           entityType="HONORARIO_LANCAMENTO"
           entityId={lancamento.id}
           entityLabel="Honorário parcelado"
-          confirmMessage="Excluir este lançamento de honorários? Parcelas já pagas continuam em Contas a Receber; as pendentes são apagadas."
+          confirmMessage={HONORARIO_LANCAMENTO_DELETE_CONFIRM}
         />
       </div>
       {lancamento.payerType !== "CLIENTE" && (

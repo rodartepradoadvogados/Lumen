@@ -19,7 +19,7 @@ export default async function MobileDre({
   searchParams: { year?: string; month?: string };
 }) {
   const viewer = await getCurrentUser();
-  if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();

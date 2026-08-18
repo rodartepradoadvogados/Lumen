@@ -23,9 +23,14 @@ export default async function FluxoDeCaixaPage() {
   // A_APURAR é excluído explicitamente: é só uma ESTIMATIVA de honorário percentual sem valor
   // real ainda (apurado no desfecho do processo) — somar como entrada prevista infla a projeção,
   // o resultado e o imposto sobre dinheiro que talvez nem exista.
+  // noDueDate: false também é explícito — "Sem vencimento definido" grava dueDate como um
+  // placeholder técnico (1º do mês seguinte ao cadastro, ver lib/actions/financeiro.ts), nunca
+  // atualizado; o resto do produto (listagens, Central de Alertas, Inadimplência) sabe disso e
+  // ignora essa data, mas o Fluxo de Caixa agregava por ela direto, inflando um mês arbitrário da
+  // projeção com um valor que o usuário declarou não ter data (achado A45 da revisão gauntlet).
   const [payables, receivables] = await Promise.all([
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { gte: windowStart, lte: windowEnd } } }),
   ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number; year: number; monthIdx: number }[] = [];

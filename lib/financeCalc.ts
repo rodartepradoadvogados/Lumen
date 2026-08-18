@@ -83,3 +83,13 @@ export function isAdiantamentoPayable(p: { expensePayer: string; reimbursementRe
 export function isReembolsoReceivable(r: { kind: string; reimbursesPayableId?: string | null }): boolean {
   return r.kind === "REEMBOLSO" && !!r.reimbursesPayableId;
 }
+
+// Texto de confirmação ao excluir um lançamento de honorários inteiro (todas as parcelas de
+// uma vez), compartilhado entre HonorarioLancamentoCard (desktop) e MobileHonorarioLancamentoGroup
+// (app) — antes cada plataforma tinha sua própria cópia escrita à mão, e quando o critério de
+// exclusão mudou de `status === "PAGO"` para "tem FinancePayment" (ver lib/actions/deletion.ts),
+// só a cópia do desktop foi atualizada; a do mobile ficou descrevendo a regra antiga e prometia
+// apagar parcelas PARCIAIS que na verdade continuam em Contas a Receber (achado A50 da revisão
+// gauntlet).
+export const HONORARIO_LANCAMENTO_DELETE_CONFIRM =
+  "Excluir este lançamento de honorários? Parcelas que já receberam algo (pagas ou parciais) continuam em Contas a Receber, com o histórico de recebimento; as que nunca receberam nada são apagadas.";

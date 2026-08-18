@@ -74,8 +74,13 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
 
   function handleDelete(id: string) {
     if (!window.confirm("Remover este modelo? O arquivo continua no Google Drive, apenas o vínculo será removido.")) return;
+    setError(null);
     startTransition(async () => {
-      await deleteDocumentTemplate(id);
+      const result = await deleteDocumentTemplate(id);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
       router.refresh();
     });
   }

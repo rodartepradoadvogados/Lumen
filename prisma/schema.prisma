@@ -2172,8 +2172,15 @@ model Honorario {
   assessoriaId String
   assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
 
-  receivableId String     @unique
-  receivable   Receivable @relation(fields: [receivableId], references: [id])
+  // Opcional — quando o usuário exclui a Receivable desta mensalidade (lib/actions/deletion.ts),
+  // este registro NÃO é apagado junto: ele é a trava de idempotência que generateAllMonthlyHonorarios
+  // consulta por (assessoriaId, competencia) antes de gerar; apagá-lo junto com a receita fazia o
+  // cron recriar a mesma competência na manhã seguinte (achado A27 da revisão gauntlet). Em vez
+  // disso vira um "tombstone": receivableId null + canceladoEm preenchido, telas de Honorários da
+  // Assessoria filtram por receivableId não-nulo (ver getAssessoriaDetail).
+  receivableId String?     @unique
+  receivable   Receivable? @relation(fields: [receivableId], references: [id])
+  canceladoEm  DateTime?
 
   @@unique([assessoriaId, competencia])
 }

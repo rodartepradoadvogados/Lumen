@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import { Plus, Search } from "lucide-react";
+import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -40,25 +42,34 @@ export default async function MobileAtendimento({
 
   const q = (searchParams.q || "").trim();
 
-  const attendances = await prisma.attendance.findMany({
-    where: {
-      officeId: viewer.officeId,
-      // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
-      // na aba própria "Rascunhos" — mesma regra da lista desktop.
-      status: searchParams.status || { not: "RASCUNHO" },
-      ...(q
-        ? {
-            OR: [
-              { clientName: { contains: q, mode: "insensitive" } },
-              { subject: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    include: { responsible: true },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  // Mesmo padrão de app/(app)/atendimento/page.tsx e app/m/processos/page.tsx: busca tolerante a
+  // acento/pontuação via findAttendanceIdsByLooseName, em vez de contains cru (que só resolve
+  // caixa, não acento).
+  const baseFilters: Prisma.AttendanceWhereInput = {
+    officeId: viewer.officeId,
+    // Sem filtro de status (aba "Todos"): rascunhos ficam escondidos, só aparecem
+    // na aba própria "Rascunhos" — mesma regra da lista desktop.
+    status: searchParams.status || { not: "RASCUNHO" },
+  };
+  const matchingIds = q ? await findAttendanceIdsByLooseName(q, baseFilters) : [];
+  const where: Prisma.AttendanceWhereInput = {
+    ...baseFilters,
+    ...(q ? { id: { in: matchingIds } } : {}),
+  };
+
+  const [attendances, totalCount] = await Promise.all([
+    prisma.attendance.findMany({
+      where,
+      include: { responsible: true },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    // Total real (não attendances.length, que é só a página carregada, limitada pelo `take: 100`
+    // acima) — sem isto o cabeçalho mentia sobre quantos atendimentos existem de fato, e um
+    // atendimento além do corte por data simplesmente sumia da lista sem aviso (achado A21 da
+    // revisão gauntlet, mesmo padrão de app/m/processos/page.tsx).
+    prisma.attendance.count({ where }),
+  ]);
 
   const tabHref = (status?: string) => {
     const params = new URLSearchParams();
@@ -73,7 +84,7 @@ export default async function MobileAtendimento({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-tx">Atendimento</h1>
-          <p className="text-sm text-tx-2">{attendances.length} registro(s)</p>
+          <p className="text-sm text-tx-2">{totalCount} registro(s)</p>
         </div>
         <Link
           href="/m/atendimento/novo"
@@ -150,6 +161,12 @@ export default async function MobileAtendimento({
           </div>
         )}
       </Card>
+
+      {attendances.length < totalCount && (
+        <p className="text-xs text-tx-2 text-center">
+          Mostrando os {attendances.length} mais recentes de {totalCount} — use a busca para encontrar os demais
+        </p>
+      )}
     </div>
   );
 }

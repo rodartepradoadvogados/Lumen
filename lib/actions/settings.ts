@@ -271,23 +271,40 @@ export async function deleteUser(id: string): Promise<{ error?: string }> {
     return { error: "Não é possível excluir um administrador (Jairo/Rodrigo) por aqui." };
   }
 
-  const [commentCount, mentionCount, deletionReqCount] = await Promise.all([
+  // LoginSession é gravada em todo login (lib/actions/auth.ts) — como todo usuário real já
+  // logou pelo menos uma vez, deixá-la de fora fazia esta guarda passar sempre e o delete
+  // estourar violação de chave estrangeira (LoginSession.user é relação obrigatória, sem
+  // onDelete). Anotacao/Notice/BlockedProcessNumber/AlertDismissal têm a mesma característica
+  // (relação obrigatória para User, sem onDelete) e travariam do mesmo jeito.
+  const [commentCount, mentionCount, deletionReqCount, loginSessionCount, anotacaoCount, noticeCount, blockedCount, dismissalCount] = await Promise.all([
     prisma.comment.count({ where: { authorId: id, officeId: viewer.officeId } }),
     prisma.mention.count({ where: { userId: id, officeId: viewer.officeId } }),
     prisma.deletionRequest.count({ where: { requestedById: id, officeId: viewer.officeId } }),
+    prisma.loginSession.count({ where: { userId: id, officeId: viewer.officeId } }),
+    prisma.anotacao.count({ where: { authorId: id, officeId: viewer.officeId } }),
+    prisma.notice.count({ where: { authorId: id, officeId: viewer.officeId } }),
+    prisma.blockedProcessNumber.count({ where: { userId: id, officeId: viewer.officeId } }),
+    prisma.alertDismissal.count({ where: { userId: id, officeId: viewer.officeId } }),
   ]);
-  if (commentCount + mentionCount + deletionReqCount > 0) {
-    return { error: "Não é possível excluir: este usuário já tem histórico no sistema (comentários, menções ou solicitações). Use \"Inativar\" em vez de excluir." };
+  if (commentCount + mentionCount + deletionReqCount + loginSessionCount + anotacaoCount + noticeCount + blockedCount + dismissalCount > 0) {
+    return { error: "Não é possível excluir: este usuário já tem histórico no sistema (login, comentários, menções, anotações ou solicitações). Use \"Inativar\" em vez de excluir." };
   }
 
-  await prisma.$transaction([
-    prisma.task.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
-    prisma.case.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
-    prisma.attendance.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
-    prisma.attachment.updateMany({ where: { uploadedById: id, officeId: viewer.officeId }, data: { uploadedById: null } }),
-    prisma.deletionRequest.updateMany({ where: { resolvedById: id, officeId: viewer.officeId }, data: { resolvedById: null } }),
-    prisma.user.delete({ where: { id } }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.task.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
+      prisma.case.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
+      prisma.attendance.updateMany({ where: { responsibleId: id, officeId: viewer.officeId }, data: { responsibleId: null } }),
+      prisma.attachment.updateMany({ where: { uploadedById: id, officeId: viewer.officeId }, data: { uploadedById: null } }),
+      prisma.deletionRequest.updateMany({ where: { resolvedById: id, officeId: viewer.officeId }, data: { resolvedById: null } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+  } catch {
+    // Defesa em profundidade: qualquer outra relação obrigatória que a guarda acima não cobriu
+    // (ou uma nova, adicionada no futuro sem atualizar esta lista) vira mensagem amigável em vez
+    // de erro genérico de servidor.
+    return { error: "Não é possível excluir: este usuário já tem histórico no sistema. Use \"Inativar\" em vez de excluir." };
+  }
   revalidatePath("/configuracoes");
   return {};
 }

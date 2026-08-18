@@ -57,8 +57,13 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
   // resto do site.
   function handleRemove(id: string, termo: string) {
     if (!window.confirm(`Remover o termo "${termo}" da vigilância? O robô deixa de procurá-lo.`)) return;
+    setError(null);
     startTransition(async () => {
-      await removeTermoVigilancia(id);
+      const result = await removeTermoVigilancia(id);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
       router.refresh();
     });
   }

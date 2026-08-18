@@ -18,7 +18,7 @@ const kindLabels = RECEIVABLE_KIND_LABELS;
 
 export default async function MobileReceitas({ searchParams }: { searchParams: { tab?: string; from?: string; to?: string } }) {
   const viewer = await getCurrentUser();
-  if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" || searchParams.tab === "apurar" ? searchParams.tab : "abertas";
   // Mesmo padrão de app/m/financeiro/despesas/page.tsx: sem De/Até na URL, mostra só o mês

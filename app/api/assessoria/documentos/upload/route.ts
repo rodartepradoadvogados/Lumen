@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { uploadFileToDrive, uploadFileToDriveFolder, getOrCreateParecerFolder } from "@/lib/storageProvider";
 import { translateDriveError } from "@/lib/googleDrive";
+import { isValidBlobUrl } from "@/lib/blobUrl";
 
 // Etapa 2 do upload de documentos da Assessoria (ver app/api/attachments/blob-token/route.ts para
 // a etapa 1, reaproveitada aqui — o token endpoint é genérico, não sabe nem precisa saber se o
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
   const { blobUrl, name, contentType, docType, assessoriaId, parecerId } = body as Record<string, unknown>;
 
-  if (typeof blobUrl !== "string" || !blobUrl) {
+  if (typeof blobUrl !== "string" || !blobUrl || !isValidBlobUrl(blobUrl)) {
     return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
   if (typeof assessoriaId !== "string" || !assessoriaId) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveWhatsappConfig, deleteWhatsappConfig } from "@/lib/actions/whatsappConfig";
 
 export default function WhatsappConfigForm({
@@ -10,6 +11,7 @@ export default function WhatsappConfigForm({
   connected: boolean;
   displayPhone: string | null;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -34,9 +36,15 @@ export default function WhatsappConfigForm({
 
   async function handleDisconnect() {
     if (!confirm("Desconectar o número de WhatsApp deste escritório? As conversas já registradas não são apagadas.")) return;
+    setError(null);
     setLoading(true);
-    await deleteWhatsappConfig();
+    const result = await deleteWhatsappConfig();
     setLoading(false);
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
   }
 
   return (

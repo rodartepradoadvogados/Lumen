@@ -27,7 +27,10 @@ export default async function MobileRelatorioPersonalizado() {
         <p className="text-sm text-tx-2">Monte a pergunta: período, o que contar, origem, assessoria, responsável e mais.</p>
       </div>
 
-      <RelatorioPersonalizadoView />
+      {/* hrefBase="/m" — sem isto, os links de detalhe (processo/atendimento/assessoria/agenda/
+          publicações) montados no servidor apontam para as rotas do site desktop, que abrem
+          dentro do PWA sem a barra inferior nem link de volta (achado A56 da revisão gauntlet). */}
+      <RelatorioPersonalizadoView hrefBase="/m" />
     </div>
   );
 }

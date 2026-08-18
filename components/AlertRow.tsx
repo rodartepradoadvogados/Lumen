@@ -2,6 +2,7 @@
 
 import { useState, ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import SettleModal from "@/components/SettleModal";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { acknowledgeDelegation } from "@/lib/actions/tasks";
@@ -21,6 +22,7 @@ export default function AlertRow({
   className?: string;
   children: ReactNode;
 }) {
+  const router = useRouter();
   const [modal, setModal] = useState<"settle" | "task" | null>(null);
 
   if ((alert.entityKind === "PAYABLE" || alert.entityKind === "RECEIVABLE") && alert.entityId) {
@@ -55,10 +57,14 @@ export default function AlertRow({
           type="button"
           onClick={() => {
             setModal("task");
-            // Marca a delegação como vista assim que o destinatário abre o compromisso —
-            // "fire and forget", não precisa bloquear a abertura do modal esperando a resposta.
+            // Marca a delegação como vista assim que o destinatário abre o compromisso — não
+            // bloqueia a abertura do modal esperando a resposta, mas o refresh no final (mesmo
+            // padrão de DismissibleAlertRow.tsx) tira o alerta da tela sem depender de a Server
+            // Action conhecer todas as rotas onde este componente está montado — antes disso, a
+            // revalidatePath da action cobria só as rotas do site, e o alerta continuava visível
+            // no app até um reload duro (achado A22 da revisão gauntlet).
             if (alert.kind === "TAREFA_DELEGADA") {
-              void acknowledgeDelegation(entityId);
+              acknowledgeDelegation(entityId).then(() => router.refresh());
             }
           }}
           className={className}

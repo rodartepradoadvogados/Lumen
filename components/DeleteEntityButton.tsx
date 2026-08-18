@@ -161,6 +161,12 @@ export default function DeleteEntityButton({
                 {groupKind === "HONORARIO" ? "(honorário parcelado)" : groupKind === "RECORRENTE" ? "(honorário recorrente)" : "(parcelamento)"}.
                 Cada opção abaixo tem uma consequência diferente.
               </p>
+              {/* "Só este lançamento" some para RECORRENTE de propósito: para uma série gerada por
+                  cron, a própria linha materializada é a trava que impede o cron de recriá-la no
+                  dia seguinte — excluir só ela, sem desativar a recorrência, faz o cron recriar a
+                  mesma competência na manhã seguinte, sem aviso nenhum. FOLLOWING e ALL (abaixo)
+                  já desativam a recorrência corretamente, então continuam disponíveis. */}
+              {groupKind !== "RECORRENTE" && (
               <button
                 onClick={() => handleChoose("ONLY")}
                 disabled={pending}
@@ -168,6 +174,7 @@ export default function DeleteEntityButton({
               >
                 Excluir apenas este lançamento
               </button>
+              )}
               <button
                 onClick={() => handleChoose("FOLLOWING")}
                 disabled={pending}

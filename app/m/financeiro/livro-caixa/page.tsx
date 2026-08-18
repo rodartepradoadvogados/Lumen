@@ -16,7 +16,7 @@ const MAX_ROWS = 60;
 // muda (mais recente primeiro) e a lista é limitada para caber num scroll mobile razoável.
 export default async function MobileLivroCaixa() {
   const viewer = await getCurrentUser();
-  if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const now = new Date();
   // Mesma fonte da página desktop (/financeiro/livro-caixa): lê FinancePayment, então recebimento
