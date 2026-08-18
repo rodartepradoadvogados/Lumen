@@ -227,11 +227,22 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     porOffice.set(officeId, atual);
   }
 
-  const publicacoesPendentes = await prisma.roboPublicacao.findMany({ where: { statusLido: false } });
+  // `take` limita o pior caso (um lote grande de retomada não carrega a tabela de pendentes
+  // inteira — com `teor` sendo o HTML bruto da página de detalhe do DJEN — de uma vez em
+  // memória); o que sobrar continua com statusLido=false e volta no próximo ciclo, comportamento
+  // já preparado pelo desenho atual (só marca lido depois de garantir a criação, ver abaixo).
+  const publicacoesPendentes = await prisma.roboPublicacao.findMany({ where: { statusLido: false }, take: 500 });
+  // Uma consulta em lote no lugar de um findUnique por item dentro do laço — elimina 1 ida ao
+  // banco por publicação pendente. idComunicacao é @id de RoboPublicacao, então emailMessageId
+  // (derivado dele) nunca colide entre duas linhas deste mesmo lote.
+  const emailMessageIdsPub = publicacoesPendentes.map((p) => `djen-${p.idComunicacao}`);
+  const existentesPub = new Set(
+    (await prisma.publication.findMany({ where: { emailMessageId: { in: emailMessageIdsPub } }, select: { emailMessageId: true } })).map((p) => p.emailMessageId)
+  );
   for (const pub of publicacoesPendentes) {
     try {
       const emailMessageId = `djen-${pub.idComunicacao}`;
-      const jaExiste = await prisma.publication.findUnique({ where: { emailMessageId } });
+      const jaExiste = existentesPub.has(emailMessageId);
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(pub.numeroProcesso);
@@ -281,11 +292,15 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     }
   }
 
-  const andamentosPendentes = await prisma.roboAndamento.findMany({ where: { statusLido: false } });
+  const andamentosPendentes = await prisma.roboAndamento.findMany({ where: { statusLido: false }, take: 500 });
+  const emailMessageIdsAnd = andamentosPendentes.map((a) => `datajud-${a.numeroProcesso}-${a.dataMovimentacao}-${a.codigoMovimento}`);
+  const existentesAnd = new Set(
+    (await prisma.publication.findMany({ where: { emailMessageId: { in: emailMessageIdsAnd } }, select: { emailMessageId: true } })).map((p) => p.emailMessageId)
+  );
   for (const and of andamentosPendentes) {
     try {
       const emailMessageId = `datajud-${and.numeroProcesso}-${and.dataMovimentacao}-${and.codigoMovimento}`;
-      const jaExiste = await prisma.publication.findUnique({ where: { emailMessageId } });
+      const jaExiste = existentesAnd.has(emailMessageId);
 
       if (!jaExiste) {
         const numeroNormalizado = normalizarNumeroProcesso(and.numeroProcesso);

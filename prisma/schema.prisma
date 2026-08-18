@@ -2394,6 +2394,10 @@ model RoboPublicacao {
   dataCaptura          DateTime @default(now()) @map("data_captura")
   statusLido           Boolean  @default(false) @map("status_lido")
 
+  // syncRoboParaSite (lib/roboBridge.ts) filtra por statusLido: false a cada ciclo do cron
+  // robo-bridge (a cada 3h) — sem índice, essa consulta é sequential scan da tabela inteira, que
+  // só cresce (as linhas nunca são apagadas, só marcadas como lidas).
+  @@index([statusLido])
   @@map("publicacoes")
 }
 
@@ -2407,6 +2411,8 @@ model RoboAndamento {
   dataCaptura        DateTime @default(now()) @map("data_captura")
   statusLido         Boolean  @default(false) @map("status_lido")
 
+  // Mesma justificativa de RoboPublicacao.statusLido acima.
+  @@index([statusLido])
   @@unique([numeroProcesso, dataMovimentacao, codigoMovimento], name: "uq_andamento_processo_data_codigo")
   @@map("andamentos")
 }
