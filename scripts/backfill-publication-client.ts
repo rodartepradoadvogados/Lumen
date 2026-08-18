@@ -10,11 +10,19 @@ async function findClientIdByName(content: string, clients: { id: string; name: 
 }
 
 async function main() {
-  const clients = await prisma.client.findMany({ select: { id: true, name: true } });
+  // Escopado por escritório — sem isso, o casamento por nome comparava a publicação de UM
+  // escritório contra os clientes de TODOS, podendo vincular a publicação de um tenant a um
+  // Client de outro (mesmo bug que a versão de runtime, lib/jusbrasilEmailSync.ts:
+  // findClientIdByName, já evita recebendo officeId).
   const pubs = await prisma.publication.findMany({ where: { caseId: null, clientId: null } });
+  const officeIds = Array.from(new Set(pubs.map((p) => p.officeId)));
+  const clientsByOffice = new Map<string, { id: string; name: string }[]>();
+  for (const officeId of officeIds) {
+    clientsByOffice.set(officeId, await prisma.client.findMany({ where: { officeId }, select: { id: true, name: true } }));
+  }
   let updated = 0;
   for (const p of pubs) {
-    const clientId = await findClientIdByName(p.content, clients);
+    const clientId = await findClientIdByName(p.content, clientsByOffice.get(p.officeId) ?? []);
     if (clientId) {
       await prisma.publication.update({ where: { id: p.id }, data: { clientId } });
       updated++;
