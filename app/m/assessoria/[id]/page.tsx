@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isStorageConnected } from "@/lib/storageProvider";
+import { getStorageConnectionStatus } from "@/lib/storageProvider";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
@@ -53,7 +53,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
   if (!assessoria) notFound();
 
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [availableCases, anotacoesRaw, storageConnected] = await Promise.all([
+  const [availableCases, anotacoesRaw, storageStatus] = await Promise.all([
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
       select: { id: true, title: true, processNumber: true },
@@ -62,9 +62,11 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
     prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
     // Gate do upload de documentos (ver MobileAssessoriaDocumentsSection.tsx) — por PROVEDOR
     // (Drive/OneDrive/Dropbox), não só Drive, mesmo bug já corrigido em
-    // app/(app)/processos/novo/page.tsx.
-    isStorageConnected(viewer.officeId),
+    // app/(app)/processos/novo/page.tsx. Status completo (não só o booleano): sem ele, quando
+    // desconectado, a área de anexar de cada demanda sumia sem explicação nenhuma.
+    getStorageConnectionStatus(viewer.officeId),
   ]);
+  const storageConnected = storageStatus.connected;
   const serializedAnotacoes = anotacoesRaw.map((n) => ({
     id: n.id,
     content: n.content,
@@ -123,6 +125,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
         pareceres={assessoria.pareceres}
         documents={assessoria.documents}
         storageConnected={storageConnected}
+        storageMessage={storageStatus.message}
       />
 
       <Card>

@@ -10,6 +10,7 @@ import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { Plus, Search, UploadCloud, ExternalLink, FolderOpen, LayoutGrid, List as ListIcon, Table2, Building2 } from "lucide-react";
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
 import { formatoArquivo } from "@/lib/fileExtension";
+import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 
@@ -33,7 +34,15 @@ function ParecerBadge({ name }: { name: string }) {
   );
 }
 
-export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: { assessoria: Assessoria; driveConnected: boolean }) {
+export default function AssessoriaDocumentosTab({
+  assessoria,
+  driveConnected,
+  storageMessage,
+}: {
+  assessoria: Assessoria;
+  driveConnected: boolean;
+  storageMessage?: string;
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("TODOS");
@@ -351,6 +360,12 @@ export default function AssessoriaDocumentosTab({ assessoria, driveConnected }: 
           </div>
           <style>{`.doc-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
         </form>
+      )}
+
+      {!driveConnected && (
+        <div className="mb-4">
+          <StorageDisconnectedNotice message={storageMessage} />
+        </div>
       )}
 
       {driveConnected && !stagedFile && (

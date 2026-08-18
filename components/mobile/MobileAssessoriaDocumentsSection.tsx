@@ -1,6 +1,7 @@
 import { Card, EmptyState, formatDate } from "@/components/ui";
 import { getDocumentTypeIcon, getDocumentTypeLabel, isEmpresaDocumentType } from "@/lib/documentTypes";
 import MobileDocumentUpload from "@/components/mobile/MobileDocumentUpload";
+import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 import { ChevronDown, ExternalLink, FolderOpen, Building2 } from "lucide-react";
 
 type DocumentoItem = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
@@ -37,11 +38,13 @@ export default function MobileAssessoriaDocumentsSection({
   pareceres,
   documents,
   storageConnected,
+  storageMessage,
 }: {
   assessoriaId: string;
   pareceres: ParecerFolder[];
   documents: AssessoriaDocumento[];
   storageConnected: boolean;
+  storageMessage?: string;
 }) {
   const soltos = documents.filter((d) => !d.parecer);
   const total = documents.length;
@@ -85,7 +88,13 @@ export default function MobileAssessoriaDocumentsSection({
 
           <div className="divide-y divide-regua">
             {pareceres.map((p) => (
-              <ParecerFolderMobileRow key={p.id} parecer={p} assessoriaId={assessoriaId} storageConnected={storageConnected} />
+              <ParecerFolderMobileRow
+                key={p.id}
+                parecer={p}
+                assessoriaId={assessoriaId}
+                storageConnected={storageConnected}
+                storageMessage={storageMessage}
+              />
             ))}
 
             {soltos.length > 0 && pareceres.length > 0 && (
@@ -99,11 +108,9 @@ export default function MobileAssessoriaDocumentsSection({
             ))}
           </div>
 
-          {storageConnected && (
-            <div className="p-3 border-t border-regua">
-              <MobileDocumentUpload assessoriaId={assessoriaId} />
-            </div>
-          )}
+          <div className="p-3 border-t border-regua">
+            {storageConnected ? <MobileDocumentUpload assessoriaId={assessoriaId} /> : <StorageDisconnectedNotice message={storageMessage} />}
+          </div>
         </>
       )}
     </Card>
@@ -117,10 +124,12 @@ function ParecerFolderMobileRow({
   parecer,
   assessoriaId,
   storageConnected,
+  storageMessage,
 }: {
   parecer: ParecerFolder;
   assessoriaId: string;
   storageConnected: boolean;
+  storageMessage?: string;
 }) {
   return (
     <details className="group">
@@ -148,7 +157,11 @@ function ParecerFolderMobileRow({
             ))}
           </div>
         )}
-        {storageConnected && <MobileDocumentUpload assessoriaId={assessoriaId} parecerId={parecer.id} />}
+        {storageConnected ? (
+          <MobileDocumentUpload assessoriaId={assessoriaId} parecerId={parecer.id} />
+        ) : (
+          <StorageDisconnectedNotice message={storageMessage} />
+        )}
       </div>
     </details>
   );
