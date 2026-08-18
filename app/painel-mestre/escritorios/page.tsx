@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { listTenantOffices } from "@/lib/actions/painelMestre";
 import { LumenPanel, LumenPanelHeader } from "@/components/painelMestre/LumenUi";
 import OfficeListRow from "@/components/painelMestre/OfficeListRow";
@@ -9,9 +8,7 @@ import OfficeListRow from "@/components/painelMestre/OfficeListRow";
 export const dynamic = "force-dynamic";
 
 export default async function EscritoriosPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const offices = await listTenantOffices();
 

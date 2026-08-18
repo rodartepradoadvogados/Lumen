@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { LumenPanel, LumenPanelHeader } from "@/components/painelMestre/LumenUi";
 
@@ -11,9 +10,7 @@ export const dynamic = "force-dynamic";
 // alegação de conformidade legal (LGPD, certificação) é feita aqui: só o que já existe no
 // código, com o que ainda está "em construção" nomeado como tal.
 export default async function ConfiancaPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const officeCount = await prisma.office.count();
 

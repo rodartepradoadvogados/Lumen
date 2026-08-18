@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { LumenPanel, LumenPanelHeader, LumenStat, LumenStatusDot } from "@/components/painelMestre/LumenUi";
 
@@ -44,9 +43,7 @@ function FonteCard({ nome, log }: { nome: string; log: RoboLog | undefined }) {
 }
 
 export default async function ProdutoPage() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   // Tabelas globais do robô Python (sem officeId — ver comentário no schema) — mesma fonte de
   // dados já lida em app/(app)/configuracoes/page.tsx, aqui só numa visão própria da Lúmen.

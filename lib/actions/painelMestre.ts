@@ -3,19 +3,20 @@
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/currentUser";
+import { isPlatformStaff } from "@/lib/platformMember";
 import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
 import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured, calcularValorCobranca, reativarOfficeSeSuspenso } from "@/lib/asaas";
 import { getAppUrl } from "@/lib/appUrl";
 
-// Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate,
-// em vez de duplicar a checagem de isPlatformOwner num segundo lugar.
+// Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate, em vez
+// de duplicar a checagem. Dono da plataforma OU membro de equipe ativo (isPlatformStaff) — antes
+// só o dono passava, o que travaria toda ação do Painel Mestre pra quem só está cadastrado como
+// equipe (achado A12 da revisão gauntlet).
 export async function requirePlatformOwner() {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer?.isPlatformOwner) return { error: "Apenas administradores da plataforma podem fazer isso." } as const;
-  return { viewer };
+  if (!(await isPlatformStaff())) return { error: "Apenas a equipe da Lúmen pode fazer isso." } as const;
+  return {};
 }
 
 function hashToken(token: string): string {

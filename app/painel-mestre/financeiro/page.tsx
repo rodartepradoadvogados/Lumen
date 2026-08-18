@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getCurrentUser } from "@/lib/currentUser";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { listTenantOffices } from "@/lib/actions/painelMestre";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/components/ui";
@@ -38,9 +37,7 @@ export default async function FinanceiroLumenPage({
 }: {
   searchParams: { mes?: string };
 }) {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const mesFoco = searchParams.mes && /^\d{4}-\d{2}$/.test(searchParams.mes) ? searchParams.mes : competenciaAtual();
 

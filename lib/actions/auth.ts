@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { signSession, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { signSession, SESSION_COOKIE_NAME, signPlatformMemberSession, PLATFORM_MEMBER_SESSION_COOKIE } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getAppUrl } from "@/lib/appUrl";
@@ -29,25 +29,50 @@ function maskEmail(email: string): string {
 // identificador que continua único GLOBALMENTE (username agora é só um apelido por
 // escritório, ver prisma/schema.prisma) — login por e-mail evita qualquer ambiguidade
 // entre escritórios diferentes sem exigir que o usuário informe também qual escritório é o seu.
+//
+// Dois cadastros disputam o mesmo e-mail em teoria: User (escritório) e PlatformMember
+// standalone (equipe da Lúmen sem escritório nenhum, ver createStandalonePlatformMember). Tenta
+// User primeiro — é o caminho de longe mais comum — e só cai pro PlatformMember quando não acha
+// (ou a senha não bate) nenhum User com este e-mail (achado A12 da revisão gauntlet: antes
+// disto não existia NENHUM jeito de logar como PlatformMember standalone).
 export async function login(email: string, password: string, next?: string): Promise<{ error?: string }> {
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.active || !user.passwordHash) {
-    return { error: "E-mail ou senha inválidos." };
+  if (user?.active && user.passwordHash && (await bcrypt.compare(password, user.passwordHash))) {
+    const token = await signSession(user.id);
+    cookies().set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    await prisma.loginSession.create({ data: { userId: user.id, officeId: user.officeId } });
+
+    if (next && next.startsWith("/") && !next.startsWith("//")) redirect(next);
+
+    // Dono da plataforma ou membro de equipe da Lúmen com este User vinculado (ver
+    // lib/platformMember.ts) caem direto no Painel Mestre — é a ferramenta de trabalho de quem
+    // administra a Lúmen, não o painel do escritório-cliente.
+    const platformMember = user.isPlatformOwner
+      ? null
+      : await prisma.platformMember.findUnique({ where: { userId: user.id }, select: { active: true } });
+    redirect(user.isPlatformOwner || platformMember?.active ? "/painel-mestre" : "/painel");
   }
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    return { error: "E-mail ou senha inválidos." };
+
+  const member = await prisma.platformMember.findUnique({ where: { email } });
+  if (member?.active && member.passwordHash && (await bcrypt.compare(password, member.passwordHash))) {
+    const token = await signPlatformMemberSession(member.id);
+    cookies().set(PLATFORM_MEMBER_SESSION_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    redirect("/painel-mestre");
   }
-  const token = await signSession(user.id);
-  cookies().set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  await prisma.loginSession.create({ data: { userId: user.id, officeId: user.officeId } });
-  redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/painel");
+
+  return { error: "E-mail ou senha inválidos." };
 }
 
 export async function logout() {
@@ -69,6 +94,10 @@ export async function logout() {
   // a sessão nunca é derrubada de fato e o usuário parece preso, sempre logado de novo depois
   // do redirect. Path explícito garante que a exclusão sempre mira o mesmo cookie do login.
   cookies().delete({ name: SESSION_COOKIE_NAME, path: "/" });
+  // Limpa também a sessão de PlatformMember standalone, se houver — inofensivo quando não há
+  // (delete de cookie inexistente não faz nada), e evita duas telas de "Sair" separadas para
+  // quem logou como equipe da Lúmen sem User de escritório.
+  cookies().delete({ name: PLATFORM_MEMBER_SESSION_COOKIE, path: "/" });
   redirect("/");
 }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySession, SESSION_COOKIE_NAME, verifyPlatformMemberSession, PLATFORM_MEMBER_SESSION_COOKIE } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -38,7 +38,15 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await verifySession(token) : null;
 
-  if (!session) {
+  // PlatformMember standalone (sem User de escritório nenhum, ver lib/auth.ts) autentica com um
+  // cookie/claim próprio — sem isto, quem só tem essa sessão nunca passaria daqui pra chegar em
+  // /painel-mestre (achado A12 da revisão gauntlet). A checagem fina de QUEM pode entrar em
+  // /painel-mestre continua nas próprias páginas (requirePlatformAccess); aqui só decide se a
+  // requisição segue ou volta pro login.
+  const pmToken = !session ? req.cookies.get(PLATFORM_MEMBER_SESSION_COOKIE)?.value : undefined;
+  const pmSession = pmToken ? await verifyPlatformMemberSession(pmToken) : null;
+
+  if (!session && !pmSession) {
     // O formulário de login mora na homepage pública (app/page.tsx), não numa página própria
     // — ver HomepageLoginCard. Preserva o destino original para retornar a ele após o login.
     const loginUrl = new URL("/", req.url);

@@ -1,13 +1,13 @@
-import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { verifySession, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { verifySession, SESSION_COOKIE_NAME, verifyPlatformMemberSession, PLATFORM_MEMBER_SESSION_COOKIE } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/currentUser";
 
-// Passo 1 da fundação de dados da Lúmen: este módulo é a contraparte de lib/currentUser.ts
-// para o lado da plataforma (a empresa por trás do produto), não uma extensão dela. Nenhuma
-// tela chama nada daqui ainda — é contrato pronto para o Passo 3, dormente até lá.
-
-export const PLATFORM_CTX_COOKIE = "lumen_platform_ctx";
+// Contraparte de lib/currentUser.ts para o lado da plataforma (a empresa por trás do produto,
+// não um escritório-cliente) — acesso ao Painel Mestre (achado A12 da revisão gauntlet: as duas
+// funções de login por papel de plataforma existiam desde o Passo 1 mas nunca foram ligadas a
+// nenhuma tela; nem sequer existia um jeito de logar como PlatformMember standalone).
 
 export type PlatformViewer = {
   id: string;
@@ -45,62 +45,83 @@ function toPlatformViewer(member: {
   };
 }
 
-// Devolve o membro da Lúmen da sessão atual, ou null. Exige DOIS fatores presentes ao mesmo
-// tempo — sessão de escritório válida E cookie de contexto Lúmen — porque não existe sessão
-// que seja escritório e plataforma ao mesmo tempo (ver enterPlatformContext). NUNCA devolve
-// nada que dê acesso a dado de escritório: é a contraparte de getCurrentUser(), não uma
-// extensão dela.
+// Devolve o membro de equipe da Lúmen da sessão atual, ou null — sempre um dos dois caminhos
+// abaixo, nunca os dois ao mesmo tempo (um PlatformMember tem userId OU tem email/passwordHash
+// próprios, nunca as duas coisas, ver model no schema). NUNCA devolve nada que dê acesso a
+// dado de escritório: é a contraparte de getCurrentUser(), não uma extensão dela.
 export async function getPlatformMember(): Promise<PlatformViewer | null> {
+  // Caminho 1: PlatformMember standalone (sem User de escritório, userId nulo) — sessão própria,
+  // gravada no login (lib/actions/auth.ts) quando o e-mail não bate com nenhum User.
+  const pmToken = cookies().get(PLATFORM_MEMBER_SESSION_COOKIE)?.value;
+  if (pmToken) {
+    const pmSession = await verifyPlatformMemberSession(pmToken);
+    if (!pmSession) return null;
+    const member = await prisma.platformMember.findUnique({
+      where: { id: pmSession.platformMemberId },
+      include: { role: true, user: { select: { name: true, email: true } } },
+    });
+    if (!member || !member.active) return null;
+    return toPlatformViewer(member);
+  }
+
+  // Caminho 2: User de escritório com PlatformMember vinculado (userId preenchido, ex.: os
+  // próprios donos quando também aparecem cadastrados na Equipe da Lúmen, ou um contratado que
+  // também é usuário de um escritório-cliente) — checagem AO VIVO a cada chamada, sem cookie de
+  // "contexto" separado exigindo senha de novo: a sessão de escritório já provou quem a pessoa é
+  // no login, mesmo nível de confiança que User.isPlatformOwner já recebe (getCurrentUser, sem
+  // nenhum passo a mais).
   const sessionToken = cookies().get(SESSION_COOKIE_NAME)?.value;
   if (!sessionToken) return null;
   const session = await verifySession(sessionToken);
   if (!session) return null;
-
-  const ctxCookie = cookies().get(PLATFORM_CTX_COOKIE)?.value;
-  if (!ctxCookie) return null;
 
   const member = await prisma.platformMember.findUnique({
     where: { userId: session.userId },
     include: { role: true, user: { select: { name: true, email: true } } },
   });
   if (!member || !member.active) return null;
-
   return toPlatformViewer(member);
 }
 
-// Entrar no contexto Lúmen exige reconfirmar a senha, mesmo já estando logado — é o mesmo
-// princípio de "step-up auth" do sudo/re-auth de painéis administrativos: a sessão de
-// escritório sozinha nunca é suficiente pra abrir a capacidade de plataforma.
-export async function enterPlatformContext(password: string): Promise<{ error?: string }> {
-  const sessionToken = cookies().get(SESSION_COOKIE_NAME)?.value;
-  if (!sessionToken) return { error: "Sessão inválida." };
-  const session = await verifySession(sessionToken);
-  if (!session) return { error: "Sessão inválida." };
+export type PlatformAccess = {
+  name: string;
+  email: string;
+  isOwner: boolean;
+  // Presente só quando o acesso vem de um PlatformMember com papel (ladder de visibilidade) —
+  // ausente para o dono puro (User.isPlatformOwner), que não precisa de papel: enxerga tudo.
+  member: PlatformViewer | null;
+};
 
-  const member = await prisma.platformMember.findUnique({ where: { userId: session.userId } });
-  if (!member || !member.active) return { error: "Este usuário não tem acesso à Lúmen." };
+// Gate único de acesso ao Painel Mestre — dono da plataforma (User.isPlatformOwner) OU membro
+// de equipe cadastrado e ativo (getPlatformMember, cobre os dois caminhos acima). Redireciona e
+// nunca devolve algo que não seja um acesso válido; chamar isto substitui, em cada
+// página/layout de app/painel-mestre/, o antigo par "getCurrentUser + if (!isPlatformOwner)"
+// que só reconhecia o dono.
+export async function requirePlatformAccess(): Promise<PlatformAccess> {
+  const viewer = await getCurrentUser({ ignoreActing: true });
+  if (viewer?.isPlatformOwner) {
+    return { name: viewer.name, email: viewer.email, isOwner: true, member: null };
+  }
 
-  const user = await prisma.user.findUnique({ where: { id: session.userId } });
-  if (!user || !user.passwordHash) return { error: "Sessão inválida." };
+  const member = await getPlatformMember();
+  if (member) {
+    return { name: member.name, email: member.email, isOwner: false, member };
+  }
 
-  // Mesmo utilitário de comparação de hash usado no login (ver lib/actions/auth.ts) — não
-  // reimplementar bcrypt aqui.
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return { error: "Senha incorreta." };
-
-  cookies().set(PLATFORM_CTX_COOKIE, member.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8, // 8 horas
-  });
-  return {};
+  // Sem acesso: quem já tem uma sessão de escritório (User comum, sem privilégio de
+  // plataforma) volta pro próprio painel; quem não tem sessão nenhuma volta pro login.
+  redirect(viewer ? "/painel" : "/");
 }
 
-export async function exitPlatformContext(): Promise<void> {
-  // Path explícito: o cookie nasce com path "/" (ver acima) — sem isso aqui, sair a partir de
-  // uma rota de mais de 1 nível grava o Set-Cookie de exclusão num path diferente do original e
-  // a sessão de contexto de plataforma nunca é derrubada de fato (mesmo bug de lib/actions/auth.ts:logout).
-  cookies().delete({ name: PLATFORM_CTX_COOKIE, path: "/" });
+// Mesma checagem de requirePlatformAccess acima, mas em booleano — para os Server Actions do
+// Painel Mestre (não páginas: aqui não cabe redirect(), o chamador decide o que fazer com um
+// false, normalmente devolver {error}). Abrir a TELA pro time e deixar toda ação dentro dela
+// travada em "apenas donos" tornaria o acesso inútil (achado A12 da revisão gauntlet) — por
+// isso qualquer membro ativo já basta aqui, não só o dono. Gerenciar a própria equipe (criar/
+// desativar membro, trocar papel) continua owner-only de propósito, à parte desta função — ver
+// requirePlatformOwner em lib/actions/platformEquipe.ts.
+export async function isPlatformStaff(): Promise<boolean> {
+  const viewer = await getCurrentUser({ ignoreActing: true });
+  if (viewer?.isPlatformOwner) return true;
+  return Boolean(await getPlatformMember());
 }

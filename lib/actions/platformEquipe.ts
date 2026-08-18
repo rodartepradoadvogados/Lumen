@@ -24,14 +24,20 @@ export async function createPlatformMemberFromUser(userId: string, roleId: strin
 }
 
 // Cadastra alguém exclusivo da Lúmen, sem vínculo com nenhum escritório. Guarda a senha com o
-// mesmo hash usado no cadastro normal (lib/auth.ts), mas isso NÃO cria capacidade de login —
-// não existe hoje nenhuma tela que autentique contra PlatformMember.passwordHash. É
-// preenchimento de dados para um passo futuro (fora do escopo desta fase).
+// mesmo hash usado no cadastro normal (lib/auth.ts) — login() em lib/actions/auth.ts autentica
+// contra PlatformMember.passwordHash quando o e-mail não bate com nenhum User, redirecionando
+// direto pro Painel Mestre (achado A12 da revisão gauntlet: antes disto não existia NENHUM
+// jeito de logar como PlatformMember standalone).
 export async function createStandalonePlatformMember(data: { name: string; email: string; password: string; roleId: string }) {
   await requirePlatformOwner();
   if (!data.name || !data.email || !data.password || !data.roleId) throw new Error("Preencha todos os campos.");
   const existing = await prisma.platformMember.findUnique({ where: { email: data.email } });
   if (existing) throw new Error("Já existe um membro com este e-mail.");
+  // E-mail é identificador único GLOBAL (mesmo princípio do login, ver lib/actions/auth.ts) — um
+  // PlatformMember standalone com o e-mail de um User já existente nunca conseguiria logar (o
+  // login tenta User primeiro), virando um cadastro fantasma sem forma de acessar.
+  const existingUser = await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } });
+  if (existingUser) throw new Error("Já existe um usuário de escritório com este e-mail — vincule-o em vez de cadastrar como novo membro.");
   const passwordHash = await bcrypt.hash(data.password, 10);
   await prisma.platformMember.create({
     data: { name: data.name, email: data.email, passwordHash, roleId: data.roleId },

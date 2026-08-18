@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/currentUser";
+import { notFound } from "next/navigation";
+import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import OfficeDetailPanel from "@/components/painelMestre/OfficeDetailPanel";
@@ -11,9 +11,7 @@ const STATUS_LABEL: Record<string, string> = { ATIVA: "Em dia", SUSPENSA: "Bloqu
 const STATUS_COLOR: Record<string, "green" | "red" | "slate"> = { ATIVA: "green", SUSPENSA: "red", CANCELADA: "slate" };
 
 export default async function OfficeDetailPage({ params }: { params: { officeId: string } }) {
-  const viewer = await getCurrentUser({ ignoreActing: true });
-  if (!viewer) redirect("/");
-  if (!viewer.isPlatformOwner) redirect("/painel");
+  await requirePlatformAccess();
 
   const office = await prisma.office.findUnique({
     where: { id: params.officeId },
