@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
+import { authorDisplayName } from "@/lib/authorDisplay";
 import NewTaskModal from "@/components/NewTaskModal";
 import EditReceivableModal from "@/components/EditReceivableModal";
 import LancarHonorariosModal from "@/components/honorarios/LancarHonorariosModal";
@@ -626,20 +627,23 @@ export default async function CaseDetailPage({
         <Card className="p-5">
           <div className="space-y-4 mb-4 max-h-[420px] overflow-y-auto scrollbar-thin">
             {c.comments.length === 0 && <EmptyState title="Nenhum comentário ainda" subtitle="Use @ para mencionar alguém da equipe" />}
-            {c.comments.map((cm) => (
+            {c.comments.map((cm) => {
+              const authorName = authorDisplayName(cm.author, viewer.officeId);
+              return (
               <div key={cm.id} className="flex gap-3">
                 <div className="h-8 w-8 rounded-full bg-grafite-700 text-ouro-500 flex items-center justify-center text-[11px] font-bold shrink-0">
-                  {cm.author.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                  {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <div>
                   <p className="text-sm">
-                    <span className="font-semibold text-tx">{cm.author.name}</span>{" "}
+                    <span className="font-semibold text-tx">{authorName}</span>{" "}
                     <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
                   </p>
                   <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <CommentBox caseId={c.id} users={users.map((u) => ({ id: u.id, name: u.name }))} />
         </Card>

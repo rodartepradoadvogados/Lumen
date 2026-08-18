@@ -36,7 +36,7 @@ import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
-import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard } from "lucide-react";
+import { Upload, HardDrive, CheckCircle2, AlertTriangle, MessageCircle, Plug, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
@@ -962,6 +962,23 @@ export default async function ConfiguracoesPage({
                 Ver e unificar →
               </Link>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && mostraCat("documentos") && (
+        <Card>
+          <CardHeader
+            title="Exportar Dados do Escritório"
+            subtitle="Planilha com todos os dados de negócio (usuários, clientes, processos, atendimentos, tarefas, financeiro, publicações, assessoria e anexos) do seu escritório — serve como cópia de segurança que pode ser gerada a qualquer momento"
+          />
+          <div className="p-5">
+            <a
+              href="/api/admin/export-office"
+              className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit"
+            >
+              <Download size={16} /> Exportar planilha (.xlsx)
+            </a>
           </div>
         </Card>
       )}

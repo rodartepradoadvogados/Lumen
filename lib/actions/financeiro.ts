@@ -215,7 +215,11 @@ async function syncReminderTask(entityField: "payableId" | "receivableId", entit
 // não aparece para essas linhas na UI (HonorarioLancamentoCard), e statusPorPagamentos só devolve
 // PENDENTE/PARCIAL/PAGO, nunca A_APURAR — não há como esta função "promover" uma provisão sem
 // querer.
-async function syncReceivableStatus(id: string, officeId: string): Promise<void> {
+// Exportada para lib/actions/assessoria.ts reaproveitar em markHonorarioPaid — honorário de
+// assessoria dá baixa direto por FinancePayment + este sync, sem passar por requireFinanceOfficeId
+// (a baixa de honorário de assessoria é do módulo Assessoria, não do Financeiro; ver
+// markHonorarioPaid, achado A06 da revisão gauntlet).
+export async function syncReceivableStatus(id: string, officeId: string): Promise<void> {
   const r = await prisma.receivable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
   if (!r) return;
   const soma = r.payments.reduce((s, x) => s + x.amount, 0);

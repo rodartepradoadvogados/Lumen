@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder, deleteDriveFile, type StorageProvider } from "@/lib/storageProvider";
 import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
-import { markReceivablePaid } from "@/lib/actions/financeiro";
+import { syncReceivableStatus } from "@/lib/actions/financeiro";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
 
@@ -505,8 +505,12 @@ export async function addLicitacaoTask(
   return {};
 }
 
-// Reaproveita a mesma lógica de baixa de Contas a Receber — o Honorario só "marca" qual
-// Receivable é a mensalidade de uma competência específica da assessoria.
+// Dá baixa direto (FinancePayment + syncReceivableStatus), sem passar por markReceivablePaid/
+// requireFinanceOfficeId — decisão do dono (achado A06 da revisão gauntlet): honorário de
+// assessoria é dinheiro do módulo Assessoria, não do Financeiro, e um escritório com Assessoria
+// ativa mas sem Financeiro contratado precisa continuar conseguindo baixar a própria mensalidade.
+// Mesma checagem de acesso das demais Server Actions deste arquivo (sessão + officeId — o gate de
+// moduloAssessoria já vive no layout da rota, não repetido tela a tela aqui).
 export async function markHonorarioPaid(honorarioId: string, paidAmount: number, paidDate: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
@@ -515,15 +519,19 @@ export async function markHonorarioPaid(honorarioId: string, paidAmount: number,
   // Tombstone de mensalidade cancelada (receivableId null, ver model Honorario) — não deveria
   // ser alcançável pela UI (getAssessoriaDetail já filtra), mas defende contra chamada direta.
   if (!honorario.receivableId) return { error: "Esta mensalidade foi cancelada." };
-  // markReceivablePaid é do módulo Financeiro e LANÇA (requireFinanceAccess) quando o escritório
-  // não tem o módulo contratado ou o usuário não tem financeAccess/isAdmin — sem este try/catch a
-  // exceção subia crua pela Server Action até o usuário, mesmo que moduloAssessoria esteja ativo
-  // (achado A06 da revisão gauntlet).
-  try {
-    await markReceivablePaid(honorario.receivableId, paidAmount, paidDate);
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Não foi possível registrar o pagamento." };
-  }
+  const receivable = await prisma.receivable.findFirst({ where: { id: honorario.receivableId, officeId: user.officeId }, select: { id: true } });
+  if (!receivable) return { error: "Conta a receber não encontrada." };
+  await prisma.financePayment.create({
+    data: { officeId: user.officeId, amount: paidAmount, paidDate: new Date(paidDate), receivableId: receivable.id },
+  });
+  await syncReceivableStatus(receivable.id, user.officeId);
+  // Mesma lista de revalidatePath de revalidateFinance() em lib/actions/financeiro.ts — não
+  // importável direto (não é async, "use server" só permite exportar async), então repetida
+  // aqui como lib/actions/honorarioLancamento.ts já faz.
+  revalidatePath("/financeiro");
+  revalidatePath("/financeiro/receitas");
+  revalidatePath("/painel");
+  revalidatePath("/alertas");
   revalidatePath(`/assessoria/${honorario.assessoriaId}`);
   return {};
 }

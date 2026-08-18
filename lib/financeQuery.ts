@@ -37,7 +37,7 @@ export function getCurrentMonthRange(): { from: string; to: string } {
 // dueDate é data-calendário (meia-noite) — comparar contra `now` cru (timestamp com hora) marca
 // como ATRASADO uma conta que vence hoje a partir de 00:00:01, em desacordo com a mesma regra em
 // lib/alerts.ts (startOfDay). Normaliza `now` para o início do dia antes de comparar.
-function effective(status: string, dueDate: Date, noDueDate: boolean, now: Date) {
+export function effective(status: string, dueDate: Date, noDueDate: boolean, now: Date) {
   const hoje = new Date(now);
   hoje.setHours(0, 0, 0, 0);
   return status === "PENDENTE" && dueDate < hoje && !noDueDate ? "ATRASADO" : status;
