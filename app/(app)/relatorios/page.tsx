@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, EmptyState, formatCurrency } from "@/components/ui";
 import { Users, Target, Newspaper, Wallet, Scale, Info, SlidersHorizontal } from "lucide-react";
 import RelatorioPersonalizadoView from "@/components/relatorios/RelatorioPersonalizadoView";
-import { valorLiquido, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
+import { valorLiquido, saldoEmAberto, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
 
 export const dynamic = "force-dynamic";
@@ -513,13 +513,18 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
       where: { officeId, status: "PAGO", paidDate: { gte: start, lt: end } },
       include: { category: true, reimbursementReceivable: { select: { id: true } } },
     }),
-    prisma.receivable.findMany({ where: { officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
+    prisma.receivable.findMany({
+      where: { officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false, dueDate: { lt: now } },
+      include: { payments: true },
+    }),
   ]);
 
   // paidReceivables/paidPayables (status "PAGO" exato) e overdueReceivables (status em
-  // [PENDENTE, ATRASADO]) já excluem A_APURAR sozinhos — nenhum dos dois filtros deixaria passar
-  // uma provisão de honorário percentual ainda sem valor real. As somas usam valorLiquido/
-  // paidAmount para respeitar desconto/acréscimo.
+  // [PENDENTE, ATRASADO, PARCIAL]) já excluem A_APURAR sozinhos — nenhum dos filtros deixaria
+  // passar uma provisão de honorário percentual ainda sem valor real. As somas usam valorLiquido/
+  // paidAmount para respeitar desconto/acréscimo. PARCIAL entra na inadimplência (mesma regra da
+  // Central de Alertas, lib/alerts.ts) porque já teve parte paga e ainda tem saldo em aberto —
+  // por isso soma saldoEmAberto (não o valor cheio) logo abaixo.
   //
   // Adiantamentos a Clientes (Despesas do Processo com reembolso vinculado) são excluídos da
   // Receita/Despesa normais — mesma lógica do DRE (/financeiro/dre), ver isAdiantamentoPayable/
@@ -550,7 +555,10 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
     .slice(0, 5);
   const maxExpense = Math.max(0, ...topExpenses.map((e) => e.value));
 
-  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  const inadimplenciaTotal = overdueReceivables.reduce(
+    (s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((sum, p) => sum + p.amount, 0)),
+    0
+  );
   const inadimplenciaCount = overdueReceivables.length;
   const saldoAdiantamentos = totalAdiantado - totalReembolsado;
 

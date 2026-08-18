@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
-import { valorLiquido } from "@/lib/financeCalc";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 import { ArrowLeft } from "lucide-react";
 
@@ -36,7 +36,14 @@ export default async function MobileRelatoriosFinanceiro() {
     // baixa PARCIAL e jogava a quitação inteira no mês do último pagamento. Ver
     // lib/caixaMovimentos.ts.
     listarMovimentosCaixa(viewer.officeId, { de: start, ate: end, ateExclusivo: true }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] }, noDueDate: false, dueDate: { lt: now } } }),
+    // PARCIAL entra também — mesma regra da Central de Alertas (lib/alerts.ts): já teve parte
+    // paga, mas ainda tem saldo em aberto vencido. O denominador logo abaixo (allReceivables) já
+    // incluía PARCIAL; sem isto aqui, a taxa de inadimplência tinha numerador e denominador
+    // incoerentes entre si.
+    prisma.receivable.findMany({
+      where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false, dueDate: { lt: now } },
+      include: { payments: true },
+    }),
     // A_APURAR fora do denominador de inadimplência — é provisão sem valor real ainda (Fase 1),
     // não "a receber" de verdade (nem CANCELADO, que já estava de fora).
     prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] } }, select: { amount: true, discount: true, surcharge: true } }),
@@ -69,7 +76,10 @@ export default async function MobileRelatoriosFinanceiro() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
-  const inadimplenciaTotal = overdueReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  const inadimplenciaTotal = overdueReceivables.reduce(
+    (s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((sum, p) => sum + p.amount, 0)),
+    0
+  );
   const inadimplenciaCount = overdueReceivables.length;
   const totalReceivablesAmount = allReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
   const inadimplenciaRate = totalReceivablesAmount > 0 ? (inadimplenciaTotal / totalReceivablesAmount) * 100 : 0;

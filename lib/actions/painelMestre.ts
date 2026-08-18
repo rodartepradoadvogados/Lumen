@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
-import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured, calcularValorCobranca } from "@/lib/asaas";
+import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured, calcularValorCobranca, reativarOfficeSeSuspenso } from "@/lib/asaas";
 
 // Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate,
 // em vez de duplicar a checagem de isPlatformOwner num segundo lugar.
@@ -170,7 +170,16 @@ export async function updateOfficeBilling(
   const auth = await requirePlatformOwner();
   if ("error" in auth) return auth;
   await prisma.office.update({ where: { id: officeId }, data });
+  // Office.monthlyFee é a fonte de verdade (prisma/schema.prisma:2576-2582) enquanto a leitura
+  // não migra para Subscription — mas a tela Assinaturas e a autorização de Pix Automático já
+  // leem subscription.monthlyFee (ver AssinaturasTable.tsx e lib/asaas.ts), então sem propagar
+  // aqui as duas telas do dono ficam mostrando preços diferentes após um reajuste. updateMany (e
+  // não upsert) de propósito: só atualiza se já existir Subscription, nunca cria uma com os
+  // demais campos obrigatórios ausentes.
+  await prisma.subscription.updateMany({ where: { officeId }, data: { monthlyFee: data.monthlyFee } });
   revalidatePath("/painel-mestre");
+  revalidatePath("/painel-mestre/assinaturas");
+  revalidatePath(`/painel-mestre/${officeId}`);
   return {};
 }
 
@@ -329,8 +338,12 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
 export async function markInvoicePaid(invoiceId: string): Promise<{ error?: string }> {
   const auth = await requirePlatformOwner();
   if ("error" in auth) return auth;
-  await prisma.tenantInvoice.update({ where: { id: invoiceId }, data: { status: "PAGO", paidAt: new Date(), paidVia: "manual" } });
+  const invoice = await prisma.tenantInvoice.update({ where: { id: invoiceId }, data: { status: "PAGO", paidAt: new Date(), paidVia: "manual" } });
+  // Mesma regra do caminho Asaas — "recebi por fora" também remove o motivo do bloqueio, ver
+  // lib/asaas.ts:reativarOfficeSeSuspenso.
+  await reativarOfficeSeSuspenso(invoice.officeId);
   revalidatePath("/painel-mestre");
+  revalidatePath(`/painel-mestre/${invoice.officeId}`);
   return {};
 }
 

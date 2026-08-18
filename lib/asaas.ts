@@ -305,6 +305,20 @@ export type MarkPaidResult = {
   officeReactivated?: boolean;
 };
 
+// "Pagamento confirmado remove o motivo do bloqueio" — mesma regra para os DOIS caminhos que
+// marcam fatura como paga (Asaas/reconciliação e baixa manual do dono, ver markInvoicePaid em
+// lib/actions/painelMestre.ts). Antes só existia dentro do fluxo Asaas; um escritório suspenso
+// que pagasse por fora (baixa manual) ficava bloqueado até o dono lembrar de clicar em "Liberar
+// acesso" também.
+export async function reativarOfficeSeSuspenso(officeId: string): Promise<boolean> {
+  const office = await prisma.office.findUnique({ where: { id: officeId }, select: { status: true, isInternal: true } });
+  if (office && !office.isInternal && office.status === "SUSPENSA") {
+    await prisma.office.update({ where: { id: officeId }, data: { status: "ATIVA" } });
+    return true;
+  }
+  return false;
+}
+
 export async function markTenantInvoicePaidByAsaasPaymentId(
   asaasPaymentId: string,
   params: { externalStatus: string; paidAt: Date }
@@ -322,15 +336,7 @@ export async function markTenantInvoicePaidByAsaasPaymentId(
     data: { status: "PAGO", paidAt: params.paidAt, paidVia: "asaas", externalStatus: params.externalStatus },
   });
 
-  // Se o escritório estava suspenso, o motivo do bloqueio (fatura em aberto) acabou de ser
-  // resolvido — reativa. A decisão de QUANDO suspender automaticamente é da Fase 2 (cron
-  // separado, ainda não implementado); aqui só reagimos a um pagamento confirmado.
-  let officeReactivated = false;
-  const office = await prisma.office.findUnique({ where: { id: invoice.officeId }, select: { status: true, isInternal: true } });
-  if (office && !office.isInternal && office.status === "SUSPENSA") {
-    await prisma.office.update({ where: { id: invoice.officeId }, data: { status: "ATIVA" } });
-    officeReactivated = true;
-  }
+  const officeReactivated = await reativarOfficeSeSuspenso(invoice.officeId);
 
   revalidatePath("/painel-mestre");
   return { found: true, alreadyPaid: false, invoiceId: invoice.id, officeReactivated };

@@ -525,6 +525,12 @@ export async function updatePayable(id: string, data: {
     },
   });
 
+  // amount/discount/surcharge (o valor devido) são a outra metade da equação que
+  // syncPayableStatus deriva a partir da soma de FinancePayment — sem recalcular aqui, editar o
+  // valor de uma conta já baixada deixa status/paidAmount desatualizados (ex.: acréscimo depois
+  // da baixa integral continua marcado PAGO, com o saldo em aberto invisível).
+  await syncPayableStatus(id, officeId);
+
   if (wantsReimbursement && effectiveCaseId) {
     await createReimbursementReceivable({
       officeId,
@@ -562,7 +568,7 @@ export async function updateReceivable(id: string, data: {
   noDueDate?: boolean;
 }): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true } });
+  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true, status: true } });
   if (!existing) return { error: "Conta a receber não encontrada." };
   try {
     await assertFinanceRelationsInOffice(data, officeId);
@@ -595,6 +601,13 @@ export async function updateReceivable(id: string, data: {
       noDueDate,
     },
   });
+
+  // Mesma correção de updatePayable acima — mas pulando A_APURAR: é só uma provisão percentual
+  // sem valor real ainda, e syncReceivableStatus promoveria essa estimativa a PENDENTE/PAGO por
+  // acidente (ver a mesma exclusão explícita em getAlerts, lib/alerts.ts).
+  if (existing.status !== "A_APURAR") {
+    await syncReceivableStatus(id, officeId);
+  }
 
   await maybeRenameFinanceReceipt("RECEIVABLE", id, officeId);
 
@@ -969,21 +982,26 @@ export async function createRecurringFee(data: {
     },
   });
   // Materializa já os próximos meses (não espera o cron rodar amanhã) — a projeção de Fluxo de
-  // Caixa reflete o novo honorário recorrente assim que ele é criado.
-  await ensureRecurringFeeReceivables();
+  // Caixa reflete o novo honorário recorrente assim que ele é criado. Escopado a ESTE escritório
+  // (officeId) — sem isso, a função varria (e escrevia em) os RecurringFee de TODOS os
+  // escritórios da plataforma dentro da requisição de um único usuário.
+  await ensureRecurringFeeReceivables(officeId);
   revalidateFinance();
   revalidateCase(data.caseId);
   return {};
 }
 
-// Roda diariamente via cron (app/api/cron/recurring-fees/route.ts) — idempotente: a constraint
-// única (recurringFeeId, competencia) em Receivable garante que rodar todo dia em vez de só no
-// dia 1 não duplica nada. Também é quem desliga sozinho um RecurringFee cujo processo já foi
-// arquivado, sem precisar de nenhum hook em updateCaseStatus.
-export async function ensureRecurringFeeReceivables(): Promise<{ created: number; deactivated: number; failed: number }> {
+// Roda diariamente via cron (app/api/cron/recurring-fees/route.ts), sem argumento — varre a
+// plataforma inteira de propósito. `officeId` é passado só pelo caminho de requisição do usuário
+// (createRecurringFee acima), pra não repetir o trabalho (e as ESCRITAS de desativação abaixo)
+// de todo escritório da plataforma dentro do clique de um único usuário.
+// Idempotente: a constraint única (recurringFeeId, competencia) em Receivable garante que rodar
+// todo dia em vez de só no dia 1 não duplica nada. Também é quem desliga sozinho um RecurringFee
+// cujo processo já foi arquivado, sem precisar de nenhum hook em updateCaseStatus.
+export async function ensureRecurringFeeReceivables(officeId?: string): Promise<{ created: number; deactivated: number; failed: number }> {
   const now = new Date();
   const fees = await prisma.recurringFee.findMany({
-    where: { active: true },
+    where: { active: true, ...(officeId ? { officeId } : {}) },
     include: { case: { select: { status: true, clientId: true } } },
   });
 
@@ -1098,19 +1116,21 @@ export async function createRecurringExpense(data: {
     },
   });
   // Materializa já os próximos meses (não espera o cron rodar amanhã) — mesmo raciocínio de
-  // createRecurringFee acima.
-  await ensureRecurringExpensePayables();
+  // createRecurringFee acima, incluindo o escopo por officeId (achado A65 da revisão gauntlet).
+  await ensureRecurringExpensePayables(officeId);
   revalidateFinance();
   return {};
 }
 
-// Roda diariamente via cron (app/api/cron/recurring-expenses/route.ts) — idempotente, mesma
-// constraint única (recurringExpenseId, competencia) em Payable que RecurringFee usa do lado das
-// Receivable. Diferente de ensureRecurringFeeReceivables: NUNCA desativa sozinha (não existe
-// processo pra arquivar aqui) — só para quando o usuário encerra manualmente.
-export async function ensureRecurringExpensePayables(): Promise<{ created: number; failed: number }> {
+// Roda diariamente via cron (app/api/cron/recurring-expenses/route.ts), sem argumento — varre a
+// plataforma inteira de propósito. `officeId` só é passado pelo caminho de requisição do usuário
+// (createRecurringExpense acima) — idempotente, mesma constraint única (recurringExpenseId,
+// competencia) em Payable que RecurringFee usa do lado das Receivable. Diferente de
+// ensureRecurringFeeReceivables: NUNCA desativa sozinha (não existe processo pra arquivar aqui) —
+// só para quando o usuário encerra manualmente.
+export async function ensureRecurringExpensePayables(officeId?: string): Promise<{ created: number; failed: number }> {
   const now = new Date();
-  const expenses = await prisma.recurringExpense.findMany({ where: { active: true } });
+  const expenses = await prisma.recurringExpense.findMany({ where: { active: true, ...(officeId ? { officeId } : {}) } });
 
   let created = 0;
   let failed = 0;
