@@ -254,7 +254,7 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
     if (recebido && data.pagamento) {
       await registrarRecebimento(receivable.id, dinheiroAmount, discount, surcharge, data.pagamento, officeId);
     } else if (!noDueDate) {
-      await createInstallmentReminder(officeId, "receber", data.description, dueDate, data.caseId);
+      await createInstallmentReminder(officeId, "receber", data.description, dueDate, data.caseId, receivable.id);
     }
     revalidateFinance();
     revalidateCase(data.caseId);
@@ -321,7 +321,7 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
           },
         });
       } else {
-        await createInstallmentReminder(officeId, "receber", description, rowDueDate, data.caseId);
+        await createInstallmentReminder(officeId, "receber", description, rowDueDate, data.caseId, receivable.id);
       }
     }
   } else if (cobrancaHasDinheiro) {
@@ -344,7 +344,7 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
     if (recebido && data.pagamento) {
       await registrarRecebimento(receivable.id, dinheiroAmount, discount, surcharge, data.pagamento, officeId);
     } else if (!noDueDate) {
-      await createInstallmentReminder(officeId, "receber", `${data.description} (dinheiro)`, dueDate, data.caseId);
+      await createInstallmentReminder(officeId, "receber", `${data.description} (dinheiro)`, dueDate, data.caseId, receivable.id);
     }
   }
 
@@ -394,7 +394,7 @@ export async function createHonorarioLancamento(data: CreateHonorarioInput): Pro
           officeId
         );
       } else if (!noDueDate) {
-        await createInstallmentReminder(officeId, "receber", `${data.description} (percentual)`, dueDate, data.caseId);
+        await createInstallmentReminder(officeId, "receber", `${data.description} (percentual)`, dueDate, data.caseId, receivable.id);
       }
     } else if (recebido && data.pagamento && !dinheiroReceivableId) {
       // A base ainda não tem valor cadastrado no processo, mas dinheiro de verdade já chegou

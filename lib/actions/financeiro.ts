@@ -133,7 +133,20 @@ async function maybeRenameFinanceReceipt(kind: "PAYABLE" | "RECEIVABLE", id: str
 // Cria um lembrete de vencimento na Agenda/Kanban para uma parcela recorrente
 // de contas a pagar/receber, vinculado ao processo quando houver. Exportado para
 // lib/actions/honorarioLancamento.ts reaproveitar no lembrete da parcela de entrada.
-export async function createInstallmentReminder(officeId: string, kind: "pagar" | "receber", title: string, dueDate: Date, caseId?: string | null) {
+//
+// entityId vincula a tarefa à parcela que a gerou (receivableId ou payableId, conforme `kind`) —
+// sem esse vínculo, a tarefa não é concluída quando a parcela é baixada nem apagada quando a
+// parcela é excluída, e some da Agenda/Kanban como prazo fantasma (achado A26 da revisão
+// gauntlet). onDelete: Cascade no schema cuida da exclusão; syncPayableStatus/
+// syncReceivableStatus cuidam da conclusão automática ao pagar.
+export async function createInstallmentReminder(
+  officeId: string,
+  kind: "pagar" | "receber",
+  title: string,
+  dueDate: Date,
+  caseId?: string | null,
+  entityId?: string
+) {
   const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId }, orderBy: { order: "asc" } });
   await prisma.task.create({
     data: {
@@ -144,6 +157,8 @@ export async function createInstallmentReminder(officeId: string, kind: "pagar" 
       priority: "MEDIA",
       caseId: caseId || null,
       columnId: firstColumn?.id,
+      payableId: kind === "pagar" ? entityId || null : null,
+      receivableId: kind === "receber" ? entityId || null : null,
     },
   });
 }
@@ -172,6 +187,27 @@ async function syncPayableStatus(id: string, officeId: string): Promise<void> {
       paymentMethod: last?.paymentMethod ?? null,
     },
   });
+  await syncReminderTask("payableId", id, officeId, status);
+}
+
+// Conclui (ou reabre) o lembrete de vencimento (Task type=PRAZO, criado por
+// createInstallmentReminder) vinculado a uma parcela, acompanhando o status real dela — sem isto
+// o lembrete continua PENDENTE para sempre, mesmo depois de a conta ser paga, e polui Agenda,
+// Kanban, Central de Alertas e o e-mail diário com prazos que já foram cumpridos (achado A26 da
+// revisão gauntlet). Não mexe num lembrete que o usuário cancelou manualmente (status
+// CANCELADO) — pagar a parcela não deveria reviver uma tarefa que ele descartou de propósito.
+async function syncReminderTask(entityField: "payableId" | "receivableId", entityId: string, officeId: string, status: string): Promise<void> {
+  if (status === "PAGO") {
+    await prisma.task.updateMany({
+      where: { [entityField]: entityId, officeId, status: { not: "CANCELADO" } },
+      data: { status: "CONCLUIDO", completedAt: new Date() },
+    });
+  } else {
+    await prisma.task.updateMany({
+      where: { [entityField]: entityId, officeId, status: "CONCLUIDO" },
+      data: { status: "PENDENTE", completedAt: null },
+    });
+  }
 }
 
 // Mesma conta acima, para Receivable — nunca chamada para uma linha A_APURAR (provisão de
@@ -196,6 +232,7 @@ async function syncReceivableStatus(id: string, officeId: string): Promise<void>
       paymentMethod: last?.paymentMethod ?? null,
     },
   });
+  await syncReminderTask("receivableId", id, officeId, status);
 }
 
 // Dar baixa (Fase 3 — aceita valor PARCIAL, menor que o saldo em aberto): cada chamada cria UM
@@ -319,6 +356,7 @@ export async function reopenPayable(id: string) {
     prisma.financePayment.deleteMany({ where: { payableId: id, officeId } }),
     prisma.payable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } }),
   ]);
+  await syncReminderTask("payableId", id, officeId, "PENDENTE");
   revalidateFinance();
   revalidateCase(existing.caseId);
 }
@@ -331,6 +369,7 @@ export async function reopenReceivable(id: string) {
     prisma.financePayment.deleteMany({ where: { receivableId: id, officeId } }),
     prisma.receivable.update({ where: { id }, data: { status: "PENDENTE", paidAmount: null, paidDate: null, paymentReceiptNumber: null, paymentMethod: null } }),
   ]);
+  await syncReminderTask("receivableId", id, officeId, "PENDENTE");
   revalidateFinance();
   revalidateCase(existing.caseId);
 }
@@ -778,7 +817,7 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
         });
         await syncPayableStatus(payable.id, officeId);
       } else {
-        await createInstallmentReminder(officeId, "pagar", description, rowDueDate, data.caseId);
+        await createInstallmentReminder(officeId, "pagar", description, rowDueDate, data.caseId, payable.id);
       }
     }
   } else {
@@ -798,7 +837,7 @@ export async function createPayable(data: CreatePayableInput): Promise<{ error?:
     if (pago && data.pagamento) {
       await registrarPagamentoPayable(payable.id, data.pagamento, officeId);
     } else if (!noDueDate) {
-      await createInstallmentReminder(officeId, "pagar", data.description, dueDate, data.caseId);
+      await createInstallmentReminder(officeId, "pagar", data.description, dueDate, data.caseId, payable.id);
     }
   }
 
@@ -903,7 +942,7 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
         });
         await syncReceivableStatus(receivable.id, officeId);
       } else {
-        await createInstallmentReminder(officeId, "receber", description, rowDueDate, data.caseId);
+        await createInstallmentReminder(officeId, "receber", description, rowDueDate, data.caseId, receivable.id);
       }
     }
   } else {
@@ -921,7 +960,7 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
     if (recebido && data.pagamento) {
       await registrarPagamentoReceivable(receivable.id, data.pagamento, officeId);
     } else if (!noDueDate) {
-      await createInstallmentReminder(officeId, "receber", data.description, dueDate, data.caseId);
+      await createInstallmentReminder(officeId, "receber", data.description, dueDate, data.caseId, receivable.id);
     }
   }
 
