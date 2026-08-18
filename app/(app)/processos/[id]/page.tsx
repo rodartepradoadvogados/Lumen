@@ -915,7 +915,7 @@ export default async function CaseDetailPage({
             {publicationGroups.length === 0 ? (
               <EmptyState title="Nenhuma publicação vinculada" />
             ) : (
-              <PublicationsList groups={publicationGroups} highlightNew={false} />
+              <PublicationsList groups={publicationGroups} highlightNew={false} users={users.map((u) => ({ id: u.id, name: u.name }))} />
             )}
           </Card>
         </div>

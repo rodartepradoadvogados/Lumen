@@ -197,6 +197,12 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
               />
             )}
 
+            {/* Mesma guarda do botão "Delegar" abaixo — os atalhos do Agenda abrem o mesmo modal de
+                Delegar (ver comentário no topo do arquivo), que exige responsável no passo 1; sem
+                nenhum `users`, o formulário fica preso ali sem chance de avançar. Defesa em
+                profundidade: o chamador de verdade já passa `users` (ver app/m/processos/[id]/page.tsx
+                e app/m/publicacoes/page.tsx), isto só evita repetir o mesmo esquecimento no futuro. */}
+            {users.length > 0 && (
             <div className="relative">
               <button
                 type="button"
@@ -224,6 +230,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                 </div>
               )}
             </div>
+            )}
 
             {users.length > 0 && (
               <button
