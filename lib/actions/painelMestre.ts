@@ -8,6 +8,7 @@ import { seedDefaultOfficeData } from "@/lib/defaultOfficeData";
 import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
 import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured, calcularValorCobranca, reativarOfficeSeSuspenso } from "@/lib/asaas";
+import { getAppUrl } from "@/lib/appUrl";
 
 // Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate,
 // em vez de duplicar a checagem de isPlatformOwner num segundo lugar.
@@ -42,11 +43,6 @@ async function uniqueOfficeSlug(base: string): Promise<string> {
   return slug;
 }
 
-function getAppUrl(): string {
-  if (process.env.APP_URL) return process.env.APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
 
 export type TenantOfficeSummary = {
   id: string;
@@ -290,18 +286,27 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
       boletoUrl = invoice.boletoUrl;
     }
   } else if (!boletoUrl && (await isBtgConnected())) {
-    const boleto = await createBoleto({
-      payerName: office.name,
-      payerDocument: "", // TODO: cadastrar CNPJ do escritório-cliente — necessário pro BTG emitir de verdade
-      amount: invoice.amount,
-      dueDate: invoice.dueDate,
-      description: `Mensalidade Lúmen — ${office.name} — ${competencia}`,
-    });
-    if (boleto.ok) {
-      await prisma.tenantInvoice.update({ where: { id: invoice.id }, data: { boletoId: boleto.boletoId, boletoUrl: boleto.boletoUrl } });
-      boletoUrl = boleto.boletoUrl ?? null;
+    // office.cnpj já é cadastrável e salvo (updateOfficeBilling) e os outros dois emissores
+    // (Pix QR Code/boleto Asaas, acima) já o usam — só este ramo BTG, mais antigo, ficou com o
+    // placeholder original. O BTG recusa payer.document vazio, então checa ANTES de chamar a
+    // API em vez de deixar a chamada falhar (achado A40 da revisão gauntlet).
+    const payerDocument = (office.cnpj ?? "").replace(/\D/g, "");
+    if (!payerDocument) {
+      btgWarning = "Cadastre o CNPJ do escritório (Painel Mestre → Cobrança) para emitir boleto pelo BTG.";
     } else {
-      btgWarning = boleto.error;
+      const boleto = await createBoleto({
+        payerName: office.name,
+        payerDocument,
+        amount: invoice.amount,
+        dueDate: invoice.dueDate,
+        description: `Mensalidade Lúmen — ${office.name} — ${competencia}`,
+      });
+      if (boleto.ok) {
+        await prisma.tenantInvoice.update({ where: { id: invoice.id }, data: { boletoId: boleto.boletoId, boletoUrl: boleto.boletoUrl } });
+        boletoUrl = boleto.boletoUrl ?? null;
+      } else {
+        btgWarning = boleto.error;
+      }
     }
   }
 

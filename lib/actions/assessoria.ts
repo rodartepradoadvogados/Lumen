@@ -130,7 +130,10 @@ export async function getAssessoriaDetail(id: string) {
         orderBy: { date: "desc" },
         include: { documents: { orderBy: { date: "desc" } } },
       },
-      honorarios: { orderBy: { competencia: "desc" }, include: { receivable: true } },
+      // where filtra os tombstones (receivableId null, ver comentário do model Honorario em
+      // prisma/schema.prisma) — mensalidade cancelada pelo usuário some da lista como se nunca
+      // tivesse existido; o registro continua no banco só para travar o cron.
+      honorarios: { where: { receivableId: { not: null } }, orderBy: { competencia: "desc" }, include: { receivable: true } },
       licitacoes: { orderBy: { createdAt: "desc" }, include: { tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } } } },
       // Histórico do botão "Enviar E-mail/WhatsApp" (aba "Pareceres, Processos e Casos") — mesmo
       // padrão de app/(app)/processos/[id]/page.tsx para o Processo. Ver model DocumentoEnvio.
@@ -157,7 +160,16 @@ export async function getAssessoriaDetail(id: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  return { ...assessoria, linkedCases, linkedAttendances };
+  return {
+    ...assessoria,
+    // O `where: { receivableId: { not: null } }` do include acima já garante isto em runtime —
+    // Receivable é opcional no schema (tombstone de mensalidade cancelada, ver model Honorario),
+    // então o Prisma tipa como nullable mesmo filtrado; esta asserção fecha só esse gap de tipo
+    // para as telas que consomem `h.receivable.*` sem checagem extra (nunca veem um tombstone).
+    honorarios: assessoria.honorarios.map((h) => ({ ...h, receivable: h.receivable! })),
+    linkedCases,
+    linkedAttendances,
+  };
 }
 
 // Vincula (ou desvincula, se assessoriaId for null) um Processo/Caso já existente a uma
@@ -500,7 +512,18 @@ export async function markHonorarioPaid(honorarioId: string, paidAmount: number,
   if (!user) return { error: "Sessão inválida." };
   const honorario = await prisma.honorario.findFirst({ where: { id: honorarioId, officeId: user.officeId } });
   if (!honorario) return { error: "Honorário não encontrado." };
-  await markReceivablePaid(honorario.receivableId, paidAmount, paidDate);
+  // Tombstone de mensalidade cancelada (receivableId null, ver model Honorario) — não deveria
+  // ser alcançável pela UI (getAssessoriaDetail já filtra), mas defende contra chamada direta.
+  if (!honorario.receivableId) return { error: "Esta mensalidade foi cancelada." };
+  // markReceivablePaid é do módulo Financeiro e LANÇA (requireFinanceAccess) quando o escritório
+  // não tem o módulo contratado ou o usuário não tem financeAccess/isAdmin — sem este try/catch a
+  // exceção subia crua pela Server Action até o usuário, mesmo que moduloAssessoria esteja ativo
+  // (achado A06 da revisão gauntlet).
+  try {
+    await markReceivablePaid(honorario.receivableId, paidAmount, paidDate);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Não foi possível registrar o pagamento." };
+  }
   revalidatePath(`/assessoria/${honorario.assessoriaId}`);
   return {};
 }

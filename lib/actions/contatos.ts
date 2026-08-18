@@ -126,21 +126,37 @@ export async function deleteLawyer(id: string): Promise<{ error?: string }> {
 export async function deleteClient(id: string): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer) return { error: "Sessão expirada. Faça login novamente." };
-  const [cases, receivables, publications] = await Promise.all([
+  // Case.clientId é campo LEGADO — aponta só para o primeiro cliente do processo. A lista
+  // completa de litisconsórcio ativo mora em CaseClient (sem officeId próprio, filtrado via
+  // case.officeId); sem contar essa tabela também, um segundo/terceiro litisconsorte passava
+  // pela guarda com falso-negativo e o delete estourava violação de FK. Assessoria.client é
+  // relação obrigatória do mesmo jeito.
+  const [cases, caseClients, receivables, publications, assessorias] = await Promise.all([
     prisma.case.count({ where: { clientId: id, officeId: viewer.officeId } }),
+    prisma.caseClient.count({ where: { clientId: id, case: { officeId: viewer.officeId } } }),
     prisma.receivable.count({ where: { clientId: id, officeId: viewer.officeId } }),
     prisma.publication.count({ where: { clientId: id, officeId: viewer.officeId } }),
+    prisma.assessoria.count({ where: { clientId: id, officeId: viewer.officeId } }),
   ]);
-  if (cases > 0 || receivables > 0 || publications > 0) {
+  if (cases > 0 || caseClients > 0 || receivables > 0 || publications > 0 || assessorias > 0) {
     const parts: string[] = [];
-    if (cases > 0) parts.push(`${cases} processo(s)/caso(s)`);
+    if (cases > 0 || caseClients > 0) parts.push(`${Math.max(cases, caseClients)} processo(s)/caso(s)`);
     if (receivables > 0) parts.push(`${receivables} lançamento(s) a receber`);
     if (publications > 0) parts.push(`${publications} publicação(ões)`);
+    if (assessorias > 0) parts.push(`${assessorias} assessoria(s)`);
     return {
       error: `Não é possível excluir: há ${parts.join(", ")} vinculado(s) a este cliente. Remova ou reatribua esses itens antes de excluir.`,
     };
   }
-  await prisma.client.deleteMany({ where: { id, officeId: viewer.officeId } });
+  try {
+    await prisma.client.deleteMany({ where: { id, officeId: viewer.officeId } });
+  } catch {
+    // Defesa em profundidade — mesmo padrão de lib/actions/clientDuplicates.ts: qualquer outra FK
+    // que a guarda acima não cobriu vira mensagem amigável em vez de erro genérico de servidor.
+    // Relações opcionais (Attendance, HonorarioLancamento) são desvinculadas silenciosamente
+    // pelo SET NULL padrão do Prisma quando o delete passa — não bloqueiam a exclusão.
+    return { error: "Não é possível excluir: este cliente ainda tem vínculos no sistema." };
+  }
   revalidatePath("/contatos/clientes");
   revalidatePath("/contatos");
   return {};

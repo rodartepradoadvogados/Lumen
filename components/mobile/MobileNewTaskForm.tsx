@@ -9,6 +9,7 @@ export default function MobileNewTaskForm({
   caseId,
   defaultType = "TAREFA",
   defaultOpen = false,
+  defaultResponsibleId,
   onCreated,
 }: {
   // Opcional: quando ausente, cria um compromisso avulso (não vinculado a processo) —
@@ -16,6 +17,11 @@ export default function MobileNewTaskForm({
   caseId?: string;
   defaultType?: string;
   defaultOpen?: boolean;
+  // Sem &lt;select&gt; de responsável neste formulário (versão enxuta do modal desktop) — os
+  // chamadores passam o autor (viewer.id) como padrão implícito, senão o compromisso nascia sem
+  // responsável e ficava fora do push "Agenda do dia" e do ranking de Produtividade (achado A57
+  // da revisão gauntlet).
+  defaultResponsibleId?: string;
   onCreated?: () => void;
 }) {
   const router = useRouter();
@@ -36,6 +42,7 @@ export default function MobileNewTaskForm({
         dueTime: String(formData.get("dueTime") || ""),
         priority: "MEDIA",
         caseId,
+        responsibleId: defaultResponsibleId,
         description: String(formData.get("description") || ""),
         meetingType: String(formData.get("meetingType") || ""),
         location: String(formData.get("location") || ""),

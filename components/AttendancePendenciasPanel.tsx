@@ -38,6 +38,7 @@ export default function AttendancePendenciasPanel({
   const [adding, setAdding] = useState(false);
   const [newRows, setNewRows] = useState<PendenciaRow[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const abertas = pendencias.filter((p) => p.status === "PENDENTE");
   const concluidas = pendencias.filter((p) => p.status !== "PENDENTE");
@@ -56,8 +57,13 @@ export default function AttendancePendenciasPanel({
   }
   function handleDelete(id: string) {
     if (!window.confirm("Excluir esta pendência?")) return;
+    setError("");
     startTransition(async () => {
-      await deleteAttendancePendencia(id);
+      const result = await deleteAttendancePendencia(id);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
       router.refresh();
     });
   }
@@ -86,6 +92,7 @@ export default function AttendancePendenciasPanel({
 
   return (
     <div className="space-y-3">
+      {error && <p className="text-xs text-urgente">{error}</p>}
       {abertas.length === 0 && !adding && <p className="text-sm text-tx-2">Nenhuma pendência em aberto.</p>}
 
       {abertas.length > 0 && (

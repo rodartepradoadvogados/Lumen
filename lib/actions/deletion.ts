@@ -109,9 +109,13 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     // Receita gerada pelo cron mensal de honorários de Assessoria (lib/actions/assessoria.ts:
     // generateAllMonthlyHonorarios) tem um registro Honorario apontando pra cá sem onDelete
     // Cascade — apagar a receita direto batia em violação de chave estrangeira e derrubava a
-    // página com erro genérico. Remove o vínculo primeiro (não é um registro financeiro em si,
-    // só a marcação de qual receita é a mensalidade de qual competência).
-    await prisma.honorario.deleteMany({ where: { receivableId: entityId } });
+    // página com erro genérico. NÃO apaga o Honorario junto (isso era o achado A27 da revisão
+    // gauntlet): ele é a própria trava de idempotência que o cron consulta por (assessoriaId,
+    // competencia) antes de gerar — apagando os dois, o cron não via mais nada e recriava a
+    // mesma competência na manhã seguinte. Em vez disso vira um tombstone (receivableId null +
+    // canceladoEm), que continua bloqueando o cron mas some das telas de Honorários (ver
+    // getAssessoriaDetail, que filtra por receivableId não-nulo).
+    await prisma.honorario.updateMany({ where: { receivableId: entityId }, data: { receivableId: null, canceladoEm: new Date() } });
     await prisma.receivable.delete({ where: { id: entityId } });
     // Se esta era a última parcela de um lançamento de honorários parcelado, o cabeçalho fica
     // órfão (sem nenhuma parcela) — apaga junto para não sobrar um HonorarioLancamento vazio.
@@ -197,6 +201,22 @@ function revalidateCaseScoped(caseId: string | null | undefined) {
 // parâmetro chega como false/undefined nesses ramos.
 async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityId: string, officeId: string, scope: DeletionScope, alsoDeleteLinked?: boolean): Promise<{ warning?: string }> {
   if (scope === "ONLY") {
+    // Mesma proteção que DeleteEntityButton.tsx já aplica na UI (não oferece "só este" para
+    // groupKind RECORRENTE) — coberta aqui também, caso esta função seja alcançada sem passar
+    // pela UI. Para uma série gerada por cron, a própria linha é a trava de idempotência
+    // (ensureRecurringFeeReceivables/ensureRecurringExpensePayables); sem desligar a recorrência
+    // junto, o cron recria a mesma competência no dia seguinte (achado A28 da revisão gauntlet).
+    if (entityType === "PAYABLE") {
+      const anchor = await prisma.payable.findFirst({ where: { id: entityId, officeId }, select: { recurringExpenseId: true } });
+      if (anchor?.recurringExpenseId) {
+        await prisma.recurringExpense.update({ where: { id: anchor.recurringExpenseId }, data: { active: false } });
+      }
+    } else {
+      const anchor = await prisma.receivable.findFirst({ where: { id: entityId, officeId }, select: { recurringFeeId: true } });
+      if (anchor?.recurringFeeId) {
+        await prisma.recurringFee.update({ where: { id: anchor.recurringFeeId }, data: { active: false } });
+      }
+    }
     return performDelete(entityType, entityId, officeId, alsoDeleteLinked);
   }
   const includePago = scope === "ALL";

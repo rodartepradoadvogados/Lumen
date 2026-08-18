@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { signSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getAppUrl } from "@/lib/appUrl";
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
@@ -22,12 +23,6 @@ function maskEmail(email: string): string {
   if (!domain) return email;
   if (local.length <= 3) return `${local[0]}***@${domain}`;
   return `${local[0]}***${local.slice(-2)}@${domain}`;
-}
-
-function getAppUrl(): string {
-  if (process.env.APP_URL) return process.env.APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
 }
 
 // Login por e-mail (não por username): num sistema multi-tenant, e-mail é o único

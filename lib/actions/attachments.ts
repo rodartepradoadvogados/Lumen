@@ -14,6 +14,7 @@ import {
   type StorageProvider,
 } from "@/lib/storageProvider";
 import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile, translateDriveError } from "@/lib/googleDrive";
+import { isValidBlobUrl } from "@/lib/blobUrl";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { autoResolvePendenciasForAttachment } from "@/lib/actions/attendancePendencias";
 
@@ -70,6 +71,12 @@ export async function finalizeAttachmentUpload(data: {
 }): Promise<{ id?: string; name?: string; driveUrl?: string; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
+
+  // Mesma validação de app/api/assessoria/documentos/upload/route.ts (achado A63 da revisão
+  // gauntlet) — sem isso, um chamador autenticado poderia mandar qualquer URL para o servidor
+  // baixar (SSRF), inclusive um endereço de rede interna, e o conteúdo baixado vira Attachment
+  // salvo e legível.
+  if (!isValidBlobUrl(data.blobUrl)) return { error: "Erro ao processar o arquivo enviado. Tente novamente." };
 
   const resolvedCaseId = data.caseId || null;
   const resolvedAttendanceId = data.attendanceId || null;

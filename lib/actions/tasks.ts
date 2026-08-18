@@ -239,6 +239,11 @@ export async function acknowledgeDelegation(taskId: string): Promise<void> {
   await prisma.task.updateMany({ where: { id: taskId, officeId: viewer.officeId }, data: { delegationAcknowledgedAt: new Date() } });
   revalidatePath("/alertas");
   revalidatePath("/painel");
+  // AlertRow (onde este acknowledge é disparado) também é renderizado no app, que tem rotas
+  // espelhadas próprias — sem revalidar elas o alerta continua na Central de Alertas e no badge
+  // do PWA até um reload duro (achado A22 da revisão gauntlet).
+  revalidatePath("/m/alertas");
+  revalidatePath("/m");
 }
 
 // Busca resumida de Processos/Casos para o passo 3 do formulário de delegação —

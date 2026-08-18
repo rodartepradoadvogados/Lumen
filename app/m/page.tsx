@@ -7,6 +7,7 @@ import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedPro
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { naturezaWhere } from "@/lib/caseNatureza";
 import { Card, formatCurrency } from "@/components/ui";
+import { valorLiquido } from "@/lib/financeCalc";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
 import AlertRow from "@/components/AlertRow";
 import {
@@ -47,25 +48,26 @@ function greeting() {
   return "Boa noite";
 }
 
-// Saldo do mês corrente (por vencimento, excluindo cancelados) — mesma metodologia da
-// página de Fluxo de Caixa (ver app/m/financeiro/fluxo-de-caixa/page.tsx), só que restrita
-// ao mês atual: alimenta o número do atalho "Financeiro" na Início, pra ele responder antes
-// do toque igual aos outros atalhos (contagem de processos, alertas, publicações).
+// Saldo do mês corrente (por vencimento, excluindo cancelados e A_APURAR), somando o valor
+// LÍQUIDO (amount - discount + surcharge) — mesma metodologia da página de Fluxo de Caixa (ver
+// app/m/financeiro/fluxo-de-caixa/page.tsx), só que restrita ao mês atual: alimenta o número do
+// atalho "Financeiro" na Início, pra ele responder antes do toque igual aos outros atalhos
+// (contagem de processos, alertas, publicações). `_sum` do Prisma não expressa
+// amount-discount+surcharge, então soma-se em código com valorLiquido — antes este número era o
+// valor BRUTO (amount puro), divergindo do Fluxo de Caixa sempre que houvesse desconto/acréscimo
+// (achado A58 da revisão gauntlet).
 async function getMonthlyNetFlow(officeId: string) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const where = { officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: monthStart, lte: monthEnd } };
   const [receitas, despesas] = await Promise.all([
-    prisma.receivable.aggregate({
-      _sum: { amount: true },
-      where: { officeId, status: { not: "CANCELADO" }, dueDate: { gte: monthStart, lte: monthEnd } },
-    }),
-    prisma.payable.aggregate({
-      _sum: { amount: true },
-      where: { officeId, status: { not: "CANCELADO" }, dueDate: { gte: monthStart, lte: monthEnd } },
-    }),
+    prisma.receivable.findMany({ where, select: { amount: true, discount: true, surcharge: true } }),
+    prisma.payable.findMany({ where, select: { amount: true, discount: true, surcharge: true } }),
   ]);
-  return (receitas._sum.amount ?? 0) - (despesas._sum.amount ?? 0);
+  const soma = (rows: { amount: number; discount: number; surcharge: number }[]) =>
+    rows.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  return soma(receitas) - soma(despesas);
 }
 
 export default async function MobileHome() {

@@ -18,15 +18,18 @@ const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "
 // para lista.
 export default async function MobileFluxoDeCaixa() {
   const viewer = await getCurrentUser();
-  if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const now = new Date();
   const windowStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   const windowEnd = new Date(now.getFullYear(), now.getMonth() + 4, 0, 23, 59, 59);
 
+  // noDueDate: false — "Sem vencimento definido" grava dueDate como placeholder técnico (1º do
+  // mês seguinte ao cadastro, nunca atualizado); mesma correção do desktop (achado A45 da
+  // revisão gauntlet), ver app/(app)/financeiro/fluxo-de-caixa/page.tsx.
   const [payables, receivables] = await Promise.all([
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { gte: windowStart, lte: windowEnd } } }),
   ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number }[] = [];

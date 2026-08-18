@@ -1,13 +1,10 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { getAppUrl } from "@/lib/appUrl";
 
 // Sem isso, o Next gera o sitemap uma vez no build e ele fica parado até o
 // próximo deploy — matérias aprovadas depois (sem novo deploy) não apareceriam.
 export const dynamic = "force-dynamic";
-
-function getAppUrl(): string {
-  return process.env.APP_URL || "https://lumen-flax-chi.vercel.app";
-}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getAppUrl();

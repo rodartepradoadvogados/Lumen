@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { deleteAnotacao } from "@/lib/actions/anotacoes";
@@ -15,11 +15,17 @@ export type AnotacaoListItem = { id: string; content: string; referenceDate: str
 export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: AnotacaoListItem[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
 
   function handleDelete(id: string) {
     if (!window.confirm("Excluir esta anotação?")) return;
+    setError("");
     startTransition(async () => {
-      await deleteAnotacao(id);
+      const result = await deleteAnotacao(id);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
       router.refresh();
     });
   }
@@ -35,6 +41,7 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
 
   return (
     <div className="space-y-3">
+      {error && <p className="text-[11px] text-urgente">{error}</p>}
       {anotacoes.map((a) => (
         <div key={a.id} className="rounded-xl border border-regua bg-sf p-4">
           <div className="flex items-start justify-between gap-2 mb-2">

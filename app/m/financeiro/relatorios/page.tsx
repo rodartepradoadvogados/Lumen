@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, CardHeader, EmptyState, formatCurrency } from "@/components/ui";
-import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { saldoEmAberto } from "@/lib/financeCalc";
 import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
 import { ArrowLeft } from "lucide-react";
 
@@ -20,7 +20,7 @@ function monthKey(d: Date) {
 // sentido no recorte financeiro mobile.
 export default async function MobileRelatoriosFinanceiro() {
   const viewer = await getCurrentUser();
-  if (!(viewer?.isAdmin || viewer?.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const now = new Date();
   const months: { key: string; label: string }[] = [];
@@ -44,9 +44,14 @@ export default async function MobileRelatoriosFinanceiro() {
       where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false, dueDate: { lt: now } },
       include: { payments: true },
     }),
-    // A_APURAR fora do denominador de inadimplência — é provisão sem valor real ainda (Fase 1),
-    // não "a receber" de verdade (nem CANCELADO, que já estava de fora).
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] } }, select: { amount: true, discount: true, surcharge: true } }),
+    // Denominador da taxa de inadimplência: "quanto ainda tenho a receber" (PENDENTE/ATRASADO/
+    // PARCIAL — mesmo status do numerador acima), não "tudo o que já faturei desde sempre". Antes
+    // filtrava só notIn [CANCELADO, A_APURAR], o que incluía todo PAGO histórico — o denominador
+    // crescia a cada quitação e a taxa tendia a zero com o tempo (achado A44 da revisão gauntlet).
+    prisma.receivable.findMany({
+      where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] } },
+      include: { payments: true },
+    }),
   ]);
 
   // Adiantamento a Cliente e seu reembolso ficam de fora de Receita/Despesa — são transferência,
@@ -81,7 +86,10 @@ export default async function MobileRelatoriosFinanceiro() {
     0
   );
   const inadimplenciaCount = overdueReceivables.length;
-  const totalReceivablesAmount = allReceivables.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  const totalReceivablesAmount = allReceivables.reduce(
+    (s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((sum, p) => sum + p.amount, 0)),
+    0
+  );
   const inadimplenciaRate = totalReceivablesAmount > 0 ? (inadimplenciaTotal / totalReceivablesAmount) * 100 : 0;
 
   return (

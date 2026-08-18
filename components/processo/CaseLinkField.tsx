@@ -72,13 +72,18 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
 
   async function handleRemove(linkId: string) {
     if (!window.confirm("Remover este vínculo entre os processos?")) return;
-    await removeCaseLink(linkId);
+    const result = await removeCaseLink(linkId);
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
     router.refresh();
   }
 
   return (
     <div>
       <label className="text-xs font-medium text-tx-2">Processos vinculados</label>
+      {error && <p className="text-[11px] text-urgente mt-1">{error}</p>}
 
       {links.length > 0 && (
         <div className="mt-1.5 space-y-1.5">
@@ -174,7 +179,6 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                     ))}
                   </div>
                 </div>
-                {error && <p className="text-[11px] text-urgente">{error}</p>}
                 <div className="flex gap-2">
                   <button
                     type="button"

@@ -83,6 +83,11 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
     "Adm.": administrativoCount,
     Casos: casoCount,
   };
+  // Total real da pílula ativa (não cases.length, que é só a página carregada, limitada pelo
+  // `take: 100` acima) — antes o cabeçalho usava cases.length e contradizia a própria pílula,
+  // que já mostra o total certo (achado A21 da revisão gauntlet).
+  const activeLabel = natureza ? PILLS.find((p) => p.natureza === natureza)!.label : "Todos";
+  const activeTotal = countByPill[activeLabel];
 
   // Preserva o resto da querystring (hoje só `q`) ao trocar de pílula — a busca continua valendo,
   // só a natureza muda.
@@ -98,7 +103,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
     <div className="p-4 space-y-4 animate-fade-in">
       <div>
         <h1 className="text-xl font-bold text-tx">Processos ativos</h1>
-        <p className="text-sm text-tx-2">{cases.length} registro(s)</p>
+        <p className="text-sm text-tx-2">{activeTotal} registro(s)</p>
       </div>
 
       {/* Pílulas de natureza roláveis horizontalmente — padrão de toque, não abas de desktop
@@ -180,6 +185,15 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
           </div>
         )}
       </Card>
+
+      {/* A lista carrega no máximo 100 (take, acima) — sem isto, um processo além do corte
+          alfabético simplesmente some da navegação por lista, sem nenhum indício do porquê
+          (achado A21 da revisão gauntlet). */}
+      {cases.length < activeTotal && (
+        <p className="text-xs text-tx-2 text-center">
+          Mostrando os primeiros {cases.length} de {activeTotal} — use a busca para encontrar os demais
+        </p>
+      )}
     </div>
   );
 }

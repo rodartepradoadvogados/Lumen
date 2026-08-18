@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { effectiveCaseClients } from "@/lib/caseParties";
 import MobileLancarHonorariosForm from "@/components/mobile/MobileLancarHonorariosForm";
+import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
 import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,10 @@ export const dynamic = "force-dynamic";
 // versão sem processo fixo (app/m/financeiro/receitas/honorarios).
 export default async function MobileLancarHonorariosPage({ params }: { params: { id: string } }) {
   const viewer = await getCurrentUser();
-  if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
+  if (!viewer) notFound();
+  // notFound() aqui devolveria um 404 genérico para o que na verdade é falta de permissão — o
+  // desktop mostra "Acesso restrito" no mesmo cenário (achado A49 da revisão gauntlet).
+  if (!(viewer.isAdmin || viewer.financeAccess)) return <AccessRestrictedNotice moduleName="Financeiro" />;
 
   const c = await prisma.case.findFirst({
     where: { id: params.id, officeId: viewer.officeId },

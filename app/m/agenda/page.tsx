@@ -53,7 +53,14 @@ export default async function MobileAgenda({
 
   const novo = searchParams.novo === "1";
   return (
-    <DayView day={day} novo={novo} tipo={normalizeTipo(searchParams.tipo)} officeId={viewer.officeId} hasFinanceAccess={hasFinanceAccess} />
+    <DayView
+      day={day}
+      novo={novo}
+      tipo={normalizeTipo(searchParams.tipo)}
+      officeId={viewer.officeId}
+      hasFinanceAccess={hasFinanceAccess}
+      responsibleId={viewer.id}
+    />
   );
 }
 
@@ -63,12 +70,14 @@ async function DayView({
   tipo,
   officeId,
   hasFinanceAccess,
+  responsibleId,
 }: {
   day: Date;
   novo: boolean;
   tipo: string;
   officeId: string;
   hasFinanceAccess: boolean;
+  responsibleId: string;
 }) {
   const start = new Date(day);
   start.setHours(0, 0, 0, 0);
@@ -128,7 +137,7 @@ async function DayView({
 
       {novo && (
         <Card className="p-3">
-          <MobileAgendaQuickCreate defaultType={tipo} />
+          <MobileAgendaQuickCreate defaultType={tipo} defaultResponsibleId={responsibleId} />
         </Card>
       )}
 

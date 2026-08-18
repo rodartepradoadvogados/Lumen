@@ -7,7 +7,7 @@ import SettleButton from "@/components/SettleButton";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { updateHonorarioLancamentoParcelas, type ParcelaEdicao } from "@/lib/actions/honorarioLancamento";
 import { VALUE_TYPE_LABELS, PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS, estimatePercentualAmount, type CaseValueBases } from "@/lib/honorarioLancamento";
-import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { valorLiquido, saldoEmAberto, HONORARIO_LANCAMENTO_DELETE_CONFIRM } from "@/lib/financeCalc";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { FinanceStatusBadge } from "@/lib/financeStatus";
 import MoneyInput from "@/components/MoneyInput";
@@ -207,7 +207,7 @@ export default function HonorarioLancamentoCard({
             entityType="HONORARIO_LANCAMENTO"
             entityId={lancamento.id}
             entityLabel="Honorário parcelado"
-            confirmMessage="Excluir este lançamento de honorários? Parcelas que já receberam algo (pagas ou parciais) continuam em Contas a Receber, com o histórico de recebimento; as que nunca receberam nada são apagadas."
+            confirmMessage={HONORARIO_LANCAMENTO_DELETE_CONFIRM}
           />
         </div>
       </div>

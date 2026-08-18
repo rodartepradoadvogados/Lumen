@@ -509,7 +509,7 @@ export default async function MobileCaseDetail({
             </div>
           )}
           <div className="p-3 border-t border-regua">
-            <MobileNewTaskForm caseId={c.id} />
+            <MobileNewTaskForm caseId={c.id} defaultResponsibleId={viewer.id} />
           </div>
         </Card>
       )}

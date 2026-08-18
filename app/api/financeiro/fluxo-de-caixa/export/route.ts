@@ -37,9 +37,13 @@ export async function GET() {
   const windowStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   const windowEnd = new Date(now.getFullYear(), now.getMonth() + 4, 0, 23, 59, 59);
 
+  // noDueDate: false — "Sem vencimento definido" grava dueDate como placeholder técnico (1º do
+  // mês seguinte ao cadastro, ver lib/actions/financeiro.ts), nunca atualizado; mesma correção
+  // das telas de Fluxo de Caixa (achado A45 da revisão gauntlet), aplicada aqui para consistência
+  // com o .xlsx exportado.
   const [payables, receivables] = await Promise.all([
-    prisma.payable.findMany({ where: { officeId: user.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
-    prisma.receivable.findMany({ where: { officeId: user.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.payable.findMany({ where: { officeId: user.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { gte: windowStart, lte: windowEnd } } }),
+    prisma.receivable.findMany({ where: { officeId: user.officeId, status: { notIn: ["CANCELADO", "A_APURAR"] }, noDueDate: false, dueDate: { gte: windowStart, lte: windowEnd } } }),
   ]);
 
   const months: { key: string; label: string; entradas: number; saidas: number }[] = [];

@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MobileDespesas({ searchParams }: { searchParams: { tab?: string; from?: string; to?: string } }) {
   const viewer = await getCurrentUser();
-  if (!viewer || !(viewer.isAdmin || viewer.financeAccess)) notFound();
+  if (!viewer) notFound();
 
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
   // Sem De/Até na URL, mostra só o mês corrente (padrão pedido pro app — no site o padrão
