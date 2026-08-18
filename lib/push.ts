@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
+import { getAlertsCount } from "@/lib/alerts";
 
 // ============================================================================
 // Notificações push (Web Push API) — igual ao padrão de lib/whatsapp.ts:
@@ -60,7 +61,11 @@ function ensureVapidConfigured(): boolean {
   }
 }
 
-export type PushPayload = { title: string; body: string; url?: string };
+// count: contagem total de alertas do destinatário no momento do envio — o service worker
+// (public/sw.js) usa este campo para atualizar o badge do ícone do PWA na hora, sem esperar o
+// app abrir (achado A59 da revisão gauntlet: o service worker já lia `count`, mas nenhum ponto
+// de envio o preenchia, deixando o badge sempre atrasado até o AppBadgeSync consultar de novo).
+export type PushPayload = { title: string; body: string; url?: string; count?: number };
 
 /**
  * Envia uma notificação push para todas as inscrições (aparelhos) de um usuário,
@@ -79,6 +84,8 @@ export async function sendPushIfEnabled(userId: string, officeId: string, type: 
   const user = await prisma.user.findFirst({
     where: { id: userId, officeId },
     select: {
+      isAdmin: true,
+      financeAccess: true,
       notifyAndamentos: true,
       notifyPublicacoes: true,
       notifyTarefasDelegadas: true,
@@ -88,8 +95,13 @@ export async function sendPushIfEnabled(userId: string, officeId: string, type: 
     },
   });
   if (!user || !user[prefFieldByType[type]]) return { sent: 0 };
+  if (user.pushSubscriptions.length === 0) return { sent: 0 };
 
-  const body = JSON.stringify(payload);
+  // Só conta se `count` não veio explícito do chamador — uma consulta a mais por destinatário,
+  // paga apenas quando o push de fato vai sair (checagens acima já retornaram cedo nos outros
+  // casos).
+  const count = payload.count ?? (await getAlertsCount(officeId, Boolean(user.isAdmin || user.financeAccess), userId, user.isAdmin));
+  const body = JSON.stringify({ ...payload, count });
   let sent = 0;
   for (const sub of user.pushSubscriptions) {
     try {

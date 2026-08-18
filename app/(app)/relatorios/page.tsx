@@ -7,6 +7,7 @@ import { Users, Target, Newspaper, Wallet, Scale, Info, SlidersHorizontal } from
 import RelatorioPersonalizadoView from "@/components/relatorios/RelatorioPersonalizadoView";
 import { valorLiquido, saldoEmAberto, isAdiantamentoPayable, isReembolsoReceivable } from "@/lib/financeCalc";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
+import { STAGES, stageLabels, stageColor, CASE_STATUS_ORDER, caseStatusLabels, caseStatusColor, triageLabels, triageColor } from "@/lib/relatoriosLabels";
 
 export const dynamic = "force-dynamic";
 
@@ -84,25 +85,10 @@ function VBars({ items, color }: { items: { label: string; display: string; valu
 }
 
 // ---------- rótulos ----------
-
-const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
-const stageLabels: Record<string, string> = {
-  NOVO: "Novo",
-  QUALIFICACAO: "Qualificação",
-  PROPOSTA: "Proposta",
-  FECHADO: "Fechado",
-  PERDIDO: "Perdido",
-};
-// Remapeado por significado, não por posição: Novo = neutro (ainda sem opinião), Qualificação =
-// --acao (em andamento), Proposta = --aviso (aguardando decisão do cliente), Fechado =
-// --concluido, Perdido = --urgente (KPI negativo, DESIGN-SYSTEM.md §2).
-const stageColor: Record<string, string> = {
-  NOVO: "var(--tx-3)",
-  QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--aviso)",
-  FECHADO: "var(--concluido)",
-  PERDIDO: "var(--urgente)",
-};
+// STAGES/stageLabels/stageColor, CASE_STATUS_ORDER/caseStatusLabels/caseStatusColor e
+// triageLabels/triageColor vêm de lib/relatoriosLabels.ts, compartilhado com o resumo mobile
+// (app/m/relatorios/page.tsx) — antes cada tela tinha a própria cópia e elas divergiram sem
+// ninguém notar (achado A47 da revisão gauntlet).
 
 const LEAD_ORDER = ["INDICACAO", "INSTAGRAM", "GOOGLE", "SITE", "WHATSAPP", "OUTRO", "NAO_INFORMADO"];
 const leadSourceLabels: Record<string, string> = {
@@ -116,25 +102,6 @@ const leadSourceLabels: Record<string, string> = {
 };
 
 const LAWYER_ORDER = ["Jairo", "Rodrigo", "Jairo e Rodrigo", "Sem identificação"];
-
-const triageLabels: Record<string, string> = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", TRATADA: "Tratada" };
-const triageColor: Record<string, string> = { PENDENTE: "var(--aviso)", EM_ANALISE: "var(--acao)", TRATADA: "var(--concluido)" };
-
-const CASE_STATUS_ORDER = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
-const caseStatusLabels: Record<string, string> = {
-  ATIVO: "Ativo",
-  SUSPENSO: "Suspenso",
-  ENCERRADO: "Encerrado",
-  ARQUIVADO: "Arquivado",
-};
-// ARQUIVADO usa o mesmo neutro de ENCERRADO — --urgente é reservado para dado vencido/KPI
-// negativo (DESIGN-SYSTEM.md §2), e arquivar é encerramento deliberado, não isso.
-const caseStatusColor: Record<string, string> = {
-  ATIVO: "var(--concluido)",
-  SUSPENSO: "var(--aviso)",
-  ENCERRADO: "var(--tx-3)",
-  ARQUIVADO: "var(--tx-3)",
-};
 
 const NAVY = "var(--acao)";
 

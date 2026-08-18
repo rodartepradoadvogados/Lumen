@@ -120,7 +120,9 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
                     {step.role && <span className="text-[11px] text-tx-3 whitespace-nowrap">{step.role}</span>}
                     {step.points != null && <span className="text-[11px] text-tx-3 whitespace-nowrap">{step.points} pts</span>}
                     <button
-                      onClick={() => run(() => deleteWorkflowStep(step.id))}
+                      onClick={() => {
+                        if (window.confirm(`Excluir o passo "${step.title}" deste workflow?`)) run(() => deleteWorkflowStep(step.id));
+                      }}
                       disabled={pending}
                       data-tip="Excluir passo"
                       className="p-1 rounded-lg text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"

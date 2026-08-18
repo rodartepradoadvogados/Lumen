@@ -84,6 +84,20 @@ export function isReembolsoReceivable(r: { kind: string; reimbursesPayableId?: s
   return r.kind === "REEMBOLSO" && !!r.reimbursesPayableId;
 }
 
+// "Quanto entrou de verdade" num processo, para a faixa "Já recebido neste processo" do modal de
+// Lançar Honorários (LancarHonorariosModal) — usada tanto ao abrir pelo Processo quanto pelo
+// Financeiro (getCaseBases). Único ponto de cálculo: soma paidAmount ?? valorLiquido(...) das
+// Receivable PAGO, excluindo reembolso de despesa adiantada (isReembolsoReceivable) — esse
+// dinheiro não é honorário, é devolução de custa que o próprio DRE/Livro Caixa também não conta
+// como receita (achado A11 da revisão gauntlet).
+export function totalRecebidoNoProcesso(
+  receivables: { status: string; amount: number; discount: number; surcharge: number; paidAmount: number | null; kind: string; reimbursesPayableId?: string | null }[]
+): number {
+  return receivables
+    .filter((r) => r.status === "PAGO" && !isReembolsoReceivable(r))
+    .reduce((s, r) => s + (r.paidAmount ?? valorLiquido(r.amount, r.discount, r.surcharge)), 0);
+}
+
 // Texto de confirmação ao excluir um lançamento de honorários inteiro (todas as parcelas de
 // uma vez), compartilhado entre HonorarioLancamentoCard (desktop) e MobileHonorarioLancamentoGroup
 // (app) — antes cada plataforma tinha sua própria cópia escrita à mão, e quando o critério de

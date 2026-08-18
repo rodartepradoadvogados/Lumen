@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
 import { ArrowLeft, Users, Scale, Target, Newspaper, SlidersHorizontal, ChevronRight } from "lucide-react";
 import { groupCasesByMateria } from "@/lib/caseMaterias";
+import { STAGES, stageLabels, stageColor, CASE_STATUS_ORDER, caseStatusLabels, caseStatusColor, triageLabels, triageColor } from "@/lib/relatoriosLabels";
 
 export const dynamic = "force-dynamic";
 
@@ -31,40 +32,11 @@ function parseMeses(v?: string): 3 | 6 | 12 {
   return 6;
 }
 
-const STAGES = ["NOVO", "QUALIFICACAO", "PROPOSTA", "FECHADO", "PERDIDO"];
-const stageLabels: Record<string, string> = {
-  NOVO: "Novo",
-  QUALIFICACAO: "Qualificação",
-  PROPOSTA: "Proposta",
-  FECHADO: "Fechado",
-  PERDIDO: "Perdido",
-};
-// Mesmo mapa de app/(app)/relatorios/page.tsx (var(--x) direto no `style` inline — Tailwind não
-// gera classe pra cor escolhida em runtime a partir de uma chave, ver DESIGN-SYSTEM.md §16).
-const stageColor: Record<string, string> = {
-  NOVO: "var(--aviso)",
-  QUALIFICACAO: "var(--acao)",
-  PROPOSTA: "var(--marca)",
-  FECHADO: "var(--concluido)",
-  PERDIDO: "var(--urgente)",
-};
-
-const CASE_STATUS_ORDER = ["ATIVO", "SUSPENSO", "ENCERRADO", "ARQUIVADO"];
-const caseStatusLabels: Record<string, string> = {
-  ATIVO: "Ativo",
-  SUSPENSO: "Suspenso",
-  ENCERRADO: "Encerrado",
-  ARQUIVADO: "Arquivado",
-};
-const caseStatusColor: Record<string, string> = {
-  ATIVO: "var(--concluido)",
-  SUSPENSO: "var(--aviso)",
-  ENCERRADO: "var(--tx-2)",
-  ARQUIVADO: "var(--urgente)",
-};
-
-const triageLabels: Record<string, string> = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", TRATADA: "Tratada" };
-const triageColor: Record<string, string> = { PENDENTE: "var(--aviso)", EM_ANALISE: "var(--acao)", TRATADA: "var(--concluido)" };
+// STAGES/stageLabels/stageColor, CASE_STATUS_ORDER/caseStatusLabels/caseStatusColor e
+// triageLabels/triageColor vêm de lib/relatoriosLabels.ts, compartilhado com o desktop
+// (app/(app)/relatorios/page.tsx) — antes cada tela tinha a própria cópia e elas divergiram sem
+// ninguém notar, inclusive pintando ARQUIVADO de vermelho aqui, que o desktop proíbe (achado A47
+// da revisão gauntlet).
 
 const periodOptions: { value: 3 | 6 | 12; label: string }[] = [
   { value: 3, label: "3m" },

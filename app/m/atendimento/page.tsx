@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { Card, Badge, formatDate, EmptyState } from "@/components/ui";
 import { Plus, Search } from "lucide-react";
 import { findAttendanceIdsByLooseName } from "@/lib/looseNameSearch";
+import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,6 @@ const statusColors: Record<string, "amber" | "blue" | "green" | "slate"> = {
   CONVERTIDO: "green",
   ARQUIVADO: "slate",
   RASCUNHO: "slate",
-};
-
-const statusLabels: Record<string, string> = {
-  RASCUNHO: "Rascunho",
 };
 
 const channelLabels: Record<string, string> = { WHATSAPP: "WhatsApp", EMAIL: "E-mail", TELEFONE: "Telefone", PRESENCIAL: "Presencial" };
@@ -144,7 +141,7 @@ export default async function MobileAtendimento({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-tx truncate">{a.clientName}</p>
-                    <Badge color={statusColors[a.status]}>{statusLabels[a.status] ?? a.status.replace("_", " ")}</Badge>
+                    <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
                   </div>
                   <p className="text-xs text-tx-2 mt-0.5 truncate">{a.subject}</p>
                   <div className="flex items-center gap-2 flex-wrap mt-1">

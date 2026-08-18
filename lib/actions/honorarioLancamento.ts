@@ -20,7 +20,7 @@ import {
   requireFinanceOfficeId,
 } from "@/lib/actions/financeiro";
 import { baseValueFor, type CaseValueBases } from "@/lib/honorarioLancamento";
-import { valorLiquido, valorPercentualApurado, statusPorPagamentos } from "@/lib/financeCalc";
+import { valorLiquido, valorPercentualApurado, statusPorPagamentos, totalRecebidoNoProcesso } from "@/lib/financeCalc";
 
 // Cópia local da mesma lista de revalidatePath de lib/actions/financeiro.ts — não dá para
 // importar de lá porque um arquivo "use server" só pode exportar função async, e esta é síncrona.
@@ -78,7 +78,10 @@ export async function getCaseBases(caseId: string): Promise<{
       economicBenefitValue: true,
       convictionValue: true,
       agreementValue: true,
-      receivables: { where: { status: "PAGO" }, select: { amount: true, paidAmount: true } },
+      receivables: {
+        where: { status: "PAGO" },
+        select: { status: true, amount: true, discount: true, surcharge: true, paidAmount: true, kind: true, reimbursesPayableId: true },
+      },
     },
   });
   if (!c) return { error: "Processo não encontrado." };
@@ -86,7 +89,7 @@ export async function getCaseBases(caseId: string): Promise<{
     bases: { caseValue: c.caseValue, economicBenefitValue: c.economicBenefitValue, convictionValue: c.convictionValue, agreementValue: c.agreementValue },
     title: c.title,
     clientId: c.clientId,
-    alreadyReceivedForCase: c.receivables.reduce((s, r) => s + (r.paidAmount ?? r.amount), 0),
+    alreadyReceivedForCase: totalRecebidoNoProcesso(c.receivables),
   };
 }
 
