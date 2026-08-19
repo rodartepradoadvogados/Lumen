@@ -1,13 +1,15 @@
 import type { Config } from "tailwindcss";
 
-// Paleta do manual da marca Lúmen v2 (agosto/2026). A especificação completa — qual cor vai em
-// qual detalhe, nos dois temas — está em docs/DESIGN-SYSTEM.md, e é ela que manda numa dúvida.
+// Paleta do redesenho Modernist (agosto/2026), modelo B ("Modernist puro" — vermelho #ec3013
+// como única cor de ação e marca, sem ouro nem azul-tinta). A especificação completa — qual cor
+// vai em qual detalhe, nos dois temas — está em design_handoff_lumen_redesign/01-tokens-e-tema.md
+// e em docs/DESIGN-SYSTEM.md, que manda numa dúvida.
 //
 // Duas famílias convivem aqui de propósito, durante a migração:
 //
-//   NOVA     grafite / ouro / vinho / tinta / neutro  +  os apelidos semânticos (acao, marca,
-//            urgente, aviso, concluido, sf, tx, regua), que apontam para as variáveis CSS de
-//            app/globals.css e por isso trocam sozinhos entre Manhã e Noite.
+//   NOVA     grafite / neutro / vinho  +  os apelidos semânticos (acao, marca, urgente, aviso,
+//            concluido, sf, tx, regua), que apontam para as variáveis CSS de app/globals.css e
+//            por isso trocam sozinhos entre Manhã e Noite.
 //   LEGADO   navy / gold / bordo / cream / magenta — ainda usadas por centenas de arquivos.
 //            Foram REAPONTADAS para os valores novos, então a tela inteira já aparece na paleta
 //            certa sem um commit gigante. São removidas área por área (DESIGN-SYSTEM.md §16).
@@ -34,34 +36,39 @@ const config: Config = {
         foreground: "var(--foreground)",
 
         /* ---------- Paleta nova ---------- */
+        // Rail escuro — a única superfície que não retematiza entre Manhã e Noite (ver
+        // app/globals.css). 800/900 preservados por compatibilidade com o legado abaixo.
         grafite: {
           300: "#5b646e",
           500: "#39414a",
           700: "#22272e",
-          800: "#16191d", // marca: fundo do símbolo e da barra de navegação
-          900: "#0f1216", // fundo do tema Noite
+          800: "#16191d",
+          900: "#0f1216",
         },
-        ouro: {
-          300: "#e0b954",
-          500: "#d9a93a", // Noite
-          700: "#c9962f", // Manhã — marca e seção ativa
-          800: "#a87a1c", // ÚNICO tom de ouro que pode virar texto sobre fundo claro
-          900: "#7d5a11",
+        // Rampa neutra do Modernist (documento 01) — substitui grafite para SUPERFÍCIES claras.
+        // Espelha 1:1 os tokens semânticos de Manhã: 200≈sf-apoio, 300=regua, 400=regua-forte,
+        // 500=tx-3, 700=tx-2. Prefira sempre os apelidos semânticos (`bg-sf-apoio`, `text-tx-2`
+        // etc.); esta escala existe para gráficos e casos que precisam do valor cravado.
+        neutro: {
+          100: "#f8f4f4",
+          200: "#eae7e7",
+          300: "#d7d3d3",
+          400: "#bab6b6",
+          500: "#9b9797",
+          600: "#7d7979",
+          700: "#605d5d",
+          800: "#444141",
+          900: "#2d2b2b",
         },
+        // Vermelho Modernist (documento 01, modelo B) — única cor de ação/marca do produto, e
+        // sua variante escura de ação destrutiva. Não retematiza entre Manhã e Noite; prefira
+        // `bg-acao`/`text-marca`/`text-vinho`, que já resolvem para estes mesmos valores.
         vinho: {
-          300: "#cd5f77",
-          500: "#a3234a",
-          700: "#7d1330",
-          800: "#5e0e24",
-          900: "#3e0918",
-        },
-        // Azul-tinta: cor de ação do produto. O tom fixo fica aqui para gráficos e casos que
-        // precisam do valor cravado; na interface prefira `bg-acao`/`text-acao`, que troca de
-        // tema sozinho.
-        tinta: {
-          400: "#7ea6dd", // Noite
-          700: "#17325c", // Manhã
-          600: "#21447a", // hover Manhã
+          300: "#fb3f22", // --acao-hover
+          500: "#ec3013", // --acao / --marca
+          700: "#ae1800", // --vinho / --marca-tx (Manhã)
+          800: "#ae1800",
+          900: "#8a1300",
         },
 
         /* ---------- Apelidos semânticos (trocam de tema sozinhos) ---------- */
@@ -96,43 +103,47 @@ const config: Config = {
           600: "#5b646e",
           500: "#8b939c",
         },
-        // gold perde o papel de CTA (que passou ao azul-tinta) e fica só como marca/acento.
-        // 500 e 600 apontam para o ouro novo; 700+ escurecem para poder virar texto.
+        // O ouro não existe mais no modelo B (Modernist puro) — gold colapsa no vermelho de
+        // marca/ação. Os usos que eram "marca" (badge, filete de seção ativa) vão para
+        // `bg-acao`/`text-marca` na migração por área; até lá aparecem em vermelho, não mais
+        // em ouro.
         gold: {
-          900: "#7d5a11",
-          800: "#a87a1c",
-          700: "#a87a1c",
-          600: "#c9962f",
-          500: "#c9962f",
-          400: "#d9a93a",
-          300: "#e0b954",
-          100: "rgba(201, 150, 47, 0.15)",
+          900: "#8a1300",
+          800: "#ae1800",
+          700: "#ae1800",
+          600: "#ec3013",
+          500: "#ec3013",
+          400: "#fb3f22",
+          300: "#fb3f22",
+          100: "rgba(236, 48, 19, 0.15)",
         },
-        // cream/paper viram os neutros frios — o creme e a palha saíram inteiros da paleta.
+        // cream/paper viram os neutros frios do Modernist — o creme e a palha saíram inteiros
+        // da paleta.
         cream: {
-          50: "#f3f4f6",
-          100: "#e5e7ea",
-          200: "#e5e7ea",
-          300: "#c9cdd3",
+          50: "#eae9e9",
+          100: "#d7d3d3",
+          200: "#d7d3d3",
+          300: "#bab6b6",
         },
         // bordo passa a ser o vinho da marca. Os botões que estavam em bordo-700 vão para
-        // `bg-acao` na migração por área; até lá aparecem em vinho, não mais em ouro.
+        // `bg-acao` na migração por área; até lá aparecem em vermelho.
         bordo: {
-          900: "#3e0918",
-          700: "#7d1330",
-          600: "#a3234a",
-          500: "#a3234a",
-          400: "#cd5f77",
-          100: "rgba(125, 19, 48, 0.1)",
+          900: "#8a1300",
+          700: "#ae1800",
+          600: "#ae1800",
+          500: "#ec3013",
+          400: "#fb3f22",
+          100: "rgba(236, 48, 19, 0.1)",
         },
-        // magenta era o terceiro acento (só o hub de Contatos). Colapsa no vinho: o manual v2
-        // não tem uma terceira cor de acento, e manter uma inventada é o que gera deriva.
+        // magenta era o terceiro acento (só o hub de Contatos). Colapsa no vinho: o sistema
+        // Modernist não tem uma terceira cor de acento, e manter uma inventada é o que gera
+        // deriva.
         magenta: {
-          700: "#7d1330",
-          600: "#a3234a",
-          500: "#a3234a",
-          400: "#cd5f77",
-          100: "rgba(125, 19, 48, 0.1)",
+          700: "#ae1800",
+          600: "#ae1800",
+          500: "#ec3013",
+          400: "#fb3f22",
+          100: "rgba(236, 48, 19, 0.1)",
         },
       },
       boxShadow: {

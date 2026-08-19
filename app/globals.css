@@ -4,59 +4,66 @@
 
 /* ============================================================================
    TOKENS LÚMEN — fonte única de verdade das cores.
-   A especificação completa, detalhe por detalhe, está em docs/DESIGN-SYSTEM.md.
-   Nenhum hex vive dentro de um componente: ou vem daqui, ou vem das escalas do
-   tailwind.config.ts (que apontam para estes mesmos valores).
+   Redesenho Modernist (agosto/2026) — ver design_handoff_lumen_redesign/01-tokens-e-tema.md.
+   Modelo aplicado: B ("Modernist puro" do documento 01) — o vermelho #ec3013 do
+   Modernist é a cor de ação E de marca; não há ouro nem azul-tinta neste sistema.
+   A especificação completa está em docs/DESIGN-SYSTEM.md. Nenhum hex vive dentro
+   de um componente: ou vem daqui, ou vem das escalas do tailwind.config.ts (que
+   apontam para estes mesmos valores).
 
    Dois temas e só dois: Manhã (:root) e Noite (.dark no <html>, ver lib/theme.ts).
    ============================================================================ */
 :root {
-  /* ---- Escalas base (manual da marca v2) ---------------------------------- */
-  --grafite-300: #5b646e;
-  --grafite-500: #39414a;
-  --grafite-700: #22272e;
+  /* ---- Rampa neutra (Modernist, gerada em OKLCH) --------------------------- */
+  --neutro-100: #f8f4f4;
+  --neutro-200: #eae7e7;
+  --neutro-300: #d7d3d3;
+  --neutro-400: #bab6b6;
+  --neutro-500: #9b9797;
+  --neutro-600: #7d7979;
+  --neutro-700: #605d5d;
+  --neutro-800: #444141;
+  --neutro-900: #2d2b2b;
+
+  /* Rail escuro — a única superfície que não retematiza entre Manhã e Noite. */
   --grafite-800: #16191d;
-  --grafite-900: #0f1216;
-
-  --ouro-300: #e0b954;
-  --ouro-500: #d9a93a;
-  --ouro-700: #c9962f;
-  --ouro-800: #a87a1c; /* único tom de ouro que pode virar texto sobre fundo claro */
-  --ouro-900: #7d5a11;
-
-  --vinho-300: #cd5f77;
-  --vinho-500: #a3234a;
-  --vinho-700: #7d1330;
-  --vinho-800: #5e0e24;
-  --vinho-900: #3e0918;
 
   /* ---- Tokens semânticos — é isto que o componente usa -------------------- */
-  --sf-fundo: #eef0f2;
+  --sf-fundo: #f3f2f2;
   --sf-superficie: #ffffff;
-  --sf-apoio: #f3f4f6;
-  --regua: #e5e7ea;
-  --regua-forte: #c9cdd3;
+  --sf-apoio: #eae9e9;
+  --regua: #d7d3d3;
+  --regua-forte: #bab6b6;
 
-  --tx: #16191d;
-  --tx-2: #5b646e;
-  --tx-3: #8b939c;
+  --tx: #201e1d;
+  --tx-2: #605d5d;
+  --tx-3: #9b9797;
 
-  /* Ação primária: azul-tinta. Sóbrio o bastante para repetir dezenas de vezes por tela —
-     que é o que o bordô não aguentava. --acao-tx é o texto QUE VAI EM CIMA de --acao e
-     inverte entre os temas: nunca escreva #fff cravado sobre um fundo de ação. */
-  --acao: #17325c;
-  --acao-hover: #21447a;
-  --acao-tx: #ffffff;
-  --acao-bg: rgba(23, 50, 92, 0.09);
+  /* Ação e marca, modelo B: o vermelho Modernist #ec3013 é a única cor de destaque do
+     produto — não muda entre Manhã e Noite (ver documento 01, "é uma mudança de três
+     linhas"). --acao-tx/--acao-hover/--acao-bg e --marca-tx/--marca-bg são DERIVADOS
+     por mim a partir dele, seguindo o mesmo padrão de contraste/alpha que o documento já
+     usa para os demais pares base/-bg — o documento não deu esses valores prontos.
+     --acao-tx escuro (não branco): sobre #ec3013 o texto escuro contrasta um pouco melhor
+     que o branco (≈4,46:1 vs ≈4,20:1) e é o mesmo par cor-de-marca/texto-escuro que o
+     documento 09 já usa explicitamente no bloco em pôster do site. */
+  --acao: #ec3013;
+  --acao-hover: #fb3f22;
+  --acao-tx: #16191d;
+  --acao-bg: rgba(236, 48, 19, 0.08);
 
-  /* Ouro: só a marca e o indicador de seção ativa. Nunca fundo de botão. */
-  --marca: #c9962f;
-  --marca-tx: #a87a1c;
-  --marca-bg: rgba(201, 150, 47, 0.15);
+  --marca: #ec3013;
+  /* --marca-tx (vermelho como TEXTO, não como fundo) precisa de contraste por tema: o
+     vermelho puro só rende ~4,2:1 sobre branco (Manhã), por isso usa a variante escura
+     --vinho aqui; sobre o fundo quase-preto do Noite o vermelho puro já contrasta bem
+     (~4,4:1) e é reaproveitado direto — mesmo padrão do documento 01 (marca-tx = marca no
+     Noite, mais escuro que a marca no Manhã). */
+  --marca-tx: #ae1800;
+  --marca-bg: rgba(236, 48, 19, 0.15);
 
-  /* Vinho é da MARCA (pingo do símbolo, badge do rail) e da ação destrutiva.
-     Não confundir com --urgente, que é DADO (algo venceu). Ver DESIGN-SYSTEM.md §2. */
-  --vinho: #7d1330;
+  /* Vinho é a única outra cor de marca: ação destrutiva. Modelo B: #ae1800 (documento 01),
+     não muda entre temas. Não confundir com --urgente, que é DADO (algo venceu). */
+  --vinho: #ae1800;
 
   --urgente: #b3261e;
   --urgente-bg: rgba(179, 38, 30, 0.1);
@@ -65,20 +72,18 @@
   --concluido: #1c6b52;
   --concluido-bg: rgba(28, 107, 82, 0.1);
 
-  /* Texto sobre as superfícies que são grafite nos DOIS temas (rail, barra de menus da
-     Bancada, faixa de guias). Não dá para usar --tx-2 aqui: ele é escuro no tema Manhã e
-     sumiria sobre o grafite. Ver DESIGN-SYSTEM.md §3. */
-  --rail-tx: #9aa3ad; /* item inativo do rail e da faixa de guias */
-  --menu-tx: #aeb6be; /* menu inativo da barra superior no modo Bancada */
+  /* Texto sobre as superfícies que são grafite nos DOIS temas (rail, faixa de guias).
+     Não dá para usar --tx-2 aqui: ele é escuro no tema Manhã e sumiria sobre o grafite. */
+  --rail-tx: #9aa3ad;
+  --menu-tx: #aeb6be;
 
-  /* Fonte da publicação (DESIGN-SYSTEM.md §9). Cinco das sete reaproveitam tokens semânticos
-     (--acao, --aviso, --tx-2, --vinho, --concluido); o PJE precisa de um azul distinto do
-     azul-tinta de ação, senão DJE e PJE ficam indistinguíveis num filete de 3px. */
+  /* Fonte da publicação (DESIGN-SYSTEM.md §9). O PJE precisa de um azul distinto de
+     qualquer outro token — é o único azul que sobra no sistema, só para essa distinção. */
   --fonte-pje: #2f6fb0;
 
-  --sombra-menu: 0 10px 30px rgba(22, 25, 29, 0.18);
-  --sombra-modal: 0 12px 40px rgba(22, 25, 29, 0.2);
-  --sombra-arrasto: 0 8px 24px rgba(22, 25, 29, 0.18);
+  --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
+  --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
+  --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
 
   --background: var(--sf-fundo);
   --foreground: var(--tx);
@@ -96,17 +101,18 @@
   --tx-2: #98a1ab;
   --tx-3: #79828c;
 
-  /* No Noite o azul de ação CLAREIA — e por isso o texto sobre ele fica escuro. */
-  --acao: #7ea6dd;
-  --acao-hover: #9dbce8;
-  --acao-tx: #0f1216;
-  --acao-bg: rgba(126, 166, 221, 0.14);
+  /* --acao/--marca/--vinho não retematizam (ver :root) — só os derivados de -bg/-tx que
+     dependem do fundo do tema mudam aqui. */
+  --acao: #ec3013;
+  --acao-hover: #fb3f22;
+  --acao-tx: #16191d;
+  --acao-bg: rgba(236, 48, 19, 0.16);
 
-  --marca: #d9a93a;
-  --marca-tx: #d9a93a;
-  --marca-bg: rgba(217, 169, 58, 0.15);
+  --marca: #ec3013;
+  --marca-tx: #ec3013;
+  --marca-bg: rgba(236, 48, 19, 0.18);
 
-  --vinho: #cd5f77;
+  --vinho: #ae1800;
 
   --urgente: #e2685a;
   --urgente-bg: rgba(226, 104, 90, 0.14);
@@ -119,9 +125,9 @@
   --menu-tx: #8b949e;
   --fonte-pje: #93c0f0;
 
-  --sombra-menu: 0 10px 30px rgba(0, 0, 0, 0.45);
-  --sombra-modal: 0 12px 40px rgba(0, 0, 0, 0.5);
-  --sombra-arrasto: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
+  --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --sombra-arrasto: 0 12px 32px rgba(0, 0, 0, 0.5);
 
   --background: var(--sf-fundo);
   --foreground: var(--tx);
@@ -129,21 +135,21 @@
 }
 
 /* ----------------------------------------------------------------------------
-   LEGADO. As variáveis abaixo existiam antes do manual v2 e ainda são lidas por
-   componentes não migrados. Apontam para os valores NOVOS, para que a tela inteira
-   já apareça na paleta certa enquanto a migração por área acontece. Saem daqui
-   quando a última referência sair do código — ver DESIGN-SYSTEM.md §16.
+   LEGADO. As variáveis abaixo existiam antes do redesenho Modernist e ainda são
+   lidas por componentes não migrados. Apontam para os valores NOVOS, para que a
+   tela inteira já apareça na paleta certa enquanto a migração por área acontece.
+   Saem daqui quando a última referência sair do código.
    ---------------------------------------------------------------------------- */
 :root,
 .dark {
   --lumen-navy: var(--grafite-800);
-  --lumen-navy-2: var(--grafite-700);
-  --lumen-navy-3: var(--grafite-500);
+  --lumen-navy-2: #22272e;
+  --lumen-navy-3: #39414a;
   --lumen-gold: var(--marca);
-  --lumen-gold-lt: var(--ouro-500);
-  --lumen-gold-pale: var(--ouro-300);
-  --lumen-bordo: var(--vinho-700);
-  --lumen-bordo-lt: var(--vinho-500);
+  --lumen-gold-lt: var(--marca);
+  --lumen-gold-pale: var(--marca);
+  --lumen-bordo: var(--vinho);
+  --lumen-bordo-lt: var(--vinho);
   --lumen-paper: var(--sf-apoio);
   --lumen-paper-2: var(--regua);
 }
@@ -156,6 +162,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  font-variant-numeric: tabular-nums;
   /* Trava de segurança: um texto sem espaços (nome de arquivo/pasta do Drive, número de
      processo colado, URL) dentro de qualquer card pode forçar a página inteira a ficar mais
      larga que a tela no mobile — e navegadores mobile, ao ficarem com overflow horizontal no
