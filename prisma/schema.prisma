@@ -185,6 +185,8 @@ model Office {
   alertDismissals       AlertDismissal[]
   integrationRuns       IntegrationRun[]
   apiKeys               ApiKey[]
+  auditEvents           AuditEvent[]
+  dataSubjectRequests   DataSubjectRequest[]
 
   // Setor de Processos Administrativos (fundação) — ver models TermoVigilancia e
   // FonteAdministrativa mais abaixo.
@@ -298,6 +300,8 @@ model User {
   officeDocumentTypes         OfficeDocumentType[]
   relatorioModelos            RelatorioModelo[]
   apiKeysCreated              ApiKey[]
+  auditEventsActed            AuditEvent[]
+  dataSubjectRequestsCreated  DataSubjectRequest[]
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]             @relation("BlogPostReviewer")
   emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
@@ -3078,4 +3082,78 @@ model ApiKey {
   createdBy   User?   @relation(fields: [createdById], references: [id])
 
   @@index([officeId])
+}
+
+// ============ PRIVACIDADE E LGPD (documento 07 — Fase 4 do redesenho Modernist) ============
+
+// Trilha de auditoria da atividade da EQUIPE DO PRÓPRIO ESCRITÓRIO sobre dado sensível — revelar
+// um CPF/valor mascarado (break-glass interno), exportar a trilha, executar exclusão/anonimização
+// de um pedido do titular. `actorId` é sempre um User do escritório.
+//
+// Não confundir com AccessAuditLog (acima, "Camada de confiança"): aquele é a trilha do SUPORTE
+// DA PLATAFORMA (PlatformMember agindo via "atuar como"/Vidro Fosco) — já existe, já é gravado, e
+// continua sendo a fonte da aba "Suporte" da trilha (documento 07). Este AuditEvent é uma tabela
+// nova e paralela, para uma audiência e um ator diferentes: a EQUIPE do escritório revelando dado
+// do próprio escritório, no dia a dia normal (não durante uma sessão de suporte).
+//
+// `kind` é string livre, não enum do Prisma — mesmo raciocínio de IntegrationRun.integration.
+//
+// Append-only por decisão de produto (documento 07): nenhuma Server Action deste projeto pode dar
+// update/delete num AuditEvent — deixe isso explícito em comentário no arquivo da action que grava
+// aqui, exatamente como este comentário faz agora. Não há trigger de banco impondo isso (o projeto
+// não usa triggers em lugar nenhum) — a garantia é só de convenção de código, igual o resto do
+// projeto já confia em convenção (ex.: Publication.read, coluna morta, "não usar" só em comentário).
+model AuditEvent {
+  id         String  @id @default(cuid())
+  kind       String // "REVELACAO" | "EXPORTACAO" | "EXCLUSAO" | "ANONIMIZACAO"
+  // Tipo/id do registro afetado (ex.: entityType "Client", entityId o id do cliente) — ambos
+  // opcionais porque nem todo evento tem um registro único (ex.: EXPORTACAO da trilha inteira).
+  entityType String?
+  entityId   String?
+  // Campo revelado, quando kind = REVELACAO (ex.: "document", "phone") — ver lib/mask.ts.
+  field      String?
+  reason     String?
+  meta       Json?
+
+  createdAt DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  actorId String
+  actor   User   @relation(fields: [actorId], references: [id])
+
+  @@index([officeId, kind, createdAt])
+}
+
+// Pedido do titular dos dados (LGPD art. 18 — acesso, correção, exclusão, anonimização),
+// registrado como um PEDIDO COM PRAZO LEGAL (15 dias, `dueAt`), não como uma ação imediata. Reusa
+// components/DeletionRequestsPanel.tsx só como referência de PADRÃO VISUAL (lista + aprovar/
+// recusar) — o model por trás é outro: DeletionRequest (já existente) é aprovação de exclusão de
+// um REGISTRO DE NEGÓCIO qualquer (ex.: um Processo cadastrado errado); DataSubjectRequest é o
+// titular dos dados (cliente, parte contrária, ex-cliente) pedindo acesso/correção/exclusão/
+// anonimização dos PRÓPRIOS dados pessoais — conceito jurídico distinto, prazo legal próprio.
+model DataSubjectRequest {
+  id          String    @id @default(cuid())
+  subjectName String
+  subjectDoc  String? // CPF/CNPJ do titular, quando informado no pedido
+  kind        String // "EXCLUSAO" | "ANONIMIZACAO" | "ACESSO" | "CORRECAO"
+  // Canal por onde o pedido chegou (ex.: "E-mail", "Telefone", "Presencial") — texto livre, não
+  // há integração automática com nenhum canal (todo pedido é registrado manualmente pela equipe).
+  channel     String
+  receivedAt  DateTime
+  dueAt       DateTime // receivedAt + 15 dias corridos (LGPD art. 18, §3º) — calculado na criação
+  status      String    @default("ABERTO") // "ABERTO" | "EM_ANALISE" | "EXECUTADO" | "RECUSADO"
+  decision    String?
+  executedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  @@index([officeId, status])
 }
