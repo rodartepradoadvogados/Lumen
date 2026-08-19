@@ -372,7 +372,7 @@ function MonthView({
   const nextMonthHref = buildHref({ year: String(month === 11 ? year + 1 : year), month: String(month === 11 ? 0 : month + 1) });
 
   return (
-    <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte flex flex-col min-h-0">
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">
           {MONTHS[month]} {year}
@@ -463,7 +463,7 @@ function WeekView({
   const label = `${start.getDate()}/${String(start.getMonth() + 1).padStart(2, "0")} – ${days[6].getDate()}/${String(days[6].getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte flex flex-col min-h-0">
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
@@ -531,7 +531,7 @@ function ListView({
   const days = Array.from(new Set([...Object.keys(tasksByDay), ...Object.keys(financeByDay)])).sort();
 
   return (
-    <div className="bg-sf rounded-xl border border-regua shadow-card flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+    <div className="bg-sf border-t-2 border-regua-forte flex-1 min-h-0 overflow-y-auto scrollbar-thin">
       {days.length === 0 && <p className="text-center text-sm text-tx-3 py-16">Nada agendado nos próximos 30 dias</p>}
       {days.map((day) => {
         const items = (tasksByDay[day] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
@@ -608,7 +608,7 @@ function DayPanel({
   const totalCount = selectedTasks.length + selectedFinance.length;
 
   return (
-    <div className="bg-sf rounded-xl border border-regua shadow-card flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte flex flex-col min-h-0">
       <div className="px-5 py-4 border-b border-regua flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-tx">

@@ -157,12 +157,20 @@ const config: Config = {
         arrasto: "var(--sombra-arrasto)",
       },
       borderRadius: {
-        // Raio de cartão cai de 16px para 6px — é a mudança que mais aumenta densidade sem
-        // mexer em layout. `rounded-xl` já é a classe usada pelos cards, então sobrescrever
-        // aqui atualiza todos de uma vez.
-        xl: "0.375rem",
-        xl2: "0.375rem",
-        lg: "0.3125rem", // botão e campo: 5px
+        // Raio zero em toda superfície de interface (documento 01, "Raio — tudo vira zero") —
+        // sobrescreve a escala inteira do Tailwind de uma vez, então qualquer `rounded-*`
+        // (inclusive as classes já espalhadas pelo código, ainda não varridas uma a uma) já
+        // renderiza sem canto. Só `rounded-full` sobrevive — não é redeclarado aqui, então
+        // continua no valor padrão do Tailwind (9999px), para avatar e badge de contagem.
+        none: "0",
+        sm: "0",
+        DEFAULT: "0",
+        md: "0",
+        lg: "0",
+        xl: "0",
+        xl2: "0",
+        "2xl": "0",
+        "3xl": "0",
       },
     },
   },

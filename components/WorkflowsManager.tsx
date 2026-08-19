@@ -77,7 +77,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
       {templates.length === 0 && <p className="text-sm text-tx-3">Nenhum workflow cadastrado ainda.</p>}
 
       {templates.map((tpl) => (
-        <div key={tpl.id} className="rounded-xl border border-regua overflow-hidden">
+        <div key={tpl.id} className="border-t-2 border-regua-forte overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-sf-apoio border-b border-regua">
             <p className="font-semibold text-tx text-sm">{tpl.name}</p>
             {tpl.area && <Badge color="navy">{tpl.area}</Badge>}

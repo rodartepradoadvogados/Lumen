@@ -63,7 +63,7 @@ export default async function BlogPage() {
               <Link
                 key={post.id}
                 href={`/blog/${post.slug}`}
-                className="bg-sf rounded-xl border border-regua overflow-hidden hover:border-regua-forte transition-colors flex flex-col"
+                className="bg-sf border-t-2 border-regua-forte overflow-hidden hover:bg-sf-apoio transition-colors flex flex-col"
               >
                 {post.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element

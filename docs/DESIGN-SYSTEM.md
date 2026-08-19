@@ -183,7 +183,15 @@ Fundo `--sf-superficie`, borda inferior `--regua`. Aba ativa: peso 600, `--tx`,
 
 ## 4. Botões
 
-Altura 32px no desktop, 26px em barra compacta. Raio **5px**. Peso 600. Ícone 12–14px.
+> **Atualizado na Fase 01/PR2:** raio zero (não mais 5px) e rótulo alinhado à ESQUERDA
+> (nunca centralizado — documento 01, "Proibido" #8), já aplicado em `ButtonPrimary`/
+> `ButtonSecondary` de `components/ui.tsx`. Secundário passou a fundo transparente com
+> borda de **2px** `--regua-forte` (era 1px `--regua`), hover `--acao-bg` (era
+> `--sf-apoio`). O restante da tabela abaixo (cor por tipo, exemplo do Peticionar) ainda
+> descreve o desenho anterior à cor de ação do modelo B — vale só a FORMA (borda/raio/
+> alinhamento), não a cor azul-tinta citada nos exemplos.
+
+Altura 32px no desktop, 26px em barra compacta. Raio **0**. Peso 600. Ícone 12–14px.
 
 | Tipo | Fundo | Texto | Borda | Onde |
 |---|---|---|---|---|
@@ -384,16 +392,24 @@ O card é a única coisa branca da coluna — é isso que comunica que ele é o 
 
 ## 13. Superfícies, raios e sombras
 
-As sombras abaixo já são o valor do redesenho Modernist (aplicadas em `app/globals.css` na
-Fase 01). **Os raios ainda são os antigos** — a varredura para raio zero (documento 01 e
-PR2 do plano de execução) é um PR à parte, que atualiza esta tabela quando rodar.
+Raio zero em `tailwind.config.ts` desde a Fase 01/PR2 — a escala inteira (`sm`/`DEFAULT`/
+`md`/`lg`/`xl`/`2xl`/`3xl`) resolve a `0`; só `rounded-full` sobrevive (não redeclarado,
+segue o padrão do Tailwind), para avatar e **badge de contagem**. O padrão de cartão
+também mudou: em vez de borda de 1px nas quatro arestas, **filete de 2px no topo** em
+`--regua-forte` (ou na cor de severidade, quando houver — ex.: KPI de inadimplência em
+`--urgente`) e sem borda nas outras arestas — ver `Card`/`CardHeader` em
+`components/ui.tsx` e `components/ModalShell.tsx`.
+
+> **Pendente:** o PR2 zerou o raio via config e migrou os componentes centrais
+> (`Card`/`CardHeader`/`ModalShell`/`ButtonPrimary`/`ButtonSecondary`) e os contêineres
+> de cartão mais comuns fora deles. Ainda restam divisores internos (`border-b border-regua`
+> entre cabeçalho e corpo) e botões ad-hoc fora dos componentes centrais em 1px/borda
+> antiga — inofensivos visualmente (a cor já é a nova), mas não uniformizados; migre-os
+> quando mexer em cada tela, ao invés de uma varredura só.
 
 | Uso | Valor |
 |---|---|
-| Raio de cartão e painel | 6px (hoje 16px via `rounded-xl` sobrescrito) — **vira 0 no PR2** |
-| Raio de botão e campo | 5px — **vira 0 no PR2** |
-| Raio de chip de ícone | 4px — **vira 0 no PR2** |
-| Raio de pílula / chip de filtro | 11px — **vira 0 no PR2** |
+| Raio de cartão, painel, botão, campo, chip, pílula | **0** |
 | Régua de linha | 1px `--regua` |
 | Régua de seção | 2px `--regua-forte` |
 | Sombra de menu suspenso | `0 3px 10px rgba(45,43,43,.16)` / Noite `rgba(0,0,0,.45)` |
@@ -401,7 +417,7 @@ PR2 do plano de execução) é um PR à parte, que atualiza esta tabela quando r
 | Sombra de cartão parado | **nenhuma** |
 
 `.brand-texture` (o grid dourado de fundo) e `SiteBackgroundLayer` são **removidos** — ver
-documento 02 do handoff (fase da casca).
+documento 02 do handoff (fase da casca), ainda não migrada.
 
 ---
 

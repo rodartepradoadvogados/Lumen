@@ -66,8 +66,8 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
   }
 
   return (
-    <div className="border border-regua rounded-xl overflow-hidden bg-sf">
-      <div className="px-4 py-3 border-b border-regua bg-sf-apoio flex items-center gap-2">
+    <div className="border-t-2 border-regua-forte overflow-hidden bg-sf">
+      <div className="px-4 py-3 border-b-2 border-regua-forte bg-sf-apoio flex items-center gap-2">
         <FolderOpenDot size={15} className="text-tx-2" />
         <span className="font-semibold text-tx text-sm">{grupo.pastas[0].nome}</span>
         <span className="text-xs text-tx-3">— {grupo.pastas.length} pastas parecidas</span>
@@ -242,7 +242,7 @@ export default function PastasParecidasDriveView() {
   return (
     <div className="space-y-4">
       {grupos.length === 0 && (
-        <div className="border border-regua rounded-xl bg-sf p-6 text-center">
+        <div className="border-t-2 border-regua-forte bg-sf p-6 text-center">
           <CheckCircle2 size={22} className="text-concluido mx-auto mb-2" />
           <p className="text-sm text-tx-2">Nenhuma pasta com nome parecido de outra foi encontrada em Assessoria.</p>
         </div>
@@ -253,7 +253,7 @@ export default function PastasParecidasDriveView() {
       ))}
 
       {soltas.length > 0 && (
-        <div className="border border-regua rounded-xl bg-sf p-4 space-y-1.5">
+        <div className="border-t-2 border-regua-forte bg-sf p-4 space-y-1.5">
           <p className="text-xs font-semibold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
             <Link2Off size={13} /> {soltas.length} pasta(s) solta(s), sem nome parecido com nenhuma outra
           </p>

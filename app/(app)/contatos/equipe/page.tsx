@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // Esta página não tem estilo próprio para .cfg-input (essa classe só existe no <style> injetado
 // por app/(app)/configuracoes/page.tsx) — os campos usam os tokens diretamente em vez de
 // depender de CSS que pode não estar carregado.
-const fieldCls = "border border-regua-forte rounded-[5px] px-3 py-2 text-sm bg-sf text-tx";
+const fieldCls = "border border-regua-forte px-3 py-2 text-sm bg-sf text-tx";
 
 export default async function EquipePage() {
   const viewer = await getCurrentUser();

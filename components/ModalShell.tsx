@@ -59,9 +59,9 @@ export default function ModalShell({
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
       <div
-        className={`bg-sf rounded-xl shadow-pop flex flex-col overflow-hidden motion-safe:animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
+        className={`bg-sf shadow-pop flex flex-col overflow-hidden motion-safe:animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
       >
-        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b border-regua">
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b-2 border-regua-forte">
           <div className="min-w-0">
             <h3 className="font-serif font-bold text-tx truncate">{title}</h3>
             {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}

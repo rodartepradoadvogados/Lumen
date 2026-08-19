@@ -79,7 +79,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.color }} />
                 <h3 className="font-semibold text-sm text-tx">{col.name}</h3>
               </div>
-              <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-[9px] px-2 py-0.5">
+              <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-full px-2 py-0.5">
                 {colTasks.length}
               </span>
             </div>
