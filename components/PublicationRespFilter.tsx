@@ -27,7 +27,7 @@ export default function PublicationRespFilter({
     <select
       value={value || ""}
       onChange={handleChange}
-      className={`text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${
+      className={`text-xs font-semibold px-3 py-1.5 border cursor-pointer transition-colors ${
         active ? "bg-acao text-acao-tx border-acao" : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
       }`}
     >

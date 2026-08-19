@@ -222,15 +222,6 @@ input[type="radio"] {
   border-left-color: var(--concluido);
 } /* Anexos */
 
-/* A alternância branco/palha dos cards de Publicações saiu junto com o creme: o ritmo de
-   leitura passa a vir da régua de 1px entre os cards, não de duas cores de fundo. As duas
-   classes continuam existindo (o componente as aplica por índice) e agora pintam igual —
-   saem do CSS e do JSX na migração da área Jurídico. */
-.pub-card-a,
-.pub-card-b {
-  background-color: var(--sf-superficie);
-}
-
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;

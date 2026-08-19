@@ -53,6 +53,12 @@ export type DelegateTaskInitial = {
   // Pré-seleciona o tipo (ex.: atalhos "Gerar Prazo"/"Marcar Audiência" em PublicationRow —
   // ver AGENDA_TYPE_SHORTCUTS) — usuário ainda pode trocar no passo 2.
   type?: string;
+  // Pré-seleciona responsável e prazo — usado pela triagem por teclado de /publicacoes
+  // (documento 05: "Enter abre o modal de tarefa já preenchido"). Quando os três primeiros
+  // passos já chegam decididos (responsável, tipo, vínculo), o formulário pula direto pro
+  // passo 4 (revisão) em vez de forçar o usuário a clicar "Avançar" três vezes à toa.
+  responsibleIds?: string[];
+  dueDate?: string;
 };
 
 // Prévia do prazo de segurança (24h antes do prazo fatal) exibida no passo 4 — mesma conta
@@ -85,13 +91,39 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
   );
 }
 
-export default function DelegateTaskForm({ users, initial }: { users: Option[]; initial?: DelegateTaskInitial }) {
+// Passo inicial: só pula direto pro passo 4 (revisão) quando responsável, tipo E vínculo (ou
+// "Outros", que dispensa vínculo) já chegaram todos prontos — do contrário, mesmo com um ou
+// outro campo pré-preenchido, o usuário passa pelos passos normalmente (o campo já vem marcado
+// quando ele chegar lá).
+function initialStepFor(initial?: DelegateTaskInitial): number {
+  const hasResponsible = Boolean(initial?.responsibleIds?.length);
+  const hasType = Boolean(initial?.type);
+  const hasLink = initial?.referTo === "OUTROS" || Boolean(initial?.selectedLink);
+  return hasResponsible && hasType && hasLink ? 4 : 1;
+}
+
+export default function DelegateTaskForm({
+  users,
+  initial,
+  onSuccess,
+}: {
+  users: Option[];
+  initial?: DelegateTaskInitial;
+  // Chamado assim que a delegação é confirmada com sucesso (antes da tela de "Delegado com
+  // sucesso!" aparecer), com os ids dos responsáveis escolhidos — usado pela triagem por teclado
+  // de /publicacoes para avançar para a próxima publicação da fila sem esperar o usuário fechar
+  // o modal manualmente, e para atualizar o responsável exibido sem esperar o servidor.
+  onSuccess?: (responsibleIds: string[]) => void;
+}) {
   const [state, setState] = useState(() => ({
     ...emptyState,
+    step: initialStepFor(initial),
+    responsibleIds: initial?.responsibleIds ?? emptyState.responsibleIds,
     referTo: initial?.referTo ?? emptyState.referTo,
     selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
     title: initial?.title ?? emptyState.title,
     type: initial?.type ?? emptyState.type,
+    dueDate: initial?.dueDate ?? emptyState.dueDate,
   }));
   const [linkResults, setLinkResults] = useState<LinkHit[]>([]);
   const [searching, setSearching] = useState(false);
@@ -132,10 +164,13 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
   function resetAll() {
     setState({
       ...emptyState,
+      step: initialStepFor(initial),
+      responsibleIds: initial?.responsibleIds ?? emptyState.responsibleIds,
       referTo: initial?.referTo ?? emptyState.referTo,
       selectedLink: initial?.selectedLink ?? emptyState.selectedLink,
       title: initial?.title ?? emptyState.title,
       type: initial?.type ?? emptyState.type,
+      dueDate: initial?.dueDate ?? emptyState.dueDate,
     });
     setLinkResults([]);
     setSearching(false);
@@ -192,6 +227,7 @@ export default function DelegateTaskForm({ users, initial }: { users: Option[]; 
     }
     const responsibleNames = users.filter((u) => state.responsibleIds.includes(u.id)).map((u) => u.name);
     setSuccess({ responsibleNames, title: state.title.trim() });
+    onSuccess?.(state.responsibleIds);
   }
 
   if (success) {
