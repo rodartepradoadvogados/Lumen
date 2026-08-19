@@ -2,32 +2,34 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, visibleSectionItems, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Sub-abas do modo de visualização Bancada (DESIGN-SYSTEM.md §3) — mostra os mesmos itens que
-// components/SectionPanel.tsx lista verticalmente no modo Régua (visibleSectionItems da seção
-// ativa), aqui como uma linha horizontal logo abaixo da barra de menus
-// (components/TopMenuBar.tsx). Mesmo mecanismo de clique simples navega / duplo clique abre aba.
-// Não mostra os `subItems` de 2º nível (Relatórios/Configurações, filtrados por `?secao=`): essas
-// páginas já têm navegação própria em abas internas — ver nota do §3 sobre "abas internas de
-// página" usarem a mesma regra de filete --acao.
-export default function SubTabsBar({
+// Abas horizontais no topo do conteúdo, logo abaixo da TopBar — substituem o painel de seção de
+// 190px (components/SectionPanel.tsx, removido no redesenho Modernist) para navegar entre os
+// itens da MESMA seção ativa (ex.: Financeiro > Despesas/Receitas/Fluxo de caixa/DRE/Livro
+// caixa, ver lib/navSections.ts). Os `subItems` de cada item (Relatórios/Configurações, filtro
+// `?secao=`) NÃO entram aqui — cada uma dessas duas páginas já tem seu próprio sub-nav interno
+// (chips por `secao`), o painel antigo só duplicava esse acesso. "painel" e seções com um único
+// item não mostram nada — não há entre o quê navegar. Ver documento 02 do handoff do redesenho.
+export default function PageSectionTabs({
   section,
-  hasFinanceAccess = true,
+  hasFinanceAccess,
   modules,
 }: {
-  section: SectionKey;
-  hasFinanceAccess?: boolean;
+  section: SectionKey | "painel" | null;
+  hasFinanceAccess: boolean;
   modules: OfficeModules;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
   const { openTab, goToLiveView } = useTabs();
 
+  // Mesmo mecanismo de duplo clique do rail (components/NavRail.tsx) e do antigo SectionPanel:
+  // clique simples navega, um 2º clique dentro da janela abre em aba nova.
   const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   useEffect(() => {
     const timers = clickTimers.current;
@@ -53,13 +55,14 @@ export default function SubTabsBar({
     }, 250);
   }
 
+  if (!section || section === "painel") return null;
   const def = RAIL_SECTIONS.find((s) => s.key === section);
   if (!def) return null;
   const items = visibleSectionItems(def, { hasFinanceAccess, modules });
-  if (items.length === 0) return null;
+  if (items.length < 2) return null;
 
   return (
-    <div className="h-9 shrink-0 flex items-stretch bg-sf border-b border-regua px-3 gap-4 overflow-x-auto scrollbar-thin">
+    <div className="h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin">
       {items.map((item) => {
         const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
         return (
@@ -68,8 +71,8 @@ export default function SubTabsBar({
             href={item.href}
             onClick={(e) => handleClick(e, item.href, item.label)}
             className={clsx(
-              "shrink-0 flex items-center text-[13px] border-b-2 transition-colors",
-              active ? "text-tx font-semibold border-acao" : "text-tx-2 font-medium border-transparent hover:text-tx"
+              "shrink-0 h-full flex items-center text-sm border-b-2 -mb-0.5 transition-colors",
+              active ? "font-extrabold text-tx border-acao" : "font-normal text-tx-2 border-transparent hover:text-tx"
             )}
           >
             {item.label}

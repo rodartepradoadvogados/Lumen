@@ -4,12 +4,11 @@ import { X, FileText } from "lucide-react";
 import clsx from "clsx";
 import { useTabs } from "@/components/TabsProvider";
 
-// Primeira linha da janela no modo de visualização Bancada (DESIGN-SYSTEM.md §3) — mesmas abas
-// internas de components/InternalTabsBar.tsx, consumindo o MESMO TabsProvider (nenhum estado
-// novo de abas). Some por completo sem nenhuma aba aberta (mesmo critério de InternalTabsBar, o
-// equivalente no modo Régua) — nesse caso a "primeira linha da janela" passa a ser a faixa de
-// menus logo abaixo (components/TopMenuBar.tsx). components/AppShell.tsx decide qual dos dois
-// (esta ou InternalTabsBar) monta, conforme components/ViewModeProvider.tsx.
+// Mesmas abas internas de components/InternalTabsBar.tsx (hoje o que está montado, dentro da
+// TopBar), consumindo o MESMO TabsProvider (nenhum estado novo de abas) — pensada como a faixa
+// própria de guias no topo da janela que o PR5 do plano de execução vai montar no lugar da
+// TopBar atual (documento 02 do handoff, "guias assumem o cluster de ações"). Sem uso até lá.
+// Some por completo sem nenhuma aba aberta, mesmo critério de InternalTabsBar.
 export default function GuiasBar() {
   const { tabs, activeTabId, activateTab, closeTab } = useTabs();
 

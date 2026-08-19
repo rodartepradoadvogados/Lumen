@@ -3,12 +3,11 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
 import TopBarActionsContent from "@/components/TopBarActionsContent";
 
-// Mesmo cluster de ações da TopBar (components/TopBar.tsx), mas pra faixa de menus compacta do
-// modo Bancada (components/AppShell.tsx, ao lado de components/TopMenuBar.tsx) — pedido do dono
-// do escritório pra esses botões subirem, alinhados com o menu, em vez de morar numa faixa
-// própria mais abaixo. Busca os mesmos dados de novo (getCurrentUser/getTodayItems/sessão) —
-// duplica a consulta em vez de compartilhar com TopBar, mas são consultas simples e o ganho de
-// não precisar replumbing os dados através de props client-side compensa a simplicidade.
+// Mesmo cluster de ações de components/TopBar.tsx, pronto pra faixa de guias assumir no lugar
+// da TopBar atual (PR5 do plano de execução, documento 02 do handoff) — sem uso até lá. Busca os
+// mesmos dados de novo (getCurrentUser/getTodayItems/sessão) — duplica a consulta em vez de
+// compartilhar com TopBar, mas são consultas simples e o ganho de não precisar replumbing os
+// dados através de props client-side compensa a simplicidade.
 export default async function TopBarActions() {
   const user = await getCurrentUser();
   const hasFinanceAccess = Boolean(user?.isAdmin || user?.financeAccess);

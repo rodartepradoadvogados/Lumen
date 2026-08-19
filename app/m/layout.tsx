@@ -116,7 +116,7 @@ export default async function MobileLayout({ children }: { children: React.React
             >
               <Bell size={16} />
               {totalAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-vinho-500 text-white text-[9px] font-bold flex items-center justify-center border border-grafite-800">
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-atencao text-white text-[9px] font-bold flex items-center justify-center border border-grafite-800">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}

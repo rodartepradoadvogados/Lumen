@@ -3,21 +3,15 @@
 import { X, FileText } from "lucide-react";
 import clsx from "clsx";
 import { useTabs } from "@/components/TabsProvider";
-import { useViewMode } from "@/components/ViewModeProvider";
 
-// Abas internas (estilo navegador) renderizadas DENTRO da TopBar, ao lado da busca — ver
-// proposta de remodelação do portal: antes ficavam numa faixa própria abaixo do cabeçalho
-// (components/AppShell.tsx), agora entram aqui. O estado (quais abas, qual ativa) mora em
-// components/TabsProvider.tsx, compartilhado com AppShell (que decide qual <iframe> mostrar).
-// Some por completo sem nenhuma aba aberta — não ocupa espaço à toa na barra. No modo de
-// visualização Bancada (components/ViewModeProvider.tsx), quem mostra as mesmas abas é
-// components/GuiasBar.tsx (linha própria no topo da janela) — para não duplicar a mesma lista
-// duas vezes na tela, este componente some inteiro nesse modo, mesmo com abas abertas.
+// Abas internas (estilo navegador) renderizadas DENTRO da TopBar, ao lado da busca. O estado
+// (quais abas, qual ativa) mora em components/TabsProvider.tsx, compartilhado com AppShell (que
+// decide qual <iframe> mostrar). Some por completo sem nenhuma aba aberta — não ocupa espaço à
+// toa na barra.
 export default function InternalTabsBar() {
   const { tabs, activeTabId, activateTab, closeTab, goToLiveView } = useTabs();
-  const { viewMode } = useViewMode();
 
-  if (viewMode === "bancada" || tabs.length === 0) return null;
+  if (tabs.length === 0) return null;
 
   return (
     <div className="hidden lg:flex items-center gap-1 overflow-x-auto scrollbar-thin max-w-[420px]">

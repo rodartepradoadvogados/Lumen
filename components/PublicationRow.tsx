@@ -155,7 +155,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           href={`/processos/${pub.case.id}?tab=atividades`}
           onClick={(e) => e.stopPropagation()}
           data-tip="Ver atividades vinculadas a esta publicação"
-          className="absolute right-7 top-4 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-vinho-500 text-white text-[10px] font-bold tabular-nums hover:bg-vinho-700 z-10"
+          className="absolute right-7 top-4 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-atencao text-white text-[10px] font-bold tabular-nums z-10"
         >
           {pub.taskCount}
         </Link>

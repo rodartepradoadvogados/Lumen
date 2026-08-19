@@ -2,11 +2,12 @@ import type { LucideIcon } from "lucide-react";
 import { CalendarDays, MessagesSquare, Briefcase, Wallet, BarChart3 } from "lucide-react";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Modelo de navegação do rail (components/NavRail.tsx) + painel de seção
-// (components/SectionPanel.tsx) — ver proposta de remodelação do portal aprovada em 2026-08-08.
-// Substitui `navGroups` do antigo components/Sidebar.tsx: em vez de 4 categorias com sub-abas
-// que expandiam sozinhas na barra lateral, agora são 6 SEÇÕES (uma por ícone do rail), cada
-// uma com uma lista curta de itens que aparece no painel de 224px ao lado.
+// Modelo de navegação do rail (components/NavRail.tsx) + abas de seção
+// (components/PageSectionTabs.tsx, no topo do conteúdo — substitui o antigo painel lateral de
+// 190px, components/SectionPanel.tsx, removido no redesenho Modernist) — ver proposta de
+// remodelação do portal aprovada em 2026-08-08 e documento 02 do handoff do redesenho. Em vez de
+// categorias com sub-abas que expandiam sozinhas na barra lateral, são 6 SEÇÕES (uma por ícone
+// do rail), cada uma com uma lista curta de itens.
 //
 // "Publicações" aparece em duas seções (Comunicação e Jurídico) — é a MESMA rota /publicacoes,
 // só dois pontos de entrada pra dois jeitos de pensar (fila de comunicação x visão processual).
