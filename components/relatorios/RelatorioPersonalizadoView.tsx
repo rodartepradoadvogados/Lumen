@@ -218,7 +218,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
   return (
     <div className="flex flex-col gap-5">
       {/* ---------------- FILTROS ---------------- */}
-      <div className="bg-sf-apoio border border-regua rounded-xl p-4 flex flex-col gap-4">
+      <div className="bg-sf-apoio border-t-2 border-regua-forte p-4 flex flex-col gap-4">
         <div className="flex flex-wrap items-end gap-3 justify-between">
           <div className="flex flex-col gap-2">
             <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">Período</span>
@@ -380,7 +380,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
 
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(158px,1fr))" }}>
             {resultado.blocos.map((b) => (
-              <div key={b.chave} className="bg-sf border border-regua rounded-xl p-3.5 border-l-[3px] border-l-acao flex flex-col gap-0.5">
+              <div key={b.chave} className="bg-sf p-3.5 border-l-[3px] border-l-acao flex flex-col gap-0.5">
                 <span className="text-2xl font-bold text-tx tabular-nums leading-none">{b.valor}</span>
                 <span className="text-[11.5px] font-semibold text-tx-2">{b.rotulo}</span>
                 <Variacao atual={b.valor} anterior={b.anterior} />
@@ -390,14 +390,14 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
           </div>
 
           <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))" }}>
-            <div className="bg-sf border border-regua rounded-xl p-4 flex flex-col gap-3">
+            <div className="bg-sf border-t-2 border-regua-forte p-4 flex flex-col gap-3">
               <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">
                 Volume por pessoa · {CRITERIO_AUTORIA_OPCOES.find((o) => o.value === filtros.criterioAutoria)?.label}
               </span>
               <Barras linhas={resultado.porPessoa} vazio="Nada no período com os filtros atuais." />
             </div>
 
-            <div className="bg-sf border border-regua rounded-xl p-4 flex flex-col gap-3">
+            <div className="bg-sf border-t-2 border-regua-forte p-4 flex flex-col gap-3">
               <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">Volume por assessoria</span>
               <Barras linhas={resultado.porAssessoria} vazio="Nenhum item vinculado a assessoria no período." />
               {resultado.semVinculoAssessoria > 0 && (
@@ -409,8 +409,8 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
             </div>
           </div>
 
-          <div className="bg-sf border border-regua rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-regua">
+          <div className="bg-sf border-t-2 border-regua-forte overflow-hidden">
+            <div className="px-4 py-3 border-b-2 border-regua-forte">
               <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">
                 Detalhamento — mostrando {resultado.detalhes.length} de {resultado.detalhesTotal}
               </span>

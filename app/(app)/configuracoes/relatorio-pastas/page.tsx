@@ -69,7 +69,7 @@ export default async function RelatorioPastasPage() {
         subtitle={`${processos.length} processo(s), ${casos.length} caso(s) e ${assessoriasRaw.length} assessoria(s) ativos · armazenamento: ${providerLabel}`}
       />
 
-      <div className="bg-acao-bg border border-regua rounded-xl px-4 py-3 text-xs text-tx-2 space-y-1">
+      <div className="bg-acao-bg border-t-2 border-regua-forte px-4 py-3 text-xs text-tx-2 space-y-1">
         <p>
           O <strong className="text-tx">caminho</strong> abaixo é o que a convenção deste escritório usa para criar pasta nova. A
           coluna <strong className="text-tx">Pasta</strong> mostra se ela já existe de fato: quando ainda não existe, nasce

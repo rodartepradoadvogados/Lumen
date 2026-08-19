@@ -155,7 +155,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {photos.map((photo) => (
-            <div key={photo.id} className="rounded-xl border border-regua overflow-hidden bg-sf">
+            <div key={photo.id} className="border-t-2 border-regua-forte overflow-hidden bg-sf">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photoFileUrl(photo.id)} alt={photo.caption || photo.category} className="w-full h-28 object-cover" />
               <div className="p-2 space-y-1">

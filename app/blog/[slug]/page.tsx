@@ -60,7 +60,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <article className="bg-sf rounded-xl border border-regua overflow-hidden">
+        <article className="bg-sf border-t-2 border-regua-forte overflow-hidden">
           {post.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={post.imageUrl} alt="" className="w-full max-h-80 object-cover" />

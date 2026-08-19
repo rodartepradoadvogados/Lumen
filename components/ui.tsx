@@ -1,17 +1,19 @@
 import clsx from "clsx";
 import { ButtonHTMLAttributes, ReactNode } from "react";
 
-// Botões da marca Lúmen (DESIGN-SYSTEM.md §4): primário usa a cor de AÇÃO (azul-tinta,
-// --acao/--acao-tx — nunca ouro, nunca bordô/vinho fora da confirmação de exclusão). Secundário
-// é contorno neutro em --regua. Altura 32px, raio 5px (`rounded-lg` já aponta pra 5px via
-// tailwind.config.ts), peso 600. Novos botões devem consumir estes dois em vez de montar classes
-// soltas; os botões existentes espalhados pelos formulários/modais do portal ainda não foram
-// migrados para cá (ver checklist).
+// Botões do redesenho Modernist (design_handoff_lumen_redesign/01-tokens-e-tema.md, seção
+// "Botões"): primário usa a cor de AÇÃO (--acao/--acao-tx — nunca marca, nunca vinho fora da
+// confirmação destrutiva). Secundário é contorno em 2px --regua-forte, fundo transparente.
+// Altura 32px, raio zero (a escala inteira do Tailwind já resolve a 0, ver tailwind.config.ts),
+// peso 600, rótulo alinhado à ESQUERDA (nunca centralizado — "Proibido" #8 do documento 01;
+// `justify-start` em vez de `justify-center`, mesmo num botão mais largo que o rótulo). Novos
+// botões devem consumir estes dois em vez de montar classes soltas; os botões existentes
+// espalhados pelos formulários/modais do portal ainda não foram migrados para cá (ver checklist).
 export function ButtonPrimary({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-4 transition-colors disabled:opacity-60 disabled:cursor-default",
+        "inline-flex items-center justify-start gap-1.5 h-8 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-4 transition-colors disabled:opacity-60 disabled:cursor-default",
         className
       )}
       {...props}
@@ -22,7 +24,7 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-1.5 h-8 rounded-lg border border-regua bg-sf hover:bg-sf-apoio text-tx font-semibold text-sm px-4 transition-colors disabled:opacity-60 disabled:cursor-default",
+        "inline-flex items-center justify-start gap-1.5 h-8 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx font-semibold text-sm px-4 transition-colors disabled:opacity-60 disabled:cursor-default",
         className
       )}
       {...props}
@@ -32,15 +34,19 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    // Raio de cartão 6px (DESIGN-SYSTEM.md §13) — `rounded-xl` já foi remapeado pra 6px em
-    // tailwind.config.ts; era `rounded-[14px]` (arbitrário, fora da escala) antes desta rodada.
-    <div className={clsx("bg-sf rounded-xl border border-regua", className)}>{children}</div>
+    // Raio zero, régua faz o trabalho da sombra (documento 01 do redesenho Modernist,
+    // "01-tokens-e-tema.md"): em vez de borda de 1px nas quatro arestas, filete de 2px só no
+    // topo, em --regua-forte. Sem sombra em cartão parado.
+    <div className={clsx("bg-sf border-t-2 border-regua-forte", className)}>{children}</div>
   );
 }
 
 export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
+    // Cabeçalho de cartão conta como "abre estrutura" (documento 01: "2px --regua-forte separa
+    // seções... cabeçalho de tabela, topo de coluna"), não como item de lista — por isso 2px,
+    // não 1px.
+    <div className="flex items-center justify-between px-5 py-4 border-b-2 border-regua-forte">
       <div>
         <h3 className="font-semibold text-tx text-base">{title}</h3>
         {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}

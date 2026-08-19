@@ -193,7 +193,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         <div className="mt-2 space-y-2">
           {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
           {group.items.map((item) => (
-            <div key={item.id} className="rounded-xl border border-regua p-3">
+            <div key={item.id} className="border-t-2 border-regua-forte p-3">
               <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge color="navy">{item.source}</Badge>

@@ -27,7 +27,7 @@ export default async function DuplicadosPage() {
         subtitle="Agrupa clientes com o mesmo nome (ignorando acento, maiúscula e espaço) — a causa mais comum de a mesma empresa aparecer duas vezes em Assessoria, cada uma com sua própria pasta no Drive"
       />
 
-      <div className="bg-acao-bg border border-regua rounded-xl px-4 py-3 text-xs text-tx-2 space-y-1">
+      <div className="bg-acao-bg border-t-2 border-regua-forte px-4 py-3 text-xs text-tx-2 space-y-1">
         <p>
           Cada cliente tem no máximo uma Assessoria — então duas pastas da mesma empresa em Assessoria só acontecem
           quando existem <strong className="text-tx">dois cadastros de cliente</strong> para ela. Escolha qual é o

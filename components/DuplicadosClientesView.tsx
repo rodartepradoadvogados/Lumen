@@ -35,7 +35,7 @@ function resumoAtividade(c: ClienteCandidato): string {
 // unificar, pra não pedir ação de novo pra sempre sobre algo que já foi resolvido.
 function GrupoCardHistorico({ grupo }: { grupo: GrupoClientesDuplicados }) {
   return (
-    <div className="border border-regua rounded-xl overflow-hidden bg-sf opacity-70">
+    <div className="border-t-2 border-regua-forte overflow-hidden bg-sf opacity-70">
       <div className="px-4 py-3 flex items-center gap-2">
         <CheckCircle2 size={15} className="text-concluido shrink-0" />
         <span className="font-semibold text-tx text-sm">{grupo.clientes[0].nome}</span>
@@ -111,8 +111,8 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
   const alvo = alvoId ? grupo.clientes.find((c) => c.id === alvoId) : null;
 
   return (
-    <div className="border border-regua rounded-xl overflow-hidden bg-sf">
-      <div className="px-4 py-3 border-b border-regua bg-sf-apoio flex items-center gap-2">
+    <div className="border-t-2 border-regua-forte overflow-hidden bg-sf">
+      <div className="px-4 py-3 border-b-2 border-regua-forte bg-sf-apoio flex items-center gap-2">
         <Users size={15} className="text-tx-2" />
         <span className="font-semibold text-tx text-sm">{grupo.clientes[0].nome}</span>
         <span className="text-xs text-tx-3">— {grupo.clientes.length} cadastros parecidos</span>
@@ -285,7 +285,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
 export default function DuplicadosClientesView({ grupos }: { grupos: GrupoClientesDuplicados[] }) {
   if (grupos.length === 0) {
     return (
-      <div className="border border-regua rounded-xl bg-sf p-6 text-center">
+      <div className="border-t-2 border-regua-forte bg-sf p-6 text-center">
         <CheckCircle2 size={22} className="text-concluido mx-auto mb-2" />
         <p className="text-sm text-tx-2">Nenhum cadastro de cliente parecido com outro foi encontrado.</p>
       </div>

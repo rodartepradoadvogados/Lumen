@@ -33,7 +33,7 @@ export default function PrivacidadePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <article className="bg-sf rounded-xl border border-regua overflow-hidden">
+        <article className="bg-sf border-t-2 border-regua-forte overflow-hidden">
           <div className="p-6 sm:p-8 space-y-5 text-sm leading-relaxed text-tx">
             <div>
               <h1 className="font-bold text-tx text-2xl sm:text-3xl leading-tight mb-1">Política de Privacidade</h1>

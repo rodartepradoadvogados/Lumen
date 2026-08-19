@@ -105,7 +105,7 @@ export default async function FunilPage() {
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stageDot[stage] }} />
                     <h3 className="font-semibold text-sm text-tx">{stageLabels[stage]}</h3>
                   </div>
-                  <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-[9px] px-2 py-0.5">{total.count}</span>
+                  <span className="text-xs font-semibold text-tx-2 bg-sf border border-regua rounded-full px-2 py-0.5">{total.count}</span>
                 </div>
                 {total.sum > 0 && (
                   <p className="text-xs text-tx-3 mt-1">{formatCurrency(total.sum)} estimado</p>

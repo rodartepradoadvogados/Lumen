@@ -284,7 +284,7 @@ async function ProcessosSection({ start, end, officeId }: { start: Date; end: Da
           Tempo médio de tramitação (processos encerrados no período)
         </p>
         <div className={avgTramitacaoByArea.length >= 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
-          <div className="rounded-xl border border-regua bg-sf-apoio p-5">
+          <div className="border-t-2 border-regua-forte bg-sf-apoio p-5">
             {avgTramitacaoDays !== null ? (
               <>
                 <p className="font-bold text-3xl text-tx">{avgTramitacaoDays} dias</p>
@@ -591,7 +591,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
           </div>
           <div>
             <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Inadimplência atual</p>
-            <div className="rounded-xl border border-regua bg-urgente-bg p-5">
+            <div className="border-t-2 border-urgente bg-urgente-bg p-5">
               <p className="font-bold text-2xl tabular-nums text-urgente">{formatCurrency(inadimplenciaTotal)}</p>
               <p className="text-xs text-tx-2 mt-1">
                 {inadimplenciaCount} conta(s) a receber vencida(s)
