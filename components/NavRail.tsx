@@ -3,19 +3,20 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, Menu, X } from "lucide-react";
+import { LayoutDashboard, Menu, Settings, X } from "lucide-react";
 import clsx from "clsx";
 import LumenMark from "@/components/LumenMark";
 import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, isSectionVisible, sectionForPathname, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Rail de 62px com 6 ícones (Painel + as 5 seções de lib/navSections.ts) — única navegação do
-// app desktop (os antigos modos Régua/Bancada saíram, ver components/AppShell.tsx). "Painel" e
-// as 5 seções navegam para o primeiro item de cada uma; components/PageSectionTabs.tsx mostra
-// os demais itens da seção ativa como abas no topo do conteúdo. Ver documento 02 do handoff do
-// redesenho e DESIGN-SYSTEM.md §3 (largura/rótulo permanente ainda pendente, ver PR4 do plano
-// de execução).
+// Rail — única navegação do app desktop (os antigos modos Régua/Bancada saíram, ver
+// components/AppShell.tsx). "Painel" e as 5 seções de lib/navSections.ts navegam para o
+// primeiro item de cada uma; components/PageSectionTabs.tsx mostra os demais itens da seção
+// ativa como abas no topo do conteúdo. "Ajustes", fixo no pé, é o atalho direto pra
+// Configurações — os outros itens de Gestão (Relatórios/Produtividade) continuam só dentro da
+// seção. 56px sem rótulo em telas médias (768–1023px), 76px com rótulo sempre visível a partir
+// de 1024px — documento 02 do handoff do redesenho Modernist.
 export default function NavRail({
   hasFinanceAccess = true,
   unreadPublications = 0,
@@ -76,12 +77,13 @@ export default function NavRail({
 
   const visibleSections = RAIL_SECTIONS.filter((s) => isSectionVisible(s, { hasFinanceAccess, modules }));
   const currentSection = activeSection ?? sectionForPathname(pathname);
+  const onConfiguracoes = pathname === "/configuracoes" || pathname?.startsWith("/configuracoes/");
 
   return (
     <>
       <button
         onClick={onOpenMobile}
-        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center rounded-lg bg-grafite-800 text-white shadow-menu"
+        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center bg-grafite-800 text-white shadow-menu"
         aria-label="Abrir menu"
       >
         <Menu size={18} />
@@ -89,11 +91,11 @@ export default function NavRail({
 
       {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-grafite-900/50" onClick={onCloseMobile} />}
 
-      {/* 62px (DESIGN-SYSTEM.md §3) — grafite nos dois temas, fundo fixo (não usa --sf-*, que
-          troca com o tema: o rail é sempre escuro, Manhã e Noite). */}
+      {/* Grafite nos dois temas, fundo fixo (não usa --sf-*, que troca com o tema: o rail é
+          sempre escuro, Manhã e Noite) — documento 02 do handoff. */}
       <aside
         className={clsx(
-          "w-[62px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-grafite-800 transition-transform duration-200 md:translate-x-0",
+          "w-16 md:w-14 lg:w-[76px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-grafite-800 transition-transform duration-200 md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -102,7 +104,7 @@ export default function NavRail({
         </button>
 
         <Link href="/painel" onClick={(e) => handleClick(e, "/painel", "Painel", "painel")} className="pt-4 pb-3">
-          <LumenMark size={30} />
+          <LumenMark size={38} />
         </Link>
 
         <nav className="flex-1 flex flex-col items-center gap-1 w-full px-2 overflow-y-auto scrollbar-thin">
@@ -137,6 +139,19 @@ export default function NavRail({
           })}
         </nav>
 
+        {/* Ajustes — atalho fixo no pé pra Configurações, fora da rolagem das seções acima
+            (documento 02: "Painel + as 5 seções + Ajustes no pé"). Continua contando como a
+            seção "gestao" pra components/PageSectionTabs.tsx mostrar as abas certas. */}
+        <div className="w-full px-2 pb-1">
+          <RailButton
+            href="/configuracoes"
+            label="Ajustes"
+            icon={Settings}
+            active={onConfiguracoes}
+            onClick={(e) => handleClick(e, "/configuracoes", "Configurações", "gestao")}
+          />
+        </div>
+
         <div className="pb-3 text-[8px] text-white/30 text-center px-1">v0.1</div>
       </aside>
     </>
@@ -164,16 +179,13 @@ function RailButton({
       onClick={onClick}
       data-tip={label}
       className={clsx(
-        "relative w-full flex flex-col items-center gap-0.5 py-2.5 rounded-lg border-l-[3px] transition-colors",
+        "relative w-full flex flex-col items-center gap-0.5 py-2.5 border-l-4 transition-colors",
         active
-          ? // Fundo do item ativo difere por tema (grafite-700 na Manhã, --sf-apoio na Noite,
-            // que nesse tom vale #1b2026) mesmo o rail em si sendo escuro nos dois — ver
-            // DESIGN-SYSTEM.md §3. Filete e texto vêm do token de marca/branco puro.
-            "bg-grafite-700 dark:bg-sf-apoio border-marca text-white font-semibold"
-          : // #9aa3ad/#8b949e (Manhã/Noite) não têm token próprio em app/globals.css ainda — são
-            // hex literais só porque este componente não tem posse sobre esse arquivo para
-            // criar um; valor exato conforme DESIGN-SYSTEM.md §3, tabela do rail.
-            "border-transparent text-rail-tx hover:bg-white/5 hover:text-white"
+          ? // Item ativo é fixo nos dois temas (o rail nunca clareia) — documento 02 do handoff:
+            // fundo #2d2b2b (== neutro-900, mesma rampa do documento 01), filete de marca, texto
+            // branco.
+            "bg-neutro-900 border-marca text-white font-semibold"
+          : "border-transparent text-rail-tx hover:bg-white/5 hover:text-white"
       )}
     >
       <span className="relative">
@@ -184,7 +196,7 @@ function RailButton({
           </span>
         )}
       </span>
-      <span className="text-[8px] leading-none">{label}</span>
+      <span className="hidden lg:block text-[8px] leading-none">{label}</span>
     </Link>
   );
 }
