@@ -145,7 +145,9 @@ function ShellChrome({
   // TopMenuBar+SubTabsBar na Bancada.
   const [section, setSection] = useState<SectionKey | "painel" | null>(() => sectionForPathname(pathname));
   useEffect(() => {
-    setSection(sectionForPathname(pathname));
+    // Passa a seção ainda ativa como preferência de desempate — ver comentário de
+    // sectionForPathname em lib/navSections.ts sobre a ambiguidade de /publicacoes.
+    setSection((prev) => sectionForPathname(pathname, prev));
   }, [pathname]);
 
   // Preferência de recolher o painel de seção (botão ChevronsLeft) — persiste entre sessões,

@@ -148,13 +148,24 @@ export function visibleSectionItems(
 // Deriva a seção ativa a partir do pathname — não é estado próprio (ver README da proposta:
 // "secao ... derivado do pathname"). "painel" é tratado à parte pelo NavRail (não é uma seção
 // deste array: é o único ícone que RECOLHE o painel em vez de abri-lo).
-export function sectionForPathname(pathname: string | null): SectionKey | "painel" | null {
+//
+// `/publicacoes` aparece em duas seções (Comunicação e Jurídico, ver comentário acima) — por
+// pathname sozinho essa ambiguidade não tem resposta certa, então `preferred` (a seção já ativa
+// ANTES da navegação) desempata: se ela também é dona da rota nova, ela vence, em vez de sempre
+// cair na primeira do array. Sem isso, clicar em "Jurídico" (que só tem um item de entrada
+// exclusivo dele além de /publicacoes) navegava pra /publicacoes e a seção ativa "voltava"
+// sozinha pra Comunicação assim que o pathname mudava — só o 2º clique (já dentro de
+// /processos, sem ambiguidade) ficava certo.
+export function sectionForPathname(
+  pathname: string | null,
+  preferred?: SectionKey | "painel" | null
+): SectionKey | "painel" | null {
   if (!pathname) return null;
   if (pathname.startsWith("/painel")) return "painel";
-  for (const section of RAIL_SECTIONS) {
-    if (section.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))) {
-      return section.key;
-    }
-  }
-  return null;
+  const matches = RAIL_SECTIONS.filter((section) =>
+    section.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+  );
+  if (matches.length === 0) return null;
+  if (preferred && matches.some((section) => section.key === preferred)) return preferred;
+  return matches[0].key;
 }
