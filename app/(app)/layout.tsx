@@ -80,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             todayAgendaCount,
             modules,
           }}
-          topBar={<TopBar />}
+          topBar={<TopBar hasFinanceAccess={hasFinanceAccess} modules={modules} />}
           supportBanner={<SupportAccessBanner />}
           inactivityNotice={<InactivityNotice />}
           badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
