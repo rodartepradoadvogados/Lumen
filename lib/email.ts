@@ -276,6 +276,22 @@ export async function sendDailyAgendaEmail(officeId?: string): Promise<{ sent: b
   return { sent: true };
 }
 
+// Envio genérico SMTP-only (sem cascata de contas conectadas — ver sendCriticalEmailCascade
+// acima, reservada a e-mail de acesso crítico) — usado pelo drenador de NotificationOutbox
+// (documento 06, Fase 3) pra montar o resumo diário sem duplicar a lógica de transporte/erro já
+// existente aqui. "Quietamente não enviado" se EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD faltarem,
+// mesmo padrão dos demais e-mails de aviso deste arquivo.
+export async function sendSimpleEmail(to: string, subject: string, html: string): Promise<{ sent: boolean; reason?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) return { sent: false, reason: "SMTP não configurado (EMAIL_HOST/EMAIL_USER/EMAIL_PASSWORD ausentes)." };
+  try {
+    await transporter.sendMail({ from: `"Lúmen" <${process.env.EMAIL_USER}>`, to, subject, html });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "erro desconhecido ao enviar" };
+  }
+}
+
 // Convite de um escritório novo (Painel Mestre → "Criar e enviar 1ª fatura"): igual ao link
 // de redefinição de senha (mesmo token/expiração), só com o texto voltado a "defina sua
 // senha" em vez de "redefina" — a pessoa nunca teve senha antes.

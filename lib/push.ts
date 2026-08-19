@@ -121,6 +121,37 @@ export async function sendPushIfEnabled(userId: string, officeId: string, type: 
   return { sent };
 }
 
+/**
+ * Envia um push SEM checar as flags User.notify* — usado só pelo drenador de
+ * NotificationOutbox (documento 06, Fase 3), que já decidiu se manda ou não consultando
+ * NotificationPreference (o novo mecanismo por evento) antes de a linha existir na fila. Se
+ * também checasse notify* aqui, um evento aprovado pela preferência nova podia ser barrado
+ * pela flag antiga (ou vice-versa) — os dois mecanismos coexistem só até a migração acabar
+ * (ver lib/notificationOutbox.ts), cada um com seu próprio ponto de decisão, sem se sobrepor.
+ */
+export async function sendRawPush(userId: string, officeId: string, payload: PushPayload): Promise<{ sent: number }> {
+  if (!isPushConfigured()) return { sent: 0 };
+  if (!ensureVapidConfigured()) return { sent: 0 };
+
+  const user = await prisma.user.findFirst({ where: { id: userId, officeId }, select: { pushSubscriptions: true } });
+  if (!user || user.pushSubscriptions.length === 0) return { sent: 0 };
+
+  const body = JSON.stringify(payload);
+  let sent = 0;
+  for (const sub of user.pushSubscriptions) {
+    try {
+      await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, body);
+      sent++;
+    } catch (e) {
+      const statusCode = (e as { statusCode?: number })?.statusCode;
+      if (statusCode === 404 || statusCode === 410) {
+        await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+      }
+    }
+  }
+  return { sent };
+}
+
 /** Mesmo envio, mas para vários usuários de uma vez (ex.: nova publicação para toda a equipe). */
 export async function broadcastPushIfEnabled(userIds: string[], officeId: string, type: NotificationType, payload: PushPayload): Promise<void> {
   await Promise.all(userIds.map((id) => sendPushIfEnabled(id, officeId, type, payload)));

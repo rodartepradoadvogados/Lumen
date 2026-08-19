@@ -3,17 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { revalidatePath } from "next/cache";
-import {
-  BREAKTHROUGH_KEYS,
-  CANAIS,
-  CADENCIAS,
-  DEFAULT_PER_EVENT,
-  DEFAULT_BREAKTHROUGH,
-  isPerEventEvento,
-  type ComunicadoPreferencia,
-  type PerEventConfig,
-  type BreakthroughEvento,
-} from "@/lib/comunicadosEventos";
+import { BREAKTHROUGH_KEYS, CANAIS, CADENCIAS, DEFAULT_PER_EVENT, isPerEventEvento, type ComunicadoPreferencia, type PerEventConfig } from "@/lib/comunicadosEventos";
+import { resolveNotificationPreference } from "@/lib/notificationPreference";
 
 // Documento 06 (Fase 3 — Comunicados): preferência de resumo diário + exceções que furam a
 // fila. Esta PR ("resumo diário e exceções") é só a regra e a tela — o que de fato ENFILEIRA um
@@ -22,25 +13,18 @@ import {
 // "use server" só pode exportar funções assíncronas — o vocabulário de eventos/canais/cadências
 // mora em lib/comunicadosEventos.ts (módulo puro), importado tanto aqui quanto pelo formulário.
 
+const DEFAULTS: ComunicadoPreferencia = {
+  digestOn: true,
+  digestHour: 8,
+  weekdaysOnly: true,
+  breakthrough: ["PRAZO_HOJE", "AUDIENCIA_24H"],
+  perEvent: DEFAULT_PER_EVENT,
+};
+
 export async function getMinhaPreferenciaComunicados(): Promise<ComunicadoPreferencia> {
   const user = await getCurrentUser();
-  const pref = user ? await prisma.notificationPreference.findUnique({ where: { userId: user.id } }) : null;
-
-  const salvo = (pref?.perEvent as Partial<PerEventConfig> | null) ?? {};
-  const perEvent = { ...DEFAULT_PER_EVENT };
-  for (const [k, v] of Object.entries(salvo)) {
-    if (isPerEventEvento(k) && v && CANAIS.includes(v.canal) && CADENCIAS.includes(v.cadencia)) perEvent[k] = v;
-  }
-
-  return {
-    digestOn: pref?.digestOn ?? true,
-    digestHour: pref?.digestHour ?? 8,
-    weekdaysOnly: pref?.weekdaysOnly ?? true,
-    breakthrough:
-      (pref?.breakthrough as string[] | undefined)?.filter((b): b is BreakthroughEvento => BREAKTHROUGH_KEYS.includes(b as BreakthroughEvento)) ??
-      DEFAULT_BREAKTHROUGH,
-    perEvent,
-  };
+  if (!user) return DEFAULTS;
+  return resolveNotificationPreference(user.id);
 }
 
 export async function salvarPreferenciaComunicados(input: ComunicadoPreferencia): Promise<{ error?: string }> {
