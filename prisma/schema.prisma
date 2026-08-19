@@ -183,6 +183,7 @@ model Office {
   driveSyncIssues       DriveSyncIssue[]
   blockedProcessNumbers BlockedProcessNumber[]
   alertDismissals       AlertDismissal[]
+  integrationRuns       IntegrationRun[]
 
   // Setor de Processos Administrativos (fundação) — ver models TermoVigilancia e
   // FonteAdministrativa mais abaixo.
@@ -3011,4 +3012,36 @@ model RelatorioModelo {
 
   @@unique([officeId, nome])
   @@index([officeId])
+}
+
+// ============ CONEXÕES (log de execução de integrações — Fase 2 do redesenho Modernist) ============
+
+// Um ciclo de execução de uma integração (sincronização do DJEN, chamada ao Datajud, webhook do
+// Asaas, varredura do Drive, envio de e-mail/WhatsApp, chamada de ferramenta MCP...) — documento
+// 04 do handoff: "isso está de pé?" não tinha um lugar até agora, porque cada integração inventava
+// seu próprio jeito de dizer "funcionando" (StatusLine ad-hoc, texto solto na aba "Modelos &
+// Integrações"). Este modelo é o que faz o log deixar de ser efêmero: a rota /conexoes (documento
+// 04) lê daqui pra mostrar 7 dias de histórico sem consulta manual ao banco.
+//
+// `integration` é uma string livre (não enum do Prisma) de propósito: a lista de integrações já é
+// grande (DJEN, DATAJUD, ASAAS, BTG, DRIVE, ONEDRIVE, DROPBOX, EMAIL, WHATSAPP, MCP...) e cresce
+// sem exigir migração de schema a cada uma nova — mesmo raciocínio usado em Task.type/Payable.status
+// no restante do projeto.
+//
+// Retenção: 90 dias — limpeza no mesmo cron do robô de publicações (documento 04). A limpeza em si
+// é código de PR futura (a que liga a escrita real de linhas aqui); esta PR só declara a tabela.
+model IntegrationRun {
+  id          String   @id @default(cuid())
+  integration String // "DJEN" | "DATAJUD" | "ASAAS" | "BTG" | "DRIVE" | "ONEDRIVE" | "DROPBOX" | "EMAIL" | "WHATSAPP" | "MCP"
+  startedAt   DateTime @default(now())
+  durationMs  Int?
+  status      String // "OK" | "ERRO" | "AVISO"
+  httpStatus  Int?
+  itemCount   Int?
+  message     String?
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@index([officeId, integration, startedAt])
 }
