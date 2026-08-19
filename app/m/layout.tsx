@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getCurrentSessionElapsedSeconds } from "@/lib/timesheet";
 import { prisma } from "@/lib/prisma";
@@ -65,13 +65,14 @@ export default async function MobileLayout({ children }: { children: React.React
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
   // Contagem TOTAL de alertas (menções, prazos vencidos, tarefas delegadas, contas vencidas,
   // publicações não lidas etc. — ver lib/alerts.ts) — alimenta o badge do ícone do PWA
-  // (AppBadgeSync) e o badge da aba "Alertas" no menu inferior. A contagem específica de
+  // (AppBadgeSync) e o badge do sino no cabeçalho (a aba "Alertas" saiu da barra inferior no
+  // documento 08, o sino é o único caminho até /m/alertas agora). A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
   const [totalAlerts, todayAgendaCount, sessionSeconds] = await Promise.all([
     getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
     // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
-    // bolinha da aba "Agenda" no menu inferior, separada da bolinha de Alertas.
+    // bolinha da aba "Agenda" na barra inferior (documento 08).
     getTodayAgendaCount(user.officeId),
     getCurrentSessionElapsedSeconds(user.id),
   ]);
@@ -122,6 +123,17 @@ export default async function MobileLayout({ children }: { children: React.React
               )}
             </Link>
             <MobileThemeToggle />
+            {/* Documento 08 (Fase 4 — PWA): a barra inferior vira 5 abas (Publicações/Agenda/
+                Novo Atendimento/Processo/Financeiro) e "Menu" (Mais) sai dela — este ícone é o
+                novo único caminho até /m/mais (Configurações, Perfil, Relatórios, Contatos,
+                Painel Mestre continuam todos lá, intactos). */}
+            <Link
+              href="/m/mais"
+              aria-label="Menu"
+              className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
+            >
+              <Menu size={18} />
+            </Link>
             {/* Ping silencioso de timesheet: o componente fica "hidden lg:flex" (nunca visível
                 na largura do app mobile), mas mantém o mecanismo de contagem de sessão do dia
                 rodando aqui também, já que este layout antes não contabilizava tempo de uso. */}
@@ -132,7 +144,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen">{children}</main>
 
-      <MobileBottomNav alertsCount={totalAlerts} todayAgendaCount={todayAgendaCount} />
+      <MobileBottomNav todayAgendaCount={todayAgendaCount} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>

@@ -2,62 +2,56 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Bell, Newspaper, Menu } from "lucide-react";
+import { Newspaper, Calendar, Plus, Briefcase, DollarSign } from "lucide-react";
 
-// Barra com 5 abas fixas (Início, Agenda, Alertas, Publicações, Menu). Início já foi tirada
-// daqui uma vez (o logo/nome do escritório no cabeçalho levava pra lá, ver app/m/layout.tsx) —
-// voltou porque a auditoria de navegação (2026-08) achou que ninguém descobria sozinho que o
-// logo era clicável: sem NENHUM afordance visual de botão, "tocar o logo pra voltar" não é um
-// gesto que se aprende por tentativa, é conhecimento que só quem já usou apps assim tem. Uma
-// aba fixa, rotulada, é o jeito mais garantido de resolver "como eu volto pro início" — mesmo
-// custando 1 ícone a mais na barra. O link do logo em app/m/layout.tsx continua existindo (não
-// atrapalha), só deixou de ser o ÚNICO caminho.
+// Cinco abas fixas (documento 08 do handoff do redesenho — Fase 4, PWA): Publicações, Agenda,
+// "+" central (Novo Atendimento), Processo, Financeiro (resumo) — substitui as cinco antigas
+// (Início/Agenda/Alertas/Publicações/Menu).
 //
-// Processos segue fora daqui (fica a 1 toque na grade da Início e no Menu, ver
-// app/m/mais/page.tsx) — abrir espaço pra ele empurraria a barra pra 6 abas, e ele já tem 2
-// caminhos sem estar preso a nenhuma tela específica primeiro. Alertas e Publicações usam o
-// MESMO ícone da grade da Início — reforça que é o mesmo destino, não um atalho novo pra aprender.
+// Início e Menu (Mais) NÃO desaparecem — nada se perde, só saem do destaque da barra fixa (troca
+// de escopo pedida pelo dono do projeto: seguir as 5 abas do documento, mas sem tirar acesso a
+// nada que a equipe já usa). Os dois continuam a 1 toque, só que pelo CABEÇALHO em vez da barra
+// (ver app/m/layout.tsx): a logomarca já levava pra /m (Início) e continua levando; o ícone de
+// avatar novo no cabeçalho leva pra /m/mais (Menu). Alertas idem — sai da barra (só tinha um
+// caminho redundante aqui, o sino do cabeçalho já existia e continua existindo).
 //
-// Ícone ativo fica em DOURADO de propósito (não bordô, que virou a cor de ação em todo o
-// resto do app com a Fase 3 da Início — ver app/m/page.tsx) — decisão explícita do dono do
-// escritório: bordô em todo lugar faria o item ativo da barra se misturar com os cartões de
-// "criar". Dourado aqui não é decorativo, é sinal de "onde eu estou" — papel diferente de
-// "ação", por isso pode usar a cor que em todo resto do app ficou reservada só a acento.
+// Alvo de toque mínimo 44px (documento 08): cada aba é um <Link> "flex-1" dentro de uma barra de
+// 76px, então a área tocável de cada uma é ~76px de altura por 1/5 da largura da tela — bem acima
+// do mínimo, mesmo que o ícone visual dentro seja menor.
 const items = [
-  { href: "/m", label: "Início", Icon: Home, exact: true, badge: null },
-  { href: "/m/agenda", label: "Agenda", Icon: Calendar, exact: false, badge: "agenda" as const },
-  { href: "/m/alertas", label: "Alertas", Icon: Bell, exact: false, badge: "alerts" as const },
-  { href: "/m/publicacoes", label: "Publicações", Icon: Newspaper, exact: false, badge: null },
-  { href: "/m/mais", label: "Menu", Icon: Menu, exact: false, badge: null },
+  { href: "/m/publicacoes", label: "Publ.", Icon: Newspaper, badge: null },
+  { href: "/m/agenda", label: "Agenda", Icon: Calendar, badge: "agenda" as const },
+  // Central — tratamento visual próprio (quadrado 52px em --acao), não faz parte do padrão
+  // ícone-circular+rótulo das outras quatro abas.
+  { href: "/m/atendimento/novo", label: "", Icon: Plus, badge: null, central: true },
+  { href: "/m/processos", label: "Processo", Icon: Briefcase, badge: null },
+  { href: "/m/financeiro", label: "R$", Icon: DollarSign, badge: null },
 ];
 
-export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: { alertsCount: number; todayAgendaCount?: number }) {
+export default function MobileBottomNav({ todayAgendaCount = 0 }: { todayAgendaCount?: number }) {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 h-16 bg-sf border-t border-regua flex z-40">
-      {items.map(({ href, label, Icon, exact, badge }) => {
-        const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
-        // "agenda" conta compromissos de HOJE (ver getTodayAgendaCount) — conceito diferente de
-        // "alerts" (menções, prazos vencidos, tarefas delegadas etc.), por isso cada aba lê a
-        // sua própria prop em vez de dividir alertsCount entre as duas.
-        const badgeCount = badge === "agenda" ? todayAgendaCount : badge === "alerts" ? alertsCount : 0;
+    <nav className="fixed bottom-0 inset-x-0 h-[76px] bg-sf border-t-2 border-regua-forte flex items-center z-40">
+      {items.map(({ href, label, Icon, badge, central }) => {
+        const active = pathname === href || pathname.startsWith(`${href}/`);
+        const badgeCount = badge === "agenda" ? todayAgendaCount : 0;
+
+        if (central) {
+          return (
+            <Link key={href} href={href} className="flex-1 flex items-center justify-center" aria-label="Novo atendimento">
+              <span className="h-[52px] w-[52px] bg-acao text-acao-tx flex items-center justify-center">
+                <Icon size={24} />
+              </span>
+            </Link>
+          );
+        }
+
         return (
-          <Link
-            key={href}
-            href={href}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5"
-          >
+          <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-0.5">
             <span className="relative">
-              <span
-                className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
-                  active ? "bg-marca" : ""
-                }`}
-              >
-                <Icon
-                  size={19}
-                  className={active ? "text-marca-tx" : "text-tx-2"}
-                />
+              <span className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${active ? "bg-marca" : ""}`}>
+                <Icon size={19} className={active ? "text-marca-tx" : "text-tx-2"} />
               </span>
               {badge && badgeCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-atencao text-white text-[10px] font-bold flex items-center justify-center">
@@ -65,13 +59,7 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
                 </span>
               )}
             </span>
-            <span
-              className={`text-[10px] font-medium leading-none ${
-                active ? "text-tx" : "text-tx-2"
-              }`}
-            >
-              {label}
-            </span>
+            <span className={`text-[10px] font-medium leading-none ${active ? "text-tx" : "text-tx-2"}`}>{label}</span>
           </Link>
         );
       })}
