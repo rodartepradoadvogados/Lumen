@@ -155,6 +155,32 @@ export async function runDjenConnectionTest(): Promise<{ error?: string; results
     return { error: "Apenas administradores podem testar essa integração." };
   }
   const results = await testDjenConnection(viewer.officeId);
+
+  // Log persistido (documento 04 — Conexões, IntegrationRun) do teste manual — a fila de rotina
+  // (a cada 3h, ver app/api/cron/robo-bridge) já grava a própria linha em lib/roboBridge.ts; esta
+  // aqui é só do clique em "Testar agora". Nunca deixa uma falha ao gravar o log derrubar o
+  // resultado do teste, que já terminou e está pronto pra devolver pra tela.
+  try {
+    const falhas = results.filter((r) => !r.ok);
+    await prisma.integrationRun.create({
+      data: {
+        officeId: viewer.officeId,
+        integration: "DJEN",
+        status: results.length === 0 ? "AVISO" : falhas.length === 0 ? "OK" : falhas.length === results.length ? "ERRO" : "AVISO",
+        httpStatus: falhas[0]?.status ?? null,
+        itemCount: results.length,
+        message:
+          results.length === 0
+            ? "Nenhuma OAB cadastrada para testar."
+            : falhas.length === 0
+              ? `${results.length} OAB(s) testada(s), todas OK.`
+              : `${falhas.length}/${results.length} OAB(s) falharam: ${falhas[0]?.error ?? "erro desconhecido"}`,
+      },
+    });
+  } catch {
+    // idem — log é acessório, não pode quebrar o teste.
+  }
+
   return { results };
 }
 
