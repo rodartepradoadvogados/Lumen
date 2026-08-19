@@ -11,7 +11,7 @@ import { buildOAuthState } from "@/lib/oauthState";
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!canConfigureIntegrations(user)) {
-    return NextResponse.redirect(new URL("/configuracoes", request.url));
+    return NextResponse.redirect(new URL("/conexoes", request.url));
   }
   return NextResponse.redirect(getDropboxAuthUrl(buildOAuthState("dropbox")));
 }

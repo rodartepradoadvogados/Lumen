@@ -177,10 +177,10 @@ function isPermissionError(e: unknown): boolean {
 // nenhum registro é criado pela metade quando isto acontece.
 export function translateDriveError(e: unknown, context = "acessar o Google Drive"): string {
   if (isInvalidGrantError(e)) {
-    return `Não foi possível ${context}: a conexão com a conta Google expirou ou foi revogada. Peça a um administrador para reconectar em Configurações → Modelos & Integrações. Enquanto isso, o documento não sobe para o Drive.`;
+    return `Não foi possível ${context}: a conexão com a conta Google expirou ou foi revogada. Peça a um administrador para reconectar em Conexões. Enquanto isso, o documento não sobe para o Drive.`;
   }
   if (isInsufficientScopeError(e)) {
-    return `Não foi possível ${context}: a conta Google conectada não tem permissão suficiente no Drive (foi conectada antes da liberação de acesso completo). Peça a um administrador para reconectar em Configurações → Modelos & Integrações. Enquanto isso, o documento não sobe para o Drive.`;
+    return `Não foi possível ${context}: a conta Google conectada não tem permissão suficiente no Drive (foi conectada antes da liberação de acesso completo). Peça a um administrador para reconectar em Conexões. Enquanto isso, o documento não sobe para o Drive.`;
   }
   if (isNotFoundError(e)) {
     // Sem citar "Google" aqui de propósito — esta função também traduz erro devolvido por
@@ -227,7 +227,7 @@ export async function getDriveStatus(officeId: string): Promise<{
       connected: false,
       accountEmail: cred.accountEmail,
       state: "TOKEN_INVALIDO",
-      message: `A conexão com a conta Google (${cred.accountEmail}) expirou ou foi revogada. Reconecte em Configurações → Modelos & Integrações.`,
+      message: `A conexão com a conta Google (${cred.accountEmail}) expirou ou foi revogada. Reconecte em Conexões.`,
     };
   }
   if (!accessToken) {
@@ -235,7 +235,7 @@ export async function getDriveStatus(officeId: string): Promise<{
       connected: false,
       accountEmail: cred.accountEmail,
       state: "TOKEN_INVALIDO",
-      message: `Não foi possível renovar o acesso à conta Google (${cred.accountEmail}). Reconecte em Configurações → Modelos & Integrações.`,
+      message: `Não foi possível renovar o acesso à conta Google (${cred.accountEmail}). Reconecte em Conexões.`,
     };
   }
 
@@ -253,7 +253,7 @@ export async function getDriveStatus(officeId: string): Promise<{
           connected: false,
           accountEmail: cred.accountEmail,
           state: "ESCOPO_INSUFICIENTE",
-          message: `A conta Google (${cred.accountEmail}) foi conectada com um nível de acesso mais restrito ao Drive. Reconecte em Configurações → Modelos & Integrações para liberar o acesso completo.`,
+          message: `A conta Google (${cred.accountEmail}) foi conectada com um nível de acesso mais restrito ao Drive. Reconecte em Conexões para liberar o acesso completo.`,
         };
       }
     }
@@ -414,7 +414,7 @@ const WORD_MIME_TYPES = [
   "application/msword", // .doc
 ];
 
-// Upload específico para Modelos de Documento (Configurações → Modelos & Integrações): ao
+// Upload específico para Modelos de Documento (Configurações → Geral): ao
 // contrário de uploadFileToDrive (que preserva o formato original do arquivo, certo para
 // anexos comuns), um MODELO de documento precisa ser um Google Docs nativo — é o único formato
 // em que a Google Docs API consegue localizar e substituir os placeholders {{CHAVE}} na hora de
