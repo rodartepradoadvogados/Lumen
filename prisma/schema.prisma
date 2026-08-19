@@ -180,13 +180,16 @@ model Office {
   accessRequests AccessRequest[]
   accessAudit    AccessAuditLog[]
 
-  driveSyncIssues       DriveSyncIssue[]
-  blockedProcessNumbers BlockedProcessNumber[]
-  alertDismissals       AlertDismissal[]
-  integrationRuns       IntegrationRun[]
-  apiKeys               ApiKey[]
-  auditEvents           AuditEvent[]
-  dataSubjectRequests   DataSubjectRequest[]
+  driveSyncIssues         DriveSyncIssue[]
+  blockedProcessNumbers   BlockedProcessNumber[]
+  alertDismissals         AlertDismissal[]
+  integrationRuns         IntegrationRun[]
+  apiKeys                 ApiKey[]
+  auditEvents             AuditEvent[]
+  dataSubjectRequests     DataSubjectRequest[]
+  notificationPreferences NotificationPreference[]
+  notificationOutbox      NotificationOutbox[]
+  emailTemplates          EmailTemplate[]
 
   // Setor de Processos Administrativos (fundação) — ver models TermoVigilancia e
   // FonteAdministrativa mais abaixo.
@@ -280,34 +283,36 @@ model User {
   office   Office @relation(fields: [officeId], references: [id])
 
   pushSubscriptions           PushSubscription[]
-  tasksResponsible            Task[]                 @relation("TaskResponsible")
-  tasksDelegated              Task[]                 @relation("TaskDelegatedBy")
-  tasksCompleted              Task[]                 @relation("TaskCompletedBy")
-  casesResponsible            Case[]                 @relation("CaseResponsible")
+  tasksResponsible            Task[]                  @relation("TaskResponsible")
+  tasksDelegated              Task[]                  @relation("TaskDelegatedBy")
+  tasksCompleted              Task[]                  @relation("TaskCompletedBy")
+  casesResponsible            Case[]                  @relation("CaseResponsible")
   comments                    Comment[]
   anotacoes                   Anotacao[]
   mentions                    Mention[]
   publicationReads            PublicationRead[]
-  attendances                 Attendance[]           @relation("AttendanceResponsible")
+  attendances                 Attendance[]            @relation("AttendanceResponsible")
   attachments                 Attachment[]
   documentTemplates           DocumentTemplate[]
-  deletionRequested           DeletionRequest[]      @relation("DeletionRequestedBy")
-  deletionResolved            DeletionRequest[]      @relation("DeletionResolvedBy")
+  deletionRequested           DeletionRequest[]       @relation("DeletionRequestedBy")
+  deletionResolved            DeletionRequest[]       @relation("DeletionResolvedBy")
   loginSessions               LoginSession[]
   notices                     Notice[]
-  publicationsAssigned        Publication[]          @relation("PublicationAssignee")
+  publicationsAssigned        Publication[]           @relation("PublicationAssignee")
   googleCredentials           GoogleCredential[]
   officeDocumentTypes         OfficeDocumentType[]
   relatorioModelos            RelatorioModelo[]
   apiKeysCreated              ApiKey[]
   auditEventsActed            AuditEvent[]
   dataSubjectRequestsCreated  DataSubjectRequest[]
+  notificationPreference      NotificationPreference?
+  notificationOutbox          NotificationOutbox[]
   microsoftCredentials        MicrosoftCredential[]
-  blogPostsReviewed           BlogPost[]             @relation("BlogPostReviewer")
-  emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
-  assessoriasResponsible      Assessoria[]           @relation("AssessoriaResponsible")
-  assessoriaDocumentsUploaded AssessoriaDocumento[]  @relation("AssessoriaDocumentoUploadedBy")
-  pareceresCriados            Parecer[]              @relation("ParecerCreatedBy")
+  blogPostsReviewed           BlogPost[]              @relation("BlogPostReviewer")
+  emailsSent                  EmailMessage[]          @relation("EmailMessageSentBy")
+  assessoriasResponsible      Assessoria[]            @relation("AssessoriaResponsible")
+  assessoriaDocumentsUploaded AssessoriaDocumento[]   @relation("AssessoriaDocumentoUploadedBy")
+  pareceresCriados            Parecer[]               @relation("ParecerCreatedBy")
   blockedProcessNumbers       BlockedProcessNumber[]
   alertDismissals             AlertDismissal[]
 
@@ -3156,4 +3161,79 @@ model DataSubjectRequest {
   createdBy   User?   @relation(fields: [createdById], references: [id])
 
   @@index([officeId, status])
+}
+
+// ============ COMUNICADOS (documento 06 — Fase 3 do redesenho Modernist) ============
+
+// Preferência de comunicado POR USUÁRIO: um resumo por dia, no horário escolhido, mais uma
+// lista curta e explícita de eventos que "furam a fila" (saem na hora, não esperam o resumo).
+// Substitui gradualmente as 5 flags soltas User.notify* (Andamentos/Publicacoes/
+// TarefasDelegadas/AgendaDia/Mencoes, todas push-only, todas ou-liga-ou-desliga) por um único
+// registro com canal+cadência POR EVENTO (`perEvent`) — as flags antigas continuam existindo e
+// sendo lidas pelos pontos de envio em tempo real (lib/push.ts) até a migração de fato acontecer
+// numa PR seguinte desta mesma fase; nenhuma das duas coisas se apaga sozinha só por esta PR
+// (schema isolado, sem mudança de comportamento — mesmo padrão de IntegrationRun/AuditEvent).
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  digestOn     Boolean  @default(true)
+  digestHour   Int      @default(8) // 0-23, fuso do escritório
+  weekdaysOnly Boolean  @default(true)
+  // "PRAZO_HOJE" | "AUDIENCIA_24H" | "PUBLICACAO_NOVA" | "HONORARIO_RECEBIDO" — só estes 4
+  // podem estar aqui (documento 06: "manter a lista curta é parte do desenho").
+  breakthrough String[]
+  // { "PUBLICACAO_NOVA": { canal: "EMAIL", cadencia: "DIARIO" }, ... } — canal: EMAIL | PUSH |
+  // IN_APP; cadência: NA_HORA | DIARIO | SEMANAL | NUNCA. Formato solto (Json), não um model à
+  // parte por evento, porque a lista de eventos cresce (mesmo raciocínio de campos-string-livre
+  // já usados no projeto, ex. IntegrationRun.integration) e cada usuário só grava os que
+  // divergem do padrão do escritório.
+  perEvent     Json
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+}
+
+// Fila de saída dos comunicados — todo evento (breakthrough ou não) passa por aqui antes de
+// virar e-mail/push/aviso in-app de verdade. `dueAt` é OU agora (breakthrough) OU o próximo
+// horário de digest do destinatário; um cron de 5 minutos (PR de "outbox e cron de
+// agrupamento", ainda não escrita) varre `dueAt <= now && sentAt == null`, agrupa por usuário +
+// canal e envia um e-mail e um push por pessoa por rodada — nunca um por evento. `dedupeKey`
+// (calculado por quem grava, não por este model) impede que um reprocessamento de robô
+// (achado de reprocessamento visto em lib/roboBridge.ts) reenvie o mesmo evento duas vezes.
+model NotificationOutbox {
+  id        String    @id @default(cuid())
+  event     String
+  payload   Json
+  channel   String // "EMAIL" | "PUSH" | "IN_APP"
+  dueAt     DateTime
+  sentAt    DateTime?
+  dedupeKey String    @unique
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([officeId, dueAt, sentAt])
+}
+
+// Template de e-mail editável por escritório e por evento — substitui o HTML fixo hoje escrito
+// direto em lib/email.ts (nenhum dos 9 e-mails atuais é configurável). `event` usa o MESMO
+// vocabulário de NotificationOutbox.event ("PUBLICACAO_NOVA", "PRAZO_VENCENDO"...), então um
+// template SEM linha aqui para um evento cai no HTML padrão embutido no código — nenhum
+// escritório fica sem e-mail só por nunca ter aberto o editor.
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  event     String
+  subject   String
+  bodyHtml  String
+  updatedAt DateTime @updatedAt
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  @@unique([officeId, event])
 }
