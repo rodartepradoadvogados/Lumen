@@ -41,8 +41,8 @@ type AppShellProps = {
 // etc. de uma aba continuam intactos ao voltar pra ela, porque o documento do iframe nunca é
 // desmontado. Clique simples continua navegando a view "Principal" (`{children}`, o de sempre,
 // renderizado pelo próprio Next), sem nenhuma aba nova. O estado das abas mora em
-// components/TabsProvider.tsx (compartilhado com components/InternalTabsBar.tsx, renderizado
-// dentro da TopBar).
+// components/TabsProvider.tsx (compartilhado com components/GuiasBar.tsx, renderizado dentro de
+// components/TopBar.tsx).
 //
 // Cada iframe carrega a MESMA rota com `?embed=1` — abaixo, quando esse parâmetro está presente,
 // a casca inteira (rail, abas de seção, TopBar) é suprimida e só o conteúdo puro é renderizado,

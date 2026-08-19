@@ -30,11 +30,11 @@ type TabsContextValue = {
 const TabsContext = createContext<TabsContextValue | null>(null);
 
 // Estado das abas internas (estilo navegador) — extraído de components/AppShell.tsx pra fora,
-// pra components/InternalTabsBar.tsx (renderizado DENTRO da TopBar, ao lado da busca, ver
-// proposta de remodelação do portal) e o próprio AppShell (que decide qual <iframe>/view mostrar)
-// lerem e escreverem no MESMO estado sem precisar passar callbacks por profundezas de props —
-// TopBar é Server Component e recebe InternalTabsBar como filho comum, então os dois só
-// conseguem compartilhar estado via um Context acima dos dois na árvore (aqui, em AppShell).
+// pra components/GuiasBar.tsx (renderizado DENTRO de components/TopBar.tsx, ao lado da busca e
+// do cluster de ações) e o próprio AppShell (que decide qual <iframe>/view mostrar) lerem e
+// escreverem no MESMO estado sem precisar passar callbacks por profundezas de props — TopBar é
+// Server Component e recebe GuiasBar como filho, então os dois só conseguem compartilhar estado
+// via um Context acima dos dois na árvore (aqui, em AppShell).
 export default function TabsProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function TabsProvider({ children }: { children: ReactNode }) {
         prev.map((t) => {
           if (t.id !== data.tabId) return t;
           const labelChanged = t.label !== data.label;
-          // Ponto dourado (ver InternalTabsBar): só acende quando a atualização chegou de uma
+          // Ponto de marca (ver GuiasBar): só acende quando a atualização chegou de uma
           // aba que NÃO está em foco no momento — abrir a aba já é a confirmação de leitura.
           return labelChanged || !t.hasUpdate
             ? { ...t, label: data.label, hasUpdate: t.hasUpdate || t.id !== activeTabIdRef.current }
