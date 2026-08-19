@@ -60,7 +60,7 @@ export default function MobileBottomNav({ alertsCount, todayAgendaCount = 0 }: {
                 />
               </span>
               {badge && badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-vinho-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-atencao text-white text-[10px] font-bold flex items-center justify-center">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
               )}

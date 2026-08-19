@@ -8,10 +8,10 @@ import { logout } from "@/lib/actions/auth";
 import type { CurrentUser } from "@/lib/currentUser";
 
 // Miolo do cluster de ações da TopBar (Peticionar/Novo/Timesheet/Painel Mestre/Alertas/avatar) —
-// extraído de components/TopBar.tsx pra ser reaproveitado em dois lugares: dentro da própria
-// TopBar (modo Régua, ver components/HideInBancada.tsx) e dentro da faixa de menus compacta do
-// modo Bancada (components/TopBarActions.tsx) — mesmo JSX, sem duplicar, só o wrapper externo
-// (e os dados, buscados uma vez em cada Server Component chamador) muda.
+// extraído de components/TopBar.tsx, hoje o único lugar que o renderiza. Continua separado (em
+// vez de inline na TopBar) porque a faixa de guias vai assumir este mesmo cluster no PR5 do
+// plano de execução (documento 02 do handoff, "guias assumem o cluster de ações") — quando isso
+// acontecer, components/TopBarActions.tsx passa a reaproveitá-lo de novo.
 export default function TopBarActionsContent({
   user,
   initials,
@@ -44,7 +44,7 @@ export default function TopBarActionsContent({
       <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-sf-apoio transition-colors">
         <Bell size={20} className="text-tx" />
         {todayCount > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-vinho-500">
+          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-atencao">
             {todayCount > 9 ? "9+" : todayCount}
           </span>
         )}

@@ -10,13 +10,12 @@ import { useTabs } from "@/components/TabsProvider";
 import { RAIL_SECTIONS, isSectionVisible, sectionForPathname, type SectionKey } from "@/lib/navSections";
 import type { OfficeModules } from "@/lib/officeModules";
 
-// Rail de 62px com 6 ícones (Painel + as 5 seções de lib/navSections.ts) — substitui a antiga
-// sidebar de 264px. "Painel" é o único item que RECOLHE o painel de seção (components/
-// SectionPanel.tsx) em vez de abri-lo; os outros 5 abrem (ou trocam o conteúdo d)o painel e o
-// mantêm aberto até o usuário recolher pelo botão ChevronsLeft no topo dele — ver proposta de
-// remodelação do portal, "Arquitetura de navegação". Só existe no modo de visualização Régua
-// (components/ViewModeProvider.tsx) — no modo Bancada, components/AppShell.tsx monta
-// TopMenuBar/SubTabsBar/GuiasBar no lugar dele. Ver DESIGN-SYSTEM.md §3.
+// Rail de 62px com 6 ícones (Painel + as 5 seções de lib/navSections.ts) — única navegação do
+// app desktop (os antigos modos Régua/Bancada saíram, ver components/AppShell.tsx). "Painel" e
+// as 5 seções navegam para o primeiro item de cada uma; components/PageSectionTabs.tsx mostra
+// os demais itens da seção ativa como abas no topo do conteúdo. Ver documento 02 do handoff do
+// redesenho e DESIGN-SYSTEM.md §3 (largura/rótulo permanente ainda pendente, ver PR4 do plano
+// de execução).
 export default function NavRail({
   hasFinanceAccess = true,
   unreadPublications = 0,
@@ -180,7 +179,7 @@ function RailButton({
       <span className="relative">
         <Icon size={17} strokeWidth={1.9} />
         {badge > 0 && (
-          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-vinho-500 text-white text-[9px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-white text-[9px] font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}

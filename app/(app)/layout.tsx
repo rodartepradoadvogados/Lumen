@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
-import TopBarActions from "@/components/TopBarActions";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
-import SiteBackgroundLayer from "@/components/SiteBackgroundLayer";
 import AppBadgeSync from "@/components/AppBadgeSync";
 import ActingOfficeBanner from "@/components/ActingOfficeBanner";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
@@ -13,7 +11,6 @@ import { AnotacoesProvider } from "@/components/anotacoes/AnotacoesContext";
 import AnotacoesPanel from "@/components/anotacoes/AnotacoesPanel";
 import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/currentUser";
-import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { prisma } from "@/lib/prisma";
 import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
@@ -78,19 +75,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <AppShell
           sidebarProps={{
             hasFinanceAccess,
-            isAdmin: user.isAdmin,
-            canConfigureIntegrations: canConfigureIntegrations(user),
             unreadPublications,
             totalAlerts,
             todayAgendaCount,
             modules,
           }}
           topBar={<TopBar />}
-          topBarActions={<TopBarActions />}
           supportBanner={<SupportAccessBanner />}
           inactivityNotice={<InactivityNotice />}
           badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
-          backgroundLayer={<SiteBackgroundLayer />}
           actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
           claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
           anotacoesPanel={<AnotacoesPanel />}

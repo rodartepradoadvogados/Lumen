@@ -6,14 +6,10 @@ import clsx from "clsx";
 import { ChevronDown, User, LogOut, X } from "lucide-react";
 import { fetchTeamSummaries, fetchUserHistory } from "@/lib/actions/timesheet";
 import ThemeToggle from "@/components/ThemeToggle";
-import SegmentedControl from "@/components/SegmentedControl";
-import { useViewMode } from "@/components/ViewModeProvider";
-import { VIEW_MODE_LABEL, VIEW_MODE_ORDER } from "@/lib/viewMode";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
 
 // Rótulo de bloco dentro do menu (DESIGN-SYSTEM.md §5): 9,5px caixa alta, tracking .11em, --tx-2.
-// Usado tanto para "MODO DE VISUALIZAÇÃO" quanto para "TEMA" — os dois blocos seguem exatamente
-// o mesmo formato, só muda o rótulo e o SegmentedControl embaixo.
+// Usado pelo bloco "TEMA".
 function MenuBlockLabel({ children }: { children: string }) {
   return <p className="px-2.5 pt-2.5 pb-1 text-[9.5px] font-semibold uppercase tracking-[.11em] text-tx-2">{children}</p>;
 }
@@ -59,7 +55,6 @@ export default function TeamMonitorPanel({
   const [history, setHistory] = useState<Record<string, DayHistory[]>>({});
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const { viewMode, setViewMode } = useViewMode();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -112,8 +107,9 @@ export default function TeamMonitorPanel({
 
       {open && (
         <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf rounded-xl border border-regua shadow-menu z-50 overflow-hidden">
-          {/* Ordem do menu (DESIGN-SYSTEM.md §5): identificação → modo de visualização → tema →
-              Meu perfil → Sair (vinho, separado por régua). */}
+          {/* Ordem do menu (DESIGN-SYSTEM.md §5): identificação → tema → Meu perfil → Sair
+              (vinho, separado por régua). O bloco "Modo de visualização" saiu — Régua/Bancada
+              não existem mais, ver components/AppShell.tsx e documento 02 do handoff. */}
           <div className="flex items-center gap-2.5 px-3 py-3 border-b border-regua">
             <div className="h-9 w-9 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
               {photoUrl ? (
@@ -130,15 +126,6 @@ export default function TeamMonitorPanel({
           </div>
 
           <div className="border-b border-regua">
-            <MenuBlockLabel>Modo de visualização</MenuBlockLabel>
-            <div className="px-2.5 pb-2.5">
-              <SegmentedControl
-                ariaLabel="Modo de visualização"
-                value={viewMode}
-                onChange={setViewMode}
-                options={VIEW_MODE_ORDER.map((m) => ({ value: m, label: VIEW_MODE_LABEL[m] }))}
-              />
-            </div>
             <MenuBlockLabel>Tema</MenuBlockLabel>
             <div className="px-2.5 pb-2.5">
               <ThemeToggle variant="segmented" />
