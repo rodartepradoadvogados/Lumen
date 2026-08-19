@@ -108,7 +108,7 @@ export async function sendEmailReply(
   if (!user?.emailSendProvider) {
     return {
       ok: false,
-      error: "Nenhum provedor de e-mail escolhido para envio. Vá em Configurações → Modelos & Integrações e escolha Google ou Microsoft para habilitar o envio pelo Atendimento.",
+      error: "Nenhum provedor de e-mail escolhido para envio. Vá em Conexões e escolha Google ou Microsoft para habilitar o envio pelo Atendimento.",
     };
   }
 

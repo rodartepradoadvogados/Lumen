@@ -232,7 +232,7 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
 
   const clients = await getGmailClients();
   if (clients.length === 0) {
-    result.errors.push("Nenhuma conta de e-mail conectada. Vá em Configurações → Modelos & Integrações e conecte pelo menos um e-mail.");
+    result.errors.push("Nenhuma conta de e-mail conectada. Vá em Meu Perfil e conecte pelo menos um e-mail.");
     return result;
   }
 

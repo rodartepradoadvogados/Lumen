@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { HardDrive } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
@@ -65,8 +67,20 @@ export const dynamic = "force-dynamic";
 // tela de administração aqui seria só decoração enganosa. Fica para quando essa capacidade existir
 // de verdade.
 //
+// PR13 removeu a aba "Modelos & Integrações" de app/(app)/configuracoes/page.tsx (documento 04:
+// "configuracoes/page.tsx perde a aba inteira") — os callbacks OAuth de Google/Microsoft/Dropbox
+// (app/api/google/callback, app/api/microsoft/callback, app/api/dropbox/callback) agora voltam
+// pra cá (conexão do escritório) ou para /perfil (conexão pessoal — ver comentário lá), em vez de
+// pra /configuracoes. Os botões "Conectar"/"Reconectar" de Drive/OneDrive/Dropbox, que só existiam
+// naquela aba, ganharam extra abaixo nos itens correspondentes.
+//
 // Ainda pendente: credencial mascarada (break-glass, documento 07) — chega só na Fase 04.
 const EMAIL_PROVIDER_LABEL: Record<string, string> = { GOOGLE: "Google (Gmail)", MICROSOFT: "Microsoft (Outlook)" };
+
+function StatusLine({ state, children }: { state: "ok" | "erro"; children: React.ReactNode }) {
+  const tone: Record<typeof state, string> = { ok: "border-concluido text-concluido", erro: "border-atencao text-atencao" };
+  return <p className={`flex items-center gap-2 border-l-4 ${tone[state]} bg-sf-apoio px-3 py-2 text-xs font-medium mb-3`}>{children}</p>;
+}
 
 function formatRelative(date: Date): string {
   const minutos = Math.round((Date.now() - date.getTime()) / 60000);
@@ -78,7 +92,11 @@ function formatRelative(date: Date): string {
   return `há ${dias} dia(s)`;
 }
 
-export default async function ConexoesPage() {
+export default async function ConexoesPage({
+  searchParams,
+}: {
+  searchParams: { google?: string; microsoft?: string; dropbox?: string; msg?: string };
+}) {
   const viewer = await getCurrentUser();
   if (!canConfigureIntegrations(viewer)) {
     return <AccessRestrictedNotice moduleName="Conexões" />;
@@ -215,7 +233,11 @@ export default async function ConexoesPage() {
   // na primeira dobra". Por isso este bloco só entra no `extra` do item (DRIVE/ONEDRIVE/DROPBOX)
   // que bate com office.storageProvider — os outros dois mostram só a própria conta conectada.
   const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
-  const storageExtra = (
+  // Bloco só do provedor ATIVO (documento 04: "ao pé do detalhe do provedor ativo, não na
+  // primeira dobra") — nomeação, troca de provedor e manutenção não fazem sentido repetidos nos
+  // três itens do catálogo. Os dois links do fim (relatório de pastas, clientes duplicados)
+  // vieram da extinta aba "Modelos & Integrações" → categoria "Documentos e pastas" (PR13).
+  const storageManutencaoExtra = (
     <div className="flex flex-col gap-5">
       <NomeacaoDriveForm pastaMae={office?.drivePastaMae ?? ""} prefixo={office?.drivePrefixo ?? ""} provedor={storageProvider} />
       <StorageProviderPicker
@@ -231,8 +253,59 @@ export default async function ConexoesPage() {
           <MigrarPastasLegadasButton />
           <ReorganizeAttachmentsButton />
           <RenameCasesToConventionButton />
+          <Link href="/configuracoes/relatorio-pastas" className="text-xs font-semibold text-acao hover:underline">
+            Ver relatório de pastas →
+          </Link>
+          <Link href="/configuracoes/duplicados" className="text-xs font-semibold text-acao hover:underline">
+            Ver e unificar clientes duplicados →
+          </Link>
         </div>
       </div>
+    </div>
+  );
+
+  const CONNECT_BTN = "inline-flex items-center gap-2 h-8 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx text-sm font-semibold px-4 w-fit transition-colors";
+
+  const driveExtra = (
+    <div className="flex flex-col gap-5">
+      <div>
+        {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
+        {searchParams.google === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
+        <a href="/api/google/connect" className={CONNECT_BTN}>
+          <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive)
+        </a>
+      </div>
+      {storageProvider === "GOOGLE_DRIVE" && storageManutencaoExtra}
+    </div>
+  );
+
+  const oneDriveExtra = (
+    <div className="flex flex-col gap-5">
+      <div>
+        {searchParams.microsoft === "onedrive-conectado" && <StatusLine state="ok">OneDrive conectado com sucesso!</StatusLine>}
+        {searchParams.microsoft === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
+        {isMicrosoftConfigured() && (
+          <a href="/api/microsoft/connect?mode=onedrive" className={CONNECT_BTN}>
+            <HardDrive size={16} /> {oneDriveStatus.connected ? "Reconectar" : "Conectar"} OneDrive
+          </a>
+        )}
+      </div>
+      {storageProvider === "ONEDRIVE" && storageManutencaoExtra}
+    </div>
+  );
+
+  const dropboxExtra = (
+    <div className="flex flex-col gap-5">
+      <div>
+        {searchParams.dropbox === "conectado" && <StatusLine state="ok">Dropbox conectado com sucesso!</StatusLine>}
+        {searchParams.dropbox === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
+        {isDropboxConfigured() && (
+          <a href="/api/dropbox/connect" className={CONNECT_BTN}>
+            <HardDrive size={16} /> {dropboxStatus.connected ? "Reconectar" : "Conectar"} Dropbox
+          </a>
+        )}
+      </div>
+      {storageProvider === "DROPBOX" && storageManutencaoExtra}
     </div>
   );
 
@@ -342,7 +415,7 @@ export default async function ConexoesPage() {
           estado: driveStatus.state === "CONECTADO" ? "ok" : driveStatus.state === "DESCONECTADO" ? "off" : "erro",
           estadoTexto: driveStatus.state === "CONECTADO" ? "ativo" : driveStatus.state === "DESCONECTADO" ? "não configurado" : "falhando",
           contexto: driveStatus.accountEmail ? `Conta: ${driveStatus.accountEmail}` : driveStatus.message || "Nenhuma conta conectada ainda.",
-          extra: storageProvider === "GOOGLE_DRIVE" ? storageExtra : undefined,
+          extra: driveExtra,
         },
         {
           id: "ONEDRIVE",
@@ -355,7 +428,7 @@ export default async function ConexoesPage() {
             : oneDriveStatus.accountEmail
               ? `Conta: ${oneDriveStatus.accountEmail}`
               : "Nenhuma conta conectada ainda.",
-          extra: storageProvider === "ONEDRIVE" ? storageExtra : undefined,
+          extra: oneDriveExtra,
         },
         {
           id: "DROPBOX",
@@ -368,7 +441,7 @@ export default async function ConexoesPage() {
             : dropboxStatus.accountEmail
               ? `Conta: ${dropboxStatus.accountEmail}`
               : "Nenhuma conta conectada ainda.",
-          extra: storageProvider === "DROPBOX" ? storageExtra : undefined,
+          extra: dropboxExtra,
         },
       ],
     },

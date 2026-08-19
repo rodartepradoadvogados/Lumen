@@ -14,7 +14,7 @@ export async function criarPeticao(caseId?: string): Promise<{ driveUrl?: string
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
-  // Cada escritório pode cadastrar o próprio timbrado em Configurações → Modelos & Integrações
+  // Cada escritório pode cadastrar o próprio timbrado em Configurações → Geral
   // (categoria "Timbrado (Peticionar)"). Sem um cadastrado, cai no timbrado global antigo
   // (só existe de verdade para o Rodarte Prado, o único escritório que ainda não recadastrou).
   const officeTimbrado = await prisma.documentTemplate.findFirst({
@@ -46,7 +46,7 @@ export async function criarPeticao(caseId?: string): Promise<{ driveUrl?: string
     const raw = e instanceof Error ? e.message : "";
     const message = /invalid_request|invalid_grant|File not found|404/i.test(raw)
       ? `Não foi possível acessar o timbrado no Google Drive. Verifique ${
-          officeTimbrado ? "o modelo cadastrado em Configurações → Modelos & Integrações (categoria Timbrado)" : "se o Google Drive está conectado em Configurações"
+          officeTimbrado ? "o modelo cadastrado em Configurações → Geral (categoria Timbrado)" : "se o Google Drive está conectado em Conexões"
         }.`
       : raw || "Erro ao gerar a petição.";
     return { error: message };

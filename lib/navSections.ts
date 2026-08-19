@@ -22,10 +22,6 @@ export type SubNavItem = {
   value?: string;
   adminOnly?: boolean;
   financeOnly?: boolean;
-  // Exceção pontual a adminOnly: além de isAdmin, também libera pro suporte da plataforma em
-  // sessão mascarada (ver lib/supportCapabilities.ts:canConfigureIntegrations) — só usado no
-  // sub-item "Modelos & Integrações".
-  configOnly?: boolean;
 };
 
 export type SectionPanelItem = {
@@ -128,7 +124,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
           { label: "Geral", value: "geral" },
           { label: "Workflows", value: "workflows", adminOnly: true },
           { label: "Blog Jurídico", value: "blog", adminOnly: true },
-          { label: "Modelos & Integrações", value: "modelos", configOnly: true },
         ],
       },
     ],
