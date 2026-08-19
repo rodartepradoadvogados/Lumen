@@ -184,6 +184,7 @@ model Office {
   blockedProcessNumbers BlockedProcessNumber[]
   alertDismissals       AlertDismissal[]
   integrationRuns       IntegrationRun[]
+  apiKeys               ApiKey[]
 
   // Setor de Processos Administrativos (fundação) — ver models TermoVigilancia e
   // FonteAdministrativa mais abaixo.
@@ -296,6 +297,7 @@ model User {
   googleCredentials           GoogleCredential[]
   officeDocumentTypes         OfficeDocumentType[]
   relatorioModelos            RelatorioModelo[]
+  apiKeysCreated              ApiKey[]
   microsoftCredentials        MicrosoftCredential[]
   blogPostsReviewed           BlogPost[]             @relation("BlogPostReviewer")
   emailsSent                  EmailMessage[]         @relation("EmailMessageSentBy")
@@ -3044,4 +3046,36 @@ model IntegrationRun {
   office   Office @relation(fields: [officeId], references: [id])
 
   @@index([officeId, integration, startedAt])
+}
+
+// ============ API KEYS DO ESCRITÓRIO (documento 04 — Conexões, Fase 2 do redesenho Modernist) ============
+
+// Credencial para uma integração externa chamar a API do Lúmen em nome do escritório (catálogo
+// "Chaves e automação" em /conexoes). IMPORTANTE: hoje só a GESTÃO da credencial existe (criar,
+// listar, revogar) — nenhum endpoint do projeto valida essas chaves ainda, porque não existe uma
+// API pública do Lúmen hoje (só rotas internas, autenticadas por sessão do portal). Declarado
+// mesmo assim porque gerir a credencial é uma peça independente e reaproveitável quando essa API
+// existir — mesmo raciocínio de IntegrationRun (model criado numa PR, escrito de verdade só
+// depois, ver documento 10 do plano de execução).
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  // Prefixo visível (ex.: "lumen_live_a1b2c3d4") — mostrado na tabela; o valor completo nunca é
+  // persistido, só o hash abaixo (comparação na autenticação, quando ela existir).
+  prefix     String
+  keyHash    String
+  // LEITURA | ESCRITA — string livre, não enum do Prisma (mesmo raciocínio de
+  // IntegrationRun.integration): a lista de escopos cresce sem exigir migração de schema.
+  scope      String    @default("LEITURA")
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  @@index([officeId])
 }
