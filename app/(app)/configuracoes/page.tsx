@@ -348,6 +348,19 @@ export default async function ConfiguracoesPage({
       </Card>
       )}
 
+      {/* Documento 07 (Fase 4 — Privacidade e LGPD): máscara padrão, revelação com motivo/prazo e
+          pedido do titular — mesma visibilidade de transparência da "Acessos da Lúmen" acima. */}
+      {secao === "geral" && (
+      <Card>
+        <CardHeader title="Privacidade e trilha" subtitle="Máscara de dado sensível, revelação com motivo e pedido do titular (LGPD)" />
+        <div className="p-5">
+          <Link href="/configuracoes/privacidade" className={SECONDARY_BTN}>
+            <ShieldCheck size={16} /> Abrir privacidade e trilha
+          </Link>
+        </div>
+      </Card>
+      )}
+
       {isAdmin && blogAccess && secao === "blog" && (() => {
         const blogTab =
           searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
