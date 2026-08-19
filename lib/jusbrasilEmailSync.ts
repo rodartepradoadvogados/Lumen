@@ -4,6 +4,7 @@ import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
 import { getOAuthClient } from "@/lib/googleDrive";
 import { broadcastPushIfEnabled } from "@/lib/push";
+import { enqueueNotification } from "@/lib/notificationOutbox";
 
 export type SyncResult = {
   accountsScanned: number;
@@ -295,12 +296,26 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
       const createdAndamentosHere = result.createdAndamentos - before.andamentos;
       if (createdPublicacoesHere > 0 || createdAndamentosHere > 0) {
         const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId }, select: { id: true } })).map((u) => u.id);
+        // Balde de hora — mesma limitação/motivo do outlookEmailSync.ts (delta agregado, sem id
+        // de item individual pra dedupeKey estável). Ver lib/notificationOutbox.ts.
+        const balde = new Date().toISOString().slice(0, 13);
         if (createdPublicacoesHere > 0) {
           broadcastPushIfEnabled(activeUserIds, officeId, "publicacoes", {
             title: "Novas publicações",
             body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
             url: "/m/publicacoes",
           }).catch(() => {});
+          for (const userId of activeUserIds) {
+            enqueueNotification({
+              userId,
+              officeId,
+              event: "PUBLICACAO_NOVA",
+              title: "Novas publicações",
+              body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
+              url: "/m/publicacoes",
+              dedupeKey: `PUBLICACAO_NOVA:jusbrasil:${officeId}:${userId}:${balde}`,
+            });
+          }
         }
         if (createdAndamentosHere > 0) {
           broadcastPushIfEnabled(activeUserIds, officeId, "andamentos", {
@@ -308,6 +323,17 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
             body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
             url: "/m/publicacoes",
           }).catch(() => {});
+          for (const userId of activeUserIds) {
+            enqueueNotification({
+              userId,
+              officeId,
+              event: "ANDAMENTO_PROCESSUAL",
+              title: "Novos andamentos processuais",
+              body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
+              url: "/m/publicacoes",
+              dedupeKey: `ANDAMENTO_PROCESSUAL:jusbrasil:${officeId}:${userId}:${balde}`,
+            });
+          }
         }
       }
     } catch (e) {

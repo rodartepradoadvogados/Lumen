@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { getOutlookMessagesForOffice, isMicrosoftConfigured, type OutlookMessage } from "@/lib/microsoftGraph";
 import { broadcastPushIfEnabled } from "@/lib/push";
+import { enqueueNotification } from "@/lib/notificationOutbox";
 import {
   RELEVANT_SENDERS,
   BROAD_SUBJECT_KEYWORDS,
@@ -127,12 +128,27 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
       const createdAndamentosHere = result.createdAndamentos - before.andamentos;
       if (createdPublicacoesHere > 0 || createdAndamentosHere > 0) {
         const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId: cred.officeId }, select: { id: true } })).map((u) => u.id);
+        // Balde de hora (sem id de item individual pra derivar dedupeKey estável — o delta aqui
+        // é agregado, não por publicação) — mesma limitação do envio antigo em tempo real,
+        // não é regressão. Ver comentário no topo de lib/notificationOutbox.ts.
+        const balde = new Date().toISOString().slice(0, 13);
         if (createdPublicacoesHere > 0) {
           broadcastPushIfEnabled(activeUserIds, cred.officeId, "publicacoes", {
             title: "Novas publicações",
             body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
             url: "/m/publicacoes",
           }).catch(() => {});
+          for (const userId of activeUserIds) {
+            enqueueNotification({
+              userId,
+              officeId: cred.officeId,
+              event: "PUBLICACAO_NOVA",
+              title: "Novas publicações",
+              body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
+              url: "/m/publicacoes",
+              dedupeKey: `PUBLICACAO_NOVA:outlook:${cred.officeId}:${userId}:${balde}`,
+            });
+          }
         }
         if (createdAndamentosHere > 0) {
           broadcastPushIfEnabled(activeUserIds, cred.officeId, "andamentos", {
@@ -140,6 +156,17 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
             body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
             url: "/m/publicacoes",
           }).catch(() => {});
+          for (const userId of activeUserIds) {
+            enqueueNotification({
+              userId,
+              officeId: cred.officeId,
+              event: "ANDAMENTO_PROCESSUAL",
+              title: "Novos andamentos processuais",
+              body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
+              url: "/m/publicacoes",
+              dedupeKey: `ANDAMENTO_PROCESSUAL:outlook:${cred.officeId}:${userId}:${balde}`,
+            });
+          }
         }
       }
     } catch (e) {

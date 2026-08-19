@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendPushIfEnabled } from "@/lib/push";
+import { enqueueNotification } from "@/lib/notificationOutbox";
 import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice } from "@/lib/officeScope";
 import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 
@@ -207,6 +208,18 @@ export async function delegateTask(data: {
       body: `${viewer.name} delegou: ${data.title}`,
       url: "/m/agenda",
     }).catch(() => {});
+
+    // Escrita em sombra na fila nova (documento 06) — em paralelo ao push acima, sem substituí-lo
+    // ainda (ver comentário no topo de lib/notificationOutbox.ts).
+    enqueueNotification({
+      userId: responsibleId,
+      officeId: viewer.officeId,
+      event: "TAREFA_DELEGADA",
+      title: "Nova tarefa delegada",
+      body: `${viewer.name} delegou: ${data.title}`,
+      url: "/m/agenda",
+      dedupeKey: `TAREFA_DELEGADA:${task.id}:${responsibleId}`,
+    });
   }
 
   if (data.publicationId) {
