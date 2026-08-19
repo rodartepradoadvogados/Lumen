@@ -111,6 +111,12 @@ export const RAIL_SECTIONS: SectionDef[] = [
         ],
       },
       { href: "/produtividade", label: "Produtividade" },
+      // Rota nova do documento 04 (handoff do redesenho Modernist) — sempre visível no rail, como
+      // Configurações: a permissão de verdade (isAdmin || canConfigureIntegrations, ver
+      // lib/supportCapabilities.ts) é decidida dentro da própria página, não escondendo o link do
+      // menu (mesmo padrão que Configurações já usa — a maior parte do conteúdo dela também exige
+      // isAdmin, e o link continua aparecendo pra todo mundo).
+      { href: "/conexoes", label: "Conexões" },
       {
         href: "/configuracoes",
         label: "Configurações",
