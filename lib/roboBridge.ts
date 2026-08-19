@@ -366,5 +366,32 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     }
   }
 
+  // Log persistido por escritório (documento 04 — Conexões, model IntegrationRun): uma linha por
+  // escritório ATIVO a cada ciclo, uma para DJEN e uma para DATAJUD, mesmo com itemCount 0 — é o
+  // "0 novidade" que faz "última execução" no catálogo de /conexoes ficar sempre atualizado, não
+  // só nos ciclos com alguma novidade. `porOffice` já separa publicacoes (DJEN) de andamentos
+  // (DATAJUD) por escritório — ver `contar` acima. Erro de item (`result.erros`) não é atribuído a
+  // um escritório específico aqui: cada erro já é por item (try/catch dentro dos dois laços
+  // acima), então um erro isolado não derruba a contagem de sucesso dos outros itens do mesmo
+  // escritório — o status por escritório aqui reflete só o que FOI roteado com sucesso pra ele.
+  // Tudo dentro de try/catch: uma falha ao GRAVAR o log nunca pode derrubar uma sincronização que
+  // já terminou e já tem o resultado pronto.
+  try {
+    const officesAtivos = await prisma.office.findMany({ where: { status: "ATIVA" }, select: { id: true } });
+    if (officesAtivos.length > 0) {
+      await prisma.integrationRun.createMany({
+        data: officesAtivos.flatMap(({ id: officeId }) => {
+          const contagem = porOffice.get(officeId);
+          return [
+            { officeId, integration: "DJEN", status: "OK" as const, itemCount: contagem?.publicacoes ?? 0 },
+            { officeId, integration: "DATAJUD", status: "OK" as const, itemCount: contagem?.andamentos ?? 0 },
+          ];
+        }),
+      });
+    }
+  } catch {
+    // idem — log é acessório, não pode quebrar a sincronização.
+  }
+
   return result;
 }

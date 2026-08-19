@@ -7,6 +7,7 @@ import { getOneDriveStatus } from "@/lib/oneDriveStorage";
 import { isDropboxConfigured } from "@/lib/dropbox";
 import { getDropboxStatus } from "@/lib/dropboxStorage";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
+import { getDjenTargets } from "@/lib/djenSync";
 import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
 import ConexoesView, { type ConexaoGrupo, type ConexaoItem, type IntegrationRunRow } from "@/components/conexoes/ConexoesView";
 import TestDjenButton from "@/components/TestDjenButton";
@@ -19,10 +20,24 @@ export const dynamic = "force-dynamic";
 // BTG, Drive/OneDrive/Dropbox, e-mail, WhatsApp) vive espalhada numa aba longa de
 // app/(app)/configuracoes/page.tsx, cada uma com seu próprio jeito de dizer "funcionando". Esta
 // rota nova junta tudo num catálogo (mesmo vocabulário de 4 estados para todas) + um detalhe de
-// anatomia fixa. PR9 do plano de execução (documento 10) — só o catálogo/estado/detalhe; a
-// frequência configurável, o log persistido de verdade (ver model IntegrationRun) e as ações mais
-// fundas por integração (credencial mascarada, break-glass, API keys, MCP) chegam nas PRs
-// seguintes desta mesma fase, uma de cada vez.
+// anatomia fixa.
+//
+// PR9 do plano de execução (documento 10) fez o catálogo/estado/detalhe. Este PR (10) liga o log
+// persistido de verdade: lib/actions/settings.ts (runDjenConnectionTest) e lib/roboBridge.ts
+// (syncRoboParaSite, chamado pelo cron de 3 em 3 horas em app/api/cron/robo-bridge) agora GRAVAM
+// em IntegrationRun a cada execução — por isso o estado de DJEN/DATAJUD abaixo passa a preferir
+// esse sinal (mais fresco, por escritório) ao antigo RoboExecucaoLog (global, robô inteiro) quando
+// já existe pelo menos uma linha.
+//
+// "Frequência configurável" (item 5 da anatomia do documento 04) fica de fora aqui, por decisão
+// combinada com o dono do produto: DJEN/DATAJUD são sincronizados por um serviço Python separado
+// (robo-publicacoes/, hospedado à parte com cron próprio, hoje a cada 3h) — tornar a frequência
+// configurável de verdade exigiria mexer no agendamento desse serviço, uma mudança maior e mais
+// arriscada que esta PR, então fica para uma investigação/PR futura. A tela já avisa isso
+// explicitamente (`frequenciaNota` abaixo) em vez de fabricar um seletor que não mudaria nada.
+//
+// Ainda pendentes para as próximas PRs desta fase: credencial mascarada (break-glass, documento
+// 07), gateway/armazenamento/e-mail/WhatsApp mais fundos, API keys e MCP.
 const EMAIL_PROVIDER_LABEL: Record<string, string> = { GOOGLE: "Google (Gmail)", MICROSOFT: "Microsoft (Outlook)" };
 
 function formatRelative(date: Date): string {
@@ -56,6 +71,7 @@ export default async function ConexoesPage() {
     roboLogs,
     whatsappConfig,
     integrationRuns,
+    djenTargets,
   ] = await Promise.all([
     getDriveStatus(officeId),
     listGoogleAccounts(officeId),
@@ -75,9 +91,11 @@ export default async function ConexoesPage() {
     // o robô roda uma vez para todos os escritórios monitorados).
     prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 20 }),
     prisma.whatsappConfig.findUnique({ where: { officeId } }),
-    // Ainda não há nenhum escritor real (isso chega junto com cada integração nas próximas PRs) —
-    // a consulta já é a de verdade, só devolve vazio até lá.
+    // Agora escrita de verdade: runDjenConnectionTest (lib/actions/settings.ts) e
+    // syncRoboParaSite (lib/roboBridge.ts, chamado a cada 3h pelo cron) gravam aqui — ver
+    // comentário no topo do arquivo.
     prisma.integrationRun.findMany({ where: { officeId, startedAt: { gte: trinta } }, orderBy: { startedAt: "desc" }, take: 500 }),
+    getDjenTargets(officeId),
   ]);
 
   const runsByIntegration = new Map<string, IntegrationRunRow[]>();
@@ -101,6 +119,46 @@ export default async function ConexoesPage() {
   const emailProvider = viewerEmailProvider?.emailSendProvider ?? null;
   const emailProviderConnected = emailProvider === "GOOGLE" ? googleConnected : emailProvider === "MICROSOFT" ? microsoftConnected : false;
 
+  const STATUS_ESTADO: Record<"OK" | "ERRO" | "AVISO", ConexaoItem["estado"]> = { OK: "ok", ERRO: "erro", AVISO: "aviso" };
+  const STATUS_TEXTO: Record<"OK" | "ERRO" | "AVISO", string> = { OK: "ativo", ERRO: "falhando", AVISO: "atenção" };
+
+  // Estado de DJEN/DATAJUD prefere o sinal novo, por escritório (IntegrationRun, gravado por
+  // runDjenConnectionTest/syncRoboParaSite — ver comentário no topo do arquivo) sobre o antigo
+  // RoboExecucaoLog (global, robô Python inteiro) — só cai pro antigo enquanto ainda não existe
+  // nenhuma linha nova (ex.: logo depois deste deploy, antes do primeiro ciclo de 3h rodar).
+  const ultimoRunDjen = runsByIntegration.get("DJEN")?.[0];
+  const djenEstado: ConexaoItem["estado"] = ultimoRunDjen ? STATUS_ESTADO[ultimoRunDjen.status] : !ultimoDjen ? "off" : ultimoDjen.sucesso ? "ok" : "erro";
+  const djenEstadoTexto = ultimoRunDjen ? STATUS_TEXTO[ultimoRunDjen.status] : !ultimoDjen ? "não configurado" : ultimoDjen.sucesso ? "ativo" : "falhando";
+  const djenContexto = ultimoRunDjen
+    ? `Último ciclo ${formatRelative(new Date(ultimoRunDjen.startedAt))} — ${ultimoRunDjen.itemCount ?? 0} publicação(ões) nova(s)`
+    : ultimoDjen
+      ? `Última execução ${formatRelative(ultimoDjen.executadoEm)}`
+      : "Nunca executado";
+
+  const ultimoRunDatajud = runsByIntegration.get("DATAJUD")?.[0];
+  const datajudEstado: ConexaoItem["estado"] = ultimoRunDatajud
+    ? STATUS_ESTADO[ultimoRunDatajud.status]
+    : !ultimoDatajud
+      ? "off"
+      : ultimoDatajud.sucesso
+        ? "ok"
+        : "erro";
+  const datajudEstadoTexto = ultimoRunDatajud
+    ? STATUS_TEXTO[ultimoRunDatajud.status]
+    : !ultimoDatajud
+      ? "não configurado"
+      : ultimoDatajud.sucesso
+        ? "ativo"
+        : "falhando";
+  const datajudContexto = ultimoRunDatajud
+    ? `Último ciclo ${formatRelative(new Date(ultimoRunDatajud.startedAt))} — ${ultimoRunDatajud.itemCount ?? 0} andamento(s) novo(s)`
+    : ultimoDatajud
+      ? `Última execução ${formatRelative(ultimoDatajud.executadoEm)}`
+      : "Nunca executado";
+
+  const FREQUENCIA_ROBO =
+    "Sincronizado por um serviço agendado à parte (robo-publicacoes/), hoje a cada 3 horas — configurar isso por aqui ainda não está disponível.";
+
   const grupos: { grupo: ConexaoGrupo; itens: ConexaoItem[] }[] = [
     {
       grupo: "Tribunais",
@@ -109,21 +167,36 @@ export default async function ConexoesPage() {
           id: "DJEN",
           nome: "DJEN",
           descricao: "Busca publicações no Diário de Justiça Eletrônico Nacional pelas OABs cadastradas do escritório.",
-          estado: !ultimoDjen ? "off" : ultimoDjen.sucesso ? "ok" : "erro",
-          estadoTexto: !ultimoDjen ? "não configurado" : ultimoDjen.sucesso ? "ativo" : "falhando",
-          contexto: ultimoDjen ? `Última execução ${formatRelative(ultimoDjen.executadoEm)}` : "Nunca executado",
-          resultado: ultimoDjen?.detalhe ?? undefined,
+          estado: djenEstado,
+          estadoTexto: djenEstadoTexto,
+          contexto: djenContexto,
+          resultado: ultimoRunDjen?.message ?? ultimoDjen?.detalhe ?? undefined,
           acoes: <TestDjenButton />,
+          frequenciaNota: FREQUENCIA_ROBO,
+          extra:
+            djenTargets.length > 0 ? (
+              <div>
+                <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">OABs monitoradas</h3>
+                <ul className="text-sm text-tx space-y-1">
+                  {djenTargets.map((t) => (
+                    <li key={`${t.numeroOab}-${t.ufOab}`}>
+                      {t.label} — OAB {t.numeroOab}/{t.ufOab}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : undefined,
         },
         {
           id: "DATAJUD",
           nome: "DATAJUD",
           descricao: "Consulta andamentos processuais na API pública do Datajud (CNJ).",
-          estado: !ultimoDatajud ? "off" : ultimoDatajud.sucesso ? "ok" : "erro",
-          estadoTexto: !ultimoDatajud ? "não configurado" : ultimoDatajud.sucesso ? "ativo" : "falhando",
-          contexto: ultimoDatajud ? `Última execução ${formatRelative(ultimoDatajud.executadoEm)}` : "Nunca executado",
-          resultado: ultimoDatajud?.detalhe ?? undefined,
+          estado: datajudEstado,
+          estadoTexto: datajudEstadoTexto,
+          contexto: datajudContexto,
+          resultado: ultimoRunDatajud?.message ?? ultimoDatajud?.detalhe ?? undefined,
           acoes: <SyncPublicationsButton />,
+          frequenciaNota: FREQUENCIA_ROBO,
         },
       ],
     },

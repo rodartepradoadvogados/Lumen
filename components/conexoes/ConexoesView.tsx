@@ -29,8 +29,16 @@ export type ConexaoItem = {
   contexto: string;
   resultado?: string;
   acoes?: ReactNode;
+  // Conteúdo específico da integração, abaixo da linha de estado e acima do log — ex.: as OABs
+  // monitoradas pelo DJEN. Nem toda integração tem (a maioria não), por isso opcional.
+  extra?: ReactNode;
+  // Nota de "frequência configurável" (documento 04, anatomia item 5) — quando a integração
+  // depende de um agendamento fora do controle desta tela (ex.: DJEN/DATAJUD, agendados no
+  // serviço Python à parte), mostra essa ressalva em vez de fabricar um controle que não mudaria
+  // nada de verdade.
+  frequenciaNota?: string;
   // "Webhooks e log" (documento 04) não é uma integração com ciclo de vida próprio — é a visão
-  // consolidada de TODAS as outras. Only este item usa o painel de detalhe alternativo (filtro +
+  // consolidada de TODAS as outras. Só este item usa o painel de detalhe alternativo (filtro +
   // exportação), em vez da anatomia fixa de 1-a-6 do documento.
   ehLog?: boolean;
 };
@@ -194,6 +202,15 @@ function IntegrationDetail({ item, runs }: { item: ConexaoItem; runs: Integratio
           {item.resultado || item.contexto}
         </p>
       </div>
+
+      {item.extra}
+
+      {item.frequenciaNota && (
+        <div>
+          <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">Frequência</h3>
+          <p className="text-sm text-tx-2">{item.frequenciaNota}</p>
+        </div>
+      )}
 
       <div className="border-t-2 border-regua-forte">
         <div className="flex items-center justify-between px-1 py-3">
