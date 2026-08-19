@@ -4,9 +4,9 @@ import NewPayableModal from "@/components/NewPayableModal";
 import PayablesList from "@/components/PayablesList";
 import RecurringExpenseCard from "@/components/RecurringExpenseCard";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { ChevronDown, Download, Repeat2 } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
-import { getFilteredPayables } from "@/lib/financeQuery";
+import { getFilteredPayables, getCurrentMonthRange } from "@/lib/financeQuery";
 import { valorLiquido } from "@/lib/financeCalc";
 import { getCurrentUser } from "@/lib/currentUser";
 import { redirect } from "next/navigation";
@@ -21,7 +21,15 @@ export default async function DespesasPage({
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
 
-  const filtered = await getFilteredPayables(searchParams, viewer.officeId);
+  // Sem De/Até na URL, filtra pelo mês corrente por padrão (pedido explícito — antes o site
+  // mostrava todo o histórico até o usuário preencher De/Até, mesmo problema que o app mobile já
+  // resolvia com este mesmo helper, ver getCurrentMonthRange em lib/financeQuery.ts).
+  const defaultRange = getCurrentMonthRange();
+  const from = searchParams.from || defaultRange.from;
+  const to = searchParams.to || defaultRange.to;
+  const effectiveSearchParams = { ...searchParams, from, to };
+
+  const filtered = await getFilteredPayables(effectiveSearchParams, viewer.officeId);
   // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
   const total = filtered.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" ? searchParams.tab : "abertas";
@@ -43,12 +51,12 @@ export default async function DespesasPage({
 
   const exportHref = (() => {
     const params = new URLSearchParams();
-    Object.entries({ ...searchParams, tipo: "pagar" }).forEach(([k, v]) => v && params.set(k, v));
+    Object.entries({ ...effectiveSearchParams, tipo: "pagar" }).forEach(([k, v]) => v && params.set(k, v));
     return `/api/financeiro/export?${params.toString()}`;
   })();
 
   const qs = (extra: Record<string, string | undefined>) => {
-    const merged = { ...searchParams, ...extra };
+    const merged = { ...effectiveSearchParams, ...extra };
     const params = new URLSearchParams();
     Object.entries(merged).forEach(([k, v]) => v && params.set(k, v));
     const s = params.toString();
@@ -106,13 +114,13 @@ export default async function DespesasPage({
             <label className="text-xs font-medium text-tx-2 block mb-1">
               De {tab === "pagas" ? "(pago em)" : "(vencimento)"}
             </label>
-            <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
+            <input type="date" name="from" defaultValue={from} className="fp-input" />
           </div>
           <div>
             <label className="text-xs font-medium text-tx-2 block mb-1">
               Até {tab === "pagas" ? "(pago em)" : "(vencimento)"}
             </label>
-            <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
+            <input type="date" name="to" defaultValue={to} className="fp-input" />
           </div>
           <div>
             <label className="text-xs font-medium text-tx-2 block mb-1">Centro de Custo</label>
@@ -143,14 +151,28 @@ export default async function DespesasPage({
       </Card>
 
       {recurringExpenses.length > 0 && (
-        <Card className="mb-4">
-          <p className="text-[11px] text-tx-2 px-5 pt-3 pb-1">
-            Despesas recorrentes ativas — cada mês já vira uma conta normal (ex.: &ldquo;nome — {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}&rdquo;) na aba{" "}
-            <strong>Contas a Pagar</strong> abaixo, com Dar Baixa e anexo de comprovante iguais a qualquer outro lançamento. &ldquo;Encerrar&rdquo; aqui só para de gerar os meses futuros.
-          </p>
-          {recurringExpenses.map((expense) => (
-            <RecurringExpenseCard key={expense.id} expense={{ id: expense.id, description: expense.description, amount: expense.amount, dueDay: expense.dueDay }} />
-          ))}
+        <Card className="mb-4 overflow-hidden">
+          {/* Recolhido por padrão — abre só com o clique do usuário (pedido explícito: a lista de
+              despesas fixas não deve ocupar espaço acima da listagem principal por padrão). */}
+          <details className="group">
+            <summary className="flex items-center justify-between gap-2 px-5 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-sf-apoio">
+              <span className="flex items-center gap-2 text-sm font-semibold text-tx">
+                <Repeat2 size={14} className="text-marca-tx" />
+                Despesas recorrentes ativas
+                <span className="text-xs font-normal text-tx-2">({recurringExpenses.length})</span>
+              </span>
+              <ChevronDown size={16} className="text-tx-3 shrink-0 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-regua">
+              <p className="text-[11px] text-tx-2 px-5 pt-3 pb-1">
+                Despesas recorrentes ativas — cada mês já vira uma conta normal (ex.: &ldquo;nome — {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}&rdquo;) na aba{" "}
+                <strong>Contas a Pagar</strong> abaixo, com Dar Baixa e anexo de comprovante iguais a qualquer outro lançamento. &ldquo;Encerrar&rdquo; aqui só para de gerar os meses futuros.
+              </p>
+              {recurringExpenses.map((expense) => (
+                <RecurringExpenseCard key={expense.id} expense={{ id: expense.id, description: expense.description, amount: expense.amount, dueDay: expense.dueDay }} />
+              ))}
+            </div>
+          </details>
         </Card>
       )}
 

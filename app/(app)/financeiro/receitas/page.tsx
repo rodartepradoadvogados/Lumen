@@ -6,7 +6,7 @@ import ReceivablesList from "@/components/ReceivablesList";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { getLeafCategoryOptions } from "@/lib/categories";
-import { getFilteredReceivables } from "@/lib/financeQuery";
+import { getFilteredReceivables, getCurrentMonthRange } from "@/lib/financeQuery";
 import { valorLiquido } from "@/lib/financeCalc";
 import { getCurrentUser } from "@/lib/currentUser";
 import { redirect } from "next/navigation";
@@ -21,7 +21,15 @@ export default async function ReceitasPage({
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
 
-  const filtered = await getFilteredReceivables(searchParams, viewer.officeId);
+  // Sem De/Até na URL, filtra pelo mês corrente por padrão (pedido explícito — antes o site
+  // mostrava todo o histórico até o usuário preencher De/Até, mesmo problema que o app mobile já
+  // resolvia com este mesmo helper, ver getCurrentMonthRange em lib/financeQuery.ts).
+  const defaultRange = getCurrentMonthRange();
+  const from = searchParams.from || defaultRange.from;
+  const to = searchParams.to || defaultRange.to;
+  const effectiveSearchParams = { ...searchParams, from, to };
+
+  const filtered = await getFilteredReceivables(effectiveSearchParams, viewer.officeId);
   // Líquido (Fase 3 — pendência da Fase 1): amount bruto sozinho ignorava desconto/acréscimo.
   const total = filtered.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
   const tab = searchParams.tab === "pagas" || searchParams.tab === "todas" || searchParams.tab === "apurar" ? searchParams.tab : "abertas";
@@ -37,12 +45,12 @@ export default async function ReceitasPage({
 
   const exportHref = (() => {
     const params = new URLSearchParams();
-    Object.entries({ ...searchParams, tipo: "receber" }).forEach(([k, v]) => v && params.set(k, v));
+    Object.entries({ ...effectiveSearchParams, tipo: "receber" }).forEach(([k, v]) => v && params.set(k, v));
     return `/api/financeiro/export?${params.toString()}`;
   })();
 
   const qs = (extra: Record<string, string | undefined>) => {
-    const merged = { ...searchParams, ...extra };
+    const merged = { ...effectiveSearchParams, ...extra };
     const params = new URLSearchParams();
     Object.entries(merged).forEach(([k, v]) => v && params.set(k, v));
     const s = params.toString();
@@ -119,13 +127,13 @@ export default async function ReceitasPage({
             <label className="text-xs font-medium text-tx-2 block mb-1">
               De {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
             </label>
-            <input type="date" name="from" defaultValue={searchParams.from} className="fp-input" />
+            <input type="date" name="from" defaultValue={from} className="fp-input" />
           </div>
           <div>
             <label className="text-xs font-medium text-tx-2 block mb-1">
               Até {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
             </label>
-            <input type="date" name="to" defaultValue={searchParams.to} className="fp-input" />
+            <input type="date" name="to" defaultValue={to} className="fp-input" />
           </div>
           <div>
             <label className="text-xs font-medium text-tx-2 block mb-1">Centro de Custo</label>

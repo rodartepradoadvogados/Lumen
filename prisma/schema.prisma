@@ -1973,9 +1973,17 @@ model RecurringExpense {
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
+  // Opcional — quando preenchido, esta despesa recorrente aparece também na aba Honorários da
+  // Assessoria (lado a lado com a receita de honorário mensal), para pagar mensalmente um
+  // parceiro/repasse da assessoria. Sem vínculo (null), continua sendo uma despesa recorrente
+  // solta do escritório como sempre foi (assinatura de software, funcionário etc.).
+  assessoriaId String?
+  assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
+
   payables Payable[]
 
   @@index([officeId])
+  @@index([assessoriaId])
 }
 
 // ============ FUNDAÇÃO DE DADOS — FINANCEIRO AVANÇADO (Fase 1, aditiva e dormente) ============
@@ -2107,6 +2115,9 @@ model Assessoria {
   documentoEnvios DocumentoEnvio[]
   // Pareceres (pastas de documentos) desta assessoria — ver model Parecer mais abaixo.
   pareceres       Parecer[]
+  // Despesas recorrentes mensais vinculadas (ex.: repasse a um parceiro da assessoria) — ver
+  // comentário em RecurringExpense.assessoriaId.
+  recurringExpenses RecurringExpense[]
 
   @@index([officeId])
 }

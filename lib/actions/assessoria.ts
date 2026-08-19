@@ -134,6 +134,10 @@ export async function getAssessoriaDetail(id: string) {
       // prisma/schema.prisma) — mensalidade cancelada pelo usuário some da lista como se nunca
       // tivesse existido; o registro continua no banco só para travar o cron.
       honorarios: { where: { receivableId: { not: null } }, orderBy: { competencia: "desc" }, include: { receivable: true } },
+      // Despesas recorrentes mensais vinculadas (repasse a parceiro) — ver comentário em
+      // RecurringExpense.assessoriaId, prisma/schema.prisma. Mostradas lado a lado com
+      // `honorarios` acima na aba Honorários (AssessoriaHonorariosTab.tsx).
+      recurringExpenses: { where: { active: true }, orderBy: { createdAt: "asc" } },
       licitacoes: { orderBy: { createdAt: "desc" }, include: { tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } } } },
       // Histórico do botão "Enviar E-mail/WhatsApp" (aba "Pareceres, Processos e Casos") — mesmo
       // padrão de app/(app)/processos/[id]/page.tsx para o Processo. Ver model DocumentoEnvio.

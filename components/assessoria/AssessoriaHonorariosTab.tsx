@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { updateAssessoria, markHonorarioPaid, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { Badge, formatCurrency, formatDate } from "@/components/ui";
 import MoneyInput from "@/components/MoneyInput";
+import AssessoriaRecurringExpensesCard from "@/components/assessoria/AssessoriaRecurringExpensesCard";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
+type Option = { id: string; name: string };
 
 const statusColors: Record<string, "green" | "amber" | "bordo" | "slate"> = {
   PENDENTE: "amber",
@@ -17,7 +19,19 @@ const statusColors: Record<string, "green" | "amber" | "bordo" | "slate"> = {
 };
 const statusLabels: Record<string, string> = { PENDENTE: "Pendente", PAGO: "Pago", ATRASADO: "Atrasado", PARCIAL: "Parcial", CANCELADO: "Cancelado" };
 
-export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: Assessoria }) {
+export default function AssessoriaHonorariosTab({
+  assessoria,
+  categories,
+  costCenters,
+  suppliers,
+  teamMembers,
+}: {
+  assessoria: Assessoria;
+  categories: Option[];
+  costCenters: Option[];
+  suppliers: Option[];
+  teamMembers: Option[];
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -68,28 +82,43 @@ export default function AssessoriaHonorariosTab({ assessoria }: { assessoria: As
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-4 p-3.5 rounded-lg border border-regua bg-sf">
-        {editing ? (
-          <form action={saveFee} className="flex items-center gap-2 flex-wrap">
-            <MoneyInput name="monthlyFee" defaultValue={String(assessoria.monthlyFee)} className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
-            <span className="text-xs text-tx-2">/mês · vence dia</span>
-            <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
-            <button type="submit" disabled={pending} className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 rounded-lg disabled:opacity-50">
-              {pending ? "Salvando..." : "Salvar"}
-            </button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
-          </form>
-        ) : (
-          <>
-            <div>
-              <b className="text-tx">{formatCurrency(assessoria.monthlyFee)}</b>{" "}
-              <span className="text-tx-2 text-sm">por mês · vencimento todo dia {assessoria.dueDay}</span>
-            </div>
-            <button onClick={() => setEditing(true)} className="text-xs font-semibold text-tx">
-              ✎ Editar valor/vencimento
-            </button>
-          </>
-        )}
+      {/* Honorário mensal (receita, à esquerda) lado a lado com as despesas recorrentes vinculadas
+          (repasse a parceiros, à direita) — pedido explícito: os dois lados do honorário da
+          assessoria (o que ela recebe/o que ela eventualmente repassa) visíveis juntos. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4 items-start">
+        <div className="flex items-center justify-between gap-3 flex-wrap p-3.5 rounded-lg border border-regua bg-sf h-full">
+          {editing ? (
+            <form action={saveFee} className="flex items-center gap-2 flex-wrap">
+              <MoneyInput name="monthlyFee" defaultValue={String(assessoria.monthlyFee)} className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+              <span className="text-xs text-tx-2">/mês · vence dia</span>
+              <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+              <button type="submit" disabled={pending} className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 rounded-lg disabled:opacity-50">
+                {pending ? "Salvando..." : "Salvar"}
+              </button>
+              <button type="button" onClick={() => setEditing(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
+            </form>
+          ) : (
+            <>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-2 mb-1">Honorário mensal (receita)</p>
+                <b className="text-tx">{formatCurrency(assessoria.monthlyFee)}</b>{" "}
+                <span className="text-tx-2 text-sm">por mês · vencimento todo dia {assessoria.dueDay}</span>
+              </div>
+              <button onClick={() => setEditing(true)} className="text-xs font-semibold text-tx">
+                ✎ Editar valor/vencimento
+              </button>
+            </>
+          )}
+        </div>
+
+        <AssessoriaRecurringExpensesCard
+          assessoriaId={assessoria.id}
+          recurringExpenses={assessoria.recurringExpenses}
+          categories={categories}
+          costCenters={costCenters}
+          suppliers={suppliers}
+          teamMembers={teamMembers}
+        />
       </div>
 
       {assessoria.honorarios.length === 0 ? (

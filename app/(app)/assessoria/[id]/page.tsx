@@ -13,6 +13,7 @@ import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissing
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import { getStorageConnectionStatus } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getLeafCategoryOptions } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function AssessoriaDetailPage({
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "geral";
   const linkedCaseIds = assessoria.linkedCases.map((c) => c.id);
-  const [users, availableCasesRaw, storageStatus, anotacoesRaw] = await Promise.all([
+  const [users, availableCasesRaw, storageStatus, anotacoesRaw, expenseCategories, costCenters, suppliers] = await Promise.all([
     prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, orderBy: { name: "asc" } }),
     prisma.case.findMany({
       where: { officeId: viewer.officeId, id: { notIn: linkedCaseIds } },
@@ -68,6 +69,11 @@ export default async function AssessoriaDetailPage({
     // Aba "Anotações pessoais" (painel global "Anotações") — mesma regra de filtro por
     // authorId de app/(app)/processos/[id]/page.tsx e app/(app)/atendimento/[id]/page.tsx.
     prisma.anotacao.findMany({ where: { assessoriaId: assessoria.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } }),
+    // Aba "Honorários" — despesa recorrente vinculada (repasse a parceiros), ver
+    // AssessoriaRecurringExpensesCard.tsx.
+    getLeafCategoryOptions("DESPESA", viewer.officeId),
+    prisma.costCenter.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
+    prisma.supplier.findMany({ where: { officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const storageConnected = storageStatus.connected;
   const serializedAnotacoes = anotacoesRaw.map((n) => ({
@@ -149,7 +155,15 @@ export default async function AssessoriaDetailPage({
       {tab === "documentos" && (
         <AssessoriaDocumentosTab assessoria={assessoria} driveConnected={storageConnected} storageMessage={storageStatus.message} />
       )}
-      {tab === "honorarios" && <AssessoriaHonorariosTab assessoria={assessoria} />}
+      {tab === "honorarios" && (
+        <AssessoriaHonorariosTab
+          assessoria={assessoria}
+          categories={expenseCategories}
+          costCenters={costCenters}
+          suppliers={suppliers}
+          teamMembers={users.map((u) => ({ id: u.id, name: u.name }))}
+        />
+      )}
       {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
       {tab === "processos-casos" && (
         <AssessoriaProcessosCasosTab
