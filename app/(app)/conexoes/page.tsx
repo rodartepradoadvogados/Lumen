@@ -8,11 +8,23 @@ import { isDropboxConfigured } from "@/lib/dropbox";
 import { getDropboxStatus } from "@/lib/dropboxStorage";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import { getDjenTargets } from "@/lib/djenSync";
+import { isBtgConnected } from "@/lib/btg";
+import { getAppUrl } from "@/lib/appUrl";
+import { formatDate } from "@/components/ui";
 import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
 import ConexoesView, { type ConexaoGrupo, type ConexaoItem, type IntegrationRunRow } from "@/components/conexoes/ConexoesView";
 import TestDjenButton from "@/components/TestDjenButton";
 import TestEmailButton from "@/components/TestEmailButton";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
+import CopyButton from "@/components/CopyButton";
+import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
+import StorageProviderPicker from "@/components/StorageProviderPicker";
+import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
+import WhatsappConfigForm from "@/components/WhatsappConfigForm";
+import MigrarPastaMaeButton from "@/components/MigrarPastaMaeButton";
+import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
+import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
+import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +48,13 @@ export const dynamic = "force-dynamic";
 // arriscada que esta PR, então fica para uma investigação/PR futura. A tela já avisa isso
 // explicitamente (`frequenciaNota` abaixo) em vez de fabricar um seletor que não mudaria nada.
 //
-// Ainda pendentes para as próximas PRs desta fase: credencial mascarada (break-glass, documento
-// 07), gateway/armazenamento/e-mail/WhatsApp mais fundos, API keys e MCP.
+// PR11 (este) aprofunda gateway (Asaas/BTG), armazenamento (Drive/OneDrive/Dropbox), e-mail e
+// WhatsApp: cada detalhe ganha as ações/formulários reais que já existiam espalhados em
+// app/(app)/configuracoes/page.tsx (EmailSendProviderPicker, StorageProviderPicker,
+// NomeacaoDriveForm, WhatsappConfigForm, os botões de migração do Drive), reaproveitados sem
+// reescrever nenhuma lógica. BTG passou a mostrar o estado REAL (isBtgConnected(), lib/btg.ts) em
+// vez do "não configurado" fixo do PR9. Ainda pendentes: credencial mascarada (break-glass,
+// documento 07), API keys e MCP (PR12).
 const EMAIL_PROVIDER_LABEL: Record<string, string> = { GOOGLE: "Google (Gmail)", MICROSOFT: "Microsoft (Outlook)" };
 
 function formatRelative(date: Date): string {
@@ -72,6 +89,10 @@ export default async function ConexoesPage() {
     whatsappConfig,
     integrationRuns,
     djenTargets,
+    office,
+    btgConnected,
+    btgConnection,
+    webhookEvents,
   ] = await Promise.all([
     getDriveStatus(officeId),
     listGoogleAccounts(officeId),
@@ -96,6 +117,15 @@ export default async function ConexoesPage() {
     // comentário no topo do arquivo.
     prisma.integrationRun.findMany({ where: { officeId, startedAt: { gte: trinta } }, orderBy: { startedAt: "desc" }, take: 500 }),
     getDjenTargets(officeId),
+    prisma.office.findUnique({ where: { id: officeId }, select: { storageProvider: true, drivePastaMae: true, drivePrefixo: true } }),
+    isBtgConnected(),
+    // BtgConnection é uma linha ÚNICA da plataforma (não por escritório — ver comentário do
+    // model em prisma/schema.prisma: quem emite o boleto é o Rodarte Prado, não o escritório
+    // cliente), então dá pra buscar sem where nenhum.
+    prisma.btgConnection.findFirst({ select: { expiresAt: true, connectedAt: true } }),
+    // PaymentWebhookEvent também é GLOBAL (log de todo evento recebido da Asaas, de qualquer
+    // escritório) — mostrado aqui com a ressalva de que não é só deste escritório.
+    prisma.paymentWebhookEvent.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
 
   const runsByIntegration = new Map<string, IntegrationRunRow[]>();
@@ -159,6 +189,33 @@ export default async function ConexoesPage() {
   const FREQUENCIA_ROBO =
     "Sincronizado por um serviço agendado à parte (robo-publicacoes/), hoje a cada 3 horas — configurar isso por aqui ainda não está disponível.";
 
+  // Nomeação de pastas, escolha de provedor ativo e os botões de manutenção do Drive são
+  // configuração de ARMAZENAMENTO como um todo, não de um provedor específico — documento 04:
+  // "os botões de migração ficam num bloco 'Manutenção' ao pé do detalhe do PROVEDOR ATIVO, não
+  // na primeira dobra". Por isso este bloco só entra no `extra` do item (DRIVE/ONEDRIVE/DROPBOX)
+  // que bate com office.storageProvider — os outros dois mostram só a própria conta conectada.
+  const storageProvider = office?.storageProvider ?? "GOOGLE_DRIVE";
+  const storageExtra = (
+    <div className="flex flex-col gap-5">
+      <NomeacaoDriveForm pastaMae={office?.drivePastaMae ?? ""} prefixo={office?.drivePrefixo ?? ""} provedor={storageProvider} />
+      <StorageProviderPicker
+        current={storageProvider}
+        isAdmin={Boolean(viewer.isAdmin)}
+        oneDriveConnected={oneDriveStatus.connected}
+        dropboxConnected={dropboxStatus.connected}
+      />
+      <div>
+        <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-2">Manutenção</h3>
+        <div className="flex flex-col gap-2 items-start">
+          <MigrarPastaMaeButton />
+          <MigrarPastasLegadasButton />
+          <ReorganizeAttachmentsButton />
+          <RenameCasesToConventionButton />
+        </div>
+      </div>
+    </div>
+  );
+
   const grupos: { grupo: ConexaoGrupo; itens: ConexaoItem[] }[] = [
     {
       grupo: "Tribunais",
@@ -210,14 +267,48 @@ export default async function ConexoesPage() {
           estado: ownBilling.subscription ? "ok" : "off",
           estadoTexto: ownBilling.subscription ? "ativo" : "não configurado",
           contexto: ownBilling.subscription ? `Ciclo: ${ownBilling.subscription.billingCycle}` : "Assinatura ainda não configurada",
+          extra: (
+            <div className="flex flex-col gap-4">
+              <div>
+                <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">Webhook</h3>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs text-tx-2 bg-sf-apoio px-2 py-1 truncate">{`${getAppUrl()}/api/asaas/webhook`}</code>
+                  <CopyButton text={`${getAppUrl()}/api/asaas/webhook`} label="Copiar" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Últimos eventos recebidos</h3>
+                  {/* PaymentWebhookEvent é global (todo escritório que paga a assinatura via Asaas
+                      cai na mesma tabela) — não dá pra filtrar só o deste escritório sem juntar
+                      com TenantInvoice por competência, fora do escopo desta PR. */}
+                  <span className="text-[10px] text-tx-3">de toda a plataforma, não só deste escritório</span>
+                </div>
+                {webhookEvents.length === 0 ? (
+                  <p className="text-sm text-tx-2">Nenhum evento recebido ainda.</p>
+                ) : (
+                  <ul className="text-sm text-tx space-y-1">
+                    {webhookEvents.map((e) => (
+                      <li key={e.id} className="flex items-center justify-between gap-2">
+                        <span>{e.eventType}</span>
+                        <span className="text-xs text-tx-2 tabular-nums">{formatDate(e.createdAt)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ),
         },
         {
           id: "BTG",
           nome: "BTG (conciliação)",
           descricao: "Concilia boletos e Pix da cobrança das assinaturas com o extrato bancário.",
-          estado: "off",
-          estadoTexto: "não configurado",
-          contexto: "Conciliação administrada pela plataforma (Painel Mestre) — sem configuração por escritório ainda.",
+          estado: btgConnected ? "ok" : "off",
+          estadoTexto: btgConnected ? "ativo" : "não configurado",
+          contexto: btgConnected
+            ? `Conectado${btgConnection ? ` — token expira em ${formatDate(btgConnection.expiresAt)}` : ""}`
+            : "Conciliação administrada pela plataforma (Painel Mestre) — ainda não conectado.",
         },
       ],
     },
@@ -231,6 +322,7 @@ export default async function ConexoesPage() {
           estado: driveStatus.state === "CONECTADO" ? "ok" : driveStatus.state === "DESCONECTADO" ? "off" : "erro",
           estadoTexto: driveStatus.state === "CONECTADO" ? "ativo" : driveStatus.state === "DESCONECTADO" ? "não configurado" : "falhando",
           contexto: driveStatus.accountEmail ? `Conta: ${driveStatus.accountEmail}` : driveStatus.message || "Nenhuma conta conectada ainda.",
+          extra: storageProvider === "GOOGLE_DRIVE" ? storageExtra : undefined,
         },
         {
           id: "ONEDRIVE",
@@ -243,6 +335,7 @@ export default async function ConexoesPage() {
             : oneDriveStatus.accountEmail
               ? `Conta: ${oneDriveStatus.accountEmail}`
               : "Nenhuma conta conectada ainda.",
+          extra: storageProvider === "ONEDRIVE" ? storageExtra : undefined,
         },
         {
           id: "DROPBOX",
@@ -255,6 +348,7 @@ export default async function ConexoesPage() {
             : dropboxStatus.accountEmail
               ? `Conta: ${dropboxStatus.accountEmail}`
               : "Nenhuma conta conectada ainda.",
+          extra: storageProvider === "DROPBOX" ? storageExtra : undefined,
         },
       ],
     },
@@ -274,6 +368,7 @@ export default async function ConexoesPage() {
             ? `Sua escolha: ${EMAIL_PROVIDER_LABEL[emailProvider] ?? emailProvider}${emailProviderConnected ? "" : " (conta não conectada)"}`
             : "Você ainda não escolheu um provedor de envio.",
           acoes: <TestEmailButton />,
+          extra: <EmailSendProviderPicker current={emailProvider} googleConnected={googleConnected} microsoftConnected={microsoftConnected} />,
         },
         {
           id: "WHATSAPP",
@@ -286,6 +381,7 @@ export default async function ConexoesPage() {
           // estado fica pendente de uma coluna nova (fora do escopo desta PR — mudança de schema
           // tem PR própria).
           contexto: whatsappConfig?.displayPhone ? `Número: ${whatsappConfig.displayPhone}` : "Nenhum número conectado ainda.",
+          extra: <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />,
         },
       ],
     },
