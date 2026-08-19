@@ -1,357 +1,360 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getAlerts } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
-import { hasBlogAccess } from "@/lib/officeModules";
-import { authorDisplayName } from "@/lib/authorDisplay";
-import { valorLiquido } from "@/lib/financeCalc";
-import { groupCasesByMateria } from "@/lib/caseMaterias";
+import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
+import { stageLabels } from "@/lib/funil";
+import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
+import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 import {
   Card,
   CardHeader,
-  Badge,
   EmptyState,
   formatCurrency,
   formatDate,
   formatCalendarDate,
-  taskTypeLabels,
-  taskTypeColors,
-  dueStatusClassName,
 } from "@/components/ui";
-import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, Newspaper, ExternalLink } from "lucide-react";
-import NoticesPanel from "@/components/NoticesPanel";
-import AlertRow from "@/components/AlertRow";
+import { ArrowRight } from "lucide-react";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PendingListModal from "@/components/PendingListModal";
 import SettleButton from "@/components/SettleButton";
 import OverdueTaskRow from "@/components/OverdueTaskRow";
+import DayQueueRow, { type DayQueueItem } from "@/components/DayQueueRow";
 
 export const dynamic = "force-dynamic";
+
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function greeting(hour: number) {
+  if (hour < 12) return "Bom dia";
+  if (hour < 18) return "Boa tarde";
+  return "Boa noite";
+}
 
 export default async function DashboardPage() {
   const now = new Date();
   const soon = new Date();
   soon.setDate(now.getDate() + 7);
+  const hoje = startOfDay(now);
+  const fimHoje = endOfDay(now);
+  const amanha = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const fimAmanha = endOfDay(amanha);
 
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
-  const [payablesPending, receivablesPending, activeCases, upcomingTasks, overdueTasksList, alerts, activeUsers, bankAccounts] = await Promise.all([
+  const [
+    payablesSoon,
+    receivablesSoon,
+    upcomingTasks,
+    overdueTasksList,
+    bankAccounts,
+    unreadPublicationsRaw,
+    blockedSet,
+    funilHoje,
+  ] = await Promise.all([
     hasFinanceAccess
       ? prisma.payable.findMany({
-          where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
+          where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false, dueDate: { lte: soon } },
           include: { case: true, payments: true },
           orderBy: { dueDate: "asc" },
         })
       : Promise.resolve([]),
     hasFinanceAccess
       ? prisma.receivable.findMany({
-          where: { status: { in: ["PENDENTE", "ATRASADO"] }, officeId: viewer.officeId },
-          include: { case: true, client: true, payments: true },
+          where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO", "PARCIAL"] }, noDueDate: false, dueDate: { lte: soon } },
+          include: { case: true, payments: true },
           orderBy: { dueDate: "asc" },
         })
       : Promise.resolve([]),
-    prisma.case.count({ where: { status: "ATIVO", officeId: viewer.officeId } }),
+    // Próximos 7 dias — take mais folgado que o widget antigo (era 8): a fila "O dia" reordena por
+    // severidade, não por data pura, e precisa de material suficiente para os 6 primeiros lugares
+    // não ficarem reféns de um corte cedo demais na query.
     prisma.task.findMany({
       where: { dueDate: { gte: now, lte: soon }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId },
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
-      take: 8,
+      take: 30,
     }),
     prisma.task.findMany({
       where: { dueDate: { lt: now }, status: { notIn: ["CONCLUIDO", "CANCELADO"] }, officeId: viewer.officeId },
       include: { case: true, responsible: true },
       orderBy: { dueDate: "asc" },
     }),
-    getAlerts(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin),
-    prisma.user.findMany({ where: { active: true, officeId: viewer.officeId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     hasFinanceAccess
       ? prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
+    prisma.publication.findMany({
+      where: { officeId: viewer.officeId, reads: { none: { userId: viewer.id } } },
+      select: {
+        id: true,
+        source: true,
+        content: true,
+        publishedAt: true,
+        processNumberRaw: true,
+        case: { select: { title: true, processNumber: true } },
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 30,
+    }),
+    getBlockedProcessNumberSet(viewer.id),
+    // FUNIL — {n} HOJE (documento 03): sem critério de "hoje" já definido em outra tela do produto
+    // para o funil comercial — escolha própria, seguindo o mesmo vocabulário que a Central de
+    // Alertas já usa para follow-up atrasado (lib/alerts.ts, FOLLOWUP_ATRASADO): próximo contato
+    // agendado (nextContactAt) caindo hoje, em estágio ainda aberto.
+    prisma.attendance.findMany({
+      where: { officeId: viewer.officeId, nextContactAt: { gte: hoje, lte: fimHoje }, stage: { notIn: ["FECHADO", "PERDIDO"] }, status: { not: "ARQUIVADO" } },
+      select: { id: true, clientName: true, stage: true, nextContactAt: true },
+      orderBy: { nextContactAt: "asc" },
+      take: 6,
+    }),
   ]);
 
-  const blogPendingCount = await prisma.blogPost.count({ where: { status: "AGUARDANDO_REVISAO", officeId: viewer.officeId } });
-  const blogAccess = await hasBlogAccess(viewer.officeId);
+  const totalReceivableSoon = receivablesSoon.reduce((s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((a, x) => a + x.amount, 0)), 0);
+  const totalPayableSoon = payablesSoon.reduce((s, p) => s + saldoEmAberto(p.amount, p.discount, p.surcharge, p.payments.reduce((a, x) => a + x.amount, 0)), 0);
 
-  const notices = await prisma.notice.findMany({
-    where: { officeId: viewer.officeId },
-    include: { author: { select: { id: true, name: true, color: true, officeId: true } } },
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-    take: 10,
+  const myOverdueTasks = overdueTasksList.filter((t) => t.responsibleId === viewer.id);
+
+  // "O dia": as mesmas queries de upcomingTasks/overdueTasksList, reordenadas por severidade em
+  // vez de só dueDate asc (documento 03) — prazo vencido primeiro, depois outros tipos vencidos,
+  // depois hoje (prazo → audiência → resto), depois amanhã, depois o resto da janela de 7 dias.
+  function severityRank(task: { type: string; dueDate: Date }): number {
+    const overdue = task.dueDate < hoje;
+    const isToday = !overdue && task.dueDate >= hoje && task.dueDate <= fimHoje;
+    const isTomorrow = !overdue && !isToday && task.dueDate >= amanha && task.dueDate <= fimAmanha;
+    if (overdue) return task.type === "PRAZO" ? 0 : 1;
+    if (isToday) return task.type === "PRAZO" ? 2 : task.type === "AUDIENCIA" ? 3 : 4;
+    if (isTomorrow) return 5;
+    return 6;
+  }
+
+  function timeLabel(task: { dueDate: Date; dueTime: string | null }): { label: string; urgent: boolean } {
+    const overdue = task.dueDate < hoje;
+    const isToday = !overdue && task.dueDate >= hoje && task.dueDate <= fimHoje;
+    const isTomorrow = !overdue && !isToday && task.dueDate >= amanha && task.dueDate <= fimAmanha;
+    if (overdue) return { label: `venceu em ${formatCalendarDate(task.dueDate)}`, urgent: true };
+    if (isToday) return { label: task.dueTime ? `hoje ${task.dueTime}` : "hoje", urgent: true };
+    if (isTomorrow) return { label: task.dueTime ? `amanhã ${task.dueTime}` : "amanhã", urgent: false };
+    return { label: formatCalendarDate(task.dueDate), urgent: false };
+  }
+
+  const dayQueueSource = [...overdueTasksList, ...upcomingTasks];
+  const dayQueueSorted = dayQueueSource
+    .slice()
+    .sort((a, b) => severityRank(a) - severityRank(b) || a.dueDate.getTime() - b.dueDate.getTime());
+
+  const dayQueueItems: DayQueueItem[] = dayQueueSorted.map((t) => {
+    const { label, urgent } = timeLabel(t);
+    return {
+      id: t.id,
+      type: t.type,
+      title: t.title,
+      subtitle: t.case?.title ?? null,
+      timeLabel: label,
+      urgent,
+      caseId: t.case?.id ?? null,
+      caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+    };
   });
-  const serializedNotices = notices.map((n) => ({
-    id: n.id,
-    content: n.content,
-    pinned: n.pinned,
-    createdAt: n.createdAt.toISOString(),
-    // author.officeId comparado e descartado aqui — quando o aviso foi criado por alguém de
-    // fora do escritório (só acontece durante suporte "atuar como"), o nome exibido vira um
-    // rótulo genérico (ver authorDisplayName, achado A33 da revisão gauntlet).
-    author: { id: n.author.id, name: authorDisplayName(n.author, viewer.officeId), color: n.author.color },
-  }));
 
-  // status filtrado em [PENDENTE, ATRASADO] já exclui A_APURAR sozinho (lista explícita, não
-  // negação) — a soma usa valorLiquido para refletir desconto/acréscimo já lançados.
-  const totalPayable = payablesPending.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
-  const totalReceivable = receivablesPending.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  const prazosCount = dayQueueSource.filter((t) => t.type === "PRAZO").length;
+  const audienciasCount = dayQueueSource.filter((t) => t.type === "AUDIENCIA").length;
+  const dayQueueVisible = dayQueueItems.slice(0, 6);
+  const dayQueueRestCount = dayQueueItems.length - dayQueueVisible.length;
 
-  const activeCasesForAreaWidget = await prisma.case.findMany({
-    where: { status: "ATIVO", officeId: viewer.officeId },
-    select: { materias: true },
-  });
-  // Um processo com mais de uma matéria conta em cada grupo — a soma de byArea pode passar do
-  // total real de processos ativos (ver mesmo padrão em app/(app)/relatorios/page.tsx).
-  const byArea = groupCasesByMateria(activeCasesForAreaWidget);
-  const totalCasesByArea = activeCasesForAreaWidget.length || 1;
+  // Publicações não lidas: mesmo agrupamento por processo+dia da tela de Publicações (uma
+  // publicação repassada por mais de uma fonte no mesmo dia não deve virar duas prévias aqui) —
+  // filtra as bloqueadas do viewer (mesmo critério da Sidebar/aba Publicações) e mostra as 3 mais
+  // recentes.
+  const unreadFiltered = unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet));
+  const unreadGroups = groupPublicationsByProcess(
+    unreadFiltered.map((p) => ({ ...p, publishedAt: p.publishedAt.toISOString(), read: false }))
+  );
+  const unreadPreview = unreadGroups.slice(0, 3);
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-tx">Painel</h1>
-        <p className="text-sm text-tx-2 mt-1 capitalize">
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+        <h1 className="text-[30px] font-extrabold text-tx leading-tight">
+          {greeting(now.getHours())}, {viewer.name.split(" ")[0]}
+        </h1>
+        <p className="text-[15px] text-tx-2 capitalize mt-1">
           {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasFinanceAccess ? "lg:grid-cols-3" : "lg:grid-cols-1"} gap-4 mb-6`}>
-        {hasFinanceAccess && (
-          <>
-            <PendingListModal
-              label="A Receber (pendente)"
-              value={formatCurrency(totalReceivable)}
-              tone="green"
-              icon={<TrendingUp size={18} />}
-              hint={`${receivablesPending.length} contas em aberto`}
-              title="Contas a Receber Pendentes"
-            >
-              <div className="divide-y divide-regua">
-                {receivablesPending.length === 0 && <EmptyState title="Nenhuma conta pendente" />}
-                {receivablesPending.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-tx truncate">{r.description}</p>
-                      <p className="text-xs text-tx-3 mt-0.5">
-                        {r.noDueDate ? "Sem vencimento" : `Vence em ${formatDate(r.dueDate)}`}
-                      </p>
-                      {r.case && (
-                        <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-acao hover:underline">
-                          {r.case.processNumber || r.case.title}
-                        </Link>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(valorLiquido(r.amount, r.discount, r.surcharge))}</span>
-                      <SettleButton
-                        id={r.id}
-                        kind="receivable"
-                        liquido={valorLiquido(r.amount, r.discount, r.surcharge)}
-                        alreadyPaid={r.payments.reduce((s, x) => s + x.amount, 0)}
-                        status={r.status}
-                        bankAccounts={bankAccounts}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </PendingListModal>
-
-            <PendingListModal
-              label="A Pagar (pendente)"
-              value={formatCurrency(totalPayable)}
-              tone="red"
-              icon={<TrendingDown size={18} />}
-              hint={`${payablesPending.length} contas em aberto`}
-              title="Contas a Pagar Pendentes"
-            >
-              <div className="divide-y divide-regua">
-                {payablesPending.length === 0 && <EmptyState title="Nenhuma conta pendente" />}
-                {payablesPending.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-tx truncate">{p.description}</p>
-                      <p className="text-xs text-tx-3 mt-0.5">
-                        {p.noDueDate ? "Sem vencimento" : `Vence em ${formatDate(p.dueDate)}`}
-                      </p>
-                      {p.case && (
-                        <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-acao hover:underline">
-                          {p.case.processNumber || p.case.title}
-                        </Link>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(valorLiquido(p.amount, p.discount, p.surcharge))}</span>
-                      <SettleButton
-                        id={p.id}
-                        kind="payable"
-                        liquido={valorLiquido(p.amount, p.discount, p.surcharge)}
-                        alreadyPaid={p.payments.reduce((s, x) => s + x.amount, 0)}
-                        status={p.status}
-                        bankAccounts={bankAccounts}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </PendingListModal>
-          </>
-        )}
-
-        <PendingListModal
-          label="Prazos Atrasados"
-          value={String(overdueTasksList.length)}
-          tone="red"
-          icon={<AlertTriangle size={18} />}
-          hint={`${activeCases} processos ativos`}
-          title="Prazos Atrasados"
-        >
-          <div className="divide-y divide-regua">
-            {overdueTasksList.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
-            {overdueTasksList.map((t) => (
-              <OverdueTaskRow
-                key={t.id}
-                task={{
-                  id: t.id,
-                  title: t.title,
-                  type: t.type,
-                  dueDate: t.dueDate.toISOString(),
-                  responsibleName: t.responsible?.name,
-                  caseId: t.case?.id,
-                  caseLabel: t.case ? t.case.processNumber || t.case.title : null,
-                }}
-              />
-            ))}
-          </div>
-        </PendingListModal>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Próximos 7 dias"
-            subtitle="Tarefas, eventos, audiências e prazos"
-            action={
-              <Link href="/agenda" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
-                Ver agenda <ArrowRight size={13} />
-              </Link>
-            }
-          />
-          <div className="divide-y divide-regua">
-            {upcomingTasks.length === 0 && <EmptyState title="Nada agendado para os próximos dias" />}
-            {upcomingTasks.map((t) => (
-              <div key={t.id} className="flex items-center justify-between px-5 py-3 hover:bg-sf-apoio transition-colors">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
-                    <p className="text-sm font-medium text-tx truncate">{t.title}</p>
-                  </div>
-                  {t.case && <p className="text-xs text-tx-3 mt-0.5 truncate">{t.case.title}</p>}
-                </div>
-                <div className="text-right shrink-0 ml-3">
-                  <p className="text-xs font-semibold text-tx/80">{formatCalendarDate(t.dueDate)}</p>
-                  {t.dueTime && <p className="text-[11px] text-tx-3">{t.dueTime}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Central de Alertas"
-            action={
-              <Link href="/alertas" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
-                Ver tudo <ArrowRight size={13} />
-              </Link>
-            }
-          />
-          <div className="divide-y divide-regua max-h-[420px] overflow-y-auto scrollbar-thin">
-            {alerts.length === 0 && <EmptyState title="Sem alertas" />}
-            {alerts.slice(0, 8).map((a) => (
-              <AlertRow
-                key={a.id}
-                alert={a}
-                className={`block w-full text-left px-5 py-3 hover:bg-sf-apoio transition-colors border-l-[3px] ${
-                  // Mesma régua de severidade da Central de Alertas completa (DESIGN-SYSTEM.md §8).
-                  a.severity === "alta" ? "border-urgente" : a.severity === "media" ? "border-marca" : "border-tx-3"
-                } ${dueStatusClassName(a.dueStatus)}`}
-              >
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-tx truncate">{a.title}</p>
-                    {a.subtitle && <p className="text-xs text-tx-3 truncate">{a.subtitle}</p>}
-                    {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
-                  </div>
-                </div>
-              </AlertRow>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <Card className="flex flex-col">
-          <CardHeader title="Recados do Escritório" subtitle="Mural de comunicação entre a equipe" />
-          <NoticesPanel notices={serializedNotices} currentUserId={viewer?.id ?? null} isAdmin={Boolean(viewer?.isAdmin)} users={activeUsers} />
-        </Card>
-
-        <Card>
-          <CardHeader title="Carteira por área" />
-          <div className="p-5 space-y-3">
-            {byArea.length === 0 && <EmptyState title="Nenhum processo ativo" />}
-            {byArea.map((a) => (
-              <div key={a.label}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-tx/80">{a.label}</span>
-                  <span className="font-semibold text-tx">{a.count}</span>
-                </div>
-                <div className="h-2 rounded-full bg-sf-apoio overflow-hidden">
-                  <div className="h-full bg-acao" style={{ width: `${(a.count / totalCasesByArea) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="flex flex-col">
-          <CardHeader
-            title="Juris Blog"
-            action={
-              viewer?.isAdmin && blogAccess ? (
-                <Link
-                  href="/configuracoes?secao=blog&blogTab=revisao"
-                  className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1"
-                >
-                  Fila de revisão <ArrowRight size={13} />
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+        {/* Coluna larga */}
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader
+              title={`O dia — ${prazosCount} prazo${prazosCount === 1 ? "" : "s"}, ${audienciasCount} audiência${audienciasCount === 1 ? "" : "s"}`}
+              action={
+                <Link href="/agenda" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
+                  Ver agenda <ArrowRight size={13} />
                 </Link>
-              ) : undefined
-            }
-          />
-          <div className="p-5 flex flex-col gap-3 flex-1">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 shrink-0 rounded-full bg-marca-bg flex items-center justify-center text-marca-tx">
-                <Newspaper size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm text-tx-2">Conteúdo jurídico publicado pelo escritório.</p>
-                {blogPendingCount > 0 && (
-                  <Badge color="gold" className="mt-1">
-                    {blogPendingCount} aguardando revisão
-                  </Badge>
-                )}
-              </div>
+              }
+            />
+            <div className="divide-y divide-regua">
+              {dayQueueVisible.length === 0 && <EmptyState title="Nada vencido ou agendado para os próximos dias" />}
+              {dayQueueVisible.map((item) => (
+                <DayQueueRow key={item.id} item={item} />
+              ))}
             </div>
-            <Link
-              href="/blog"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-sf border border-regua hover:bg-sf-apoio text-tx rounded-lg px-3.5 py-2 transition-colors w-fit"
-            >
-              Ver blog <ExternalLink size={13} />
+            {dayQueueRestCount > 0 && (
+              <Link href="/agenda" className="block text-center text-xs font-semibold text-acao hover:text-acao-hover px-5 py-3 border-t border-regua">
+                Ver os outros {dayQueueRestCount}
+              </Link>
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader
+              title={`Publicações não lidas — ${unreadGroups.length}`}
+              action={
+                <Link href="/publicacoes" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
+                  Triar <ArrowRight size={13} />
+                </Link>
+              }
+            />
+            <div className="divide-y divide-regua">
+              {unreadPreview.length === 0 && <EmptyState title="Nenhuma publicação pendente de triagem" />}
+              {unreadPreview.map((g) => (
+                <div key={g.key} className="px-5 py-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-tx-2">{g.primary.source}</span>
+                    {g.primary.processNumberRaw && <ProcessNumberChip processNumber={g.primary.processNumberRaw} />}
+                  </div>
+                  {g.primary.case?.title && <p className="text-xs text-tx-2 mt-0.5 truncate">{g.primary.case.title}</p>}
+                  <p className="text-sm text-tx mt-0.5 line-clamp-1">{g.primary.content}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Coluna estreita */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+          <PendingListModal
+            label="Minhas atrasadas"
+            value={String(myOverdueTasks.length)}
+            accentClassName="border-t-urgente"
+            valueClassName="text-[34px] leading-none font-extrabold text-urgente"
+            title="Minhas Atrasadas"
+          >
+            <div className="divide-y divide-regua">
+              {myOverdueTasks.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
+              {myOverdueTasks.map((t) => (
+                <OverdueTaskRow
+                  key={t.id}
+                  task={{
+                    id: t.id,
+                    title: t.title,
+                    type: t.type,
+                    dueDate: t.dueDate.toISOString(),
+                    responsibleName: t.responsible?.name,
+                    caseId: t.case?.id,
+                    caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+                  }}
+                />
+              ))}
+            </div>
+          </PendingListModal>
+
+          {hasFinanceAccess && (
+            <>
+              <PendingListModal label="A receber · 7 dias" value={formatCurrency(totalReceivableSoon)} title="A Receber — Próximos 7 Dias">
+                <div className="divide-y divide-regua">
+                  {receivablesSoon.length === 0 && <EmptyState title="Nenhuma conta nos próximos 7 dias" />}
+                  {receivablesSoon.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-tx truncate">{r.description}</p>
+                        <p className="text-xs text-tx-3 mt-0.5">{r.dueDate < hoje ? "Venceu em " : "Vence em "}{formatDate(r.dueDate)}</p>
+                        {r.case && (
+                          <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-acao hover:underline">
+                            {r.case.processNumber || r.case.title}
+                          </Link>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-semibold text-tx tabular-nums">
+                          {formatCurrency(saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((s, x) => s + x.amount, 0)))}
+                        </span>
+                        <SettleButton
+                          id={r.id}
+                          kind="receivable"
+                          liquido={valorLiquido(r.amount, r.discount, r.surcharge)}
+                          alreadyPaid={r.payments.reduce((s, x) => s + x.amount, 0)}
+                          status={r.status}
+                          bankAccounts={bankAccounts}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PendingListModal>
+
+              <PendingListModal label="A pagar · 7 dias" value={formatCurrency(totalPayableSoon)} title="A Pagar — Próximos 7 Dias">
+                <div className="divide-y divide-regua">
+                  {payablesSoon.length === 0 && <EmptyState title="Nenhuma conta nos próximos 7 dias" />}
+                  {payablesSoon.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-tx truncate">{p.description}</p>
+                        <p className="text-xs text-tx-3 mt-0.5">{p.dueDate < hoje ? "Venceu em " : "Vence em "}{formatDate(p.dueDate)}</p>
+                        {p.case && (
+                          <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-acao hover:underline">
+                            {p.case.processNumber || p.case.title}
+                          </Link>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-semibold text-tx tabular-nums">
+                          {formatCurrency(saldoEmAberto(p.amount, p.discount, p.surcharge, p.payments.reduce((s, x) => s + x.amount, 0)))}
+                        </span>
+                        <SettleButton
+                          id={p.id}
+                          kind="payable"
+                          liquido={valorLiquido(p.amount, p.discount, p.surcharge)}
+                          alreadyPaid={p.payments.reduce((s, x) => s + x.amount, 0)}
+                          status={p.status}
+                          bankAccounts={bankAccounts}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PendingListModal>
+            </>
+          )}
+
+          <div className="bg-sf border-t-2 border-regua-forte p-5">
+            <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
+            <div className="mt-2 space-y-1.5">
+              {funilHoje.length === 0 && <p className="text-sm text-tx-2">Nenhum follow-up para hoje.</p>}
+              {funilHoje.slice(0, 2).map((a) => (
+                <p key={a.id} className="text-sm text-tx truncate">
+                  {a.clientName} <span className="text-tx-3">· {stageLabels[a.stage] ?? a.stage}</span>
+                </p>
+              ))}
+            </div>
+            <Link href="/atendimento/funil" className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover mt-2">
+              Ver funil <ArrowRight size={13} />
             </Link>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

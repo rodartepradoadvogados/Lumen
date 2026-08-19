@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { ChevronDown, User, LogOut, X } from "lucide-react";
+import { ChevronDown, User, LogOut, X, MessageSquare } from "lucide-react";
 import { fetchTeamSummaries, fetchUserHistory } from "@/lib/actions/timesheet";
+import { fetchNotices, type SerializedNotice } from "@/lib/actions/notices";
 import ThemeToggle from "@/components/ThemeToggle";
+import NoticesPanel from "@/components/NoticesPanel";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
 
 // Rótulo de bloco dentro do menu (DESIGN-SYSTEM.md §5): 9,5px caixa alta, tracking .11em, --tx-2.
@@ -31,6 +33,7 @@ function formatTime(iso: string) {
 }
 
 export default function TeamMonitorPanel({
+  userId,
   initials,
   name,
   role,
@@ -38,6 +41,11 @@ export default function TeamMonitorPanel({
   isAdmin,
   logoutAction,
 }: {
+  // Precisa saber quem é o usuário logado para NoticesPanel decidir quais recados este usuário
+  // pode excluir (autor ou sócio) — antes vinha de app/(app)/painel/page.tsx (Server Component),
+  // agora que o painel de recados mora aqui dentro (documento 03 do handoff) precisa chegar por
+  // prop também.
+  userId: string;
   initials: string;
   name: string;
   role: string;
@@ -54,7 +62,32 @@ export default function TeamMonitorPanel({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, DayHistory[]>>({});
   const [error, setError] = useState<string | null>(null);
+  // Recados do Escritório (documento 03: saiu do Painel, virou item deste menu) — carregado sob
+  // demanda na primeira vez que a seção é aberta, mesmo padrão do Monitoramento da Equipe logo
+  // abaixo. Sem badge de "novo recado" ainda: exigiria rastrear leitura por usuário (tabela nova),
+  // fora do escopo desta PR (mudança de schema tem PR própria, documento 10 do plano) — fica
+  // pendente para quando essa tabela existir.
+  const [noticesOpen, setNoticesOpen] = useState(false);
+  const [notices, setNotices] = useState<SerializedNotice[] | null>(null);
+  const [noticeUsers, setNoticeUsers] = useState<{ id: string; name: string }[]>([]);
+  const [noticesError, setNoticesError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
+  async function loadNotices() {
+    const result = await fetchNotices();
+    if ("error" in result) setNoticesError(result.error);
+    else {
+      setNoticesError(null);
+      setNotices(result.notices);
+      setNoticeUsers(result.users);
+    }
+  }
+
+  async function handleToggleNotices() {
+    const willOpen = !noticesOpen;
+    setNoticesOpen(willOpen);
+    if (willOpen && !notices) await loadNotices();
+  }
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -130,6 +163,28 @@ export default function TeamMonitorPanel({
             <div className="px-2.5 pb-2.5">
               <ThemeToggle variant="segmented" />
             </div>
+          </div>
+
+          {/* Recados do Escritório — documento 03 do handoff: saiu do Painel, virou item deste
+              menu (mural de comunicação entre a equipe, mesmo NoticesPanel de antes). */}
+          <div className="border-b border-regua">
+            <button
+              onClick={handleToggleNotices}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-tx hover:bg-sf-apoio"
+            >
+              <MessageSquare size={15} className="text-tx-2" />
+              Recados do Escritório
+              <ChevronDown size={12} className={clsx("ml-auto text-tx-3 transition-transform", noticesOpen && "rotate-180")} />
+            </button>
+            {noticesOpen && (
+              <div className="max-h-[420px] flex flex-col">
+                {noticesError && <p className="text-xs text-urgente p-4">{noticesError}</p>}
+                {!noticesError && !notices && <p className="text-xs text-tx-2 p-4">Carregando...</p>}
+                {!noticesError && notices && (
+                  <NoticesPanel notices={notices} currentUserId={userId} isAdmin={Boolean(isAdmin)} users={noticeUsers} onChanged={loadNotices} />
+                )}
+              </div>
+            )}
           </div>
 
           <div className="p-1.5 border-b border-regua">

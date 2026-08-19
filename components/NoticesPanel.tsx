@@ -38,11 +38,18 @@ export default function NoticesPanel({
   currentUserId,
   isAdmin,
   users = [],
+  onChanged,
 }: {
   notices: Notice[];
   currentUserId: string | null;
   isAdmin: boolean;
   users?: { id: string; name: string }[];
+  // Chamado depois de publicar/excluir/fixar um recado — components/TeamMonitorPanel.tsx usa isso
+  // para recarregar a própria lista (busca sob demanda via fetchNotices, não chega mais por prop
+  // de Server Component desde que este painel saiu do Painel para o menu do avatar). router.refresh()
+  // sozinho não bastaria: só revalida a árvore de Server Components da rota atual, não o estado
+  // buscado no cliente que alimenta este painel.
+  onChanged?: () => void;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -94,6 +101,7 @@ export default function NoticesPanel({
       if (res.error) setError(res.error);
       else setText("");
       router.refresh();
+      onChanged?.();
     });
   }
 
@@ -103,6 +111,7 @@ export default function NoticesPanel({
       const res = await deleteNotice(id);
       if (res.error) setError(res.error);
       router.refresh();
+      onChanged?.();
     });
   }
 
@@ -110,6 +119,7 @@ export default function NoticesPanel({
     startTransition(async () => {
       await togglePinNotice(id);
       router.refresh();
+      onChanged?.();
     });
   }
 
