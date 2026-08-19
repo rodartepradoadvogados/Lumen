@@ -1,8 +1,19 @@
 # Sistema de cor e detalhe — Lúmen
 
-Fonte única de verdade para a implementação do redesenho (manual da marca v2, agosto/2026).
-**Nenhum valor aqui é sugestão.** Se um componente precisa de uma cor que não está neste
-documento, a resposta certa é perguntar, não inventar um hex.
+Fonte única de verdade para a implementação do redesenho. **Nenhum valor aqui é sugestão.**
+Se um componente precisa de uma cor que não está neste documento, a resposta certa é
+perguntar, não inventar um hex.
+
+> **Redesenho Modernist em andamento (agosto/2026).** As seções §1, §2 e as linhas de sombra
+> de §13 abaixo já refletem o sistema novo — ver `design_handoff_lumen_redesign/`,
+> especialmente `01-tokens-e-tema.md` (fonte única dos tokens) e `10-plano-de-execucao.md`
+> (ordem das fases). **Modelo aplicado: B — "Modernist puro"**, do documento 01: o vermelho
+> `#ec3013` é a única cor de ação e de marca; não existe mais ouro nem azul-tinta neste
+> sistema. As demais seções (§3 em diante) ainda descrevem o desenho ANTERIOR ao redesenho
+> (azul-tinta, ouro, raio 5–6px) e são substituídas seção por seção conforme cada fase do
+> `10-plano-de-execucao.md` chega ao respectivo componente — não de uma vez. Ao migrar uma
+> área, atualize a seção correspondente aqui no mesmo PR, para nunca haver duas verdades no
+> repositório.
 
 Dois temas: **Manhã** (claro) e **Noite** (escuro, classe `.dark` no `<html>`).
 Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.
@@ -13,32 +24,31 @@ Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.
 
 1. **Nenhum hex solto em componente.** Toda cor vem de `app/globals.css` (variável CSS) ou de
    `tailwind.config.ts` (escala). Um `#` dentro de `components/` ou `app/` é bug de revisão.
-2. **O ouro é acento, não cor de ação.** Ele marca a marca e a seção ativa. Nunca é fundo de
-   botão. Nunca carrega texto sobre fundo claro — exceto no tom `ouro-800 #a87a1c`, e ainda
-   assim só em rótulo curto.
+2. **O vermelho (`--marca`/`--acao`) é a única cor de destaque do produto.** Não há ouro nem
+   azul-tinta no sistema Modernist. Raio zero em toda superfície de interface.
 3. **Sombra só em coisa que flutua de verdade.** Modal, menu suspenso e card sendo arrastado.
-   Cartão parado se separa por régua de 1px, não por sombra.
+   Cartão parado se separa por régua, não por sombra.
 
 ---
 
 ## 1. Escalas base
 
-| Escala | 300 | 500 | 700 | 800 | 900 |
-|---|---|---|---|---|---|
-| **grafite** | `#5b646e` | `#39414a` | `#22272e` | `#16191d` | `#0f1216` |
-| **ouro** | `#e0b954` | `#d9a93a` | `#c9962f` | `#a87a1c` | `#7d5a11` |
-| **vinho** | `#cd5f77` | `#a3234a` | `#7d1330` | `#5e0e24` | `#3e0918` |
+| Escala | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 |
+|---|---|---|---|---|---|---|---|---|---|
+| **neutro** | `#f8f4f4` | `#eae7e7` | `#d7d3d3` | `#bab6b6` | `#9b9797` | `#7d7979` | `#605d5d` | `#444141` | `#2d2b2b` |
 
-| Apoio | Manhã | Noite |
-|---|---|---|
-| **tinta** (azul-tinta, cor de ação) | `#17325c` | `#7ea6dd` |
-| **neutro** (superfície de apoio) | `#f3f4f6` | `#1b2026` |
-| **régua** | `#e5e7ea` | `#272d34` |
+| Escala | 300 (hover) | 500 (base) | 700 (escuro/destrutivo) |
+|---|---|---|---|
+| **vermelho** (`--acao`/`--marca`/`--vinho`) | `#fb3f22` | `#ec3013` | `#ae1800` |
 
-> ⚠️ **Divergência do manual, resolvida.** O texto do manual diz *"use Ouro 700 `#a87a1c`"*,
-> mas a rampa do mesmo manual põe `#a87a1c` em **800** e `#c9962f` em 700. Vale o **hex**:
-> ouro como texto sobre fundo claro é **`#a87a1c`**. É exatamente o tipo de detalhe que vira
-> erro de implementação — por isso está registrado aqui.
+O rail é a única superfície que continua fixa em grafite (`#16191d`) nos dois temas — ver
+`components/NavRail.tsx` e o documento 02.
+
+> **Ouro e azul-tinta saíram da paleta.** O modelo B ("Modernist puro") do documento 01
+> substitui os dois pelo vermelho único acima — `--acao` e `--marca` resolvem para o mesmo
+> hex. As classes legadas `gold-*`/`bordo-*`/`magenta-*` continuam existindo em
+> `tailwind.config.ts` só para não quebrar componentes ainda não migrados, e já apontam para
+> esta escala vermelha.
 
 ---
 
@@ -48,22 +58,22 @@ São estes os nomes que os componentes usam. A escala base só aparece na defini
 
 | Token | Manhã | Noite | Papel |
 |---|---|---|---|
-| `--sf-fundo` | `#eef0f2` | `#0f1216` | Fundo da janela |
+| `--sf-fundo` | `#f3f2f2` | `#0f1216` | Fundo da janela |
 | `--sf-superficie` | `#ffffff` | `#161a1f` | Cartão, painel, barra |
-| `--sf-apoio` | `#f3f4f6` | `#1b2026` | Cabeçalho de tabela, linha ativa, campo |
-| `--regua` | `#e5e7ea` | `#272d34` | Divisor de 1px |
-| `--regua-forte` | `#c9cdd3` | `#39414a` | Borda de contêiner, moldura |
-| `--tx` | `#16191d` | `#e6eaee` | Texto corrido |
-| `--tx-2` | `#5b646e` | `#98a1ab` | Rótulo, metadado |
-| `--tx-3` | `#8b939c` | `#79828c` | Texto desabilitado, placeholder |
-| `--acao` | `#17325c` | `#7ea6dd` | Ação primária, link, aba ativa |
-| `--acao-hover` | `#21447a` | `#9dbce8` | Estado hover da ação |
-| `--acao-tx` | `#ffffff` | `#0f1216` | **Texto sobre `--acao`** |
-| `--acao-bg` | `rgba(23,50,92,.09)` | `rgba(126,166,221,.14)` | Fundo de chip informativo |
-| `--marca` | `#c9962f` | `#d9a93a` | Marca e indicador de seção ativa |
-| `--marca-tx` | `#a87a1c` | `#d9a93a` | Ouro **quando precisa ser texto** |
-| `--marca-bg` | `rgba(201,150,47,.15)` | `rgba(217,169,58,.15)` | Fundo de chip da marca |
-| `--vinho` | `#7d1330` | `#cd5f77` | Marca (pingo) e **ação destrutiva** |
+| `--sf-apoio` | `#eae9e9` | `#1b2026` | Cabeçalho de tabela, linha ativa, campo |
+| `--regua` | `#d7d3d3` | `#272d34` | Divisor de 1px |
+| `--regua-forte` | `#bab6b6` | `#39414a` | Borda de contêiner, moldura |
+| `--tx` | `#201e1d` | `#e6eaee` | Texto corrido |
+| `--tx-2` | `#605d5d` | `#98a1ab` | Rótulo, metadado |
+| `--tx-3` | `#9b9797` | `#79828c` | Texto desabilitado, placeholder |
+| `--acao` | `#ec3013` | `#ec3013` | Ação primária, aba ativa — não retematiza |
+| `--acao-hover` | `#fb3f22` | `#fb3f22` | Estado hover da ação |
+| `--acao-tx` | `#16191d` | `#16191d` | **Texto sobre `--acao`** — nunca `#fff` cravado |
+| `--acao-bg` | `rgba(236,48,19,.08)` | `rgba(236,48,19,.16)` | Fundo de chip informativo |
+| `--marca` | `#ec3013` | `#ec3013` | Marca e indicador de seção ativa — não retematiza |
+| `--marca-tx` | `#ae1800` | `#ec3013` | Vermelho **quando precisa ser texto** |
+| `--marca-bg` | `rgba(236,48,19,.15)` | `rgba(236,48,19,.18)` | Fundo de chip da marca |
+| `--vinho` | `#ae1800` | `#ae1800` | **Ação destrutiva** — não retematiza |
 | `--urgente` | `#b3261e` | `#e2685a` | Vencido, atrasado, prazo estourado |
 | `--urgente-bg` | `rgba(179,38,30,.10)` | `rgba(226,104,90,.14)` | |
 | `--aviso` | `#9a6700` | `#d0a02a` | Vence em breve, parcial, aguardando |
@@ -71,13 +81,20 @@ São estes os nomes que os componentes usam. A escala base só aparece na defini
 | `--concluido` | `#1c6b52` | `#4fb28c` | Concluído, pago, recebido, conectado |
 | `--concluido-bg` | `rgba(28,107,82,.10)` | `rgba(79,178,140,.14)` | |
 
+`--acao-tx`/`--acao-hover`/`--acao-bg`/`--marca-tx`/`--marca-bg` não vêm prontos do documento
+01 (que só fixa `--acao`/`--marca`/`--vinho`) — foram derivados seguindo o mesmo padrão de
+contraste/alpha que o próprio documento já usa nos demais pares base/`-bg` do sistema.
+`--acao-tx` é escuro (não branco) nos dois temas: sobre `#ec3013` o texto escuro contrasta
+melhor (~4,46:1) que o branco (~4,20:1), e é o mesmo par cor-de-marca/texto-escuro que o
+documento 09 já usa no bloco em pôster do site público.
+
 ### Vinho x urgente — onde cada um entra
 
 Os dois são avermelhados e é aqui que a implementação erra. A regra é por **origem**, não por
 aparência:
 
-- **`--vinho`** é da **marca**. Aparece no pingo e na base do símbolo, no badge de contagem do
-  rail, e em **ação destrutiva** (texto e botão de Excluir, confirmação de exclusão).
+- **`--vinho`** é a **marca** — a única cor de ação destrutiva (texto e botão de Excluir,
+  confirmação de exclusão, badge de contagem do rail).
 - **`--urgente`** é **dado**. Aparece quando um número ou uma data diz que algo furou: texto de
   data vencida, badge Atrasado, filete de severidade alta na Central de Alertas, KPI negativo.
 
@@ -367,20 +384,24 @@ O card é a única coisa branca da coluna — é isso que comunica que ele é o 
 
 ## 13. Superfícies, raios e sombras
 
+As sombras abaixo já são o valor do redesenho Modernist (aplicadas em `app/globals.css` na
+Fase 01). **Os raios ainda são os antigos** — a varredura para raio zero (documento 01 e
+PR2 do plano de execução) é um PR à parte, que atualiza esta tabela quando rodar.
+
 | Uso | Valor |
 |---|---|
-| Raio de cartão e painel | **6px** (hoje 16px, via `rounded-xl` sobrescrito no Tailwind) |
-| Raio de botão e campo | **5px** |
-| Raio de chip de ícone | **4px** |
-| Raio de pílula / chip de filtro | **11px** |
+| Raio de cartão e painel | 6px (hoje 16px via `rounded-xl` sobrescrito) — **vira 0 no PR2** |
+| Raio de botão e campo | 5px — **vira 0 no PR2** |
+| Raio de chip de ícone | 4px — **vira 0 no PR2** |
+| Raio de pílula / chip de filtro | 11px — **vira 0 no PR2** |
 | Régua de linha | 1px `--regua` |
-| Régua de seção | 2px `--tx` |
-| Sombra de menu suspenso | `0 10px 30px rgba(22,25,29,.18)` / Noite `rgba(0,0,0,.45)` |
-| Sombra de modal | `0 12px 40px rgba(22,25,29,.20)` / Noite `rgba(0,0,0,.5)` |
+| Régua de seção | 2px `--regua-forte` |
+| Sombra de menu suspenso | `0 3px 10px rgba(45,43,43,.16)` / Noite `rgba(0,0,0,.45)` |
+| Sombra de modal / card arrastado | `0 12px 32px rgba(45,43,43,.22)` / Noite `rgba(0,0,0,.5)` |
 | Sombra de cartão parado | **nenhuma** |
 
-`.brand-texture` (o grid dourado de fundo) é **removida**, junto com `SiteBackgroundLayer` se
-ele só existir para isso.
+`.brand-texture` (o grid dourado de fundo) e `SiteBackgroundLayer` são **removidos** — ver
+documento 02 do handoff (fase da casca).
 
 ---
 
@@ -424,8 +445,12 @@ O `<linearGradient>` e o `useId()` que o acompanha são removidos.
 1. Hex literal em `app/**` ou `components/**`.
 2. Classe `navy-*`, `gold-*`, `bordo-*`, `cream-*`, `magenta-*` em código novo — são legado
    e serão removidas ao fim da migração.
-3. Ouro como fundo de botão, ou como texto sobre fundo claro fora de `--marca-tx`.
+3. `--marca`/vermelho como fundo de botão, ou como texto sobre fundo claro fora de
+   `--marca-tx`.
 4. Sombra em cartão parado.
 5. Fundo colorido cheio em seção de formulário.
 6. `text-white` sobre `--acao` — use `--acao-tx`.
-7. Qualquer textura de fundo.
+7. Qualquer textura ou gradiente de fundo.
+8. Canto arredondado em qualquer superfície de interface — só `rounded-full` sobrevive, e só
+   em avatar e badge de contagem (documento 01; varredura completa no PR2 da Fase 01).
+9. Rótulo de botão centralizado — sempre alinhado à esquerda (documento 01).
