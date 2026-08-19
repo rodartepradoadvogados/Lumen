@@ -1,126 +1,100 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import clsx from "clsx";
 import { Search } from "lucide-react";
 import { globalSearch, type SearchResult } from "@/lib/actions/search";
+import { RAIL_SECTIONS, isSectionVisible, visibleSectionItems } from "@/lib/navSections";
+import { looseIncludes } from "@/lib/textNormalize";
+import { useTabs } from "@/components/TabsProvider";
+import type { OfficeModules } from "@/lib/officeModules";
 
-const GROUP_ORDER: SearchResult["type"][] = ["Processos", "Clientes", "Tarefas", "Atendimentos", "Publicações"];
+// Paleta de comando ⌘K (documento 02 do handoff do redesenho Modernist) — substitui a antiga
+// barra de busca inline (que virava um botão-gatilho em janelas estreitas) por um único padrão
+// sempre igual: botão-gatilho compacto na faixa de topo, ⌘K/Ctrl+K abre um painel centralizado
+// flutuante de qualquer lugar autenticado. Quatro grupos, nesta ordem: Processos e Clientes (do
+// banco, via lib/actions/search.ts — que retorna mais tipos que isso, compartilhada com
+// components/mobile/MobileGlobalSearch.tsx; os demais são descartados abaixo), Ações e Navegação
+// (estáticos, filtrados aqui no cliente contra a mesma query).
+type PaletteItem = {
+  type: "Processos" | "Clientes" | "Ações" | "Navegação";
+  id: string;
+  titulo: string;
+  subtitulo?: string;
+  href: string;
+};
+const GROUP_ORDER: PaletteItem["type"][] = ["Processos", "Clientes", "Ações", "Navegação"];
 
-// Abaixo de ~4cm de largura disponível (151px, aproximando 1cm por 37.8px a 96dpi — CSS px não é
-// uma unidade física de verdade, mas é a referência prática mais próxima que dá pra medir em
-// tempo real) não sobra espaço nem pra digitar nem pra ler nada na própria barra do TopBar (que
-// divide espaço com Peticionar/+Novo/avatar e encolhe bastante em telas divididas). Só nesse caso
-// a busca vira um botão-gatilho que abre um painel largo e fixo abaixo do cabeçalho; do contrário,
-// digita-se direto na própria barra, como sempre foi.
-const MIN_INLINE_WIDTH_PX = 151;
+// "Peticionar em…"/"Lançar honorário para…" do documento 02 são ações CONTEXTUAIS a um processo
+// já localizado na busca — fora do escopo deste PR (exigiriam cruzar o resultado buscado com uma
+// ação específica dele). Aqui só as ações diretas, sem contexto nenhum. "Ir para Conexões" também
+// fica de fora: a rota /conexoes é do documento 04 (Fase 02), ainda não existe — aponta pra
+// Configurações, o equivalente atual, até lá.
+const STATIC_ACTIONS: { label: string; href: string }[] = [
+  { label: "Peticionar", href: "/peticionar" },
+  { label: "Ir para Configurações", href: "/configuracoes" },
+];
 
-// Faixa morta (histerese) entre o limite de "ficou estreito" e o de "voltou a caber" — bug
-// relatado como o cabeçalho "piscando e oscilando, como duas informações competindo". Causa: o
-// botão-gatilho (modo estreito) e a barra normal (modo largo) têm bordas/paddings levemente
-// diferentes, então RENDERIZAR um dos dois muda o offsetWidth medido em alguns pixels — se esse
-// valor cruzar de volta o MESMO limite de 151px, o ResizeObserver dispara de novo, troca o modo
-// outra vez, muda a largura nos mesmos pixels, e o ciclo se repete indefinidamente (loop clássico
-// de ResizeObserver "auto-referente": medir a própria caixa para decidir o que renderizar dentro
-// dela). Com limites DIFERENTES para apertar (151px) e para voltar a abrir (190px), uma pequena
-// variação de alguns pixels entre os dois modos cai dentro da faixa morta e não derruba o estado
-// de novo — só uma mudança de largura de verdade (redimensionar a janela) atravessa os 39px.
-const MAX_INLINE_WIDTH_HYSTERESIS_PX = 190;
-
-function SearchResultsList({
-  loading,
-  results,
-  ordered,
-  activeIndex,
-  onHover,
-  onSelect,
+export default function GlobalSearch({
+  hasFinanceAccess,
+  modules,
 }: {
-  loading: boolean;
-  results: SearchResult[];
-  ordered: SearchResult[];
-  activeIndex: number;
-  onHover: (idx: number) => void;
-  onSelect: () => void;
+  hasFinanceAccess: boolean;
+  modules: OfficeModules;
 }) {
-  return (
-    <>
-      {loading && <p className="px-4 py-3 text-sm text-tx-2">Buscando...</p>}
-      {!loading && ordered.length === 0 && <p className="px-4 py-3 text-sm text-tx-2">Nada encontrado.</p>}
-      {!loading &&
-        GROUP_ORDER.map((group) => {
-          const groupItems = results.filter((r) => r.type === group);
-          if (groupItems.length === 0) return null;
-          return (
-            <div key={group} className="border-b border-regua last:border-0">
-              <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-tx-3 uppercase tracking-wide">{group}</p>
-              {groupItems.map((item) => {
-                const idx = ordered.indexOf(item);
-                const active = idx === activeIndex;
-                return (
-                  // Link de verdade (não button+router.push): navegação por clique/toque precisa
-                  // ser à prova de qualquer corrida entre o listener de "clicar fora" (mousedown,
-                  // ver useEffect de onClickOutside) e o clique em si — mesmo padrão já usado em
-                  // components/NewEntityMenu.tsx pra esse tipo de item de menu que navega e fecha.
-                  <Link
-                    key={`${item.type}-${item.id}`}
-                    href={item.href}
-                    onMouseEnter={() => onHover(idx)}
-                    onClick={onSelect}
-                    className={`flex flex-col items-start w-full px-4 py-2.5 text-left transition-colors ${
-                      active ? "bg-sf-apoio" : "hover:bg-sf-apoio"
-                    }`}
-                  >
-                    <span className="text-sm font-medium text-tx truncate w-full">{item.titulo}</span>
-                    {item.subtitulo && <span className="text-xs text-tx-2 truncate w-full">{item.subtitulo}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
-    </>
-  );
-}
-
-export default function GlobalSearch() {
   const router = useRouter();
+  const { openTab, goToLiveView } = useTabs();
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [dbResults, setDbResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  // Só passa a existir se a barra estiver estreita demais (ver MIN_INLINE_WIDTH_PX) — nesse caso
-  // vira um botão-gatilho, e este estado controla se o painel largo abaixo do cabeçalho está
-  // aberto. Na barra larga (caso comum), digita-se direto nela e este estado nunca é usado.
-  const [narrow, setNarrow] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const inlineInputRef = useRef<HTMLInputElement>(null);
-  const expandedInputRef = useRef<HTMLInputElement>(null);
   const reqId = useRef(0);
 
-  // Mede a largura disponível da própria barra (não da janela inteira) pra decidir entre digitar
-  // ali mesmo ou abrir o painel abaixo — useLayoutEffect (não useEffect) pra medir antes da
-  // primeira pintura e evitar um flash no modo errado (mesmo padrão de components/PublicationRow.tsx).
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const measure = () => {
-      const width = el.offsetWidth;
-      setNarrow((jaEstreito) => (jaEstreito ? width < MAX_INLINE_WIDTH_HYSTERESIS_PX : width < MIN_INLINE_WIDTH_PX));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
+  // Atalho global ⌘K/Ctrl+K (documento 02) — ignora quando o foco já está num campo de
+  // texto/textarea/contenteditable, pra não roubar o "k" de quem está digitando em outro
+  // formulário na tela.
+  useEffect(() => {
+    function onKeyDownGlobal(e: KeyboardEvent) {
+      if (e.key.toLowerCase() !== "k" || !(e.metaKey || e.ctrlKey)) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      e.preventDefault();
+      setOpen(true);
+    }
+    window.addEventListener("keydown", onKeyDownGlobal);
+    return () => window.removeEventListener("keydown", onKeyDownGlobal);
   }, []);
 
-  // Debounce da busca (300ms)
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    else {
+      setQuery("");
+      setDbResults([]);
+      setActiveIndex(-1);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClickOutside(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [open]);
+
+  // Debounce da busca no banco (300ms) — só Processos/Clientes; Ações/Navegação são filtrados
+  // localmente logo abaixo, sem round-trip nenhum.
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
-      setResults([]);
+      setDbResults([]);
       setLoading(false);
       return;
     }
@@ -129,80 +103,82 @@ export default function GlobalSearch() {
     const timer = setTimeout(async () => {
       const res = await globalSearch(q);
       if (currentReq !== reqId.current) return; // resposta obsoleta
-      setResults(res);
+      setDbResults(res);
       setLoading(false);
       setActiveIndex(-1);
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Fecha o painel expandido (modo estreito) ao clicar fora dele — o botão-gatilho fica fora do
-  // panelRef de propósito, pra clicar nele de novo não reabrir sem fechar antes.
+  // Mesmo mecanismo de duplo clique/duplo Enter do resto da casca (components/NavRail.tsx,
+  // components/PageSectionTabs.tsx): 1ª ativação arma a navegação depois de um instante; uma 2ª
+  // ativação no MESMO item antes disso cancela e abre em aba nova — documento 02: "Duplo Enter
+  // num resultado abre em guia nova, coerente com o resto do produto".
+  const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   useEffect(() => {
-    if (!narrow || !expanded) return;
-    function onClickOutside(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setExpanded(false);
+    const timers = clickTimers.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
+  function activate(item: PaletteItem) {
+    const pending = clickTimers.current[item.href];
+    if (pending) {
+      clearTimeout(pending);
+      delete clickTimers.current[item.href];
+      openTab(item.href, item.titulo);
+      setOpen(false);
+      return;
     }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [narrow, expanded]);
+    clickTimers.current[item.href] = setTimeout(() => {
+      delete clickTimers.current[item.href];
+      setOpen(false);
+      goToLiveView();
+      router.push(item.href);
+    }, 250);
+  }
 
-  // Fecha o dropdown do modo largo (barra normal) ao clicar fora da barra inteira.
-  useEffect(() => {
-    if (narrow) return;
-    function onClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setResults([]);
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [narrow]);
+  const q = query.trim();
 
-  // Autofoco no campo grande assim que o painel do modo estreito abre — quem clicou no
-  // botão-gatilho espera poder digitar na hora, sem precisar de um segundo clique.
-  useEffect(() => {
-    if (narrow && expanded) expandedInputRef.current?.focus();
-  }, [narrow, expanded]);
+  const actionItems: PaletteItem[] = STATIC_ACTIONS.filter((a) => !q || looseIncludes(a.label, q)).map((a) => ({
+    type: "Ações",
+    id: a.href,
+    titulo: a.label,
+    href: a.href,
+  }));
 
-  // Atalho global ⌘K / Ctrl+K — foca a barra direto (modo largo) ou abre o painel e foca (modo
-  // estreito). Ignora quando o foco já está num campo de texto/textarea/contenteditable, pra não
-  // roubar o "k" de quem está digitando em outro formulário na tela.
-  useEffect(() => {
-    function onKeyDownGlobal(e: KeyboardEvent) {
-      if (e.key.toLowerCase() !== "k" || !(e.metaKey || e.ctrlKey)) return;
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-      e.preventDefault();
-      if (narrow) {
-        setExpanded(true);
-      } else {
-        inlineInputRef.current?.focus();
+  const navItems: PaletteItem[] = (() => {
+    const all: PaletteItem[] = [{ type: "Navegação", id: "/painel", titulo: "Painel", href: "/painel" }];
+    for (const section of RAIL_SECTIONS) {
+      if (!isSectionVisible(section, { hasFinanceAccess, modules })) continue;
+      for (const item of visibleSectionItems(section, { hasFinanceAccess, modules })) {
+        all.push({ type: "Navegação", id: item.href, titulo: item.label, href: item.href });
       }
     }
-    window.addEventListener("keydown", onKeyDownGlobal);
-    return () => window.removeEventListener("keydown", onKeyDownGlobal);
-  }, [narrow]);
+    return q ? all.filter((n) => looseIncludes(n.titulo, q)) : all;
+  })();
 
-  // Ordena resultados agrupados para navegação por teclado
-  const ordered: SearchResult[] = GROUP_ORDER.flatMap((g) => results.filter((r) => r.type === g));
+  // globalSearch() é compartilhada com a busca mobile (components/mobile/MobileGlobalSearch.tsx)
+  // e ainda retorna Tarefas/Atendimentos/Publicações — a paleta de comando só usa Processos e
+  // Clientes (documento 02), então o resto é descartado aqui, não na action.
+  const dbItems: PaletteItem[] = dbResults
+    .filter((r): r is SearchResult & { type: "Processos" | "Clientes" } => r.type === "Processos" || r.type === "Clientes")
+    .map((r) => ({
+      type: r.type,
+      id: r.id,
+      titulo: r.titulo,
+      subtitulo: r.subtitulo,
+      href: r.href,
+    }));
 
-  function reset() {
-    setQuery("");
-    setResults([]);
-    setActiveIndex(-1);
-  }
-
-  // Só usado pela tecla Enter (seleção por teclado não tem <Link> pra clicar) — o clique do mouse
-  // navega pelo próprio <Link> em SearchResultsList.
-  function selectByKeyboard(result: SearchResult) {
-    reset();
-    setExpanded(false);
-    router.push(result.href);
-  }
+  const ordered: PaletteItem[] = GROUP_ORDER.flatMap((g) =>
+    g === "Ações" ? actionItems : g === "Navegação" ? navItems : dbItems.filter((r) => r.type === g)
+  );
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") {
-      setExpanded(false);
+      setOpen(false);
       return;
     }
     if (e.key === "ArrowDown") {
@@ -214,103 +190,85 @@ export default function GlobalSearch() {
     } else if (e.key === "Enter") {
       e.preventDefault();
       const chosen = ordered[activeIndex] ?? ordered[0];
-      if (chosen) selectByKeyboard(chosen);
+      if (chosen) activate(chosen);
     }
   }
 
-  const showDropdown = query.trim().length >= 2;
-
   return (
-    <div ref={containerRef} className="flex-1 max-w-md relative">
-      {narrow ? (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Abrir busca (⌘K)"
+        className="flex items-center gap-2 h-8 px-3 text-sm text-tx-2 hover:text-tx transition-colors"
+      >
+        <Search size={15} />
+        <span className="hidden lg:inline">Buscar...</span>
+        <kbd className="hidden lg:inline text-[10px] font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5">⌘K</kbd>
+      </button>
+
+      {open && (
         <>
-          {/* Botão-gatilho: só existe quando a barra ficou estreita demais pra digitar nela
-              (ver MIN_INLINE_WIDTH_PX) — nunca é onde se digita, só abre o painel largo abaixo. */}
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            aria-label="Abrir busca"
-            className="relative w-full flex items-center gap-2 pl-9 pr-3 py-2 rounded-lg border border-regua bg-sf text-left focus:outline-none focus:ring-2 focus:ring-marca/40"
-          >
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3" />
-            <span className="text-sm text-tx-3 truncate">
-              {query || "Pesquisar processo, contato ou tarefa..."}
-            </span>
-          </button>
-
-          {expanded && (
-            <>
-              {/* Fundo translúcido: clicar fora do painel fecha (ver useEffect de onClickOutside) */}
-              <div className="fixed inset-0 z-40 bg-grafite-900/10 dark:bg-grafite-900/50" aria-hidden="true" />
-              <div ref={panelRef} className="fixed left-1/2 top-20 z-50 w-[min(640px,92vw)] -translate-x-1/2">
-                <div className="relative">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-tx-3 pointer-events-none" />
-                  <input
-                    ref={expandedInputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    placeholder="Pesquisar processo, contato ou tarefa..."
-                    className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-regua bg-sf text-base text-tx placeholder:text-tx-3 shadow-menu focus:outline-none focus:ring-2 focus:ring-marca/40"
-                  />
-                </div>
-
-                {showDropdown && (
-                  <div className="mt-2 bg-sf rounded-xl border border-regua shadow-menu overflow-hidden max-h-[65vh] overflow-y-auto scrollbar-thin">
-                    <SearchResultsList
-                      loading={loading}
-                      results={results}
-                      ordered={ordered}
-                      activeIndex={activeIndex}
-                      onHover={setActiveIndex}
-                      onSelect={() => {
-                        reset();
-                        setExpanded(false);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          {/* Barra normal: digita-se direto aqui, como sempre foi — só entra em modo estreito
-              (acima) quando não sobra nem ~4cm de largura pra isso. */}
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3 pointer-events-none" />
-            <input
-              ref={inlineInputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Pesquisar tudo"
-              className="w-full pl-9 pr-12 py-2 rounded-lg border border-regua bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-marca/40"
-            />
-            {!query && (
-              <kbd className="hidden sm:flex absolute right-2.5 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded border border-regua-forte text-[11px] font-medium text-tx-3 pointer-events-none">
-                ⌘K
-              </kbd>
-            )}
-          </div>
-
-          {showDropdown && (
-            <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-sf rounded-xl border border-regua shadow-menu overflow-hidden max-h-[65vh] overflow-y-auto scrollbar-thin">
-              <SearchResultsList
-                loading={loading}
-                results={results}
-                ordered={ordered}
-                activeIndex={activeIndex}
-                onHover={setActiveIndex}
-                onSelect={reset}
+          <div className="fixed inset-0 z-40 bg-grafite-900/40" aria-hidden="true" />
+          {/* 440px (documento 02) — painel centralizado, mesma posição fixa qualquer que seja o
+              tamanho/posição do botão-gatilho que abriu. */}
+          <div ref={panelRef} className="fixed left-1/2 top-20 z-50 w-[440px] max-w-[92vw] -translate-x-1/2">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3 pointer-events-none" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Pesquisar processo, cliente, ação..."
+                className="w-full h-[34px] pl-9 pr-3 border-2 border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 shadow-menu focus:outline-none focus:ring-2 focus:ring-marca/40"
               />
             </div>
-          )}
+
+            <div className="mt-2 bg-sf border-2 border-tx shadow-menu overflow-hidden max-h-[65vh] overflow-y-auto scrollbar-thin">
+              {loading && <p className="px-4 py-3 text-sm text-tx-2">Buscando...</p>}
+              {!loading && q.length >= 2 && ordered.length === 0 && <p className="px-4 py-3 text-sm text-tx-2">Nada encontrado.</p>}
+              {!loading &&
+                GROUP_ORDER.map((group) => {
+                  const groupItems = ordered.filter((r) => r.type === group);
+                  if (groupItems.length === 0) return null;
+                  return (
+                    <div key={group} className="border-b border-regua last:border-0">
+                      <p className="px-4 pt-2.5 pb-1 text-[8px] font-semibold text-tx-3 uppercase tracking-[.12em]">{group}</p>
+                      {groupItems.map((item) => {
+                        const idx = ordered.indexOf(item);
+                        const active = idx === activeIndex;
+                        return (
+                          // Link de verdade (não button+router.push): navegação por clique/toque
+                          // precisa ser à prova de qualquer corrida entre o listener de "clicar
+                          // fora" (mousedown) e o clique em si.
+                          <Link
+                            key={`${item.type}-${item.id}`}
+                            href={item.href}
+                            onMouseEnter={() => setActiveIndex(idx)}
+                            onClick={(e) => {
+                              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+                              e.preventDefault();
+                              activate(item);
+                            }}
+                            className={clsx(
+                              "flex flex-col items-start w-full px-4 py-2.5 text-left transition-colors",
+                              active ? "bg-sf-apoio" : "hover:bg-sf-apoio"
+                            )}
+                          >
+                            <span className="text-sm font-medium text-tx truncate w-full">{item.titulo}</span>
+                            {item.subtitulo && <span className="text-xs text-tx-2 truncate w-full">{item.subtitulo}</span>}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
         </>
       )}
-    </div>
+    </>
   );
 }
