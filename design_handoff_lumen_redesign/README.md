@@ -75,7 +75,7 @@ Leia nesta ordem:
 | 03 | `03-painel.md` | Painel do dia |
 | 04 | `04-conexoes.md` | Gateway, DJEN, DATAJUD, Drive/OneDrive/Dropbox, WhatsApp, API keys, MCP, webhooks, log |
 | 05 | `05-publicacoes.md` | Triagem de publicações |
-| 06 | `06-comunicados.md` | Digest diário, exceções, templates com variáveis, schema — **ainda não recebido nesta sessão** |
+| 06 | `06-comunicados.md` | Digest diário, exceções, templates com variáveis, schema |
 | 07 | `07-privacidade-lgpd.md` | Máscaras, break-glass, suporte, auditoria, pedido do titular |
 | 08 | `08-pwa.md` | Cinco telas, manifest, push |
 | 09 | `09-site-saas.md` | Site público de produto |
