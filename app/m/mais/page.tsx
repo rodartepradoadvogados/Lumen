@@ -25,9 +25,9 @@ export default async function MobileMais() {
   const initials = viewer ? viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("") : "??";
 
   const items = [
-    // Processos saiu da barra inferior (ver components/mobile/MobileBottomNav.tsx) — continua
-    // a 1 toque na grade da Início, e ganha este atalho aqui: garante que dá pra chegar lá de
-    // qualquer tela, não só da Início.
+    // Processos já tem aba própria na barra inferior (documento 08, ver
+    // components/mobile/MobileBottomNav.tsx) — o atalho aqui continua de propósito: quem já
+    // está em Menu não precisa voltar pra Início pra achar Processo de novo.
     { href: "/m/processos", label: "Processos", Icon: Briefcase, color: "neutral" as const, show: true },
     { href: "/m/atendimento", label: "Atendimento", Icon: Phone, color: "accent" as const, show: modules.atendimento },
     { href: "/m/financeiro", label: "Financeiro", Icon: DollarSign, color: "money" as const, show: showFinance },
