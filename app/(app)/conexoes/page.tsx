@@ -10,8 +10,10 @@ import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
 import { getDjenTargets } from "@/lib/djenSync";
 import { isBtgConnected } from "@/lib/btg";
 import { getAppUrl } from "@/lib/appUrl";
+import { listApiKeys } from "@/lib/actions/apiKeys";
 import { formatDate } from "@/components/ui";
 import AccessRestrictedNotice from "@/components/AccessRestrictedNotice";
+import ApiKeysManager from "@/components/conexoes/ApiKeysManager";
 import ConexoesView, { type ConexaoGrupo, type ConexaoItem, type IntegrationRunRow } from "@/components/conexoes/ConexoesView";
 import TestDjenButton from "@/components/TestDjenButton";
 import TestEmailButton from "@/components/TestEmailButton";
@@ -48,13 +50,22 @@ export const dynamic = "force-dynamic";
 // arriscada que esta PR, então fica para uma investigação/PR futura. A tela já avisa isso
 // explicitamente (`frequenciaNota` abaixo) em vez de fabricar um seletor que não mudaria nada.
 //
-// PR11 (este) aprofunda gateway (Asaas/BTG), armazenamento (Drive/OneDrive/Dropbox), e-mail e
-// WhatsApp: cada detalhe ganha as ações/formulários reais que já existiam espalhados em
-// app/(app)/configuracoes/page.tsx (EmailSendProviderPicker, StorageProviderPicker,
-// NomeacaoDriveForm, WhatsappConfigForm, os botões de migração do Drive), reaproveitados sem
-// reescrever nenhuma lógica. BTG passou a mostrar o estado REAL (isBtgConnected(), lib/btg.ts) em
-// vez do "não configurado" fixo do PR9. Ainda pendentes: credencial mascarada (break-glass,
-// documento 07), API keys e MCP (PR12).
+// PR11 aprofundou gateway (Asaas/BTG), armazenamento (Drive/OneDrive/Dropbox), e-mail e WhatsApp:
+// cada detalhe ganhou as ações/formulários reais que já existiam espalhados em
+// app/(app)/configuracoes/page.tsx, reaproveitados sem reescrever nenhuma lógica. BTG passou a
+// mostrar o estado REAL (isBtgConnected(), lib/btg.ts) em vez do "não configurado" fixo do PR9.
+//
+// PR12 (este) faz "API keys do escritório" de verdade — criar/listar/revogar (lib/actions/
+// apiKeys.ts, components/conexoes/ApiKeysManager.tsx), sobre o model ApiKey (PR12a, sozinho por
+// ser mudança de schema). Aviso importante, mostrado também NA TELA (não só em comentário): nenhum
+// endpoint do Lúmen valida essas chaves ainda — não existe hoje uma API pública do produto, só
+// rotas internas autenticadas por sessão. "Servidores MCP" segue "não implementado" de propósito:
+// diferente de API keys (onde dá pra construir a GESTÃO da credencial mesmo sem a API que a usa),
+// MCP não tem NENHUMA peça real no projeto — nenhum servidor, nenhuma ferramenta, nada — então uma
+// tela de administração aqui seria só decoração enganosa. Fica para quando essa capacidade existir
+// de verdade.
+//
+// Ainda pendente: credencial mascarada (break-glass, documento 07) — chega só na Fase 04.
 const EMAIL_PROVIDER_LABEL: Record<string, string> = { GOOGLE: "Google (Gmail)", MICROSOFT: "Microsoft (Outlook)" };
 
 function formatRelative(date: Date): string {
@@ -93,6 +104,7 @@ export default async function ConexoesPage() {
     btgConnected,
     btgConnection,
     webhookEvents,
+    apiKeysRaw,
   ] = await Promise.all([
     getDriveStatus(officeId),
     listGoogleAccounts(officeId),
@@ -126,7 +138,15 @@ export default async function ConexoesPage() {
     // PaymentWebhookEvent também é GLOBAL (log de todo evento recebido da Asaas, de qualquer
     // escritório) — mostrado aqui com a ressalva de que não é só deste escritório.
     prisma.paymentWebhookEvent.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+    listApiKeys(),
   ]);
+
+  // canConfigureIntegrations já foi checado no topo desta página — a checagem redundante dentro
+  // de listApiKeys() (lib/actions/apiKeys.ts) é o padrão normal de Server Action (nunca confiar só
+  // no chamador), então o branch de erro aqui não deveria disparar de verdade; se disparar, trata
+  // como "nenhuma chave" em vez de derrubar a página inteira.
+  const apiKeysList = Array.isArray(apiKeysRaw) ? apiKeysRaw : [];
+  const apiKeysAtivas = apiKeysList.filter((k) => !k.revokedAt);
 
   const runsByIntegration = new Map<string, IntegrationRunRow[]>();
   for (const r of integrationRuns) {
@@ -392,9 +412,13 @@ export default async function ConexoesPage() {
           id: "API_KEYS",
           nome: "API keys do escritório",
           descricao: "Chaves para integrações externas chamarem a API do Lúmen em nome do escritório.",
-          estado: "off",
-          estadoTexto: "não configurado",
-          contexto: "Ainda não implementado — chega numa próxima PR desta fase (documento 04, item 12 do plano).",
+          estado: apiKeysAtivas.length > 0 ? "ok" : "off",
+          estadoTexto: apiKeysAtivas.length > 0 ? `${apiKeysAtivas.length} ativa(s)` : "não configurado",
+          contexto:
+            apiKeysAtivas.length > 0
+              ? `${apiKeysAtivas.length} chave(s) ativa(s) — nenhuma valida chamada real ainda (ver aviso no detalhe)`
+              : "Nenhuma chave criada ainda. Nenhum endpoint do Lúmen valida chaves ainda — só a gestão da credencial existe.",
+          extra: <ApiKeysManager initialKeys={apiKeysList} />,
         },
         {
           id: "MCP",
