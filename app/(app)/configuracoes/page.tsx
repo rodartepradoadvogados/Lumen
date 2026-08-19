@@ -25,7 +25,7 @@ import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
-import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download } from "lucide-react";
+import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
@@ -356,6 +356,19 @@ export default async function ConfiguracoesPage({
         <div className="p-5">
           <Link href="/configuracoes/privacidade" className={SECONDARY_BTN}>
             <ShieldCheck size={16} /> Abrir privacidade e trilha
+          </Link>
+        </div>
+      </Card>
+      )}
+
+      {/* Documento 06 (Fase 3 — Comunicados): pessoal (cada usuário define o próprio horário e
+          exceções) — visível pra qualquer um, mesmo padrão de "Privacidade e trilha" acima. */}
+      {secao === "geral" && (
+      <Card>
+        <CardHeader title="Comunicados" subtitle="Resumo diário no horário que você escolher, com exceção curta pro que não pode esperar" />
+        <div className="p-5">
+          <Link href="/configuracoes/comunicados" className={SECONDARY_BTN}>
+            <Bell size={16} /> Configurar comunicados
           </Link>
         </div>
       </Card>
