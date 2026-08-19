@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice, isUserInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOffice, isSupplierInOffice, isBankAccountInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { valorLiquido, statusPorPagamentos } from "@/lib/financeCalc";
 import { renameDriveFile } from "@/lib/storageProvider";
 import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceiptNaming";
@@ -1130,6 +1130,9 @@ export async function createRecurringExpense(data: {
   supplierId?: string;
   payeeUserId?: string;
   payeeClientId?: string;
+  // Preenchido só quando criada de dentro da aba Honorários de uma Assessoria (repasse mensal a
+  // um parceiro) — ver comentário em RecurringExpense.assessoriaId, prisma/schema.prisma.
+  assessoriaId?: string;
 }): Promise<{ error?: string }> {
   const officeId = await requireFinanceOfficeId();
   if (!data.description.trim()) return { error: "Informe a descrição." };
@@ -1137,6 +1140,9 @@ export async function createRecurringExpense(data: {
     await assertFinanceRelationsInOffice(data, officeId);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Dados inválidos." };
+  }
+  if (data.assessoriaId && !(await isAssessoriaInOffice(data.assessoriaId, officeId))) {
+    return { error: "Assessoria não encontrada." };
   }
 
   // payeeUserId vence sobre payeeClientId, que vence sobre supplierId, quando mais de um vier
@@ -1156,12 +1162,14 @@ export async function createRecurringExpense(data: {
       supplierId: supplierId || null,
       payeeUserId: payeeUserId || null,
       payeeClientId: payeeClientId || null,
+      assessoriaId: data.assessoriaId || null,
     },
   });
   // Materializa já os próximos meses (não espera o cron rodar amanhã) — mesmo raciocínio de
   // createRecurringFee acima, incluindo o escopo por officeId (achado A65 da revisão gauntlet).
   await ensureRecurringExpensePayables(officeId);
   revalidateFinance();
+  if (data.assessoriaId) revalidatePath(`/assessoria/${data.assessoriaId}`);
   return {};
 }
 
@@ -1232,5 +1240,6 @@ export async function deactivateRecurringExpense(id: string): Promise<{ error?: 
   if (!existing) return { error: "Despesa recorrente não encontrada." };
   await prisma.recurringExpense.update({ where: { id }, data: { active: false } });
   revalidateFinance();
+  if (existing.assessoriaId) revalidatePath(`/assessoria/${existing.assessoriaId}`);
   return {};
 }
