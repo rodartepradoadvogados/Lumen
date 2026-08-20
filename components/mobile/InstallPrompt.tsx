@@ -59,8 +59,8 @@ export default function InstallPrompt() {
 
   return (
     <div className="fixed bottom-16 inset-x-0 z-50 px-3 pb-3 animate-fade-in">
-      <div className="max-w-sm mx-auto bg-grafite-800 text-white rounded-2xl shadow-pop p-4 flex items-start gap-3">
-        <span className="h-9 w-9 rounded-lg bg-grafite-700 flex items-center justify-center shrink-0">
+      <div className="max-w-sm mx-auto bg-grafite-800 text-white shadow-pop p-4 flex items-start gap-3">
+        <span className="h-9 w-9 bg-grafite-700 flex items-center justify-center shrink-0">
           <LumenMark size={22} />
         </span>
         <div className="flex-1 min-w-0">
@@ -78,7 +78,7 @@ export default function InstallPrompt() {
               <p className="text-xs text-white/70 mt-1">Acesso rápido direto da tela inicial do seu celular.</p>
               <button
                 onClick={install}
-                className="mt-2 inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg"
+                className="mt-2 inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 "
               >
                 <Download size={13} /> Instalar
               </button>

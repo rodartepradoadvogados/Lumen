@@ -51,7 +51,7 @@ export default function ParecerSoltoRow({ documento }: { documento: ParecerSolto
   }
 
   return (
-    <div className="border border-regua rounded-lg overflow-hidden">
+    <div className="border border-regua overflow-hidden">
       <div className="flex justify-between items-center gap-3 py-2 px-3 text-sm">
         <a href={documento.driveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0 flex-1 hover:underline">
           <FolderOpen size={14} className="shrink-0 text-tx-3" />
@@ -94,7 +94,7 @@ export default function ParecerSoltoRow({ documento }: { documento: ParecerSolto
             <button
               type="submit"
               disabled={editPending}
-              className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
             >
               {editPending ? "Salvando..." : "Salvar"}
             </button>

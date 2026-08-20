@@ -85,7 +85,7 @@ export default async function MobileAtendimento({
         </div>
         <Link
           href="/m/atendimento/novo"
-          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2 rounded-lg shrink-0"
+          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2 shrink-0"
         >
           <Plus size={14} /> Novo
         </Link>
@@ -119,10 +119,10 @@ export default async function MobileAtendimento({
             name="q"
             defaultValue={q}
             placeholder="Buscar por nome ou assunto"
-            className="w-full border border-regua bg-sf text-tx placeholder:text-tx-3 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
+            className="w-full border border-regua bg-sf text-tx placeholder:text-tx-3 pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
           />
         </div>
-        <button type="submit" className="bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-acao text-acao-tx text-sm font-semibold px-4 py-2">
           Buscar
         </button>
       </form>

@@ -70,7 +70,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
             className={clsx(
               // Coluna: fundo de apoio + régua; o card branco é a única coisa clara dentro dela —
               // é isso que comunica que ele é o que se pega (DESIGN-SYSTEM.md §12).
-              "w-80 shrink-0 rounded-xl bg-sf-apoio border flex flex-col max-h-full",
+              "w-80 shrink-0 bg-sf-apoio border flex flex-col max-h-full",
               dragOverCol === col.id ? "border-acao bg-acao-bg" : "border-regua"
             )}
           >
@@ -121,7 +121,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         // Card: fundo --sf-superficie, borda 1px --regua, filete esquerdo de 3px na cor do tipo
         // de tarefa. Sombra só enquanto está sendo arrastado; concluído leva opacidade 72% +
         // riscado (DESIGN-SYSTEM.md §12).
-        "bg-sf rounded-lg border p-3 cursor-grab active:cursor-grabbing border-l-[3px] transition-shadow",
+        "bg-sf border p-3 cursor-grab active:cursor-grabbing border-l-[3px] transition-shadow",
         filete,
         overdue ? "border-urgente" : "border-regua",
         dragging && "shadow-arrasto",

@@ -39,7 +39,7 @@ export default function ComprovanteField({
           const dropped = e.dataTransfer.files?.[0];
           if (dropped) onFileChange(dropped);
         }}
-        className={`mt-1 flex items-center gap-2 flex-wrap rounded-lg border border-dashed p-2 transition-colors ${
+        className={`mt-1 flex items-center gap-2 flex-wrap border border-dashed p-2 transition-colors ${
           dragOver ? "border-marca bg-marca-bg" : "border-regua-forte"
         }`}
       >
@@ -48,13 +48,13 @@ export default function ComprovanteField({
             href={existingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-marca-tx hover:underline bg-marca-bg rounded-lg px-2.5 py-1.5 max-w-full truncate"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-marca-tx hover:underline bg-marca-bg px-2.5 py-1.5 max-w-full truncate"
           >
             <FileText size={13} className="shrink-0" /> <span className="truncate">{existingName || "Ver comprovante"}</span>
           </a>
         )}
         {file && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-tx-2 bg-sf-apoio rounded-lg px-2.5 py-1.5 max-w-full">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-tx-2 bg-sf-apoio px-2.5 py-1.5 max-w-full">
             <FileText size={13} className="shrink-0" /> <span className="truncate">{file.name}</span>
             <button
               type="button"
@@ -71,7 +71,7 @@ export default function ComprovanteField({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-regua-forte text-tx-2 hover:bg-sf-apoio shrink-0"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 border border-regua-forte text-tx-2 hover:bg-sf-apoio shrink-0"
         >
           <Paperclip size={13} /> {existingUrl || file ? "Substituir comprovante" : "Anexar comprovante"}
         </button>

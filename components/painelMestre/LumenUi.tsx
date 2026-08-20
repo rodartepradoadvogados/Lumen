@@ -1,7 +1,7 @@
 // Peças visuais próprias do Painel da Empresa Lúmen — deliberadamente distintas dos
 // componentes do lado escritório (components/ui.tsx: Card/Badge não são reaproveitados
 // aqui). Mais retas e densas: bordas finas (border-white/10, nunca a sombra `shadow-pop`
-// calorosa do escritório), cantos `rounded-lg` (não o `rounded-xl` largo do lado escritório),
+// calorosa do escritório), cantos `` (não o `` largo do lado escritório),
 // e todo número em `font-mono` + `tabular-nums`.
 //
 // Área de plataforma, não do escritório: o painel é grafite escuro nos DOIS temas (Manhã e
@@ -10,7 +10,7 @@
 // semânticos (`--marca`/`--aviso`/`--urgente`/`--concluido`) exatamente como o Rail já faz sobre
 // o mesmo fundo fixo — o tom de cada um já foi escolhido para funcionar sobre grafite escuro.
 export function LumenPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-grafite-800 border border-white/10 rounded-lg ${className}`}>{children}</div>;
+  return <div className={`bg-grafite-800 border border-white/10 ${className}`}>{children}</div>;
 }
 
 export function LumenPanelHeader({ title, subtitle }: { title: string; subtitle?: string }) {

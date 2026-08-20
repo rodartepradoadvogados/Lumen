@@ -30,7 +30,7 @@ export default function MobileTaskResponsibleSelect({
           router.refresh();
         })
       }
-      className="mt-1 text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1 disabled:opacity-50"
+      className="mt-1 text-xs border border-regua bg-sf text-tx px-2 py-1 disabled:opacity-50"
     >
       <option value="">Sem responsável</option>
       {users.map((u) => (

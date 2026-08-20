@@ -20,7 +20,7 @@ export default function MobileNotFound() {
         <div className="flex flex-col items-stretch gap-2 pt-1">
           <Link
             href="/m"
-            className="inline-flex items-center justify-center gap-2 bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
+            className="inline-flex items-center justify-center gap-2 bg-acao text-acao-tx text-sm font-semibold px-4 py-2.5"
           >
             Voltar ao Início
           </Link>

@@ -28,7 +28,7 @@ export default function PhotoPickerGrid({
             type="button"
             onClick={() => onSelect(fileUrl)}
             data-tip={photo.caption || photo.category}
-            className={`rounded-lg overflow-hidden border-2 transition-colors ${
+            className={` overflow-hidden border-2 transition-colors ${
               selected ? "border-acao" : "border-transparent hover:border-regua"
             }`}
           >

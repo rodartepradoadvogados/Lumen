@@ -110,7 +110,7 @@ export default function EntityPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between gap-2 border border-regua rounded-lg px-3 py-2 text-sm text-left bg-sf hover:border-blue-400 dark:hover:border-blue-400/60 transition-colors"
+        className="w-full flex items-center justify-between gap-2 border border-regua px-3 py-2 text-sm text-left bg-sf hover:border-blue-400 dark:hover:border-blue-400/60 transition-colors"
       >
         <span className={selectedLabel ? "text-tx truncate" : "text-tx-3 truncate"}>{selectedLabel || emptyLabel}</span>
         <ChevronDown size={14} className="shrink-0 text-tx-3" />
@@ -124,9 +124,9 @@ export default function EntityPicker({
           que este seletor sempre abre DE DENTRO de um deles. */}
       {open && (
         <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-          <div className="w-full max-w-sm bg-sf rounded-xl border-2 border-blue-300 dark:border-blue-400/30 shadow-pop overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="w-full max-w-sm bg-sf border-2 border-blue-300 dark:border-blue-400/30 shadow-pop overflow-hidden flex flex-col max-h-[80vh]">
             <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-blue-50 dark:bg-blue-400/10 border-b border-blue-200 dark:border-blue-400/20">
-              <h3 className="font-serif font-bold text-sm text-tx">{windowTitle}</h3>
+              <h3 className=" font-bold text-sm text-tx">{windowTitle}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -147,7 +147,7 @@ export default function EntityPicker({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full pl-8 pr-2 py-1.5 text-sm rounded-lg border border-blue-200 dark:border-blue-400/30 focus:outline-none focus:ring-2 focus:ring-blue-400/50 bg-sf text-tx placeholder:text-tx-3"
+                  className="w-full pl-8 pr-2 py-1.5 text-sm border border-blue-200 dark:border-blue-400/30 focus:outline-none focus:ring-2 focus:ring-blue-400/50 bg-sf text-tx placeholder:text-tx-3"
                 />
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function EntityPicker({
                   <button
                     type="button"
                     onClick={() => setAdding(true)}
-                    className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-400/15 transition-colors"
+                    className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-400/15 transition-colors"
                   >
                     <Plus size={13} /> {addLabel ?? "Cadastrar novo"}
                   </button>
@@ -199,13 +199,13 @@ export default function EntityPicker({
                       }}
                       autoFocus
                       placeholder={addLabel ?? "Nome"}
-                      className="flex-1 text-sm rounded-lg border border-blue-300 dark:border-blue-400/30 px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400/50 bg-sf text-tx"
+                      className="flex-1 text-sm border border-blue-300 dark:border-blue-400/30 px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400/50 bg-sf text-tx"
                     />
                     <button
                       type="button"
                       onClick={handleAdd}
                       disabled={pending}
-                      className="px-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-white text-xs font-semibold disabled:opacity-50"
+                      className="px-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-white text-xs font-semibold disabled:opacity-50"
                     >
                       {pending ? "..." : "OK"}
                     </button>

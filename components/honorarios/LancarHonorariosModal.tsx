@@ -109,7 +109,7 @@ function Segmented<T extends string>({
           disabled={disabled || opt.disabled}
           title={opt.disabled ? "Escolha um processo para habilitar" : undefined}
           onClick={() => onChange(opt.value)}
-          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`text-xs font-semibold px-3 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
@@ -316,13 +316,13 @@ export default function LancarHonorariosModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Plus size={16} /> Lançar Honorários
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+          <div className="bg-sf shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">Lançar Honorários</h3>
               <button onClick={resetAndClose} className="text-tx-3 hover:text-tx dark:hover:text-tx">
@@ -431,15 +431,15 @@ export default function LancarHonorariosModal({
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
                 {caseAlreadyReceived !== undefined && (
-                  <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+                  <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
                     Já recebido neste processo:{" "}
                     <span className="font-semibold text-tx">{formatCurrency(caseAlreadyReceived)}</span>
                   </p>
                 )}
-                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
                 {prefill && (
-                  <p className="text-xs text-marca-tx bg-marca-bg rounded-lg px-3 py-2">
+                  <p className="text-xs text-marca-tx bg-marca-bg px-3 py-2">
                     Honorário pretendido registrado na triagem deste atendimento — confira os valores abaixo e confirme antes de salvar.
                   </p>
                 )}
@@ -653,13 +653,13 @@ export default function LancarHonorariosModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
+                        <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>
                       )}
 
-                      <div className="overflow-x-auto rounded-lg border border-regua">
+                      <div className="overflow-x-auto border border-regua">
                         <table className="w-full text-xs">
                           <thead className="bg-white/50 dark:bg-white/5">
                             <tr className="text-left text-tx-2">
@@ -681,21 +681,21 @@ export default function LancarHonorariosModal({
                                     type="date"
                                     value={p.dueDate}
                                     onChange={(e) => updateParcela(p.key, { dueDate: e.target.value, dueDateManual: true })}
-                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
+                                    className="w-full bg-transparent border border-regua-forte px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
                                   <MoneyInput
                                     value={p.amount}
                                     onChange={(v) => updateParcela(p.key, { amount: v })}
-                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
+                                    className="w-full bg-transparent border border-regua-forte px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
                                   <input
                                     value={p.installmentBoleto}
                                     onChange={(e) => updateParcela(p.key, { installmentBoleto: e.target.value })}
-                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
+                                    className="w-full bg-transparent border border-regua-forte px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5 text-center">
@@ -733,7 +733,7 @@ export default function LancarHonorariosModal({
                           />
                         </div>
                       </div>
-                      <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                      <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                         Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado — sem precisar
                         definir quantas parcelas.
                       </p>
@@ -823,17 +823,17 @@ export default function LancarHonorariosModal({
 
                       {cobrancaHasPercentual &&
                         (!hasCase ? (
-                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
+                          <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
                             A base do percentual será conhecida depois de escolher o processo, na seção Identificação, acima.
                           </p>
                         ) : baseValue ? (
-                          <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                          <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                             {percentualNum || 0}% de {formatCurrency(baseValue)} = {formatCurrency((baseValue * (percentualNum || 0)) / 100)}
                             {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago em dinheiro</>}
                             {" "}= <span className="font-semibold text-tx">{formatCurrency(percentualApurado)}</span> líquido de honorário
                           </p>
                         ) : (
-                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
+                          <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
                             A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão a apurar (status
                             &quot;A apurar&quot;), fora do fluxo de caixa e do DRE, até alguém registrar o desfecho do processo.
                           </p>
@@ -963,7 +963,7 @@ export default function LancarHonorariosModal({
                   <button
                     type="button"
                     onClick={resetAndClose}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf"
+                    className="text-sm font-medium px-4 py-2 text-tx-2 hover:bg-sf"
                   >
                     Cancelar
                   </button>
@@ -971,7 +971,7 @@ export default function LancarHonorariosModal({
                     type="submit"
                     disabled={loading || !hasCase}
                     title={!hasCase ? "Selecione um processo, na seção Identificação" : undefined}
-                    className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors"
+                    className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 disabled:opacity-50 transition-colors"
                   >
                     {loading ? "Salvando..." : "Salvar lançamento"}
                   </button>

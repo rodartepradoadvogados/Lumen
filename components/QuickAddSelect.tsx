@@ -54,7 +54,7 @@ export default function QuickAddSelect({
           type="button"
           onClick={handleAdd}
           disabled={pending}
-          className="px-2.5 rounded-lg bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold disabled:opacity-50"
+          className="px-2.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold disabled:opacity-50"
         >
           {pending ? "..." : "OK"}
         </button>
@@ -79,7 +79,7 @@ export default function QuickAddSelect({
         type="button"
         onClick={() => setAdding(true)}
         data-tip={addLabel}
-        className="px-2 rounded-lg border border-regua text-tx-2 hover:text-tx hover:bg-sf-apoio"
+        className="px-2 border border-regua text-tx-2 hover:text-tx hover:bg-sf-apoio"
       >
         <Plus size={14} />
       </button>

@@ -40,7 +40,7 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
             <button
               type="button"
               onClick={() => setToUnblock(item)}
-              className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg bg-sf-apoio hover:bg-regua"
+              className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 bg-sf-apoio hover:bg-regua"
             >
               <RotateCcw size={13} /> Reverter
             </button>
@@ -50,9 +50,9 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
 
       {toUnblock && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-sf shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
-              <h3 className="font-serif font-bold text-tx flex items-center gap-2">
+              <h3 className=" font-bold text-tx flex items-center gap-2">
                 <Ban size={16} className="text-atencao" /> Reverter bloqueio
               </h3>
               {!unblocking && (
@@ -71,7 +71,7 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
                   type="button"
                   disabled={unblocking}
                   onClick={() => setToUnblock(null)}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-tx-2 hover:bg-sf-apoio disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold text-tx-2 hover:bg-sf-apoio disabled:opacity-50"
                 >
                   Não
                 </button>
@@ -79,7 +79,7 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
                   type="button"
                   disabled={unblocking}
                   onClick={confirmUnblock}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-acao hover:bg-acao-hover text-acao-tx disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold bg-acao hover:bg-acao-hover text-acao-tx disabled:opacity-50"
                 >
                   {unblocking ? "Revertendo..." : "Sim"}
                 </button>

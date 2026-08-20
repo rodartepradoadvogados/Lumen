@@ -88,7 +88,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
       {links.length > 0 && (
         <div className="mt-1.5 space-y-1.5">
           {links.map((l) => (
-            <div key={l.linkId} className="flex items-center justify-between gap-2 bg-sf-apoio rounded-lg px-3 py-2">
+            <div key={l.linkId} className="flex items-center justify-between gap-2 bg-sf-apoio px-3 py-2">
               <div className="min-w-0">
                 <Link href={`/processos/${l.other.id}`} className="text-xs font-semibold text-tx hover:underline truncate block">
                   {l.other.title}
@@ -116,7 +116,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
             <Search size={13} /> Vincular a outro processo
           </button>
         ) : (
-          <div className="border border-regua rounded-lg p-2.5 space-y-2">
+          <div className="border border-regua p-2.5 space-y-2">
             {!picked ? (
               <>
                 <input
@@ -124,7 +124,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar por número ou título do processo..."
-                  className="w-full border border-regua bg-sf text-tx rounded-lg px-3 py-1.5 text-xs"
+                  className="w-full border border-regua bg-sf text-tx px-3 py-1.5 text-xs"
                 />
                 {searching && <p className="text-[11px] text-tx-2">Buscando...</p>}
                 {!searching && query.trim().length >= 2 && results.length === 0 && (
@@ -137,7 +137,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                         key={r.id}
                         type="button"
                         onClick={() => setPicked({ id: r.id, title: r.title })}
-                        className="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
+                        className="w-full text-left text-xs px-2.5 py-1.5 hover:bg-sf-apoio"
                       >
                         <span className="font-medium text-tx">{r.title}</span>
                         {r.processNumber && <span className="text-tx-2"> — {r.processNumber}</span>}
@@ -184,7 +184,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                     type="button"
                     disabled={saving}
                     onClick={confirmLink}
-                    className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg disabled:opacity-50"
+                    className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 disabled:opacity-50"
                   >
                     {saving ? "Vinculando..." : "Vincular"}
                   </button>

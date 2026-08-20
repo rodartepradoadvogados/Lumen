@@ -56,7 +56,7 @@ export default async function MobileDre({
         </div>
         <a
           href={exportHref}
-          className="flex items-center gap-1 text-xs font-semibold text-tx-2 border border-regua-forte rounded-lg px-2.5 py-1.5 shrink-0"
+          className="flex items-center gap-1 text-xs font-semibold text-tx-2 border border-regua-forte px-2.5 py-1.5 shrink-0"
         >
           <Download size={12} /> .xlsx
         </a>
@@ -65,7 +65,7 @@ export default async function MobileDre({
       <div className="flex items-center justify-between gap-2">
         <Link
           href={prevHref}
-          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Mês anterior"
         >
           <ChevronLeft size={18} />
@@ -75,7 +75,7 @@ export default async function MobileDre({
         </p>
         <Link
           href={nextHref}
-          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próximo mês"
         >
           <ChevronRight size={18} />

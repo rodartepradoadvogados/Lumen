@@ -139,10 +139,10 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
             name="q"
             defaultValue={q}
             placeholder="Buscar por nome, número ou cliente"
-            className="w-full border border-regua bg-sf text-tx rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
+            className="w-full border border-regua bg-sf text-tx pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
           />
         </div>
-        <button type="submit" className="bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-acao text-acao-tx text-sm font-semibold px-4 py-2">
           Buscar
         </button>
       </form>
@@ -156,7 +156,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
               const nat = naturezaOf(c.type);
               return (
                 <Link key={c.id} href={`/m/processos/${c.id}`} className="flex items-center gap-3 px-4 py-3.5">
-                  <span className="h-10 w-10 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
+                  <span className="h-10 w-10 bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                     <Scale size={18} />
                   </span>
                   <div className="min-w-0 flex-1">

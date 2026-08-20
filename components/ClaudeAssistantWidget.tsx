@@ -98,7 +98,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
       {open && (
         <div
           style={{ right: rightOffsetPx }}
-          className="fixed bottom-20 w-full max-w-md h-[70vh] rounded-xl2 shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
+          className="fixed bottom-20 w-full max-w-md h-[70vh] shadow-pop bg-sf z-40 flex flex-col overflow-hidden border border-regua transition-[right] duration-200"
         >
           {/* Grafite fixo nos dois temas — mesmo tratamento do botão flutuante acima. */}
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
@@ -120,7 +120,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
               <div key={i} className={clsx("flex", m.role === "user" ? "justify-end" : "justify-start")}>
                 <div
                   className={clsx(
-                    "max-w-[85%] rounded-xl2 px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                    "max-w-[85%] px-3 py-2 text-sm whitespace-pre-wrap break-words",
                     m.role === "user" && "bg-acao text-acao-tx",
                     m.role === "assistant" && "bg-sf border border-regua text-tx shadow-card",
                     m.role === "error" && "bg-red-50 border border-red-200 text-red-700",
@@ -132,7 +132,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
             ))}
             {enviando && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] rounded-xl2 px-3 py-2 text-sm bg-sf border border-regua text-tx-2 shadow-card">
+                <div className="max-w-[85%] px-3 py-2 text-sm bg-sf border border-regua text-tx-2 shadow-card">
                   digitando...
                 </div>
               </div>
@@ -146,13 +146,13 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
               onKeyDown={onKeyDown}
               placeholder="Pergunte sobre processos, agenda, clientes..."
               rows={1}
-              className="flex-1 resize-none rounded-lg border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 max-h-28"
+              className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 max-h-28"
             />
             <button
               type="button"
               onClick={enviarMensagem}
               disabled={enviando || !input.trim()}
-              className="h-9 w-9 shrink-0 rounded-lg bg-acao hover:bg-acao-hover text-acao-tx flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="h-9 w-9 shrink-0 bg-acao hover:bg-acao-hover text-acao-tx flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Send size={16} />
             </button>

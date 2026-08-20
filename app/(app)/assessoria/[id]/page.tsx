@@ -117,19 +117,19 @@ export default async function AssessoriaDetailPage({
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-sf rounded-lg border border-regua p-3.5">
+        <div className="bg-sf border border-regua p-3.5">
           <p className="text-2xl font-bold text-tx">{assessoria.linkedCases.length}</p>
           <p className="text-[11px] text-tx-2 mt-0.5">Processos vinculados</p>
         </div>
-        <div className="bg-sf rounded-lg border border-regua p-3.5">
+        <div className="bg-sf border border-regua p-3.5">
           <p className="text-2xl font-bold text-tx">{formatCurrency(assessoria.monthlyFee)}</p>
           <p className="text-[11px] text-tx-2 mt-0.5">Honorário · vence dia {assessoria.dueDay}</p>
         </div>
-        <div className="bg-sf rounded-lg border border-regua p-3.5">
+        <div className="bg-sf border border-regua p-3.5">
           <p className="text-2xl font-bold text-tx">{licitacoesEmAndamento}</p>
           <p className="text-[11px] text-tx-2 mt-0.5">Licitações em andamento</p>
         </div>
-        <div className="bg-sf rounded-lg border border-regua p-3.5">
+        <div className="bg-sf border border-regua p-3.5">
           <p className="text-2xl font-bold text-tx">{assessoria.documents.length}</p>
           <p className="text-[11px] text-tx-2 mt-0.5">Documentos no catálogo</p>
         </div>

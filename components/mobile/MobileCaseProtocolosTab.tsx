@@ -66,7 +66,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+      <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
         Só leitura por aqui — para montar ou registrar um protocolo, use o computador.
       </p>
       <Card>

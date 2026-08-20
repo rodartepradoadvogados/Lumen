@@ -23,13 +23,13 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <div className="flex flex-col items-stretch gap-2 pt-1">
           <button
             onClick={reset}
-            className="inline-flex items-center justify-center gap-2 bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
+            className="inline-flex items-center justify-center gap-2 bg-acao text-acao-tx text-sm font-semibold px-4 py-2.5"
           >
             <RotateCw size={14} /> Tentar novamente
           </button>
           <Link
             href="/m"
-            className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-tx-2 px-4 py-2.5 rounded-lg hover:bg-sf-apoio"
+            className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-tx-2 px-4 py-2.5 hover:bg-sf-apoio"
           >
             Voltar ao Início
           </Link>

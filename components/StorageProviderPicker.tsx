@@ -59,7 +59,7 @@ export default function StorageProviderPicker({ current, isAdmin, oneDriveConnec
               type="button"
               disabled={pending || !isAdmin}
               onClick={() => choose(opt.value)}
-              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${
                 isSelected ? "bg-tx text-sf" : "bg-sf-apoio text-tx-2"
               }`}
             >

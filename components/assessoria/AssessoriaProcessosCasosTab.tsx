@@ -154,7 +154,7 @@ export default function AssessoriaProcessosCasosTab({
 
   return (
     <div className="space-y-5">
-      <div className="bg-sf rounded-lg border border-regua p-4">
+      <div className="bg-sf border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Demandas</h4>
           <div className="flex items-center gap-2 flex-wrap">
@@ -164,7 +164,7 @@ export default function AssessoriaProcessosCasosTab({
                 <select
                   value={demandaSort}
                   onChange={(e) => setDemandaSort(e.target.value as SortOption)}
-                  className="text-[11px] border border-regua bg-sf text-tx rounded-lg px-1.5 py-1"
+                  className="text-[11px] border border-regua bg-sf text-tx px-1.5 py-1"
                 >
                   {SORT_OPTIONS_SEM_TIPO.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -177,7 +177,7 @@ export default function AssessoriaProcessosCasosTab({
             <EnviarDocumentosButton entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} attachments={todosDocumentos} />
             <button
               onClick={() => setParecerFormOpen((v) => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
             >
               <Plus size={13} /> Adicionar demanda
             </button>
@@ -193,7 +193,7 @@ export default function AssessoriaProcessosCasosTab({
         {parecerFormOpen && (
           <form
             action={handleCreateParecer}
-            className="mb-3 p-3 rounded-lg border border-regua bg-sf-apoio space-y-2.5"
+            className="mb-3 p-3 border border-regua bg-sf-apoio space-y-2.5"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <input name="name" required placeholder="Nome da demanda" className="doc-input" />
@@ -205,7 +205,7 @@ export default function AssessoriaProcessosCasosTab({
               <button
                 type="submit"
                 disabled={parecerPending}
-                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 disabled:opacity-50"
               >
                 {parecerPending ? "Salvando..." : "Criar demanda"}
               </button>
@@ -249,25 +249,25 @@ export default function AssessoriaProcessosCasosTab({
         <HistoricoEnvios entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} envios={envios} />
       </div>
 
-      <div className="bg-sf rounded-lg border border-regua p-4">
+      <div className="bg-sf border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Processos vinculados</h4>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
             >
               <Search size={13} /> Pesquisar processos
             </button>
             <Link
               href={`/processos/novo?assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
             >
               <Plus size={13} /> Novo processo
             </Link>
             <Link
               href={`/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
             >
               <Plus size={13} /> Novo caso
             </Link>
@@ -292,7 +292,7 @@ export default function AssessoriaProcessosCasosTab({
         )}
       </div>
 
-      <div className="bg-sf rounded-lg border border-regua p-4">
+      <div className="bg-sf border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Casos vinculados</h4>
           {/* Abre o modal "Novo Atendimento" (components/NewAttendanceModal.tsx) já aberto
@@ -301,7 +301,7 @@ export default function AssessoriaProcessosCasosTab({
               baixo, que depois pode virar um Processo/Caso de verdade. */}
           <Link
             href={`/atendimento?novo=1&assessoriaId=${assessoria.id}`}
-            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
           >
             <Plus size={13} /> Novo caso
           </Link>
@@ -327,7 +327,7 @@ export default function AssessoriaProcessosCasosTab({
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
+            className="bg-sf shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
@@ -345,7 +345,7 @@ export default function AssessoriaProcessosCasosTab({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar por título ou número do processo"
-                  className="w-full text-sm border border-regua-forte bg-sf text-tx rounded-lg pl-8 pr-3 py-2"
+                  className="w-full text-sm border border-regua-forte bg-sf text-tx pl-8 pr-3 py-2"
                 />
               </div>
               {error && <p className="text-xs text-urgente mt-2">{error}</p>}
@@ -368,14 +368,14 @@ export default function AssessoriaProcessosCasosTab({
                         href={`/processos/${c.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-tx px-2 py-1.5 rounded-lg hover:bg-sf-apoio"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-tx px-2 py-1.5 hover:bg-sf-apoio"
                       >
                         <ExternalLink size={12} /> Abrir
                       </a>
                       <button
                         onClick={() => handleLinkFromSearch(c.id)}
                         disabled={pending}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1.5 rounded-lg disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1.5 disabled:opacity-50"
                       >
                         <Link2 size={12} /> {pending && linkingId === c.id ? "Vinculando..." : "Vincular"}
                       </button>

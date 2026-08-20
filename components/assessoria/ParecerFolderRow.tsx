@@ -188,7 +188,7 @@ export default function ParecerFolderRow({
   const anyUploading = items.some((it) => it.uploading);
 
   return (
-    <div className="border border-regua rounded-lg overflow-hidden">
+    <div className="border border-regua overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -263,7 +263,7 @@ export default function ParecerFolderRow({
                 addFiles(e.dataTransfer.files);
               }}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-3 cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed p-3 cursor-pointer transition-colors ${
                 dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
               }`}
             >
@@ -293,7 +293,7 @@ export default function ParecerFolderRow({
               {items.map((it) => (
                 <div
                   key={it.tempId}
-                  className="flex items-center gap-2 rounded-lg border border-regua bg-sf-apoio px-2.5 py-1.5"
+                  className="flex items-center gap-2 border border-regua bg-sf-apoio px-2.5 py-1.5"
                 >
                   <span className="text-xs font-medium text-tx truncate flex-1" title={it.name}>
                     {it.name}
@@ -323,7 +323,7 @@ export default function ParecerFolderRow({
                 type="button"
                 onClick={enviarTodos}
                 disabled={anyUploading}
-                className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg disabled:opacity-50"
+                className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 disabled:opacity-50"
               >
                 {anyUploading ? "Enviando..." : `Enviar ${items.length} arquivo${items.length > 1 ? "s" : ""} para o Drive`}
               </button>
@@ -350,7 +350,7 @@ export default function ParecerFolderRow({
           {deleteError && <p className="text-[11px] text-urgente">{deleteError}</p>}
 
           {editOpen && (
-            <form action={handleEdit} className="p-3 rounded-lg border border-regua bg-sf-apoio space-y-2">
+            <form action={handleEdit} className="p-3 border border-regua bg-sf-apoio space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input name="name" required defaultValue={parecer.name} placeholder="Nome da demanda" className="parecer-edit-input" />
                 <input name="date" type="date" defaultValue={new Date(parecer.date).toISOString().slice(0, 10)} className="parecer-edit-input" />
@@ -367,7 +367,7 @@ export default function ParecerFolderRow({
                 <button
                   type="submit"
                   disabled={editPending}
-                  className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
                 >
                   {editPending ? "Salvando..." : "Salvar"}
                 </button>

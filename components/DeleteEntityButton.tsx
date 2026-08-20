@@ -125,13 +125,13 @@ export default function DeleteEntityButton({
         }}
         disabled={pending}
         data-tip="Excluir"
-        className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40"
+        className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40"
       >
         <Trash2 size={14} />
       </button>
       {msg && (
         <span
-          className={`absolute right-0 top-full mt-1 z-10 w-64 text-[11px] rounded-lg px-2.5 py-1.5 shadow-pop border ${
+          className={`absolute right-0 top-full mt-1 z-10 w-64 text-[11px] px-2.5 py-1.5 shadow-pop border ${
             msg.type === "error"
               ? "bg-urgente-bg text-urgente border-urgente/20"
               : "bg-blue-50 dark:bg-blue-400/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-400/20"
@@ -143,11 +143,11 @@ export default function DeleteEntityButton({
       {choosing && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl shadow-pop w-full max-w-sm"
+            className="bg-sf shadow-pop w-full max-w-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
-              <h3 className="font-serif font-bold text-tx text-sm">O que deseja excluir?</h3>
+              <h3 className=" font-bold text-tx text-sm">O que deseja excluir?</h3>
               <button
                 onClick={() => setChoosing(false)}
                 className="text-tx-3 hover:text-tx"
@@ -170,7 +170,7 @@ export default function DeleteEntityButton({
               <button
                 onClick={() => handleChoose("ONLY")}
                 disabled={pending}
-                className="w-full text-left text-sm font-medium text-tx bg-sf-apoio hover:bg-regua rounded-lg px-3.5 py-2.5 disabled:opacity-50"
+                className="w-full text-left text-sm font-medium text-tx bg-sf-apoio hover:bg-regua px-3.5 py-2.5 disabled:opacity-50"
               >
                 Excluir apenas este lançamento
               </button>
@@ -178,14 +178,14 @@ export default function DeleteEntityButton({
               <button
                 onClick={() => handleChoose("FOLLOWING")}
                 disabled={pending}
-                className="w-full text-left text-sm font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg px-3.5 py-2.5 disabled:opacity-50"
+                className="w-full text-left text-sm font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2.5 disabled:opacity-50"
               >
                 Excluir este lançamento e os seguintes
               </button>
               <button
                 onClick={() => handleChoose("ALL")}
                 disabled={pending}
-                className="w-full text-left text-sm font-medium text-atencao bg-atencao/10 hover:bg-atencao/20 rounded-lg px-3.5 py-2.5 disabled:opacity-50"
+                className="w-full text-left text-sm font-medium text-atencao bg-atencao/10 hover:bg-atencao/20 px-3.5 py-2.5 disabled:opacity-50"
               >
                 Excluir todos os lançamentos
               </button>
@@ -202,11 +202,11 @@ export default function DeleteEntityButton({
       {confirmingLinked && linkedReimbursement && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl shadow-pop w-full max-w-sm"
+            className="bg-sf shadow-pop w-full max-w-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
-              <h3 className="font-serif font-bold text-tx text-sm">Excluir lançamento</h3>
+              <h3 className=" font-bold text-tx text-sm">Excluir lançamento</h3>
               <button
                 onClick={() => setConfirmingLinked(false)}
                 className="text-tx-3 hover:text-tx"
@@ -216,7 +216,7 @@ export default function DeleteEntityButton({
             </div>
             <div className="p-4 space-y-3">
               <p className="text-xs text-tx-2">{confirmMessage}</p>
-              <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
                 {linkedReimbursement.direction === "payableHasReimbursement" ? (
                   <>
                     Esta despesa tem um reembolso vinculado ({formatCurrency(linkedReimbursement.amount)}, {linkedReimbursement.status}). Excluir aqui
@@ -248,7 +248,7 @@ export default function DeleteEntityButton({
                 <button
                   onClick={handleConfirmLinked}
                   disabled={pending}
-                  className="text-xs font-semibold text-white bg-atencao hover:opacity-90 rounded-lg px-3.5 py-2 disabled:opacity-50"
+                  className="text-xs font-semibold text-white bg-atencao hover:opacity-90 px-3.5 py-2 disabled:opacity-50"
                 >
                   Excluir
                 </button>

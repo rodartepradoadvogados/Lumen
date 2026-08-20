@@ -47,7 +47,7 @@ export default function ClientQualificationModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-      <div className="bg-sf rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-sf shadow-pop w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
           <div>
             <h3 className="font-bold text-tx">Complete o cadastro do cliente</h3>
@@ -107,7 +107,7 @@ export default function ClientQualificationModal({
               <button
                 type="submit"
                 disabled={pending}
-                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50 transition-colors"
               >
                 {pending ? "Salvando..." : "Salvar"}
               </button>

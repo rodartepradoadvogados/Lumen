@@ -61,7 +61,7 @@ export default function MobileSearchCasesModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-xs font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1 rounded-lg shrink-0"
+        className="flex items-center gap-1 text-xs font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1 shrink-0"
       >
         <Search size={12} /> Pesquisar
       </button>
@@ -69,7 +69,7 @@ export default function MobileSearchCasesModal({
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-end sm:items-center justify-center">
           <div
-            className="bg-sf rounded-t-2xl sm:rounded-xl shadow-pop w-full sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden"
+            className="bg-sf shadow-pop w-full sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-regua shrink-0">
@@ -87,7 +87,7 @@ export default function MobileSearchCasesModal({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar por título ou número"
-                  className="w-full text-sm border border-regua bg-sf text-tx rounded-lg pl-8 pr-3 py-2"
+                  className="w-full text-sm border border-regua bg-sf text-tx pl-8 pr-3 py-2"
                 />
               </div>
               {error && <p className="text-xs text-urgente mt-2">{error}</p>}
@@ -108,14 +108,14 @@ export default function MobileSearchCasesModal({
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Link
                         href={`/m/processos/${c.id}`}
-                        className="text-xs font-semibold text-tx-2 hover:text-tx px-2 py-1.5 rounded-lg hover:bg-sf-apoio"
+                        className="text-xs font-semibold text-tx-2 hover:text-tx px-2 py-1.5 hover:bg-sf-apoio"
                       >
                         Abrir
                       </Link>
                       <button
                         onClick={() => handleLink(c.id)}
                         disabled={pending}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1.5 rounded-lg disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1.5 disabled:opacity-50"
                       >
                         <Link2 size={12} /> {pending && linkingId === c.id ? "..." : "Vincular"}
                       </button>

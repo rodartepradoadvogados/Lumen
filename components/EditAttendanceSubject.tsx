@@ -59,7 +59,7 @@ export default function EditAttendanceSubject({ attendanceId, subject }: { atten
           if (e.key === "Escape") cancelar();
         }}
         disabled={pending}
-        className="text-sm border border-regua rounded-lg px-2 py-1 bg-sf text-tx min-w-0 flex-1 max-w-sm"
+        className="text-sm border border-regua px-2 py-1 bg-sf text-tx min-w-0 flex-1 max-w-sm"
       />
       <button type="button" onClick={salvar} disabled={pending} className="p-1 text-concluido hover:opacity-80 disabled:opacity-50" title="Salvar">
         <Check size={15} />

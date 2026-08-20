@@ -193,7 +193,7 @@ export default async function ProdutividadePage({
           <div className="flex items-center gap-2">
             <Link
               href={`/produtividade?mes=${prevParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
-              className="h-8 w-8 flex items-center justify-center rounded-lg bg-sf border border-regua text-tx-2 hover:bg-sf-apoio"
+              className="h-8 w-8 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio"
               aria-label="Mês anterior"
             >
               <ChevronLeft size={16} />
@@ -201,7 +201,7 @@ export default async function ProdutividadePage({
             <span className="text-sm font-semibold text-tx min-w-[150px] text-center capitalize">{label}</span>
             <Link
               href={`/produtividade?mes=${nextParam}${responsibleId ? `&responsibleId=${responsibleId}` : ""}`}
-              className="h-8 w-8 flex items-center justify-center rounded-lg bg-sf border border-regua text-tx-2 hover:bg-sf-apoio"
+              className="h-8 w-8 flex items-center justify-center bg-sf border border-regua text-tx-2 hover:bg-sf-apoio"
               aria-label="Próximo mês"
             >
               <ChevronRight size={16} />
@@ -220,7 +220,7 @@ export default async function ProdutividadePage({
             <select
               name="responsibleId"
               defaultValue={responsibleId ?? ""}
-              className="border border-regua-forte rounded-lg px-2.5 py-1.5 text-sm bg-sf text-tx"
+              className="border border-regua-forte px-2.5 py-1.5 text-sm bg-sf text-tx"
             >
               <option value="">Todos</option>
               {users.map((u) => (
@@ -230,7 +230,7 @@ export default async function ProdutividadePage({
               ))}
             </select>
           </div>
-          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 transition-colors">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 transition-colors">
             Filtrar
           </button>
           {responsibleId && (

@@ -149,7 +149,7 @@ export default function DocumentTypeSelect({
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4" onClick={handleClose}>
           <div
-            className="bg-sf rounded-xl shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col motion-safe:animate-fade-in"
+            className="bg-sf shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col motion-safe:animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
@@ -167,7 +167,7 @@ export default function DocumentTypeSelect({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar tipo de documento..."
-                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
+                  className="w-full pl-8 pr-3 py-2 border border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
                 />
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function DocumentTypeSelect({
                 <button
                   type="button"
                   onClick={() => handleSelect("TODOS")}
-                  className="flex items-center justify-between gap-2 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-tx hover:bg-sf-apoio transition-colors"
+                  className="flex items-center justify-between gap-2 w-full px-3 py-2 text-left text-sm font-semibold text-tx hover:bg-sf-apoio transition-colors"
                 >
                   Todos os tipos
                   {value === "TODOS" && <Check size={14} className="text-marca-tx shrink-0" />}
@@ -210,7 +210,7 @@ export default function DocumentTypeSelect({
                         key={t.key}
                         type="button"
                         onClick={() => handleSelect(t.key)}
-                        className="flex items-center justify-between gap-2 w-full rounded-lg px-3 py-2 text-left hover:bg-sf-apoio transition-colors"
+                        className="flex items-center justify-between gap-2 w-full px-3 py-2 text-left hover:bg-sf-apoio transition-colors"
                       >
                         <span className="flex items-center gap-2 min-w-0">
                           <Icon size={14} className="shrink-0 text-tx-3" />

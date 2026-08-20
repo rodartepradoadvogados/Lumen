@@ -102,9 +102,9 @@ export default function ImageCropperModal({
 
   return (
     <div className="fixed inset-0 z-[60] bg-grafite-900/60 flex items-center justify-center p-4">
-      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm">
+      <div className="bg-sf shadow-pop w-full max-w-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
-          <h3 className="font-serif font-bold text-tx">Ajustar foto</h3>
+          <h3 className=" font-bold text-tx">Ajustar foto</h3>
           <button onClick={onCancel} className="text-tx-3 hover:text-tx">
             <X size={18} />
           </button>
@@ -150,10 +150,10 @@ export default function ImageCropperModal({
           </div>
           <p className="text-[11px] text-tx-2 text-center">Arraste a foto para posicionar e use o controle para dar zoom.</p>
           <div className="flex gap-2 w-full">
-            <button onClick={onCancel} className="flex-1 text-sm font-semibold text-tx-2 hover:text-tx py-2.5 rounded-lg border border-regua">
+            <button onClick={onCancel} className="flex-1 text-sm font-semibold text-tx-2 hover:text-tx py-2.5 border border-regua">
               Cancelar
             </button>
-            <button onClick={handleConfirm} className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg">
+            <button onClick={handleConfirm} className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 ">
               Usar foto
             </button>
           </div>

@@ -154,12 +154,12 @@ export default function AnotacaoDraftForm({ draft, splitView }: { draft: Anotaca
             type="date"
             value={draft.referenceDate}
             onChange={(e) => updateDraft(draft.id, { referenceDate: e.target.value })}
-            className="flex-1 min-w-0 rounded-lg border border-regua bg-sf text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-acao/40"
+            className="flex-1 min-w-0 border border-regua bg-sf text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-acao/40"
           />
           <button
             type="button"
             onClick={() => updateDraft(draft.id, { referenceDate: todayIsoDate() })}
-            className="shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-sf-apoio text-tx-2 hover:bg-regua transition-colors"
+            className="shrink-0 text-[11px] font-semibold px-2.5 py-1.5 bg-sf-apoio text-tx-2 hover:bg-regua transition-colors"
           >
             Hoje
           </button>
@@ -181,7 +181,7 @@ export default function AnotacaoDraftForm({ draft, splitView }: { draft: Anotaca
           type="button"
           onClick={handleSave}
           disabled={pending}
-          className="flex items-center gap-1.5 text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover rounded-lg px-3.5 py-1.5 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3.5 py-1.5 disabled:opacity-50 transition-colors"
         >
           <Check size={13} /> {pending ? "Salvando..." : "Salvar"}
         </button>

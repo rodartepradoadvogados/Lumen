@@ -35,7 +35,7 @@ export default function MobileFinanceiroHub() {
         <div className="divide-y divide-regua">
           {FINANCE_ITEMS.map(({ href, label, desc, Icon }) => (
             <Link key={href} href={href} className="flex items-center gap-3 px-4 py-3.5">
-              <span className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
+              <span className="h-9 w-9 bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                 <Icon size={17} />
               </span>
               <div className="flex-1 min-w-0">

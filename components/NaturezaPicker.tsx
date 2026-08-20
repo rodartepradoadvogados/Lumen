@@ -22,19 +22,19 @@ export default function NaturezaPicker({ value, onChange }: Props) {
         type="button"
         onClick={() => onChange("JUDICIAL")}
         aria-pressed={value === "JUDICIAL"}
-        className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-colors ${
+        className={`flex items-start gap-3 border-2 p-4 text-left transition-colors ${
           value === "JUDICIAL" ? "border-acao bg-acao-bg" : "border-regua bg-sf hover:border-acao/40"
         }`}
       >
         <span
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center ${
             value === "JUDICIAL" ? "bg-acao text-acao-tx" : "bg-acao-bg text-acao"
           }`}
         >
           <Scale size={18} />
         </span>
         <span>
-          <span className="block font-serif font-bold text-tx">Processo Judicial</span>
+          <span className="block font-bold text-tx">Processo Judicial</span>
           <span className="block text-xs text-tx-2">Tramita no Poder Judiciário</span>
         </span>
       </button>
@@ -43,19 +43,19 @@ export default function NaturezaPicker({ value, onChange }: Props) {
         type="button"
         onClick={() => onChange("ADMINISTRATIVO")}
         aria-pressed={value === "ADMINISTRATIVO"}
-        className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-colors ${
+        className={`flex items-start gap-3 border-2 p-4 text-left transition-colors ${
           value === "ADMINISTRATIVO" ? "border-acao bg-acao-bg" : "border-regua bg-sf hover:border-acao/40"
         }`}
       >
         <span
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center ${
             value === "ADMINISTRATIVO" ? "bg-acao text-acao-tx" : "bg-acao-bg text-acao"
           }`}
         >
           <Landmark size={18} />
         </span>
         <span>
-          <span className="block font-serif font-bold text-tx">Processo Administrativo</span>
+          <span className="block font-bold text-tx">Processo Administrativo</span>
           <span className="block text-xs text-tx-2">Tramita em órgão administrativo</span>
         </span>
       </button>

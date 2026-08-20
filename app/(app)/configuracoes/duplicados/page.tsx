@@ -40,7 +40,7 @@ export default async function DuplicadosPage() {
         </p>
       </div>
 
-      {error ? <p className="text-sm text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p> : <DuplicadosClientesView grupos={grupos ?? []} />}
+      {error ? <p className="text-sm text-urgente bg-urgente-bg px-3 py-2">{error}</p> : <DuplicadosClientesView grupos={grupos ?? []} />}
 
       <div className="pt-2">
         <PageHeader

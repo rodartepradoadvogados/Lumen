@@ -332,7 +332,7 @@ function Teor({
           {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {formatDate(pub.publishedAt)}
           {assignedToName && <> · responsável: {assignedToName}</>}
         </p>
-        <h2 className="font-serif text-2xl font-extrabold text-tx mt-1">
+        <h2 className=" text-2xl font-extrabold text-tx mt-1">
           {pub.case ? pub.case.title : pub.client ? `Cliente compatível: ${pub.client.name}` : "Sem processo vinculado"}
         </h2>
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">

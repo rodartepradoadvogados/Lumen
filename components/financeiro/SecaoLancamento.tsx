@@ -38,7 +38,7 @@ export default function SecaoLancamento({
 }) {
   return (
     <section
-      className={`secao-lancamento secao-lancamento--${tone} rounded-r-lg border-l-[3px] px-4 py-3.5`}
+      className={`secao-lancamento secao-lancamento--${tone} border-l-[3px] px-4 py-3.5`}
     >
       <h4
         className={`text-[10px] font-semibold uppercase tracking-[0.11em] pb-2 mb-3 border-b border-regua ${labelToneClassName[tone]}`}

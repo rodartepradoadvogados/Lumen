@@ -38,7 +38,7 @@ export default function AssessoriaOverviewTab({ assessoria }: { assessoria: Asse
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="bg-sf rounded-lg border border-regua p-4">
+      <div className="bg-sf border border-regua p-4">
         <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Próximos vencimentos</h4>
         {upcoming.length === 0 ? (
           <p className="text-sm text-tx-3">Nada pendente no momento.</p>
@@ -54,14 +54,14 @@ export default function AssessoriaOverviewTab({ assessoria }: { assessoria: Asse
         )}
       </div>
 
-      <div className="bg-sf rounded-lg border border-regua p-4">
+      <div className="bg-sf border border-regua p-4">
         <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Planejamento</h4>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={5}
           placeholder="Anotações estratégicas para esta empresa..."
-          className="w-full text-sm text-tx bg-transparent border border-regua-forte rounded-lg p-2 focus:outline-none focus:border-acao resize-none"
+          className="w-full text-sm text-tx bg-transparent border border-regua-forte p-2 focus:outline-none focus:border-acao resize-none"
         />
         {notes !== savedNotes && (
           <button

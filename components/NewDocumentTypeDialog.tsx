@@ -45,7 +45,7 @@ export default function NewDocumentTypeDialog({
 
   return (
     <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-sf rounded-xl shadow-modal w-full max-w-sm motion-safe:animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-sf shadow-modal w-full max-w-sm motion-safe:animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
           <h3 className="font-bold text-tx">Novo tipo de documento</h3>
           <button type="button" onClick={onClose} className="text-tx-3 hover:text-tx">
@@ -60,7 +60,7 @@ export default function NewDocumentTypeDialog({
               autoFocus
               value={secao}
               onChange={(e) => setSecao(e.target.value)}
-              className="w-full mt-1 border border-regua-forte rounded-lg px-3 py-2 text-sm bg-sf text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
+              className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
             >
               {secoes.map((s) => (
                 <option key={s} value={s}>
@@ -77,7 +77,7 @@ export default function NewDocumentTypeDialog({
               value={rotulo}
               onChange={(e) => setRotulo(e.target.value)}
               placeholder="Ex.: Print de conversa"
-              className="w-full mt-1 border border-regua-forte rounded-lg px-3 py-2 text-sm bg-sf text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
+              className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
             />
             <p className="text-[11px] text-tx-3 mt-1">Este nome também vira o nome da pasta correspondente no armazenamento em nuvem.</p>
           </div>
@@ -88,7 +88,7 @@ export default function NewDocumentTypeDialog({
             <button
               type="submit"
               disabled={pending}
-              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
             >
               {pending ? "Criando..." : "Criar tipo"}
             </button>

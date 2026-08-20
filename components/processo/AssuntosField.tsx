@@ -36,12 +36,12 @@ export default function AssuntosField({ defaultValue = [], inputClassName }: { d
       {open && (
         <div className="fixed inset-0 z-[70] bg-grafite-900/40 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-sm bg-sf rounded-xl border border-regua shadow-pop overflow-hidden flex flex-col max-h-[80vh]"
+            className="w-full max-w-sm bg-sf border border-regua shadow-pop overflow-hidden flex flex-col max-h-[80vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-regua">
               <div>
-                <h3 className="font-serif font-bold text-tx text-sm">Assuntos por matéria</h3>
+                <h3 className=" font-bold text-tx text-sm">Assuntos por matéria</h3>
                 <p className="text-[11px] text-tx-2">Só um guia — clique num item para preencher</p>
               </div>
               <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx">

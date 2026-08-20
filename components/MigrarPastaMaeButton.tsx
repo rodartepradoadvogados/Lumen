@@ -86,7 +86,7 @@ export default function MigrarPastaMaeButton() {
         <button
           onClick={conferir}
           disabled={conferindo || aplicando}
-          className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit disabled:opacity-50"
         >
           <FolderTree size={16} /> {conferindo ? "Conferindo..." : "1. Conferir migração da pasta-mãe"}
         </button>
@@ -95,7 +95,7 @@ export default function MigrarPastaMaeButton() {
           <button
             onClick={confirmarEMover}
             disabled={aplicando}
-            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit disabled:opacity-50"
           >
             <FolderInput size={16} /> {aplicando ? "Movendo..." : "2. Confirmar e mover"}
           </button>
@@ -109,7 +109,7 @@ export default function MigrarPastaMaeButton() {
       </p>
 
       {erro && (
-        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-3 py-2">
+        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2">
           {erro}
         </p>
       )}
@@ -123,14 +123,14 @@ export default function MigrarPastaMaeButton() {
           </p>
 
           {exibido.truncado && (
-            <p className="flex items-center gap-2 text-xs font-semibold text-urgente bg-urgente-bg border border-urgente/25 rounded-lg px-3 py-2">
+            <p className="flex items-center gap-2 text-xs font-semibold text-urgente bg-urgente-bg border border-urgente/25 px-3 py-2">
               <AlertTriangle size={14} className="shrink-0" /> A varredura parou antes de terminar (Drive muito grande). Rode a
               conferência de novo depois de tratar o que já apareceu — itens ainda não vistos não estão neste relatório.
             </p>
           )}
 
           {/* Etapa (a): raízes "Lúmen - *" soltas na raiz do Drive */}
-          <div className="border border-regua rounded-lg p-3 space-y-1.5">
+          <div className="border border-regua p-3 space-y-1.5">
             <p className="text-xs font-semibold text-tx">Raízes &ldquo;Lúmen - *&rdquo; soltas na raiz do Drive</p>
             {exibido.raizesLumenEncontradasSoltas.length === 0 ? (
               <p className="text-xs text-tx-2">Nenhuma — todas já estão dentro da pasta-mãe &ldquo;Lúmen&rdquo;.</p>
@@ -153,7 +153,7 @@ export default function MigrarPastaMaeButton() {
           </div>
 
           {/* Etapa (b): raízes legadas encontradas + auditoria */}
-          <div className="border border-regua rounded-lg p-3 space-y-1.5">
+          <div className="border border-regua p-3 space-y-1.5">
             <p className="text-xs font-semibold text-tx">Pastas antigas &ldquo;RP Financeiro - *&rdquo; encontradas</p>
             {exibido.raizesLegadasEncontradas.length === 0 ? (
               <p className="text-xs text-tx-2">Nenhuma pasta antiga encontrada na raiz do Drive.</p>
@@ -170,7 +170,7 @@ export default function MigrarPastaMaeButton() {
 
           {/* O que casou com um registro do sistema */}
           {exibido.movidos.length > 0 && (
-            <div className="border border-regua rounded-lg overflow-x-auto scrollbar-thin">
+            <div className="border border-regua overflow-x-auto scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="bg-sf-apoio">
                   <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2">
@@ -188,7 +188,7 @@ export default function MigrarPastaMaeButton() {
                       <td className="px-3 py-2.5 align-top font-medium text-tx">{m.label}</td>
                       <td className="px-3 py-2.5 align-top text-tx-2 break-all">{m.path}</td>
                       <td className="px-3 py-2.5 align-top">
-                        <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] ${movidoBadgeClass(m.action)}`}>
+                        <span className={`inline-block px-2 py-0.5 text-[11px] ${movidoBadgeClass(m.action)}`}>
                           {m.action === "CONFLITO" ? "Conflito — decisão manual" : resultado ? "Movido" : "Será movido"}
                         </span>
                       </td>
@@ -202,7 +202,7 @@ export default function MigrarPastaMaeButton() {
 
           {/* O que não foi identificado — nunca apagado, só relatado */}
           {exibido.naoIdentificados.length > 0 && (
-            <div className="border-l-[3px] border-aviso bg-aviso-bg rounded-r-lg p-3 space-y-1.5">
+            <div className="border-l-[3px] border-aviso bg-aviso-bg p-3 space-y-1.5">
               <p className="flex items-center gap-2 text-xs font-semibold text-aviso">
                 <FileQuestion size={14} className="shrink-0" /> {exibido.naoIdentificados.length} item(ns) não identificado(s) — nada
                 foi movido nem apagado

@@ -79,7 +79,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-marca/30 bg-marca-bg p-3 text-xs space-y-2 max-w-md">
+    <div className="mt-2 border border-marca/30 bg-marca-bg p-3 text-xs space-y-2 max-w-md">
       <div className="flex items-center justify-between">
         <p className="font-semibold text-tx flex items-center gap-1.5">
           <Eye size={13} /> Quebra-vidro — {label}
@@ -119,7 +119,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
                 type="button"
                 disabled={pending}
                 onClick={attemptReveal}
-                className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold rounded-lg px-2.5 py-1.5"
+                className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold px-2.5 py-1.5"
               >
                 Já aprovaram? Tentar revelar
               </button>
@@ -131,7 +131,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
                 <select
                   value={reasonCode}
                   onChange={(e) => setReasonCode(e.target.value as AccessReasonCode)}
-                  className="w-full border border-regua bg-sf text-tx rounded-md px-2 py-1.5"
+                  className="w-full border border-regua bg-sf text-tx px-2 py-1.5"
                 >
                   {Object.entries(ACCESS_REASONS).map(([code, lbl]) => (
                     <option key={code} value={code}>
@@ -146,14 +146,14 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
                   value={reasonNote}
                   onChange={(e) => setReasonNote(e.target.value)}
                   rows={2}
-                  className="w-full border border-regua bg-sf text-tx rounded-md px-2 py-1.5"
+                  className="w-full border border-regua bg-sf text-tx px-2 py-1.5"
                 />
               </div>
               <button
                 type="button"
                 disabled={pending}
                 onClick={sendRequest}
-                className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold rounded-lg px-2.5 py-1.5"
+                className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold px-2.5 py-1.5"
               >
                 Solicitar acesso a este registro
               </button>

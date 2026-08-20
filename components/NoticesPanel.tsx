@@ -181,14 +181,14 @@ export default function NoticesPanel({
               onChange={handleTextChange}
               rows={1}
               placeholder="Escreva um recado para o escritório... use @ para mencionar alguém"
-              className="w-full resize-none border border-regua-forte bg-sf text-tx placeholder:text-tx-3 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao-bg"
+              className="w-full resize-none border border-regua-forte bg-sf text-tx placeholder:text-tx-3 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao-bg"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) publish();
                 if (e.key === "Escape") setMentionQuery(null);
               }}
             />
             {mentionQuery !== null && mentionCandidates.length > 0 && (
-              <div className="absolute left-0 bottom-full mb-1 w-56 bg-sf rounded-lg border border-regua shadow-pop z-20 overflow-hidden max-h-48 overflow-y-auto scrollbar-thin">
+              <div className="absolute left-0 bottom-full mb-1 w-56 bg-sf border border-regua shadow-pop z-20 overflow-hidden max-h-48 overflow-y-auto scrollbar-thin">
                 {mentionCandidates.map((u) => (
                   <button
                     key={u.id}
@@ -205,7 +205,7 @@ export default function NoticesPanel({
           <button
             onClick={publish}
             disabled={pending || !text.trim()}
-            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-3 flex items-center gap-1.5 disabled:opacity-50 shrink-0 transition-colors"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3 flex items-center gap-1.5 disabled:opacity-50 shrink-0 transition-colors"
           >
             <Send size={14} /> Publicar
           </button>

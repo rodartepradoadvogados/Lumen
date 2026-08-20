@@ -144,7 +144,7 @@ async function DayView({
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/m/agenda?d=${toISODate(prev)}`}
-          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Dia anterior"
         >
           <ChevronLeft size={18} />
@@ -160,7 +160,7 @@ async function DayView({
         </div>
         <Link
           href={`/m/agenda?d=${toISODate(next)}`}
-          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próximo dia"
         >
           <ChevronRight size={18} />
@@ -298,7 +298,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/m/agenda?view=week&d=${toISODate(prevWeek)}`}
-          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Semana anterior"
         >
           <ChevronLeft size={18} />
@@ -308,7 +308,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
         </p>
         <Link
           href={`/m/agenda?view=week&d=${toISODate(nextWeek)}`}
-          className="h-9 w-9 rounded-lg bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próxima semana"
         >
           <ChevronRight size={18} />
@@ -330,7 +330,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
               <Link
                 key={key}
                 href={`/m/agenda?view=day&d=${key}`}
-                className={`aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 ${
+                className={`aspect-square border flex flex-col items-center justify-center gap-0.5 ${
                   isToday ? "bg-acao border-acao" : "bg-sf-apoio border-regua"
                 }`}
               >
@@ -358,10 +358,10 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
   // Controle segmentado de dois estados — mesmo padrão de inversão do menu de tema/modo de
   // visualização (DESIGN-SYSTEM.md §5): opção ativa inverte fundo/texto, sem cor de acento.
   return (
-    <div className="flex gap-1 bg-sf-apoio border border-regua rounded-lg p-1">
+    <div className="flex gap-1 bg-sf-apoio border border-regua p-1">
       <Link
         href={`/m/agenda?view=day&d=${d}`}
-        className={`flex-1 text-center text-xs font-semibold py-1.5 rounded-md transition-colors ${
+        className={`flex-1 text-center text-xs font-semibold py-1.5 transition-colors ${
           view === "day" ? "bg-tx text-sf" : "text-tx-2"
         }`}
       >
@@ -369,7 +369,7 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
       </Link>
       <Link
         href={`/m/agenda?view=week&d=${d}`}
-        className={`flex-1 text-center text-xs font-semibold py-1.5 rounded-md transition-colors ${
+        className={`flex-1 text-center text-xs font-semibold py-1.5 transition-colors ${
           view === "week" ? "bg-tx text-sf" : "text-tx-2"
         }`}
       >

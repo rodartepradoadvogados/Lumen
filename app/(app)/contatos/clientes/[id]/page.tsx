@@ -117,7 +117,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           <div className="divide-y divide-regua">
             {clientCases.map((c) => (
               <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors">
-                <div className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
+                <div className="h-9 w-9 bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                   <Scale size={16} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -178,7 +178,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
           <div className="divide-y divide-regua">
             {client.publications.map((p) => (
               <div key={p.id} className="flex items-start gap-3 px-5 py-3.5">
-                <div className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
+                <div className="h-9 w-9 bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
                   <FileText size={16} />
                 </div>
                 <div className="min-w-0 flex-1">

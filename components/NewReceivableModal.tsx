@@ -175,13 +175,13 @@ export default function NewReceivableModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Plus size={16} /> {label ?? "Nova Conta a Receber"}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+          <div className="bg-sf shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">{label ?? "Nova Conta a Receber"}</h3>
               <button onClick={resetAndClose} className="text-tx-3 hover:text-tx dark:hover:text-tx">
@@ -256,12 +256,12 @@ export default function NewReceivableModal({
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
                 {alreadyReceivedForCase !== undefined && (
-                  <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+                  <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
                     Já recebido neste processo:{" "}
                     <span className="font-semibold text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
                   </p>
                 )}
-                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
                 <div>
                   <label className={labelCls}>Descrição</label>
@@ -470,13 +470,13 @@ export default function NewReceivableModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
+                        <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>
                       )}
 
-                      <div className="overflow-x-auto rounded-lg border border-regua">
+                      <div className="overflow-x-auto border border-regua">
                         <table className="w-full text-xs">
                           <thead className="bg-white/50 dark:bg-white/5">
                             <tr className="text-left text-tx-2">
@@ -498,21 +498,21 @@ export default function NewReceivableModal({
                                     type="date"
                                     value={p.dueDate}
                                     onChange={(e) => updateParcela(p.key, { dueDate: e.target.value, dueDateManual: true })}
-                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
+                                    className="w-full bg-transparent border border-regua-forte px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
                                   <MoneyInput
                                     value={p.amount}
                                     onChange={(v) => updateParcela(p.key, { amount: v })}
-                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
+                                    className="w-full bg-transparent border border-regua-forte px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5">
                                   <input
                                     value={p.installmentBoleto}
                                     onChange={(e) => updateParcela(p.key, { installmentBoleto: e.target.value })}
-                                    className="w-full bg-transparent border border-regua-forte rounded-md px-1.5 py-1 text-tx"
+                                    className="w-full bg-transparent border border-regua-forte px-1.5 py-1 text-tx"
                                   />
                                 </td>
                                 <td className="px-2 py-1.5 text-center">
@@ -625,11 +625,11 @@ export default function NewReceivableModal({
                   <button
                     type="button"
                     onClick={resetAndClose}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf"
+                    className="text-sm font-medium px-4 py-2 text-tx-2 hover:bg-sf"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 disabled:opacity-50 transition-colors">
                     {loading ? "Salvando..." : "Salvar lançamento"}
                   </button>
                 </div>

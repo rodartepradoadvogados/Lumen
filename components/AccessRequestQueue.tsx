@@ -78,7 +78,7 @@ export default function AccessRequestQueue({ requests }: { requests: PendingAcce
               type="button"
               disabled={pending}
               onClick={() => decide(req.id, true)}
-              className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2 disabled:opacity-50"
             >
               <Check size={13} /> Aprovar
             </button>
@@ -86,7 +86,7 @@ export default function AccessRequestQueue({ requests }: { requests: PendingAcce
               type="button"
               disabled={pending}
               onClick={() => decide(req.id, false)}
-              className="inline-flex items-center gap-1.5 bg-atencao hover:opacity-90 text-white text-xs font-semibold rounded-lg px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-atencao hover:opacity-90 text-white text-xs font-semibold px-3 py-2 disabled:opacity-50"
             >
               <X size={13} /> Negar
             </button>

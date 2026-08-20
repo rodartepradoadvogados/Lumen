@@ -20,20 +20,20 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
           <AlertTriangle size={22} className="text-atencao" />
         </div>
-        <h1 className="font-serif text-xl font-bold text-tx">Algo deu errado</h1>
+        <h1 className=" text-xl font-bold text-tx">Algo deu errado</h1>
         <p className="text-sm text-tx-2">
           Não foi possível carregar esta página. Tente novamente ou volte para o Painel.
         </p>
         <div className="flex items-center justify-center gap-3 pt-1">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
+            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5"
           >
             <RotateCw size={15} /> Tentar novamente
           </button>
           <Link
             href="/painel"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-tx-2 hover:text-tx px-4 py-2.5 rounded-lg hover:bg-sf-apoio"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-tx-2 hover:text-tx px-4 py-2.5 hover:bg-sf-apoio"
           >
             Voltar ao Painel
           </Link>

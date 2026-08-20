@@ -61,12 +61,12 @@ export default function InactivityNotice() {
 
   return (
     <div className="fixed inset-0 z-[100] bg-grafite-900/70 flex items-center justify-center p-4">
-      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm p-6 text-center space-y-4">
+      <div className="bg-sf shadow-pop w-full max-w-sm p-6 text-center space-y-4">
         <div className="mx-auto h-12 w-12 rounded-full bg-marca-bg text-marca-tx flex items-center justify-center">
           <AlarmClock size={24} />
         </div>
         <div className="space-y-1">
-          <h3 className="font-serif font-bold text-tx text-base">Você ficou inativo por um tempo</h3>
+          <h3 className=" font-bold text-tx text-base">Você ficou inativo por um tempo</h3>
           <p className="text-sm text-tx-2">Deseja continuar de onde parou ou sair do sistema?</p>
         </div>
         <div className="flex gap-2">
@@ -74,7 +74,7 @@ export default function InactivityNotice() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full bg-sf-apoio hover:bg-sf-apoio text-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              className="w-full bg-sf-apoio hover:bg-sf-apoio text-tx font-semibold py-2.5 transition-colors disabled:opacity-50"
             >
               Sair
             </button>
@@ -82,7 +82,7 @@ export default function InactivityNotice() {
           <button
             onClick={handleResume}
             disabled={isPending}
-            className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 transition-colors disabled:opacity-50"
           >
             {isPending ? "Retomando..." : "Continuar"}
           </button>

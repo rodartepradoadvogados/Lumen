@@ -67,7 +67,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
           <Link
             key={t.key}
             href={`/m/contatos?tab=${t.key}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 whitespace-nowrap transition-colors ${
               tab === t.key ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
             }`}
           >
@@ -83,7 +83,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
           name="q"
           defaultValue={q}
           placeholder={`Buscar em ${TABS.find((t) => t.key === tab)!.label.toLowerCase()}`}
-          className="w-full text-sm border border-regua bg-sf text-tx rounded-lg pl-8 pr-3 py-2.5"
+          className="w-full text-sm border border-regua bg-sf text-tx pl-8 pr-3 py-2.5"
         />
       </form>
 
@@ -106,7 +106,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                       <a
                         href={`tel:${sanitizePhoneForWhatsApp(r.phone)}`}
                         aria-label={`Ligar para ${r.name}`}
-                        className="p-2 rounded-lg text-tx-2 hover:text-acao hover:bg-sf-apoio"
+                        className="p-2 text-tx-2 hover:text-acao hover:bg-sf-apoio"
                       >
                         <Phone size={16} />
                       </a>
@@ -115,7 +115,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`WhatsApp de ${r.name}`}
-                        className="p-2 rounded-lg text-tx-2 hover:text-concluido hover:bg-sf-apoio"
+                        className="p-2 text-tx-2 hover:text-concluido hover:bg-sf-apoio"
                       >
                         <MessageCircle size={16} />
                       </a>
@@ -125,7 +125,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                     <a
                       href={`mailto:${r.email}`}
                       aria-label={`E-mail para ${r.name}`}
-                      className="p-2 rounded-lg text-tx-2 hover:text-acao hover:bg-sf-apoio"
+                      className="p-2 text-tx-2 hover:text-acao hover:bg-sf-apoio"
                     >
                       <Mail size={16} />
                     </a>

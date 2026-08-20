@@ -72,7 +72,7 @@ export default function MobileInstallMenuItem() {
         onClick={handleClick}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
       >
-        <span className="h-9 w-9 rounded-lg bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
+        <span className="h-9 w-9 bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
           <Download size={17} />
         </span>
         <span className="flex-1 text-sm font-medium text-tx">Instalar aplicativo</span>

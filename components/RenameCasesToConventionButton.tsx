@@ -89,15 +89,15 @@ export default function RenameCasesToConventionButton() {
       <button
         onClick={openPreview}
         disabled={loadingPreview}
-        className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit disabled:opacity-50"
+        className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit disabled:opacity-50"
       >
         <SquarePen size={16} /> {loadingPreview ? "Conferindo..." : 'Aplicar padrão "Cliente x Parte Adversa" aos processos existentes'}
       </button>
 
-      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
       {result && (
-        <div className="text-xs text-tx-2 bg-sf-apoio border border-regua rounded-lg px-3 py-2 space-y-2">
+        <div className="text-xs text-tx-2 bg-sf-apoio border border-regua px-3 py-2 space-y-2">
           {result.renamed === 0 && result.withoutClient.length === 0 ? (
             <p>Nenhum processo precisa de padronização — todos já seguem &ldquo;Cliente x Parte Adversa&rdquo; ou não têm parte adversa cadastrada.</p>
           ) : (
@@ -180,7 +180,7 @@ export default function RenameCasesToConventionButton() {
                             type="button"
                             onClick={() => toggleDiscarded(s.id)}
                             data-tip="Não sugerir de novo nas próximas conferências"
-                            className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg transition-colors ${
+                            className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 transition-colors ${
                               isDiscarded ? "bg-atencao/10 text-atencao font-semibold" : "text-tx-3 hover:text-atencao hover:bg-atencao/10"
                             }`}
                           >
@@ -232,7 +232,7 @@ export default function RenameCasesToConventionButton() {
                   type="button"
                   onClick={() => apply(Array.from(selected))}
                   disabled={applying || selected.size === 0}
-                  className="bg-sf border border-regua-forte text-tx text-sm font-semibold rounded-lg px-4 py-2 hover:bg-sf-apoio disabled:opacity-50"
+                  className="bg-sf border border-regua-forte text-tx text-sm font-semibold px-4 py-2 hover:bg-sf-apoio disabled:opacity-50"
                 >
                   {applying ? "Aplicando..." : "Aplicar nos selecionados"}
                 </button>
@@ -240,7 +240,7 @@ export default function RenameCasesToConventionButton() {
                   type="button"
                   onClick={() => apply(suggestions.map((s) => s.id))}
                   disabled={applying}
-                  className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+                  className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
                 >
                   {applying ? "Aplicando..." : "Aplicar em tudo"}
                 </button>

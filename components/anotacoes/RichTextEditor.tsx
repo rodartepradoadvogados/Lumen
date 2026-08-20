@@ -36,7 +36,7 @@ export default function RichTextEditor({
   }
 
   return (
-    <div className="rounded-lg border border-regua overflow-hidden bg-sf">
+    <div className=" border border-regua overflow-hidden bg-sf">
       <div className="flex items-center gap-0.5 px-1.5 py-1 border-b border-regua bg-sf-apoio">
         <ToolbarButton onClick={() => exec("bold")} label="Negrito">
           <Bold size={13} />

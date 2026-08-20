@@ -36,7 +36,7 @@ export default function CopyButton({
       data-tip={copied ? "Copiado!" : label}
       className={
         className ??
-        "flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
+        "flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
       }
     >
       {copied ? <Check size={12} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={12} />}

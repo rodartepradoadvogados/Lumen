@@ -49,12 +49,12 @@ export default function AddUserForm() {
         <button
           type="submit"
           disabled={loading}
-          className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
+          className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3 py-2 transition-colors disabled:opacity-50"
         >
           {loading ? "Adicionando..." : "Adicionar membro"}
         </button>
       </div>
-      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
     </form>
   );
 }

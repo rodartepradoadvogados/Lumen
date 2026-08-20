@@ -79,9 +79,9 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
     return (
       <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <Fields defaults={holiday} />
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
           </button>
           <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
@@ -98,10 +98,10 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
       <p className="text-sm text-tx flex-1 min-w-0 truncate">{holiday.name}</p>
       <span className="text-[11px] font-semibold text-tx-2 shrink-0">{SCOPE_LABELS[holiday.scope] ?? holiday.scope}</span>
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio">
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio">
           <Pencil size={14} />
         </button>
-        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-atencao/10 disabled:opacity-40">
+        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 disabled:opacity-40">
           <Trash2 size={14} />
         </button>
       </div>
@@ -149,9 +149,9 @@ export default function HolidaysManager({ holidays }: { holidays: Holiday[] }) {
       {adding ? (
         <form action={handleCreate} className="p-5 space-y-2 border-t border-regua bg-sf-apoio">
           <Fields />
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
             </button>
             <button type="button" onClick={() => setAdding(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
@@ -161,7 +161,7 @@ export default function HolidaysManager({ holidays }: { holidays: Holiday[] }) {
         </form>
       ) : (
         <div className="p-5 border-t border-regua">
-          <button onClick={() => setAdding(true)} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
+          <button onClick={() => setAdding(true)} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2">
             Novo feriado local
           </button>
         </div>

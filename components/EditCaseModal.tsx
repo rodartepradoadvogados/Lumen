@@ -97,14 +97,14 @@ export default function EditCaseModal({
   const isAdministrativo = naturezaOf(caseData.type) === "ADMINISTRATIVO";
 
   // Classes de input/select do modal — segue o par bg+texto do StartActingModal.tsx.
-  const inputClass = "w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm";
+  const inputClass = "w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm";
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
         data-tip="Editar processo"
-        className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors"
+        className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors"
       >
         <Pencil size={14} />
       </button>
@@ -175,7 +175,7 @@ export default function EditCaseModal({
           >
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
               {error && (
-                <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>
               )}
 
               <div>
@@ -331,7 +331,7 @@ export default function EditCaseModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Salvar"}
               </button>

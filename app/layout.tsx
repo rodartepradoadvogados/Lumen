@@ -8,8 +8,8 @@ import "./globals.css";
 // título ao número de processo. A serifa (Cormorant Garamond) saiu — em tela cheia de dados ela
 // reduz legibilidade e era a principal responsável pela sensação de material antigo.
 //
-// `--font-serif` continua existindo e apontando para Archivo de propósito: 107 arquivos ainda
-// usam `font-serif`, e mantê-la como apelido faz todos eles renderizarem na fonte nova sem
+// `--` continua existindo e apontando para Archivo de propósito: 107 arquivos ainda
+// usam ``, e mantê-la como apelido faz todos eles renderizarem na fonte nova sem
 // precisar de um commit gigante. A classe é removida arquivo a arquivo na migração por área,
 // e só então a variável sai daqui e do tailwind.config.ts.
 const archivo = Archivo({

@@ -139,7 +139,7 @@ export default function TeamMonitorPanel({
       </button>
 
       {open && (
-        <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf rounded-xl border border-regua shadow-menu z-50 overflow-hidden">
+        <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf border border-regua shadow-menu z-50 overflow-hidden">
           {/* Ordem do menu (DESIGN-SYSTEM.md §5): identificação → tema → Meu perfil → Sair
               (vinho, separado por régua). O bloco "Modo de visualização" saiu — Régua/Bancada
               não existem mais, ver components/AppShell.tsx e documento 02 do handoff. */}
@@ -191,7 +191,7 @@ export default function TeamMonitorPanel({
             <Link
               href="/perfil"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-tx hover:bg-sf-apoio"
+              className="flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-tx hover:bg-sf-apoio"
             >
               <User size={15} className="text-tx-2" /> Meu perfil
             </Link>
@@ -204,7 +204,7 @@ export default function TeamMonitorPanel({
               <button
                 type="submit"
                 onClick={() => setOpen(false)}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-atencao hover:bg-atencao/10"
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-atencao hover:bg-atencao/10"
               >
                 <LogOut size={15} /> Sair
               </button>

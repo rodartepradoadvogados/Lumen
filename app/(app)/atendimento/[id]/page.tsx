@@ -89,7 +89,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
       {/* Backdrop puramente visual: clicar fora não fecha a janela (só o X fecha). */}
       <div className="fixed inset-0 bg-grafite-900/40 z-40" aria-hidden="true" />
 
-      <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-sf rounded-xl shadow-pop flex flex-col overflow-hidden">
+      <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-sf shadow-pop flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-3 border-b border-regua shrink-0 bg-sf">
           <span className="text-xs font-semibold text-tx-3 uppercase tracking-wide">Atendimento</span>
           <Link
@@ -204,8 +204,8 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                           <div
                             className={
                               out
-                                ? "max-w-[75%] rounded-lg rounded-br-sm bg-acao px-3 py-2 text-acao-tx"
-                                : "max-w-[75%] rounded-lg rounded-bl-sm bg-sf-apoio px-3 py-2 text-tx border border-regua"
+                                ? "max-w-[75%] bg-acao px-3 py-2 text-acao-tx"
+                                : "max-w-[75%] bg-sf-apoio px-3 py-2 text-tx border border-regua"
                             }
                           >
                             <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
@@ -244,7 +244,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               ) : (
                 <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 mb-3">
                   {a.emailMessages.map((m) => (
-                    <div key={m.id} className="rounded-lg border border-regua bg-sf-apoio px-3 py-2">
+                    <div key={m.id} className=" border border-regua bg-sf-apoio px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-tx">{m.subject}</p>
                         <span className="shrink-0 text-[10px] text-tx-3">

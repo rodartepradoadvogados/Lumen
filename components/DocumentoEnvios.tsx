@@ -102,7 +102,7 @@ export function EnviarDocumentosButton({ entity, attachments }: { entity: EnvioE
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold px-3.5 py-2 transition-colors"
       >
         <Send size={15} /> Enviar E-mail/WhatsApp
       </button>
@@ -241,7 +241,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                       setMetodo(m);
                       if (!contatoTocado) setContato("");
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 ${
                       metodo === m
                         ? "bg-acao text-acao-tx"
                         : "text-tx-2 hover:bg-sf-apoio border border-regua"
@@ -272,11 +272,11 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                   onFocus={() => setSugestoesAbertas(true)}
                   onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)}
                   placeholder="Nome (busque um contato cadastrado ou digite)"
-                  className="w-full border border-regua rounded-lg pl-7 pr-2.5 py-2 text-sm bg-sf text-tx"
+                  className="w-full border border-regua pl-7 pr-2.5 py-2 text-sm bg-sf text-tx"
                 />
               </div>
               {sugestoesAbertas && sugeridos.length > 0 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-sf border border-regua rounded-lg shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-sf border border-regua shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
                   {sugeridos.map((c) => (
                     <button
                       key={`${c.tipo}-${c.id}`}
@@ -306,7 +306,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 }}
                 type={metodo === "EMAIL" ? "email" : "tel"}
                 placeholder={metodo === "EMAIL" ? "nome@exemplo.com" : "(62) 99999-9999"}
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
               />
               <p className="text-[11px] text-tx-3 mt-1">
                 Não encontrou o contato na busca acima? Pode digitar o {metodo === "EMAIL" ? "e-mail" : "telefone"} direto aqui.
@@ -320,14 +320,14 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 onChange={(e) => setMensagem(e.target.value)}
                 rows={4}
                 placeholder="Escreva a introdução da mensagem"
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx resize-y"
               />
               <p className="text-[11px] text-tx-3 mt-1">
                 {metodo === "EMAIL" ? "Vira o corpo do e-mail." : "Vira o texto da mensagem do WhatsApp."} O link de cada documento
                 selecionado é colado logo abaixo automaticamente, sempre em dia com a seleção atual — revise tudo antes de confirmar.
               </p>
               {linksBlock && (
-                <pre className="mt-1.5 whitespace-pre-wrap break-all text-[11px] text-tx-2 bg-sf-apoio border border-regua rounded-lg px-2.5 py-2 font-mono">
+                <pre className="mt-1.5 whitespace-pre-wrap break-all text-[11px] text-tx-2 bg-sf-apoio border border-regua px-2.5 py-2 font-mono">
                   {linksBlock}
                 </pre>
               )}
@@ -338,7 +338,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1.5">
                   Documentos selecionados ({selectedAttachments.length})
                 </p>
-                <div className="border border-regua rounded-lg divide-y divide-regua">
+                <div className="border border-regua divide-y divide-regua">
                   {selectedAttachments.map((a) => (
                     <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                       <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
@@ -364,10 +364,10 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome"
-                className="w-full text-xs border border-regua rounded-lg pl-7 pr-2.5 py-1.5 bg-sf text-tx"
+                className="w-full text-xs border border-regua pl-7 pr-2.5 py-1.5 bg-sf text-tx"
               />
             </div>
-            <div className="border border-regua rounded-lg divide-y divide-regua max-h-[50vh] overflow-y-auto scrollbar-thin">
+            <div className="border border-regua divide-y divide-regua max-h-[50vh] overflow-y-auto scrollbar-thin">
               {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-tx-3">Nenhum documento encontrado.</p>}
               {disponiveis.map((a) => {
                 const checked = selected.includes(a.id);
@@ -393,7 +393,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
         <button
           onClick={handleConfirm}
           disabled={loading}
-          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -436,7 +436,7 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
 
   return (
     <div className="mt-6 pt-5 border-t border-regua">
-      <h4 className="font-serif font-bold text-tx">Documentos enviados</h4>
+      <h4 className=" font-bold text-tx">Documentos enviados</h4>
       <p className="text-xs font-semibold text-tx-3 font-mono mb-3 mt-1">
         {envios.length === 0 ? "Nenhum envio registrado ainda" : `${envios.length} envio${envios.length > 1 ? "s" : ""} registrado${envios.length > 1 ? "s" : ""}`}
       </p>
@@ -449,7 +449,7 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
       ) : (
         <div className="space-y-3">
           {envios.map((envio) => (
-            <div key={envio.id} className="border border-regua rounded-lg p-4 bg-sf">
+            <div key={envio.id} className="border border-regua p-4 bg-sf">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0 flex items-center gap-2">
                   {envio.metodo === "EMAIL" ? (
@@ -483,7 +483,7 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
                     onClick={() => handleExcluir(envio.id)}
                     disabled={pendingId === envio.id}
                     title="Excluir registro"
-                    className="text-tx-3 hover:text-atencao p-1.5 rounded-lg hover:bg-atencao/10 disabled:opacity-50"
+                    className="text-tx-3 hover:text-atencao p-1.5 hover:bg-atencao/10 disabled:opacity-50"
                   >
                     <Trash2 size={13} />
                   </button>

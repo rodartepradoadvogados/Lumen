@@ -163,7 +163,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
   return (
     <div className="p-5 space-y-3">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
       <div className="flex items-start gap-2 flex-wrap">
         <div className="flex-1 min-w-[220px]">
@@ -181,7 +181,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
             <button
               onClick={() => setEditing(true)}
               disabled={pending}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
             >
               <Pencil size={13} /> Editar
             </button>
@@ -191,14 +191,14 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
               <button
                 onClick={handleSave}
                 disabled={pending}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
               >
                 <Check size={13} /> Salvar
               </button>
               <button
                 onClick={handleCancelEdit}
                 disabled={pending}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-tx border border-regua hover:bg-sf-apoio disabled:opacity-40"
               >
                 <X size={13} /> Cancelar
               </button>
@@ -236,7 +236,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
             <Badge color="gold">{TYPE_LABELS[type] ?? type}</Badge>
           </div>
           <p className="text-sm text-tx-2 italic">{summary}</p>
-          <div className="text-sm text-tx space-y-2 max-h-72 overflow-y-auto bg-sf-apoio rounded-lg p-3 border border-regua">
+          <div className="text-sm text-tx space-y-2 max-h-72 overflow-y-auto bg-sf-apoio p-3 border border-regua">
             {content.split(/\n+/).filter(Boolean).map((para, i) => (
               <p key={i}>{para}</p>
             ))}
@@ -289,14 +289,14 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
         <button
           onClick={handleReject}
           disabled={pending}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-vinho border border-regua hover:bg-sf-apoio disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-vinho border border-regua hover:bg-sf-apoio disabled:opacity-40"
         >
           <Ban size={14} /> Rejeitar
         </button>
         <button
           onClick={handlePublish}
           disabled={pending}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover disabled:opacity-40 transition-colors"
         >
           <Check size={14} /> Confirmar e publicar
         </button>

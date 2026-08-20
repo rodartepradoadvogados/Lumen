@@ -59,7 +59,7 @@ export default function AssessoriaRecurringExpensesCard({
   }
 
   return (
-    <div className="p-3.5 rounded-lg border border-regua bg-sf">
+    <div className="p-3.5 border border-regua bg-sf">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-2 mb-1 flex items-center gap-1.5">
         <Repeat2 size={12} className="text-marca-tx" /> Despesas recorrentes (repasse a parceiros)
       </p>
@@ -85,13 +85,13 @@ export default function AssessoriaRecurringExpensesCard({
               name="description"
               required
               placeholder="Ex.: Repasse mensal — Dr. Fulano (advogado parceiro)"
-              className="w-full border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm"
+              className="w-full border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm"
             />
           </div>
           <div className="flex items-end gap-2.5 flex-wrap">
             <div>
               <label className="text-xs font-medium text-tx-2 block mb-1">Valor</label>
-              <MoneyInput name="amount" className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+              <MoneyInput name="amount" className="w-32 border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm" />
             </div>
             <div>
               <label className="text-xs font-medium text-tx-2 block mb-1">Dia do vencimento</label>
@@ -102,14 +102,14 @@ export default function AssessoriaRecurringExpensesCard({
                 max={28}
                 defaultValue={10}
                 required
-                className="w-20 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm"
+                className="w-20 border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm"
               />
             </div>
           </div>
           <div className="flex gap-2.5 flex-wrap">
             <div className="flex-1 min-w-[140px]">
               <label className="text-xs font-medium text-tx-2 block mb-1">Categoria</label>
-              <select name="categoryId" className="w-full border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm">
+              <select name="categoryId" className="w-full border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm">
                 <option value="">Sem categoria</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -120,7 +120,7 @@ export default function AssessoriaRecurringExpensesCard({
             </div>
             <div className="flex-1 min-w-[140px]">
               <label className="text-xs font-medium text-tx-2 block mb-1">Centro de Custo</label>
-              <select name="costCenterId" className="w-full border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm">
+              <select name="costCenterId" className="w-full border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm">
                 <option value="">Sem centro de custo</option>
                 {costCenters.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -136,7 +136,7 @@ export default function AssessoriaRecurringExpensesCard({
             <button
               type="submit"
               disabled={pending}
-              className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 rounded-lg disabled:opacity-50"
+              className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 disabled:opacity-50"
             >
               {pending ? "Salvando..." : "Salvar despesa recorrente"}
             </button>

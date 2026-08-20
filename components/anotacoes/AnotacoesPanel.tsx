@@ -31,7 +31,7 @@ export default function AnotacoesPanel() {
       ) : (
         <>
           <div className="shrink-0 flex items-center justify-between gap-1 pl-3 pr-2 h-12 border-b border-regua">
-            <h3 className="font-serif font-bold text-sm text-tx">Anotações</h3>
+            <h3 className=" font-bold text-sm text-tx">Anotações</h3>
             <div className="flex items-center gap-0.5">
               <button
                 type="button"
@@ -39,7 +39,7 @@ export default function AnotacoesPanel() {
                 disabled={drafts.length >= 2}
                 title="Nova anotação"
                 aria-label="Nova anotação"
-                className="p-1.5 rounded-lg text-tx-2 hover:bg-marca-bg hover:text-marca-tx disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-tx-2 transition-colors"
+                className="p-1.5 text-tx-2 hover:bg-marca-bg hover:text-marca-tx disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-tx-2 transition-colors"
               >
                 <Plus size={16} />
               </button>
@@ -48,7 +48,7 @@ export default function AnotacoesPanel() {
                 onClick={() => setOpen(false)}
                 title="Recolher painel de Anotações"
                 aria-label="Recolher painel de Anotações"
-                className="p-1.5 rounded-lg text-tx-2 hover:bg-sf-apoio transition-colors"
+                className="p-1.5 text-tx-2 hover:bg-sf-apoio transition-colors"
               >
                 <PanelRightClose size={16} />
               </button>

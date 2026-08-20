@@ -65,7 +65,7 @@ export default async function EquipePage() {
             </select>
             <input name="oab" placeholder="OAB (opcional)" className={fieldCls} />
             <input name="color" type="color" defaultValue="#0f1f3d" className={`${fieldCls} h-9 p-1`} />
-            <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-3 transition-colors">
+            <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3 transition-colors">
               Adicionar membro
             </button>
           </form>

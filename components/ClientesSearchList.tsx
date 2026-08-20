@@ -56,7 +56,7 @@ export default function ClientesSearchList({ clients }: { clients: ClientRow[] }
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar por nome, documento, e-mail ou telefone..."
-          className="w-full text-sm border border-regua bg-sf text-tx rounded-lg pl-9 pr-3 py-2.5"
+          className="w-full text-sm border border-regua bg-sf text-tx pl-9 pr-3 py-2.5"
         />
       </div>
 

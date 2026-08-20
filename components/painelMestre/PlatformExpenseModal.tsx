@@ -69,7 +69,7 @@ export default function PlatformExpenseModal({
       {mode === "create" ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 transition-colors"
         >
           <Plus size={16} /> Nova despesa
         </button>
@@ -77,7 +77,7 @@ export default function PlatformExpenseModal({
         <button
           onClick={() => setOpen(true)}
           data-tip="Editar"
-          className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 transition-colors"
         >
           <Pencil size={14} />
         </button>
@@ -145,7 +145,7 @@ export default function PlatformExpenseModal({
               {error && <p className="text-xs text-atencao">{error}</p>}
             </div>
             <div className="shrink-0 border-t border-white/10 px-5 py-3 flex justify-end">
-              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50">
                 {loading ? "Salvando..." : mode === "create" ? "Criar" : "Salvar alterações"}
               </button>
             </div>
@@ -196,7 +196,7 @@ export function DeletePlatformExpenseButton({ id }: { id: string }) {
       onClick={handleClick}
       disabled={pending}
       data-tip="Excluir"
-      className="p-1.5 rounded-lg text-white/40 hover:text-atencao hover:bg-white/10 transition-colors disabled:opacity-40"
+      className="p-1.5 text-white/40 hover:text-atencao hover:bg-white/10 transition-colors disabled:opacity-40"
     >
       <Trash2 size={14} />
     </button>

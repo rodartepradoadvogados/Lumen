@@ -15,7 +15,7 @@ export default function OfficeListRow({ office }: { office: TenantOfficeSummary 
       href={office.isInternal ? "#" : `/painel-mestre/${office.id}`}
       className={`flex items-center gap-3 px-5 py-3.5 ${office.isInternal ? "cursor-default" : "hover:bg-white/5"}`}
     >
-      <span className="h-9 w-9 rounded-lg bg-white/5 text-white/80 flex items-center justify-center shrink-0">
+      <span className="h-9 w-9 bg-white/5 text-white/80 flex items-center justify-center shrink-0">
         <Building2 size={16} />
       </span>
       <div className="min-w-0 flex-1">

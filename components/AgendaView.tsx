@@ -170,7 +170,7 @@ export default function AgendaView({
 
   const controls = (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      <div className="flex gap-1 bg-sf-apoio rounded-lg border border-regua p-1">
+      <div className="flex gap-1 bg-sf-apoio border border-regua p-1">
         {[
           { key: "mes", label: "Mês" },
           { key: "semana", label: "Semana" },
@@ -180,7 +180,7 @@ export default function AgendaView({
             key={v.key}
             href={buildHref({ visao: v.key === "mes" ? undefined : v.key })}
             className={clsx(
-              "text-xs font-semibold px-3 py-1.5 rounded-md transition-colors",
+              "text-xs font-semibold px-3 py-1.5 transition-colors",
               visao === v.key
                 ? "bg-acao text-acao-tx"
                 : "text-tx-2 hover:bg-sf"
@@ -194,7 +194,7 @@ export default function AgendaView({
       <select
         value={responsibleId}
         onChange={(e) => onFilterChange("responsibleId", e.target.value)}
-        className="text-xs font-medium border border-regua-forte rounded-lg px-2.5 py-2 bg-sf text-tx"
+        className="text-xs font-medium border border-regua-forte px-2.5 py-2 bg-sf text-tx"
       >
         <option value="">Todos os responsáveis</option>
         {users.map((u) => (
@@ -207,7 +207,7 @@ export default function AgendaView({
       <select
         value={tipo}
         onChange={(e) => onFilterChange("tipo", e.target.value)}
-        className="text-xs font-medium border border-regua-forte rounded-lg px-2.5 py-2 bg-sf text-tx"
+        className="text-xs font-medium border border-regua-forte px-2.5 py-2 bg-sf text-tx"
       >
         <option value="">Todos os tipos</option>
         {Object.keys(typeMeta).map((k) => (
@@ -307,7 +307,7 @@ function EventChip({ t }: { t: TaskData }) {
     <div
       data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : doneTip || undefined}
       className={clsx(
-        "text-[10px] pl-1.5 pr-1 py-0.5 rounded-r truncate font-medium flex items-center gap-1 border-l-[3px]",
+        "text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px]",
         isSafety ? clsx(safetyChip, "border-aviso") : clsx(meta.chip, meta.filete),
         done && "line-through opacity-60"
       )}
@@ -325,7 +325,7 @@ function EventChip({ t }: { t: TaskData }) {
 function FinanceEventChip({ f }: { f: FinanceEntryData }) {
   const meta = financeMeta[f.kind];
   return (
-    <div className={clsx("text-[10px] pl-1.5 pr-1 py-0.5 rounded-r truncate font-medium flex items-center gap-1 border-l-[3px]", meta.chip, meta.filete)}>
+    <div className={clsx("text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px]", meta.chip, meta.filete)}>
       <span className="shrink-0">{f.kind === "PAGAR" ? "↓" : "↑"}</span>
       <span className="truncate">{f.description}</span>
     </div>
@@ -378,13 +378,13 @@ function MonthView({
           {MONTHS[month]} {year}
         </h3>
         <div className="flex items-center gap-1">
-          <Link href={prevMonthHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
+          <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao px-2 py-1 rounded-lg hover:bg-acao-bg">
+          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={nextMonthHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
+          <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -467,13 +467,13 @@ function WeekView({
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
-          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
+          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao px-2 py-1 rounded-lg hover:bg-acao-bg">
+          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx/80">
+          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80">
             <ChevronRight size={18} />
           </Link>
         </div>

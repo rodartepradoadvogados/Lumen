@@ -55,7 +55,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2"
+        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2"
       >
         <Building2 size={13} /> Entrar como este escritório
       </button>
@@ -67,7 +67,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-grafite-800 rounded-xl shadow-pop w-full max-w-md animate-fade-in"
+            className="bg-grafite-800 shadow-pop w-full max-w-md animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
@@ -85,7 +85,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
             <div className="p-6 space-y-4">
               {error && (
                 <p
-                  className={`text-xs rounded-lg px-3 py-2 ${
+                  className={`text-xs px-3 py-2 ${
                     aguardaAprovacao
                       ? "text-aviso bg-aviso-bg"
                       : "text-atencao bg-atencao/10 dark:bg-atencao/15"
@@ -102,7 +102,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                 <select
                   value={reasonCode}
                   onChange={(e) => setReasonCode(e.target.value as AccessReasonCode)}
-                  className="w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm"
                 >
                   {Object.entries(ACCESS_REASONS).map(([code, label]) => (
                     <option key={code} value={code}>
@@ -118,7 +118,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                   value={ticketSubject}
                   onChange={(e) => setTicketSubject(e.target.value)}
                   placeholder="Ex.: cliente relatou erro ao anexar documento"
-                  className="w-full border border-white/15 bg-grafite-700 text-white placeholder:text-white/30 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-white/15 bg-grafite-700 text-white placeholder:text-white/30 px-3 py-2 text-sm"
                 />
               </div>
 
@@ -128,11 +128,11 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                   value={reasonNote}
                   onChange={(e) => setReasonNote(e.target.value)}
                   rows={2}
-                  className="w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm"
                 />
               </div>
 
-              <p className="text-[11px] text-white/60 bg-white/5 rounded-lg px-3 py-2">
+              <p className="text-[11px] text-white/60 bg-white/5 px-3 py-2">
                 O acesso dura {SESSION_MINUTES} minutos, fica registrado com motivo e chamado, e é visível ao escritório em
                 tempo real — com botão para encerrar a qualquer momento do lado deles.
               </p>
@@ -141,7 +141,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                 type="button"
                 disabled={pending}
                 onClick={submit}
-                className="w-full inline-flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
+                className="w-full inline-flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2.5"
               >
                 {pending ? "Abrindo…" : aguardaAprovacao ? "Tentar novamente" : "Confirmar e entrar"}
               </button>

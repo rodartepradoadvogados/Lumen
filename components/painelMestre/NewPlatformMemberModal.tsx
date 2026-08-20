@@ -62,7 +62,7 @@ export default function NewPlatformMemberModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 transition-colors"
       >
         <Plus size={16} /> Novo membro
       </button>
@@ -129,7 +129,7 @@ export default function NewPlatformMemberModal({
                   </div>
                 </div>
                 {error && <p className="text-xs text-atencao">{error}</p>}
-                <button type="submit" disabled={loading || eligibleUsers.length === 0} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50">
+                <button type="submit" disabled={loading || eligibleUsers.length === 0} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 disabled:opacity-50">
                   {loading ? "Vinculando..." : "Vincular"}
                 </button>
               </form>
@@ -169,7 +169,7 @@ export default function NewPlatformMemberModal({
                   </div>
                 </div>
                 {error && <p className="text-xs text-atencao">{error}</p>}
-                <button type="submit" disabled={loading} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50">
+                <button type="submit" disabled={loading} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 disabled:opacity-50">
                   {loading ? "Cadastrando..." : "Cadastrar"}
                 </button>
               </form>

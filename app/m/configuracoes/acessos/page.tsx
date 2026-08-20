@@ -78,7 +78,7 @@ export default async function MobileAcessosPage() {
       <a
         href="/api/configuracoes/acessos/exportar"
         download
-        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2.5 w-full justify-center"
+        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2.5 w-full justify-center"
       >
         <Download size={14} /> Baixar extrato de acessos (CSV)
       </a>

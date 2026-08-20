@@ -102,7 +102,7 @@ export default function AttendancePendenciasPanel({
             return (
               <div
                 key={p.id}
-                className={`flex items-start justify-between gap-3 rounded-lg border px-3 py-2 ${
+                className={`flex items-start justify-between gap-3 border px-3 py-2 ${
                   overdue
                     ? "border-urgente/40 bg-urgente-bg"
                     : "border-regua bg-sf-apoio"
@@ -126,7 +126,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleComplete(p.id)}
                     disabled={pending}
                     title="Concluir"
-                    className="p-1.5 rounded-md text-tx-3 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10"
+                    className="p-1.5 text-tx-3 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10"
                   >
                     <Check size={14} />
                   </button>
@@ -134,7 +134,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleDelete(p.id)}
                     disabled={pending}
                     title="Excluir"
-                    className="p-1.5 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10"
+                    className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10"
                   >
                     <X size={14} />
                   </button>
@@ -172,7 +172,7 @@ export default function AttendancePendenciasPanel({
             <button
               onClick={handleSaveNew}
               disabled={saving}
-              className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
             >
               {saving ? "Salvando..." : "Salvar pendência(s)"}
             </button>
@@ -190,7 +190,7 @@ export default function AttendancePendenciasPanel({
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
+          className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 hover:bg-sf-apoio"
         >
           <Plus size={13} /> Adicionar pendência
         </button>

@@ -28,7 +28,7 @@ export default function PromoteToJudicialForm({ caseId }: { caseId: string }) {
         <label className="text-xs font-medium text-tx-2">Vara/Comarca</label>
         <input name="court" className="pj-input" />
       </div>
-      <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+      <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50">
         {pending ? "Convertendo..." : "Converter em Judicial"}
       </button>
       <style jsx global>{`

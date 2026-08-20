@@ -174,7 +174,7 @@ export default async function MobileConfiguracoes() {
 
           <details className="group" open>
             <Group icon={Plug} title="Modelos & Integrações" meta="8 itens">
-              <Card className="!rounded-t-none border-t-0">
+              <Card className=" border-t-0">
                 {/* Mesmas 3 categorias do site (Conexões / Captura automática / Documentos e
                     pastas — "Fluxo de trabalho" fica de fora aqui porque as colunas do Kanban só
                     são configuráveis no computador, ver ConfiguracoesPage). Antes era uma lista
@@ -198,7 +198,7 @@ export default async function MobileConfiguracoes() {
                   )}
                   <a
                     href="/api/google/connect"
-                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 w-fit"
+                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2 w-fit"
                   >
                     <HardDrive size={13} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google
                   </a>
@@ -222,7 +222,7 @@ export default async function MobileConfiguracoes() {
                   </p>
                   <a
                     href="/api/google/connect?mode=jusbrasil"
-                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 w-fit"
+                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2 w-fit"
                   >
                     <HardDrive size={13} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
                   </a>
@@ -250,7 +250,7 @@ export default async function MobileConfiguracoes() {
                     {processosMonitoradosCount} processo(s) monitorado(s) — API oficial, não sofre o bloqueio do DJEN.
                   </p>
                   {ultimoLogDatajud ? (
-                    <p className={`text-[11px] rounded-lg px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
+                    <p className={`text-[11px] px-2.5 py-1.5 ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
                       Última execução {formatRelativeTimeMobile(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
                     </p>
                   ) : (
@@ -289,7 +289,7 @@ export default async function MobileConfiguracoes() {
           {isAdmin && (
           <details className="group">
             <Group icon={Users} title="Equipe" meta={`${users.length} pessoas`}>
-              <Card className="!rounded-t-none border-t-0">
+              <Card className=" border-t-0">
                 <div className="divide-y divide-regua">
                   {users.map((u) => (
                     <div key={u.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
@@ -309,7 +309,7 @@ export default async function MobileConfiguracoes() {
           {isAdmin && (
           <details className="group">
             <Group icon={SlidersHorizontal} title="Geral" meta="3 itens">
-              <Card className="!rounded-t-none border-t-0">
+              <Card className=" border-t-0">
                 <div className="p-4">
                   <p className="text-xs font-semibold text-tx-2 mb-2">Módulos contratados</p>
                   <div className="space-y-1.5">
@@ -355,7 +355,7 @@ export default async function MobileConfiguracoes() {
           {isAdmin && (
           <details className="group">
             <Group icon={Workflow} title="Workflows" meta={`${workflowTemplates.length} modelos`}>
-              <Card className="!rounded-t-none border-t-0">
+              <Card className=" border-t-0">
                 <div className="p-4">
                   <WorkflowsManager
                     templates={workflowTemplates.map((t) => ({
@@ -386,7 +386,7 @@ export default async function MobileConfiguracoes() {
           {isAdmin && blogAccess && (
             <details className="group">
               <Group icon={Newspaper} title="Blog Jurídico" meta={`${blogPending} pendente(s)`}>
-                <Card className="!rounded-t-none border-t-0">
+                <Card className=" border-t-0">
                   <p className="text-xs text-tx-2 leading-relaxed p-4">
                     {blogPending} matéria(s) aguardando revisão · {blogPublished} publicada(s). Ajustável só no computador.
                   </p>
@@ -402,7 +402,7 @@ export default async function MobileConfiguracoes() {
               title="Cobrança"
               meta={ownBilling.subscription ? "configurada" : "não configurada"}
             >
-              <Card className="!rounded-t-none border-t-0">
+              <Card className=" border-t-0">
                 <div className="p-4">
                   <OfficeBillingSummary billing={ownBilling} />
                 </div>
@@ -444,7 +444,7 @@ function Group({ icon: Icon, title, meta, children }: { icon: LucideIcon; title:
   return (
     <>
       <summary className="list-none cursor-pointer marker:content-none">
-        <div className="flex items-center gap-2 px-4 py-3.5 bg-sf border border-regua rounded-xl group-open:rounded-b-none group-open:border-b-0">
+        <div className="flex items-center gap-2 px-4 py-3.5 bg-sf border border-regua group-open:border-b-0">
           <Icon size={16} className="text-marca-tx shrink-0" />
           <h3 className="font-bold text-tx text-sm flex-1">{title}</h3>
           <span className="text-[10px] text-tx-2 font-medium">{meta}</span>

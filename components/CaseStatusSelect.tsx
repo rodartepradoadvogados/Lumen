@@ -71,7 +71,7 @@ export default function CaseStatusSelect({
       </select>
 
       {confirmArquivar && (
-        <div className="absolute right-0 top-full mt-2 z-20 w-72 rounded-lg border border-regua bg-sf shadow-menu p-3.5 text-left">
+        <div className="absolute right-0 top-full mt-2 z-20 w-72 border border-regua bg-sf shadow-menu p-3.5 text-left">
           <p className="text-xs font-semibold text-tx">Este processo tem honorário a apurar.</p>
           <p className="text-[11px] text-tx-2 mt-1">Informar o desfecho agora, antes de arquivar?</p>
           <div className="flex flex-col gap-1.5 mt-3">
@@ -81,7 +81,7 @@ export default function CaseStatusSelect({
                 setConfirmArquivar(false);
                 router.push(`/processos/${caseId}?tab=financeiro`);
               }}
-              className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg"
+              className="text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 "
             >
               Abrir apuração
             </button>
@@ -91,14 +91,14 @@ export default function CaseStatusSelect({
                 setConfirmArquivar(false);
                 applyStatus("ARQUIVADO");
               }}
-              className="text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 rounded-lg"
+              className="text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 "
             >
               Arquivar mesmo assim
             </button>
             <button
               type="button"
               onClick={() => setConfirmArquivar(false)}
-              className="text-xs font-medium text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg"
+              className="text-xs font-medium text-tx-2 hover:text-tx px-3 py-1.5 "
             >
               Cancelar
             </button>

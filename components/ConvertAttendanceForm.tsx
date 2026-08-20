@@ -29,13 +29,13 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
         <button
           onClick={handleSubmitCaso}
           disabled={pending}
-          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
         >
           {pending ? "Convertendo..." : "Transformar em Caso"}
         </button>
         <button
           onClick={() => setMode("JUDICIAL")}
-          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 "
         >
           Transformar em Processo Judicial
         </button>
@@ -56,7 +56,7 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
         </div>
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50">
           {pending ? "Convertendo..." : "Confirmar Processo Judicial"}
         </button>
         <button type="button" onClick={() => setMode("none")} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">

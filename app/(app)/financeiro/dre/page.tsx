@@ -73,13 +73,13 @@ export default async function DrePage({
         action={
           !usingCustomRange ? (
             <div className="flex items-center gap-1">
-              <Link href={prevHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx-2">
+              <Link href={prevHref} className="p-1.5 hover:bg-sf-apoio text-tx-2">
                 <ChevronLeft size={18} />
               </Link>
               <span className="text-sm font-semibold text-tx px-2">
                 {MONTHS[month]} {year}
               </span>
-              <Link href={nextHref} className="p-1.5 rounded-lg hover:bg-sf-apoio text-tx-2">
+              <Link href={nextHref} className="p-1.5 hover:bg-sf-apoio text-tx-2">
                 <ChevronRight size={18} />
               </Link>
             </div>
@@ -112,7 +112,7 @@ export default async function DrePage({
               ))}
             </select>
           </div>
-          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 transition-colors">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 transition-colors">
             Filtrar
           </button>
           {usingCustomRange && (
@@ -122,7 +122,7 @@ export default async function DrePage({
           )}
           <a
             href={exportHref}
-            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte rounded-lg px-3 py-2 transition-colors"
+            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
           >
             <Download size={13} /> Exportar (.xlsx)
           </a>

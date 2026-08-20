@@ -128,7 +128,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
           {grupo.clientes.map((c) => (
             <label
               key={c.id}
-              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              className={`flex items-start gap-3 p-3 border cursor-pointer transition-colors ${
                 c.id === canonicoId ? "border-acao bg-acao-bg" : "border-regua hover:bg-sf-apoio"
               }`}
             >
@@ -160,7 +160,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
               key={c.id}
               onClick={() => abrirConferencia(c.id)}
               disabled={conferindo}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx rounded-lg px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-2 disabled:opacity-50"
             >
               <Merge size={13} /> Unificar &ldquo;{c.nome}&rdquo; em &ldquo;{canonico.nome}&rdquo;
             </button>
@@ -172,7 +172,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
         <ModalShell size="medio" title="Unificar cadastros" subtitle={`"${alvo.nome}" → "${canonico.nome}"`} onClose={fechar}>
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {conferindo && <p className="text-sm text-tx-2">Conferindo…</p>}
-            {erro && <p className="text-sm text-urgente bg-urgente-bg rounded-lg px-3 py-2">{erro}</p>}
+            {erro && <p className="text-sm text-urgente bg-urgente-bg px-3 py-2">{erro}</p>}
 
             {!resultado && simulacao && (
               <>
@@ -181,7 +181,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                   {simulacao.moveria.length === 0 ? (
                     <p className="text-sm text-tx-3">Nada — &ldquo;{simulacao.duplicata.nome}&rdquo; não tem nenhum registro vinculado.</p>
                   ) : (
-                    <ul className="text-sm text-tx divide-y divide-regua border border-regua rounded-lg overflow-hidden">
+                    <ul className="text-sm text-tx divide-y divide-regua border border-regua overflow-hidden">
                       {simulacao.moveria.map((i) => (
                         <li key={i.rotulo} className="flex justify-between px-3 py-1.5">
                           <span>{i.rotulo}</span>
@@ -193,7 +193,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                 </div>
 
                 {simulacao.avisos.map((a, i) => (
-                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca rounded-r-lg px-3 py-2 flex gap-2">
+                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2 flex gap-2">
                     <AlertTriangle size={14} className="text-marca-tx shrink-0 mt-0.5" /> {a}
                   </p>
                 ))}
@@ -203,7 +203,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                     <p className="text-xs font-semibold uppercase tracking-wide text-urgente">
                       {simulacao.conflitosPastaDrive.length} conflito(s) na pasta do Drive — não serão mexidos
                     </p>
-                    <ul className="text-xs text-urgente bg-urgente-bg border border-urgente/20 rounded-lg divide-y divide-urgente/20">
+                    <ul className="text-xs text-urgente bg-urgente-bg border border-urgente/20 divide-y divide-urgente/20">
                       {simulacao.conflitosPastaDrive.map((c, i) => (
                         <li key={i} className="px-3 py-1.5">
                           <span className="font-mono">{c.caminho}</span> — {c.motivo}
@@ -228,7 +228,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                 <p className="text-sm font-semibold text-concluido flex items-center gap-1.5">
                   <CheckCircle2 size={16} /> Unificação concluída
                 </p>
-                <ul className="text-sm text-tx divide-y divide-regua border border-regua rounded-lg overflow-hidden">
+                <ul className="text-sm text-tx divide-y divide-regua border border-regua overflow-hidden">
                   {resultado.movidos.length === 0 ? (
                     <li className="px-3 py-1.5 text-tx-3">Nada precisou ser movido.</li>
                   ) : (
@@ -247,12 +247,12 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                   <p className="text-xs text-tx-2">A pasta duplicada no Drive ainda tem conteúdo em conflito — não foi enviada à Lixeira.</p>
                 )}
                 {resultado.avisos.map((a, i) => (
-                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca rounded-r-lg px-3 py-2">
+                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2">
                     {a}
                   </p>
                 ))}
                 {resultado.conflitosPastaDrive.length > 0 && (
-                  <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">
+                  <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">
                     {resultado.conflitosPastaDrive.length} item(ns) do Drive ficaram sem mexer por conflito de nome — confira
                     e mescle manualmente.
                   </p>
@@ -266,7 +266,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
               <button
                 onClick={confirmar}
                 disabled={!simulacao || aplicando}
-                className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 disabled:opacity-50"
               >
                 <FolderInput size={15} /> {aplicando ? "Unificando…" : "Confirmar unificação"}
               </button>

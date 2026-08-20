@@ -86,7 +86,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+          className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua"
@@ -326,11 +326,11 @@ export default function MobileLancarHonorariosForm({
   return (
     <form action={handleSubmit} className="space-y-3 pb-4">
       {alreadyReceivedForCase !== undefined && (
-        <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+        <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
           Já recebido neste processo: <span className="font-semibold tabular-nums text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
         </p>
       )}
-      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
       {cases && (
         <div>
@@ -501,7 +501,7 @@ export default function MobileLancarHonorariosForm({
             </div>
 
             {Math.abs(divergencia) > 0.01 && (
-              <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
+              <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
                 A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                 {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
               </p>
@@ -509,7 +509,7 @@ export default function MobileLancarHonorariosForm({
 
             <div className="space-y-2.5">
               {parcelas.map((p, i) => (
-                <div key={p.key} className="rounded-lg border border-regua bg-sf-apoio p-2.5 space-y-2">
+                <div key={p.key} className=" border border-regua bg-sf-apoio p-2.5 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-tx-2">
                       Parcela {i + 1}/{parcelas.length}
@@ -567,7 +567,7 @@ export default function MobileLancarHonorariosForm({
                 />
               </div>
             </div>
-            <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+            <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
               Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado.
             </p>
           </div>
@@ -632,13 +632,13 @@ export default function MobileLancarHonorariosForm({
 
             {cobrancaHasPercentual &&
               (baseValue ? (
-                <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                   {percentualNum || 0}% de {formatCurrency(baseValue)}
                   {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago</>} ={" "}
                   <span className="font-semibold tabular-nums text-tx">{formatCurrency(percentualApurado)}</span> líquido
                 </p>
               ) : (
-                <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5">
+                <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
                   A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão &quot;A apurar&quot;, fora do
                   fluxo de caixa, até o desfecho do processo.
                 </p>
@@ -737,7 +737,7 @@ export default function MobileLancarHonorariosForm({
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2.5 rounded-lg disabled:opacity-50"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2.5 disabled:opacity-50"
         >
           <Send size={14} /> {loading ? "Salvando..." : "Salvar lançamento"}
         </button>

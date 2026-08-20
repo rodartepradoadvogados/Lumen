@@ -37,7 +37,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
       {toast && (
         // Toast flutuante — grafite fixo nos dois temas, de propósito, igual ao rail e ao
         // botão do assistente: precisa continuar legível sobre qualquer fundo por trás dele.
-        <div className="fixed bottom-5 right-5 z-[200] w-72 rounded-xl bg-grafite-800 text-white shadow-pop overflow-hidden animate-fade-in">
+        <div className="fixed bottom-5 right-5 z-[200] w-72 bg-grafite-800 text-white shadow-pop overflow-hidden animate-fade-in">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <span className="text-sm">{toast.message}</span>
             <button

@@ -10,7 +10,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
+      className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 "
     >
       <Upload size={15} /> {pending ? "Importando..." : label}
     </button>
@@ -36,7 +36,7 @@ export default function ImportForm({
         name="file"
         accept=".xlsx,.xls,.csv"
         required
-        className="block w-full text-sm text-tx-2 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-sf-apoio file:text-tx-2 file:text-sm hover:file:bg-regua"
+        className="block w-full text-sm text-tx-2 file:mr-3 file:py-2 file:px-3 file:border-0 file:bg-sf-apoio file:text-tx-2 file:text-sm hover:file:bg-regua"
       />
       <SubmitButton label={label} />
       {(state.created > 0 || state.skipped > 0 || state.errors.length > 0) && (

@@ -59,7 +59,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
 
   return (
     <div>
-      {error && <p className="mx-5 mt-4 text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="mx-5 mt-4 text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
       <div className="divide-y divide-regua">
         {posts.map((post) => (
           <div key={post.id} className="flex items-center gap-3 px-5 py-3 hover:bg-sf-apoio transition-colors">
@@ -71,9 +71,9 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
             >
               {post.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.imageUrl} alt="" className="h-12 w-16 object-cover rounded-lg border border-regua shrink-0" />
+                <img src={post.imageUrl} alt="" className="h-12 w-16 object-cover border border-regua shrink-0" />
               ) : (
-                <div className="h-12 w-16 rounded-lg bg-sf-apoio border border-regua shrink-0" />
+                <div className="h-12 w-16 bg-sf-apoio border border-regua shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-tx truncate group-hover:underline">{post.title}</p>
@@ -93,7 +93,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               onClick={() => setPickerPost(post)}
               disabled={pending}
               data-tip="Trocar foto"
-              className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors disabled:opacity-40 shrink-0"
+              className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors disabled:opacity-40 shrink-0"
             >
               <ImagePlus size={14} />
             </button>
@@ -101,7 +101,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               onClick={() => handleUnpublish(post.id, post.title)}
               disabled={pending}
               data-tip="Despublicar"
-              className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 shrink-0"
+              className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 shrink-0"
             >
               <RotateCcw size={14} />
             </button>
@@ -112,7 +112,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
       {pickerPost && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
+            className="bg-sf shadow-pop w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">

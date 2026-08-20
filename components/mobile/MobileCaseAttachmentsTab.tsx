@@ -21,7 +21,7 @@ type AttachmentData = {
 export default function MobileCaseAttachmentsTab({ attachments }: { attachments: AttachmentData[] }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+      <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
         Só leitura por aqui — para enviar ou gerar um novo anexo, use o computador.
       </p>
       <Card>
@@ -39,7 +39,7 @@ export default function MobileCaseAttachmentsTab({ attachments }: { attachments:
                   rel="noopener noreferrer"
                   className="flex items-center gap-2.5 px-4 py-3 hover:bg-sf-apoio transition-colors"
                 >
-                  <span className="p-1.5 rounded-lg bg-marca-bg text-marca-tx shrink-0">
+                  <span className="p-1.5 bg-marca-bg text-marca-tx shrink-0">
                     <Icon size={15} />
                   </span>
                   <div className="min-w-0 flex-1">

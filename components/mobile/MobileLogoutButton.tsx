@@ -32,7 +32,7 @@ export default function MobileLogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={pending}
-      className="w-full flex items-center justify-center gap-2 border border-regua text-atencao font-semibold text-sm py-3 rounded-xl disabled:opacity-50"
+      className="w-full flex items-center justify-center gap-2 border border-regua text-atencao font-semibold text-sm py-3 disabled:opacity-50"
     >
       <LogOut size={16} /> Sair
     </button>

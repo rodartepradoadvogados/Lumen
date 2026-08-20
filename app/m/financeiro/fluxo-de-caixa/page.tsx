@@ -85,7 +85,7 @@ export default async function MobileFluxoDeCaixa() {
         </div>
         <a
           href="/api/financeiro/fluxo-de-caixa/export"
-          className="flex items-center gap-1 text-xs font-semibold text-tx-2 border border-regua-forte rounded-lg px-2.5 py-1.5 shrink-0"
+          className="flex items-center gap-1 text-xs font-semibold text-tx-2 border border-regua-forte px-2.5 py-1.5 shrink-0"
         >
           <Download size={12} /> .xlsx
         </a>

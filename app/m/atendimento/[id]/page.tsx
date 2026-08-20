@@ -136,8 +136,8 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
                     <div
                       className={
                         out
-                          ? "max-w-[80%] rounded-lg rounded-br-sm bg-acao px-3 py-2 text-acao-tx"
-                          : "max-w-[80%] rounded-lg rounded-bl-sm bg-sf-apoio px-3 py-2 text-tx border border-regua"
+                          ? "max-w-[80%] bg-acao px-3 py-2 text-acao-tx"
+                          : "max-w-[80%] bg-sf-apoio px-3 py-2 text-tx border border-regua"
                       }
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
@@ -162,7 +162,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
           <h4 className="text-sm font-semibold text-tx mb-3">E-mail</h4>
           <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
             {a.emailMessages.map((m) => (
-              <div key={m.id} className="rounded-lg border border-regua bg-sf-apoio px-3 py-2">
+              <div key={m.id} className=" border border-regua bg-sf-apoio px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-tx truncate">{m.subject}</p>
                   <span className="shrink-0 text-[10px] text-tx-2">

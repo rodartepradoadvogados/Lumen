@@ -136,7 +136,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
           {hasMultiple ? (
             <div className="space-y-2 mb-2">
               {group.items.map((item) => (
-                <div key={item.id} className="rounded-lg border border-regua p-2.5">
+                <div key={item.id} className=" border border-regua p-2.5">
                   <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge color="navy">{item.source}</Badge>
@@ -147,7 +147,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                       text={item.content}
                       label="Copiar conteúdo"
                       showLabel={false}
-                      className="shrink-0 p-1 rounded-lg text-tx-2 hover:bg-sf-apoio transition-colors"
+                      className="shrink-0 p-1 text-tx-2 hover:bg-sf-apoio transition-colors"
                     />
                   </div>
                   <p className="text-sm text-tx-2 whitespace-pre-wrap">{item.content}</p>
@@ -160,7 +160,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                 text={pub.content}
                 label="Copiar conteúdo"
                 showLabel={false}
-                className="shrink-0 p-1.5 rounded-lg text-tx-2 hover:bg-sf-apoio transition-colors"
+                className="shrink-0 p-1.5 text-tx-2 hover:bg-sf-apoio transition-colors"
               />
             </div>
           )}
@@ -170,7 +170,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
               type="button"
               disabled={pending || leaving}
               onClick={markRead}
-              className="inline-flex items-center gap-1 text-[12px] font-semibold text-tx-2 px-3 py-1.5 rounded-lg bg-sf-apoio hover:bg-regua disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-[12px] font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua disabled:opacity-50"
             >
               <Check size={13} /> {pending || leaving ? "Marcando..." : "Marcar como lida"}
             </button>
@@ -178,7 +178,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
             {pub.caseId && (
               <Link
                 href={`/m/processos/${pub.caseId}`}
-                className="inline-flex items-center gap-1 text-[12px] font-semibold text-tx-2 px-3 py-1.5 rounded-lg bg-sf-apoio hover:bg-regua"
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua"
               >
                 Abrir Processo
               </Link>
@@ -207,12 +207,12 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
               <button
                 type="button"
                 onClick={() => setAgendaOpen((o) => !o)}
-                className="inline-flex items-center gap-1 text-[12px] font-semibold text-marca-tx px-3 py-1.5 rounded-lg bg-marca-bg"
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg"
               >
                 <CalendarClock size={13} /> Agenda <ChevronDown size={12} />
               </button>
               {agendaOpen && (
-                <div className="absolute left-0 top-full mt-1 w-48 bg-sf rounded-lg border border-regua shadow-pop z-20 overflow-hidden">
+                <div className="absolute left-0 top-full mt-1 w-48 bg-sf border border-regua shadow-pop z-20 overflow-hidden">
                   {actionButtons.map((a) => (
                     <button
                       key={a.type}
@@ -239,7 +239,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                   setDelegateType("TAREFA");
                   setDelegateOpen(true);
                 }}
-                className="inline-flex items-center gap-1 text-[12px] font-semibold text-marca-tx px-3 py-1.5 rounded-lg bg-marca-bg"
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg"
               >
                 <UserPlus size={13} /> Delegar
               </button>
@@ -250,7 +250,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
 
       {delegateOpen && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-sf shadow-pop w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">Delegar publicação</h3>
               <button onClick={() => setDelegateOpen(false)} className="text-tx-3 hover:text-tx">

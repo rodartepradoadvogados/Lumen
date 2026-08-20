@@ -77,7 +77,7 @@ export default async function FluxoDeCaixaPage() {
         action={
           <a
             href="/api/financeiro/fluxo-de-caixa/export"
-            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte rounded-lg px-3 py-2 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
           >
             <Download size={13} /> Exportar (.xlsx)
           </a>
@@ -90,12 +90,12 @@ export default async function FluxoDeCaixaPage() {
             <div key={m.key} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
               <div className="flex items-end gap-1 h-full w-full justify-center">
                 <div
-                  className="w-6 rounded-t bg-concluido"
+                  className="w-6 bg-concluido"
                   style={{ height: `${(m.entradas / maxVal) * 100}%` }}
                   title={`Entradas: ${formatCurrency(m.entradas)}`}
                 />
                 <div
-                  className="w-6 rounded-t bg-urgente"
+                  className="w-6 bg-urgente"
                   style={{ height: `${(m.saidas / maxVal) * 100}%` }}
                   title={`Saídas: ${formatCurrency(m.saidas)}`}
                 />

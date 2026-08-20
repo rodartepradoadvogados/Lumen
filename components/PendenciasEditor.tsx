@@ -11,7 +11,7 @@ export type PendenciaRow = {
   dueDate: string; // YYYY-MM-DD
 };
 
-const inputCls = "w-full text-xs border border-regua-forte bg-sf text-tx rounded-md px-2 py-1";
+const inputCls = "w-full text-xs border border-regua-forte bg-sf text-tx px-2 py-1";
 
 // Duas colunas de caixas de seleção (Solicitar ao lead / Enviar ao lead) — marcar uma abre, na
 // hora, uma pergunta a mais ("quais?" quando o tipo pedir) e os campos de responsável/prazo,
@@ -56,7 +56,7 @@ export default function PendenciasEditor({
             const row = rows.find((r) => r.direction === direction && r.kind === opt.kind);
             const checked = Boolean(row);
             return (
-              <div key={opt.kind} className="rounded-lg border border-regua bg-sf-apoio px-2.5 py-1.5">
+              <div key={opt.kind} className=" border border-regua bg-sf-apoio px-2.5 py-1.5">
                 <label className="flex items-center gap-2 text-xs text-tx-2 cursor-pointer">
                   <input
                     type="checkbox"

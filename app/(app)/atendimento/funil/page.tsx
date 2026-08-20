@@ -74,7 +74,7 @@ export default async function FunilPage() {
         action={
           <Link
             href="/atendimento"
-            className="inline-flex items-center gap-1.5 bg-sf text-tx-2 border border-regua hover:bg-sf-apoio text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 bg-sf text-tx-2 border border-regua hover:bg-sf-apoio text-sm font-semibold px-3.5 py-2 transition-colors"
           >
             <List size={16} /> Lista de Atendimentos
           </Link>
@@ -98,7 +98,7 @@ export default async function FunilPage() {
           const cards = byStage[stage];
           const total = totals.find((t) => t.stage === stage)!;
           return (
-            <div key={stage} className="w-80 shrink-0 rounded-xl bg-sf-apoio border border-regua flex flex-col">
+            <div key={stage} className="w-80 shrink-0 bg-sf-apoio border border-regua flex flex-col">
               <div className="px-4 py-3 border-b border-regua">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -126,10 +126,10 @@ export default async function FunilPage() {
                       // sua categoria por uma faixa lateral, aqui aplicada ao estágio do funil.
                       <div
                         key={a.id}
-                        className="bg-sf rounded-lg border border-regua shadow-card border-l-[3px]"
+                        className="bg-sf border border-regua shadow-card border-l-[3px]"
                         style={{ borderLeftColor: stageDot[stage] }}
                       >
-                        <Link href={`/atendimento/${a.id}`} className="block p-3 hover:bg-sf-apoio rounded-t-lg transition-colors">
+                        <Link href={`/atendimento/${a.id}`} className="block p-3 hover:bg-sf-apoio transition-colors">
                           <p className="text-sm font-medium text-tx leading-snug">{a.clientName}</p>
                           <p className="text-xs text-tx-3 mt-0.5 line-clamp-2">{a.subject}</p>
                           <div className="flex items-center gap-1.5 flex-wrap mt-2">

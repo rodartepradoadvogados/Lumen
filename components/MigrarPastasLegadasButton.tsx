@@ -79,7 +79,7 @@ export default function MigrarPastasLegadasButton() {
         <button
           onClick={verificar}
           disabled={checando || aplicando}
-          className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit disabled:opacity-50"
         >
           <FolderSearch size={16} /> {checando ? "Verificando..." : "Verificar pastas do Drive fora do lugar"}
         </button>
@@ -88,7 +88,7 @@ export default function MigrarPastasLegadasButton() {
           <button
             onClick={aplicar}
             disabled={aplicando}
-            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit disabled:opacity-50"
           >
             <FolderInput size={16} /> {aplicando ? "Aplicando..." : "Aplicar a migração"}
           </button>
@@ -96,7 +96,7 @@ export default function MigrarPastasLegadasButton() {
       </div>
 
       {erro && (
-        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-3 py-2">
+        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2">
           {erro}
         </p>
       )}
@@ -111,7 +111,7 @@ export default function MigrarPastasLegadasButton() {
           {exibido.entries.length === 0 ? (
             <p className="text-xs text-tx-2">Nenhum processo ou atendimento com pasta no Drive encontrado.</p>
           ) : (
-            <div className="border border-regua rounded-lg overflow-x-auto scrollbar-thin">
+            <div className="border border-regua overflow-x-auto scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="bg-sf-apoio">
                   <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2">
@@ -130,7 +130,7 @@ export default function MigrarPastasLegadasButton() {
                       <td className="px-3 py-2.5 align-top text-tx-2">{e.kind === "PROCESSO" ? "Processo" : "Atendimento"}</td>
                       <td className="px-3 py-2.5 align-top font-medium text-tx">{e.title}</td>
                       <td className="px-3 py-2.5 align-top">
-                        <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] ${actionBadgeClass(e.action)}`}>
+                        <span className={`inline-block px-2 py-0.5 text-[11px] ${actionBadgeClass(e.action)}`}>
                           {ACTION_LABEL[e.action]}
                         </span>
                       </td>
@@ -148,7 +148,7 @@ export default function MigrarPastasLegadasButton() {
               porque não têm processo a que se ligar — e nunca são movidas nem apagadas pela ação,
               só reportadas, porque só um humano sabe a que processo aquele documento pertence. */}
           {exibido.orfas.length > 0 && (
-            <div className="border border-aviso/25 rounded-lg p-3 bg-aviso-bg space-y-1.5">
+            <div className="border border-aviso/25 p-3 bg-aviso-bg space-y-1.5">
               <p className="text-xs font-semibold text-aviso">
                 {exibido.orfas.length} pasta(s) com conteúdo e sem processo vinculado — nada foi movido nem apagado
               </p>

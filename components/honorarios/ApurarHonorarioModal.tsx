@@ -128,13 +128,13 @@ export default function ApurarHonorarioModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Gavel size={16} /> Registrar desfecho
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[900px] h-[80vh] flex flex-col overflow-hidden">
+          <div className="bg-sf shadow-pop w-[80vw] max-w-[900px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
               <div>
                 <h3 className="font-bold text-tx">Registrar desfecho</h3>
@@ -146,7 +146,7 @@ export default function ApurarHonorarioModal({
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
               {bases.length > 1 && (
                 <div>
@@ -169,7 +169,7 @@ export default function ApurarHonorarioModal({
                       key={o.value}
                       type="button"
                       onClick={() => setDesfecho(o.value)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                      className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
                         desfecho === o.value
                           ? o.value === "IMPROCEDENTE"
                             ? "bg-urgente-bg text-urgente border-regua-forte"
@@ -201,7 +201,7 @@ export default function ApurarHonorarioModal({
                   </label>
 
                   {usarPresuncao ? (
-                    <p className="text-[11px] text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+                    <p className="text-[11px] text-tx-2 bg-sf-apoio px-3 py-2">
                       Trânsito em julgado presumido:{" "}
                       <span className="font-semibold text-tx">
                         {transitoPresumidoStr ? formatCalendarDate(transitoPresumidoStr) : "—"}
@@ -215,7 +215,7 @@ export default function ApurarHonorarioModal({
                     </div>
                   )}
 
-                  <div className="rounded-lg border border-regua divide-y divide-regua">
+                  <div className=" border border-regua divide-y divide-regua">
                     {itensDaBase.map((p) => {
                       const apurado = valorPercentualApurado({
                         percentual: p.percentual,
@@ -247,7 +247,7 @@ export default function ApurarHonorarioModal({
               )}
 
               {semExito && (
-                <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">
+                <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">
                   Não gera receita. {itensDaBase.length} parcela(s) desta base serão encerradas (status Cancelado) — o registro não é
                   apagado, continua consultável no histórico financeiro do processo.
                 </p>
@@ -258,7 +258,7 @@ export default function ApurarHonorarioModal({
               <button
                 type="button"
                 onClick={resetAndClose}
-                className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf"
+                className="text-sm font-medium px-4 py-2 text-tx-2 hover:bg-sf"
               >
                 Cancelar
               </button>
@@ -266,7 +266,7 @@ export default function ApurarHonorarioModal({
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading || (!semExito && valorApuradoNum <= 0)}
-                className="font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 bg-acao hover:bg-acao-hover text-acao-tx transition-colors"
+                className="font-semibold text-sm px-5 py-2 disabled:opacity-50 bg-acao hover:bg-acao-hover text-acao-tx transition-colors"
               >
                 {loading ? "Salvando..." : semExito ? "Confirmar sem êxito" : "Confirmar apuração"}
               </button>

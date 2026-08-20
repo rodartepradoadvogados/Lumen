@@ -126,12 +126,12 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
             {monthLabel(start)} a {monthLabel(now)}
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-sf-apoio border border-regua rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-sf-apoio border border-regua p-1">
           {periodOptions.map((opt) => (
             <Link
               key={opt.value}
               href={`/m/relatorios?meses=${opt.value}`}
-              className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${
+              className={`text-xs font-semibold px-2.5 py-1 transition-colors ${
                 meses === opt.value ? "bg-tx text-sf" : "text-tx-2"
               }`}
             >
@@ -143,7 +143,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       <Link href="/m/relatorios/personalizado" className="block">
         <Card className="flex items-center gap-3 px-4 py-3.5">
-          <span className="h-9 w-9 rounded-lg bg-acao-bg text-acao flex items-center justify-center shrink-0">
+          <span className="h-9 w-9 bg-acao-bg text-acao flex items-center justify-center shrink-0">
             <SlidersHorizontal size={16} />
           </span>
           <div className="flex-1 min-w-0">
@@ -277,7 +277,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
             {triageRows.map((t) => (
               <div
                 key={t.status}
-                className="rounded-lg bg-sf-apoio border border-regua p-3 text-center"
+                className=" bg-sf-apoio border border-regua p-3 text-center"
               >
                 <p className="font-bold text-lg tabular-nums text-tx">{t.value}</p>
                 <div className="flex items-center justify-center gap-1 mt-1">

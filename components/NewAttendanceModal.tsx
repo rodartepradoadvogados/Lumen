@@ -59,7 +59,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+          className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
             // Mesmo padrão do controle segmentado (DESIGN-SYSTEM.md §5): opção ativa inverte —
             // fundo na cor do texto, texto na cor da superfície — sem cor de acento.
             value === opt.value ? "bg-tx text-sf border-tx" : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
@@ -399,13 +399,13 @@ export default function NewAttendanceModal({
   return (
     <>
       {/* "Novo" é Secundário (DESIGN-SYSTEM.md §4) — o azul de ação fica pro "Criar" dentro do modal. */}
-      <button onClick={openFresh} className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors">
+      <button onClick={openFresh} className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 transition-colors">
         <Plus size={16} /> Novo Atendimento
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+          <div className="bg-sf shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">Novo Atendimento</h3>
               <button onClick={handleCloseAttempt} className="text-tx-3 hover:text-tx">
@@ -415,10 +415,10 @@ export default function NewAttendanceModal({
 
             <form ref={formRef} onSubmit={handleSubmit} onChange={() => setDirty(true)} className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {formError && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{formError}</p>}
+                {formError && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{formError}</p>}
 
                 {uploadWarnings.length > 0 && (
-                  <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg rounded-lg px-3 py-2">
+                  <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg px-3 py-2">
                     <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -431,11 +431,11 @@ export default function NewAttendanceModal({
                   <div>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <label className="text-xs font-medium text-tx-2">Nome do Contato</label>
-                      <div className="flex gap-1 bg-sf-apoio rounded-lg p-0.5">
+                      <div className="flex gap-1 bg-sf-apoio p-0.5">
                         <button
                           type="button"
                           onClick={() => setClientMode("novo")}
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                          className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                             clientMode === "novo"
                               ? "bg-sf shadow-sm text-tx"
                               : "text-tx-3 hover:text-tx"
@@ -446,7 +446,7 @@ export default function NewAttendanceModal({
                         <button
                           type="button"
                           onClick={() => setClientMode("selecionar")}
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                          className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                             clientMode === "selecionar"
                               ? "bg-sf shadow-sm text-tx"
                               : "text-tx-3 hover:text-tx"
@@ -489,7 +489,7 @@ export default function NewAttendanceModal({
                           className="at-input"
                         />
                         {clientQuery.trim().length >= 2 && (
-                          <div className="absolute z-10 left-0 right-0 mt-1 bg-sf border border-regua rounded-lg shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
+                          <div className="absolute z-10 left-0 right-0 mt-1 bg-sf border border-regua shadow-pop max-h-48 overflow-y-auto scrollbar-thin">
                             {searching && <p className="px-3 py-2 text-xs text-tx-3">Buscando...</p>}
                             {!searching && clientResults.length === 0 && (
                               <p className="px-3 py-2 text-xs text-tx-3">Nenhum cliente encontrado.</p>
@@ -515,7 +515,7 @@ export default function NewAttendanceModal({
                   </div>
 
                   {conflictMatches.length > 0 && (
-                    <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg rounded-lg px-3 py-2">
+                    <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg px-3 py-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                       <div>
                         <p className="font-semibold">Possível conflito de interesses</p>
@@ -707,7 +707,7 @@ export default function NewAttendanceModal({
                       if (e.dataTransfer.files?.length) stageFiles(e.dataTransfer.files);
                     }}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
+                    className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
                       dragOver ? "border-acao bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-sf-apoio"
                     }`}
                   >
@@ -730,20 +730,20 @@ export default function NewAttendanceModal({
                   {stagedAttachments.length > 0 && (
                     <div className="space-y-2">
                       {stagedAttachments.map((att) => (
-                        <div key={att.key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg bg-sf-apoio border border-regua">
+                        <div key={att.key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 bg-sf-apoio border border-regua">
                           <input
                             value={att.name}
                             onChange={(e) =>
                               setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, name: e.target.value } : a)))
                             }
-                            className="flex-1 text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5"
+                            className="flex-1 text-sm border border-regua-forte bg-sf text-tx px-2.5 py-1.5"
                           />
                           <DocumentTypeSelect
                             value={att.docType}
                             onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                             excludeKeys={["PARECER"]}
                             allowCreate
-                            className="text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 sm:max-w-[220px]"
+                            className="text-sm border border-regua-forte bg-sf text-tx px-2.5 py-1.5 sm:max-w-[220px]"
                           />
                           <button
                             type="button"
@@ -778,11 +778,11 @@ export default function NewAttendanceModal({
                   <button
                     type="button"
                     onClick={handleCloseAttempt}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf-apoio"
+                    className="text-sm font-medium px-4 py-2 text-tx-2 hover:bg-sf-apoio"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 disabled:opacity-50 transition-colors">
                     {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Criar"}
                   </button>
                 </div>
@@ -794,18 +794,18 @@ export default function NewAttendanceModal({
 
       {confirmClose && (
         <div className="fixed inset-0 z-[60] bg-grafite-900/60 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm p-5 space-y-4">
+          <div className="bg-sf shadow-pop w-full max-w-sm p-5 space-y-4">
             <p className="text-sm font-medium text-tx">Deseja salvar o rascunho deste atendimento e continuar depois?</p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleSaveDraft}
                 disabled={loading}
-                className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2 rounded-lg disabled:opacity-50 transition-colors"
+                className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2 disabled:opacity-50 transition-colors"
               >
                 {loading ? "Salvando..." : "Salvar rascunho"}
               </button>
               {/* Descartar é destrutivo (DESIGN-SYSTEM.md §4: fundo —, texto --vinho). */}
-              <button onClick={handleDiscard} className="w-full text-vinho text-sm font-semibold py-2 rounded-lg hover:bg-sf-apoio">
+              <button onClick={handleDiscard} className="w-full text-vinho text-sm font-semibold py-2 hover:bg-sf-apoio">
                 Descartar
               </button>
               <button onClick={() => setConfirmClose(false)} className="w-full text-xs font-semibold text-tx-3 hover:text-tx py-1">

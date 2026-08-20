@@ -254,18 +254,18 @@ export default function AttachmentList({
       {caseId && (
         <div className="mb-3">
           {folderMode ? (
-            <form onSubmit={handleCreateFolder} className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg border border-regua bg-sf-apoio">
+            <form onSubmit={handleCreateFolder} className="flex flex-wrap items-center gap-2 p-2.5 border border-regua bg-sf-apoio">
               <input
                 autoFocus
                 value={folderName}
                 onChange={(e) => setFolderName(e.target.value)}
                 placeholder="Nome da pasta"
-                className="flex-1 min-w-[160px] text-xs border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+                className="flex-1 min-w-[160px] text-xs border border-regua bg-sf text-tx px-2.5 py-1.5"
               />
               <button
                 type="submit"
                 disabled={folderPending || !folderName.trim()}
-                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
               >
                 {folderPending ? "Criando..." : "Criar pasta"}
               </button>
@@ -286,13 +286,13 @@ export default function AttachmentList({
             <button
               type="button"
               onClick={() => setFolderMode(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 hover:bg-sf-apoio"
             >
               <FolderPlus size={13} /> Nova pasta
             </button>
           )}
           {folderError && (
-            <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-lg px-2.5 py-1.5 mt-2">{folderError}</p>
+            <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 px-2.5 py-1.5 mt-2">{folderError}</p>
           )}
         </div>
       )}
@@ -305,7 +305,7 @@ export default function AttachmentList({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome"
-              className="w-full text-xs border border-regua bg-sf text-tx rounded-lg pl-7 pr-2.5 py-1.5"
+              className="w-full text-xs border border-regua bg-sf text-tx pl-7 pr-2.5 py-1.5"
             />
           </div>
           <DocumentTypeSelect
@@ -314,21 +314,21 @@ export default function AttachmentList({
             allowAll
             includeLegacy
             excludeKeys={excludeParecer}
-            className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5 max-w-[180px]"
+            className="text-xs border border-regua bg-sf text-tx px-2 py-1.5 max-w-[180px]"
           />
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             title="Enviado a partir de"
-            className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
+            className="text-xs border border-regua bg-sf text-tx px-2 py-1.5"
           />
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             title="Enviado até"
-            className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
+            className="text-xs border border-regua bg-sf text-tx px-2 py-1.5"
           />
         </div>
       )}
@@ -340,7 +340,7 @@ export default function AttachmentList({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
+              className="text-xs border border-regua bg-sf text-tx px-2 py-1.5"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -350,7 +350,7 @@ export default function AttachmentList({
             </select>
           </label>
 
-          <div className="flex items-center gap-0.5 border border-regua rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 border border-regua p-0.5">
             {(
               [
                 { mode: "icons" as const, icon: LayoutGrid, label: "Ícones" },
@@ -363,7 +363,7 @@ export default function AttachmentList({
                 type="button"
                 onClick={() => changeViewMode(mode)}
                 data-tip={label}
-                className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
+                className={`flex items-center gap-1 text-xs font-medium px-2 py-1 transition-colors ${
                   viewMode === mode
                     ? "bg-acao text-acao-tx"
                     : "text-tx-2 hover:bg-sf-apoio"
@@ -384,11 +384,11 @@ export default function AttachmentList({
             return (
               <div
                 key={a.id}
-                className="group relative bg-sf-apoio border border-regua rounded-lg p-3 hover:border-acao/40 transition-colors"
+                className="group relative bg-sf-apoio border border-regua p-3 hover:border-acao/40 transition-colors"
               >
                 {editingId === a.id ? (
                   <div className="flex flex-col items-center text-center gap-1.5">
-                    <div className="h-10 w-10 rounded-lg bg-sf text-tx-2 flex items-center justify-center">
+                    <div className="h-10 w-10 bg-sf text-tx-2 flex items-center justify-center">
                       <Icon size={18} />
                     </div>
                     <p className="text-xs font-medium text-tx truncate w-full" title={a.name}>
@@ -404,7 +404,7 @@ export default function AttachmentList({
                   </div>
                 ) : (
                   <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-1.5">
-                    <div className="h-10 w-10 rounded-lg bg-sf text-tx-2 flex items-center justify-center">
+                    <div className="h-10 w-10 bg-sf text-tx-2 flex items-center justify-center">
                       <Icon size={18} />
                     </div>
                     <p className="text-xs font-medium text-tx truncate w-full" title={a.name}>
@@ -423,7 +423,7 @@ export default function AttachmentList({
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                     disabled={pending}
                     data-tip="Editar tipo de documento"
-                    className="p-1 rounded-md text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+                    className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
                   >
                     <Pencil size={11} />
                   </button>
@@ -431,7 +431,7 @@ export default function AttachmentList({
                     onClick={() => handleDelete(a.id)}
                     disabled={pending}
                     data-tip="Excluir anexo"
-                    className="p-1 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
+                    className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
                   >
                     <X size={12} />
                   </button>
@@ -481,7 +481,7 @@ export default function AttachmentList({
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                     disabled={pending}
                     data-tip="Editar tipo de documento"
-                    className="p-1 rounded-md text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+                    className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
                   >
                     <Pencil size={11} />
                   </button>
@@ -489,7 +489,7 @@ export default function AttachmentList({
                     onClick={() => handleDelete(a.id)}
                     disabled={pending}
                     data-tip="Excluir anexo"
-                    className="p-1 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
+                    className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
                   >
                     <X size={12} />
                   </button>
@@ -555,7 +555,7 @@ export default function AttachmentList({
                         onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                         disabled={pending}
                         data-tip="Editar tipo de documento"
-                        className="p-1 rounded-md text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+                        className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
                       >
                         <Pencil size={11} />
                       </button>
@@ -563,7 +563,7 @@ export default function AttachmentList({
                         onClick={() => handleDelete(a.id)}
                         disabled={pending}
                         data-tip="Excluir anexo"
-                        className="p-1 rounded-md text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
+                        className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -582,7 +582,7 @@ export default function AttachmentList({
       )}
 
       {!driveConnected && (
-        <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-lg px-2.5 py-1.5 mb-2">
+        <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 px-2.5 py-1.5 mb-2">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações, ou cole um link manualmente abaixo.
         </p>
       )}
@@ -596,7 +596,7 @@ export default function AttachmentList({
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
+          className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
             dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
           }`}
         >
@@ -618,26 +618,26 @@ export default function AttachmentList({
       )}
 
       {stagedFile && (
-        <div className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2">
+        <div className="p-3 bg-sf-apoio border border-regua space-y-2">
           <p className="text-xs font-semibold text-tx-2">Esse documento é:</p>
           <input
             value={stagedName}
             onChange={(e) => setStagedName(e.target.value)}
             placeholder="Nome do documento"
-            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
           />
           <DocumentTypeSelect
             value={stagedDocType}
             onChange={setStagedDocType}
             excludeKeys={excludeParecer}
-            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             allowCreate
           />
           <div className="flex gap-2">
             <button
               onClick={confirmStagedFile}
               disabled={uploading}
-              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 disabled:opacity-50"
             >
               {uploading ? "Enviando..." : "Enviar para o Drive"}
             </button>
@@ -653,26 +653,26 @@ export default function AttachmentList({
       )}
 
       {error && (
-        <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-lg px-2.5 py-1.5 mt-2">
+        <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 px-2.5 py-1.5 mt-2">
           {error}
         </p>
       )}
 
       <div className="mt-2">
         {linkMode ? (
-          <form action={handleAddLink} className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2">
+          <form action={handleAddLink} className="p-3 bg-sf-apoio border border-regua space-y-2">
             <input
               name="name"
               required
               placeholder="Nome do documento"
-              className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+              className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             />
             <input
               name="driveUrl"
               type="url"
               required
               placeholder="Link do Google Drive, Dropbox, OneDrive..."
-              className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+              className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             />
             <div>
               <p className="text-xs font-semibold text-tx-2 mb-1">Esse documento é:</p>
@@ -680,7 +680,7 @@ export default function AttachmentList({
                 value={linkDocType}
                 onChange={setLinkDocType}
                 excludeKeys={excludeParecer}
-                className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+                className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             allowCreate
           />
             </div>
@@ -688,7 +688,7 @@ export default function AttachmentList({
               <button
                 type="submit"
                 disabled={pending}
-                className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+                className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 disabled:opacity-50"
               >
                 {pending ? "Salvando..." : "Salvar anexo"}
               </button>
@@ -707,7 +707,7 @@ export default function AttachmentList({
         ) : (
           <button
             onClick={() => setLinkMode(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 rounded-lg hover:bg-sf-apoio"
+            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-2.5 py-1.5 hover:bg-sf-apoio"
           >
             <LinkIcon size={13} /> ou colar um link (Google Drive, Dropbox, OneDrive...)
           </button>
