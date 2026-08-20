@@ -1,415 +1,257 @@
-import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getPlatformOffice } from "@/lib/officeModules";
 import LumenMark from "@/components/LumenMark";
-import HomepageReveal from "@/components/HomepageReveal";
-import HomepageHeroCarousel from "@/components/HomepageHeroCarousel";
-import HomepageLoginCard from "@/components/HomepageLoginCard";
-import styles from "./homepage.module.css";
+import CookieConsent from "@/components/site/CookieConsent";
 
-// Homepage PÚBLICA (antes do login) do produto de software "Lúmen" — não é uma
-// página do escritório Rodarte Prado. Vive em "/" e substitui o Painel interno, que se
-// mudou para "/painel" (ver app/(app)/painel/page.tsx, components/Sidebar.tsx,
-// lib/actions/auth.ts e middleware.ts). Busca matérias reais do blog jurídico a cada
-// request, no mesmo padrão de app/blog/page.tsx.
+// Homepage PÚBLICA do produto de software "Lúmen" (documento 09 do redesenho: "o site passa a
+// vender o Lúmen como SaaS de gestão jurídica para outros escritórios, não é mais a homepage do
+// escritório Rodarte Prado"). Estrutura de 8 seções do documento, nesta ordem: barra, hero
+// regrado, linha de números, 5 linhas de recurso, fotografia, preço, fecho em pôster, rodapé —
+// sem carrossel (HomepageHeroCarousel saiu), sem card de login embutido (login virou uma
+// página de verdade, ver app/login/page.tsx), sem gradiente/textura/canto arredondado.
 //
-// Tipografia: só Archivo (--font-sans), igual ao resto do produto (manual v2, ver
-// DESIGN-SYSTEM.md §14) — carregada uma única vez em app/layout.tsx e compartilhada por toda
-// a marca Lúmen. Esta página não carrega fonte própria; a serifa saiu inteira daqui (ela só
-// sobrevive como exceção deliberada dentro do blog público, ver app/blog/layout.tsx). Cor: ver
-// o comentário no topo de ./homepage.module.css.
+// Cor: modelo B (Modernist puro, vermelho #ec3013) — o modelo A (ouro) do texto original do
+// documento 09 foi superado pela decisão registrada em design_handoff_lumen_redesign/
+// 01-tokens-e-tema.md (19/08/2026) e pelos tokens de fato aplicados em app/globals.css e
+// tailwind.config.ts. O "fecho em pôster" (única seção onde a cor corre como campo) usa
+// --marca/vermelho, exatamente como o próprio documento 09 antecipa ("no Modernist puro esse
+// campo seria vermelho"). A marca (LumenMark) mantém sua paleta própria e fixa (ouro+grafite,
+// manual da marca v2) — não segue o modelo A/B da UI.
+//
+// Campos em aberto (dados reais a preencher depois, não inventados aqui — documento 09: "só
+// números que o escritório possa comprovar" / revisão OAB do preço): os 4 números da seção de
+// estatísticas, os 3 preços de plano, a fotografia do escritório e o CNPJ no rodapé — todos
+// marcados com moldura tracejada (--vinho/--atencao) e um comentário "SUBSTITUIR" ao lado.
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Lúmen — Software de gestão para escritórios de advocacia",
   description:
-    "Processos, prazos, financeiro, atendimento e um blog jurídico atualizado todos os dias — tudo em um só sistema de gestão para escritórios de advocacia.",
+    "Publicações triadas, o dia na frente, peticionamento com o timbrado do escritório e financeiro que fecha — tudo em um só sistema de gestão para escritórios de advocacia.",
 };
-
-const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia", ANALISE: "Análise" };
 
 const FEATURES = [
   {
-    title: "Processos e prazos",
-    note: "Acompanhe processos com importação automática de publicações e andamentos processuais no DJEN, com busca pela OAB. Delegue tarefas e controle prazos e a produção do time.",
+    kicker: "Publicações",
+    title: "Publicações que chegam triadas",
+    p1: "DJEN e DATAJUD entram direto na fila do escritório, já separadas por processo e por fonte — sem copiar e colar de e-mail nem abrir site de tribunal um por um.",
+    p2: "Cada publicação vem com um toque para gerar prazo, marcar audiência ou delegar — o texto de origem fica sempre acessível, sem sair da tela.",
+    figure: "Lista de Publicações: card com filete por fonte (DJEN/DATAJUD/PJe), badge “Não lida”, ações “Gerar Prazo” e “Delegar”",
   },
   {
-    title: "Financeiro completo",
-    note: "Contas a pagar, a receber, fluxo de caixa, DRE e controle de honorários.",
+    kicker: "Painel",
+    title: "O dia na frente",
+    p1: "Um painel mostra o que vence hoje, o que já passou do prazo e a agenda da semana — com o calendário de feriados de cada tribunal já embutido no cálculo do prazo fatal.",
+    p2: "Cada advogado vê a própria fila; quem administra o escritório vê o todo, sem precisar abrir uma planilha à parte.",
+    figure: "Painel: cartões “Hoje”, “Atrasados”, agenda da semana, prazo de segurança marcado em cor distinta",
   },
   {
-    title: "Atendimento (e-mail e WhatsApp)",
-    note: "Atenda aos clientes por dentro do Lúmen, registrando atendimentos, controlando o status e convertendo leads em processo, caso ou assessoria jurídica — com integração total do WhatsApp ao sistema.",
+    kicker: "Peticionamento",
+    title: "Peticionamento com o timbrado do escritório",
+    p1: "Modelos de peça já saem formatados com o timbrado, os dados do processo e da parte preenchidos automaticamente — o texto jurídico continua sendo escrito pelo advogado.",
+    p2: "O histórico de peças de cada processo fica junto com ele, pesquisável, sem depender de pasta de rede.",
+    figure: "Editor de petição com timbrado do escritório, campos de processo/parte preenchidos, botão “Baixar .docx”",
   },
   {
-    title: "CRM e funil comercial",
-    note: "Controle os atendimentos de lead pelo Kanban e configure seu próprio follow-up.",
+    kicker: "Financeiro",
+    title: "Financeiro que fecha",
+    p1: "DRE, livro caixa e conciliação bancária num só módulo — honorários contratuais, de êxito e de sucumbência entram separados, com baixa parcial de verdade.",
+    p2: "Contas a pagar e a receber conversam com a agenda: vencimento vira lembrete, não vira surpresa no fim do mês.",
+    figure: "DRE por categoria, gráfico de fluxo de caixa, tabela de Contas a Receber com status Pendente/Parcial/Pago",
   },
   {
-    title: "Produtividade e tarefas",
-    note: "Acompanhe o timesheet em tempo real pelo tempo de acesso ao software, com controle de acessos e métricas de produtividade e trabalho da equipe.",
-  },
-  {
-    title: "Indicadores de produtividade (TaskScore)",
-    note: "Acompanhe a produtividade do time por indicadores de tempo de trabalho, conclusão de tarefas, prazos e audiências realizadas.",
-  },
-  {
-    title: "Blog Jurídico",
-    note: "Produção diária de conteúdo jurídico atualizado, com referências às fontes oficiais.",
-  },
-  {
-    title: "Relatórios e indicadores",
-    note: "Relatórios de tarefas concluídas, pendentes, gerenciais e financeiros, além de indicadores por área do conhecimento — mais controle sobre a situação produtiva do escritório.",
-  },
-  {
-    title: "Aplicativo mobile",
-    note: "Acompanhe no celular prazos, tarefas, processos, tarefas delegadas e resultados.",
+    kicker: "Sigilo",
+    title: "Sigilo auditável",
+    p1: "Documento e telefone de cliente aparecem mascarados por padrão; revelar exige motivo registrado, com validade de 15 minutos — e fica na trilha de auditoria do escritório.",
+    p2: "Suporte técnico só entra na conta de um escritório com sessão de tempo limitado e visível para o administrador — nunca em silêncio.",
+    figure: "Campo de CPF mascarado com botão “Revelar” e caixa de motivo, trilha de auditoria listando revelações",
   },
 ];
 
-// O campo `sources` (prisma/schema.prisma) é texto livre com uma URL por linha. Extrai até
-// 2 fontes, usando o hostname (sem "www.") como rótulo visível e a URL real como link.
-function parseSources(sources: string | null | undefined): { label: string; href: string }[] {
-  if (!sources) return [];
-  return sources
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((url) => {
-      let label = url;
-      try {
-        label = new URL(url).hostname.replace(/^www\./, "");
-      } catch {
-        // URL malformada — usa o texto bruto como rótulo mesmo assim, em vez de quebrar a página.
-      }
-      return { label, href: url };
-    });
-}
+const STATS = ["processos monitorados", "tribunais integrados", "publicações triadas por dia", "tempo médio de triagem"];
 
-type BlogPostLite = {
-  slug: string;
-  title: string;
-  summary: string;
-  area: string;
-  type: string;
-  sources: string | null;
-};
+const PLANS = [
+  { name: "Individual", detail: "Até 1 advogado", items: ["Publicações DJEN + DATAJUD", "Painel, agenda e peticionamento", "Financeiro básico"] },
+  { name: "Escritório", detail: "Até 10 usuários", items: ["Tudo do plano Individual", "Financeiro completo (DRE, conciliação)", "Trilha de auditoria e máscara"] },
+  { name: "Corporativo", detail: "Usuários ilimitados", items: ["Tudo do plano Escritório", "Onboarding assistido", "Suporte prioritário"] },
+];
 
-function SourcesLine({ sources }: { sources: { label: string; href: string }[] }) {
-  if (sources.length === 0) return null;
-  return (
-    <p className={styles.sourcesLine}>
-      <b>Fontes:</b>{" "}
-      {sources.map((s, i) => (
-        <span key={s.href}>
-          {i > 0 && " · "}
-          <a className={styles.src} href={s.href} target="_blank" rel="noopener noreferrer">
-            {s.label}
-          </a>
-        </span>
-      ))}
-    </p>
-  );
-}
-
-function ArticleRow({ post }: { post: BlogPostLite }) {
-  const sources = parseSources(post.sources);
-  return (
-    <Link href={`/blog/${post.slug}`} className={styles.articleRow}>
-      <div className={styles.tagRow}>
-        <span className={styles.tag}>{post.area}</span>
-        <span className={`${styles.tag} ${styles.tagType}`}>{TYPE_LABELS[post.type] ?? post.type}</span>
-      </div>
-      <h3>{post.title}</h3>
-      <p className={styles.dek}>{post.summary}</p>
-      <SourcesLine sources={sources} />
-    </Link>
-  );
-}
+const navLink = "text-sm font-semibold text-tx hover:underline underline-offset-4";
+const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm";
+const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg";
+const placeholderBox = "border-2 border-dashed border-atencao bg-sf";
+const placeholderTag = "inline-block text-[10px] font-extrabold uppercase tracking-[.1em] text-atencao border border-atencao bg-sf px-1.5 py-0.5";
 
 export default async function HomePage() {
   // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel.
   const user = await getCurrentUser();
-  if (user) {
-    redirect("/painel");
-  }
-
-  // Escritório dono da plataforma (Rodarte Prado) — ver getPlatformOffice em
-  // lib/officeModules.ts. Mesma correção de app/blog/page.tsx (achado A34 da revisão gauntlet).
-  const office = await getPlatformOffice();
-  const posts = office
-    ? await prisma.blogPost.findMany({
-        where: { officeId: office.id, status: "PUBLICADO" },
-        orderBy: { publishedAt: "desc" },
-        take: 3,
-      })
-    : [];
-
-  const [featured, ...restPosts] = posts;
-  const sideArticles = restPosts.slice(0, 2);
-  const featuredSources = featured ? parseSources(featured.sources) : [];
+  if (user) redirect("/painel");
 
   return (
-    <div className={styles.page}>
-      <nav className={styles.nav}>
-        <div className={`${styles.wrap} ${styles.navInner}`}>
-          <div className={styles.brandMark}>
-            <LumenMark />
-            <span className={styles.wordmark}>Lúmen</span>
-          </div>
-          <div className={styles.navLinks}>
-            <a className={styles.navLinkPlain} href="#leitura">
-              Blog
-            </a>
-            <a className={styles.navLinkPlain} href="#funcionalidades">
-              Funcionalidades
-            </a>
-            <a className={styles.navLinkPlain} href="#entrar">
-              Entrar
-            </a>
-            <a className={styles.navCta} href="#leitura">
-              Ler o blog
-            </a>
-          </div>
-        </div>
-      </nav>
-
-      <header className={styles.hero}>
-        <HomepageHeroCarousel />
-        <Suspense fallback={null}>
-          <HomepageLoginCard />
-        </Suspense>
-        <div className={styles.scrollCue}>
-          <span>Role</span>
-          <span className={styles.scrollCueLine} />
+    <div className="bg-sf-fundo text-tx">
+      {/* 1. Barra */}
+      <header className="sticky top-0 z-30 bg-sf border-b-2 border-regua-forte">
+        <div className="max-w-[1120px] mx-auto px-6 h-[76px] flex items-center justify-between gap-6">
+          <Link href="/" className="flex items-center gap-2.5 font-extrabold text-lg tracking-[.16em] shrink-0">
+            <LumenMark size={26} /> LÚMEN
+          </Link>
+          <nav className="hidden md:flex items-center gap-8">
+            <a className={navLink} href="#recursos">Produto</a>
+            <a className={navLink} href="#preco">Preço</a>
+            <Link className={navLink} href="/blog">Blog</Link>
+            <Link className={navLink} href="/login">Entrar</Link>
+          </nav>
+          <Link href="/cadastro" className={btnPrimary}>Começar</Link>
         </div>
       </header>
 
-      <section id="leitura" className={styles.section}>
-        <div className={styles.wrap}>
-          <HomepageReveal as="div" className={`${styles.sectionHead} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-            <span className={styles.eyebrow}>Blog jurídico</span>
-            <h2>O que mudou no direito esta semana</h2>
-            <p>
-              Decisões de tribunais superiores, mudanças de lei e teses vinculantes, em poucos parágrafos — com link
-              direto para a fonte, sempre. Leia o resumo ou vá direto à decisão original.
+      <main>
+        {/* 2. Hero regrado */}
+        <section className="max-w-[1120px] mx-auto px-6 pt-24 pb-20">
+          <p className="text-[11px] font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
+            Software de gestão para escritórios de advocacia
+          </p>
+          <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[15ch]">
+            O escritório inteiro, num só lugar — sem perder um prazo.
+          </h1>
+          <p className="mt-5 text-lg text-tx-2 max-w-[40ch]">
+            Publicações triadas, agenda com prazo fatal e financeiro que fecha sozinho.
+          </p>
+          <div className="flex flex-wrap gap-3 mt-8">
+            <Link href="/cadastro" className={btnPrimary}>Começar agora</Link>
+            <a href="#recursos" className={btnSecondary}>Ver como funciona</a>
+          </div>
+        </section>
+
+        {/* 3. Linha de números */}
+        <section className="border-t-2 border-regua-forte">
+          <div className="max-w-[1120px] mx-auto px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-6">
+              {STATS.map((label) => (
+                <div key={label} className={`py-6 px-5 ${placeholderBox}`}>
+                  <span className={placeholderTag}>Substituir</span>
+                  <div className="text-4xl font-extrabold tabular-nums mt-2">—</div>
+                  <div className="mt-1.5 text-[13px] font-semibold text-tx-2">{label}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-tx-3 py-3">
+              Documento 09: &ldquo;só números que o escritório possa comprovar.&rdquo; Preencher com os 4 valores reais antes do deploy.
             </p>
-          </HomepageReveal>
+          </div>
+        </section>
 
-          {!featured ? (
-            <p className={styles.emptyReading}>Nenhuma matéria publicada ainda — em breve, novidades por aqui.</p>
-          ) : (
-            <HomepageReveal
-              as="div"
-              className={`${styles.readingGrid} ${sideArticles.length === 0 ? styles.readingGridSingle : ""} ${styles.reveal}`}
-              visibleClassName={styles.revealVisible}
-            >
-              <Link href={`/blog/${featured.slug}`} className={styles.articleFeatured}>
-                <div className={styles.articleFeaturedImageWrap}>
-                  <Image
-                    src="/homepage/blog-featured.webp"
-                    alt="Lombadas de livros jurídicos em uma estante"
-                    fill
-                    sizes="(max-width: 860px) 100vw, 60vw"
-                    style={{ objectFit: "cover" }}
-                  />
+        {/* 4. Linhas de recurso */}
+        <section id="recursos" className="border-t-2 border-regua-forte">
+          <div className="max-w-[1120px] mx-auto px-6">
+            {FEATURES.map((f, i) => (
+              <div key={f.title} className={`grid md:grid-cols-2 gap-10 items-center py-16 ${i > 0 ? "border-t border-regua" : ""}`}>
+                <div className={i % 2 === 1 ? "md:order-2" : ""}>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-marca-tx mb-3">{f.kicker}</p>
+                  <h3 className="text-[26px] font-extrabold tracking-[-.01em] mb-4">{f.title}</h3>
+                  <p className="text-[15px] text-tx-2 max-w-[46ch]">{f.p1}</p>
+                  <p className="text-[15px] text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
                 </div>
-                <div className={styles.cardBody}>
-                  <div className={styles.tagRow}>
-                    <span className={styles.tag}>{featured.area}</span>
-                    <span className={`${styles.tag} ${styles.tagType}`}>
-                      {TYPE_LABELS[featured.type] ?? featured.type}
-                    </span>
-                  </div>
-                  <h3 className={styles.articleFeaturedTitle}>{featured.title}</h3>
-                  <p className={styles.dek}>{featured.summary}</p>
-                  <SourcesLine sources={featuredSources} />
+                <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf flex items-center p-6 ${i % 2 === 1 ? "md:order-1" : ""}`}>
+                  <p className="text-xs font-semibold text-tx-3">Captura de tela — {f.figure}</p>
                 </div>
-              </Link>
-
-              {sideArticles.length > 0 && (
-                <div className={styles.sideCol}>
-                  {sideArticles.map((post) => (
-                    <ArticleRow key={post.slug} post={post} />
-                  ))}
-                  {sideArticles.length < 2 && (
-                    <Link href="/blog" className={styles.articleRow} style={{ justifyContent: "space-between" }}>
-                      <div>
-                        <span className={styles.eyebrow} style={{ display: "block", marginBottom: "0.6rem" }}>
-                          Todos os dias
-                        </span>
-                        <h3 style={{ fontSize: "1.02rem" }}>
-                          Sem espera de boletim mensal — o blog acompanha o noticiário jurídico diariamente.
-                        </h3>
-                      </div>
-                    </Link>
-                  )}
-                </div>
-              )}
-            </HomepageReveal>
-          )}
-
-          <HomepageReveal as="div" className={`${styles.ctaLine} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-            <Link className={styles.linkArrow} href="/blog">
-              Ver todas as matérias do blog
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M2 8H14M14 8L9 3M14 8L9 13"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
-            <p className={styles.validationNote}>Produção: Equipe Lúmen.</p>
-          </HomepageReveal>
-        </div>
-      </section>
-
-      <section id="funcionalidades" className={`${styles.section} ${styles.featuresSection}`}>
-        <div className={styles.wrap}>
-          <HomepageReveal as="div" className={`${styles.sectionHead} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-            <span className={styles.eyebrow}>Funcionalidades</span>
-            <h2>Um sistema, não uma pilha de planilhas</h2>
-            <p>
-              Tudo que o dia a dia de um escritório precisa, em um só lugar — do prazo processual ao fechamento do
-              mês.
-            </p>
-          </HomepageReveal>
-          <HomepageReveal as="div" className={`${styles.featureCards} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-            {FEATURES.map((f) => (
-              <div key={f.title} className={styles.featureCard}>
-                <h3>{f.title}</h3>
-                <p>{f.note}</p>
               </div>
             ))}
-          </HomepageReveal>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.wrap}>
-          <HomepageReveal as="div" className={`${styles.sectionHead} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-            <span className={styles.eyebrow}>Como escrevemos</span>
-            <h2>Leitura rápida, fonte à vista</h2>
-          </HomepageReveal>
-          <HomepageReveal as="div" className={`${styles.wrapInner} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-            <figure className={styles.valuePhoto}>
-              <Image
-                src="/homepage/como-escrevemos.webp"
-                alt="Estante de biblioteca com livros jurídicos e plantas"
-                fill
-                sizes="(max-width: 860px) 100vw, 35vw"
-                style={{ objectFit: "cover" }}
-              />
-            </figure>
-            <div className={styles.valueGrid}>
-              <div className={styles.valueCard}>
-                <svg className={styles.glyph} viewBox="0 0 34 34" fill="none">
-                  <path
-                    d="M14 20L20 14M14.5 22.5L10 27C8 29 5 26 7 24L11.5 19.5M19.5 14.5L24 10C26 8 29 11 27 13L22.5 17.5"
-                    stroke="currentColor"
-                    strokeWidth="1.3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <div>
-                  <h3>Sempre linkado</h3>
-                  <p>
-                    Cada matéria vem com as fontes originais linkadas, lado a lado — a fonte jornalística e a decisão
-                    oficial do tribunal. Você lê, e confere.
-                  </p>
-                </div>
-              </div>
-              <div className={styles.valueCard}>
-                <svg className={styles.glyph} viewBox="0 0 34 34" fill="none">
-                  <circle cx="17" cy="17" r="12.5" stroke="currentColor" strokeWidth="1.3" />
-                  <path d="M17 10V17L21.5 20" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div>
-                  <h3>Todo dia, coisa nova</h3>
-                  <p>
-                    Sem esperar boletim mensal: o blog acompanha o noticiário jurídico diariamente, assim que uma
-                    decisão relevante é confirmada.
-                  </p>
-                </div>
-              </div>
-              <div className={styles.valueCard}>
-                <svg className={styles.glyph} viewBox="0 0 34 34" fill="none">
-                  <path d="M8 26V11L17 5L26 11V26" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-                  <path d="M13 26V18H21V26" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-                </svg>
-                <div>
-                  <h3>Assinado por um advogado</h3>
-                  <p>Nenhuma matéria vai ao ar sem passar pela leitura de um advogado antes da publicação.</p>
-                </div>
-              </div>
-            </div>
-          </HomepageReveal>
-        </div>
-      </section>
-
-      <footer id="contato" className={styles.footer}>
-        <div className={styles.footerBgPhoto}>
-          <Image src="/homepage/rodape.webp" alt="" fill sizes="100vw" style={{ objectFit: "cover" }} />
-        </div>
-        <div className={`${styles.wrap} ${styles.footerWrap}`}>
-          <div className={styles.footerTop}>
-            <HomepageReveal as="div" className={`${styles.footerLede} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-              <div className={styles.footerBrand}>
-                <LumenMark size={32} />
-                <span className={styles.wordmark}>Lúmen</span>
-              </div>
-              <h2>Gestão para escritórios que não têm tempo a perder.</h2>
-              <p>Conte o essencial do seu escritório — a equipe responde diretamente, sem triagem automática.</p>
-              <div className={styles.heroCtas} style={{ marginTop: "1.6rem" }}>
-                <a className={`${styles.btn} ${styles.btnPrimary}`} href="#contato">
-                  Agendar uma demonstração
-                </a>
-              </div>
-            </HomepageReveal>
-            <HomepageReveal as="div" className={`${styles.footerCols} ${styles.reveal}`} visibleClassName={styles.revealVisible}>
-              <div className={styles.footerCol}>
-                <span className={styles.eyebrow}>Contato</span>
-                <ul>
-                  <li>
-                    <span>Goiânia — GO</span>
-                  </li>
-                  <li>
-                    <a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer">
-                      (62) 98128-3481
-                    </a>
-                  </li>
-                  <li>
-                    <a href="mailto:contato@rodarteprado.com.br">contato@rodarteprado.com.br</a>
-                  </li>
-                </ul>
-              </div>
-              <div className={styles.footerCol}>
-                <span className={styles.eyebrow}>Produto</span>
-                <ul>
-                  <li>
-                    <a href="#leitura">Blog jurídico</a>
-                  </li>
-                  <li>
-                    <a href="#funcionalidades">Funcionalidades</a>
-                  </li>
-                </ul>
-              </div>
-            </HomepageReveal>
           </div>
-          <div className={styles.footerBottom}>
-            <span>© 2026 — Lúmen · software de gestão para escritórios de advocacia</span>
+        </section>
+
+        {/* 5. Fotografia */}
+        <section className="border-t-2 border-regua-forte">
+          <div className={`aspect-[21/9] md:aspect-[3/1] grayscale flex items-center justify-center ${placeholderBox}`}>
+            <span className={placeholderTag}>Substituir — foto real do escritório, preto e branco</span>
+          </div>
+        </section>
+
+        {/* 6. Preço */}
+        <section id="preco" className="border-t-2 border-regua-forte py-20">
+          <div className="max-w-[1120px] mx-auto px-6">
+            <h2 className="text-[30px] font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
+            <div className="grid md:grid-cols-3">
+              {PLANS.map((plan) => (
+                <div key={plan.name} className={`p-6 ${placeholderBox}`}>
+                  <span className={placeholderTag}>Substituir</span>
+                  <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
+                  <div className="text-[13px] text-tx-3 mt-1">{plan.detail}</div>
+                  <div className="text-4xl font-extrabold mt-3">R$ —<span className="text-sm font-semibold text-tx-2">/mês</span></div>
+                  <ul className="mt-5 space-y-2.5">
+                    {plan.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-tx-2">
+                        <span className="w-2 h-2 bg-marca mt-1.5 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Começar</Link>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-tx-3 mt-6">Preços de exemplo — preencher com a tabela real (revisada por advogado, regras da OAB) antes do deploy.</p>
+          </div>
+        </section>
+
+        {/* 7. Fecho em pôster */}
+        <section className="bg-marca text-acao-tx py-24">
+          <div className="max-w-[1120px] mx-auto px-6">
+            <h2 className="font-extrabold text-[clamp(32px,5vw,52px)] tracking-[-.02em] max-w-[18ch]">
+              Leve a triagem, a agenda e o financeiro do escritório para um só lugar.
+            </h2>
+            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-black text-marca font-extrabold text-sm mt-8">
+              Começar agora
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      {/* 8. Rodapé */}
+      <footer className="border-t-2 border-regua-forte py-14">
+        <div className="max-w-[1120px] mx-auto px-6">
+          <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8">
+            <div>
+              <div className="flex items-center gap-2 font-extrabold text-base tracking-[.16em] mb-3">
+                <LumenMark size={24} /> LÚMEN
+              </div>
+              <p className="text-[13px] text-tx-2 max-w-[32ch]">Software de gestão jurídica para escritórios de advocacia.</p>
+            </div>
+            <div>
+              <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h4>
+              <ul className="space-y-2.5 text-sm">
+                <li><a href="#recursos" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Recursos</a></li>
+                <li><a href="#preco" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Preço</a></li>
+                <li><Link href="/login" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Entrar</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h4>
+              <ul className="space-y-2.5 text-sm">
+                <li className="text-tx-2">Goiânia — GO</li>
+                <li><a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">(62) 98128-3481</a></li>
+                <li><a href="mailto:contato@rodarteprado.com.br" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">contato@rodarteprado.com.br</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h4>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link href="/privacidade" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Política de privacidade</Link></li>
+                <li className={`inline-block ${placeholderBox} px-2 py-1`}><span className={placeholderTag}>Substituir</span> <span className="text-tx-2">Encarregado de dados (DPO)</span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-11 pt-5 border-t border-regua text-xs text-tx-3">
+            <span className={`inline-flex items-center gap-2 ${placeholderBox} px-2 py-1`}>
+              <span className={placeholderTag}>Substituir</span> CNPJ
+            </span>
+            <span>© 2026 Lúmen. Todos os direitos reservados.</span>
           </div>
         </div>
       </footer>
+
+      <CookieConsent />
     </div>
   );
 }
