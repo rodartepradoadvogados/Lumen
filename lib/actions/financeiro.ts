@@ -8,6 +8,42 @@ import { isCaseInOffice, isClientInOffice, isCategoryInOffice, isCostCenterInOff
 import { valorLiquido, statusPorPagamentos } from "@/lib/financeCalc";
 import { renameDriveFile } from "@/lib/storageProvider";
 import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceiptNaming";
+import { enqueueNotification } from "@/lib/notificationOutbox";
+
+// Documento 06 (Fase 3 — Comunicados), evento HONORARIO_RECEBIDO (exceção — fura a fila): só
+// pra Receivable de honorário (kind começando com HONORARIOS — REEMBOLSO/OUTROS não contam,
+// não é "honorário"), pros mesmos destinatários de HONORARIO_A_RECEBER (isAdmin ou
+// financeAccess — visibilidade do Financeiro, não o escritório inteiro). Bucket de dia no
+// dedupeKey: se a mesma conta for reaberta e paga de novo no mesmo dia, a segunda notificação é
+// engolida (mesma concessão de lib/comunicadosVarredura.ts); dias diferentes notificam de novo.
+async function notificarHonorarioRecebido(
+  officeId: string,
+  receivables: { id: string; kind: string; description: string; clientId: string | null; caseId: string | null }[]
+): Promise<void> {
+  const honorarios = receivables.filter((r) => r.kind.startsWith("HONORARIOS"));
+  if (honorarios.length === 0) return;
+  const destinatarios = await prisma.user.findMany({ where: { active: true, officeId, OR: [{ isAdmin: true }, { financeAccess: true }] }, select: { id: true } });
+  if (destinatarios.length === 0) return;
+  const dia = new Date().toISOString().slice(0, 10);
+  for (const r of honorarios) {
+    const [client, kase] = await Promise.all([
+      r.clientId ? prisma.client.findUnique({ where: { id: r.clientId }, select: { name: true } }) : Promise.resolve(null),
+      r.caseId ? prisma.case.findUnique({ where: { id: r.caseId }, select: { title: true, processNumber: true } }) : Promise.resolve(null),
+    ]);
+    for (const u of destinatarios) {
+      enqueueNotification({
+        userId: u.id,
+        officeId,
+        event: "HONORARIO_RECEBIDO",
+        title: "Honorário recebido",
+        body: r.description,
+        url: "/financeiro/contas-a-receber",
+        vars: { teor: r.description, cliente: client?.name, processo: kase?.processNumber ?? kase?.title },
+        dedupeKey: `HONORARIO_RECEBIDO:${r.id}:${u.id}:${dia}`,
+      });
+    }
+  }
+}
 
 // Exportado para lib/actions/honorarioLancamento.ts reaproveitar a mesma checagem de vínculos
 // (categoria/centro de custo/cliente/processo do escritório do usuário logado) no lançamento
@@ -266,7 +302,7 @@ export async function markPayablePaid(id: string, paidAmount: number, paidDate: 
 
 export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true } });
+  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true, kind: true, description: true, clientId: true } });
   if (!existing) throw new Error("Conta a receber não encontrada.");
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
   await prisma.financePayment.create({
@@ -281,6 +317,7 @@ export async function markReceivablePaid(id: string, paidAmount: number, paidDat
     },
   });
   await syncReceivableStatus(id, officeId);
+  await notificarHonorarioRecebido(officeId, [existing]);
   revalidateFinance();
   revalidateCase(existing.caseId);
 }
@@ -325,6 +362,7 @@ export async function markManyReceivablesPaid(ids: string[], paidDate: string, r
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
   const items = await prisma.receivable.findMany({ where: { id: { in: ids }, officeId }, include: { payments: true } });
   const date = new Date(paidDate);
+  const pagos: typeof items = [];
   for (const r of items) {
     const soma = r.payments.reduce((s, x) => s + x.amount, 0);
     const saldo = Math.max(0, valorLiquido(r.amount, r.discount, r.surcharge) - soma);
@@ -341,7 +379,9 @@ export async function markManyReceivablesPaid(ids: string[], paidDate: string, r
       },
     });
     await syncReceivableStatus(r.id, officeId);
+    pagos.push(r);
   }
+  await notificarHonorarioRecebido(officeId, pagos);
   revalidateFinance();
   for (const caseId of new Set(items.map((r) => r.caseId).filter((id): id is string => Boolean(id)))) revalidateCase(caseId);
   return { count: items.length };

@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { salvarEmailTemplate, enviarTesteEmailTemplate, type EmailTemplateItem } from "@/lib/actions/emailTemplates";
 import { buildDigestEmailHtml, RODAPE_OBRIGATORIO, SAMPLE_VARS, TEMPLATE_VARS, type TemplateVar } from "@/lib/emailTemplateRender";
-import { PER_EVENT_EVENTOS, type PerEventEvento } from "@/lib/comunicadosEventos";
+import { ALL_EVENTOS, type NotificationEvent } from "@/lib/comunicadosEventos";
 
 const VAR_LABEL: Record<TemplateVar, string> = {
   cliente: "Cliente",
@@ -25,7 +25,7 @@ type Aba = "corpo" | "assunto" | "rodape";
 // (lib/emailTemplateRender.ts) usada de verdade no envio, pra prévia nunca divergir do real.
 export default function TemplateEditor({ initial }: { initial: EmailTemplateItem[] }) {
   const [templates, setTemplates] = useState(initial);
-  const [eventoAtual, setEventoAtual] = useState<PerEventEvento>(initial[0]?.event);
+  const [eventoAtual, setEventoAtual] = useState<NotificationEvent>(initial[0]?.event);
   const [aba, setAba] = useState<Aba>("corpo");
   const [feedback, setFeedback] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -89,13 +89,13 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
             value={eventoAtual}
             onChange={(e) => {
               setFeedback(null);
-              setEventoAtual(e.target.value as PerEventEvento);
+              setEventoAtual(e.target.value as NotificationEvent);
             }}
             className="block w-full mt-1 border border-regua bg-sf text-tx px-2 py-1.5 text-sm"
           >
             {templates.map((t) => (
               <option key={t.event} value={t.event}>
-                {PER_EVENT_EVENTOS[t.event]}
+                {ALL_EVENTOS[t.event]}
                 {!t.salvo ? " (padrão)" : ""}
               </option>
             ))}

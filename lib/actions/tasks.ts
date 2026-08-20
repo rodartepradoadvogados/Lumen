@@ -203,14 +203,9 @@ export async function delegateTask(data: {
     });
     taskIds.push(task.id);
 
-    sendPushIfEnabled(responsibleId, viewer.officeId, "tarefasDelegadas", {
-      title: "Nova tarefa delegada",
-      body: `${viewer.name} delegou: ${data.title}`,
-      url: "/m/agenda",
-    }).catch(() => {});
-
-    // Escrita em sombra na fila nova (documento 06) — em paralelo ao push acima, sem substituí-lo
-    // ainda (ver comentário no topo de lib/notificationOutbox.ts).
+    // Corte do outbox (documento 06): o push em tempo real que existia aqui foi removido — a
+    // fila nova cobre o mesmo caso por padrão (DEFAULT_PER_EVENT.TAREFA_DELEGADA =
+    // PUSH/NA_HORA, ver lib/comunicadosEventos.ts), sem duplicar quem já recebia instantâneo.
     enqueueNotification({
       userId: responsibleId,
       officeId: viewer.officeId,
@@ -218,6 +213,7 @@ export async function delegateTask(data: {
       title: "Nova tarefa delegada",
       body: `${viewer.name} delegou: ${data.title}`,
       url: "/m/agenda",
+      vars: { responsavel: viewer.name, teor: data.title },
       dedupeKey: `TAREFA_DELEGADA:${task.id}:${responsibleId}`,
     });
   }

@@ -5,7 +5,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { converterHtmlParaTextoSimples } from "@/lib/htmlEntities";
-import { broadcastPushIfEnabled } from "@/lib/push";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 
 export type RoboBridgeResult = {
@@ -355,11 +354,6 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
     // de item individual pra dedupeKey estável). Ver lib/notificationOutbox.ts.
     const balde = new Date().toISOString().slice(0, 13);
     if (contagem.publicacoes > 0) {
-      broadcastPushIfEnabled(activeUserIds, officeId, "publicacoes", {
-        title: "Novas publicações",
-        body: `${contagem.publicacoes} nova(s) publicação(ões) recebida(s).`,
-        url: "/m/publicacoes",
-      }).catch(() => {});
       for (const userId of activeUserIds) {
         enqueueNotification({
           userId,
@@ -368,16 +362,12 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
           title: "Novas publicações",
           body: `${contagem.publicacoes} nova(s) publicação(ões) recebida(s).`,
           url: "/m/publicacoes",
+          vars: { teor: `${contagem.publicacoes} nova(s) publicação(ões) recebida(s).` },
           dedupeKey: `PUBLICACAO_NOVA:robo:${officeId}:${userId}:${balde}`,
         });
       }
     }
     if (contagem.andamentos > 0) {
-      broadcastPushIfEnabled(activeUserIds, officeId, "andamentos", {
-        title: "Novos andamentos processuais",
-        body: `${contagem.andamentos} novo(s) andamento(s) recebido(s).`,
-        url: "/m/publicacoes",
-      }).catch(() => {});
       for (const userId of activeUserIds) {
         enqueueNotification({
           userId,
@@ -386,6 +376,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
           title: "Novos andamentos processuais",
           body: `${contagem.andamentos} novo(s) andamento(s) recebido(s).`,
           url: "/m/publicacoes",
+          vars: { teor: `${contagem.andamentos} novo(s) andamento(s) recebido(s).` },
           dedupeKey: `ANDAMENTO_PROCESSUAL:robo:${officeId}:${userId}:${balde}`,
         });
       }

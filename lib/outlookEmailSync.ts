@@ -5,7 +5,6 @@
 import { prisma } from "@/lib/prisma";
 import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { getOutlookMessagesForOffice, isMicrosoftConfigured, type OutlookMessage } from "@/lib/microsoftGraph";
-import { broadcastPushIfEnabled } from "@/lib/push";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 import {
   RELEVANT_SENDERS,
@@ -129,15 +128,10 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
       if (createdPublicacoesHere > 0 || createdAndamentosHere > 0) {
         const activeUserIds = (await prisma.user.findMany({ where: { active: true, officeId: cred.officeId }, select: { id: true } })).map((u) => u.id);
         // Balde de hora (sem id de item individual pra derivar dedupeKey estável — o delta aqui
-        // é agregado, não por publicação) — mesma limitação do envio antigo em tempo real,
-        // não é regressão. Ver comentário no topo de lib/notificationOutbox.ts.
+        // é agregado, não por publicação) — mesma limitação do envio em tempo real que existia
+        // aqui antes do corte do outbox, não é regressão.
         const balde = new Date().toISOString().slice(0, 13);
         if (createdPublicacoesHere > 0) {
-          broadcastPushIfEnabled(activeUserIds, cred.officeId, "publicacoes", {
-            title: "Novas publicações",
-            body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
-            url: "/m/publicacoes",
-          }).catch(() => {});
           for (const userId of activeUserIds) {
             enqueueNotification({
               userId,
@@ -146,16 +140,12 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
               title: "Novas publicações",
               body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
               url: "/m/publicacoes",
+              vars: { teor: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).` },
               dedupeKey: `PUBLICACAO_NOVA:outlook:${cred.officeId}:${userId}:${balde}`,
             });
           }
         }
         if (createdAndamentosHere > 0) {
-          broadcastPushIfEnabled(activeUserIds, cred.officeId, "andamentos", {
-            title: "Novos andamentos processuais",
-            body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
-            url: "/m/publicacoes",
-          }).catch(() => {});
           for (const userId of activeUserIds) {
             enqueueNotification({
               userId,
@@ -164,6 +154,7 @@ export async function syncOutlookEmails(): Promise<SyncResult> {
               title: "Novos andamentos processuais",
               body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
               url: "/m/publicacoes",
+              vars: { teor: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).` },
               dedupeKey: `ANDAMENTO_PROCESSUAL:outlook:${cred.officeId}:${userId}:${balde}`,
             });
           }
