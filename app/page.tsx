@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getPlatformMember } from "@/lib/platformMember";
 import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
 
@@ -97,9 +98,13 @@ const placeholderBox = "border-2 border-dashed border-atencao bg-sf";
 const placeholderTag = "inline-block text-[10px] font-extrabold uppercase tracking-[.1em] text-atencao border border-atencao bg-sf px-1.5 py-0.5";
 
 export default async function HomePage() {
-  // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel.
+  // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel (ou pro
+  // escolhedor /painel×/painel-mestre, se tiver acesso de plataforma — ver lib/actions/auth.ts).
   const user = await getCurrentUser();
-  if (user) redirect("/painel");
+  if (user) {
+    const hasPlatformAccess = user.isPlatformOwner || Boolean(await getPlatformMember());
+    redirect(hasPlatformAccess ? "/escolher" : "/painel");
+  }
 
   return (
     <div className="bg-sf-fundo text-tx">

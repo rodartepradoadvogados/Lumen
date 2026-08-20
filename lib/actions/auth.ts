@@ -51,12 +51,13 @@ export async function login(email: string, password: string, next?: string): Pro
     if (next && next.startsWith("/") && !next.startsWith("//")) redirect(next);
 
     // Dono da plataforma ou membro de equipe da Lúmen com este User vinculado (ver
-    // lib/platformMember.ts) caem direto no Painel Mestre — é a ferramenta de trabalho de quem
-    // administra a Lúmen, não o painel do escritório-cliente.
+    // lib/platformMember.ts) é também usuário de um escritório de verdade (o interno, Rodarte
+    // Prado) — em vez de decidir por ele qual dos dois mundos abrir, cai em /escolher, que
+    // oferece os dois. Sem acesso de plataforma, segue direto pro próprio painel de sempre.
     const platformMember = user.isPlatformOwner
       ? null
       : await prisma.platformMember.findUnique({ where: { userId: user.id }, select: { active: true } });
-    redirect(user.isPlatformOwner || platformMember?.active ? "/painel-mestre" : "/painel");
+    redirect(user.isPlatformOwner || platformMember?.active ? "/escolher" : "/painel");
   }
 
   const member = await prisma.platformMember.findUnique({ where: { email } });
