@@ -33,8 +33,8 @@ export async function getOfficeModules(officeId: string): Promise<OfficeModules>
 
 // Acesso ao Blog Jurídico não é um módulo contratável como os de cima — é um recurso da
 // própria PLATAFORMA, controlado só pelo escritório dono (Rodarte Prado) ou por quem ele
-// conceder no futuro. Por isso fica fora de OfficeModules/ModulesManager (autosserviço do
-// próprio escritório) e não tem toggle na tela de Configurações ainda.
+// conceder no futuro. Por isso fica fora de OfficeModules/ModulesManager e não tem toggle na
+// tela de Configurações ainda.
 export async function hasBlogAccess(officeId: string): Promise<boolean> {
   const office = await prisma.office.findUnique({ where: { id: officeId }, select: { blogAccess: true } });
   return office?.blogAccess ?? false;

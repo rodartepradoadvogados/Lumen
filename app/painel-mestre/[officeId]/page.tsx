@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePlatformAccess } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
+import { contarOabsMonitoradas, contarProcessos } from "@/lib/officeLimits";
 import { PageHeader, Card, CardHeader, Badge } from "@/components/ui";
 import OfficeDetailPanel from "@/components/painelMestre/OfficeDetailPanel";
 
@@ -13,14 +14,20 @@ const STATUS_COLOR: Record<string, "green" | "red" | "slate"> = { ATIVA: "green"
 export default async function OfficeDetailPage({ params }: { params: { officeId: string } }) {
   await requirePlatformAccess();
 
-  const office = await prisma.office.findUnique({
-    where: { id: params.officeId },
-    include: {
-      invoices: { orderBy: { competencia: "desc" }, take: 12 },
-      users: { where: { active: true }, select: { id: true, name: true, email: true, isAdmin: true } },
-      subscription: { select: { paymentMethod: true } },
-    },
-  });
+  const [office, plans, modulePrices, oabs, processos] = await Promise.all([
+    prisma.office.findUnique({
+      where: { id: params.officeId },
+      include: {
+        invoices: { orderBy: { competencia: "desc" }, take: 12 },
+        users: { where: { active: true }, select: { id: true, name: true, email: true, isAdmin: true } },
+        subscription: { select: { paymentMethod: true } },
+      },
+    }),
+    prisma.plan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.modulePrice.findMany(),
+    contarOabsMonitoradas(params.officeId),
+    contarProcessos(params.officeId),
+  ]);
   if (!office || office.isInternal) notFound();
 
   return (
@@ -52,12 +59,25 @@ export default async function OfficeDetailPage({ params }: { params: { officeId:
           <OfficeDetailPanel
             officeId={office.id}
             status={office.status}
+            plans={plans}
+            modulePrices={modulePrices}
+            pricingMode={office.pricingMode}
+            usage={{ oabs: oabs, processos: processos }}
+            initialPlanId={office.planId}
             initialModules={{
               financeiro: office.moduloFinanceiro,
               whatsapp: office.moduloWhatsapp,
               atendimento: office.moduloAtendimento,
               assessoria: office.moduloAssessoria,
             }}
+            initialModulePrices={{
+              financeiro: office.precoFinanceiro,
+              whatsapp: office.precoWhatsapp,
+              atendimento: office.precoAtendimento,
+              assessoria: office.precoAssessoria,
+            }}
+            initialOabLimit={office.oabLimit}
+            initialCaseLimit={office.caseLimit}
             initialBilling={{
               billingEmail: office.billingEmail ?? "",
               monthlyFee: office.monthlyFee ?? 0,

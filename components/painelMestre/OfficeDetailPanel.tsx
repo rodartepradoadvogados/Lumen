@@ -3,16 +3,19 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  updateOfficeModules,
+  updateOfficePlanModules,
+  migrateOfficeToModular,
   updateOfficeBilling,
   generateAndSendInvoice,
   markInvoicePaid,
   setOfficeAccess,
 } from "@/lib/actions/painelMestre";
+import { calcularMensalidadeModular, MODULOS } from "@/lib/officePricing";
 import StartActingModal from "@/components/painelMestre/StartActingModal";
 import CopyButton from "@/components/CopyButton";
 import { formatCurrency } from "@/components/ui";
 import MoneyInput from "@/components/MoneyInput";
+import NullableMoneyInput from "@/components/painelMestre/NullableMoneyInput";
 import { Send, CheckCircle2, Lock, Unlock } from "lucide-react";
 
 type Invoice = {
@@ -27,37 +30,75 @@ type Invoice = {
   pixQrCodeImage: string | null;
 };
 
+type PlanOption = {
+  id: string;
+  key: string;
+  name: string;
+  isCustom: boolean;
+  maxOabs: number | null;
+  maxProcessos: number | null;
+  moduloFinanceiro: boolean;
+  moduloWhatsapp: boolean;
+  moduloAtendimento: boolean;
+  moduloAssessoria: boolean;
+};
+
+type ModulePriceOption = { moduleKey: string; label: string; price: number | null };
+
+type ModuleFlags = { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
+type ModulePrices = { financeiro: number | null; whatsapp: number | null; atendimento: number | null; assessoria: number | null };
+
 const GENERATE_BUTTON_LABEL: Record<string, string> = {
   PIX_QRCODE: "Gerar Pix QR Code e enviar por e-mail",
   PIX_AUTOMATICO: "Registrar fatura do mês (cobrada via Pix Automático)",
   BOLETO: "Gerar boleto e enviar por e-mail",
 };
 
-const MODULE_OPTIONS: { key: "financeiro" | "whatsapp" | "atendimento" | "assessoria"; label: string }[] = [
-  { key: "financeiro", label: "Financeiro" },
-  { key: "whatsapp", label: "WhatsApp" },
-  { key: "atendimento", label: "Atendimento" },
-  { key: "assessoria", label: "Assessoria Jurídica" },
+const MODULE_OPTIONS: { key: keyof ModuleFlags; priceKey: keyof ModulePrices; moduleKey: ModulePriceOption["moduleKey"]; label: string }[] = [
+  { key: "financeiro", priceKey: "financeiro", moduleKey: "FINANCEIRO", label: "Financeiro" },
+  { key: "assessoria", priceKey: "assessoria", moduleKey: "ASSESSORIA", label: "Assessoria Jurídica" },
+  { key: "whatsapp", priceKey: "whatsapp", moduleKey: "WHATSAPP", label: "WhatsApp" },
+  { key: "atendimento", priceKey: "atendimento", moduleKey: "ATENDIMENTO", label: "Atendimento" },
 ];
 
 export default function OfficeDetailPanel({
   officeId,
   status,
+  plans,
+  modulePrices,
+  pricingMode,
+  usage,
+  initialPlanId,
   initialModules,
+  initialModulePrices,
+  initialOabLimit,
+  initialCaseLimit,
   initialBilling,
   paymentMethod,
   invoices,
 }: {
   officeId: string;
   status: string;
-  initialModules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
+  plans: PlanOption[];
+  modulePrices: ModulePriceOption[];
+  pricingMode: string;
+  usage: { oabs: number; processos: number };
+  initialPlanId: string | null;
+  initialModules: ModuleFlags;
+  initialModulePrices: ModulePrices;
+  initialOabLimit: number | null;
+  initialCaseLimit: number | null;
   initialBilling: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number; cnpj: string };
   paymentMethod: string | null;
   invoices: Invoice[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [planId, setPlanId] = useState(initialPlanId);
   const [modules, setModules] = useState(initialModules);
+  const [prices, setPrices] = useState(initialModulePrices);
+  const [oabLimit, setOabLimit] = useState<number | null>(initialOabLimit);
+  const [caseLimit, setCaseLimit] = useState<number | null>(initialCaseLimit);
   const [billing, setBilling] = useState(initialBilling);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,8 +116,27 @@ export default function OfficeDetailPanel({
     });
   }
 
+  function applyPlan(id: string) {
+    setPlanId(id || null);
+    const plan = plans.find((p) => p.id === id);
+    if (!plan || plan.isCustom) return;
+    setModules({ financeiro: plan.moduloFinanceiro, whatsapp: plan.moduloWhatsapp, atendimento: plan.moduloAtendimento, assessoria: plan.moduloAssessoria });
+    setOabLimit(plan.maxOabs);
+    setCaseLimit(plan.maxProcessos);
+  }
+
   const pendingInvoice = invoices.find((i) => i.status === "PENDENTE");
   const blocked = status !== "ATIVA";
+  const calc = calcularMensalidadeModular({
+    moduloFinanceiro: modules.financeiro,
+    moduloWhatsapp: modules.whatsapp,
+    moduloAtendimento: modules.atendimento,
+    moduloAssessoria: modules.assessoria,
+    precoFinanceiro: prices.financeiro,
+    precoWhatsapp: prices.whatsapp,
+    precoAtendimento: prices.atendimento,
+    precoAssessoria: prices.assessoria,
+  });
 
   return (
     <div className="space-y-5">
@@ -86,27 +146,90 @@ export default function OfficeDetailPanel({
       <StartActingModal officeId={officeId} />
 
       <div>
-        <p className="text-xs font-semibold text-white mb-2">Módulos contratados</p>
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          {MODULE_OPTIONS.map((m) => (
-            <label key={m.key} className="flex items-center gap-2 border border-white/15 px-3 py-2 text-sm text-white/85 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={modules[m.key]}
-                onChange={(e) => setModules((prev) => ({ ...prev, [m.key]: e.target.checked }))}
-                className="h-4 w-4 accent-marca"
-              />
-              {m.label}
-            </label>
+        <p className="text-xs font-semibold text-white mb-2">Plano</p>
+        <select
+          value={planId ?? ""}
+          onChange={(e) => applyPlan(e.target.value)}
+          className="w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs mb-3"
+        >
+          <option value="">Sem plano definido</option>
+          {plans.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
           ))}
+        </select>
+
+        <p className="text-xs font-semibold text-white mb-2">Módulos contratados</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+          {MODULE_OPTIONS.map((m) => {
+            const catalogPrice = modulePrices.find((mp) => mp.moduleKey === m.moduleKey)?.price ?? null;
+            return (
+              <div key={m.key} className="border border-white/15 px-3 py-2">
+                <label className="flex items-center gap-2 text-sm text-white/85 cursor-pointer mb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={modules[m.key]}
+                    onChange={(e) => setModules((prev) => ({ ...prev, [m.key]: e.target.checked }))}
+                    className="h-4 w-4 accent-marca"
+                  />
+                  {m.label}
+                </label>
+                <NullableMoneyInput
+                  value={prices[m.priceKey]}
+                  onChange={(v) => setPrices((prev) => ({ ...prev, [m.priceKey]: v }))}
+                  placeholder={catalogPrice != null ? `sugestão: ${formatCurrency(catalogPrice)}` : "sem preço"}
+                  className="w-full border border-white/15 bg-grafite-800 text-white px-2 py-1 text-xs"
+                />
+              </div>
+            );
+          })}
         </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label className="text-[11px] text-white/50">OABs monitoradas (limite) — hoje: {usage.oabs}</label>
+            <input
+              type="number"
+              min={0}
+              value={oabLimit ?? ""}
+              onChange={(e) => setOabLimit(e.target.value === "" ? null : Number(e.target.value))}
+              placeholder="sem limite"
+              className={`mt-1 w-full border px-2.5 py-1.5 text-xs bg-grafite-700 text-white ${
+                oabLimit != null && usage.oabs > oabLimit ? "border-atencao" : "border-white/15"
+              }`}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-white/50">Processos (limite) — hoje: {usage.processos}</label>
+            <input
+              type="number"
+              min={0}
+              value={caseLimit ?? ""}
+              onChange={(e) => setCaseLimit(e.target.value === "" ? null : Number(e.target.value))}
+              placeholder="sem limite"
+              className={`mt-1 w-full border px-2.5 py-1.5 text-xs bg-grafite-700 text-white ${
+                caseLimit != null && usage.processos > caseLimit ? "border-atencao" : "border-white/15"
+              }`}
+            />
+          </div>
+        </div>
+        {((oabLimit != null && usage.oabs > oabLimit) || (caseLimit != null && usage.processos > caseLimit)) && (
+          <p className="text-[11px] text-atencao mb-2">Este escritório está acima do limite do plano — considere um upgrade.</p>
+        )}
+
+        <p className="text-[11px] text-white/50 mb-2">
+          Mensalidade calculada: <span className="text-white font-semibold">{formatCurrency(calc.total)}</span>
+          {calc.modulosSemPreco.length > 0 && (
+            <span className="text-atencao"> — módulo sem preço: {calc.modulosSemPreco.map((k) => MODULOS.find((m) => m.key === k)?.label).join(", ")}</span>
+          )}
+        </p>
+
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(() => updateOfficeModules(officeId, modules))}
+          onClick={() => run(() => updateOfficePlanModules(officeId, { planId, modules, prices, oabLimit, caseLimit }))}
           className="text-xs font-semibold text-marca-tx hover:underline disabled:opacity-50"
         >
-          Salvar módulos
+          Salvar módulos e plano
         </button>
       </div>
 
@@ -118,11 +241,12 @@ export default function OfficeDetailPanel({
             <input value={billing.billingEmail} onChange={(e) => setBilling((p) => ({ ...p, billingEmail: e.target.value }))} className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs" />
           </div>
           <div>
-            <label className="text-[11px] text-white/50">Mensalidade (R$)</label>
+            <label className="text-[11px] text-white/50">Mensalidade (R$){pricingMode === "MODULAR" ? " — calculada acima" : ""}</label>
             <MoneyInput
               value={String(billing.monthlyFee)}
               onChange={(v) => setBilling((p) => ({ ...p, monthlyFee: Number(v) }))}
-              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
+              disabled={pricingMode === "MODULAR"}
+              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs disabled:opacity-50"
             />
           </div>
           <div>
@@ -150,14 +274,29 @@ export default function OfficeDetailPanel({
             />
           </div>
         </div>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => updateOfficeBilling(officeId, billing))}
-          className="text-xs font-semibold text-marca-tx hover:underline disabled:opacity-50"
-        >
-          Salvar cobrança
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            disabled={pending || pricingMode === "MODULAR"}
+            onClick={() => run(() => updateOfficeBilling(officeId, billing))}
+            className="text-xs font-semibold text-marca-tx hover:underline disabled:opacity-50"
+          >
+            Salvar cobrança
+          </button>
+          {pricingMode === "MANUAL" ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => migrateOfficeToModular(officeId))}
+              className="text-xs font-semibold text-white/70 hover:text-white hover:underline disabled:opacity-50"
+              title="Confira que a mensalidade calculada acima bate com o que o cliente já paga antes de migrar"
+            >
+              Migrar para cálculo automático
+            </button>
+          ) : (
+            <span className="text-[11px] text-white/40">Mensalidade calculada automaticamente pelos módulos</span>
+          )}
+        </div>
       </div>
 
       <div>
