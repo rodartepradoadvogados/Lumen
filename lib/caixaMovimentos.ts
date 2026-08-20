@@ -207,3 +207,29 @@ export function apurarResultado(movimentos: MovimentoCaixa[]) {
     saldoAdiantamentos: totalAdiantado - totalReembolsado,
   };
 }
+
+export type ExtratoLinha = { id: string; data: Date; descricao: string; valor: number; tipo: "entrada" | "saida"; saldo: number };
+
+// Extrato do Livro Caixa com saldo acumulado — usado pela tela, pela exportação (.xlsx) e pela
+// folha imprimível (PDF), pra não haver três lugares calculando o mesmo saldo de jeitos
+// ligeiramente diferentes. Filtro de data (`de`) é só de EXIBIÇÃO: busca tudo até `ate` sem
+// filtrar por `de`, soma o saldo de ponta a ponta do histórico, e só DEPOIS corta as linhas
+// anteriores a `de` — um saldo calculado a partir de um ponto arbitrário do meio do histórico
+// estaria simplesmente errado (ver comentário no topo do arquivo sobre por que isto importa).
+export async function extratoComSaldo(officeId: string, params: { de?: Date; ate?: Date; costCenterId?: string } = {}): Promise<ExtratoLinha[]> {
+  const movimentos = await listarMovimentosCaixa(officeId, { ate: params.ate, costCenterId: params.costCenterId });
+  let saldo = 0;
+  const todas: ExtratoLinha[] = movimentos.map((m) => {
+    const valor = m.tipo === "ENTRADA" ? m.valor : -m.valor;
+    saldo += valor;
+    return {
+      id: m.id,
+      data: m.data,
+      descricao: `${m.descricao}${m.clienteNome ? ` — ${m.clienteNome}` : ""}`,
+      valor,
+      tipo: m.tipo === "ENTRADA" ? ("entrada" as const) : ("saida" as const),
+      saldo,
+    };
+  });
+  return params.de ? todas.filter((e) => e.data >= params.de!) : todas;
+}

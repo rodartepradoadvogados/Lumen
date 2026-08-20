@@ -69,3 +69,17 @@ export async function buildCategoryBreakdown(kind: "RECEITA" | "DESPESA", office
     uncategorized: { total: uncategorizedTotal, entries: uncategorizedEntries },
   };
 }
+
+// "Ocultar categorias vazias" (DRE Gerencial) — remove recursivamente todo nó com total zero,
+// inclusive um grupo que só existe porque tem SUBgrupos com lançamento (aí o total não é zero,
+// então sobrevive; só os ramos realmente vazios em ponta a ponta somem). Pura, sem tocar em
+// `CategoryBreakdown.total`/`.uncategorized` — o botão é só um filtro de exibição da árvore.
+export function filtrarGruposVazios(nodes: CategoryGroupNode[]): CategoryGroupNode[] {
+  const result: CategoryGroupNode[] = [];
+  for (const n of nodes) {
+    const children = filtrarGruposVazios(n.children);
+    if (n.total === 0 && children.length === 0) continue;
+    result.push(children.length === n.children.length ? n : { ...n, children });
+  }
+  return result;
+}
