@@ -198,12 +198,17 @@ export default function TeamMonitorPanel({
           </div>
 
           {/* Sair é ação destrutiva de sessão — vinho, nunca urgente (DESIGN-SYSTEM.md §2: vinho
-              é da marca/ação destrutiva; urgente é dado, não se aplica aqui). */}
+              é da marca/ação destrutiva; urgente é dado, não se aplica aqui).
+              SEM onClick de fechar o menu aqui: `open && (...)` mais acima desmonta este `<form>`
+              assim que `open` vira false — um setOpen(false) no mesmo clique que envia o form
+              corre contra o envio nativo e pode cancelá-lo (o formulário some do DOM antes do
+              navegador terminar de submeter), fazendo o botão "Sair" parecer que não faz nada.
+              Sem problema deixar o menu aberto por um instante: logout() redireciona a página
+              inteira, o que já desmonta tudo sozinho. */}
           <div className={clsx("p-1.5", isAdmin && "border-b border-regua")}>
             <form action={logoutAction}>
               <button
                 type="submit"
-                onClick={() => setOpen(false)}
                 className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-atencao hover:bg-atencao/10"
               >
                 <LogOut size={15} /> Sair

@@ -20,9 +20,13 @@ import CookieConsent from "@/components/site/CookieConsent";
 // manual da marca v2) — não segue o modelo A/B da UI.
 //
 // Campos em aberto (dados reais a preencher depois, não inventados aqui — documento 09: "só
-// números que o escritório possa comprovar" / revisão OAB do preço): os 4 números da seção de
-// estatísticas, os 3 preços de plano, a fotografia do escritório e o CNPJ no rodapé — todos
-// marcados com moldura tracejada (--vinho/--atencao) e um comentário "SUBSTITUIR" ao lado.
+// números que o escritório possa comprovar" / revisão OAB do preço): 3 dos 4 números da seção
+// de estatísticas (só "93 tribunais integrados" é real hoje, os outros ficam em branco) e os 3
+// preços de plano — únicos ainda marcados com moldura tracejada (--vinho/--atencao) e
+// "Substituir". Fotografia do escritório, CNPJ e DPO não têm dado real disponível e por isso
+// saíram do texto público em vez de aparecer como mockup: seção 5 virou uma faixa gráfica com o
+// número real de tribunais, o rodapé usa o e-mail de contato já existente como DPO e não exibe
+// CNPJ algum — ajustar quando os dados corretos existirem.
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -69,7 +73,16 @@ const FEATURES = [
   },
 ];
 
-const STATS = ["processos monitorados", "tribunais integrados", "publicações triadas por dia", "tempo médio de triagem"];
+// "93 tribunais integrados" é dado real (contagem de lib/tribunaisCatalog.ts); os outros 3 ficam
+// em branco de propósito — sem número que o escritório não possa comprovar (documento 09) — até
+// alguém preencher com o valor certo. Sem moldura de aviso: a fase de mockup acabou, agora é
+// conteúdo publicável faltando só o dado, não uma tela de desenvolvimento.
+const STATS = [
+  { value: null, label: "processos monitorados" },
+  { value: "93", label: "tribunais integrados" },
+  { value: null, label: "publicações triadas por dia" },
+  { value: null, label: "tempo médio de triagem" },
+];
 
 const PLANS = [
   { name: "Individual", detail: "Até 1 advogado", items: ["Publicações DJEN + DATAJUD", "Painel, agenda e peticionamento", "Financeiro básico"] },
@@ -128,17 +141,13 @@ export default async function HomePage() {
         <section className="border-t-2 border-regua-forte">
           <div className="max-w-[1120px] mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-6">
-              {STATS.map((label) => (
-                <div key={label} className={`py-6 px-5 ${placeholderBox}`}>
-                  <span className={placeholderTag}>Substituir</span>
-                  <div className="text-4xl font-extrabold tabular-nums mt-2">—</div>
+              {STATS.map(({ value, label }) => (
+                <div key={label} className="py-6 px-5">
+                  <div className="text-4xl font-extrabold tabular-nums mt-2">{value ?? "—"}</div>
                   <div className="mt-1.5 text-[13px] font-semibold text-tx-2">{label}</div>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-tx-3 py-3">
-              Documento 09: &ldquo;só números que o escritório possa comprovar.&rdquo; Preencher com os 4 valores reais antes do deploy.
-            </p>
           </div>
         </section>
 
@@ -161,10 +170,18 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 5. Fotografia */}
-        <section className="border-t-2 border-regua-forte">
-          <div className={`aspect-[21/9] md:aspect-[3/1] grayscale flex items-center justify-center ${placeholderBox}`}>
-            <span className={placeholderTag}>Substituir — foto real do escritório, preto e branco</span>
+        {/* 5. Faixa de alcance — documento 09 previa uma fotografia do escritório aqui; sem uma
+            foto real disponível, a faixa usa o único número já publicável (93 tribunais, mesmo
+            dado da seção 3) como elemento gráfico em vez de deixar um retângulo vazio. Quando
+            houver fotografia, esta seção volta a ser a imagem prevista no documento. */}
+        <section className="border-t-2 border-regua-forte bg-grafite-900">
+          <div className="max-w-[1120px] mx-auto px-6 py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
+            <div className="text-[clamp(56px,9vw,108px)] font-extrabold leading-none tracking-[-.02em] text-white tabular-nums">
+              93
+            </div>
+            <p className="text-lg text-neutro-300 max-w-[36ch]">
+              tribunais integrados — publicações de todo o país entrando direto na fila do escritório, sem abrir site um por um.
+            </p>
           </div>
         </section>
 
@@ -238,14 +255,13 @@ export default async function HomePage() {
               <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h4>
               <ul className="space-y-2.5 text-sm">
                 <li><Link href="/privacidade" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Política de privacidade</Link></li>
-                <li className={`inline-block ${placeholderBox} px-2 py-1`}><span className={placeholderTag}>Substituir</span> <span className="text-tx-2">Encarregado de dados (DPO)</span></li>
+                {/* DPO reaproveita o contato real já existente no rodapé em vez de um dado fictício —
+                    sem CNPJ aqui pela mesma razão: melhor omitir do que publicar um valor inventado. */}
+                <li><a href="mailto:contato@rodarteprado.com.br" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Encarregado de dados (DPO)</a></li>
               </ul>
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 mt-11 pt-5 border-t border-regua text-xs text-tx-3">
-            <span className={`inline-flex items-center gap-2 ${placeholderBox} px-2 py-1`}>
-              <span className={placeholderTag}>Substituir</span> CNPJ
-            </span>
+          <div className="flex items-center justify-end mt-11 pt-5 border-t border-regua text-xs text-tx-3">
             <span>© 2026 Lúmen. Todos os direitos reservados.</span>
           </div>
         </div>
