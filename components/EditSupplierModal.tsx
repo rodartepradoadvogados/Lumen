@@ -81,9 +81,8 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
         </ModalShell>
       )}
       <style jsx global>{`
-        .cl-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .cl-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-        .dark .cl-input { border-color: rgba(255,255,255,0.15); background: #0f1f3d; color: #fbfaf7; }
+        .cl-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
+        .cl-input:focus { outline: none; box-shadow: 0 0 0 2px var(--marca-bg); }
       `}</style>
     </>
   );
