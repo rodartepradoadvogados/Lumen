@@ -9,6 +9,7 @@ import { sendOfficeInviteEmail, sendInvoiceEmail } from "@/lib/email";
 import { createBoleto, isBtgConnected, disconnectBtg as btgDisconnect } from "@/lib/btg";
 import { createPixQrCodeCharge, createBoletoCharge, isAsaasConfigured, calcularValorCobranca, reativarOfficeSeSuspenso } from "@/lib/asaas";
 import { getAppUrl } from "@/lib/appUrl";
+import { calcularMensalidadeModular } from "@/lib/officePricing";
 
 // Exportada (Fase 3 — Asaas) para lib/actions/subscriptionBilling.ts reusar o mesmo gate, em vez
 // de duplicar a checagem. Dono da plataforma OU membro de equipe ativo (isPlatformStaff) — antes
@@ -149,14 +150,125 @@ export async function createOffice(data: {
   return { officeId: user.officeId };
 }
 
-export async function updateOfficeModules(officeId: string, modules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean }): Promise<{ error?: string }> {
+// Substitui o antigo updateOfficeModules (só os 4 booleanos) — agora grava também o plano
+// escolhido, o preço por módulo deste escritório e os limites de OAB/processo. Único caminho de
+// escrita dos módulos contratados: não existe mais autosserviço do lado do escritório-cliente
+// (ver git log de components/ModulesManager.tsx) — só o Painel Mestre altera isto.
+export async function updateOfficePlanModules(
+  officeId: string,
+  data: {
+    planId: string | null;
+    modules: { financeiro: boolean; whatsapp: boolean; atendimento: boolean; assessoria: boolean };
+    prices: { financeiro: number | null; whatsapp: number | null; atendimento: number | null; assessoria: number | null };
+    oabLimit: number | null;
+    caseLimit: number | null;
+  }
+): Promise<{ error?: string }> {
   const auth = await requirePlatformOwner();
   if ("error" in auth) return auth;
+
+  const office = await prisma.office.findUnique({ where: { id: officeId }, select: { pricingMode: true } });
+  if (!office) return { error: "Escritório não encontrado." };
+
+  const pricingInput = {
+    moduloFinanceiro: data.modules.financeiro,
+    moduloWhatsapp: data.modules.whatsapp,
+    moduloAtendimento: data.modules.atendimento,
+    moduloAssessoria: data.modules.assessoria,
+    precoFinanceiro: data.prices.financeiro,
+    precoWhatsapp: data.prices.whatsapp,
+    precoAtendimento: data.prices.atendimento,
+    precoAssessoria: data.prices.assessoria,
+  };
+
+  // Só recalcula a mensalidade automaticamente se este escritório já foi migrado pra cálculo
+  // modular (ver migrateOfficeToModular) — em MANUAL, Office.monthlyFee continua intocado aqui,
+  // digitado à parte em "Plano e cobrança" (comportamento de sempre, nenhum contrato ativo muda
+  // de valor sozinho por causa desta tela).
+  let monthlyFee: number | undefined;
+  if (office.pricingMode === "MODULAR") {
+    const calc = calcularMensalidadeModular(pricingInput);
+    if (calc.modulosSemPreco.length > 0) {
+      return { error: `Defina o preço de todos os módulos ligados antes de salvar (faltando: ${calc.modulosSemPreco.join(", ")}) — este escritório calcula a mensalidade automaticamente.` };
+    }
+    monthlyFee = calc.total;
+  }
+
   await prisma.office.update({
     where: { id: officeId },
-    data: { moduloFinanceiro: modules.financeiro, moduloWhatsapp: modules.whatsapp, moduloAtendimento: modules.atendimento, moduloAssessoria: modules.assessoria },
+    data: {
+      planId: data.planId,
+      moduloFinanceiro: data.modules.financeiro,
+      moduloWhatsapp: data.modules.whatsapp,
+      moduloAtendimento: data.modules.atendimento,
+      moduloAssessoria: data.modules.assessoria,
+      precoFinanceiro: data.prices.financeiro,
+      precoWhatsapp: data.prices.whatsapp,
+      precoAtendimento: data.prices.atendimento,
+      precoAssessoria: data.prices.assessoria,
+      oabLimit: data.oabLimit,
+      caseLimit: data.caseLimit,
+      ...(monthlyFee !== undefined ? { monthlyFee } : {}),
+    },
   });
+  // Mesmo padrão de updateOfficeBilling abaixo: propaga pra Subscription.monthlyFee só quando
+  // já existe uma (updateMany, nunca cria) — as duas telas do dono não podem divergir de preço.
+  if (monthlyFee !== undefined) {
+    await prisma.subscription.updateMany({ where: { officeId }, data: { monthlyFee } });
+  }
   revalidatePath("/painel-mestre");
+  revalidatePath(`/painel-mestre/${officeId}`);
+  return {};
+}
+
+// Troca este escritório de "mensalidade digitada à mão" para "mensalidade calculada
+// automaticamente pela soma dos módulos" — ação humana e deliberada, uma linha por vez (nunca em
+// massa): o operador confere que o total calculado bate com o que o cliente já paga antes de
+// confirmar. Recusa migrar um escritório com módulo contratado sem preço definido — isso
+// derrubaria a mensalidade pra um valor menor que o contrato real no mesmo clique.
+export async function migrateOfficeToModular(officeId: string): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+
+  const office = await prisma.office.findUnique({ where: { id: officeId } });
+  if (!office) return { error: "Escritório não encontrado." };
+
+  const calc = calcularMensalidadeModular(office);
+  if (calc.modulosSemPreco.length > 0) {
+    return { error: `Defina o preço de todos os módulos contratados antes de migrar (faltando: ${calc.modulosSemPreco.join(", ")}).` };
+  }
+
+  await prisma.office.update({ where: { id: officeId }, data: { pricingMode: "MODULAR", monthlyFee: calc.total } });
+  await prisma.subscription.updateMany({ where: { officeId }, data: { monthlyFee: calc.total } });
+  revalidatePath("/painel-mestre");
+  revalidatePath(`/painel-mestre/${officeId}`);
+  return {};
+}
+
+// Preço-catálogo global de um módulo (Painel Mestre → Preços) — só a sugestão usada para
+// pré-preencher o preço de um escritório ao ligar o módulo pela primeira vez; não recalcula
+// nenhuma mensalidade já gravada em nenhum Office (ver comentário do model ModulePrice).
+export async function updateModulePrice(moduleKey: string, price: number | null): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await prisma.modulePrice.update({ where: { moduleKey }, data: { price } });
+  revalidatePath("/painel-mestre/precos");
+  revalidatePath("/");
+  return {};
+}
+
+// Limites e composição de módulo de um plano fixo do catálogo (Standard/Silver/Gold/Diamond) —
+// edição em tela, sem deploy. Plan.isCustom (Sob Medida) não é editado por aqui: não tem
+// composição fixa por definição.
+export async function updatePlan(
+  planId: string,
+  data: { maxOabs: number | null; maxProcessos: number | null; moduloFinanceiro: boolean; moduloWhatsapp: boolean; moduloAtendimento: boolean; moduloAssessoria: boolean }
+): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await prisma.plan.update({ where: { id: planId }, data });
+  revalidatePath("/painel-mestre/precos");
+  revalidatePath("/");
   return {};
 }
 

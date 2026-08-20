@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember } from "@/lib/platformMember";
+import { prisma } from "@/lib/prisma";
+import { calcularPrecoDoPlano, MODULOS } from "@/lib/officePricing";
+import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
 
@@ -22,12 +25,17 @@ import CookieConsent from "@/components/site/CookieConsent";
 //
 // Campos em aberto (dados reais a preencher depois, não inventados aqui — documento 09: "só
 // números que o escritório possa comprovar" / revisão OAB do preço): 3 dos 4 números da seção
-// de estatísticas (só "93 tribunais integrados" é real hoje, os outros ficam em branco) e os 3
-// preços de plano — únicos ainda marcados com moldura tracejada (--vinho/--atencao) e
-// "Substituir". Fotografia do escritório, CNPJ e DPO não têm dado real disponível e por isso
-// saíram do texto público em vez de aparecer como mockup: seção 5 virou uma faixa gráfica com o
-// número real de tribunais, o rodapé usa o e-mail de contato já existente como DPO e não exibe
-// CNPJ algum — ajustar quando os dados corretos existirem.
+// de estatísticas (só "93 tribunais integrados" é real hoje, os outros ficam em branco).
+// Fotografia do escritório, CNPJ e DPO não têm dado real disponível e por isso saíram do texto
+// público em vez de aparecer como mockup: seção 5 virou uma faixa gráfica com o número real de
+// tribunais, o rodapé usa o e-mail de contato já existente como DPO e não exibe CNPJ algum —
+// ajustar quando os dados corretos existirem.
+//
+// Seção 6 (Preço) não tem mais array hardcoded: lê o catálogo de planos e o preço por módulo
+// direto do banco (Plan/ModulePrice, Painel Mestre → Preços) — "automatize isso" (pedido do
+// dono). Plano cujo módulo incluso ainda não tem preço configurado mostra a mesma moldura
+// tracejada "Substituir" de antes; vira número real sozinho assim que o operador preencher o
+// preço do módulo, sem precisar mexer neste arquivo.
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -85,12 +93,6 @@ const STATS = [
   { value: null, label: "tempo médio de triagem" },
 ];
 
-const PLANS = [
-  { name: "Individual", detail: "Até 1 advogado", items: ["Publicações DJEN + DATAJUD", "Painel, agenda e peticionamento", "Financeiro básico"] },
-  { name: "Escritório", detail: "Até 10 usuários", items: ["Tudo do plano Individual", "Financeiro completo (DRE, conciliação)", "Trilha de auditoria e máscara"] },
-  { name: "Corporativo", detail: "Usuários ilimitados", items: ["Tudo do plano Escritório", "Onboarding assistido", "Suporte prioritário"] },
-];
-
 const navLink = "text-sm font-semibold text-tx hover:underline underline-offset-4";
 const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm";
 const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg";
@@ -105,6 +107,13 @@ export default async function HomePage() {
     const hasPlatformAccess = user.isPlatformOwner || Boolean(await getPlatformMember());
     redirect(hasPlatformAccess ? "/escolher" : "/painel");
   }
+
+  const [plansRaw, modulePrices] = await Promise.all([
+    prisma.plan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.modulePrice.findMany(),
+  ]);
+  const plans = plansRaw.filter((p) => !p.isCustom);
+  const sobMedida = plansRaw.find((p) => p.isCustom);
 
   return (
     <div className="bg-sf-fundo text-tx">
@@ -190,30 +199,57 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 6. Preço */}
+        {/* 6. Preço — lido ao vivo do catálogo (Plan/ModulePrice, Painel Mestre → Preços), sem
+            array hardcoded. Plano com módulo incluso ainda sem preço configurado mantém a
+            moldura tracejada "Substituir"; some sozinho assim que o preço for preenchido. */}
         <section id="preco" className="border-t-2 border-regua-forte py-20">
           <div className="max-w-[1120px] mx-auto px-6">
             <h2 className="text-[30px] font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
-            <div className="grid md:grid-cols-3">
-              {PLANS.map((plan) => (
-                <div key={plan.name} className={`p-6 ${placeholderBox}`}>
-                  <span className={placeholderTag}>Substituir</span>
-                  <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
-                  <div className="text-[13px] text-tx-3 mt-1">{plan.detail}</div>
-                  <div className="text-4xl font-extrabold mt-3">R$ —<span className="text-sm font-semibold text-tx-2">/mês</span></div>
-                  <ul className="mt-5 space-y-2.5">
-                    {plan.items.map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-tx-2">
-                        <span className="w-2 h-2 bg-marca mt-1.5 shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Começar</Link>
+            <div className="grid md:grid-cols-3 lg:grid-cols-5">
+              {plans.map((plan) => {
+                const calc = calcularPrecoDoPlano(plan, modulePrices);
+                const semPreco = calc.modulosSemPreco.length > 0;
+                const modulosInclusos = MODULOS.filter((m) => {
+                  if (m.key === "FINANCEIRO") return plan.moduloFinanceiro;
+                  if (m.key === "ASSESSORIA") return plan.moduloAssessoria;
+                  if (m.key === "WHATSAPP") return plan.moduloWhatsapp;
+                  return plan.moduloAtendimento;
+                });
+                return (
+                  <div key={plan.id} className={`p-6 ${semPreco ? placeholderBox : "border-2 border-regua-forte bg-sf"}`}>
+                    {semPreco && <span className={placeholderTag}>Substituir</span>}
+                    <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
+                    <div className="text-[13px] text-tx-3 mt-1">
+                      {plan.maxOabs != null && `Até ${plan.maxOabs} OAB${plan.maxOabs > 1 ? "s" : ""}`}
+                      {plan.maxOabs != null && plan.maxProcessos != null && " · "}
+                      {plan.maxProcessos != null && `até ${plan.maxProcessos} processos`}
+                    </div>
+                    <div className="text-4xl font-extrabold mt-3">
+                      {semPreco ? "R$ —" : formatCurrency(calc.total)}
+                      <span className="text-sm font-semibold text-tx-2">/mês</span>
+                    </div>
+                    <ul className="mt-5 space-y-2.5">
+                      {modulosInclusos.map((m) => (
+                        <li key={m.key} className="flex items-start gap-2.5 text-sm text-tx-2">
+                          <span className="w-2 h-2 bg-marca mt-1.5 shrink-0" />
+                          {m.label}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Começar</Link>
+                  </div>
+                );
+              })}
+              {sobMedida && (
+                <div className="p-6 border-2 border-regua-forte bg-sf">
+                  <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
+                  <div className="text-[13px] text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
+                  <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
+                  <p className="text-sm text-tx-2 mt-5">Escolha os módulos e o volume certo para o seu escritório — a gente monta o plano com você.</p>
+                  <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Falar com a gente</Link>
                 </div>
-              ))}
+              )}
             </div>
-            <p className="text-[11px] text-tx-3 mt-6">Preços de exemplo — preencher com a tabela real (revisada por advogado, regras da OAB) antes do deploy.</p>
           </div>
         </section>
 

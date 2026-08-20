@@ -304,7 +304,7 @@ export default async function ConfiguracoesPage({
 
       {isAdmin && secao === "geral" && (
       <Card>
-        <CardHeader title="Módulos Contratados" subtitle="Liga/desliga módulos conforme o plano contratado — desligar não apaga nenhum dado já existente" />
+        <CardHeader title="Módulos Contratados" subtitle="Contratação e cancelamento de módulo são feitos pela Lúmen, não aqui" />
         <ModulesManager modules={modules} />
       </Card>
       )}

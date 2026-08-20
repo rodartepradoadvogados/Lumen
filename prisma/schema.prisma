@@ -92,11 +92,37 @@ model Office {
   // Módulos habilitados por contrato — controla o que aparece na navegação e o que os Server
   // Actions de cada módulo aceitam fazer (checado nos dois lugares, não só escondido na tela).
   // Desligar um módulo NUNCA apaga dados já existentes, só impede a criação de dados novos e
-  // esconde a navegação — permite religar sem perda caso o contrato mude depois.
+  // esconde a navegação — permite religar sem perda caso o contrato mude depois. SEM
+  // autosserviço: só o Painel Mestre grava aqui (lib/actions/painelMestre.ts) — ver
+  // Plan/ModulePrice abaixo para o preço e o catálogo de planos que dirigem estes 4 campos.
   moduloFinanceiro  Boolean @default(true)
   moduloWhatsapp    Boolean @default(true)
   moduloAtendimento Boolean @default(true)
   moduloAssessoria  Boolean @default(true)
+
+  // Plano/preço por módulo (Painel Mestre → Cobrança e acesso). planId aponta pro catálogo
+  // (Plan, mais abaixo) — nulo em todo escritório pré-existente até o operador migrar. Os 4
+  // preços são POR ESCRITÓRIO (cópia do catálogo global ModulePrice no momento em que o módulo é
+  // ligado, editável depois — permite desconto negociado sem sair do plano fixo), nunca um valor
+  // global aplicado direto: só entram na mensalidade o módulo cujo booleano acima está ligado E
+  // cujo preço aqui não é nulo (ver lib/officePricing.ts:calcularMensalidadeModular). oabLimit/
+  // caseLimit só valem de verdade no plano Sob Medida (Plan.isCustom) — em plano fixo a UI usa o
+  // limite do próprio Plan, estes dois ficam como override raro (ex.: ampliar cota de um cliente
+  // específico sem tirar do plano).
+  //
+  // pricingMode decide se Office.monthlyFee é digitado (MANUAL, default — comportamento de
+  // sempre, nenhum escritório existente muda de valor na migração deste recurso) ou calculado a
+  // partir dos 4 preços acima toda vez que o operador salva módulos (MODULAR) — a troca é uma
+  // ação humana e deliberada por escritório (ver updateOfficePlanModules), nunca automática.
+  planId            String?
+  plan              Plan?    @relation(fields: [planId], references: [id])
+  precoFinanceiro   Float?
+  precoWhatsapp     Float?
+  precoAtendimento  Float?
+  precoAssessoria   Float?
+  oabLimit          Int?
+  caseLimit         Int?
+  pricingMode       String   @default("MANUAL") // MANUAL | MODULAR
 
   // Provedor de armazenamento de anexos (Processos/Atendimentos/Assessoria) escolhido por este
   // escritório — "GOOGLE_DRIVE" | "ONEDRIVE" | "DROPBOX" (texto livre, mesmo padrão do resto do
@@ -116,8 +142,8 @@ model Office {
   drivePastaMae String?
   drivePrefixo  String?
 
-  // Diferente dos módulos acima (contratáveis, autosserviço do próprio escritório em
-  // Configurações), o Blog Jurídico público é um recurso da PLATAFORMA: só o escritório dono
+  // Diferente dos módulos acima (contratáveis, só o Painel Mestre altera — sem autosserviço), o
+  // Blog Jurídico público é um recurso da PLATAFORMA: só o escritório dono
   // (Rodarte Prado) produz/edita/aprova matérias, ou quem ele conceder acesso no futuro — não
   // tem toggle de autosserviço. Default true só beneficia o escritório pré-existente no banco
   // (Rodarte Prado); todo Office novo criado via /cadastro recebe false explicitamente (ver
@@ -220,6 +246,45 @@ model Office {
 
   // Modelos salvos do Relatório Personalizado — ver model RelatorioModelo mais abaixo.
   relatorioModelos RelatorioModelo[]
+}
+
+// Catálogo de planos (Painel Mestre → Preços) — 5 linhas fixas (Standard/Silver/Gold/Diamond/Sob
+// Medida), editáveis na tela (limites e composição de módulo), sem exigir deploy pra ajustar. Sob
+// Medida (isCustom true) não tem limite nem composição fixa — existe só como opção no seletor de
+// plano do escritório; o operador escolhe módulo a módulo e digita oabLimit/caseLimit livremente
+// naquele escritório (ver Office acima). Os 4 booleanos aqui são a composição PADRÃO de um plano
+// fixo — pré-marcam os módulos do escritório ao escolher o plano, mas o valor de fato contratado
+// (e o preço) sempre mora em Office, nunca é lido daqui em tempo de cobrança.
+model Plan {
+  id                String   @id @default(cuid())
+  key               String   @unique // STANDARD | SILVER | GOLD | DIAMOND | SOB_MEDIDA
+  name              String
+  sortOrder         Int      @default(0)
+  active            Boolean  @default(true)
+  isCustom          Boolean  @default(false)
+  maxOabs           Int?
+  maxProcessos      Int?
+  moduloFinanceiro  Boolean  @default(false)
+  moduloWhatsapp    Boolean  @default(false)
+  moduloAtendimento Boolean  @default(false)
+  moduloAssessoria  Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  offices Office[]
+}
+
+// Preço-catálogo dos 4 módulos, global (uma linha por módulo, não por plano) — o "campo
+// configurável no painel mestre" pedido: "Financeiro - Valor: R$ ___", "Assessoria Jurídica -
+// Valor: R$ ___" etc. Nasce com price null em todo módulo ("deixe tudo sem preço"). É só a
+// SUGESTÃO usada para pré-preencher o preço de um escritório ao ligar um módulo pela primeira
+// vez — o valor que de fato entra na mensalidade de um escritório é sempre o preço gravado no
+// próprio Office (editável, permite desconto pontual), nunca lido daqui em tempo de cobrança.
+model ModulePrice {
+  moduleKey String   @id // FINANCEIRO | WHATSAPP | ATENDIMENTO | ASSESSORIA
+  label     String
+  price     Float?
+  updatedAt DateTime @updatedAt
 }
 
 // ============ EQUIPE ============
