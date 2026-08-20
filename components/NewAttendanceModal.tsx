@@ -437,7 +437,7 @@ export default function NewAttendanceModal({
                           onClick={() => setClientMode("novo")}
                           className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                             clientMode === "novo"
-                              ? "bg-sf shadow-sm text-tx"
+                              ? "bg-sf text-tx"
                               : "text-tx-3 hover:text-tx"
                           }`}
                         >
@@ -448,7 +448,7 @@ export default function NewAttendanceModal({
                           onClick={() => setClientMode("selecionar")}
                           className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                             clientMode === "selecionar"
-                              ? "bg-sf shadow-sm text-tx"
+                              ? "bg-sf text-tx"
                               : "text-tx-3 hover:text-tx"
                           }`}
                         >

@@ -170,7 +170,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                 {(type === "EVENTO" || type === "AUDIENCIA") && (
                   // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio +
                   // filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
-                  <div className={`rounded-r-[5px] border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
+                  <div className={`border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
                     <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                       {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                     </p>
@@ -259,12 +259,12 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           </div>
 
           <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center gap-2 flex-wrap bg-sf-apoio">
-            {error && <p className="w-full text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+            {error && <p className="w-full text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
             <button
               type="submit"
               form="task-detail-form"
               disabled={saving}
-              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 transition-colors disabled:opacity-50"
             >
               {saving ? "Salvando..." : "Salvar"}
             </button>
@@ -273,7 +273,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               onClick={handleToggleDone}
               disabled={saving}
               data-tip={task.status === "CONCLUIDO" && task.completedBy && task.completedAt ? completedLabel(task.completedBy.name, task.completedAt) : undefined}
-              className="flex items-center gap-1.5 bg-concluido hover:opacity-90 text-white text-sm font-semibold px-3.5 py-2.5 rounded-lg disabled:opacity-50 transition-opacity"
+              className="flex items-center gap-1.5 bg-concluido hover:opacity-90 text-white text-sm font-semibold px-3.5 py-2.5 disabled:opacity-50 transition-opacity"
             >
               <Check size={14} /> {task.status === "CONCLUIDO" ? "Reabrir" : "Marcar como concluída"}
             </button>

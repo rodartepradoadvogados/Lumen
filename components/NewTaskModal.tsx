@@ -71,7 +71,7 @@ export default function NewTaskModal({
       {/* "Nova"/"Novo" é Secundário (DESIGN-SYSTEM.md §4) — o azul de ação fica pro "Criar" dentro do modal. */}
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Plus size={16} /> {label ?? "Nova Tarefa"}
       </button>
@@ -176,7 +176,7 @@ export default function NewTaskModal({
                   {(type === "EVENTO" || type === "AUDIENCIA") && (
                     // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio
                     // + filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
-                    <div className={`rounded-r-[5px] border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
+                    <div className={`border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
                       <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                         {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                       </p>
@@ -232,11 +232,11 @@ export default function NewTaskModal({
             </div>
 
             <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-end gap-3 bg-sf-apoio">
-              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2 flex-1">{error}</p>}
+              {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2 flex-1">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 transition-colors disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Criar"}
               </button>
