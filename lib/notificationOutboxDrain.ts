@@ -1,24 +1,43 @@
 import { prisma } from "@/lib/prisma";
 import { sendRawPush } from "@/lib/push";
 import { sendSimpleEmail } from "@/lib/email";
+import { buildDigestEmailHtml, type TemplateVarValues } from "@/lib/emailTemplateRender";
+import { DEFAULT_TEMPLATES } from "@/lib/comunicadosTemplatesPadrao";
+import type { NotificationEvent } from "@/lib/comunicadosEventos";
 
-type OutboxPayload = { title: string; body: string; url: string | null };
+type OutboxPayload = { title: string; body: string; url: string | null; vars?: TemplateVarValues };
+type OutboxRow = { id: string; userId: string; officeId: string; channel: string; event: string; payload: unknown };
 
 // Drena NotificationOutbox: agrupa por (usuário, canal) e manda UM e-mail e UM push por pessoa
-// por rodada — nunca um por evento (documento 06). Chamado só por
-// app/api/cron/comunicados-outbox/route.ts, que por sua vez NÃO está em vercel.json ainda (ver
-// comentário no topo de lib/notificationOutbox.ts — fase de sombra).
-export async function drainNotificationOutbox(): Promise<{ processed: number; emailsSent: number; pushSent: number }> {
-  const now = new Date();
-  const due = await prisma.notificationOutbox.findMany({
-    where: { dueAt: { lte: now }, sentAt: null },
-    orderBy: { dueAt: "asc" },
-    take: 1000,
-  });
-  if (due.length === 0) return { processed: 0, emailsSent: 0, pushSent: 0 };
+// por rodada — nunca um por evento (documento 06). Quando o grupo tem exatamente 1 item, o
+// e-mail usa o TEMPLATE de verdade daquele evento (EmailTemplate salvo pelo escritório, ou o
+// padrão embutido em lib/comunicadosTemplatesPadrao.ts) — o mesmo texto que o admin edita e vê na
+// prévia em components/comunicados/TemplateEditor.tsx, nunca um texto solto diferente. Quando o
+// grupo tem 2+ itens (vários eventos batidos no mesmo horário de resumo), não há UM template
+// aplicável — cai num resumo genérico com a mesma casca visual (buildDigestEmailHtml), listando
+// cada item.
+async function renderGroupEmail(officeId: string, items: (OutboxPayload & { event: string })[]): Promise<{ subject: string; html: string }> {
+  if (items.length === 1) {
+    const item = items[0];
+    const event = item.event as NotificationEvent;
+    const salvo = await prisma.emailTemplate.findUnique({ where: { officeId_event: { officeId, event } } });
+    const template = salvo ?? DEFAULT_TEMPLATES[event] ?? { subject: item.title, bodyHtml: `<p>${item.body}</p>` };
+    return {
+      subject: template.subject,
+      html: buildDigestEmailHtml({ subject: template.subject, bodyHtml: template.bodyHtml, url: item.url ?? undefined, vars: item.vars ?? {} }),
+    };
+  }
+  const listaHtml = items
+    .map((i) => `<p><strong>${i.title}</strong><br/>${i.body}</p>`)
+    .join("");
+  return { subject: "Seu resumo do Lúmen", html: buildDigestEmailHtml({ subject: "Seu resumo do Lúmen", bodyHtml: listaHtml, vars: {} }) };
+}
 
-  const groups = new Map<string, typeof due>();
-  for (const row of due) {
+async function processGroups(rows: OutboxRow[]): Promise<{ processed: number; emailsSent: number; pushSent: number }> {
+  if (rows.length === 0) return { processed: 0, emailsSent: 0, pushSent: 0 };
+
+  const groups = new Map<string, OutboxRow[]>();
+  for (const row of rows) {
     const key = `${row.userId}:${row.channel}`;
     const arr = groups.get(key) ?? [];
     arr.push(row);
@@ -29,50 +48,55 @@ export async function drainNotificationOutbox(): Promise<{ processed: number; em
   let pushSent = 0;
   const processedIds: string[] = [];
 
-  for (const [key, rows] of groups) {
+  for (const [key, group] of groups) {
     const [userId, channel] = key.split(":");
-    const officeId = rows[0].officeId;
-    const items = rows.map((r) => r.payload as OutboxPayload);
+    const officeId = group[0].officeId;
+    const items = group.map((r) => ({ ...(r.payload as OutboxPayload), event: r.event }));
 
     if (channel === "PUSH") {
       const body = items.length === 1 ? items[0].body : `${items.length} atualização(ões) desde o último resumo.`;
       const result = await sendRawPush(userId, officeId, { title: "Lúmen", body, url: items[0]?.url ?? undefined });
       if (result.sent > 0) pushSent++;
     } else if (channel === "EMAIL") {
-      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
       if (user?.email) {
-        const subject = items.length === 1 ? items[0].title : "Seu resumo do Lúmen";
-        const result = await sendSimpleEmail(user.email, subject, buildDigestHtml(user.name, items));
+        const { subject, html } = await renderGroupEmail(officeId, items);
+        const result = await sendSimpleEmail(user.email, subject, html);
         if (result.sent) emailsSent++;
       }
     }
     // IN_APP: não existe central de notificações in-app no produto hoje (achado da investigação
-    // desta PR) — só marca como processado, pra não acumular pra sempre. Construir a central é
-    // fora do escopo desta fase.
+    // da PR "outbox e cron de agrupamento") — só marca como processado, pra não acumular pra
+    // sempre. Construir a central é fora do escopo desta fase.
 
-    processedIds.push(...rows.map((r) => r.id));
+    processedIds.push(...group.map((r) => r.id));
   }
 
-  await prisma.notificationOutbox.updateMany({ where: { id: { in: processedIds } }, data: { sentAt: now } });
-  return { processed: due.length, emailsSent, pushSent };
+  await prisma.notificationOutbox.updateMany({ where: { id: { in: processedIds } }, data: { sentAt: new Date() } });
+  return { processed: rows.length, emailsSent, pushSent };
 }
 
-function buildDigestHtml(name: string, items: OutboxPayload[]): string {
-  const lis = items
-    .map((i) => `<li style="margin-bottom:10px;"><strong style="color:#0f1f3d;">${i.title}</strong><br/><span style="color:#333;">${i.body}</span></li>`)
-    .join("");
-  return `
-  <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;">
-    <div style="background:#0b1730;padding:16px;text-align:center;">
-      <span style="color:#fff;font-weight:700;letter-spacing:1px;">LÚMEN</span>
-    </div>
-    <div style="padding:20px;background:#fff;">
-      <p style="color:#0f1f3d;">Olá, ${name}!</p>
-      <p style="color:#0f1f3d;">Seu resumo de hoje:</p>
-      <ul style="padding-left:18px;">${lis}</ul>
-      <p style="font-size:11px;color:#888;margin-top:20px;">
-        Você recebe este resumo uma vez por dia. Altere o horário ou cancele em Lúmen &gt; Configurações &gt; Comunicados.
-      </p>
-    </div>
-  </div>`;
+// Chamado só por app/api/cron/comunicados-outbox/route.ts, agora ativo em vercel.json (corte do
+// outbox — os envios em tempo real/crons antigos equivalentes foram removidos, ver
+// lib/actions/tasks.ts, lib/outlookEmailSync.ts, lib/jusbrasilEmailSync.ts, lib/roboBridge.ts).
+export async function drainNotificationOutbox(): Promise<{ processed: number; emailsSent: number; pushSent: number }> {
+  const now = new Date();
+  const due = await prisma.notificationOutbox.findMany({
+    where: { dueAt: { lte: now }, sentAt: null },
+    orderBy: { dueAt: "asc" },
+    take: 1000,
+  });
+  return processGroups(due);
+}
+
+// Drena só as linhas indicadas, na hora, ignorando dueAt — usado quando o envio não pode esperar
+// o próximo tick do cron (até 15min): hoje só o convite de equipe (lib/actions/settings.ts:
+// createUser), porque sem ele a pessoa recém-cadastrada não tem nenhum jeito de entrar no
+// sistema. Não usar para os demais eventos — drenar tudo aqui dentro de uma Server Action comum
+// escala mal (o cron já processa até 1000 linhas de QUALQUER escritório de uma vez); esta versão
+// filtra por id, então só processa exatamente o que foi passado.
+export async function drainSpecificNotifications(ids: string[]): Promise<{ processed: number; emailsSent: number; pushSent: number }> {
+  if (ids.length === 0) return { processed: 0, emailsSent: 0, pushSent: 0 };
+  const rows = await prisma.notificationOutbox.findMany({ where: { id: { in: ids }, sentAt: null } });
+  return processGroups(rows);
 }

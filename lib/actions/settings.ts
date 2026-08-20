@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -12,6 +13,17 @@ import { syncRoboParaSite, type RoboBridgeResult } from "@/lib/roboBridge";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { validarNomeacao } from "@/lib/driveNaming";
+import { getAppUrl } from "@/lib/appUrl";
+import { enqueueNotification } from "@/lib/notificationOutbox";
+import { drainSpecificNotifications } from "@/lib/notificationOutboxDrain";
+
+// Mesmo TTL/hash de lib/actions/auth.ts e lib/actions/painelMestre.ts (token de definição de
+// senha) — duplicado aqui de propósito, mesma convenção já usada nos outros dois lugares em vez
+// de extrair um helper compartilhado.
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 
 export async function testDailyAgendaEmail(): Promise<{ sent: boolean; reason?: string }> {
   const viewer = await getCurrentUser();
@@ -184,12 +196,32 @@ export async function runDjenConnectionTest(): Promise<{ error?: string; results
   return { results };
 }
 
+// Cadastra o membro E convida (documento 06 — evento CONVITE_EQUIPE): antes desta mudança o
+// usuário nascia sem senha e sem NENHUM jeito de entrar (achado ao investigar como o "evento"
+// CONVITE_EQUIPE poderia sequer disparar — não havia disparo nenhum). O convite reaproveita o
+// mesmo token de definição de senha de lib/actions/painelMestre.ts (criar escritório novo), mas o
+// e-mail em si sai pela fila de Comunicados (com template editável pelo sócio, ver
+// components/comunicados/TemplateEditor.tsx) em vez de um texto fixo — e é drenado NA HORA
+// (drainSpecificNotifications), não no próximo tick do cron (até 15min): sem isso a pessoa
+// recém-cadastrada ficaria sem link de acesso por um tempo indeterminado.
 export async function createUser(data: { name: string; email: string; role: string; oab?: string; color: string }): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem cadastrar membros da equipe." };
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  let created;
   try {
-    await prisma.user.create({
-      data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, officeId: viewer.officeId },
+    created = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        oab: data.oab || null,
+        color: data.color,
+        officeId: viewer.officeId,
+        resetTokenHash: hashToken(rawToken),
+        resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      },
     });
   } catch (err) {
     // E-mail é único GLOBALMENTE (ver lib/actions/auth.ts:login) — já pode pertencer a outro
@@ -202,6 +234,27 @@ export async function createUser(data: { name: string; email: string; role: stri
   }
   revalidatePath("/configuracoes");
   revalidatePath("/contatos/equipe");
+
+  const inviteUrl = `${getAppUrl()}/redefinir-senha?token=${rawToken}`;
+  const enfileirado = await enqueueNotification({
+    userId: created.id,
+    officeId: viewer.officeId,
+    event: "CONVITE_EQUIPE",
+    title: "Convite para a equipe do Lúmen",
+    body: `${viewer.name} convidou você para a equipe.`,
+    url: inviteUrl,
+    vars: { responsavel: viewer.name, link: inviteUrl },
+    dedupeKey: `CONVITE_EQUIPE:${created.id}`,
+  });
+  if (!enfileirado) {
+    return { error: 'Membro cadastrado, mas o convite não foi enfileirado. Peça pra essa pessoa usar "Esqueci minha senha" no login.' };
+  }
+  const drenagem = await drainSpecificNotifications([enfileirado.id]);
+  if (drenagem.emailsSent === 0) {
+    return {
+      error: 'Membro cadastrado, mas o e-mail de convite não saiu (confira a configuração de e-mail do escritório). Peça pra essa pessoa usar "Esqueci minha senha" no login.',
+    };
+  }
   return {};
 }
 

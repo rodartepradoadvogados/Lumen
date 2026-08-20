@@ -37,6 +37,17 @@ export type Cadencia = (typeof CADENCIAS)[number];
 
 export type PerEventConfig = Record<PerEventEvento, { canal: Canal; cadencia: Cadencia }>;
 
+// União de todos os eventos que podem existir em NotificationOutbox/EmailTemplate — os 7 de
+// "por evento" (Bloco 3) mais os 3 que só existem como exceção (Bloco 2: PRAZO_HOJE,
+// AUDIENCIA_24H, HONORARIO_RECEBIDO; PUBLICACAO_NOVA já está nos dois). Usada pelo editor de
+// template (admin edita TODOS os 10, não só os 7 de cadência configurável) e pela fila/drenagem.
+export type NotificationEvent = PerEventEvento | BreakthroughEvento;
+export const ALL_EVENTOS: Record<NotificationEvent, string> = { ...PER_EVENT_EVENTOS, ...BREAKTHROUGH_EVENTOS };
+export const ALL_EVENTOS_KEYS = Object.keys(ALL_EVENTOS) as NotificationEvent[];
+export function isNotificationEvent(k: string): k is NotificationEvent {
+  return k in ALL_EVENTOS;
+}
+
 export type ComunicadoPreferencia = {
   digestOn: boolean;
   digestHour: number;
@@ -53,13 +64,18 @@ export function isPerEventEvento(k: string): k is PerEventEvento {
 // "preferência padrão POR ESCRITÓRIO", só por usuário (NotificationPreference.userId é único);
 // "o admin define o padrão do escritório", citado no documento, fica em aberto até existir onde
 // gravar esse padrão — por ora, todo mundo sem preferência salva usa exatamente esta tabela.
+// TAREFA_DELEGADA: PUSH/NA_HORA (não EMAIL/DIARIO como as demais) — antes do corte do outbox
+// (PR "corte") a delegação sempre gerava um push instantâneo (lib/actions/tasks.ts); esse push
+// foi removido a favor exclusivo da fila nova, então o padrão embutido aqui precisa reproduzir o
+// mesmo comportamento pra quem nunca mexeu na preferência — senão toda delegação de tarefa vira
+// silenciosamente "só amanhã no resumo" pra quem não sabia que precisava ir customizar.
 export const DEFAULT_PER_EVENT: PerEventConfig = {
   PUBLICACAO_NOVA: { canal: "EMAIL", cadencia: "DIARIO" },
   PRAZO_VENCENDO: { canal: "PUSH", cadencia: "NA_HORA" },
   HONORARIO_A_RECEBER: { canal: "EMAIL", cadencia: "DIARIO" },
   COBRANCA_ATRASO: { canal: "EMAIL", cadencia: "SEMANAL" },
   ANDAMENTO_PROCESSUAL: { canal: "IN_APP", cadencia: "DIARIO" },
-  TAREFA_DELEGADA: { canal: "EMAIL", cadencia: "DIARIO" },
+  TAREFA_DELEGADA: { canal: "PUSH", cadencia: "NA_HORA" },
   CONVITE_EQUIPE: { canal: "EMAIL", cadencia: "NA_HORA" },
 };
 export const DEFAULT_BREAKTHROUGH: BreakthroughEvento[] = ["PRAZO_HOJE", "AUDIENCIA_24H"];

@@ -3,7 +3,6 @@ import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
 import { getOAuthClient } from "@/lib/googleDrive";
-import { broadcastPushIfEnabled } from "@/lib/push";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 
 export type SyncResult = {
@@ -300,11 +299,6 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
         // de item individual pra dedupeKey estável). Ver lib/notificationOutbox.ts.
         const balde = new Date().toISOString().slice(0, 13);
         if (createdPublicacoesHere > 0) {
-          broadcastPushIfEnabled(activeUserIds, officeId, "publicacoes", {
-            title: "Novas publicações",
-            body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
-            url: "/m/publicacoes",
-          }).catch(() => {});
           for (const userId of activeUserIds) {
             enqueueNotification({
               userId,
@@ -313,16 +307,12 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
               title: "Novas publicações",
               body: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).`,
               url: "/m/publicacoes",
+              vars: { teor: `${createdPublicacoesHere} nova(s) publicação(ões) recebida(s).` },
               dedupeKey: `PUBLICACAO_NOVA:jusbrasil:${officeId}:${userId}:${balde}`,
             });
           }
         }
         if (createdAndamentosHere > 0) {
-          broadcastPushIfEnabled(activeUserIds, officeId, "andamentos", {
-            title: "Novos andamentos processuais",
-            body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
-            url: "/m/publicacoes",
-          }).catch(() => {});
           for (const userId of activeUserIds) {
             enqueueNotification({
               userId,
@@ -331,6 +321,7 @@ export async function syncJusbrasilEmails(): Promise<SyncResult> {
               title: "Novos andamentos processuais",
               body: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).`,
               url: "/m/publicacoes",
+              vars: { teor: `${createdAndamentosHere} novo(s) andamento(s) recebido(s).` },
               dedupeKey: `ANDAMENTO_PROCESSUAL:jusbrasil:${officeId}:${userId}:${balde}`,
             });
           }
