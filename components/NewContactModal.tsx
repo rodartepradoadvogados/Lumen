@@ -61,7 +61,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Plus size={16} /> {titles[kind]}
       </button>
@@ -70,7 +70,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
           <form action={submit} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4">
               {error && (
-                <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2 mb-3">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg px-3 py-2 mb-3">{error}</p>
               )}
               <div className={kind === "client" ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start" : "space-y-3"}>
                 <div className="space-y-3">
@@ -146,7 +146,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
 
                 {kind === "client" && (
                   <div className="space-y-3">
-                    <div className="border border-regua rounded-lg p-3 space-y-3">
+                    <div className="border border-regua p-3 space-y-3">
                       <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Dados para geração de documentos (opcional)</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -180,7 +180,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
             </div>
 
             <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
-              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50">
                 {loading ? "Salvando..." : "Criar"}
               </button>
             </div>

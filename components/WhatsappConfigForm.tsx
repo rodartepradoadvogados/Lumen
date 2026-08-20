@@ -50,7 +50,7 @@ export default function WhatsappConfigForm({
   return (
     <div className="space-y-3">
       {connected && (
-        <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio rounded-r-md px-3 py-2 text-xs font-medium">
+        <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio px-3 py-2 text-xs font-medium">
           Número conectado{displayPhone ? <> — <strong>{displayPhone}</strong></> : null}
         </p>
       )}
@@ -67,12 +67,12 @@ export default function WhatsappConfigForm({
           <label className="text-xs font-medium text-tx-2">Número exibido (opcional, só para referência)</label>
           <input name="displayPhone" placeholder="+55 62 99999-0000" className="cfg-input w-full" />
         </div>
-        {error && <p className="flex items-center gap-2 border-l-[3px] border-vinho text-vinho bg-sf-apoio rounded-r-md px-2.5 py-1.5 text-[11px]">{error}</p>}
+        {error && <p className="flex items-center gap-2 border-l-[3px] border-vinho text-vinho bg-sf-apoio px-2.5 py-1.5 text-[11px]">{error}</p>}
         {success && (
-          <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio rounded-r-md px-2.5 py-1.5 text-[11px]">Conexão salva com sucesso.</p>
+          <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio px-2.5 py-1.5 text-[11px]">Conexão salva com sucesso.</p>
         )}
         <div className="flex items-center gap-2">
-          <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50 transition-colors">
             {loading ? "Salvando..." : connected ? "Atualizar conexão" : "Conectar"}
           </button>
           {connected && (

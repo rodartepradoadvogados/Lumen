@@ -186,7 +186,7 @@ export default function AssessoriaDocumentosTab({
           alvarás e afins (ver isEmpresaDocumentType, lib/documentTypes.ts). Recorte por
           categoria sobre o MESMO catálogo abaixo, não uma pasta física à parte: um documento
           aparece aqui E na lista geral, sem duplicar o cadastro. */}
-      <div className="bg-sf rounded-lg border border-regua p-4 mb-4">
+      <div className="bg-sf border border-regua p-4 mb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
             <Building2 size={13} /> Documentos da Empresa
@@ -196,7 +196,7 @@ export default function AssessoriaDocumentosTab({
               setLinkDocType("CONTRATO_SOCIAL");
               setFormOpen(true);
             }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-lg"
+            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
           >
             <Plus size={13} /> Adicionar documento da empresa
           </button>
@@ -239,7 +239,7 @@ export default function AssessoriaDocumentosTab({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome"
-              className="w-full text-sm border border-regua bg-sf text-tx rounded-lg pl-7 pr-2.5 py-1.5"
+              className="w-full text-sm border border-regua bg-sf text-tx pl-7 pr-2.5 py-1.5"
             />
           </div>
           <DocumentTypeSelect
@@ -248,21 +248,21 @@ export default function AssessoriaDocumentosTab({
             allowAll
             includeLegacy
             excludeKeys={["PARECER"]}
-            className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5 max-w-[220px]"
+            className="text-sm border border-regua bg-sf text-tx px-2 py-1.5 max-w-[220px]"
           />
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             title="Enviado a partir de"
-            className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
+            className="text-sm border border-regua bg-sf text-tx px-2 py-1.5"
           />
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             title="Enviado até"
-            className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
+            className="text-sm border border-regua bg-sf text-tx px-2 py-1.5"
           />
           {/* Filtro por pasta de parecer — eixo independente da categoria (select acima): "Todas
               as pastas" não filtra nada, "Fora de pasta" mostra só documentos soltos, e cada
@@ -272,7 +272,7 @@ export default function AssessoriaDocumentosTab({
               value={folderFilter}
               onChange={(e) => setFolderFilter(e.target.value)}
               title="Filtrar por demanda"
-              className="text-sm border border-regua bg-sf text-tx rounded-lg px-2 py-1.5 max-w-[200px]"
+              className="text-sm border border-regua bg-sf text-tx px-2 py-1.5 max-w-[200px]"
             >
               <option value="TODOS">Todas as pastas</option>
               <option value="SOLTOS">Fora de pasta</option>
@@ -286,7 +286,7 @@ export default function AssessoriaDocumentosTab({
         </div>
         <button
           onClick={() => setFormOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover hover:bg-sf-apoio px-3 py-1.5 rounded-lg"
+          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover hover:bg-sf-apoio px-3 py-1.5 "
         >
           <Plus size={14} /> Colar link
         </button>
@@ -299,7 +299,7 @@ export default function AssessoriaDocumentosTab({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="text-xs border border-regua bg-sf text-tx rounded-lg px-2 py-1.5"
+              className="text-xs border border-regua bg-sf text-tx px-2 py-1.5"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -309,7 +309,7 @@ export default function AssessoriaDocumentosTab({
             </select>
           </label>
 
-          <div className="flex items-center gap-0.5 border border-regua rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 border border-regua p-0.5">
             {(
               [
                 { mode: "icons" as const, icon: LayoutGrid, label: "Ícones" },
@@ -322,7 +322,7 @@ export default function AssessoriaDocumentosTab({
                 type="button"
                 onClick={() => changeViewMode(mode)}
                 data-tip={label}
-                className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
+                className={`flex items-center gap-1 text-xs font-medium px-2 py-1 transition-colors ${
                   viewMode === mode
                     ? "bg-acao text-acao-tx"
                     : "text-tx-2 hover:bg-sf-apoio"
@@ -339,7 +339,7 @@ export default function AssessoriaDocumentosTab({
       {formOpen && (
         <form
           action={handleSubmit}
-          className="mb-4 p-4 rounded-lg border border-regua bg-sf-apoio space-y-3"
+          className="mb-4 p-4 border border-regua bg-sf-apoio space-y-3"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="name" required placeholder="Nome do documento" className="doc-input" />
@@ -351,7 +351,7 @@ export default function AssessoriaDocumentosTab({
           </div>
           {error && <p className="text-xs text-urgente">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
             </button>
             <button type="button" onClick={() => setFormOpen(false)} className="text-xs font-semibold text-tx-2">
@@ -377,7 +377,7 @@ export default function AssessoriaDocumentosTab({
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors mb-4 ${
+          className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors mb-4 ${
             dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
           }`}
         >
@@ -399,26 +399,26 @@ export default function AssessoriaDocumentosTab({
       )}
 
       {stagedFile && (
-        <div className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2 mb-4">
+        <div className="p-3 bg-sf-apoio border border-regua space-y-2 mb-4">
           <p className="text-xs font-semibold text-tx-2">Esse documento é:</p>
           <input
             value={stagedName}
             onChange={(e) => setStagedName(e.target.value)}
             placeholder="Nome do documento"
-            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
           />
           <DocumentTypeSelect
             value={stagedDocType}
             onChange={setStagedDocType}
             excludeKeys={["PARECER"]}
-            className="w-full text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+            className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             allowCreate
           />
           <div className="flex gap-2">
             <button
               onClick={confirmStagedFile}
               disabled={uploading}
-              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+              className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 disabled:opacity-50"
             >
               {uploading ? "Enviando..." : "Enviar para o Drive"}
             </button>
@@ -448,9 +448,9 @@ export default function AssessoriaDocumentosTab({
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-sf-apoio border border-regua rounded-lg p-3 hover:border-acao/40 transition-colors flex flex-col items-center text-center gap-1.5"
+                className="bg-sf-apoio border border-regua p-3 hover:border-acao/40 transition-colors flex flex-col items-center text-center gap-1.5"
               >
-                <div className="h-10 w-10 rounded-lg bg-sf text-tx-2 flex items-center justify-center">
+                <div className="h-10 w-10 bg-sf text-tx-2 flex items-center justify-center">
                   <Icon size={18} />
                 </div>
                 <p className="text-xs font-medium text-tx truncate w-full" title={d.name}>

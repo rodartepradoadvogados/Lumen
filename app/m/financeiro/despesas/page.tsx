@@ -75,7 +75,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
           </label>
           <input type="date" name="to" defaultValue={to} className="mob-fin-input" />
         </div>
-        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 shrink-0 transition-colors">
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2 shrink-0 transition-colors">
           Filtrar
         </button>
       </form>

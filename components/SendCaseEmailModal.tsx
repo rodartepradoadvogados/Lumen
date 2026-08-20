@@ -24,7 +24,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Mail size={15} /> Enviar E-mail
       </button>
@@ -51,7 +51,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
           >
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3 flex flex-col">
               {error && (
-                <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -71,13 +71,13 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
                       type="email"
                       required
                       placeholder="nome@exemplo.com"
-                      className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
+                      className="w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm"
                     />
                   ) : (
                     <select
                       name="toUser"
                       required
-                      className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
+                      className="w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm"
                     >
                       <option value="">Selecionar...</option>
                       {users.map((u) => (
@@ -93,7 +93,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
                   <input
                     name="subject"
                     required
-                    className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
+                    className="w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm"
                   />
                 </div>
               </div>
@@ -102,7 +102,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
                 <textarea
                   name="body"
                   required
-                  className="flex-1 w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm resize-none"
+                  className="flex-1 w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm resize-none"
                 />
               </div>
             </div>
@@ -110,7 +110,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50"
               >
                 {loading ? "Enviando..." : "Enviar agora"}
               </button>

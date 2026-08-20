@@ -29,9 +29,9 @@ export default function AttendanceLostReasonModal({
 
   return (
     <div className="fixed inset-0 z-[70] bg-grafite-900/40 flex items-center justify-center p-4">
-      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm p-5 space-y-4">
+      <div className="bg-sf shadow-pop w-full max-w-sm p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-serif font-bold text-tx">Motivo da perda</h3>
+          <h3 className=" font-bold text-tx">Motivo da perda</h3>
           <button onClick={onCancel} className="text-tx-3 hover:text-tx">
             <X size={18} />
           </button>
@@ -56,7 +56,7 @@ export default function AttendanceLostReasonModal({
               onChange={(e) => setOtherText(e.target.value)}
               placeholder="Descreva o motivo"
               autoFocus
-              className="w-full mt-1 text-sm border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+              className="w-full mt-1 text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             />
           )}
         </div>
@@ -64,7 +64,7 @@ export default function AttendanceLostReasonModal({
           <button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2 rounded-lg disabled:opacity-50"
+            className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2 disabled:opacity-50"
           >
             Confirmar
           </button>

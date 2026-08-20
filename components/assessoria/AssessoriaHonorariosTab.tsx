@@ -86,13 +86,13 @@ export default function AssessoriaHonorariosTab({
           (repasse a parceiros, à direita) — pedido explícito: os dois lados do honorário da
           assessoria (o que ela recebe/o que ela eventualmente repassa) visíveis juntos. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4 items-start">
-        <div className="flex items-center justify-between gap-3 flex-wrap p-3.5 rounded-lg border border-regua bg-sf h-full">
+        <div className="flex items-center justify-between gap-3 flex-wrap p-3.5 border border-regua bg-sf h-full">
           {editing ? (
             <form action={saveFee} className="flex items-center gap-2 flex-wrap">
-              <MoneyInput name="monthlyFee" defaultValue={String(assessoria.monthlyFee)} className="w-32 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
+              <MoneyInput name="monthlyFee" defaultValue={String(assessoria.monthlyFee)} className="w-32 border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm" />
               <span className="text-xs text-tx-2">/mês · vence dia</span>
-              <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 text-sm" />
-              <button type="submit" disabled={pending} className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 rounded-lg disabled:opacity-50">
+              <input name="dueDay" type="number" min="1" max="28" defaultValue={assessoria.dueDay} className="w-16 border border-regua-forte bg-sf text-tx px-2.5 py-1.5 text-sm" />
+              <button type="submit" disabled={pending} className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-3 py-1.5 disabled:opacity-50">
                 {pending ? "Salvando..." : "Salvar"}
               </button>
               <button type="button" onClick={() => setEditing(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
@@ -158,7 +158,7 @@ export default function AssessoriaHonorariosTab({
                                   type="date"
                                   value={payDate}
                                   onChange={(e) => setPayDate(e.target.value)}
-                                  className="w-32 text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
+                                  className="w-32 text-xs border border-regua-forte bg-sf text-tx px-2 py-1"
                                 />
                               </div>
                               <div>
@@ -166,7 +166,7 @@ export default function AssessoriaHonorariosTab({
                                 <MoneyInput
                                   value={payAmount}
                                   onChange={setPayAmount}
-                                  className="w-24 text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
+                                  className="w-24 text-xs border border-regua-forte bg-sf text-tx px-2 py-1"
                                 />
                               </div>
                             </div>
@@ -175,7 +175,7 @@ export default function AssessoriaHonorariosTab({
                               <button
                                 disabled={pending}
                                 onClick={() => confirmPayHonorario(h.id)}
-                                className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1 rounded-lg disabled:opacity-50"
+                                className="text-xs font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1 disabled:opacity-50"
                               >
                                 {pending ? "Confirmando..." : "Confirmar"}
                               </button>

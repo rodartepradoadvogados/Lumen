@@ -57,7 +57,7 @@ export default function NomeacaoDriveForm({
         </div>
       </div>
 
-      <div className="rounded-lg border border-regua bg-sf-apoio p-3.5 flex flex-col gap-1.5">
+      <div className=" border border-regua bg-sf-apoio p-3.5 flex flex-col gap-1.5">
         <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">Como vai ficar</span>
         <span className="text-xs font-mono text-tx">{previa.pastaMae || "—"}/</span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
@@ -70,7 +70,7 @@ export default function NomeacaoDriveForm({
       </div>
 
       {mudou && (
-        <p className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca rounded-r-lg px-3 py-2.5 flex gap-2">
+        <p className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2.5 flex gap-2">
           <AlertTriangle size={15} className="text-marca-tx shrink-0 mt-0.5" />
           <span>
             As pastas que <strong className="text-tx">já existem</strong> continuam com o nome atual e seguem funcionando — o
@@ -81,14 +81,14 @@ export default function NomeacaoDriveForm({
         </p>
       )}
 
-      {erro && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{erro}</p>}
-      {ok && <p className="text-xs text-concluido bg-concluido-bg rounded-lg px-2.5 py-1.5">Nomes salvos.</p>}
+      {erro && <p className="text-xs text-urgente bg-urgente-bg px-2.5 py-1.5">{erro}</p>}
+      {ok && <p className="text-xs text-concluido bg-concluido-bg px-2.5 py-1.5">Nomes salvos.</p>}
 
       <button
         type="button"
         onClick={salvar}
         disabled={salvando || !mudou}
-        className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 w-fit disabled:opacity-50"
+        className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 w-fit disabled:opacity-50"
       >
         {salvando ? "Salvando…" : "Salvar nomes"}
       </button>

@@ -18,7 +18,7 @@ export default function RecurringExpenseCard({ expense }: { expense: { id: strin
 
   return (
     <div className="flex items-center gap-3 px-5 py-3 bg-marca-bg border-b border-regua">
-      <span className="p-1.5 rounded-lg bg-marca-bg text-marca-tx shrink-0">
+      <span className="p-1.5 bg-marca-bg text-marca-tx shrink-0">
         <Repeat2 size={14} />
       </span>
       <div className="min-w-0 flex-1">
@@ -37,7 +37,7 @@ export default function RecurringExpenseCard({ expense }: { expense: { id: strin
           router.refresh();
           setLoading(false);
         }}
-        className="text-[11px] font-semibold text-tx-2 hover:text-atencao px-2 py-1 rounded-lg hover:bg-sf-apoio shrink-0 disabled:opacity-50"
+        className="text-[11px] font-semibold text-tx-2 hover:text-atencao px-2 py-1 hover:bg-sf-apoio shrink-0 disabled:opacity-50"
       >
         <span className="inline-flex items-center gap-1">
           <X size={12} /> Encerrar

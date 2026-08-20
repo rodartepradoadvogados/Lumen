@@ -18,7 +18,7 @@ export default function ImprimirAoAbrir() {
       <button
         type="button"
         onClick={() => window.print()}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx rounded-lg px-4 py-2"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-4 py-2"
       >
         <Printer size={13} /> Imprimir / Salvar como PDF
       </button>

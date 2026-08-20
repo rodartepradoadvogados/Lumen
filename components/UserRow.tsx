@@ -154,7 +154,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <input name="color" type="color" defaultValue={user.color} className="cfg-input bg-sf border border-regua h-9 p-1" />
         </div>
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
           </button>
           <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
@@ -178,7 +178,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               Gera um link de uso único para {user.name} escolher uma nova senha, sem depender de e-mail — entregue por WhatsApp ou pessoalmente.
             </p>
             {linkError && (
-              <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-2.5 py-1.5">
+              <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 px-2.5 py-1.5">
                 {linkError}
               </p>
             )}
@@ -187,7 +187,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                 type="button"
                 onClick={handleGenerateLink}
                 disabled={linkPending}
-                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
               >
                 {linkPending ? "Gerando..." : "Gerar link"}
               </button>
@@ -216,7 +216,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                 type="button"
                 onClick={handleCopyLink}
                 data-tip="Copiar"
-                className="p-2 rounded-lg text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0"
+                className="p-2 text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0"
               >
                 {linkCopied ? <Check size={14} className="text-concluido" /> : <Copy size={14} />}
               </button>
@@ -262,9 +262,9 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <input name="password" type="password" required minLength={6} autoComplete="new-password" placeholder="Senha (mín. 6)" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
           <input name="confirm" type="password" required minLength={6} autoComplete="new-password" placeholder="Confirmar senha" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
         </div>
-        {credError && <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 rounded-lg px-2.5 py-1.5">{credError}</p>}
+        {credError && <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 px-2.5 py-1.5">{credError}</p>}
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
             {pending ? "Salvando..." : user.username ? "Redefinir senha" : "Definir acesso"}
           </button>
           <button
@@ -307,7 +307,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             setLinkOpen(true);
           }}
           data-tip="Gerar link de redefinição de senha"
-          className="p-1.5 rounded-lg text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+          className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
         >
           <Link2 size={14} />
         </button>
@@ -321,7 +321,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               setCredOpen(true);
             }}
             data-tip={user.username ? "Redefinir senha" : "Definir acesso"}
-            className="p-1.5 rounded-lg text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+            className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
           >
             <KeyRound size={14} />
           </button>
@@ -329,7 +329,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             onClick={handleToggleFinanceAccess}
             disabled={pending}
             data-tip={user.financeAccess ? "Remover acesso ao Financeiro" : "Conceder acesso ao Financeiro"}
-            className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+            className={`p-1.5 transition-colors disabled:opacity-40 ${
               user.financeAccess
                 ? "text-concluido hover:text-atencao hover:bg-atencao/10"
                 : "text-tx-3 hover:text-concluido hover:bg-concluido-bg"
@@ -337,24 +337,24 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
           </button>
-          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
             <Pencil size={14} />
           </button>
           <button
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={user.active ? "Inativar" : "Reativar"}
-            className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
+            className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
           >
             <Power size={14} />
           </button>
-          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40">
+          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40">
             <Trash2 size={14} />
           </button>
         </div>
       )}
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />

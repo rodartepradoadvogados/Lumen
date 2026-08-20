@@ -89,14 +89,14 @@ export default function LinkPublicationMenu({
             e.stopPropagation();
             setMenuOpen((o) => !o);
           }}
-          className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
+          className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
         >
           <FilePlus2 size={12} /> Cadastrar Processo <ChevronDown size={11} />
         </button>
         {menuOpen && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-0 top-full mt-1 w-56 bg-sf rounded-lg border border-regua shadow-menu z-20 overflow-hidden"
+            className="absolute left-0 top-full mt-1 w-56 bg-sf border border-regua shadow-menu z-20 overflow-hidden"
           >
             <Link
               href={newCaseHref}
@@ -132,7 +132,7 @@ export default function LinkPublicationMenu({
 
       {blockConfirmOpen && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-modal w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-sf shadow-modal w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx flex items-center gap-2">
                 <Ban size={16} className="text-atencao" /> Bloquear processo
@@ -153,7 +153,7 @@ export default function LinkPublicationMenu({
                   type="button"
                   disabled={blocking}
                   onClick={() => setBlockConfirmOpen(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-tx-2 hover:bg-sf-apoio disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold text-tx-2 hover:bg-sf-apoio disabled:opacity-50"
                 >
                   Não
                 </button>
@@ -161,7 +161,7 @@ export default function LinkPublicationMenu({
                   type="button"
                   disabled={blocking}
                   onClick={confirmBlock}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-atencao hover:opacity-90 text-white disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold bg-atencao hover:opacity-90 text-white disabled:opacity-50"
                 >
                   {blocking ? "Bloqueando..." : "Sim"}
                 </button>
@@ -174,7 +174,7 @@ export default function LinkPublicationMenu({
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl shadow-modal w-full max-w-md max-h-[80vh] flex flex-col"
+            className="bg-sf shadow-modal w-full max-w-md max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
@@ -189,7 +189,7 @@ export default function LinkPublicationMenu({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por título ou número do processo..."
-                className="w-full border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-regua bg-sf text-tx px-3 py-2 text-sm"
               />
               {searching && <p className="text-xs text-tx-2 px-1">Buscando...</p>}
               {!searching && query.trim().length >= 2 && results.length === 0 && (
@@ -201,7 +201,7 @@ export default function LinkPublicationMenu({
                   type="button"
                   disabled={linking}
                   onClick={() => pickCase(c.id)}
-                  className="flex flex-col items-start w-full px-3 py-2 rounded-lg text-left hover:bg-sf-apoio transition-colors disabled:opacity-50"
+                  className="flex flex-col items-start w-full px-3 py-2 text-left hover:bg-sf-apoio transition-colors disabled:opacity-50"
                 >
                   <span className="text-sm text-tx">{c.title}</span>
                   {c.processNumber && <span className="text-xs text-tx-2 tabular-nums">{c.processNumber}</span>}

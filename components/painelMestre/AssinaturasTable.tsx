@@ -226,8 +226,8 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
     <div>
       {(error || message) && (
         <div className="px-5 pt-4">
-          {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2 mb-2">{error}</p>}
-          {message && <p className="text-xs text-concluido bg-concluido-bg rounded-lg px-3 py-2 mb-2">{message}</p>}
+          {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2 mb-2">{error}</p>}
+          {message && <p className="text-xs text-concluido bg-concluido-bg px-3 py-2 mb-2">{message}</p>}
         </div>
       )}
       <div className="overflow-x-auto">
@@ -356,7 +356,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                                   discountPercent: e.target.value === "MENSAL" ? "" : p.discountPercent,
                                 }))
                               }
-                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
+                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
                             >
                               <option value="MENSAL">Mensal</option>
                               <option value="SEMESTRAL">Semestral</option>
@@ -367,7 +367,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             <select
                               value={form.paymentMethod}
                               onChange={(e) => setForm((p) => ({ ...p, paymentMethod: e.target.value as PaymentMethodOption }))}
-                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
+                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
                             >
                               <option value="">Não configurado</option>
                               <option value="PIX_AUTOMATICO">Pix Automático</option>
@@ -384,14 +384,14 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                               disabled={form.billingCycle !== "SEMESTRAL"}
                               value={form.discountPercent}
                               onChange={(e) => setForm((p) => ({ ...p, discountPercent: e.target.value }))}
-                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs disabled:opacity-40"
+                              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs disabled:opacity-40"
                             />
                           </div>
                           <button
                             type="button"
                             disabled={pending}
                             onClick={() => save(o.id)}
-                            className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-xs font-semibold rounded-lg px-4 py-2 transition-colors"
+                            className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-xs font-semibold px-4 py-2 transition-colors"
                           >
                             Salvar
                           </button>
@@ -408,7 +408,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             type="button"
                             disabled={pending || !asaasConfigured}
                             onClick={() => generateAutomatico(o.id)}
-                            className="inline-flex items-center gap-1.5 bg-grafite-700 hover:bg-grafite-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg px-3 py-1.5"
+                            className="inline-flex items-center gap-1.5 bg-grafite-700 hover:bg-grafite-500 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5"
                           >
                             <QrCode size={13} /> Gerar autorização Pix Automático
                           </button>
@@ -434,7 +434,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                             type="button"
                             disabled={pending || !asaasConfigured}
                             onClick={() => testQrCode(o.id)}
-                            className="inline-flex items-center gap-1.5 bg-grafite-700 hover:bg-grafite-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg px-3 py-1.5"
+                            className="inline-flex items-center gap-1.5 bg-grafite-700 hover:bg-grafite-500 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5"
                           >
                             <QrCode size={13} /> Testar geração de QR Code
                           </button>
@@ -465,7 +465,7 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
 
 function QrPanel({ qr }: { qr: QrResult }) {
   return (
-    <div className="mt-3 flex items-start gap-4 flex-wrap bg-grafite-900/40 border border-white/10 rounded-lg p-3">
+    <div className="mt-3 flex items-start gap-4 flex-wrap bg-grafite-900/40 border border-white/10 p-3">
       {qr.image && (
         // eslint-disable-next-line @next/next/no-img-element -- base64 gerado em runtime, não é um asset estático
         <img src={`data:image/png;base64,${qr.image}`} alt="QR Code Pix" className="h-32 w-32 rounded" />

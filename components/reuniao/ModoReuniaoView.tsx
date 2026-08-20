@@ -47,14 +47,14 @@ export default function ModoReuniaoView({
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-4 py-2 transition-colors"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-4 py-2 transition-colors"
           >
             <Printer size={15} /> Imprimir
           </button>
           <button
             type="button"
             onClick={() => window.close()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-regua text-tx font-semibold text-sm px-4 py-2 hover:bg-sf-apoio transition-colors"
+            className="inline-flex items-center gap-1.5 border border-regua text-tx font-semibold text-sm px-4 py-2 hover:bg-sf-apoio transition-colors"
           >
             <X size={15} /> Fechar
           </button>
@@ -65,7 +65,7 @@ export default function ModoReuniaoView({
         <div className="flex items-baseline justify-between border-b-2 border-atencao print:border-black pb-4 mb-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-tx-2 print:text-black">{officeName}</p>
-            <h1 className="font-serif text-3xl font-bold text-tx print:text-black mt-1">{caseTitle}</h1>
+            <h1 className=" text-3xl font-bold text-tx print:text-black mt-1">{caseTitle}</h1>
           </div>
           <p className="text-xs text-tx-2 print:text-black shrink-0 ml-4">Gerado em {generatedAt}</p>
         </div>

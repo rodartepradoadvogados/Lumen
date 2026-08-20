@@ -28,12 +28,12 @@ export default function ReorganizeAttachmentsButton() {
       <button
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit disabled:opacity-50"
+        className="inline-flex items-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit disabled:opacity-50"
       >
         <FolderTree size={16} /> {pending ? "Reorganizando..." : "Reorganizar anexos existentes no Drive"}
       </button>
       {result && (
-        <div className="text-xs text-tx-2 bg-sf-apoio border border-regua rounded-lg px-3 py-2">
+        <div className="text-xs text-tx-2 bg-sf-apoio border border-regua px-3 py-2">
           <p>
             {result.moved} arquivo(s) movido(s) · {result.skipped} ignorado(s) (link de outro serviço, sem arquivo no Drive)
             {result.errors.length > 0 && ` · ${result.errors.length} erro(s)`}

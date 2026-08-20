@@ -68,13 +68,13 @@ export default function MobileCaseFinanceTab({
       <div className="flex gap-2">
         <Link
           href={`/m/processos/${caseId}/honorarios`}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 transition-colors"
         >
           <HandCoins size={16} /> Lançar Honorários
         </Link>
         <Link
           href={`/m/processos/${caseId}/despesa`}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 transition-colors"
         >
           <Receipt size={16} /> Lançar Despesa
         </Link>

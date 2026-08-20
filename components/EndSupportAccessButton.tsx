@@ -23,7 +23,7 @@ export default function EndSupportAccessButton({ sessionId }: { sessionId: strin
           router.refresh();
         })
       }
-      className="inline-flex items-center gap-1.5 bg-atencao hover:opacity-90 text-white text-xs font-semibold rounded-lg px-3 py-2 disabled:opacity-50 shrink-0"
+      className="inline-flex items-center gap-1.5 bg-atencao hover:opacity-90 text-white text-xs font-semibold px-3 py-2 disabled:opacity-50 shrink-0"
     >
       <X size={13} /> Encerrar agora
     </button>

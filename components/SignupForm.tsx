@@ -32,14 +32,14 @@ export default function SignupForm() {
         placeholder="Nome do escritório"
         value={officeName}
         onChange={(e) => setOfficeName(e.target.value)}
-        className="border border-regua rounded-lg px-3 py-2 text-sm"
+        className="border border-regua px-3 py-2 text-sm"
       />
       <input
         required
         placeholder="Seu nome"
         value={adminName}
         onChange={(e) => setAdminName(e.target.value)}
-        className="border border-regua rounded-lg px-3 py-2 text-sm"
+        className="border border-regua px-3 py-2 text-sm"
       />
       <input
         type="email"
@@ -48,7 +48,7 @@ export default function SignupForm() {
         placeholder="Seu e-mail"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="border border-regua rounded-lg px-3 py-2 text-sm"
+        className="border border-regua px-3 py-2 text-sm"
       />
       <input
         type="password"
@@ -58,7 +58,7 @@ export default function SignupForm() {
         placeholder="Senha (mín. 6 caracteres)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="border border-regua rounded-lg px-3 py-2 text-sm"
+        className="border border-regua px-3 py-2 text-sm"
       />
       <input
         type="password"
@@ -68,13 +68,13 @@ export default function SignupForm() {
         placeholder="Confirme a senha"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
-        className="border border-regua rounded-lg px-3 py-2 text-sm"
+        className="border border-regua px-3 py-2 text-sm"
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold rounded-lg px-4 py-2 text-sm"
+        className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx font-semibold px-4 py-2 text-sm"
       >
         {pending ? "Criando conta..." : "Criar conta do escritório"}
       </button>

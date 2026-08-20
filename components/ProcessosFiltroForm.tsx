@@ -109,7 +109,7 @@ export default function ProcessosFiltroForm({
           </div>
 
           {showPreview && hasCriteria && (
-            <div className="absolute left-0 top-full mt-1 w-full min-w-[320px] z-30 bg-sf rounded-xl border border-regua shadow-pop overflow-hidden max-h-[60vh] overflow-y-auto scrollbar-thin">
+            <div className="absolute left-0 top-full mt-1 w-full min-w-[320px] z-30 bg-sf border border-regua shadow-pop overflow-hidden max-h-[60vh] overflow-y-auto scrollbar-thin">
               {loading && <p className="px-4 py-3 text-sm text-tx-2">Buscando...</p>}
               {!loading && preview.length === 0 && <p className="px-4 py-3 text-sm text-tx-2">Nada encontrado.</p>}
               {!loading &&
@@ -160,7 +160,7 @@ export default function ProcessosFiltroForm({
             ))}
           </select>
         </div>
-        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2">
           Aplicar
         </button>
         {clearHref && (

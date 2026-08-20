@@ -78,14 +78,14 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
         </p>
         <button
           onClick={() => setFormOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover px-3 py-1.5 rounded-lg"
+          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover px-3 py-1.5 "
         >
           <Plus size={14} /> Nova licitação
         </button>
       </div>
 
       {formOpen && (
-        <form action={handleNewLicitacao} className="mb-4 p-4 rounded-lg border border-regua bg-sf-apoio space-y-3">
+        <form action={handleNewLicitacao} className="mb-4 p-4 border border-regua bg-sf-apoio space-y-3">
           <input name="objeto" required placeholder="Objeto (ex: Fornecimento de insumos)" className="lic-input" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="orgao" required placeholder="Órgão" className="lic-input" />
@@ -108,7 +108,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
           <input name="editalUrl" type="url" placeholder="Link do edital no Google Drive" className="lic-input" />
           {error && <p className="text-xs text-urgente">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 py-2 disabled:opacity-50">
               {pending ? "Salvando..." : "Cadastrar"}
             </button>
             <button type="button" onClick={() => setFormOpen(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
@@ -159,7 +159,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                 {selected.modalidade || selected.objeto} — detalhe
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-sf rounded-lg border border-regua p-4">
+                <div className="bg-sf border border-regua p-4">
                   <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Dados da licitação</h4>
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between"><span className="text-tx-2">Órgão</span><span className="text-tx">{selected.orgao}</span></div>
@@ -179,7 +179,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                         value={selected.status}
                         onChange={(e) => handleStatusChange(selected.id, e.target.value)}
                         disabled={pending}
-                        className="text-xs font-semibold border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1"
+                        className="text-xs font-semibold border border-regua-forte bg-sf text-tx px-2 py-1"
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s.value} value={s.value}>{s.label}</option>
@@ -189,7 +189,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                   </div>
                 </div>
 
-                <div className="bg-sf rounded-lg border border-regua p-4">
+                <div className="bg-sf border border-regua p-4">
                   <div className="flex items-center justify-between mb-2.5">
                     <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Tarefas &amp; Prazos</h4>
                     <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-acao hover:text-acao-hover">
@@ -198,7 +198,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                   </div>
 
                   {taskFormOpen && (
-                    <form action={handleNewTask} className="mb-3 p-3 rounded-lg bg-sf-apoio space-y-2">
+                    <form action={handleNewTask} className="mb-3 p-3 bg-sf-apoio space-y-2">
                       <input name="title" required placeholder="Título da tarefa" className="lic-input" />
                       <div className="grid grid-cols-2 gap-2">
                         <input name="dueDate" type="date" required className="lic-input" />
@@ -211,7 +211,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                         ))}
                       </select>
                       <div className="flex gap-2">
-                        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+                        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
                           Adicionar
                         </button>
                         <button type="button" onClick={() => setTaskFormOpen(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>

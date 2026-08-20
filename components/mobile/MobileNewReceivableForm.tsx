@@ -36,7 +36,7 @@ export default function MobileNewReceivableForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 transition-colors"
       >
         <Plus size={16} /> Nova Conta a Receber
       </button>
@@ -44,7 +44,7 @@ export default function MobileNewReceivableForm({
   }
 
   return (
-    <div className="rounded-lg border border-regua bg-sf-apoio p-3 space-y-3">
+    <div className=" border border-regua bg-sf-apoio p-3 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-tx">Nova Conta a Receber</p>
         <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Fechar">
@@ -52,7 +52,7 @@ export default function MobileNewReceivableForm({
         </button>
       </div>
 
-      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {
@@ -156,7 +156,7 @@ export default function MobileNewReceivableForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 transition-colors disabled:opacity-50"
         >
           {loading ? "Salvando..." : "Criar"}
         </button>

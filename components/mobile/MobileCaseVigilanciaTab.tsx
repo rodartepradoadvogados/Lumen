@@ -22,7 +22,7 @@ const TIPO_LABELS: Record<string, string> = {
 export default function MobileCaseVigilanciaTab({ termos }: { termos: Termo[] }) {
   return (
     <div className="space-y-3">
-      <div className="rounded-lg bg-sf-apoio border border-regua px-3.5 py-2.5 flex items-start gap-2">
+      <div className=" bg-sf-apoio border border-regua px-3.5 py-2.5 flex items-start gap-2">
         <Radar size={14} className="shrink-0 mt-0.5 text-urgente" />
         <p className="text-xs text-tx-2">
           O robô de vigilância varre diariamente PNCP, DOU e diários de tribunais de contas atrás destes termos. Só leitura por aqui — para

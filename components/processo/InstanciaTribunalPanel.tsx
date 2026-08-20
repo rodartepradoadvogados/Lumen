@@ -88,7 +88,7 @@ export default function InstanciaTribunalPanel({
       </div>
 
       {temOrigem && (
-        <div className="flex items-center justify-between gap-2 bg-sf-apoio rounded-lg px-3 py-2">
+        <div className="flex items-center justify-between gap-2 bg-sf-apoio px-3 py-2">
           <p className="text-[11px] text-tx-2">
             Veio de <strong>{instanciaLabel(origemInstance)}</strong>
             {tribunalOrigemSigla && (
@@ -102,7 +102,7 @@ export default function InstanciaTribunalPanel({
             type="button"
             onClick={handleRetornar}
             disabled={loading}
-            className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio disabled:opacity-50"
           >
             <Undo2 size={12} /> {loading ? "Retornando..." : "Marcar retorno dos autos"}
           </button>

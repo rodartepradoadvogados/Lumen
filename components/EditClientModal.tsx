@@ -31,7 +31,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar cliente" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar cliente" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
@@ -66,7 +66,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
           >
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4">
               {error && (
-                <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2 mb-3">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg px-3 py-2 mb-3">{error}</p>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
                 <div className="space-y-3">
@@ -104,7 +104,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="border border-regua rounded-lg p-3 space-y-3">
+                  <div className="border border-regua p-3 space-y-3">
                     <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Dados para geração de documentos</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -137,7 +137,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
             </div>
 
             <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
-              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50">
                 {loading ? "Salvando..." : "Salvar"}
               </button>
             </div>

@@ -71,7 +71,7 @@ export default function DistributePublicationsButton() {
     <div>
       <button
         onClick={handleOpen}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 "
       >
         <Shuffle size={15} /> Distribuir pendentes
       </button>
@@ -79,7 +79,7 @@ export default function DistributePublicationsButton() {
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl2 shadow-modal w-full max-w-4xl max-h-[85vh] flex flex-col"
+            className="bg-sf shadow-modal w-full max-w-4xl max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua shrink-0">
@@ -89,7 +89,7 @@ export default function DistributePublicationsButton() {
                   Revise cada uma, escolha o(s) advogado(s) responsável(is), o prazo e se precisa de confirmação antes de distribuir.
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg text-tx-3 hover:bg-sf-apoio shrink-0">
+              <button onClick={() => setOpen(false)} className="p-1.5 text-tx-3 hover:bg-sf-apoio shrink-0">
                 <X size={18} />
               </button>
             </div>
@@ -124,11 +124,11 @@ export default function DistributePublicationsButton() {
                           </td>
                           <td className="px-4 py-3">
                             <details className="group">
-                              <summary className="cursor-pointer list-none text-xs border border-regua rounded-lg px-2.5 py-1.5 bg-sf text-tx min-h-[32px] [&::-webkit-details-marker]:hidden">
+                              <summary className="cursor-pointer list-none text-xs border border-regua px-2.5 py-1.5 bg-sf text-tx min-h-[32px] [&::-webkit-details-marker]:hidden">
                                 {selectedNames.length > 0 ? selectedNames.join(", ") : "Selecionar advogado(s)"}
                               </summary>
                               <div className="relative">
-                                <div className="absolute z-20 mt-1 w-56 max-h-52 overflow-y-auto scrollbar-thin bg-sf border border-regua rounded-lg shadow-menu">
+                                <div className="absolute z-20 mt-1 w-56 max-h-52 overflow-y-auto scrollbar-thin bg-sf border border-regua shadow-menu">
                                   {users.length === 0 && (
                                     <p className="text-xs text-tx-3 px-2.5 py-2">Nenhum advogado/sócio ativo.</p>
                                   )}
@@ -155,7 +155,7 @@ export default function DistributePublicationsButton() {
                               type="date"
                               value={state.dueDate}
                               onChange={(e) => setRowState((s) => ({ ...s, [r.id]: { ...s[r.id], dueDate: e.target.value } }))}
-                              className="text-xs border border-regua rounded-lg px-2 py-1.5 bg-sf text-tx tabular-nums"
+                              className="text-xs border border-regua px-2 py-1.5 bg-sf text-tx tabular-nums"
                             />
                           </td>
                           <td className="px-4 py-3 text-center">
@@ -185,7 +185,7 @@ export default function DistributePublicationsButton() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || readyCount === 0}
-                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-5 py-2 disabled:opacity-50"
               >
                 {submitting ? "Distribuindo..." : `Distribuir${readyCount > 0 ? ` (${readyCount})` : ""}`}
               </button>

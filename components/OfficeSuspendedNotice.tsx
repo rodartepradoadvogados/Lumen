@@ -10,7 +10,7 @@ export default function OfficeSuspendedNotice({ officeName }: { officeName: stri
         <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
           <Lock size={22} className="text-atencao" />
         </div>
-        <h1 className="font-serif text-xl font-bold text-tx">Acesso temporariamente suspenso</h1>
+        <h1 className=" text-xl font-bold text-tx">Acesso temporariamente suspenso</h1>
         <p className="text-sm text-tx-2">
           O acesso do escritório <strong>{officeName}</strong> está suspenso. Entre em contato com o Rodarte Prado Advogados
           para regularizar a situação e liberar o acesso novamente.

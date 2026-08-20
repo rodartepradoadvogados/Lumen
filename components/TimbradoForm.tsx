@@ -81,7 +81,7 @@ export default function TimbradoForm({
   return (
     <div className="p-5 flex flex-col gap-3">
       {atual.url && (
-        <div className="flex items-center gap-3 border border-regua rounded-lg bg-sf-apoio px-3 py-2.5">
+        <div className="flex items-center gap-3 border border-regua bg-sf-apoio px-3 py-2.5">
           <FileText size={17} className="text-tx-2 shrink-0" />
           <div className="min-w-0 flex-1">
             <a href={atual.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-acao hover:underline truncate block">
@@ -117,7 +117,7 @@ export default function TimbradoForm({
           if (f) enviar(f);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-5 cursor-pointer transition-colors ${
+        className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 cursor-pointer transition-colors ${
           arrastando ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
         }`}
       >
@@ -145,8 +145,8 @@ export default function TimbradoForm({
         escritório no topo.
       </p>
 
-      {erro && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{erro}</p>}
-      {ok && <p className="text-xs text-concluido bg-concluido-bg rounded-lg px-2.5 py-1.5">Papel timbrado salvo.</p>}
+      {erro && <p className="text-xs text-urgente bg-urgente-bg px-2.5 py-1.5">{erro}</p>}
+      {ok && <p className="text-xs text-concluido bg-concluido-bg px-2.5 py-1.5">Papel timbrado salvo.</p>}
     </div>
   );
 }

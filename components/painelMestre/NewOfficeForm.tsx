@@ -41,32 +41,32 @@ export default function NewOfficeForm() {
 
   return (
     <form action={handleSubmit} className="space-y-4">
-      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 px-3 py-2">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-semibold text-white/60">Nome do escritório</label>
-          <input name="officeName" required placeholder="Ex.: Andrade & Vasconcelos Advocacia" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <input name="officeName" required placeholder="Ex.: Andrade & Vasconcelos Advocacia" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">E-mail de cobrança</label>
-          <input name="billingEmail" type="email" required placeholder="financeiro@escritorio.adv.br" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <input name="billingEmail" type="email" required placeholder="financeiro@escritorio.adv.br" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">Nome do administrador</label>
-          <input name="adminName" required placeholder="Nome de quem vai logar" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <input name="adminName" required placeholder="Nome de quem vai logar" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">E-mail do administrador</label>
-          <input name="adminEmail" type="email" required placeholder="recebe o convite pra definir senha" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <input name="adminEmail" type="email" required placeholder="recebe o convite pra definir senha" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">Mensalidade (R$)</label>
-          <MoneyInput name="monthlyFee" required defaultValue="890.00" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <MoneyInput name="monthlyFee" required defaultValue="890.00" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="text-xs font-semibold text-white/60">Dia de vencimento</label>
-          <input name="billingDueDay" type="number" min={1} max={28} required defaultValue="5" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-3 py-2 text-sm" />
+          <input name="billingDueDay" type="number" min={1} max={28} required defaultValue="5" className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm" />
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export default function NewOfficeForm() {
         <label className="text-xs font-semibold text-white/60 mb-2 block">Módulos do plano</label>
         <div className="grid grid-cols-2 gap-2">
           {MODULE_OPTIONS.map((m) => (
-            <label key={m.key} className="flex items-center gap-2 border border-white/15 rounded-lg px-3 py-2 text-sm text-white/85 cursor-pointer">
+            <label key={m.key} className="flex items-center gap-2 border border-white/15 px-3 py-2 text-sm text-white/85 cursor-pointer">
               <input
                 type="checkbox"
                 checked={modules[m.key]}
@@ -87,7 +87,7 @@ export default function NewOfficeForm() {
         </div>
       </div>
 
-      <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5">
+      <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2.5">
         {loading ? "Criando..." : "Criar escritório e enviar convite"}
       </button>
     </form>

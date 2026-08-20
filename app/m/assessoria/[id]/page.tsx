@@ -164,13 +164,13 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             <MobileSearchCasesModal assessoriaId={assessoria.id} availableCases={availableCases} />
             <Link
               href={`/m/processos/novo?assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 rounded-lg shrink-0"
+              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 shrink-0"
             >
               <Plus size={12} /> Novo processo
             </Link>
             <Link
               href={`/m/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 rounded-lg shrink-0"
+              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 shrink-0"
             >
               <Plus size={12} /> Novo caso
             </Link>

@@ -133,12 +133,12 @@ export default async function DespesasPage({
               ))}
             </select>
           </div>
-          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 transition-colors">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 transition-colors">
             Filtrar
           </button>
           <a
             href={exportHref}
-            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 flex items-center gap-1.5 transition-colors"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 flex items-center gap-1.5 transition-colors"
           >
             <Download size={15} /> Exportar .xlsx
           </a>

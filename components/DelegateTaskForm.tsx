@@ -236,7 +236,7 @@ export default function DelegateTaskForm({
         <span className="h-12 w-12 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center">
           <Check size={22} />
         </span>
-        <h3 className="font-serif font-bold text-tx text-lg">Delegado com sucesso!</h3>
+        <h3 className=" font-bold text-tx text-lg">Delegado com sucesso!</h3>
         <p className="text-sm text-tx-2 max-w-sm">
           &ldquo;{success.title}&rdquo; foi atribuído a{" "}
           <span className="font-semibold">
@@ -259,7 +259,7 @@ export default function DelegateTaskForm({
         )}
         <button
           onClick={resetAll}
-          className="mt-2 inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2"
+          className="mt-2 inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2"
         >
           <UserPlus size={15} /> Delegar outra
         </button>
@@ -282,12 +282,12 @@ export default function DelegateTaskForm({
       {state.step === 1 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-tx text-base">Quem vai receber?</h3>
+            <h3 className=" font-bold text-tx text-base">Quem vai receber?</h3>
             <p className="text-xs text-tx-2 mt-0.5">
               Selecione um ou mais membros da equipe — cada um recebe sua própria tarefa.
             </p>
           </div>
-          <div className="border border-regua rounded-lg divide-y divide-regua max-h-64 overflow-y-auto scrollbar-thin">
+          <div className="border border-regua divide-y divide-regua max-h-64 overflow-y-auto scrollbar-thin">
             {users.map((u) => {
               const checked = state.responsibleIds.includes(u.id);
               return (
@@ -317,7 +317,7 @@ export default function DelegateTaskForm({
       {state.step === 2 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-tx text-base">Qual o tipo de compromisso?</h3>
+            <h3 className=" font-bold text-tx text-base">Qual o tipo de compromisso?</h3>
             <p className="text-xs text-tx-2 mt-0.5">Escolha o tipo — igual ao que já existe em Kanban/Agenda.</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -326,7 +326,7 @@ export default function DelegateTaskForm({
                 key={t.value}
                 type="button"
                 onClick={() => setState((s) => ({ ...s, type: t.value }))}
-                className={`text-sm font-semibold px-4 py-2 rounded-lg border transition-colors ${
+                className={`text-sm font-semibold px-4 py-2 border transition-colors ${
                   state.type === t.value
                     ? "bg-acao text-acao-tx border-acao"
                     : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
@@ -342,7 +342,7 @@ export default function DelegateTaskForm({
       {state.step === 3 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-tx text-base">A que se refere?</h3>
+            <h3 className=" font-bold text-tx text-base">A que se refere?</h3>
             <p className="text-xs text-tx-2 mt-0.5">Isso filtra a busca a seguir.</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -353,7 +353,7 @@ export default function DelegateTaskForm({
                 onClick={() =>
                   setState((s) => ({ ...s, referTo: r.value, linkQuery: "", selectedLink: null }))
                 }
-                className={`text-sm font-semibold px-4 py-2 rounded-lg border transition-colors ${
+                className={`text-sm font-semibold px-4 py-2 border transition-colors ${
                   state.referTo === r.value
                     ? "bg-acao text-acao-tx border-acao"
                     : "bg-sf text-tx-2 border-regua hover:bg-sf-apoio"
@@ -367,7 +367,7 @@ export default function DelegateTaskForm({
           {needsLink && (
             <div className="pt-2">
               {state.selectedLink ? (
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-regua px-3 py-2 bg-sf-apoio">
+                <div className="flex items-center justify-between gap-2 border border-regua px-3 py-2 bg-sf-apoio">
                   <span className="text-sm text-tx truncate">{state.selectedLink.label}</span>
                   <button
                     type="button"
@@ -387,12 +387,12 @@ export default function DelegateTaskForm({
                       placeholder={
                         state.referTo === "ATENDIMENTO" ? "Buscar por cliente ou assunto..." : "Buscar por título ou número..."
                       }
-                      className="w-full border border-regua rounded-lg pl-8 pr-3 py-2 text-sm bg-sf text-tx"
+                      className="w-full border border-regua pl-8 pr-3 py-2 text-sm bg-sf text-tx"
                     />
                   </div>
                   {searching && <p className="text-xs text-tx-3 mt-1.5">Buscando...</p>}
                   {!searching && linkResults.length > 0 && (
-                    <div className="mt-1.5 border border-regua rounded-lg divide-y divide-regua max-h-48 overflow-y-auto scrollbar-thin">
+                    <div className="mt-1.5 border border-regua divide-y divide-regua max-h-48 overflow-y-auto scrollbar-thin">
                       {linkResults.map((hit) => (
                         <button
                           key={hit.id}
@@ -418,7 +418,7 @@ export default function DelegateTaskForm({
       {state.step === 4 && (
         <div className="space-y-3">
           <div>
-            <h3 className="font-serif font-bold text-tx text-base">Dados do compromisso</h3>
+            <h3 className=" font-bold text-tx text-base">Dados do compromisso</h3>
             <p className="text-xs text-tx-2 mt-0.5">Por último, os detalhes do que está sendo delegado.</p>
           </div>
           <div>
@@ -427,11 +427,11 @@ export default function DelegateTaskForm({
               value={state.title}
               onChange={(e) => setState((s) => ({ ...s, title: e.target.value }))}
               placeholder="Ex: Elaborar contestação"
-              className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+              className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
             />
           </div>
 
-          <div className="rounded-lg border border-regua bg-sf-apoio px-3 py-2">
+          <div className=" border border-regua bg-sf-apoio px-3 py-2">
             <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Data da solicitação</p>
             <p className="text-sm text-tx mt-0.5">
               {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })} (hoje)
@@ -445,7 +445,7 @@ export default function DelegateTaskForm({
                 type="date"
                 value={state.dueDate}
                 onChange={(e) => setState((s) => ({ ...s, dueDate: e.target.value }))}
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
             <div>
@@ -454,13 +454,13 @@ export default function DelegateTaskForm({
                 type="time"
                 value={state.dueTime}
                 onChange={(e) => setState((s) => ({ ...s, dueTime: e.target.value }))}
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
           </div>
 
           {state.dueDate && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex items-start gap-2">
+            <div className=" border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex items-start gap-2">
               <Hourglass size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
               <div>
                 <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
@@ -479,7 +479,7 @@ export default function DelegateTaskForm({
             <select
               value={state.priority}
               onChange={(e) => setState((s) => ({ ...s, priority: e.target.value }))}
-              className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+              className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
             >
               <option value="BAIXA">Baixa</option>
               <option value="MEDIA">Média</option>
@@ -488,7 +488,7 @@ export default function DelegateTaskForm({
             </select>
           </div>
           {(state.type === "EVENTO" || state.type === "AUDIENCIA") && (
-            <div className="rounded-lg border border-marca/25 bg-marca-bg p-3 space-y-3">
+            <div className=" border border-marca/25 bg-marca-bg p-3 space-y-3">
               <p className="text-xs font-semibold text-marca-tx uppercase tracking-wide">
                 {state.type === "AUDIENCIA" ? "Local da audiência (opcional)" : "Reunião (opcional)"}
               </p>
@@ -517,7 +517,7 @@ export default function DelegateTaskForm({
                     value={state.location}
                     onChange={(e) => setState((s) => ({ ...s, location: e.target.value }))}
                     placeholder="Ex: Rua X, nº 123, Sala 4 - Goiânia/GO"
-                    className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                    className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
                   />
                 </div>
               ) : (
@@ -530,7 +530,7 @@ export default function DelegateTaskForm({
                     value={state.meetingUrl}
                     onChange={(e) => setState((s) => ({ ...s, meetingUrl: e.target.value }))}
                     placeholder="https://meet.google.com/..."
-                    className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                    className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
                   />
                 </div>
               )}
@@ -543,7 +543,7 @@ export default function DelegateTaskForm({
               value={state.description}
               onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
               rows={3}
-              className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y max-h-[40vh]"
+              className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx resize-y max-h-[40vh]"
             />
           </div>
 
@@ -555,7 +555,7 @@ export default function DelegateTaskForm({
                 onChange={(e) => setState((s) => ({ ...s, strategy: e.target.value }))}
                 rows={3}
                 placeholder="Teses, pontos de atenção, preparo para a audiência..."
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx resize-y max-h-[40vh]"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx resize-y max-h-[40vh]"
               />
             </div>
           )}
@@ -578,7 +578,7 @@ export default function DelegateTaskForm({
             type="button"
             onClick={() => goTo(state.step + 1)}
             disabled={!canAdvanceFromStep(state.step)}
-            className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Avançar <ChevronRight size={15} />
           </button>
@@ -587,7 +587,7 @@ export default function DelegateTaskForm({
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-5 py-2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-5 py-2 disabled:opacity-50"
           >
             <UserPlus size={15} /> {loading ? "Delegando..." : "Delegar"}
           </button>

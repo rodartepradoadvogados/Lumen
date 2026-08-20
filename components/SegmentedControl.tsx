@@ -21,7 +21,7 @@ export default function SegmentedControl<T extends string>({
   ariaLabel: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="flex items-center gap-0.5 p-0.5 rounded-md border border-regua bg-sf-apoio">
+    <div role="radiogroup" aria-label={ariaLabel} className="flex items-center gap-0.5 p-0.5 border border-regua bg-sf-apoio">
       {options.map((opt) => {
         const active = opt.value === value;
         return (

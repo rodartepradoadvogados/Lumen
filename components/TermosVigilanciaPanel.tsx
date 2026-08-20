@@ -70,7 +70,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg bg-sf-apoio border border-regua px-4 py-3 flex items-start gap-2.5">
+      <div className=" bg-sf-apoio border border-regua px-4 py-3 flex items-start gap-2.5">
         <Radar size={15} className="shrink-0 mt-0.5 text-acao" />
         <p className="text-xs text-tx-2">
           O robô de vigilância varre diariamente PNCP, DOU e diários de tribunais de contas atrás destes termos (nome de
@@ -84,12 +84,12 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
           value={novoTermo}
           onChange={(e) => setNovoTermo(e.target.value)}
           placeholder="Ex.: nome da parte, nº do processo, palavra-chave..."
-          className="flex-1 rounded-lg border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
+          className="flex-1 border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
         />
         <button
           type="submit"
           disabled={pending || !novoTermo.trim()}
-          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           Adicionar termo
         </button>
@@ -100,7 +100,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
       {termos.length === 0 ? (
         <p className="text-sm text-tx-2 py-4 text-center">Nenhum termo cadastrado ainda.</p>
       ) : (
-        <div className="divide-y divide-regua rounded-lg border border-regua">
+        <div className="divide-y divide-regua border border-regua">
           {termos.map((t) => (
             <div key={t.id} className={`flex items-center justify-between gap-3 px-4 py-3 ${t.ativo ? "" : "opacity-45"}`}>
               <div className="min-w-0">
@@ -117,7 +117,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
                   onClick={() => handleToggle(t.id)}
                   disabled={pending}
                   title={t.ativo ? "Desativar vigilância deste termo" : "Ativar vigilância deste termo"}
-                  className={`p-1.5 rounded-lg transition-colors ${
+                  className={`p-1.5 transition-colors ${
                     t.ativo ? "text-concluido hover:bg-concluido-bg" : "text-tx-3 hover:bg-sf-apoio"
                   }`}
                 >
@@ -128,7 +128,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
                   onClick={() => handleRemove(t.id, t.termo)}
                   disabled={pending}
                   title="Excluir termo"
-                  className="p-1.5 rounded-lg text-tx-3 hover:text-atencao hover:bg-sf-apoio transition-colors"
+                  className="p-1.5 text-tx-3 hover:text-atencao hover:bg-sf-apoio transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>

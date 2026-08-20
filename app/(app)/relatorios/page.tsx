@@ -73,7 +73,7 @@ function VBars({ items, color }: { items: { label: string; display: string; valu
           <span className="text-[10px] font-semibold text-tx-2 mb-1">{it.display}</span>
           <div className="w-full h-32 flex items-end">
             <div
-              className="w-full rounded-t-md"
+              className="w-full "
               style={{ height: `${(it.value / max) * 100}%`, minHeight: it.value > 0 ? 4 : 0, backgroundColor: color }}
             />
           </div>
@@ -457,7 +457,7 @@ async function PublicacoesSection({ start, end, months, officeId }: { start: Dat
             <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Pendências de triagem</p>
             <div className="grid grid-cols-3 gap-3">
               {triageRows.map((t) => (
-                <div key={t.status} className="rounded-lg bg-sf-apoio border border-regua p-3 text-center">
+                <div key={t.status} className=" bg-sf-apoio border border-regua p-3 text-center">
                   <p className="font-bold text-xl text-tx">{t.value}</p>
                   <div className="flex items-center justify-center gap-1.5 mt-1">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: triageColor[t.status] }} />
@@ -560,12 +560,12 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
                 </div>
                 <div className="w-full h-32 flex items-end justify-center gap-1">
                   <div
-                    className="w-1/2 rounded-t-md bg-concluido"
+                    className="w-1/2 bg-concluido"
                     style={{ height: `${(m.receita / maxFinance) * 100}%`, minHeight: m.receita > 0 ? 4 : 0 }}
                     title={`Recebido: ${formatCurrency(m.receita)}`}
                   />
                   <div
-                    className="w-1/2 rounded-t-md bg-tx-3"
+                    className="w-1/2 bg-tx-3"
                     style={{ height: `${(m.despesa / maxFinance) * 100}%`, minHeight: m.despesa > 0 ? 4 : 0 }}
                     title={`Pago: ${formatCurrency(m.despesa)}`}
                   />
@@ -606,7 +606,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
               <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Adiantamentos a Clientes</p>
               <span className="text-[10px] font-semibold text-tx-3">(informativo — fora da Receita/Despesa acima)</span>
             </div>
-            <div className="rounded-xl border border-dashed border-regua-forte p-5">
+            <div className=" border border-dashed border-regua-forte p-5">
               <div className="flex items-start gap-2 text-xs text-tx-2 mb-4">
                 <Info size={14} className="shrink-0 mt-0.5" />
                 <p>
@@ -663,12 +663,12 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
         title="Relatórios"
         subtitle={`Painel consolidado (BI) · ${months[0].label} a ${months[months.length - 1].label}`}
         action={
-          <div className="flex items-center gap-1 bg-sf border border-regua rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-sf border border-regua p-1">
             {periodOptions.map((opt) => (
               <Link
                 key={opt.value}
                 href={`/relatorios?secao=${secao}&meses=${opt.value}`}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${
+                className={`text-xs font-semibold px-3 py-1.5 transition-colors ${
                   meses === opt.value ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"
                 }`}
               >
@@ -686,7 +686,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
             <Link
               key={s.key}
               href={`/relatorios?secao=${s.key}&meses=${meses}`}
-              className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 transition-colors ${
                 secao === s.key
                   ? "bg-acao text-acao-tx"
                   : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"

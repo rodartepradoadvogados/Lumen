@@ -35,13 +35,13 @@ export default function TopBarActionsContent({
           href="/painel-mestre"
           data-tip="Painel Mestre"
           data-tip-pos="bottom"
-          className="p-2 rounded-lg hover:bg-sf-apoio transition-colors text-atencao"
+          className="p-2 hover:bg-sf-apoio transition-colors text-atencao"
         >
           <Lock size={18} />
         </Link>
       )}
 
-      <Link href="/alertas?tab=hoje" className="relative p-2 rounded-lg hover:bg-sf-apoio transition-colors">
+      <Link href="/alertas?tab=hoje" className="relative p-2 hover:bg-sf-apoio transition-colors">
         <Bell size={20} className="text-tx" />
         {todayCount > 0 && (
           <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-atencao">

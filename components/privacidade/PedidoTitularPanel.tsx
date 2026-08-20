@@ -56,7 +56,7 @@ export default function PedidoTitularPanel({ requests, isAdmin }: { requests: Da
     <div className="bg-sf-apoio p-5 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h3 className="font-serif font-bold text-tx">Pedido do titular</h3>
+          <h3 className=" font-bold text-tx">Pedido do titular</h3>
           <p className="text-xs text-tx-2 mt-0.5">LGPD art. 18 — acesso, correção, exclusão ou anonimização dos próprios dados pessoais.</p>
         </div>
         {isAdmin && (

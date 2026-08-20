@@ -112,7 +112,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <FilePlus size={16} /> Gerar Documento
       </button>
@@ -125,7 +125,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
             {generated ? (
               <div className="p-5 space-y-3">
                 {generated.noFieldsMatched && (
-                  <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-400/30 rounded-lg px-3 py-2.5">
+                  <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-400/30 px-3 py-2.5">
                     <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-800 dark:text-amber-300">
                       Nenhum campo foi preenchido — o modelo não tem os placeholders <code className="bg-sf px-1 rounded">{"{{CLIENTE}}"}</code>,
@@ -141,7 +141,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   href={generated.driveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg"
+                  className="w-full flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 "
                 >
                   <Download size={16} /> Abrir / Baixar (Google Docs)
                 </a>
@@ -149,28 +149,28 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   href={generated.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold py-2.5 rounded-lg"
+                  className="w-full flex items-center justify-center gap-2 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-semibold py-2.5 "
                 >
                   <FileDown size={16} /> Baixar como PDF
                 </a>
 
                 {(generated.caseId || generated.attendanceId) &&
                   (attached ? (
-                    <p className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/10 border border-emerald-200 dark:border-emerald-400/30 rounded-lg px-3 py-2.5">
+                    <p className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/10 border border-emerald-200 dark:border-emerald-400/30 px-3 py-2.5">
                       <CheckCircle2 size={16} /> Inserido nos anexos.
                     </p>
                   ) : (
                     <button
                       onClick={handleAttach}
                       disabled={attaching}
-                      className="w-full flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 disabled:opacity-50"
                     >
                       <Paperclip size={16} /> {attaching ? "Inserindo..." : "Inserir nos Anexos"}
                     </button>
                   ))}
 
                 {error && (
-                  <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 rounded-lg px-2.5 py-1.5">
+                  <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
                     {error}
                   </p>
                 )}
@@ -302,14 +302,14 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 )}
 
                 {error && (
-                  <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 rounded-lg px-2.5 py-1.5">
+                  <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
                     {error}
                   </p>
                 )}
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !templateId}
-                  className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50"
+                  className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 disabled:opacity-50"
                 >
                   {loading ? "Gerando..." : "Gerar"}
                 </button>

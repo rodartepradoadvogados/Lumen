@@ -27,7 +27,7 @@ export default function MarkAllPublicationsReadButton({ count, caseId }: { count
     <button
       onClick={handleClick}
       disabled={pending}
-      className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg bg-sf-apoio hover:bg-regua disabled:opacity-50"
+      className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 bg-sf-apoio hover:bg-regua disabled:opacity-50"
     >
       <CheckCheck size={14} /> {pending ? "Marcando..." : "Marcar todas como lidas"}
     </button>

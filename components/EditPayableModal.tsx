@@ -48,7 +48,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+          className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
@@ -168,12 +168,12 @@ export default function EditPayableModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+          <div className="bg-sf shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">Editar Conta a Pagar</h3>
               <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx dark:hover:text-tx">
@@ -234,7 +234,7 @@ export default function EditPayableModal({
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
                 <div>
                   <label className={labelCls}>Descrição</label>
@@ -339,7 +339,7 @@ export default function EditPayableModal({
                           )}
                         </div>
                         {hasReimbursement && payable.reimbursementReceivable && (
-                          <div className="sm:col-span-2 rounded-lg bg-marca-bg px-3 py-2.5">
+                          <div className="sm:col-span-2 bg-marca-bg px-3 py-2.5">
                             <p className="text-xs font-medium text-tx-2">
                               Reembolso vinculado: {formatCurrency(payable.reimbursementReceivable.amount)} · status{" "}
                               {financeStatusLabel(payable.reimbursementReceivable.status)}
@@ -347,7 +347,7 @@ export default function EditPayableModal({
                           </div>
                         )}
                         {!hasReimbursement && expensePayer === "CLIENTE" && (
-                          <div className="sm:col-span-2 rounded-lg bg-marca-bg px-3 py-2.5">
+                          <div className="sm:col-span-2 bg-marca-bg px-3 py-2.5">
                             <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
                               <input
                                 type="checkbox"
@@ -438,7 +438,7 @@ export default function EditPayableModal({
                     parcelamento, mostra em qual posição ela está (somente leitura). */}
                 <SecaoLancamento title="Parcelamento" tone="rosa">
                   {payable.installmentTotal ? (
-                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                       Parcela {payable.installmentNumber}/{payable.installmentTotal} de um lançamento parcelado — para mudar quantidade/intervalo,
                       lance um novo parcelamento.
                     </p>
@@ -501,11 +501,11 @@ export default function EditPayableModal({
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf"
+                    className="text-sm font-medium px-4 py-2 text-tx-2 hover:bg-sf"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 disabled:opacity-50 transition-colors">
                     {loading ? "Salvando..." : "Salvar alterações"}
                   </button>
                 </div>

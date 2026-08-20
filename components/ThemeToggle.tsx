@@ -94,7 +94,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
         type="button"
         onClick={cycle}
         aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium text-tx hover:bg-sf-apoio"
+        className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-tx hover:bg-sf-apoio"
       >
         <Icon size={15} className="text-tx-2" />
         Tema: {THEME_LABEL[mode]}
@@ -110,7 +110,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
       data-tip={`Tema: ${THEME_LABEL[mode]} (clique p/ ${nextLabel})`}
       data-tip-pos="bottom"
       aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-      className="p-2 rounded-lg hover:bg-sf-apoio transition-colors text-tx"
+      className="p-2 hover:bg-sf-apoio transition-colors text-tx"
     >
       <Icon size={20} />
     </button>

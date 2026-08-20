@@ -49,7 +49,7 @@ export default function EmailSendProviderPicker({ current, googleConnected, micr
               disabled={pending || !isConnected}
               onClick={() => choose(isSelected ? null : opt.value)}
               title={isConnected ? undefined : "Conecte esta conta primeiro"}
-              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${
                 isSelected ? "bg-tx text-sf" : "bg-sf-apoio text-tx-2"
               }`}
             >

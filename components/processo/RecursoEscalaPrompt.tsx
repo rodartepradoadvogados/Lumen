@@ -65,11 +65,11 @@ export default function RecursoEscalaPrompt({
   return (
     <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-sf rounded-xl border-2 border-marca/40 shadow-pop overflow-hidden"
+        className="w-full max-w-sm bg-sf border-2 border-marca/40 shadow-pop overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-regua">
-          <h3 className="font-serif font-bold text-tx text-sm">Vincular a um tribunal superior?</h3>
+          <h3 className=" font-bold text-tx text-sm">Vincular a um tribunal superior?</h3>
           <button onClick={onClose} className="text-tx-3 hover:text-tx">
             <X size={16} />
           </button>
@@ -83,14 +83,14 @@ export default function RecursoEscalaPrompt({
                 processo está indo?
               </p>
               <div className="flex gap-2">
-                <button onClick={onClose} className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio">
+                <button onClick={onClose} className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio">
                   Agora não
                 </button>
                 <TribunalPickerModal
                   tribunais={tribunais}
                   onSelect={handlePick}
                   trigger={
-                    <span className="inline-flex text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg cursor-pointer">
+                    <span className="inline-flex text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 cursor-pointer">
                       Vincular tribunal →
                     </span>
                   }
@@ -109,7 +109,7 @@ export default function RecursoEscalaPrompt({
                 <select
                   value={instancia}
                   onChange={(e) => setInstancia(e.target.value)}
-                  className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
+                  className="w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm"
                 >
                   {INSTANCIA_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -124,21 +124,21 @@ export default function RecursoEscalaPrompt({
                   value={detalhe}
                   onChange={(e) => setDetalhe(e.target.value)}
                   placeholder="Ex.: 3ª Câmara Cível do TJGO"
-                  className="w-full mt-1 border border-regua bg-sf text-tx rounded-lg px-3 py-2 text-sm"
+                  className="w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm"
                 />
               </div>
-              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep("ASK")}
-                  className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio"
+                  className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={confirm}
                   disabled={saving}
-                  className="flex-1 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 rounded-lg disabled:opacity-50"
+                  className="flex-1 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-3 py-1.5 disabled:opacity-50"
                 >
                   {saving ? "Salvando..." : "Confirmar"}
                 </button>

@@ -69,7 +69,7 @@ export default function MobileNewTaskForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 transition-colors"
       >
         <Plus size={16} /> Agendar Compromisso
       </button>
@@ -77,7 +77,7 @@ export default function MobileNewTaskForm({
   }
 
   return (
-    <div className="rounded-lg border border-regua bg-sf-apoio p-3 space-y-3">
+    <div className=" border border-regua bg-sf-apoio p-3 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-tx">Agendar Compromisso</p>
         <button
@@ -119,7 +119,7 @@ export default function MobileNewTaskForm({
         </div>
 
         {(type === "EVENTO" || type === "AUDIENCIA") && (
-          <div className="rounded-lg border border-regua bg-sf-apoio p-3 space-y-2.5">
+          <div className=" border border-regua bg-sf-apoio p-3 space-y-2.5">
             <div className="flex gap-4">
               <label className="flex items-center gap-1.5 text-sm text-tx-2">
                 <input
@@ -170,12 +170,12 @@ export default function MobileNewTaskForm({
           </div>
         )}
 
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 transition-colors disabled:opacity-50"
         >
           {loading ? "Salvando..." : "Criar"}
         </button>

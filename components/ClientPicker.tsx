@@ -79,11 +79,11 @@ export default function ClientPicker({
               {idx === 0 ? "Cliente" : `Cliente ${idx + 1} (litisconsórcio)`}
             </label>
             <div className="flex items-center gap-1.5">
-              <div className="flex gap-1 bg-sf-apoio rounded-lg p-0.5">
+              <div className="flex gap-1 bg-sf-apoio p-0.5">
                 <button
                   type="button"
                   onClick={() => update(entry.key, { mode: "selecionar" })}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                     entry.mode === "selecionar"
                       ? "bg-sf shadow-sm text-tx"
                       : "text-tx-2 hover:text-tx"
@@ -94,7 +94,7 @@ export default function ClientPicker({
                 <button
                   type="button"
                   onClick={() => update(entry.key, { mode: "novo" })}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                     entry.mode === "novo"
                       ? "bg-sf shadow-sm text-tx"
                       : "text-tx-2 hover:text-tx"

@@ -207,7 +207,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
                   text={item.content}
                   label="Copiar conteúdo"
                   showLabel={false}
-                  className="shrink-0 p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors"
+                  className="shrink-0 p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors"
                 />
               </div>
               <p className="text-sm text-tx whitespace-pre-wrap">{item.content}</p>
@@ -221,7 +221,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           <button
             onClick={markRead}
             disabled={loading}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <Check size={12} /> Marcar como lida
           </button>
@@ -229,19 +229,19 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           <button
             onClick={markUnread}
             disabled={loading}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <Undo2 size={12} /> Marcar como não lida
           </button>
         )}
 
         {pub.case && (
-          <Link href={`/processos/${pub.case.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua">
+          <Link href={`/processos/${pub.case.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua">
             Abrir Processo
           </Link>
         )}
         {!pub.case && pub.client && (
-          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-concluido hover:opacity-80 px-2.5 py-1 rounded-lg bg-concluido-bg">
+          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-concluido hover:opacity-80 px-2.5 py-1 bg-concluido-bg">
             Abrir Cadastro do Cliente
           </Link>
         )}
@@ -263,12 +263,12 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setAgendaOpen((o) => !o)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <CalendarClock size={12} /> Agenda <ChevronDown size={11} />
           </button>
           {agendaOpen && (
-            <div className="absolute left-0 top-full mt-1 w-48 bg-sf rounded-lg border border-regua shadow-menu z-20 overflow-hidden">
+            <div className="absolute left-0 top-full mt-1 w-48 bg-sf border border-regua shadow-menu z-20 overflow-hidden">
               {actionButtons.map((a) => (
                 <button
                   key={a.type}
@@ -283,7 +283,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         </div>
 
         {assignedToName && (
-          <span data-tip="Responsável pela triagem" className="text-[11px] font-medium text-tx-2 px-2 py-1 rounded-lg bg-sf-apoio">
+          <span data-tip="Responsável pela triagem" className="text-[11px] font-medium text-tx-2 px-2 py-1 bg-sf-apoio">
             Responsável: {assignedToName}
           </span>
         )}
@@ -294,7 +294,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
               setDelegateType("TAREFA");
               setDelegateOpen(true);
             }}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 rounded-lg bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <UserPlus size={12} /> Delegar
           </button>
@@ -305,7 +305,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           disabled={loading}
           onChange={(e) => handleTriage(e.target.value)}
           data-tip="Status da triagem"
-          className="text-[11px] font-semibold text-tx-2 px-2 py-1 rounded-lg bg-sf-apoio border border-regua cursor-pointer disabled:opacity-50"
+          className="text-[11px] font-semibold text-tx-2 px-2 py-1 bg-sf-apoio border border-regua cursor-pointer disabled:opacity-50"
         >
           <option value="PENDENTE">Pendente</option>
           <option value="EM_ANALISE">Em análise</option>
@@ -315,7 +315,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
 
       {delegateOpen && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-modal w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-sf shadow-modal w-full max-w-md max-h-[85vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">Delegar publicação</h3>
               <button onClick={() => setDelegateOpen(false)} className="text-tx-3 hover:text-tx">

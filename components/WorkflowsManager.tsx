@@ -63,13 +63,13 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
 
   return (
     <div className="space-y-4">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
       <form action={handleCreate} className="flex gap-2 flex-wrap items-start">
         <input name="name" required placeholder="Nome do workflow (ex: Ação Trabalhista)" className="cfg-input flex-1 min-w-[200px]" />
         <input name="area" placeholder="Área (opcional)" className="cfg-input min-w-[140px]" />
         <input name="description" placeholder="Descrição (opcional)" className="cfg-input flex-1 min-w-[180px]" />
-        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50 transition-colors">
+        <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50 transition-colors">
           Criar workflow
         </button>
       </form>
@@ -87,7 +87,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
               onClick={() => run(() => toggleWorkflowActive(tpl.id))}
               disabled={pending}
               data-tip={tpl.active ? "Inativar" : "Ativar"}
-              className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
+              className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
             >
               <Power size={14} />
             </button>
@@ -97,7 +97,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
               }}
               disabled={pending}
               data-tip="Excluir workflow"
-              className="p-1.5 rounded-lg text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"
+              className="p-1.5 text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"
             >
               <Trash2 size={14} />
             </button>
@@ -111,7 +111,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
             ) : (
               <ol className="space-y-1.5">
                 {tpl.steps.map((step, i) => (
-                  <li key={step.id} className="flex items-center gap-2 text-sm bg-sf rounded-lg border border-regua px-3 py-2">
+                  <li key={step.id} className="flex items-center gap-2 text-sm bg-sf border border-regua px-3 py-2">
                     <span className="text-xs font-semibold text-tx-3 w-5 shrink-0">{i + 1}.</span>
                     <span className="flex-1 min-w-0 text-tx truncate">{step.title}</span>
                     <Badge color={taskTypeColors[step.taskType]}>{taskTypeLabels[step.taskType] ?? step.taskType}</Badge>
@@ -125,7 +125,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
                       }}
                       disabled={pending}
                       data-tip="Excluir passo"
-                      className="p-1 rounded-lg text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"
+                      className="p-1 text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -219,7 +219,7 @@ function AddStepForm({
         <button
           type="submit"
           disabled={pending}
-          className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-xs font-semibold rounded-lg px-3 py-1.5 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50 transition-colors"
         >
           <Plus size={14} /> Adicionar passo
         </button>

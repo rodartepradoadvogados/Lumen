@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { convertAttendanceToCase } from "@/lib/actions/attendance";
 
 const inputClass =
-  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
 const labelClass = "text-xs font-medium text-tx-2";
 
 // Versão mobile do conversor de atendimento em Caso/Processo Judicial. Reaproveita a mesma
@@ -40,14 +40,14 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           onClick={handleCaso}
           disabled={pending}
-          className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
         >
           {pending ? "Convertendo..." : "Transformar em Caso"}
         </button>
         <button
           onClick={() => setMode("JUDICIAL")}
           disabled={pending}
-          className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
         >
           Transformar em Processo Judicial
         </button>
@@ -69,7 +69,7 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           type="submit"
           disabled={pending}
-          className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+          className="flex-1 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
         >
           {pending ? "Convertendo..." : "Confirmar"}
         </button>

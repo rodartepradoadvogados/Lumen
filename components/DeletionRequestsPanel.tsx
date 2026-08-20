@@ -72,14 +72,14 @@ export default function DeletionRequestsPanel({ requests }: { requests: Req[] })
           <button
             onClick={() => handle(r.id, "approve")}
             disabled={pending}
-            className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50"
+            className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50"
           >
             <Check size={12} /> Aprovar
           </button>
           <button
             onClick={() => handle(r.id, "reject")}
             disabled={pending}
-            className="flex items-center gap-1 text-[11px] font-semibold text-red-700 hover:text-red-900 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50"
+            className="flex items-center gap-1 text-[11px] font-semibold text-red-700 hover:text-red-900 px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50"
           >
             <X size={12} /> Recusar
           </button>

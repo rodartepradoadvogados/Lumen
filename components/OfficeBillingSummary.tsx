@@ -70,7 +70,7 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
       </div>
 
       {showPix && (
-        <div className="bg-sf-apoio border border-regua rounded-lg p-4 flex flex-wrap items-start gap-4">
+        <div className="bg-sf-apoio border border-regua p-4 flex flex-wrap items-start gap-4">
           {latestInvoice.pixQrCodeImage && (
             // eslint-disable-next-line @next/next/no-img-element -- base64 gerado em runtime, não é um asset estático
             <img
@@ -102,7 +102,7 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
         {invoices.length === 0 ? (
           <p className="text-xs text-tx-3">Nenhuma fatura gerada ainda.</p>
         ) : (
-          <div className="divide-y divide-regua border border-regua rounded-lg">
+          <div className="divide-y divide-regua border border-regua ">
             {invoices.map((i) => (
               <div key={i.id} className="flex items-center justify-between px-3 py-2 text-xs">
                 <span className="text-tx/85 tabular-nums">

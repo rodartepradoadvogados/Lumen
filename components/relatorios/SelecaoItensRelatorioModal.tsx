@@ -66,7 +66,7 @@ export default function SelecaoItensRelatorioModal({
         <div className="shrink-0 px-5 pt-4 flex flex-col gap-3 border-b border-regua pb-4">
           <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))" }}>
             {blocosAoVivo.map((b) => (
-              <div key={b.chave} className="bg-sf-apoio border border-regua rounded-lg px-3 py-2 border-l-[3px] border-l-acao">
+              <div key={b.chave} className="bg-sf-apoio border border-regua px-3 py-2 border-l-[3px] border-l-acao">
                 <div className="text-xl font-bold text-tx tabular-nums leading-none">{b.valorSelecionado}</div>
                 <div className="text-[10.5px] font-semibold text-tx-2 mt-0.5">{b.rotulo}</div>
               </div>
@@ -77,7 +77,7 @@ export default function SelecaoItensRelatorioModal({
             <button
               type="button"
               onClick={() => marcarTodos(!todosMarcados)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx px-3 py-1.5"
             >
               {todosMarcados ? <Square size={13} /> : <CheckSquare size={13} />}
               {todosMarcados ? "Desmarcar todos" : "Marcar todos"}
@@ -86,7 +86,7 @@ export default function SelecaoItensRelatorioModal({
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por nome ou tipo…"
-              className="text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 w-full max-w-[260px]"
+              className="text-xs border border-regua-forte bg-sf text-tx px-2.5 py-1.5 w-full max-w-[260px]"
             />
             <span className="text-xs font-medium text-tx-2 tabular-nums">
               {marcados.size} de {resultado.detalhes.length} selecionado(s)
@@ -159,7 +159,7 @@ export default function SelecaoItensRelatorioModal({
               onConfirmar(excluidos);
             }}
             disabled={nenhumMarcado}
-            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
           >
             Confirmar seleção e continuar
           </button>

@@ -252,7 +252,7 @@ export default async function ConfiguracoesPage({
             <Link
               key={s.key}
               href={`/configuracoes?secao=${s.key}`}
-              className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${
+              className={`text-sm font-semibold px-4 py-2 transition-colors ${
                 secao === s.key ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
               }`}
             >
@@ -267,7 +267,7 @@ export default async function ConfiguracoesPage({
           DESIGN-SYSTEM.md §3), então o texto aqui é propositalmente sempre claro, sem variante
           dark: própria. */}
       {isAdmin && (
-        <aside className="hidden lg:block w-56 shrink-0 bg-grafite-800 rounded-2xl overflow-hidden sticky top-6">
+        <aside className="hidden lg:block w-56 shrink-0 bg-grafite-800 overflow-hidden sticky top-6">
           <nav className="p-3 space-y-1">
             {availableSecoes.map((s) => {
               const Icon = SECAO_ICONS[s.key];
@@ -276,7 +276,7 @@ export default async function ConfiguracoesPage({
                 <Link
                   key={s.key}
                   href={`/configuracoes?secao=${s.key}`}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm border-l-2 transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2.5 text-sm border-l-2 transition-colors ${
                     active
                       ? "bg-marca-bg text-white font-semibold border-marca"
                       : "text-white/70 font-medium border-transparent hover:bg-white/5 hover:text-white"
@@ -315,7 +315,7 @@ export default async function ConfiguracoesPage({
         <div className="p-5 flex flex-wrap gap-3">
           <Link
             href="/configuracoes/importar"
-            className="flex items-center gap-2 justify-center bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 w-fit transition-colors"
+            className="flex items-center gap-2 justify-center bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2.5 w-fit transition-colors"
           >
             <Upload size={16} /> Importar Contatos / Processos / Agenda
           </Link>
@@ -382,7 +382,7 @@ export default async function ConfiguracoesPage({
             <div className="flex gap-2 flex-wrap">
               <Link
                 href="/configuracoes?secao=blog&blogTab=revisao"
-                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
+                className={`text-xs font-semibold px-3.5 py-1.5 transition-colors ${
                   blogTab === "revisao"
                     ? "bg-acao text-acao-tx"
                     : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
@@ -392,7 +392,7 @@ export default async function ConfiguracoesPage({
               </Link>
               <Link
                 href="/configuracoes?secao=blog&blogTab=publicadas"
-                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
+                className={`text-xs font-semibold px-3.5 py-1.5 transition-colors ${
                   blogTab === "publicadas"
                     ? "bg-acao text-acao-tx"
                     : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
@@ -402,7 +402,7 @@ export default async function ConfiguracoesPage({
               </Link>
               <Link
                 href="/configuracoes?secao=blog&blogTab=fotos"
-                className={`text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors ${
+                className={`text-xs font-semibold px-3.5 py-1.5 transition-colors ${
                   blogTab === "fotos"
                     ? "bg-acao text-acao-tx"
                     : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
@@ -636,7 +636,7 @@ export default async function ConfiguracoesPage({
               </option>
             ))}
           </select>
-          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 transition-colors">
             Adicionar
           </button>
         </form>
@@ -658,7 +658,7 @@ export default async function ConfiguracoesPage({
         </div>
         <form action={submitCostCenter} className="p-5 flex gap-2 border-t border-regua">
           <input name="name" required placeholder="Nome do centro de custo" className="cfg-input flex-1" />
-          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 transition-colors">
+          <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 transition-colors">
             Adicionar
           </button>
         </form>
@@ -749,7 +749,7 @@ export default async function ConfiguracoesPage({
 function Swatch({ color, label, border }: { color: string; label: string; border?: boolean }) {
   return (
     <div className="text-center">
-      <div className={`h-14 w-14 rounded-lg ${border ? "border border-regua-forte" : ""}`} style={{ backgroundColor: color }} />
+      <div className={`h-14 w-14 ${border ? "border border-regua-forte" : ""}`} style={{ backgroundColor: color }} />
       <p className="text-[11px] text-tx-3 mt-1">{label}</p>
     </div>
   );

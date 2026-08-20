@@ -75,7 +75,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
           </label>
           <input type="date" name="to" defaultValue={to} className="mob-fin-input" />
         </div>
-        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold rounded-lg px-3 py-2 shrink-0 transition-colors">
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-2 shrink-0 transition-colors">
           Filtrar
         </button>
       </form>
@@ -86,7 +86,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
           app/m/financeiro/receitas/honorarios/page.tsx). */}
       <Link
         href="/m/financeiro/receitas/honorarios"
-        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 transition-colors"
       >
         <HandCoins size={16} /> Lançar Honorários
       </Link>

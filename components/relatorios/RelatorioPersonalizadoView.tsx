@@ -227,20 +227,20 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                 type="date"
                 value={filtros.de}
                 onChange={(e) => set("de", e.target.value)}
-                className="text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 tabular-nums"
+                className="text-sm border border-regua-forte bg-sf text-tx px-2.5 py-1.5 tabular-nums"
               />
               <span className="text-xs text-tx-2 font-medium">até</span>
               <input
                 type="date"
                 value={filtros.ate}
                 onChange={(e) => set("ate", e.target.value)}
-                className="text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2.5 py-1.5 tabular-nums"
+                className="text-sm border border-regua-forte bg-sf text-tx px-2.5 py-1.5 tabular-nums"
               />
               <span className="text-xs text-tx-2 font-medium ml-1">considerando a data de</span>
               <select
                 value={filtros.baseData}
                 onChange={(e) => set("baseData", e.target.value as BaseData)}
-                className="text-sm border border-regua-forte bg-sf text-tx rounded-lg px-2 py-1.5"
+                className="text-sm border border-regua-forte bg-sf text-tx px-2 py-1.5"
               >
                 {BASE_DATA_OPCOES.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -257,7 +257,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               <select
                 onChange={(e) => aplicarModelo(e.target.value)}
                 defaultValue=""
-                className="text-xs border border-regua-forte bg-sf text-tx rounded-lg px-2 py-2 max-w-[190px]"
+                className="text-xs border border-regua-forte bg-sf text-tx px-2 py-2 max-w-[190px]"
               >
                 <option value="">Abrir modelo salvo…</option>
                 {modelos.map((m) => (
@@ -270,7 +270,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
             <button
               type="button"
               onClick={() => setSalvarAberto(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx px-3 py-2"
             >
               <Save size={13} /> Salvar modelo
             </button>
@@ -278,7 +278,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               type="button"
               onClick={() => pedirConferencia("word")}
               disabled={!resultado || gerando}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx px-3 py-2 disabled:opacity-50"
             >
               <FileType2 size={13} /> Baixar em Word
             </button>
@@ -286,7 +286,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               type="button"
               onClick={() => pedirConferencia("imprimir")}
               disabled={!resultado || gerando}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx rounded-lg px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold border border-regua-forte bg-sf hover:bg-sf-apoio text-tx px-3 py-2 disabled:opacity-50"
             >
               <FileDown size={13} /> Imprimir / PDF
             </button>
@@ -294,7 +294,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               type="button"
               onClick={() => executar(filtros)}
               disabled={gerando}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx rounded-lg px-4 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-acao hover:bg-acao-hover text-acao-tx px-4 py-2 disabled:opacity-50"
             >
               {gerando ? <Loader2 size={13} className="animate-spin" /> : null}
               {gerando ? "Gerando…" : "Gerar relatório"}
@@ -364,7 +364,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
         </div>
       </div>
 
-      {erro && <p className="text-sm text-urgente bg-urgente-bg rounded-lg px-3 py-2">{erro}</p>}
+      {erro && <p className="text-sm text-urgente bg-urgente-bg px-3 py-2">{erro}</p>}
 
       {/* ---------------- RESULTADO ---------------- */}
       {resultado && (
@@ -401,7 +401,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">Volume por assessoria</span>
               <Barras linhas={resultado.porAssessoria} vazio="Nenhum item vinculado a assessoria no período." />
               {resultado.semVinculoAssessoria > 0 && (
-                <p className="text-[11.5px] text-tx-2 bg-marca-bg border-l-[3px] border-marca rounded-r-lg px-3 py-2">
+                <p className="text-[11.5px] text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2">
                   <strong className="text-tx">{resultado.semVinculoAssessoria} item(ns)</strong> do período ficaram de fora deste
                   corte por não terem assessoria vinculada — aparecem no detalhamento abaixo.
                 </p>
@@ -486,7 +486,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               value={nomeModelo}
               onChange={(e) => setNomeModelo(e.target.value)}
               placeholder="Ex.: Relatório mensal — Guapó"
-              className="w-full text-sm border border-regua-forte bg-sf text-tx rounded-lg px-3 py-2"
+              className="w-full text-sm border border-regua-forte bg-sf text-tx px-3 py-2"
             />
             <p className="text-[11px] text-tx-3">Salvar com um nome já existente substitui o modelo anterior.</p>
             <div className="flex gap-2 pt-1">
@@ -494,7 +494,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                 type="button"
                 onClick={confirmarSalvar}
                 disabled={salvando || !nomeModelo.trim()}
-                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
               >
                 {salvando ? "Salvando…" : "Salvar"}
               </button>
@@ -538,7 +538,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                 sistema. Desmarque os itens abaixo e tente de novo.
               </p>
             </div>
-            <ul className="flex flex-col gap-1.5 bg-sf-apoio border border-regua rounded-lg p-3">
+            <ul className="flex flex-col gap-1.5 bg-sf-apoio border border-regua p-3">
               {inexistentes.map((i, idx) => (
                 <li key={idx} className="text-xs text-tx flex gap-2">
                   <span className="font-semibold text-tx-2 shrink-0">{i.dimensao}:</span>
@@ -549,7 +549,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
             <button
               type="button"
               onClick={() => setInexistentes(null)}
-              className="self-start bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2"
+              className="self-start bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2"
             >
               Entendi
             </button>

@@ -90,7 +90,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
       <input type="hidden" name="stagedAttachments" value={JSON.stringify(payload)} />
 
       {!driveConnected && (
-        <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-1.5">
+        <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 px-2.5 py-1.5">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o caso, você
           ainda pode anexar documentos na aba Anexos.
         </p>
@@ -109,7 +109,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
             addFiles(e.dataTransfer.files);
           }}
           onClick={() => fileInputRef.current?.click()}
-          className={`mt-1 flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
+          className={`mt-1 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
             dragOver
               ? "border-acao bg-acao-bg"
               : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
@@ -137,7 +137,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
           {items.map((it) => (
             <div
               key={it.tempId}
-              className="flex items-center gap-2 rounded-lg border border-regua bg-sf-apoio px-2.5 py-1.5"
+              className="flex items-center gap-2 border border-regua bg-sf-apoio px-2.5 py-1.5"
             >
               <span className="text-xs font-medium text-tx truncate flex-1" title={it.name}>
                 {it.name}

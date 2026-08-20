@@ -14,7 +14,7 @@ import MoneyInput from "@/components/MoneyInput";
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
 const inputClass =
-  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
 const labelClass = "text-xs font-medium text-tx-2";
 
 function toDatetimeLocal(d: Date): string {
@@ -230,7 +230,7 @@ export default function MobileNewAttendanceForm({
               key={m}
               type="button"
               onClick={() => setFeeMode(m)}
-              className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors ${
+              className={`text-xs font-semibold px-2.5 py-1.5 border transition-colors ${
                 feeMode === m
                   ? "bg-acao text-acao-tx border-acao"
                   : "bg-sf text-tx-2 border-regua"
@@ -284,7 +284,7 @@ export default function MobileNewAttendanceForm({
         <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
-          <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-lg px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 px-2.5 py-1.5">
             Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o atendimento,
             você ainda pode anexar documentos pelo computador.
           </p>
@@ -302,7 +302,7 @@ export default function MobileNewAttendanceForm({
                 if (e.dataTransfer.files?.length) stageFiles(e.dataTransfer.files);
               }}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
                 dragOver
                   ? "border-acao bg-acao-bg"
                   : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
@@ -329,7 +329,7 @@ export default function MobileNewAttendanceForm({
                 {stagedAttachments.map((att) => (
                   <div
                     key={att.key}
-                    className="flex items-center gap-2 p-2.5 rounded-lg bg-sf-apoio border border-regua"
+                    className="flex items-center gap-2 p-2.5 bg-sf-apoio border border-regua"
                   >
                     <span className="flex-1 min-w-0 text-xs font-medium text-tx truncate" title={att.name}>
                       {att.name}
@@ -361,7 +361,7 @@ export default function MobileNewAttendanceForm({
       </div>
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-lg px-3 py-2">
+        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 px-3 py-2">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -379,7 +379,7 @@ export default function MobileNewAttendanceForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 transition-colors disabled:opacity-50"
       >
         <Send size={15} /> {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Criar atendimento"}
       </button>

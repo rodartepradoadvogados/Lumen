@@ -128,7 +128,7 @@ export default function ProtocolosTab({
           <EnviarDocumentosButton entity={{ tipo: "CASE", id: caseId, titulo: caseTitle }} attachments={attachments} />
           <button
             onClick={() => setNovoOpen(true)}
-            className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3.5 py-2 transition-colors"
           >
             <Plus size={16} /> Novo protocolo
           </button>
@@ -240,7 +240,7 @@ function LoteCard({
   }
 
   return (
-    <div className="border border-regua rounded-lg p-4 bg-sf">
+    <div className="border border-regua p-4 bg-sf">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <p className="font-medium text-tx">{lote.titulo}</p>
@@ -314,7 +314,7 @@ function LoteCard({
         <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-regua">
           <button
             onClick={onRegistrar}
-            className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg"
+            className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 "
           >
             <Stamp size={13} /> Registrar protocolo
           </button>
@@ -323,7 +323,7 @@ function LoteCard({
               onClick={handleMarcarPronto}
               disabled={pending}
               title="Exige procuração anexada ao processo (aba Anexos)"
-              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio disabled:opacity-50"
             >
               <CheckCircle2 size={13} /> Marcar como pronto
             </button>
@@ -331,19 +331,19 @@ function LoteCard({
             <button
               onClick={handleReabrir}
               disabled={pending}
-              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio disabled:opacity-50"
             >
               <Undo2 size={13} /> Voltar para em preparo
             </button>
           )}
-          <button onClick={onEditar} className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio">
+          <button onClick={onEditar} className="text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio">
             Editar seleção
           </button>
           {driveConnected && (
             <button
               onClick={handleGerarPasta}
               disabled={pending}
-              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio disabled:opacity-50"
             >
               {lote.driveFolderId ? <RefreshCw size={13} /> : <FolderOpen size={13} />}
               {pending ? "Gerando..." : lote.driveFolderId ? "Regenerar pasta no Drive" : "Gerar pasta no Drive"}
@@ -352,7 +352,7 @@ function LoteCard({
           {driveConnected && lote.itens.length > 0 && (
             <a
               href={`/api/protocolos/${lote.id}/zip`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio"
             >
               <Download size={13} /> Baixar tudo (.zip)
             </a>
@@ -360,7 +360,7 @@ function LoteCard({
           <button
             onClick={handleCancelar}
             disabled={pending}
-            className="flex items-center gap-1.5 text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 rounded-lg ml-auto disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 ml-auto disabled:opacity-50"
           >
             <Ban size={13} /> Cancelar
           </button>
@@ -371,7 +371,7 @@ function LoteCard({
         <div className="mt-3 pt-3 border-t border-regua">
           <a
             href={`/api/protocolos/${lote.id}/zip`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 rounded-lg hover:bg-sf-apoio"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx px-3 py-1.5 hover:bg-sf-apoio"
           >
             <Download size={13} /> Baixar tudo (.zip)
           </a>
@@ -453,7 +453,7 @@ function TarefaModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-sf rounded-xl shadow-modal w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-sf shadow-modal w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
           <h3 className="font-bold text-tx">Vincular prazo</h3>
           <button onClick={onClose} className="text-tx-2 hover:text-tx">
@@ -466,13 +466,13 @@ function TarefaModal({
             <div className="flex gap-1.5 text-xs font-semibold">
               <button
                 onClick={() => setModo("existente")}
-                className={`px-2.5 py-1 rounded-lg ${modo === "existente" ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
+                className={`px-2.5 py-1 ${modo === "existente" ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
               >
                 Tarefa existente
               </button>
               <button
                 onClick={() => setModo("nova")}
-                className={`px-2.5 py-1 rounded-lg ${modo === "nova" ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
+                className={`px-2.5 py-1 ${modo === "nova" ? "bg-acao text-acao-tx" : "text-tx-2 hover:bg-sf-apoio"}`}
               >
                 Criar nova
               </button>
@@ -490,7 +490,7 @@ function TarefaModal({
                 <select
                   value={taskId}
                   onChange={(e) => setTaskId(e.target.value)}
-                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                  className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
                 >
                   <option value="">Selecione…</option>
                   {tasks.map((t) => (
@@ -509,7 +509,7 @@ function TarefaModal({
                   value={novoTitulo}
                   onChange={(e) => setNovoTitulo(e.target.value)}
                   placeholder="Ex: Protocolar Petição Inicial"
-                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                  className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
                 />
               </div>
               <div>
@@ -518,7 +518,7 @@ function TarefaModal({
                   type="date"
                   value={novaData}
                   onChange={(e) => setNovaData(e.target.value)}
-                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                  className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
                 />
               </div>
             </>
@@ -534,7 +534,7 @@ function TarefaModal({
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
           >
             {loading ? "Vinculando..." : "Vincular"}
           </button>
@@ -654,7 +654,7 @@ function SelecaoModal({
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   placeholder="Ex: Petição Inicial + documentos"
-                  className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                  className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
                 />
               </div>
             )}
@@ -664,7 +664,7 @@ function SelecaoModal({
                 <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1.5">
                   Ordem de envio ({selectedAttachments.length})
                 </p>
-                <div className="border border-regua rounded-lg divide-y divide-regua">
+                <div className="border border-regua divide-y divide-regua">
                   {selectedAttachments.map((a, idx) => (
                     <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                       <span className="font-mono text-xs text-tx-2 w-6 tabular-nums">{String(idx + 1).padStart(2, "0")}</span>
@@ -708,10 +708,10 @@ function SelecaoModal({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome"
-                className="w-full text-xs border border-regua rounded-lg pl-7 pr-2.5 py-1.5 bg-sf text-tx"
+                className="w-full text-xs border border-regua pl-7 pr-2.5 py-1.5 bg-sf text-tx"
               />
             </div>
-            <div className="border border-regua rounded-lg divide-y divide-regua max-h-[50vh] overflow-y-auto scrollbar-thin">
+            <div className="border border-regua divide-y divide-regua max-h-[50vh] overflow-y-auto scrollbar-thin">
               {disponiveis.length === 0 && <p className="px-3 py-3 text-xs text-tx-2">Nenhum documento encontrado.</p>}
               {disponiveis.map((a) => {
                 const checked = selected.includes(a.id);
@@ -751,7 +751,7 @@ function SelecaoModal({
         <button
           onClick={handleConfirm}
           disabled={loading}
-          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+          className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
         >
           {loading ? "Salvando..." : lote ? "Salvar seleção" : "Criar lote e gerar pasta"}
         </button>
@@ -813,7 +813,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
 
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-      <div className="bg-sf rounded-xl shadow-modal w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-sf shadow-modal w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
           <h3 className="font-bold text-tx">Registrar protocolo</h3>
           <button onClick={onClose} className="text-tx-2 hover:text-tx">
@@ -831,7 +831,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
                 value={numero}
                 onChange={(e) => setNumero(e.target.value)}
                 placeholder="20260731-993217"
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
             <div>
@@ -840,7 +840,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
                 type="date"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
-                className="w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm bg-sf text-tx"
+                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
               />
             </div>
           </div>
@@ -848,7 +848,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
           <div>
             <label className="text-xs font-medium text-tx-2 block mb-1">Comprovante (opcional)</label>
             {stagedFile ? (
-              <div className="flex items-center gap-2 border border-regua rounded-lg px-3 py-2 text-sm bg-sf-apoio">
+              <div className="flex items-center gap-2 border border-regua px-3 py-2 text-sm bg-sf-apoio">
                 <span className="flex-1 min-w-0 truncate text-tx">{stagedFile.name}</span>
                 <button onClick={() => setStagedFile(null)} className="text-tx-2 hover:text-atencao shrink-0">
                   <X size={14} />
@@ -857,7 +857,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-acao/40 rounded-lg py-3 text-xs text-tx-2"
+                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-acao/40 py-3 text-xs text-tx-2"
               >
                 Anexar comprovante devolvido pelo tribunal/órgão
               </button>
@@ -884,7 +884,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+            className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50"
           >
             {loading ? "Registrando..." : "Concluir protocolo"}
           </button>

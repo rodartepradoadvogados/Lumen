@@ -253,7 +253,7 @@ const BADGE_TONE: Record<Tone, string> = {
 // tema (Manhã/Noite), só o cartão ao redor muda.
 function TileBadge({ icon: Icon, tone, size = 18 }: { icon: LucideIcon; tone: Tone; size?: number }) {
   return (
-    <span className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white shrink-0 ${BADGE_TONE[tone]}`}>
+    <span className={`h-11 w-11 flex items-center justify-center text-white shrink-0 ${BADGE_TONE[tone]}`}>
       <Icon size={size} />
     </span>
   );
@@ -332,7 +332,7 @@ function HubCard({
   wide?: boolean;
 }) {
   return (
-    <details className="group rounded-xl2 border border-regua bg-sf shadow-card open:shadow-pop transition-shadow">
+    <details className="group border border-regua bg-sf shadow-card open:shadow-pop transition-shadow">
       {wide ? (
         <summary className="flex items-center gap-3 px-4 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <TileBadge icon={Icon} tone={tone} />
@@ -367,7 +367,7 @@ function HubChip({ href, label, icon: Icon }: Chip) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 rounded-lg border border-regua text-tx-2 px-3 py-2.5 text-xs font-semibold hover:bg-sf-apoio transition-colors"
+      className="flex items-center gap-2 border border-regua text-tx-2 px-3 py-2.5 text-xs font-semibold hover:bg-sf-apoio transition-colors"
     >
       <Icon size={15} className="shrink-0" />
       <span className="truncate">{label}</span>

@@ -48,7 +48,7 @@ export default function SupportAccessPolicyPicker({ current }: { current: Policy
               type="button"
               disabled={pending}
               onClick={() => choose(opt.value)}
-              className={`text-left rounded-lg border px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+              className={`text-left border px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
                 // Mesmo padrão do controle segmentado (DESIGN-SYSTEM.md §5): opção ativa inverte,
                 // sem cor de acento — ver components/EmailSendProviderPicker.tsx.
                 isSelected ? "border-tx bg-tx" : "border-regua hover:border-regua"

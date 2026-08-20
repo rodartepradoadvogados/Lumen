@@ -17,7 +17,7 @@ export default function NewSupplierModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-lg"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 "
       >
         <Plus size={16} /> Novo Fornecedor
       </button>
@@ -67,7 +67,7 @@ export default function NewSupplierModal() {
               </div>
             </div>
             <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
-              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50">
                 {loading ? "Salvando..." : "Salvar"}
               </button>
             </div>

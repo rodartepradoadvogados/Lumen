@@ -47,7 +47,7 @@ export default function ApplyWorkflowModal({
         onClick={() => setOpen(true)}
         disabled={templates.length === 0}
         title={templates.length === 0 ? "Nenhum workflow ativo cadastrado" : undefined}
-        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 rounded-lg transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 transition-colors disabled:opacity-50"
       >
         <Workflow size={16} /> Aplicar Workflow
       </button>
@@ -67,7 +67,7 @@ export default function ApplyWorkflowModal({
                   <select
                     name="templateId"
                     required
-                    className="w-full mt-1 border border-regua bg-sf rounded-lg px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
+                    className="w-full mt-1 border border-regua bg-sf px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
                     defaultValue=""
                   >
                     <option value="" disabled>
@@ -84,7 +84,7 @@ export default function ApplyWorkflowModal({
                   <label className="text-xs font-medium text-tx-2">Responsável padrão</label>
                   <select
                     name="responsibleId"
-                    className="w-full mt-1 border border-regua bg-sf rounded-lg px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
+                    className="w-full mt-1 border border-regua bg-sf px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
                     defaultValue=""
                   >
                     <option value="">Não definido</option>
@@ -100,7 +100,7 @@ export default function ApplyWorkflowModal({
                 Passos com cargo definido tentam usar o membro correspondente; caso contrário, usam este responsável.
               </p>
               {error && (
-                <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 rounded-lg px-2.5 py-1.5">
+                <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
                   {error}
                 </p>
               )}
@@ -109,7 +109,7 @@ export default function ApplyWorkflowModal({
               <button
                 type="submit"
                 disabled={pending}
-                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 transition-colors disabled:opacity-50"
               >
                 {pending ? "Aplicando..." : "Aplicar workflow"}
               </button>

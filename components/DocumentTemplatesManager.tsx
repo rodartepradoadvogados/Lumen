@@ -94,7 +94,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
               <p className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-1.5">{cat.label}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                 {cat.items.map((t) => (
-                  <div key={t.id} className="group relative flex items-center gap-2 bg-sf-apoio border border-regua rounded-lg px-3 py-2">
+                  <div key={t.id} className="group relative flex items-center gap-2 bg-sf-apoio border border-regua px-3 py-2">
                     <FileText size={15} className="text-tx-3 shrink-0" />
                     <a href={t.driveUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-tx truncate flex-1 hover:underline">
                       {t.name}
@@ -104,7 +104,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
                       onClick={() => handleDelete(t.id)}
                       disabled={pending}
                       data-tip="Remover modelo"
-                      className="absolute top-1 right-1 p-1 rounded-md text-tx-3 opacity-0 group-hover:opacity-100 hover:text-vinho hover:bg-sf transition-all bg-sf-apoio"
+                      className="absolute top-1 right-1 p-1 text-tx-3 opacity-0 group-hover:opacity-100 hover:text-vinho hover:bg-sf transition-all bg-sf-apoio"
                     >
                       <X size={11} />
                     </button>
@@ -116,7 +116,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
       )}
       {templates.length === 0 && <p className="text-xs text-tx-3">Nenhum modelo cadastrado ainda.</p>}
 
-      <details className="rounded-lg border border-regua bg-sf-apoio px-3 py-2.5">
+      <details className=" border border-regua bg-sf-apoio px-3 py-2.5">
         <summary className="text-xs font-semibold text-tx cursor-pointer">
           Como escrever um modelo que preenche os dados automaticamente
         </summary>
@@ -174,7 +174,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-4 cursor-pointer transition-colors ${
+            className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
               dragOver ? "border-acao bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-sf-apoio"
             }`}
           >
@@ -195,19 +195,19 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             />
           </div>
         ) : (
-          <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg px-2.5 py-1.5">
             Google Drive não conectado — conecte acima para anexar arquivos, ou cole um link já existente abaixo.
           </p>
         )}
 
         <div className="flex gap-2">
           <input value={driveUrl} onChange={(e) => setDriveUrl(e.target.value)} placeholder="ou cole um link do Google Drive já existente" className="cfg-input flex-1" />
-          <button onClick={handleAddLink} disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 rounded-lg disabled:opacity-50 transition-colors">
+          <button onClick={handleAddLink} disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-4 disabled:opacity-50 transition-colors">
             Salvar link
           </button>
         </div>
 
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
       </div>
     </div>
   );

@@ -46,11 +46,11 @@ export default function TribunalPickerModal({
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf rounded-xl shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col animate-fade-in"
+            className="bg-sf shadow-pop w-full max-w-lg max-h-[85vh] flex flex-col animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
-              <h3 className="font-serif font-bold text-tx">Selecionar tribunal</h3>
+              <h3 className=" font-bold text-tx">Selecionar tribunal</h3>
               <button type="button" onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>
@@ -64,7 +64,7 @@ export default function TribunalPickerModal({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por sigla ou nome..."
-                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-regua bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
+                  className="w-full pl-8 pr-3 py-2 border border-regua bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
                 />
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function TribunalPickerModal({
                       key={t.sigla}
                       type="button"
                       onClick={() => handleSelect(t)}
-                      className="flex flex-col items-start w-full rounded-lg px-3 py-2 text-left hover:bg-sf-apoio transition-colors"
+                      className="flex flex-col items-start w-full px-3 py-2 text-left hover:bg-sf-apoio transition-colors"
                     >
                       <span className="text-sm">
                         <span className="font-bold text-tx">{t.sigla}</span>{" "}

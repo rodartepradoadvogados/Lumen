@@ -53,7 +53,7 @@ export default async function FinanceiroPage() {
           <Link key={m.href} href={m.href}>
             <Card className="p-5 h-full hover:bg-sf-apoio transition-colors">
               <div className="flex items-start justify-between">
-                <div className="p-2.5 rounded-lg bg-sf-apoio text-tx-2">
+                <div className="p-2.5 bg-sf-apoio text-tx-2">
                   <m.icon size={20} />
                 </div>
                 <ArrowRight size={16} className="text-tx-3" />

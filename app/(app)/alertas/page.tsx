@@ -75,13 +75,13 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
       <div className="flex gap-2">
         <Link
           href="/alertas?tab=pendentes"
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "pendentes" ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"}`}
+          className={`text-sm font-semibold px-4 py-2 transition-colors ${tab === "pendentes" ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"}`}
         >
           Pendentes
         </Link>
         <Link
           href="/alertas?tab=hoje"
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${tab === "hoje" ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"}`}
+          className={`text-sm font-semibold px-4 py-2 transition-colors ${tab === "hoje" ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"}`}
         >
           Hoje
         </Link>
@@ -122,7 +122,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                       rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
                     >
                       <AlertRow alert={a} className="flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors w-full text-left">
-                        <div className="p-2 rounded-lg bg-sf-apoio text-tx shrink-0">
+                        <div className="p-2 bg-sf-apoio text-tx shrink-0">
                           <Icon size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -157,7 +157,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                     href={item.href}
                     className={`flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors ${dueStatusClassName(item.dueStatus)}`}
                   >
-                    <div className="p-2 rounded-lg bg-sf-apoio text-tx shrink-0">
+                    <div className="p-2 bg-sf-apoio text-tx shrink-0">
                       <Icon size={16} />
                     </div>
                     <div className="min-w-0 flex-1">

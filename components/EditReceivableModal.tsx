@@ -94,14 +94,14 @@ export default function EditReceivableModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
+          <div className="bg-sf shadow-pop w-[80vw] max-w-[1200px] h-[80vh] flex flex-col overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">
-              <h3 className="font-serif font-bold text-tx">Editar Conta a Receber</h3>
+              <h3 className=" font-bold text-tx">Editar Conta a Receber</h3>
               <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx">
                 <X size={18} />
               </button>
@@ -151,9 +151,9 @@ export default function EditReceivableModal({
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
                 {isApurar && (
-                  <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+                  <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
                     Esta parcela é uma provisão &quot;A apurar&quot; (percentual sobre o desfecho do processo) — os campos de valor abaixo não
                     representam dinheiro real ainda; a apuração do êxito é feita na aba Financeiro do processo.
                   </p>
@@ -296,7 +296,7 @@ export default function EditReceivableModal({
 
                 <SecaoLancamento title="Parcelamento" tone="rosa">
                   {receivable.installmentTotal ? (
-                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 rounded-lg px-3 py-1.5">
+                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                       Parcela {receivable.installmentNumber}/{receivable.installmentTotal} de um lançamento parcelado — para mudar quantidade/intervalo,
                       lance um novo parcelamento.
                     </p>
@@ -348,18 +348,18 @@ export default function EditReceivableModal({
                   </div>
                   <div>
                     <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
-                    <span className="font-serif text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
+                    <span className=" text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="text-sm font-medium px-4 py-2 rounded-lg text-tx-2 hover:bg-sf-apoio"
+                    className="text-sm font-medium px-4 py-2 text-tx-2 hover:bg-sf-apoio"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 rounded-lg disabled:opacity-50">
+                  <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-5 py-2 disabled:opacity-50">
                     {loading ? "Salvando..." : "Salvar alterações"}
                   </button>
                 </div>

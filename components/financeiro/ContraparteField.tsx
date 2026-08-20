@@ -45,7 +45,7 @@ export default function ContraparteField({
         <button
           type="button"
           onClick={() => setMode("FORNECEDOR")}
-          className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
+          className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
             mode === "FORNECEDOR"
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
@@ -56,7 +56,7 @@ export default function ContraparteField({
         <button
           type="button"
           onClick={() => setMode("EQUIPE")}
-          className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
+          className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
             mode === "EQUIPE"
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"
@@ -68,7 +68,7 @@ export default function ContraparteField({
           <button
             type="button"
             onClick={() => setMode("CLIENTE")}
-            className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
+            className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
               mode === "CLIENTE"
                 ? "bg-acao text-acao-tx border-acao"
                 : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio"

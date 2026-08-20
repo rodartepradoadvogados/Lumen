@@ -52,13 +52,13 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
             onChange={(e) => setEmail(e.target.value)}
             placeholder="e-mail do cliente"
             disabled={isPending}
-            className="flex-1 rounded-lg border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+            className="flex-1 border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
           />
           <button
             type="button"
             onClick={handleSaveEmail}
             disabled={isPending || !email.trim()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-acao px-4 py-2.5 text-xs font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 bg-acao px-4 py-2.5 text-xs font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
           >
             Salvar
           </button>
@@ -80,7 +80,7 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
         onChange={(e) => setSubject(e.target.value)}
         placeholder="Assunto"
         disabled={isPending}
-        className="w-full rounded-lg border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+        className="w-full border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
       />
       <div className="flex items-end gap-2">
         <textarea
@@ -95,13 +95,13 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
           rows={3}
           placeholder="Escreva uma resposta por e-mail…"
           disabled={isPending}
-          className="flex-1 resize-none rounded-lg border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+          className="flex-1 resize-none border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={isPending || !subject.trim() || !body.trim()}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-acao px-4 py-2.5 text-xs font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-acao px-4 py-2.5 text-xs font-semibold text-acao-tx hover:bg-acao-hover disabled:opacity-50"
         >
           <Send size={13} />
           {isPending ? "Enviando…" : "Enviar e-mail"}

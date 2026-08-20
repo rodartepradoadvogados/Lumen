@@ -35,7 +35,7 @@ export default function BulkSettleBar({
   return (
     <>
       <div className="sticky bottom-4 z-30 mt-4">
-        <div className="bg-grafite-800 text-white rounded-xl shadow-pop px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
+        <div className="bg-grafite-800 text-white shadow-pop px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold">{count} selecionada(s)</span>
             <span className="text-sm text-marca font-bold">Total: {formatCurrency(total)}</span>
@@ -43,11 +43,11 @@ export default function BulkSettleBar({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOpen(true)}
-              className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3.5 py-2 transition-colors"
             >
               <CheckCheck size={14} /> Dar Baixa em Bloco
             </button>
-            <button onClick={onClear} data-tip="Limpar seleção" className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10">
+            <button onClick={onClear} data-tip="Limpar seleção" className="p-2 text-white/60 hover:text-white hover:bg-white/10">
               <X size={16} />
             </button>
           </div>
@@ -56,7 +56,7 @@ export default function BulkSettleBar({
 
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-sf shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-regua">
               <h3 className="font-bold text-tx text-sm">Confirmar Baixa em Bloco</h3>
               <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx dark:hover:text-tx">
@@ -117,11 +117,11 @@ export default function BulkSettleBar({
                 <label className="text-xs font-medium text-tx-2">Nº do comprovante (opcional, único para todos)</label>
                 <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input" />
               </div>
-              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors"
+                className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2 text-sm disabled:opacity-50 transition-colors"
               >
                 {loading ? "Confirmando..." : `Confirmar Baixa de ${count} Lançamento(s)`}
               </button>

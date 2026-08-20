@@ -63,7 +63,7 @@ export default function ModalShell({
       >
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b-2 border-regua-forte">
           <div className="min-w-0">
-            <h3 className="font-serif font-bold text-tx truncate">{title}</h3>
+            <h3 className=" font-bold text-tx truncate">{title}</h3>
             {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}
           </div>
           <button

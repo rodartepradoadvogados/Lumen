@@ -120,7 +120,7 @@ function DivergenceNote({ valorTotalIndicado, parcelas }: { valorTotalIndicado: 
   const diff = soma - valorTotalIndicado;
   if (Math.abs(diff) < 0.01) return null;
   return (
-    <p className="text-[11px] text-aviso bg-aviso-bg rounded-lg px-3 py-1.5 mt-2">
+    <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5 mt-2">
       A soma das parcelas vinculadas ao total ({formatCurrency(soma)}) {diff > 0 ? "excede" : "é menor que"} o valor indicado ({formatCurrency(valorTotalIndicado)}) em {formatCurrency(Math.abs(diff))}.
     </p>
   );
@@ -199,7 +199,7 @@ export default function HonorarioLancamentoCard({
           <button
             onClick={() => setEditing(true)}
             data-tip="Editar parcelas"
-            className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio"
+            className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio"
           >
             <Pencil size={14} />
           </button>
@@ -270,7 +270,7 @@ export default function HonorarioLancamentoCard({
 
       {editing && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-          <div className="bg-sf rounded-xl shadow-pop w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-sf shadow-pop w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
               <h3 className="font-bold text-tx">Editar parcelas</h3>
               <button onClick={() => setEditing(false)} className="text-tx-3 hover:text-tx dark:hover:text-tx">
@@ -278,10 +278,10 @@ export default function HonorarioLancamentoCard({
               </button>
             </div>
             <div className="p-5 space-y-3">
-              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
               {pagas.length > 0 && (
-                <div className="p-3 rounded-lg bg-sf-apoio border border-regua">
+                <div className="p-3 bg-sf-apoio border border-regua">
                   <p className="text-[11px] font-medium text-tx-2 mb-1">Parcelas que já receberam algo (não editáveis)</p>
                   {pagas.map((p) => (
                     <div key={p.id} className="flex justify-between text-xs text-tx-2 py-0.5">
@@ -316,7 +316,7 @@ export default function HonorarioLancamentoCard({
 
               <div className="space-y-3">
                 {linhas.map((l) => (
-                  <div key={l.key} className="p-3 rounded-lg bg-sf-apoio border border-regua space-y-2">
+                  <div key={l.key} className="p-3 bg-sf-apoio border border-regua space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <input
                         value={l.description}
@@ -327,7 +327,7 @@ export default function HonorarioLancamentoCard({
                       <button
                         type="button"
                         onClick={() => setLinhas((prev) => prev.filter((x) => x.key !== l.key))}
-                        className="p-1.5 rounded-lg text-tx-3 hover:text-atencao"
+                        className="p-1.5 text-tx-3 hover:text-atencao"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -338,7 +338,7 @@ export default function HonorarioLancamentoCard({
                           key={vt}
                           type="button"
                           onClick={() => updateLinha(l.key, { valueType: vt })}
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                          className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
                             l.valueType === vt
                               ? "bg-acao text-acao-tx border-acao"
                               : "bg-sf text-tx-2 border-regua-forte"
@@ -415,7 +415,7 @@ export default function HonorarioLancamentoCard({
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
+                className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 disabled:opacity-50 transition-colors"
               >
                 {loading ? "Salvando..." : "Salvar alterações"}
               </button>

@@ -65,9 +65,9 @@ export default function SettleModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
-      <div className="bg-sf rounded-xl shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-sf shadow-pop w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-regua">
-          <h3 className="font-serif font-bold text-tx text-sm">Confirmar Baixa</h3>
+          <h3 className=" font-bold text-tx text-sm">Confirmar Baixa</h3>
           <button onClick={onClose} className="text-tx-3 hover:text-tx">
             <X size={16} />
           </button>
@@ -102,7 +102,7 @@ export default function SettleModal({
           className="p-5 space-y-3"
         >
           {alreadyPaid > 0 && (
-            <p className="text-xs text-tx-2 bg-sf-apoio rounded-lg px-3 py-2">
+            <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
               Já pago: <span className="font-semibold text-tx">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
               <span className="font-semibold text-tx">{formatCurrency(saldoAtual)}</span>
             </p>
@@ -151,16 +151,16 @@ export default function SettleModal({
           </div>
           <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} existingUrl={existingReceiptUrl} existingName={existingReceiptName} />
           {ficaParcial && (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
               Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>, com saldo em aberto de {formatCurrency(saldoResultante)}{" "}
               após esta baixa.
             </p>
           )}
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={loading || valorNum <= 0}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-sm disabled:opacity-50"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 text-sm disabled:opacity-50"
           >
             {loading ? "Confirmando..." : "Confirmar Baixa"}
           </button>

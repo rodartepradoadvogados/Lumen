@@ -28,7 +28,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+          className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua"
@@ -93,7 +93,7 @@ export default function MobileNewPayableForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold py-2.5 transition-colors"
       >
         <Plus size={16} /> Nova Conta a Pagar
       </button>
@@ -101,7 +101,7 @@ export default function MobileNewPayableForm({
   }
 
   return (
-    <div className={startOpen ? "space-y-3" : "rounded-lg border border-regua bg-sf-apoio p-3 space-y-3"}>
+    <div className={startOpen ? "space-y-3" : " border border-regua bg-sf-apoio p-3 space-y-3"}>
       {!startOpen && (
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-tx">Nova Conta a Pagar</p>
@@ -111,7 +111,7 @@ export default function MobileNewPayableForm({
         </div>
       )}
 
-      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {
@@ -270,7 +270,7 @@ export default function MobileNewPayableForm({
               </div>
             </div>
             {expensePayer === "CLIENTE" && (
-              <div className="rounded-lg bg-acao-bg px-3 py-2.5">
+              <div className=" bg-acao-bg px-3 py-2.5">
                 <label className="flex items-center gap-2 text-xs font-medium text-tx-2">
                   <input type="checkbox" checked={createReimbursement} onChange={(e) => setCreateReimbursement(e.target.checked)} />
                   Criar conta a receber vinculada para reembolso deste valor pelo cliente?
@@ -286,7 +286,7 @@ export default function MobileNewPayableForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 rounded-lg transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 transition-colors disabled:opacity-50"
         >
           {startOpen && <Send size={14} />} {loading ? "Salvando..." : startOpen ? "Salvar lançamento" : "Criar"}
         </button>

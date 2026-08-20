@@ -24,7 +24,7 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar fornecedor" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar fornecedor" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
         <Pencil size={14} />
       </button>
       {open && (
@@ -73,7 +73,7 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
               </div>
             </div>
             <div className="shrink-0 border-t border-regua px-5 py-3 flex justify-end bg-sf-apoio">
-              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 rounded-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx font-semibold px-5 py-2 disabled:opacity-50">
                 {loading ? "Salvando..." : "Salvar"}
               </button>
             </div>

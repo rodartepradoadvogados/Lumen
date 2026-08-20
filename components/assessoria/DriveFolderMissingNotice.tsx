@@ -33,7 +33,7 @@ export default function DriveFolderMissingNotice({
   }
 
   return (
-    <div className="rounded-lg border border-aviso/25 bg-aviso-bg px-3 py-2">
+    <div className=" border border-aviso/25 bg-aviso-bg px-3 py-2">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="flex items-center gap-2 text-xs font-medium text-aviso">
           <AlertTriangle size={13} className="shrink-0" />

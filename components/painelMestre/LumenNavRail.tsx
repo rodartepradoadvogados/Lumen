@@ -53,7 +53,7 @@ export default function LumenNavRail() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center rounded-lg bg-grafite-800 text-white border border-white/10"
+        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center bg-grafite-800 text-white border border-white/10"
         aria-label="Abrir menu do Painel da Empresa"
       >
         <Menu size={18} />
@@ -97,7 +97,7 @@ export default function LumenNavRail() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm border-l-2 transition-colors ${
+                      className={`flex items-center gap-2.5 px-3 py-2 text-sm border-l-2 transition-colors ${
                         active
                           ? "border-marca bg-white/5 text-white font-semibold"
                           : "border-transparent text-white/60 hover:bg-white/5 hover:text-white"

@@ -96,7 +96,7 @@ export default function MobileDocumentUpload({
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover border border-dashed border-regua hover:border-acao/40 rounded-lg py-2.5 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover border border-dashed border-regua hover:border-acao/40 py-2.5 transition-colors"
       >
         <Paperclip size={13} /> Anexar documento
         <input
@@ -113,7 +113,7 @@ export default function MobileDocumentUpload({
   }
 
   return (
-    <div className="rounded-lg border border-regua bg-sf-apoio p-2.5 space-y-2">
+    <div className=" border border-regua bg-sf-apoio p-2.5 space-y-2">
       <div className="flex items-center gap-2">
         <span className="flex-1 min-w-0 text-xs font-medium text-tx truncate" title={file.name}>
           {file.name}
@@ -126,13 +126,13 @@ export default function MobileDocumentUpload({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nome do documento"
-        className="w-full text-xs border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+        className="w-full text-xs border border-regua bg-sf text-tx px-2.5 py-1.5"
       />
       <DocumentTypeSelect
         value={docType}
         onChange={setDocType}
         excludeKeys={["PARECER"]}
-        className="w-full text-xs border border-regua bg-sf text-tx rounded-lg px-2.5 py-1.5"
+        className="w-full text-xs border border-regua bg-sf text-tx px-2.5 py-1.5"
         allowCreate
       />
       {error && <p className="text-[11px] text-urgente">{error}</p>}
@@ -140,7 +140,7 @@ export default function MobileDocumentUpload({
         type="button"
         onClick={send}
         disabled={uploading}
-        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 rounded-lg disabled:opacity-50"
+        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 disabled:opacity-50"
       >
         {uploading ? "Enviando..." : "Enviar para o Drive"}
       </button>

@@ -58,7 +58,7 @@ function PointsRow({ item }: { item: Item }) {
       <button
         onClick={handleSave}
         disabled={pending}
-        className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+        className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
       >
         {pending ? "Salvando..." : "Salvar"}
       </button>

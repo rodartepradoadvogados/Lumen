@@ -115,9 +115,9 @@ function BankAccountRow({ account }: { account: BankAccount }) {
     return (
       <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <Fields defaults={account} />
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
         <div className="flex gap-2">
-          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
           </button>
           <button type="button" onClick={() => setEditing(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
@@ -141,20 +141,20 @@ function BankAccountRow({ account }: { account: BankAccount }) {
       </div>
       <Badge color={account.active ? "green" : "slate"}>{account.active ? "Ativa" : "Inativa"}</Badge>
       <div className="flex items-center gap-1">
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 rounded-lg text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
           <Pencil size={14} />
         </button>
         <button
           onClick={handleToggle}
           disabled={pending}
           data-tip={account.active ? "Desativar" : "Reativar"}
-          className="p-1.5 rounded-lg text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
+          className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
         >
           <Power size={14} />
         </button>
       </div>
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 rounded-lg px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />
@@ -205,9 +205,9 @@ export default function BankAccountsManager({ accounts }: { accounts: BankAccoun
       {adding ? (
         <form action={handleCreate} className="p-5 space-y-2 border-t border-regua bg-sf-apoio">
           <Fields />
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-lg px-2.5 py-1.5">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50">
+            <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
             </button>
             <button type="button" onClick={() => setAdding(false)} className="px-3 text-xs font-semibold text-tx-2 hover:text-tx">
@@ -217,7 +217,7 @@ export default function BankAccountsManager({ accounts }: { accounts: BankAccoun
         </form>
       ) : (
         <div className="p-5 border-t border-regua">
-          <button onClick={() => setAdding(true)} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold rounded-lg px-4 py-2">
+          <button onClick={() => setAdding(true)} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2">
             Nova conta bancária
           </button>
         </div>

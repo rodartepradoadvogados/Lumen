@@ -4,7 +4,7 @@ import { useState } from "react";
 import { changeOwnPassword } from "@/lib/actions/settings";
 
 const inputClass =
-  "w-full mt-1 border border-regua rounded-lg px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
 const labelClass = "text-xs font-medium text-tx-2";
 
 // Versão mobile compacta do ChangePasswordForm do desktop (mesma server action
@@ -51,19 +51,19 @@ export default function MobileChangePasswordForm() {
         <input name="confirmPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       {error && (
-        <p className="text-xs text-urgente bg-urgente-bg border border-urgente rounded-lg px-2.5 py-1.5">
+        <p className="text-xs text-urgente bg-urgente-bg border border-urgente px-2.5 py-1.5">
           {error}
         </p>
       )}
       {success && (
-        <p className="text-xs text-concluido bg-concluido-bg border border-concluido/20 rounded-lg px-2.5 py-1.5">
+        <p className="text-xs text-concluido bg-concluido-bg border border-concluido/20 px-2.5 py-1.5">
           Senha alterada com sucesso.
         </p>
       )}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-acao text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5 disabled:opacity-50"
+        className="w-full bg-acao text-acao-tx text-sm font-semibold px-4 py-2.5 disabled:opacity-50"
       >
         {loading ? "Salvando..." : "Alterar senha"}
       </button>

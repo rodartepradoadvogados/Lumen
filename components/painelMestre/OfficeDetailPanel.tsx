@@ -80,8 +80,8 @@ export default function OfficeDetailPanel({
 
   return (
     <div className="space-y-5">
-      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 rounded-lg px-3 py-2">{error}</p>}
-      {message && <p className="text-xs text-concluido bg-concluido-bg rounded-lg px-3 py-2">{message}</p>}
+      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 px-3 py-2">{error}</p>}
+      {message && <p className="text-xs text-concluido bg-concluido-bg px-3 py-2">{message}</p>}
 
       <StartActingModal officeId={officeId} />
 
@@ -89,7 +89,7 @@ export default function OfficeDetailPanel({
         <p className="text-xs font-semibold text-white mb-2">Módulos contratados</p>
         <div className="grid grid-cols-2 gap-2 mb-2">
           {MODULE_OPTIONS.map((m) => (
-            <label key={m.key} className="flex items-center gap-2 border border-white/15 rounded-lg px-3 py-2 text-sm text-white/85 cursor-pointer">
+            <label key={m.key} className="flex items-center gap-2 border border-white/15 px-3 py-2 text-sm text-white/85 cursor-pointer">
               <input
                 type="checkbox"
                 checked={modules[m.key]}
@@ -115,19 +115,19 @@ export default function OfficeDetailPanel({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
           <div>
             <label className="text-[11px] text-white/50">E-mail de cobrança</label>
-            <input value={billing.billingEmail} onChange={(e) => setBilling((p) => ({ ...p, billingEmail: e.target.value }))} className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs" />
+            <input value={billing.billingEmail} onChange={(e) => setBilling((p) => ({ ...p, billingEmail: e.target.value }))} className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs" />
           </div>
           <div>
             <label className="text-[11px] text-white/50">Mensalidade (R$)</label>
             <MoneyInput
               value={String(billing.monthlyFee)}
               onChange={(v) => setBilling((p) => ({ ...p, monthlyFee: Number(v) }))}
-              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
+              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
             />
           </div>
           <div>
             <label className="text-[11px] text-white/50">Dia de vencimento</label>
-            <input type="number" min={1} max={28} value={billing.billingDueDay} onChange={(e) => setBilling((p) => ({ ...p, billingDueDay: Number(e.target.value) }))} className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs" />
+            <input type="number" min={1} max={28} value={billing.billingDueDay} onChange={(e) => setBilling((p) => ({ ...p, billingDueDay: Number(e.target.value) }))} className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs" />
           </div>
           <div>
             <label className="text-[11px] text-white/50">Carência até bloqueio (dias)</label>
@@ -137,7 +137,7 @@ export default function OfficeDetailPanel({
               max={90}
               value={billing.paymentGraceDays}
               onChange={(e) => setBilling((p) => ({ ...p, paymentGraceDays: Number(e.target.value) }))}
-              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
+              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
             />
           </div>
           <div>
@@ -146,7 +146,7 @@ export default function OfficeDetailPanel({
               value={billing.cnpj}
               onChange={(e) => setBilling((p) => ({ ...p, cnpj: e.target.value }))}
               placeholder="Necessário pra Asaas emitir boleto/Pix"
-              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white rounded-lg px-2.5 py-1.5 text-xs"
+              className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
             />
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function OfficeDetailPanel({
         {invoices.length === 0 ? (
           <p className="text-xs text-white/45">Nenhuma fatura gerada ainda.</p>
         ) : (
-          <div className="divide-y divide-white/10 border border-white/10 rounded-lg">
+          <div className="divide-y divide-white/10 border border-white/10 ">
             {invoices.map((i) => (
               <div key={i.id} className="flex items-center justify-between px-3 py-2 text-xs">
                 <span className="text-white/85">{i.competencia} — {formatCurrency(i.amount)}</span>
@@ -179,7 +179,7 @@ export default function OfficeDetailPanel({
       </div>
 
       {pendingInvoice?.paymentMethod === "PIX_QRCODE" && pendingInvoice.pixQrCodePayload && (
-        <div className="bg-white/5 border border-white/10 rounded-lg p-3 flex flex-wrap items-start gap-3">
+        <div className="bg-white/5 border border-white/10 p-3 flex flex-wrap items-start gap-3">
           {pendingInvoice.pixQrCodeImage && (
             // eslint-disable-next-line @next/next/no-img-element -- base64 gerado em runtime, não é um asset estático
             <img src={`data:image/png;base64,${pendingInvoice.pixQrCodeImage}`} alt="QR Code Pix da fatura pendente" className="h-28 w-28 rounded shrink-0" />
@@ -201,7 +201,7 @@ export default function OfficeDetailPanel({
           type="button"
           disabled={pending}
           onClick={() => run(() => generateAndSendInvoice(officeId))}
-          className="inline-flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold rounded-lg px-4 py-2.5"
+          className="inline-flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2.5"
         >
           <Send size={14} /> {GENERATE_BUTTON_LABEL[paymentMethod ?? "BOLETO"] ?? GENERATE_BUTTON_LABEL.BOLETO}
         </button>
@@ -210,7 +210,7 @@ export default function OfficeDetailPanel({
             type="button"
             disabled={pending}
             onClick={() => run(() => markInvoicePaid(pendingInvoice.id))}
-            className="inline-flex items-center justify-center gap-1.5 border border-white/15 text-white text-sm font-semibold rounded-lg px-4 py-2.5"
+            className="inline-flex items-center justify-center gap-1.5 border border-white/15 text-white text-sm font-semibold px-4 py-2.5"
           >
             <CheckCircle2 size={14} /> Dar baixa manual (recebi por fora)
           </button>
@@ -219,7 +219,7 @@ export default function OfficeDetailPanel({
           type="button"
           disabled={pending}
           onClick={() => run(() => setOfficeAccess(officeId, !blocked))}
-          className={`inline-flex items-center justify-center gap-1.5 border text-sm font-semibold rounded-lg px-4 py-2.5 ${
+          className={`inline-flex items-center justify-center gap-1.5 border text-sm font-semibold px-4 py-2.5 ${
             blocked
               ? "border-concluido text-concluido"
               : "border-atencao text-atencao"
