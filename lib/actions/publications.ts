@@ -22,40 +22,16 @@ export async function getUnreadPublicationsCount(): Promise<number> {
 // colegas (diferente de anexar/agendar/delegar/triagem, que continuam compartilhados).
 //
 // Isso é regra deliberada, não limitação: marcar como lida quer dizer "não é comigo", e ninguém
-// deve conseguir sumir com uma pendência do escritório inteiro só por tê-la lido. A ÚNICA ação
-// que baixa o item para todo mundo é criar compromisso na agenda / delegar tarefa — porque aí
-// existe responsável, prazo e tarefa na agenda de alguém. Ver lib/publicationResolution.ts.
-export async function markPublicationRead(id: string) {
-  const user = await getCurrentUser();
-  if (!user) return;
-  const pub = await prisma.publication.findFirst({ where: { id, officeId: user.officeId }, select: { id: true } });
-  if (!pub) return;
-  await prisma.publicationRead.upsert({
-    where: { publicationId_userId: { publicationId: id, userId: user.id } },
-    create: { publicationId: id, userId: user.id },
-    update: {},
-  });
-  revalidatePath("/publicacoes");
-  revalidatePath("/alertas");
-  revalidatePath("/painel");
-}
-
-export async function markPublicationUnread(id: string) {
-  const user = await getCurrentUser();
-  if (!user) return;
-  const pub = await prisma.publication.findFirst({ where: { id, officeId: user.officeId }, select: { id: true } });
-  if (!pub) return;
-  await prisma.publicationRead.deleteMany({ where: { publicationId: id, userId: user.id } });
-  revalidatePath("/publicacoes");
-  revalidatePath("/alertas");
-  revalidatePath("/painel");
-}
-
-// Equivalentes a markPublicationRead/markPublicationUnread, mas para VÁRIAS publicações de uma
-// vez — usadas pelo card agrupado por processo (ver lib/publicationGrouping.ts): marcar (ou
-// desfazer) o card como lido precisa afetar TODOS os itens do grupo (DJEN + Datajud + e-mail do
-// Jusbrasil etc. do mesmo processo), não só o item principal exibido, senão a duplicidade
-// continuaria existindo na contagem de não lidas mesmo depois de "resolvida" na tela.
+// deve conseguir sumir com uma pendência do escritório inteiro só por tê-la lido. Criar
+// compromisso na agenda / delegar tarefa / arquivar também marcam como lida, mas por cima disso
+// resolvem a pendência de verdade — porque aí existe responsável, prazo e tarefa na agenda de
+// alguém. Ver lib/publicationResolution.ts.
+//
+// Batch (não por id único) porque quem chama é sempre o card agrupado por processo (ver
+// lib/publicationGrouping.ts): marcar (ou desfazer) o card como lido precisa afetar TODOS os
+// itens do grupo (DJEN + Datajud + e-mail do Jusbrasil etc. do mesmo processo), não só o item
+// principal exibido, senão a duplicidade continuaria existindo na contagem de não lidas mesmo
+// depois de "resolvida" na tela.
 export async function markPublicationsRead(ids: string[]) {
   const user = await getCurrentUser();
   if (!user || ids.length === 0) return;
