@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
+import { getPlatformMember } from "@/lib/platformMember";
 import LumenMark from "@/components/LumenMark";
 import LoginForm from "@/components/LoginForm";
 
@@ -13,7 +14,13 @@ export const metadata = { title: "Entrar — Lúmen" };
 
 export default async function LoginPage() {
   const user = await getCurrentUser();
-  if (user) redirect("/painel");
+  if (user) {
+    // Dono da plataforma/membro de equipe com sessão de escritório já ativa (ex.: voltou pra
+    // /login por engano) cai no mesmo escolhedor do login normal, não direto pro painel do
+    // escritório — ver lib/actions/auth.ts.
+    const hasPlatformAccess = user.isPlatformOwner || Boolean(await getPlatformMember());
+    redirect(hasPlatformAccess ? "/escolher" : "/painel");
+  }
 
   return (
     <div className="min-h-screen bg-sf-fundo flex items-center justify-center p-4">
