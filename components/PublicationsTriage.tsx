@@ -17,7 +17,7 @@ import CopyButton from "@/components/CopyButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PeticionarButton from "@/components/PeticionarButton";
 import { formatDate, formatCalendarDate } from "@/components/ui";
-import { CalendarClock, FilePlus2, UserPlus, Archive, Search, Layers, Ban } from "lucide-react";
+import { CalendarClock, FilePlus2, UserPlus, Archive, Search, Layers, Ban, CheckCheck } from "lucide-react";
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
 
@@ -152,6 +152,23 @@ export default function PublicationsTriage({
     }
   }
 
+  // Marca como lida SEM arquivar — diferente de archive() acima, não mexe em triageStatus. Some
+  // do chip "Não triadas" (que filtra só por leitura, ver lib/publicationChips.ts) só para ESTE
+  // usuário: leitura é por usuário (PublicationRead, unique por publicationId+userId), então o
+  // mesmo item continua aparecendo como não triado para os colegas do escritório.
+  async function marcarLida() {
+    if (!selected || busy) return;
+    const group = selected;
+    setBusy(true);
+    patchGroup(group.key, {}, true);
+    try {
+      await markPublicationsRead(group.items.map((i) => i.id));
+    } finally {
+      setBusy(false);
+      router.refresh();
+    }
+  }
+
   function openTask(type: string) {
     if (!selected || busy) return;
     setTaskModal({ open: true, groupKey: selected.key, type });
@@ -183,6 +200,9 @@ export default function PublicationsTriage({
       } else if (e.key === "a" || e.key === "A") {
         e.preventDefault();
         archive();
+      } else if (e.key === "l" || e.key === "L") {
+        e.preventDefault();
+        marcarLida();
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -232,6 +252,7 @@ export default function PublicationsTriage({
             onVincular={openLink}
             onDelegar={() => openTask("TAREFA")}
             onArquivar={archive}
+            onMarcarLida={marcarLida}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-sm text-tx-3">Selecione uma publicação na fila.</div>
@@ -314,6 +335,7 @@ function Teor({
   onVincular,
   onDelegar,
   onArquivar,
+  onMarcarLida,
 }: {
   group: TriageGroup;
   users: { id: string; name: string }[];
@@ -322,6 +344,7 @@ function Teor({
   onVincular: () => void;
   onDelegar: () => void;
   onArquivar: () => void;
+  onMarcarLida: () => void;
 }) {
   const pub = group.primary;
   const assignedToName = users.find((u) => u.id === pub.assignedToId)?.name;
@@ -394,10 +417,19 @@ function Teor({
           >
             <Archive size={15} /> Arquivar
           </button>
+          <button
+            type="button"
+            disabled={busy || group.allRead}
+            onClick={onMarcarLida}
+            title="Some da fila Não triadas só para você — os outros colegas do escritório continuam vendo"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 disabled:opacity-50"
+          >
+            <CheckCheck size={15} /> {group.allRead ? "Lida" : "Marcar como lida"}
+          </button>
           <CopyButton text={pub.content} label="Copiar conteúdo" />
           <PeticionarButton compact caseId={pub.case?.id} />
         </div>
-        <span className="text-[13px] text-tx-3 whitespace-nowrap">J / K navega · Enter cria tarefa · A arquiva</span>
+        <span className="text-[13px] text-tx-3 whitespace-nowrap">J / K navega · Enter cria tarefa · A arquiva · L marca como lida</span>
       </div>
     </div>
   );
