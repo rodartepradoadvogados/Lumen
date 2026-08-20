@@ -75,12 +75,22 @@ export default async function FluxoDeCaixaPage() {
         title="Fluxo de Caixa"
         subtitle="Entradas e saídas projetadas por mês (com base nos vencimentos) · 3 meses atrás a 3 meses à frente"
         action={
-          <a
-            href="/api/financeiro/fluxo-de-caixa/export"
-            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
-          >
-            <Download size={13} /> Exportar (.xlsx)
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/financeiro/fluxo-de-caixa/imprimir"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
+            >
+              <Download size={13} /> PDF
+            </a>
+            <a
+              href="/api/financeiro/fluxo-de-caixa/export"
+              className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
+            >
+              <Download size={13} /> Exportar (.xlsx)
+            </a>
+          </div>
         }
       />
 

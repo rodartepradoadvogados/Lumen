@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, CardHeader, formatCurrency } from "@/components/ui";
 import { ChevronLeft, ChevronRight, Info, Download } from "lucide-react";
 import { calcularDre, periodoAnterior, variacaoPercentual } from "@/lib/dreCalculo";
+import { filtrarGruposVazios } from "@/lib/cashFlowGroups";
 import { DreCascataTable } from "@/components/financeiro/DreCascataTable";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +22,11 @@ const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Jul
 export default async function DrePage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string; from?: string; to?: string; costCenterId?: string };
+  searchParams: { year?: string; month?: string; from?: string; to?: string; costCenterId?: string; ocultarVazias?: string };
 }) {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
+  const ocultarVazias = searchParams.ocultarVazias === "1";
 
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
@@ -61,6 +63,12 @@ export default async function DrePage({
   }
   if (costCenterId) exportParams.set("costCenterId", costCenterId);
   const exportHref = `/api/financeiro/dre/export?${exportParams.toString()}`;
+  const printParams = new URLSearchParams(exportParams);
+  if (ocultarVazias) printParams.set("ocultarVazias", "1");
+  const printHref = `/financeiro/dre/imprimir?${printParams.toString()}`;
+
+  const receitasExibidas = ocultarVazias ? { ...receitas, groups: filtrarGruposVazios(receitas.groups) } : receitas;
+  const despesasExibidas = ocultarVazias ? { ...despesas, groups: filtrarGruposVazios(despesas.groups) } : despesas;
 
   return (
     <div className="p-6 max-w-[1000px] mx-auto animate-fade-in">
@@ -112,6 +120,10 @@ export default async function DrePage({
               ))}
             </select>
           </div>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-tx-2 pb-2.5">
+            <input type="checkbox" name="ocultarVazias" value="1" defaultChecked={ocultarVazias} className="h-3.5 w-3.5" />
+            Ocultar categorias vazias
+          </label>
           <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 transition-colors">
             Filtrar
           </button>
@@ -121,8 +133,16 @@ export default async function DrePage({
             </Link>
           )}
           <a
-            href={exportHref}
+            href={printHref}
+            target="_blank"
+            rel="noopener noreferrer"
             className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
+          >
+            <Download size={13} /> PDF
+          </a>
+          <a
+            href={exportHref}
+            className="flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua-forte px-3 py-2 transition-colors"
           >
             <Download size={13} /> Exportar (.xlsx)
           </a>
@@ -139,12 +159,12 @@ export default async function DrePage({
 
       <Card className="mb-5">
         <CardHeader title="Receita Operacional" subtitle="Por categoria — clique numa linha com subgrupos para destrinchar" />
-        <DreCascataTable title="Receita Operacional Bruta" breakdown={receitas} breakdownAnterior={anterior.receitas} totalReceitaBase={totalReceitas} tone="green" />
+        <DreCascataTable title="Receita Operacional Bruta" breakdown={receitasExibidas} breakdownAnterior={anterior.receitas} totalReceitaBase={totalReceitas} tone="green" />
       </Card>
 
       <Card className="mb-5">
         <CardHeader title="Despesas Operacionais" subtitle="Por categoria — clique numa linha com subgrupos para destrinchar" />
-        <DreCascataTable title="Total de Despesas Operacionais" breakdown={despesas} breakdownAnterior={anterior.despesas} totalReceitaBase={totalReceitas} tone="red" />
+        <DreCascataTable title="Total de Despesas Operacionais" breakdown={despesasExibidas} breakdownAnterior={anterior.despesas} totalReceitaBase={totalReceitas} tone="red" />
       </Card>
 
       {(totalAdiantado > 0 || totalReembolsado > 0) && (
