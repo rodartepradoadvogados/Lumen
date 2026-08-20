@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { checkLoginForReset, requestPasswordReset } from "@/lib/actions/auth";
-import styles from "@/app/homepage.module.css";
+import ModalShell from "@/components/ModalShell";
 
 type Step = "ask-login" | "confirm" | "not-found" | "sent" | "error";
+
+const btnPrimary = "h-9 px-4 flex items-center justify-center bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm disabled:opacity-60";
+const btnSecondary = "h-9 px-4 flex items-center justify-center border-2 border-regua-forte text-tx font-semibold text-sm hover:bg-sf-apoio";
 
 export default function ForgotPasswordModal({ initialEmail, onClose }: { initialEmail: string; onClose: () => void }) {
   const [email, setEmail] = useState(initialEmail);
@@ -46,14 +49,13 @@ export default function ForgotPasswordModal({ initialEmail, onClose }: { initial
   }, []);
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+    <ModalShell size="compacto" title="Esqueci minha senha" onClose={onClose}>
+      <div className="p-5 flex flex-col gap-3">
         {step === "ask-login" && (
           <>
-            <p className={styles.modalTitle}>Esqueci minha senha</p>
-            <p className={styles.modalText}>Digite seu e-mail cadastrado para localizarmos sua conta.</p>
+            <p className="text-sm text-tx-2">Digite seu e-mail cadastrado para localizarmos sua conta.</p>
             <input
-              className={styles.modalInput}
+              className="h-10 border border-regua-forte bg-sf px-3 text-sm text-tx"
               type="email"
               placeholder="E-mail"
               value={email}
@@ -61,29 +63,26 @@ export default function ForgotPasswordModal({ initialEmail, onClose }: { initial
               onKeyDown={(e) => e.key === "Enter" && checkLogin()}
               autoFocus
             />
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnSecondary} onClick={onClose}>Cancelar</button>
-              <button className={styles.modalBtnPrimary} disabled={pending || !email.trim()} onClick={checkLogin}>
-                {pending ? "Verificando..." : "Continuar"}
+            <div className="flex justify-end gap-2 mt-1">
+              <button className={btnSecondary} onClick={onClose}>Cancelar</button>
+              <button className={btnPrimary} disabled={pending || !email.trim()} onClick={checkLogin}>
+                {pending ? "Verificando…" : "Continuar"}
               </button>
             </div>
           </>
         )}
 
-        {step === "confirm" && !maskedEmail && (
-          <p className={styles.modalText}>Verificando...</p>
-        )}
+        {step === "confirm" && !maskedEmail && <p className="text-sm text-tx-2">Verificando…</p>}
 
         {step === "confirm" && maskedEmail && (
           <>
-            <p className={styles.modalTitle}>Redefinir por e-mail?</p>
-            <p className={styles.modalText}>
-              Vamos enviar um link de redefinição de senha para <strong>{maskedEmail}</strong>. Deseja continuar?
+            <p className="text-sm text-tx-2">
+              Vamos enviar um link de redefinição de senha para <strong className="text-tx">{maskedEmail}</strong>. Deseja continuar?
             </p>
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnSecondary} onClick={onClose}>Não</button>
-              <button className={styles.modalBtnPrimary} disabled={pending} onClick={confirmSend}>
-                {pending ? "Enviando..." : "Sim, enviar"}
+            <div className="flex justify-end gap-2 mt-1">
+              <button className={btnSecondary} onClick={onClose}>Não</button>
+              <button className={btnPrimary} disabled={pending} onClick={confirmSend}>
+                {pending ? "Enviando…" : "Sim, enviar"}
               </button>
             </div>
           </>
@@ -91,11 +90,16 @@ export default function ForgotPasswordModal({ initialEmail, onClose }: { initial
 
         {step === "not-found" && (
           <>
-            <p className={styles.modalTitle}>E-mail não encontrado</p>
-            <p className={styles.modalText}>Não encontramos esse e-mail. Confira e tente novamente.</p>
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnSecondary} onClick={onClose}>Fechar</button>
-              <button className={styles.modalBtnPrimary} onClick={() => { setMaskedEmail(null); setStep("ask-login"); }}>
+            <p className="text-sm text-tx-2">Não encontramos esse e-mail. Confira e tente novamente.</p>
+            <div className="flex justify-end gap-2 mt-1">
+              <button className={btnSecondary} onClick={onClose}>Fechar</button>
+              <button
+                className={btnPrimary}
+                onClick={() => {
+                  setMaskedEmail(null);
+                  setStep("ask-login");
+                }}
+              >
                 Tentar de novo
               </button>
             </div>
@@ -104,29 +108,27 @@ export default function ForgotPasswordModal({ initialEmail, onClose }: { initial
 
         {step === "sent" && (
           <>
-            <p className={styles.modalTitle}>E-mail enviado</p>
-            <p className={styles.modalText}>
-              Enviamos um link de redefinição para <strong>{maskedEmail}</strong>. Ele expira em 1 hora.
+            <p className="text-sm text-tx-2">
+              Enviamos um link de redefinição para <strong className="text-tx">{maskedEmail}</strong>. Ele expira em 1 hora.
             </p>
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnPrimary} onClick={onClose}>Fechar</button>
+            <div className="flex justify-end mt-1">
+              <button className={btnPrimary} onClick={onClose}>Fechar</button>
             </div>
           </>
         )}
 
         {step === "error" && (
           <>
-            <p className={styles.modalTitle}>Não foi possível enviar</p>
-            <p className={styles.modalText}>{errorMsg}</p>
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnSecondary} onClick={onClose}>Fechar</button>
-              <button className={styles.modalBtnPrimary} disabled={pending} onClick={confirmSend}>
+            <p className="text-sm text-atencao">{errorMsg}</p>
+            <div className="flex justify-end gap-2 mt-1">
+              <button className={btnSecondary} onClick={onClose}>Fechar</button>
+              <button className={btnPrimary} disabled={pending} onClick={confirmSend}>
                 Tentar de novo
               </button>
             </div>
           </>
         )}
       </div>
-    </div>
+    </ModalShell>
   );
 }
