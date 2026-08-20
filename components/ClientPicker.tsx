@@ -85,7 +85,7 @@ export default function ClientPicker({
                   onClick={() => update(entry.key, { mode: "selecionar" })}
                   className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                     entry.mode === "selecionar"
-                      ? "bg-sf shadow-sm text-tx"
+                      ? "bg-sf text-tx"
                       : "text-tx-2 hover:text-tx"
                   }`}
                 >
@@ -96,7 +96,7 @@ export default function ClientPicker({
                   onClick={() => update(entry.key, { mode: "novo" })}
                   className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
                     entry.mode === "novo"
-                      ? "bg-sf shadow-sm text-tx"
+                      ? "bg-sf text-tx"
                       : "text-tx-2 hover:text-tx"
                   }`}
                 >
