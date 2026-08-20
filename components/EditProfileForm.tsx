@@ -188,9 +188,8 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
       </button>
 
       <style jsx>{`
-        .profile-input { border: 1px solid rgba(15, 31, 61, 0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; color: #14213d; }
-        .profile-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198, 160, 92, 0.4); }
-        :global(.dark) .profile-input { background: #111a35; border-color: rgba(255, 255, 255, 0.15); color: #f1ece0; }
+        .profile-input { border: 1px solid var(--regua-forte); border-radius: 0; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
+        .profile-input:focus { outline: none; box-shadow: 0 0 0 2px var(--marca-bg); }
       `}</style>
     </form>
   );
