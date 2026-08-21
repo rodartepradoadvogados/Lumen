@@ -355,8 +355,16 @@ function Teor({
           {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {formatDate(pub.publishedAt)}
           {assignedToName && <> · responsável: {assignedToName}</>}
         </p>
-        <h2 className=" text-2xl font-extrabold text-tx mt-1">
-          {pub.case ? pub.case.title : pub.client ? `Cliente compatível: ${pub.client.name}` : "Sem processo vinculado"}
+        <h2 className="text-2xl font-extrabold text-tx mt-1">
+          {pub.case ? (
+            <Link href={`/processos/${pub.case.id}`} className="hover:text-acao transition-colors">
+              {pub.case.title}
+            </Link>
+          ) : pub.client ? (
+            `Cliente compatível: ${pub.client.name}`
+          ) : (
+            "Sem processo vinculado"
+          )}
         </h2>
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
