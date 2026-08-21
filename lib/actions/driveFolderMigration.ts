@@ -302,6 +302,49 @@ async function processarEntidade(
   }
 }
 
+// Aplica a migração SÓ para as entradas que o operador marcou na tela (checkbox por linha,
+// todas marcadas por padrão — ver components/MigrarPastasLegadasButton.tsx). Diferente de
+// migrarPastasLegadasDoDrive(false) (que reprocessa TUDO de novo e move o que classificar como
+// MOVER), esta função recebe a lista exata já resolvida pela simulação anterior e só mexe nessas
+// — reprocessarEntidade ainda decide sozinha COMO mover cada uma (duplicata vazia, renomear
+// etc.), só não decide mais SE mexe: isso já foi decidido pelo operador ao desmarcar a linha.
+export async function aplicarMigracaoPastasSelecionadas(
+  selecionadas: { kind: "PROCESSO" | "ATENDIMENTO"; entityId: string; title: string; folderId: string }[]
+): Promise<DriveFolderMigrationResult | { error: string }> {
+  const user = await getCurrentUser();
+  if (!canConfigureIntegrations(user)) return { error: "Apenas administradores podem rodar esta ação." };
+
+  const officeId = user.officeId;
+  const connected = await hasPrimaryDriveCredential(officeId);
+  if (!connected) {
+    return { error: "Google Drive não está conectado para este escritório. Vá em Configurações e conecte a conta do Google antes de rodar esta ação." };
+  }
+  if (selecionadas.length === 0) {
+    return { simulacao: false, entries: [], orfas: [], movidas: 0, conflitos: 0, jaCorretas: 0 };
+  }
+
+  const [rootProcessos, rootAtendimentos] = await Promise.all([
+    getProcessosRootFolderId(officeId),
+    getAtendimentosRootFolderId(officeId),
+  ]);
+
+  const raizesLegadasVistas = new Set<string>();
+  const entries: DriveFolderMigrationEntry[] = [];
+  for (const sel of selecionadas) {
+    const root = sel.kind === "PROCESSO" ? rootProcessos : rootAtendimentos;
+    entries.push(await processarEntidade(sel.kind, sel.entityId, sel.title, sel.folderId, root, officeId, false, raizesLegadasVistas));
+  }
+
+  return {
+    simulacao: false,
+    entries,
+    orfas: [],
+    movidas: entries.filter((e) => e.action === "MOVER").length,
+    conflitos: entries.filter((e) => e.action === "CONFLITO").length,
+    jaCorretas: entries.filter((e) => e.action === "JA_CORRETA").length,
+  };
+}
+
 export async function migrarPastasLegadasDoDrive(simulacao: boolean): Promise<DriveFolderMigrationResult | { error: string }> {
   const user = await getCurrentUser();
   if (!canConfigureIntegrations(user)) return { error: "Apenas administradores podem rodar esta ação." };
