@@ -16,6 +16,7 @@ import CopyButton from "@/components/CopyButton";
 import { useUndoToast } from "@/components/UndoToastProvider";
 import { Check, Undo2, CalendarClock, Gavel, Stethoscope, CalendarPlus, ListTodo, X, ChevronDown, Layers, UserPlus } from "lucide-react";
 import Link from "next/link";
+import TabLink from "@/components/TabLink";
 import clsx from "clsx";
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 
@@ -236,9 +237,13 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         )}
 
         {pub.case && (
-          <Link href={`/processos/${pub.case.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua">
+          <TabLink
+            href={`/processos/${pub.case.id}`}
+            label={pub.case.title}
+            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+          >
             Abrir Processo
-          </Link>
+          </TabLink>
         )}
         {!pub.case && pub.client && (
           <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-concluido hover:opacity-80 px-2.5 py-1 bg-concluido-bg">

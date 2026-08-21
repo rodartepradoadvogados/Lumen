@@ -6,6 +6,11 @@ export type Tab = { id: string; href: string; label: string; hasUpdate?: boolean
 
 const STORAGE_KEY = "lumen:openTabs";
 
+// Teto de guias simultâneas — pedido do dono do produto: com poucas guias abertas, cada chip
+// consegue mostrar o nome completo (ver components/GuiasBar.tsx, que divide o espaço disponível
+// por esse mesmo número). Mais que isso e o nome sempre truncaria de novo.
+const MAX_TABS = 5;
+
 function loadStoredTabs(): Tab[] {
   if (typeof window === "undefined") return [];
   try {
@@ -21,6 +26,8 @@ function loadStoredTabs(): Tab[] {
 type TabsContextValue = {
   tabs: Tab[];
   activeTabId: string | null;
+  maxTabs: number;
+  limitReached: boolean;
   openTab: (href: string, label: string) => void;
   closeTab: (id: string) => void;
   activateTab: (id: string) => void;
@@ -38,6 +45,8 @@ const TabsContext = createContext<TabsContextValue | null>(null);
 export default function TabsProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+  const limitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrated = useRef(false);
 
   useEffect(() => {
@@ -94,6 +103,12 @@ export default function TabsProvider({ children }: { children: ReactNode }) {
         setActiveTabId(existing.id);
         return prev;
       }
+      if (prev.length >= MAX_TABS) {
+        if (limitTimerRef.current) clearTimeout(limitTimerRef.current);
+        setLimitReached(true);
+        limitTimerRef.current = setTimeout(() => setLimitReached(false), 4000);
+        return prev;
+      }
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       setActiveTabId(id);
       return [...prev, { id, href, label }];
@@ -113,7 +128,7 @@ export default function TabsProvider({ children }: { children: ReactNode }) {
   const goToLiveView = useCallback(() => setActiveTabId(null), []);
 
   return (
-    <TabsContext.Provider value={{ tabs, activeTabId, openTab, closeTab, activateTab, goToLiveView }}>
+    <TabsContext.Provider value={{ tabs, activeTabId, maxTabs: MAX_TABS, limitReached, openTab, closeTab, activateTab, goToLiveView }}>
       {children}
     </TabsContext.Provider>
   );
@@ -125,6 +140,8 @@ export default function TabsProvider({ children }: { children: ReactNode }) {
 const NOOP_TABS: TabsContextValue = {
   tabs: [],
   activeTabId: null,
+  maxTabs: MAX_TABS,
+  limitReached: false,
   openTab: () => {},
   closeTab: () => {},
   activateTab: () => {},
