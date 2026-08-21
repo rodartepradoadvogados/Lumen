@@ -1,8 +1,9 @@
-// Lista enxuta rota -> rótulo, usada SÓ pra renomear a aba interna (ver components/AppShell.tsx
-// e components/TabTitleSync.tsx) conforme a navegação acontece dentro dela. É separada da lista
-// rica de components/Sidebar.tsx (que carrega ícone, sub-abas, gating de módulo/admin) porque aqui
-// só interessa "que rota é essa, que nome ela tem" — casar pelo prefixo mais específico primeiro
-// (ex: "/financeiro/dre" antes de "/financeiro") evita que uma sub-rota herde o rótulo genérico do pai.
+import { resolveTwoLevelLabel } from "@/lib/navSections";
+
+// Fallback de resolveTabLabel abaixo — só entra em jogo pra rota que resolveTwoLevelLabel não
+// cobre (não é item de nenhuma RAIL_SECTIONS, ex. "/financeiro" bare, sem sub-rota). Casar pelo
+// prefixo mais específico primeiro (ex: "/financeiro/dre" antes de "/financeiro") evita que uma
+// sub-rota herde o rótulo genérico do pai.
 const NAV_LABELS: { href: string; label: string }[] = [
   { href: "/painel", label: "Painel" },
   { href: "/kanban", label: "Kanban" },
@@ -29,6 +30,8 @@ const NAV_LABELS: { href: string; label: string }[] = [
 ].sort((a, b) => b.href.length - a.href.length);
 
 export function resolveTabLabel(pathname: string): string | null {
+  const twoLevel = resolveTwoLevelLabel(pathname);
+  if (twoLevel) return twoLevel;
   const match = NAV_LABELS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
   return match?.label ?? null;
 }

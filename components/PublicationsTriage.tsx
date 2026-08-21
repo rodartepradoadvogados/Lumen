@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import TabLink from "@/components/TabLink";
 import clsx from "clsx";
 import {
   markPublicationsRead,
@@ -357,9 +358,9 @@ function Teor({
         </p>
         <h2 className="text-2xl font-extrabold text-tx mt-1">
           {pub.case ? (
-            <Link href={`/processos/${pub.case.id}`} className="hover:text-acao transition-colors">
+            <TabLink href={`/processos/${pub.case.id}`} label={pub.case.title} className="hover:text-acao transition-colors">
               {pub.case.title}
-            </Link>
+            </TabLink>
           ) : pub.client ? (
             `Cliente compatível: ${pub.client.name}`
           ) : (

@@ -171,3 +171,26 @@ export function sectionForPathname(
   if (preferred && matches.some((section) => section.key === preferred)) return preferred;
   return matches[0].key;
 }
+
+// Rótulo composto "Seção - Item" para as guias internas (components/TabTitleSync.tsx via
+// lib/navItems.ts:resolveTabLabel, e o chip da view "Principal" em components/GuiasBar.tsx) —
+// pedido do dono do produto: a guia mostra até o 2º nível da hierarquia (aba + sub-aba), nunca
+// mais fundo. Ex.: "/contatos/clientes" resolve pro MESMO "Comunicação - Contatos" que
+// "/contatos" puro — "Clientes" é uma aba dentro da própria página de Contatos (3º nível), não
+// uma rota própria em RAIL_SECTIONS; o mesmo vale para `?secao=` de Relatórios/Configurações.
+//
+// `def.items.length < 2` usa a MESMA condição que PageSectionTabs já usa pra decidir se mostra a
+// barra de sub-abas (sem sub-aba visível na tela, "Seção - Item" ficaria redundante) — com a
+// lista BRUTA de itens, sem levar em conta módulo contratado/admin, porque esta função roda sem
+// esse contexto (dentro do <iframe> da guia, só conhece a URL); nenhuma seção hoje cai pra 1 item
+// só por causa de gating, então a aproximação não erra na prática.
+export function resolveTwoLevelLabel(pathname: string): string | null {
+  if (pathname.startsWith("/painel")) return "Painel";
+  const section = sectionForPathname(pathname);
+  if (!section || section === "painel") return null;
+  const def = RAIL_SECTIONS.find((s) => s.key === section);
+  if (!def) return null;
+  const item = def.items.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  if (!item || def.items.length < 2) return def.label;
+  return `${def.label} - ${item.label}`;
+}

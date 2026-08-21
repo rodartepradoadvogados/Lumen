@@ -2,53 +2,90 @@
 
 import { X, FileText } from "lucide-react";
 import clsx from "clsx";
+import { usePathname } from "next/navigation";
 import { useTabs } from "@/components/TabsProvider";
+import { resolveTabLabel } from "@/lib/navItems";
 
 // Guias de duplo clique (estilo navegador) — mesmo TabsProvider do resto da casca. Renderizada
 // dentro da faixa única de topo (components/TopBar.tsx, ver documento 02 do handoff do
-// redesenho: "guias assumem o cluster de ações"). Sem abas abertas não renderiza nada — a faixa
-// continua de pé por causa da busca e do cluster de ações ao lado dela; só a área das guias
-// fica vazia.
+// redesenho: "guias assumem o cluster de ações"). Sempre mostra pelo menos UM chip — a view
+// "Principal" (a própria navegação normal, fora de qualquer guia aberta por duplo clique) — cujo
+// nome acompanha a seção/sub-seção atual (lib/navItems.ts:resolveTabLabel, até o 2º nível da
+// hierarquia); pedido do dono do produto: "sempre haverá, no mínimo, uma guia aparecendo, que é
+// a principal, mudando a cada mudança de local". Esse chip não é uma Tab de TabsProvider (não
+// entra no teto de 5, não tem botão de fechar) — é só a URL atual, lida com usePathname().
 export default function GuiasBar() {
-  const { tabs, activeTabId, activateTab, closeTab } = useTabs();
-
-  if (tabs.length === 0) return null;
+  const { tabs, activeTabId, maxTabs, limitReached, activateTab, closeTab, goToLiveView } = useTabs();
+  const pathname = usePathname();
+  const liveLabel = resolveTabLabel(pathname ?? "") ?? "Painel";
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5 min-w-0">
+      <Chip label={liveLabel} active={activeTabId === null} onSelect={goToLiveView} />
       {tabs.map((tab) => (
-        <div
+        <Chip
           key={tab.id}
+          label={tab.label}
+          active={activeTabId === tab.id}
+          hasUpdate={tab.hasUpdate}
+          onSelect={() => activateTab(tab.id)}
+          onClose={() => closeTab(tab.id)}
+        />
+      ))}
+      {limitReached && (
+        <span className="ml-2 text-[11px] font-semibold text-atencao whitespace-nowrap shrink-0 animate-fade-in">
+          Limite de {maxTabs} guias — feche uma para abrir outra
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Chip({
+  label,
+  active,
+  hasUpdate,
+  onSelect,
+  onClose,
+}: {
+  label: string;
+  active: boolean;
+  hasUpdate?: boolean;
+  onSelect: () => void;
+  onClose?: () => void;
+}) {
+  return (
+    <div
+      className={clsx(
+        // flex-1 (com teto) em vez do max-w fixo de antes: com poucas guias abertas, cada chip
+        // recebe mais espaço e o nome completo cabe sem truncar (pedido do dono do produto,
+        // combinado com o teto de 5 guias em TabsProvider.tsx) — truncate continua como rede de
+        // segurança pra nome mesmo assim maior que o teto de largura.
+        "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-[11px] font-semibold border-t-2 transition-colors",
+        active ? "bg-sf text-tx border-acao" : "text-rail-tx border-transparent hover:text-white"
+      )}
+    >
+      <FileText size={11} className="shrink-0" />
+      <button type="button" onClick={onSelect} className="truncate flex-1 text-left">
+        {label}
+      </button>
+      {hasUpdate && !active && <span className="h-1.5 w-1.5 rounded-full bg-marca shrink-0" aria-label="Atualizada" />}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={`Fechar aba ${label}`}
           className={clsx(
-            "shrink-0 h-8 max-w-[210px] flex items-center gap-1.5 pl-3 pr-1.5 text-[11px] font-semibold border-t-2 transition-colors",
-            activeTabId === tab.id
-              ? "bg-sf text-tx border-acao"
-              : "text-rail-tx border-transparent hover:text-white"
+            "p-0.5 shrink-0",
+            // Cor do "x" depende do fundo do próprio chip (claro quando ativo, grafite escuro
+            // quando inativo) — não dá pra usar só --tx-2 aqui, ele inverteria errado num dos
+            // dois fundos conforme o tema do site.
+            active ? "text-tx-2/45 hover:text-tx" : "text-white/45 hover:text-white"
           )}
         >
-          <FileText size={11} className="shrink-0" />
-          <button type="button" onClick={() => activateTab(tab.id)} className="truncate">
-            {tab.label}
-          </button>
-          {tab.hasUpdate && activeTabId !== tab.id && (
-            <span className="h-1.5 w-1.5 rounded-full bg-marca shrink-0" aria-label="Atualizada" />
-          )}
-          <button
-            type="button"
-            onClick={() => closeTab(tab.id)}
-            aria-label={`Fechar aba ${tab.label}`}
-            className={clsx(
-              "p-0.5 shrink-0",
-              // Cor do "x" depende do fundo do próprio chip (claro quando ativo, grafite escuro
-              // quando inativo) — não dá pra usar só --tx-2 aqui, ele inverteria errado num dos
-              // dois fundos conforme o tema do site.
-              activeTabId === tab.id ? "text-tx-2/45 hover:text-tx" : "text-white/45 hover:text-white"
-            )}
-          >
-            <X size={11} />
-          </button>
-        </div>
-      ))}
+          <X size={11} />
+        </button>
+      )}
     </div>
   );
 }
