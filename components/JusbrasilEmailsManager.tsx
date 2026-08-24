@@ -100,6 +100,12 @@ export default function JusbrasilEmailsManager({
         )}
       </div>
 
+      {limite != null && (
+        <p className="text-[11px] text-tx-3 mb-2">
+          {limite - 1} OAB{limite - 1 !== 1 ? "s" : ""} do plano + 1 vaga fixa da conta do Google Drive do escritório.
+        </p>
+      )}
+
       {emails.length === 0 ? (
         <p className="text-sm text-tx-2">Nenhum e-mail conectado ainda.</p>
       ) : (

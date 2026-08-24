@@ -29,12 +29,16 @@ export async function contarEmailsPublicacoes(officeId: string): Promise<number>
   return prisma.googleCredential.count({ where: { officeId, syncJusbrasil: true } });
 }
 
-// Quantos e-mails de captura de publicações o plano do escritório permite — mesmo número que
-// "OABs monitoradas" no catálogo de vendas (Plan.maxOabs, ex.: "Gold: até 5 OABs"), porque cada
-// e-mail conectado corresponde à caixa de um advogado/OAB. Segue a mesma regra de precedência já
-// documentada no comentário de Office.oabLimit em prisma/schema.prisma: em plano fixo vale o
-// limite do próprio Plan; só no Sob Medida (Plan.isCustom) o override em Office.oabLimit é lido.
-// `null` = sem limite definido (nenhum plano atribuído ao escritório ainda) — trata como "sem
+// Quantos e-mails de captura de publicações o plano do escritório permite — número de "OABs
+// monitoradas" do catálogo de vendas (Plan.maxOabs, ex.: "Gold: até 5 OABs") MAIS 1, porque a
+// conta principal do Google Drive do escritório também entra automaticamente nessa varredura
+// (GoogleCredential.syncJusbrasil nasce true por padrão mesmo na conexão do Drive — ver
+// lib/googleDrive.ts:saveTokensFromCode) e ocupa uma vaga na contagem de
+// contarEmailsPublicacoes() sem ser, de fato, o e-mail de um dos advogados cobertos pelo plano.
+// Segue a mesma regra de precedência já documentada no comentário de Office.oabLimit em
+// prisma/schema.prisma: em plano fixo vale o limite do próprio Plan; só no Sob Medida
+// (Plan.isCustom) o override em Office.oabLimit é lido. `null` = sem limite definido (nenhum
+// plano atribuído ao escritório ainda, ou Sob Medida sem oabLimit configurado) — trata como "sem
 // teto" em vez de bloquear, mesmo critério de app/page.tsx ao exibir "Até N OABs" (só mostra
 // quando maxOabs != null).
 export async function limiteEmailsPublicacoes(officeId: string): Promise<number | null> {
@@ -43,5 +47,6 @@ export async function limiteEmailsPublicacoes(officeId: string): Promise<number 
     select: { oabLimit: true, plan: { select: { isCustom: true, maxOabs: true } } },
   });
   if (!office?.plan) return null;
-  return office.plan.isCustom ? office.oabLimit : office.plan.maxOabs;
+  const baseOabs = office.plan.isCustom ? office.oabLimit : office.plan.maxOabs;
+  return baseOabs == null ? null : baseOabs + 1;
 }
