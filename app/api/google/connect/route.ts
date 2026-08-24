@@ -19,6 +19,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(getAuthUrl(buildOAuthState("jusbrasil")));
   }
 
+  if (mode === "jusbrasil-shared") {
+    // Caixa de e-mail COMPARTILHADA (sem advogado dono) para captura de publicações — só o admin
+    // do escritório (ou suporte mascarado) adiciona, mesmo gate de "Conexões" como um todo. O
+    // limite de quantas caixas o plano permite é checado no callback, não aqui (mais simples e
+    // não expõe o número antes do consentimento do Google).
+    if (!canConfigureIntegrations(user)) {
+      return NextResponse.redirect(new URL("/conexoes", request.url));
+    }
+    return NextResponse.redirect(getAuthUrl(buildOAuthState("jusbrasil-shared")));
+  }
+
   // Conexão principal (Drive/Docs) — sócios administram, e também o suporte em sessão
   // mascarada (motivo CONFIG_INTEGRACAO — ver lib/supportCapabilities.ts).
   if (!canConfigureIntegrations(user)) {

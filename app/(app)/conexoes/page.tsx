@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { canConfigureIntegrations } from "@/lib/supportCapabilities";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
+import { limiteEmailsPublicacoes } from "@/lib/officeLimits";
 import { isMicrosoftConfigured, listMicrosoftAccounts } from "@/lib/microsoftGraph";
 import { getOneDriveStatus } from "@/lib/oneDriveStorage";
 import { isDropboxConfigured } from "@/lib/dropbox";
@@ -25,6 +26,7 @@ import EmailSendProviderPicker from "@/components/EmailSendProviderPicker";
 import StorageProviderPicker from "@/components/StorageProviderPicker";
 import NomeacaoDriveForm from "@/components/NomeacaoDriveForm";
 import WhatsappConfigForm from "@/components/WhatsappConfigForm";
+import JusbrasilEmailsManager from "@/components/JusbrasilEmailsManager";
 import MigrarPastaMaeButton from "@/components/MigrarPastaMaeButton";
 import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
@@ -123,6 +125,7 @@ export default async function ConexoesPage({
     btgConnection,
     webhookEvents,
     apiKeysRaw,
+    limiteEmails,
   ] = await Promise.all([
     getDriveStatus(officeId),
     listGoogleAccounts(officeId),
@@ -157,6 +160,7 @@ export default async function ConexoesPage({
     // escritório) — mostrado aqui com a ressalva de que não é só deste escritório.
     prisma.paymentWebhookEvent.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
     listApiKeys(),
+    limiteEmailsPublicacoes(officeId),
   ]);
 
   // canConfigureIntegrations já foi checado no topo desta página — a checagem redundante dentro
@@ -275,6 +279,10 @@ export default async function ConexoesPage({
           <HardDrive size={16} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google (Drive)
         </a>
       </div>
+      {/* Captura de publicações por e-mail (Jusbrasil) usa Gmail independentemente de qual
+          provedor guarda os anexos — por isso fica fora do `storageProvider === "GOOGLE_DRIVE"`
+          que só a manutenção de arquivos abaixo exige. */}
+      <JusbrasilEmailsManager emails={googleAccounts} viewerId={viewer.id} viewerIsAdmin={Boolean(viewer.isAdmin)} limite={limiteEmails} />
       {storageProvider === "GOOGLE_DRIVE" && storageManutencaoExtra}
     </div>
   );

@@ -88,14 +88,27 @@ export async function saveTokensFromCode(code: string, officeId: string) {
   });
 }
 
-// Conecta uma conta Google adicional só para leitura de e-mail (Jusbrasil),
-// vinculada ao usuário logado que clicou em "conectar meu e-mail".
-export async function saveJusbrasilTokensFromCode(code: string, userId: string, officeId: string) {
+// Conecta uma conta Google adicional só para leitura de e-mail (Jusbrasil) — `userId` presente
+// é a conexão PESSOAL de um advogado (vinculada a quem clicou em "conectar meu e-mail" em Meu
+// Perfil); `userId` nulo é uma caixa COMPARTILHADA que só o admin do escritório conecta (Conexões
+// → Arquivos → Google Drive, botão "Adicionar e-mail" — ver app/api/google/callback/route.ts,
+// mode "jusbrasil-shared").
+export async function saveJusbrasilTokensFromCode(code: string, userId: string | null, officeId: string) {
   const { accountEmail, refreshToken } = await exchangeCodeForTokens(code);
 
   const existingByEmail = await prisma.googleCredential.findUnique({ where: { accountEmail } });
   if (existingByEmail && existingByEmail.officeId !== officeId) {
     throw new Error("Esta conta Google já está conectada a outro escritório na plataforma.");
+  }
+
+  // Um único e-mail por advogado: reconectar com uma conta DIFERENTE da que já estava vinculada
+  // a este usuário substitui a antiga (a mesma conta apenas renova o token, via upsert abaixo,
+  // sem passar por aqui). Sem isso, o advogado acumularia uma linha por conta que já tentou usar.
+  if (userId) {
+    const existingOwn = await prisma.googleCredential.findFirst({ where: { userId, officeId } });
+    if (existingOwn && existingOwn.accountEmail !== accountEmail) {
+      await prisma.googleCredential.delete({ where: { id: existingOwn.id } });
+    }
   }
 
   await prisma.googleCredential.upsert({
