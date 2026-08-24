@@ -32,6 +32,7 @@ export type TriagePub = {
   deadlineGenerated: boolean;
   lawyerTag: string | null;
   processNumberRaw: string | null;
+  tribunalDetectado: string | null;
   case: { id: string; title: string; processNumber: string | null } | null;
   client: { id: string; name: string } | null;
   taskCount?: number;
@@ -321,7 +322,7 @@ function FilaCard({ group, selected, onSelect }: { group: TriageGroup; selected:
         <p className="text-[13px] font-extrabold text-tx mt-1 truncate">{pub.case.title}</p>
       ) : (
         <span className="inline-block mt-1.5 text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5">
-          sem processo vinculado
+          sem processo vinculado{pub.tribunalDetectado && ` · ${pub.tribunalDetectado}`}
         </span>
       )}
     </button>
@@ -369,6 +370,11 @@ function Teor({
         </h2>
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
+          {!pub.case && pub.tribunalDetectado && (
+            <span className="text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5">
+              Tribunal identificado pelo número: {pub.tribunalDetectado}
+            </span>
+          )}
           <span className="text-xs font-semibold text-tx-2">
             Prazo sugerido ({group.prazoSugeridoDiasUteis} dias úteis) → <span className="text-tx">{formatCalendarDate(group.prazoSugeridoDate)}</span>
           </span>

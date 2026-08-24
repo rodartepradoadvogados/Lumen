@@ -826,6 +826,13 @@ model Tribunal {
 
   natureza String @default("JUDICIAL") // JUDICIAL | ADMINISTRATIVO — o mesmo catálogo serve
   // aos dois seletores; o picker filtra por natureza.
+
+  // Segmento (J) e código do tribunal/região (TR) do número CNJ (Resolução CNJ 65/2008),
+  // usados por lib/cnjTribunal.ts para identificar o tribunal de um processo a partir do
+  // número, mesmo sem o processo estar cadastrado. Nulo para órgãos sem numeração própria
+  // (ex.: CNMP, DJEN) — ver comentário de origem em lib/tribunaisCatalog.ts.
+  codigoJ  Int?
+  codigoTr Int?
 }
 
 // ============ AGENDA + KANBAN (fonte única: Task) ============
@@ -2357,6 +2364,11 @@ model Publication {
   emailAccount     String?
   emailSubject     String?
   processNumberRaw String?
+  // Sigla do tribunal identificado a partir de processNumberRaw (ver lib/cnjTribunal.ts),
+  // preenchido mesmo quando não há caseId — é o que permite mostrar "TJSP" etc. em publicações
+  // ainda não vinculadas a um processo cadastrado (tela de Publicações, card "sem processo
+  // vinculado").
+  tribunalDetectado String?
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
