@@ -19,3 +19,29 @@ export async function contarOabsMonitoradas(officeId: string): Promise<number> {
 export async function contarProcessos(officeId: string): Promise<number> {
   return prisma.case.count({ where: { officeId, type: { in: ["JUDICIAL", "ADMINISTRATIVO"] } } });
 }
+
+// Quantos e-mails de captura de publicações (GoogleCredential.syncJusbrasil=true — inclui tanto
+// as contas pessoais de advogados quanto as caixas compartilhadas que o admin conecta) o
+// escritório já tem hoje — comparado contra limiteEmailsPublicacoes() abaixo antes de permitir
+// conectar mais uma caixa compartilhada (ver app/api/google/callback/route.ts, mode
+// "jusbrasil-shared").
+export async function contarEmailsPublicacoes(officeId: string): Promise<number> {
+  return prisma.googleCredential.count({ where: { officeId, syncJusbrasil: true } });
+}
+
+// Quantos e-mails de captura de publicações o plano do escritório permite — mesmo número que
+// "OABs monitoradas" no catálogo de vendas (Plan.maxOabs, ex.: "Gold: até 5 OABs"), porque cada
+// e-mail conectado corresponde à caixa de um advogado/OAB. Segue a mesma regra de precedência já
+// documentada no comentário de Office.oabLimit em prisma/schema.prisma: em plano fixo vale o
+// limite do próprio Plan; só no Sob Medida (Plan.isCustom) o override em Office.oabLimit é lido.
+// `null` = sem limite definido (nenhum plano atribuído ao escritório ainda) — trata como "sem
+// teto" em vez de bloquear, mesmo critério de app/page.tsx ao exibir "Até N OABs" (só mostra
+// quando maxOabs != null).
+export async function limiteEmailsPublicacoes(officeId: string): Promise<number | null> {
+  const office = await prisma.office.findUnique({
+    where: { id: officeId },
+    select: { oabLimit: true, plan: { select: { isCustom: true, maxOabs: true } } },
+  });
+  if (!office?.plan) return null;
+  return office.plan.isCustom ? office.oabLimit : office.plan.maxOabs;
+}
