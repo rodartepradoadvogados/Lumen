@@ -6,6 +6,16 @@
 import { prisma } from "@/lib/prisma";
 import { converterHtmlParaTextoSimples } from "@/lib/htmlEntities";
 import { enqueueNotification } from "@/lib/notificationOutbox";
+import { detectarTribunalPorNumeroCNJ } from "@/lib/cnjTribunal";
+
+// Prefere o tribunal derivado do próprio número CNJ (confiável, mesmo algoritmo usado em
+// robo-publicacoes/src/datajud.py) ao texto livre que o robô eventualmente traz do
+// DJEN/Datajud (RoboPublicacao.tribunal / RoboAndamento.tribunal) — que não segue formato
+// fixo e não é validado contra o catálogo. O campo do robô só entra como reserva, quando o
+// número não permite identificação (fora do padrão CNJ completo de 20 dígitos, por exemplo).
+function tribunalDetectadoPara(numeroProcesso: string | null | undefined, tribunalDoRobo: string | null | undefined): string | null {
+  return detectarTribunalPorNumeroCNJ(numeroProcesso)?.sigla ?? tribunalDoRobo ?? null;
+}
 
 export type RoboBridgeResult = {
   publicacoesCriadas: number;
@@ -265,6 +275,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               publishedAt: parseDataOuFallback(pub.dataDisponibilizacao, pub.dataCaptura),
               emailMessageId,
               processNumberRaw: pub.numeroProcesso,
+              tribunalDetectado: tribunalDetectadoPara(pub.numeroProcesso, pub.tribunal),
               caseId,
               lawyerTag,
             },
@@ -319,6 +330,7 @@ export async function syncRoboParaSite(): Promise<RoboBridgeResult> {
               publishedAt: parseDataOuFallback(and.dataMovimentacao, and.dataCaptura),
               emailMessageId,
               processNumberRaw: and.numeroProcesso,
+              tribunalDetectado: tribunalDetectadoPara(and.numeroProcesso, and.tribunal),
               caseId,
             },
           });

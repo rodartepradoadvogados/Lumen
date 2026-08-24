@@ -26,8 +26,8 @@ export async function GET() {
   for (const t of TRIBUNAIS_CATALOG) {
     await prisma.tribunal.upsert({
       where: { sigla: t.sigla },
-      create: { sigla: t.sigla, nome: t.nome, categoria: t.categoria, sistemas: t.sistemas, portalUrl: t.portalUrl, ordem: t.ordem },
-      update: { nome: t.nome, categoria: t.categoria, sistemas: t.sistemas, portalUrl: t.portalUrl, ordem: t.ordem },
+      create: { sigla: t.sigla, nome: t.nome, categoria: t.categoria, sistemas: t.sistemas, portalUrl: t.portalUrl, ordem: t.ordem, codigoJ: t.codigoJ ?? null, codigoTr: t.codigoTr ?? null },
+      update: { nome: t.nome, categoria: t.categoria, sistemas: t.sistemas, portalUrl: t.portalUrl, ordem: t.ordem, codigoJ: t.codigoJ ?? null, codigoTr: t.codigoTr ?? null },
     });
     processados++;
   }
