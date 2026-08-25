@@ -145,8 +145,8 @@ export default function TimbradoForm({
         escritório no topo.
       </p>
 
-      {erro && <p className="text-xs text-urgente bg-urgente-bg px-2.5 py-1.5">{erro}</p>}
-      {ok && <p className="text-xs text-concluido bg-concluido-bg px-2.5 py-1.5">Papel timbrado salvo.</p>}
+      {erro && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{erro}</p>}
+      {ok && <p className="text-xs text-concluido bg-concluido-bg rounded-md px-2.5 py-1.5">Papel timbrado salvo.</p>}
     </div>
   );
 }

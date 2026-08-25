@@ -170,7 +170,7 @@ export default function MobileNewTaskForm({
           </div>
         )}
 
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
 
         <button
           type="submit"

@@ -115,7 +115,7 @@ function BankAccountRow({ account }: { account: BankAccount }) {
     return (
       <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <Fields defaults={account} />
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
         <div className="flex gap-2">
           <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
@@ -154,7 +154,7 @@ function BankAccountRow({ account }: { account: BankAccount }) {
         </button>
       </div>
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 px-2.5 py-1.5 shadow-pop flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-[11px] bg-urgente-bg text-urgente border border-urgente/20 px-2.5 py-1.5 shadow-pop rounded-lg flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />
@@ -205,7 +205,7 @@ export default function BankAccountsManager({ accounts }: { accounts: BankAccoun
       {adding ? (
         <form action={handleCreate} className="p-5 space-y-2 border-t border-regua bg-sf-apoio">
           <Fields />
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}

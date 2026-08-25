@@ -273,7 +273,7 @@ export default async function MobileCaseDetail({
       </Link>
 
       {anexosFalhos > 0 && (
-        <div className=" border border-urgente bg-urgente-bg px-3 py-2.5 text-xs text-urgente">
+        <div className=" border border-urgente bg-urgente-bg rounded-md px-3 py-2.5 text-xs text-urgente">
           {anexosFalhos === 1
             ? "1 anexo enviado no cadastro não pôde ser processado."
             : `${anexosFalhos} anexos enviados no cadastro não puderam ser processados.`}{" "}

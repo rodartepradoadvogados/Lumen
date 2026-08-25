@@ -284,7 +284,7 @@ export default function MobileNewAttendanceForm({
         <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
-          <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5">
             Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o atendimento,
             você ainda pode anexar documentos pelo computador.
           </p>
@@ -361,7 +361,7 @@ export default function MobileNewAttendanceForm({
       </div>
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 px-3 py-2">
+        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>

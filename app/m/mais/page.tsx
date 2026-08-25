@@ -72,7 +72,7 @@ export default async function MobileMais() {
             href={href}
             className="flex flex-col gap-5 bg-sf border border-regua p-4"
           >
-            <span className={`h-9 w-9 flex items-center justify-center shrink-0 ${TILE_COLORS[color]}`}>
+            <span className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${TILE_COLORS[color]}`}>
               <Icon size={18} />
             </span>
             <span className="text-sm font-bold text-tx">{label}</span>

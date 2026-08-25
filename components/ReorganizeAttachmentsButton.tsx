@@ -77,7 +77,7 @@ export default function ReorganizeAttachmentsButton() {
               {carregando && <p className="text-sm text-tx-2">Conferindo anexos e documentos de Assessoria no Drive...</p>}
 
               {plano && "error" in plano && (
-                <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2">{plano.error}</p>
+                <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 rounded-md px-3 py-2">{plano.error}</p>
               )}
 
               {!carregando && plano && !("error" in plano) && (

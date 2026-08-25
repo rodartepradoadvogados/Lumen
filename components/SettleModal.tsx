@@ -156,7 +156,7 @@ export default function SettleModal({
               após esta baixa.
             </p>
           )}
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={loading || valorNum <= 0}

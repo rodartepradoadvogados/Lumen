@@ -259,7 +259,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           </div>
 
           <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center gap-2 flex-wrap bg-sf-apoio">
-            {error && <p className="w-full text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+            {error && <p className="w-full text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
             <button
               type="submit"
               form="task-detail-form"

@@ -59,7 +59,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
 
   return (
     <div>
-      {error && <p className="mx-5 mt-4 text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+      {error && <p className="mx-5 mt-4 text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
       <div className="divide-y divide-regua">
         {posts.map((post) => (
           <div key={post.id} className="flex items-center gap-3 px-5 py-3 hover:bg-sf-apoio transition-colors">

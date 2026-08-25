@@ -246,7 +246,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           </TabLink>
         )}
         {!pub.case && pub.client && (
-          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-concluido hover:opacity-80 px-2.5 py-1 bg-concluido-bg">
+          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-concluido hover:opacity-80 px-2.5 py-1 bg-concluido-bg rounded-sm">
             Abrir Cadastro do Cliente
           </Link>
         )}

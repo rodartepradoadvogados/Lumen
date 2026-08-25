@@ -120,7 +120,7 @@ function DivergenceNote({ valorTotalIndicado, parcelas }: { valorTotalIndicado: 
   const diff = soma - valorTotalIndicado;
   if (Math.abs(diff) < 0.01) return null;
   return (
-    <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5 mt-2">
+    <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5 mt-2">
       A soma das parcelas vinculadas ao total ({formatCurrency(soma)}) {diff > 0 ? "excede" : "é menor que"} o valor indicado ({formatCurrency(valorTotalIndicado)}) em {formatCurrency(Math.abs(diff))}.
     </p>
   );
@@ -278,7 +278,7 @@ export default function HonorarioLancamentoCard({
               </button>
             </div>
             <div className="p-5 space-y-3">
-              {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
               {pagas.length > 0 && (
                 <div className="p-3 bg-sf-apoio border border-regua">

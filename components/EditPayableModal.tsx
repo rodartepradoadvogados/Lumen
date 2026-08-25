@@ -234,7 +234,7 @@ export default function EditPayableModal({
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
                 <div>
                   <label className={labelCls}>Descrição</label>

@@ -23,8 +23,8 @@ const ACTION_LABEL: Record<DriveFolderMigrationEntry["action"], string> = {
 };
 
 function actionBadgeClass(action: DriveFolderMigrationEntry["action"]): string {
-  if (action === "CONFLITO") return "bg-urgente-bg text-urgente font-semibold";
-  if (action === "MOVER") return "bg-aviso-bg text-aviso";
+  if (action === "CONFLITO") return "bg-urgente-bg text-urgente font-semibold rounded-sm";
+  if (action === "MOVER") return "bg-aviso-bg text-aviso rounded-sm";
   return "bg-sf-apoio text-tx-2";
 }
 
@@ -144,7 +144,7 @@ export default function MigrarPastasLegadasButton() {
               {checando && <p className="text-sm text-tx-2">Verificando o Drive...</p>}
 
               {erro && (
-                <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2">{erro}</p>
+                <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2 rounded-md">{erro}</p>
               )}
 
               {/* Seção 1 — pastas fora do lugar */}
@@ -203,7 +203,7 @@ export default function MigrarPastasLegadasButton() {
                   )}
 
                   {!resultado && plano && plano.orfas.length > 0 && (
-                    <div className="border border-aviso/25 p-3 bg-aviso-bg space-y-1.5">
+                    <div className="border border-aviso/25 p-3 bg-aviso-bg rounded-md space-y-1.5">
                       <p className="text-xs font-semibold text-aviso">
                         {plano.orfas.length} pasta(s) com conteúdo e sem processo vinculado — nada foi movido nem apagado
                       </p>
@@ -251,7 +251,7 @@ export default function MigrarPastasLegadasButton() {
                   </p>
 
                   {"error" in planoVinculo ? (
-                    <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2">{planoVinculo.error}</p>
+                    <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2 rounded-md">{planoVinculo.error}</p>
                   ) : resultadoVinculo ? (
                     <p className="text-xs text-tx-2">
                       {resultadoVinculo.sincronizados} arquivo(s) sincronizado(s)

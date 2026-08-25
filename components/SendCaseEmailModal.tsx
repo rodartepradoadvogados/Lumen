@@ -51,7 +51,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
           >
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3 flex flex-col">
               {error && (
-                <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

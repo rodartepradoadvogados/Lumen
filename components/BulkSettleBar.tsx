@@ -117,7 +117,7 @@ export default function BulkSettleBar({
                 <label className="text-xs font-medium text-tx-2">Nº do comprovante (opcional, único para todos)</label>
                 <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input" />
               </div>
-              {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}

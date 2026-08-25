@@ -140,8 +140,8 @@ export default function OfficeDetailPanel({
 
   return (
     <div className="space-y-5">
-      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 px-3 py-2">{error}</p>}
-      {message && <p className="text-xs text-concluido bg-concluido-bg px-3 py-2">{message}</p>}
+      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 rounded-md px-3 py-2">{error}</p>}
+      {message && <p className="text-xs text-concluido bg-concluido-bg rounded-md px-3 py-2">{message}</p>}
 
       <StartActingModal officeId={officeId} />
 
