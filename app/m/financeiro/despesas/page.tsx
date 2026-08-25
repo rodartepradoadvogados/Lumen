@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
+import { Card, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 import { getFilteredPayables, getCurrentMonthRange } from "@/lib/financeQuery";
 import { getLeafCategoryOptions } from "@/lib/categories";
 import { paymentMethodLabels } from "@/lib/paymentMethods";
@@ -118,7 +119,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
                     </div>
                   </div>
                   <div className="mt-2">
-                    <Badge color={financeStatusColors[p.effectiveStatus] ?? "slate"}>{financeStatusLabel(p.effectiveStatus)}</Badge>
+                    <FinanceStatusBadge status={p.effectiveStatus} kind="payable" />
                   </div>
                   <div className="mt-2">
                     <MobileSettleForm id={p.id} kind="payable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />

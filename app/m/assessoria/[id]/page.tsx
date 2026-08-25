@@ -4,7 +4,8 @@ import { getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getStorageConnectionStatus } from "@/lib/storageProvider";
-import { Card, Badge, EmptyState, formatCurrency, formatDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
@@ -113,7 +114,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
                   <p className="text-sm font-medium text-tx">{h.competencia}</p>
                   <p className="text-xs tabular-nums text-tx-2">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
                 </div>
-                <Badge color={financeStatusColors[h.receivable.status] ?? "slate"}>{financeStatusLabel(h.receivable.status)}</Badge>
+                <FinanceStatusBadge status={h.receivable.status} kind="receivable" />
               </div>
             ))}
           </div>
