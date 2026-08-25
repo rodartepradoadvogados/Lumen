@@ -34,16 +34,18 @@ export default function AttachmentList({
   attachments,
   caseId,
   attendanceId,
+  licitacaoId,
   driveConnected,
   tribunais = [],
 }: {
   attachments: AttachmentData[];
   caseId?: string;
   attendanceId?: string;
+  licitacaoId?: string;
   driveConnected: boolean;
   // Catálogo de tribunais para o pop-up "vincular a tribunal superior?" (ver
   // components/processo/RecursoEscalaPrompt.tsx) — só faz sentido para anexo de Processo
-  // (attendanceId nunca dispara o pop-up, mesmo que venha preenchido).
+  // (attendanceId/licitacaoId nunca disparam o pop-up, mesmo que venham preenchidos).
   tribunais?: TribunalCatalogEntry[];
 }) {
   const router = useRouter();
@@ -136,6 +138,7 @@ export default function AttachmentList({
         docType: stagedDocType,
         caseId,
         attendanceId,
+        licitacaoId,
       });
 
       if (result.error) {
@@ -170,6 +173,7 @@ export default function AttachmentList({
         docType: linkDocType,
         caseId,
         attendanceId,
+        licitacaoId,
       });
       if (result.error) {
         setError(result.error);

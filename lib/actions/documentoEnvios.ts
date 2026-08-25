@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
-import { isCaseInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isAssessoriaInOffice, isLicitacaoInOffice } from "@/lib/officeScope";
 import { isDocumentoEnvioMetodo } from "@/lib/documentoEnvios";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { downloadDriveFile, inferMimeTypeFromFileName, type StorageProvider } from "@/lib/storageProvider";
@@ -19,18 +19,31 @@ import { extractDriveFileId } from "@/lib/googleDrive";
 // enviarDocumentosPorEmail abaixo) — só o método WHATSAPP continua sendo "registro + link de
 // conveniência" (wa.me), sem nenhum envio real (ver lib/documentoEnvios.ts).
 
-// Quem é o "dono" do envio: um Processo ou uma Assessoria. Toda função abaixo que antes recebia
-// só `caseId` agora recebe esta origem — o tipo escolhe, em cada função, se busca em
-// prisma.attachment (CASE) ou prisma.assessoriaDocumento (ASSESSORIA), e qual FK preencher em
-// DocumentoEnvio/DocumentoEnvioItem.
-export type EnvioOrigem = { tipo: "CASE"; id: string } | { tipo: "ASSESSORIA"; id: string };
+// Quem é o "dono" do envio: um Processo, uma Assessoria ou uma Licitação. Toda função abaixo que
+// antes recebia só `caseId` agora recebe esta origem — o tipo escolhe, em cada função, se busca
+// em prisma.attachment (CASE e LICITACAO — os dois usam o mesmo model, só a FK de filtro muda) ou
+// prisma.assessoriaDocumento (ASSESSORIA), e qual FK preencher em DocumentoEnvio/DocumentoEnvioItem.
+export type EnvioOrigem = { tipo: "CASE"; id: string } | { tipo: "ASSESSORIA"; id: string } | { tipo: "LICITACAO"; id: string };
 
 async function origemPertenceAoEscritorio(origem: EnvioOrigem, officeId: string): Promise<boolean> {
-  return origem.tipo === "CASE" ? isCaseInOffice(origem.id, officeId) : isAssessoriaInOffice(origem.id, officeId);
+  if (origem.tipo === "CASE") return isCaseInOffice(origem.id, officeId);
+  if (origem.tipo === "LICITACAO") return isLicitacaoInOffice(origem.id, officeId);
+  return isAssessoriaInOffice(origem.id, officeId);
 }
 
-function revalidateOrigem(origem: EnvioOrigem) {
-  revalidatePath(origem.tipo === "CASE" ? `/processos/${origem.id}` : `/assessoria/${origem.id}`);
+// Licitação não tem rota própria (vive em /assessoria/{id}?tab=licitacoes) — revalidar exige
+// achar a Assessoria dona primeiro.
+async function revalidateOrigem(origem: EnvioOrigem) {
+  if (origem.tipo === "CASE") {
+    revalidatePath(`/processos/${origem.id}`);
+    return;
+  }
+  if (origem.tipo === "ASSESSORIA") {
+    revalidatePath(`/assessoria/${origem.id}`);
+    return;
+  }
+  const l = await prisma.licitacao.findUnique({ where: { id: origem.id }, select: { assessoriaId: true } });
+  if (l) revalidatePath(`/assessoria/${l.assessoriaId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -110,9 +123,13 @@ type DocumentoParaEnvio = {
 };
 
 async function buscarDocumentosDaOrigem(origem: EnvioOrigem, officeId: string, ids: string[]): Promise<DocumentoParaEnvio[]> {
-  if (origem.tipo === "CASE") {
+  if (origem.tipo === "CASE" || origem.tipo === "LICITACAO") {
     const attachments = await prisma.attachment.findMany({
-      where: { id: { in: ids }, officeId, caseId: origem.id },
+      where: {
+        id: { in: ids },
+        officeId,
+        ...(origem.tipo === "CASE" ? { caseId: origem.id } : { licitacaoId: origem.id }),
+      },
       select: { id: true, name: true, docType: true, driveUrl: true, storageProvider: true, storageFileId: true },
     });
     return ordenarPelosIds(ids, attachments);
@@ -125,9 +142,10 @@ async function buscarDocumentosDaOrigem(origem: EnvioOrigem, officeId: string, i
 }
 
 // Monta o campo de FK certo (attachmentId ou assessoriaDocumentoId) para um item de
-// DocumentoEnvioItem, conforme a origem do envio.
+// DocumentoEnvioItem, conforme a origem do envio — CASE e LICITACAO usam o mesmo model
+// (Attachment), só o filtro de busca acima muda.
 function itemFkDaOrigem(origem: EnvioOrigem, documentoId: string): { attachmentId?: string; assessoriaDocumentoId?: string } {
-  return origem.tipo === "CASE" ? { attachmentId: documentoId } : { assessoriaDocumentoId: documentoId };
+  return origem.tipo === "ASSESSORIA" ? { assessoriaDocumentoId: documentoId } : { attachmentId: documentoId };
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +170,10 @@ export async function registrarEnvioDocumentos(data: {
   if (!data.destinatarioContato.trim()) return { error: "Informe o telefone do destinatário." };
   if (data.documentoIds.length === 0) return { error: "Selecione ao menos um documento." };
   if (!(await origemPertenceAoEscritorio(data.origem, viewer.officeId))) {
-    return { error: data.origem.tipo === "CASE" ? "Processo não encontrado." : "Assessoria não encontrada." };
+    return {
+      error:
+        data.origem.tipo === "CASE" ? "Processo não encontrado." : data.origem.tipo === "LICITACAO" ? "Licitação não encontrada." : "Assessoria não encontrada.",
+    };
   }
 
   const documentos = await buscarDocumentosDaOrigem(data.origem, viewer.officeId, data.documentoIds);
@@ -165,6 +186,7 @@ export async function registrarEnvioDocumentos(data: {
       destinatarioContato: data.destinatarioContato.trim(),
       caseId: data.origem.tipo === "CASE" ? data.origem.id : null,
       assessoriaId: data.origem.tipo === "ASSESSORIA" ? data.origem.id : null,
+      licitacaoId: data.origem.tipo === "LICITACAO" ? data.origem.id : null,
       officeId: viewer.officeId,
       enviadoPorId: viewer.id,
       itens: {
@@ -177,7 +199,7 @@ export async function registrarEnvioDocumentos(data: {
     },
   });
 
-  revalidateOrigem(data.origem);
+  await revalidateOrigem(data.origem);
   return { id: envio.id };
 }
 
@@ -212,6 +234,10 @@ export async function enviarDocumentosPorEmail(data: {
     const c = await prisma.case.findFirst({ where: { id: data.origem.id, officeId: viewer.officeId }, select: { id: true, title: true } });
     if (!c) return { error: "Processo não encontrado." };
     tituloOrigem = c.title;
+  } else if (data.origem.tipo === "LICITACAO") {
+    const l = await prisma.licitacao.findFirst({ where: { id: data.origem.id, officeId: viewer.officeId }, select: { id: true, objeto: true, orgao: true } });
+    if (!l) return { error: "Licitação não encontrada." };
+    tituloOrigem = `${l.objeto} — ${l.orgao}`;
   } else {
     const a = await prisma.assessoria.findFirst({
       where: { id: data.origem.id, officeId: viewer.officeId },
@@ -282,6 +308,7 @@ export async function enviarDocumentosPorEmail(data: {
       destinatarioContato: data.destinatarioContato.trim(),
       caseId: data.origem.tipo === "CASE" ? data.origem.id : null,
       assessoriaId: data.origem.tipo === "ASSESSORIA" ? data.origem.id : null,
+      licitacaoId: data.origem.tipo === "LICITACAO" ? data.origem.id : null,
       officeId: viewer.officeId,
       enviadoPorId: viewer.id,
       itens: {
@@ -294,7 +321,7 @@ export async function enviarDocumentosPorEmail(data: {
     },
   });
 
-  revalidateOrigem(data.origem);
+  await revalidateOrigem(data.origem);
   return { id: envio.id };
 }
 
@@ -342,6 +369,7 @@ export async function excluirEnvioDocumentos(envioId: string): Promise<{ error?:
   if (!envio) return { error: "Registro não encontrado." };
 
   await prisma.documentoEnvio.delete({ where: { id: envioId } });
+  if (envio.licitacaoId) await revalidateOrigem({ tipo: "LICITACAO", id: envio.licitacaoId });
   if (envio.caseId) revalidatePath(`/processos/${envio.caseId}`);
   if (envio.assessoriaId) revalidatePath(`/assessoria/${envio.assessoriaId}`);
   return {};

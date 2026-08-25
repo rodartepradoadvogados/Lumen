@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendPushIfEnabled } from "@/lib/push";
 import { enqueueNotification } from "@/lib/notificationOutbox";
-import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice } from "@/lib/officeScope";
+import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice, isLicitacaoInOffice } from "@/lib/officeScope";
 import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 
 async function assertTaskRelationsInOffice(
@@ -426,18 +426,24 @@ export async function updateTask(id: string, data: {
   revalidatePath("/alertas");
 }
 
-export async function addComment(data: { content: string; taskId?: string; caseId?: string }) {
+export async function addComment(data: { content: string; taskId?: string; caseId?: string; licitacaoId?: string }) {
   const viewer = await getCurrentUser();
   if (!viewer) return;
   // O autor é sempre o usuário da sessão — nunca um authorId vindo do cliente, que poderia
   // ser forjado para atribuir o comentário (e a menção correspondente) a outra pessoa.
   if (data.taskId && !(await isTaskInOffice(data.taskId, viewer.officeId))) return;
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return;
+  if (data.licitacaoId && !(await isLicitacaoInOffice(data.licitacaoId, viewer.officeId))) return;
   // Comentário de tarefa (card estilo Trello, ver TaskDetailModal) não vem com caseId do
   // chamador — busca o processo da própria tarefa pra também revalidar a aba Atividades dele
   // (contador de comentários) e pro link de notificação apontar pro processo certo.
   const taskCaseId = data.taskId
     ? (await prisma.task.findUnique({ where: { id: data.taskId }, select: { caseId: true } }))?.caseId ?? null
+    : null;
+  // Licitação não tem rota própria (vive em /assessoria/{id}?tab=licitacoes) — revalidar exige
+  // achar a Assessoria dona primeiro, mesmo padrão de lib/actions/attachments.ts.
+  const licitacaoAssessoriaId = data.licitacaoId
+    ? (await prisma.licitacao.findUnique({ where: { id: data.licitacaoId }, select: { assessoriaId: true } }))?.assessoriaId ?? null
     : null;
   const mentionNames = Array.from(data.content.matchAll(/@(\p{Lu}\p{L}*(?:[ \t]+\p{Lu}\p{L}*)*)/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
@@ -446,6 +452,7 @@ export async function addComment(data: { content: string; taskId?: string; caseI
       authorId: viewer.id,
       taskId: data.taskId || null,
       caseId: data.caseId || null,
+      licitacaoId: data.licitacaoId || null,
       officeId: viewer.officeId,
     },
     include: { author: true },
@@ -471,5 +478,6 @@ export async function addComment(data: { content: string; taskId?: string; caseI
   if (data.taskId) revalidatePath(`/kanban`);
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
   if (taskCaseId) revalidatePath(`/processos/${taskCaseId}`);
+  if (licitacaoAssessoriaId) revalidatePath(`/assessoria/${licitacaoAssessoriaId}`);
   revalidatePath("/alertas");
 }

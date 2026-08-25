@@ -995,6 +995,12 @@ model Comment {
   caseId String?
   case   Case?   @relation(fields: [caseId], references: [id])
 
+  // Comentário compartilhado numa Licitação (aba Licitações da Assessoria) — visível a todo o
+  // escritório, diferente do painel pessoal de Anotações (model Anotacao). Mesmo padrão de
+  // caseId/taskId acima.
+  licitacaoId String?
+  licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
+
   mentions Mention[]
 
   @@index([officeId])
@@ -1261,6 +1267,12 @@ model Attachment {
   attendanceId String?
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
 
+  // Anexo de uma Licitação (aba Licitações da Assessoria) — mesmo padrão de caseId/attendanceId
+  // acima: coluna própria opcional, não FK genérica. O arquivo em si vive na pasta do Drive da
+  // Assessoria dona da licitação (Licitacao não tem pasta própria).
+  licitacaoId String?
+  licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
+
   // Protocolos que REFERENCIAM este anexo (ver ProtocoloLoteItem) e protocolos dos quais este
   // anexo é o comprovante. Um mesmo documento pode entrar em vários protocolos sem nunca ser
   // copiado — é essa relação, e não uma cópia de arquivo, que compõe um protocolo.
@@ -1385,16 +1397,19 @@ model DocumentoEnvio {
   enviadoPorId String?
   enviadoPor   User?   @relation(fields: [enviadoPorId], references: [id])
 
-  // Dono do envio: Processo OU Assessoria — exatamente um dos dois preenchido (validado na
-  // aplicação, ver lib/actions/documentoEnvios.ts). caseId era obrigatório antes de a Assessoria
-  // ganhar este mesmo botão "Enviar E-mail/WhatsApp"; virou opcional de forma aditiva, sem
-  // quebrar nenhum envio de Processo já existente (todos continuam com caseId preenchido e
-  // assessoriaId nulo).
+  // Dono do envio: Processo, Assessoria OU Licitação — exatamente um dos três preenchido
+  // (validado na aplicação, ver lib/actions/documentoEnvios.ts). caseId era obrigatório antes de
+  // a Assessoria ganhar este mesmo botão "Enviar E-mail/WhatsApp"; virou opcional de forma
+  // aditiva, sem quebrar nenhum envio de Processo já existente (todos continuam com caseId
+  // preenchido e os outros dois nulos) — licitacaoId segue a mesma aditividade.
   caseId String?
   case   Case?   @relation(fields: [caseId], references: [id])
 
   assessoriaId String?
   assessoria   Assessoria? @relation(fields: [assessoriaId], references: [id])
+
+  licitacaoId String?
+  licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
 
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
@@ -1406,6 +1421,7 @@ model DocumentoEnvio {
   @@index([officeId])
   @@index([caseId])
   @@index([assessoriaId])
+  @@index([licitacaoId])
 }
 
 // Uma linha da lista de um envio: o anexo referenciado, com snapshot do nome/tipo — mesmo motivo
@@ -2338,7 +2354,11 @@ model Licitacao {
   assessoriaId String
   assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
 
-  tasks Task[]
+  tasks       Task[]
+  attachments Attachment[]
+  comments    Comment[]
+  // Envios de documentos (E-mail/WhatsApp) desta licitação — ver model DocumentoEnvio.
+  documentoEnvios DocumentoEnvio[]
 
   @@index([officeId])
 }
