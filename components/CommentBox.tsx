@@ -8,11 +8,13 @@ import { Send } from "lucide-react";
 export default function CommentBox({
   caseId,
   taskId,
+  licitacaoId,
   users,
   onSubmitted,
 }: {
   caseId?: string;
   taskId?: string;
+  licitacaoId?: string;
   users: { id: string; name: string }[];
   // Chamado depois que o comentário é salvo e o router é atualizado — usado pelo
   // TaskDetailModal (card estilo Trello) pra recarregar a própria lista de comentários, já que
@@ -26,7 +28,7 @@ export default function CommentBox({
   function submit() {
     if (!content.trim()) return;
     startTransition(async () => {
-      await addComment({ content, caseId, taskId });
+      await addComment({ content, caseId, taskId, licitacaoId });
       setContent("");
       router.refresh();
       onSubmitted?.();

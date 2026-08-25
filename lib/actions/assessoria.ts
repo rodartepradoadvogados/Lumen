@@ -138,7 +138,23 @@ export async function getAssessoriaDetail(id: string) {
       // RecurringExpense.assessoriaId, prisma/schema.prisma. Mostradas lado a lado com
       // `honorarios` acima na aba Honorários (AssessoriaHonorariosTab.tsx).
       recurringExpenses: { where: { active: true }, orderBy: { createdAt: "asc" } },
-      licitacoes: { orderBy: { createdAt: "desc" }, include: { tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } } } },
+      licitacoes: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },
+          attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
+          comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
+          // Histórico do botão "Enviar E-mail/WhatsApp" desta licitação — mesmo padrão do
+          // `documentoEnvios` da Assessoria logo abaixo, só que escopado por licitacaoId.
+          documentoEnvios: {
+            orderBy: { enviadoEm: "desc" },
+            include: {
+              enviadoPor: { select: { name: true } },
+              itens: true,
+            },
+          },
+        },
+      },
       // Histórico do botão "Enviar E-mail/WhatsApp" (aba "Pareceres, Processos e Casos") — mesmo
       // padrão de app/(app)/processos/[id]/page.tsx para o Processo. Ver model DocumentoEnvio.
       documentoEnvios: {

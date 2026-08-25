@@ -30,6 +30,10 @@ export async function isAssessoriaInOffice(assessoriaId: string, officeId: strin
   return Boolean(await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId }, select: { id: true } }));
 }
 
+export async function isLicitacaoInOffice(licitacaoId: string, officeId: string): Promise<boolean> {
+  return Boolean(await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId }, select: { id: true } }));
+}
+
 export async function isCostCenterInOffice(costCenterId: string, officeId: string): Promise<boolean> {
   return Boolean(await prisma.costCenter.findFirst({ where: { id: costCenterId, officeId }, select: { id: true } }));
 }

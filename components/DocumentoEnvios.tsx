@@ -43,8 +43,11 @@ function formatEnviadoEm(iso: string): string {
 type AttachmentOption = { id: string; name: string; docType: string; driveUrl: string };
 
 // Quem é o dono deste envio — decide para qual server action/endpoint apontar e qual rótulo usar
-// na UI ("Documentos do processo" vs "Documentos da assessoria").
-export type EnvioEntity = { tipo: "CASE"; id: string; titulo: string } | { tipo: "ASSESSORIA"; id: string; titulo: string };
+// na UI ("Documentos do processo" vs "Documentos da assessoria" vs "Documentos da licitação").
+export type EnvioEntity =
+  | { tipo: "CASE"; id: string; titulo: string }
+  | { tipo: "ASSESSORIA"; id: string; titulo: string }
+  | { tipo: "LICITACAO"; id: string; titulo: string };
 
 function entityOrigem(entity: EnvioEntity): EnvioOrigem {
   return { tipo: entity.tipo, id: entity.id };
@@ -75,8 +78,11 @@ const DOCUMENTO_EXCLUIDO_TEXTO = "(documento excluído)";
 // URL ATUAL de cada documento agora, via attachmentId/assessoriaDocumentoId conforme a origem; um
 // documento já excluído simplesmente não tem link.
 async function reabrirWhatsApp(envio: Envio, entity: EnvioEntity) {
+  // CASE e LICITACAO usam attachmentId (mesmo model Attachment); só ASSESSORIA usa
+  // assessoriaDocumentoId — ver comentário em lib/actions/documentoEnvios.ts:itemFkDaOrigem.
+  const usaAttachmentId = entity.tipo === "CASE" || entity.tipo === "LICITACAO";
   let urlById: Record<string, string> = {};
-  if (entity.tipo === "CASE") {
+  if (usaAttachmentId) {
     const ids = envio.itens.map((i) => i.attachmentId).filter((id): id is string => Boolean(id));
     if (ids.length > 0) urlById = await buscarUrlsDeAnexos(ids);
   } else {
@@ -84,7 +90,7 @@ async function reabrirWhatsApp(envio: Envio, entity: EnvioEntity) {
     if (ids.length > 0) urlById = await buscarUrlsDeDocumentosAssessoria(ids);
   }
   const documentos = envio.itens.map((i) => {
-    const docId = entity.tipo === "CASE" ? i.attachmentId : i.assessoriaDocumentoId;
+    const docId = usaAttachmentId ? i.attachmentId : i.assessoriaDocumentoId;
     return { nome: i.nomeSnapshot, url: (docId && urlById[docId]) || DOCUMENTO_EXCLUIDO_TEXTO };
   });
   const mensagem = formatEnvioMensagem(entity.titulo, documentos);
@@ -356,7 +362,11 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
 
           <div>
             <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1.5">
-              {entity.tipo === "CASE" ? "Documentos do processo" : "Documentos da assessoria"}
+              {entity.tipo === "CASE"
+                ? "Documentos do processo"
+                : entity.tipo === "LICITACAO"
+                  ? "Documentos da licitação"
+                  : "Documentos da assessoria"}
             </p>
             <div className="relative mb-2">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tx-3" />
@@ -444,7 +454,9 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
         <p className="text-sm text-tx-2 py-2">
           {entity.tipo === "CASE"
             ? 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos a um cliente, advogado ou fornecedor fora do protocolo judicial/administrativo.'
-            : 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos desta empresa a um cliente, advogado ou fornecedor.'}
+            : entity.tipo === "LICITACAO"
+              ? 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos desta licitação a um cliente, advogado ou fornecedor.'
+              : 'Use "Enviar E-mail/WhatsApp" acima para mandar documentos desta empresa a um cliente, advogado ou fornecedor.'}
         </p>
       ) : (
         <div className="space-y-3">
@@ -492,7 +504,10 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
 
               <div className="mt-2 divide-y divide-regua border-t border-regua">
                 {envio.itens.map((item) => {
-                  const excluido = entity.tipo === "CASE" ? !item.attachmentId : !item.assessoriaDocumentoId;
+                  const excluido =
+                    entity.tipo === "CASE" || entity.tipo === "LICITACAO"
+                      ? !item.attachmentId
+                      : !item.assessoriaDocumentoId;
                   return (
                     <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
                       <span className="flex-1 min-w-0 truncate text-tx" title={item.nomeSnapshot}>

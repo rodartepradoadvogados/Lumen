@@ -164,7 +164,15 @@ export default async function AssessoriaDetailPage({
           teamMembers={users.map((u) => ({ id: u.id, name: u.name }))}
         />
       )}
-      {tab === "licitacoes" && <AssessoriaLicitacoesTab assessoria={assessoria} users={users} />}
+      {tab === "licitacoes" && (
+        <AssessoriaLicitacoesTab
+          assessoria={assessoria}
+          users={users}
+          driveConnected={storageConnected}
+          storageMessage={storageStatus.message}
+          viewerOfficeId={viewer.officeId}
+        />
+      )}
       {tab === "processos-casos" && (
         <AssessoriaProcessosCasosTab
           assessoria={assessoria}

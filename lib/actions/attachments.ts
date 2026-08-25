@@ -18,19 +18,27 @@ import { isValidBlobUrl } from "@/lib/blobUrl";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { autoResolvePendenciasForAttachment } from "@/lib/actions/attendancePendencias";
 
+// Licitação não tem rota própria (vive em /assessoria/{id}?tab=licitacoes) — revalidar depois de
+// mexer num dos seus anexos exige achar a Assessoria dona primeiro.
+async function revalidateLicitacaoPath(licitacaoId: string) {
+  const l = await prisma.licitacao.findUnique({ where: { id: licitacaoId }, select: { assessoriaId: true } });
+  if (l) revalidatePath(`/assessoria/${l.assessoriaId}`);
+}
+
 export async function createAttachment(data: {
   name: string;
   driveUrl: string;
   docType?: string;
   caseId?: string;
   attendanceId?: string;
+  licitacaoId?: string;
 }): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
 
-  // caseId/attendanceId vêm do cliente — precisam pertencer ao escritório do usuário logado
-  // antes de virarem o vínculo gravado no Attachment (senão um usuário poderia anexar um link
-  // a um processo/atendimento de outro escritório).
+  // caseId/attendanceId/licitacaoId vêm do cliente — precisam pertencer ao escritório do usuário
+  // logado antes de virarem o vínculo gravado no Attachment (senão um usuário poderia anexar um
+  // link a um processo/atendimento/licitação de outro escritório).
   if (data.caseId) {
     const c = await prisma.case.findFirst({ where: { id: data.caseId, officeId: user.officeId }, select: { id: true } });
     if (!c) return { error: "Processo não encontrado." };
@@ -38,6 +46,12 @@ export async function createAttachment(data: {
   if (data.attendanceId) {
     const a = await prisma.attendance.findFirst({ where: { id: data.attendanceId, officeId: user.officeId }, select: { id: true } });
     if (!a) return { error: "Atendimento não encontrado." };
+  }
+  let licitacaoAssessoriaId: string | null = null;
+  if (data.licitacaoId) {
+    const l = await prisma.licitacao.findFirst({ where: { id: data.licitacaoId, officeId: user.officeId }, select: { assessoriaId: true } });
+    if (!l) return { error: "Licitação não encontrada." };
+    licitacaoAssessoriaId = l.assessoriaId;
   }
 
   await prisma.attachment.create({
@@ -47,6 +61,7 @@ export async function createAttachment(data: {
       docType: data.docType || "OUTRO",
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,
+      licitacaoId: data.licitacaoId || null,
       uploadedById: user.id,
       officeId: user.officeId,
     },
@@ -54,6 +69,7 @@ export async function createAttachment(data: {
   if (data.attendanceId) await autoResolvePendenciasForAttachment(data.attendanceId, data.docType || "OUTRO", user.officeId);
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
   if (data.attendanceId) revalidatePath(`/atendimento/${data.attendanceId}`);
+  if (licitacaoAssessoriaId) revalidatePath(`/assessoria/${licitacaoAssessoriaId}`);
   return {};
 }
 
@@ -68,6 +84,7 @@ export async function finalizeAttachmentUpload(data: {
   docType: string;
   caseId?: string;
   attendanceId?: string;
+  licitacaoId?: string;
 }): Promise<{ id?: string; name?: string; driveUrl?: string; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
@@ -80,6 +97,8 @@ export async function finalizeAttachmentUpload(data: {
 
   const resolvedCaseId = data.caseId || null;
   const resolvedAttendanceId = data.attendanceId || null;
+  const resolvedLicitacaoId = data.licitacaoId || null;
+  let licitacaoAssessoriaId: string | null = null;
 
   // Resolve a pasta de destino ANTES de tocar no arquivo — se isso falhar (Drive desconectado,
   // token revogado, escopo insuficiente, pasta apagada fora do sistema), sai aqui, sem baixar
@@ -98,6 +117,14 @@ export async function finalizeAttachmentUpload(data: {
       if (!a) return { error: "Atendimento não encontrado." };
       const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
       targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
+    } else if (resolvedLicitacaoId) {
+      // Licitação não tem pasta própria — o arquivo vai direto para a pasta da Assessoria dona
+      // dela (mesmo comportamento de um Documento de Assessoria sem Parecer, ver
+      // app/api/assessoria/documentos/upload/route.ts).
+      const l = await prisma.licitacao.findFirst({ where: { id: resolvedLicitacaoId, officeId: user.officeId }, select: { assessoriaId: true, assessoria: { select: { driveFolderId: true } } } });
+      if (!l) return { error: "Licitação não encontrada." };
+      licitacaoAssessoriaId = l.assessoriaId;
+      targetFolderId = l.assessoria.driveFolderId;
     }
   } catch (e) {
     console.error("[finalizeAttachmentUpload] falha ao resolver pasta de destino:", e);
@@ -127,6 +154,7 @@ export async function finalizeAttachmentUpload(data: {
         docType: data.docType,
         caseId: resolvedCaseId,
         attendanceId: resolvedAttendanceId,
+        licitacaoId: resolvedLicitacaoId,
         uploadedById: user.id,
         storageProvider: result.storageProvider,
         storageFileId: result.id,
@@ -137,6 +165,7 @@ export async function finalizeAttachmentUpload(data: {
 
     if (resolvedAttendanceId) await autoResolvePendenciasForAttachment(resolvedAttendanceId, data.docType, user.officeId);
     if (resolvedCaseId) revalidatePath(`/processos/${resolvedCaseId}`);
+    if (licitacaoAssessoriaId) revalidatePath(`/assessoria/${licitacaoAssessoriaId}`);
     if (resolvedAttendanceId) revalidatePath(`/atendimento/${resolvedAttendanceId}`);
 
     return { id: attachment.id, name: attachment.name, driveUrl: attachment.driveUrl };
@@ -205,6 +234,7 @@ export async function deleteAttachment(
   await prisma.attachment.delete({ where: { id } });
   if (att.caseId) revalidatePath(`/processos/${att.caseId}`);
   if (att.attendanceId) revalidatePath(`/atendimento/${att.attendanceId}`);
+  if (att.licitacaoId) await revalidateLicitacaoPath(att.licitacaoId);
   return {};
 }
 
@@ -217,5 +247,6 @@ export async function updateAttachmentDocType(id: string, docType: string): Prom
   if (att.attendanceId) await autoResolvePendenciasForAttachment(att.attendanceId, docType, user.officeId);
   if (att.caseId) revalidatePath(`/processos/${att.caseId}`);
   if (att.attendanceId) revalidatePath(`/atendimento/${att.attendanceId}`);
+  if (att.licitacaoId) await revalidateLicitacaoPath(att.licitacaoId);
   return {};
 }

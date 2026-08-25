@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   addLicitacao,
   updateLicitacaoStatus,
   addLicitacaoTask,
   type getAssessoriaDetail,
 } from "@/lib/actions/assessoria";
-import { Badge, formatCurrency, formatCalendarDate } from "@/components/ui";
+import { Badge, EmptyState, formatCurrency, formatCalendarDate, formatDate } from "@/components/ui";
+import { authorDisplayName } from "@/lib/authorDisplay";
 import { Plus } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
+import AttachmentList from "@/components/AttachmentList";
+import CommentBox from "@/components/CommentBox";
+import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
+import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type UserOption = { id: string; name: string };
@@ -23,14 +28,112 @@ const STATUS_OPTIONS = [
 ];
 const statusMeta = (status: string) => STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
 
-export default function AssessoriaLicitacoesTab({ assessoria, users }: { assessoria: Assessoria; users: UserOption[] }) {
+// Ordenação da tabela de licitações — critérios próprios (prazo/valor/objeto), diferente do
+// SORT_OPTIONS de lib/attachmentControls.ts (feito para listas de documento, com data de envio e
+// tipo de documento, que não existem aqui).
+type LicitacaoSort = "recente" | "prazo_asc" | "prazo_desc" | "valor_desc" | "valor_asc" | "objeto_asc";
+const LICITACAO_SORT_OPTIONS: { value: LicitacaoSort; label: string }[] = [
+  { value: "recente", label: "Mais recente primeiro" },
+  { value: "prazo_asc", label: "Prazo mais próximo" },
+  { value: "prazo_desc", label: "Prazo mais distante" },
+  { value: "valor_desc", label: "Maior valor estimado" },
+  { value: "valor_asc", label: "Menor valor estimado" },
+  { value: "objeto_asc", label: "Objeto (A→Z)" },
+];
+
+export default function AssessoriaLicitacoesTab({
+  assessoria,
+  users,
+  driveConnected,
+  storageMessage,
+  viewerOfficeId,
+}: {
+  assessoria: Assessoria;
+  users: UserOption[];
+  driveConnected: boolean;
+  storageMessage?: string;
+  viewerOfficeId: string;
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(assessoria.licitacoes[0]?.id || null);
   const [formOpen, setFormOpen] = useState(false);
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const [statusFilter, setStatusFilter] = useState<string>("TODOS");
+  const [tableSort, setTableSort] = useState<LicitacaoSort>("recente");
+
   const selected = assessoria.licitacoes.find((l) => l.id === selectedId) || null;
+
+  // `assessoria.licitacoes` já vem do servidor ordenada por createdAt desc (ver
+  // getAssessoriaDetail) — "Mais recente primeiro" simplesmente não reordena.
+  const licitacoesExibidas = useMemo(() => {
+    const base = statusFilter === "TODOS" ? assessoria.licitacoes : assessoria.licitacoes.filter((l) => l.status === statusFilter);
+    if (tableSort === "recente") return base;
+    const arr = [...base];
+    switch (tableSort) {
+      case "prazo_asc":
+      case "prazo_desc":
+        arr.sort((a, b) => {
+          if (!a.prazoFinal && !b.prazoFinal) return 0;
+          if (!a.prazoFinal) return 1;
+          if (!b.prazoFinal) return -1;
+          const diff = new Date(a.prazoFinal).getTime() - new Date(b.prazoFinal).getTime();
+          return tableSort === "prazo_asc" ? diff : -diff;
+        });
+        break;
+      case "valor_desc":
+        arr.sort((a, b) => (b.valorEstimado ?? -Infinity) - (a.valorEstimado ?? -Infinity));
+        break;
+      case "valor_asc":
+        arr.sort((a, b) => (a.valorEstimado ?? Infinity) - (b.valorEstimado ?? Infinity));
+        break;
+      case "objeto_asc":
+        arr.sort((a, b) => a.objeto.localeCompare(b.objeto, "pt-BR", { numeric: true }));
+        break;
+    }
+    return arr;
+  }, [assessoria.licitacoes, statusFilter, tableSort]);
+
+  // Anexos da licitação selecionada, no formato que AttachmentList espera (createdAt como string
+  // ISO) — mesmo ajuste que app/(app)/processos/[id]/page.tsx faz para os anexos do Processo.
+  const selectedAttachments = useMemo(
+    () =>
+      (selected?.attachments ?? []).map((a) => ({
+        id: a.id,
+        name: a.name,
+        driveUrl: a.driveUrl,
+        docType: a.docType,
+        createdAt: new Date(a.createdAt).toISOString(),
+        uploadedBy: a.uploadedBy ? { name: a.uploadedBy.name } : null,
+      })),
+    [selected]
+  );
+
+  const selectedAttachmentOptions = useMemo(
+    () => (selected?.attachments ?? []).map((a) => ({ id: a.id, name: a.name, docType: a.docType, driveUrl: a.driveUrl })),
+    [selected]
+  );
+
+  const selectedEnvios: Envio[] = useMemo(
+    () =>
+      (selected?.documentoEnvios ?? []).map((e) => ({
+        id: e.id,
+        metodo: e.metodo,
+        destinatarioNome: e.destinatarioNome,
+        destinatarioContato: e.destinatarioContato,
+        enviadoEm: new Date(e.enviadoEm).toISOString(),
+        enviadoPor: e.enviadoPor ? { name: e.enviadoPor.name } : null,
+        itens: e.itens.map((i) => ({
+          id: i.id,
+          attachmentId: i.attachmentId,
+          assessoriaDocumentoId: i.assessoriaDocumentoId,
+          nomeSnapshot: i.nomeSnapshot,
+          docTypeSnapshot: i.docTypeSnapshot,
+        })),
+      })),
+    [selected]
+  );
 
   function handleNewLicitacao(formData: FormData) {
     setError(null);
@@ -121,6 +224,34 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
         <p className="text-sm text-tx-3 py-8 text-center">Nenhuma licitação cadastrada ainda.</p>
       ) : (
         <>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+              Status
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-[11px] border border-regua bg-sf text-tx px-1.5 py-1"
+              >
+                <option value="TODOS">Todos</option>
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+              Ordenar
+              <select
+                value={tableSort}
+                onChange={(e) => setTableSort(e.target.value as LicitacaoSort)}
+                className="text-[11px] border border-regua bg-sf text-tx px-1.5 py-1"
+              >
+                {LICITACAO_SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
           <div className="overflow-x-auto mb-5">
             <table className="w-full text-sm">
               <thead>
@@ -133,7 +264,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                 </tr>
               </thead>
               <tbody className="divide-y divide-regua">
-                {assessoria.licitacoes.map((l) => (
+                {licitacoesExibidas.map((l) => (
                   <tr
                     key={l.id}
                     onClick={() => setSelectedId(l.id)}
@@ -149,6 +280,11 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                     <td className="py-2.5"><Badge color={statusMeta(l.status).color}>{statusMeta(l.status).label}</Badge></td>
                   </tr>
                 ))}
+                {licitacoesExibidas.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-4 text-center text-xs text-tx-3">Nenhuma licitação com esse filtro.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -158,7 +294,7 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
               <p className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2">
                 {selected.modalidade || selected.objeto} — detalhe
               </p>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div className="bg-sf border border-regua p-4">
                   <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Dados da licitação</h4>
                   <div className="space-y-1.5 text-sm">
@@ -234,6 +370,57 @@ export default function AssessoriaLicitacoesTab({ assessoria, users }: { assesso
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="bg-sf border border-regua p-4 mb-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Documentos</h4>
+                  <EnviarDocumentosButton
+                    entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.objeto }}
+                    attachments={selectedAttachmentOptions}
+                  />
+                </div>
+                {!driveConnected && (
+                  <div className="mb-2">
+                    <StorageDisconnectedNotice message={storageMessage} />
+                  </div>
+                )}
+                <AttachmentList
+                  attachments={selectedAttachments}
+                  licitacaoId={selected.id}
+                  driveConnected={driveConnected}
+                />
+                <HistoricoEnvios
+                  entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.objeto }}
+                  envios={selectedEnvios}
+                />
+              </div>
+
+              <div className="bg-sf border border-regua p-4">
+                <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Anotações</h4>
+                <div className="space-y-4 mb-3 max-h-[360px] overflow-y-auto scrollbar-thin">
+                  {selected.comments.length === 0 && (
+                    <EmptyState title="Nenhuma anotação ainda" subtitle="Use @ para mencionar alguém da equipe" />
+                  )}
+                  {selected.comments.map((cm) => {
+                    const authorName = authorDisplayName(cm.author, viewerOfficeId);
+                    return (
+                      <div key={cm.id} className="flex gap-3">
+                        <div className="h-8 w-8 rounded-full bg-grafite-700 text-ouro-500 flex items-center justify-center text-[11px] font-bold shrink-0">
+                          {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                        </div>
+                        <div>
+                          <p className="text-sm">
+                            <span className="font-semibold text-tx">{authorName}</span>{" "}
+                            <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
+                          </p>
+                          <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <CommentBox licitacaoId={selected.id} users={users} />
               </div>
             </>
           )}
