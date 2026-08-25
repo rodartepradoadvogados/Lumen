@@ -40,7 +40,7 @@ export default function MobileBottomNav({ todayAgendaCount = 0 }: { todayAgendaC
         if (central) {
           return (
             <Link key={href} href={href} className="flex-1 flex items-center justify-center" aria-label="Novo atendimento">
-              <span className="h-[52px] w-[52px] bg-acao text-acao-tx flex items-center justify-center">
+              <span className="h-[52px] w-[52px] bg-acao text-acao-tx rounded-md flex items-center justify-center">
                 <Icon size={24} />
               </span>
             </Link>

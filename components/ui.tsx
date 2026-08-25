@@ -13,7 +13,7 @@ export function ButtonPrimary({ className, ...props }: ButtonHTMLAttributes<HTML
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-start gap-1.5 h-8 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-4 transition-colors disabled:opacity-60 disabled:cursor-default",
+        "inline-flex items-center justify-start gap-1.5 h-8 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm px-4 rounded-md transition-colors disabled:opacity-60 disabled:cursor-default",
         className
       )}
       {...props}
@@ -24,7 +24,7 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-start gap-1.5 h-8 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx font-semibold text-sm px-4 transition-colors disabled:opacity-60 disabled:cursor-default",
+        "inline-flex items-center justify-start gap-1.5 h-8 border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx font-semibold text-sm px-4 rounded-md transition-colors disabled:opacity-60 disabled:cursor-default",
         className
       )}
       {...props}
@@ -34,10 +34,11 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    // Raio zero, régua faz o trabalho da sombra (documento 01 do redesenho Modernist,
+    // Régua faz o trabalho da sombra (documento 01 do redesenho Modernist,
     // "01-tokens-e-tema.md"): em vez de borda de 1px nas quatro arestas, filete de 2px só no
-    // topo, em --regua-forte. Sem sombra em cartão parado.
-    <div className={clsx("bg-sf border-t-2 border-regua-forte", className)}>{children}</div>
+    // topo, em --regua-forte. Sem sombra em cartão parado. Raio (ajuste de tema, agosto/2026):
+    // rounded-lg (10px, tier de "cartões" da nova escala — ver tailwind.config.ts).
+    <div className={clsx("bg-sf border-t-2 border-regua-forte rounded-lg", className)}>{children}</div>
   );
 }
 
