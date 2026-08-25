@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, taskTypeLabels, taskTypeColors, priorityColors, formatCalendarDate } from "@/components/ui";
+import { Badge, ConclusionChip, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors, formatCalendarDate } from "@/components/ui";
 import { typeMeta } from "@/components/AgendaView";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import TaskDetailModal from "@/components/TaskDetailModal";
@@ -129,7 +129,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
       )}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>
+        {done ? <ConclusionChip>{taskConclusionLabel(task.type)}</ConclusionChip> : <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>}
         <div className="flex items-center gap-1">
           <button
             onClick={onToggle}
@@ -154,7 +154,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
 
       <div className="flex items-center justify-between mt-2.5">
         <div className="flex items-center gap-1.5">
-          <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>
+          {!done && <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>}
           {task._count.comments > 0 && (
             <span className="flex items-center gap-0.5 text-[11px] text-tx-3">
               <MessageSquare size={11} /> {task._count.comments}

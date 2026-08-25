@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate, financeStatusLabel, financeStatusColors } from "@/components/ui";
+import { Card, Badge, EmptyState, formatCurrency, formatCalendarDate } from "@/components/ui";
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import RecurringFeeCard from "@/components/RecurringFeeCard";
 import MobileHonorarioLancamentoGroup from "@/components/mobile/MobileHonorarioLancamentoGroup";
@@ -122,7 +123,7 @@ export default function MobileCaseFinanceTab({
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">
-                    <Badge color={financeStatusColors[r.status] ?? "slate"}>{financeStatusLabel(r.status)}</Badge>
+                    <FinanceStatusBadge status={r.status} kind="receivable" />
                   </div>
                   {!isApurar && (
                     <div className="mt-2">
@@ -155,10 +156,9 @@ export default function MobileCaseFinanceTab({
                       <p className="text-sm text-tx">{p.description}</p>
                       <p className="text-xs text-tx-2 mt-0.5">{p.noDueDate ? "Sem vencimento" : formatCalendarDate(p.dueDate)}</p>
                       {p.reimbursementReceivable && (
-                        <p className="mt-1">
-                          <Badge color={financeStatusColors[p.reimbursementReceivable.status] ?? "slate"}>
-                            ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)} · {financeStatusLabel(p.reimbursementReceivable.status)}
-                          </Badge>
+                        <p className="mt-1 flex items-center gap-1.5 flex-wrap text-[11px] text-tx-2">
+                          ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)}
+                          <FinanceStatusBadge status={p.reimbursementReceivable.status} kind="receivable" />
                         </p>
                       )}
                     </div>
@@ -168,7 +168,7 @@ export default function MobileCaseFinanceTab({
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">
-                    <Badge color={financeStatusColors[p.status] ?? "slate"}>{financeStatusLabel(p.status)}</Badge>
+                    <FinanceStatusBadge status={p.status} kind="payable" />
                   </div>
                   <div className="mt-2">
                     <MobileSettleForm id={p.id} kind="payable" liquido={liquido} alreadyPaid={paidSum} status={p.status} bankAccounts={bankAccounts} />

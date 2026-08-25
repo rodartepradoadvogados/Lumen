@@ -1,4 +1,5 @@
-import { formatCurrency, formatCalendarDate, Badge, financeStatusLabel, financeStatusColors } from "@/components/ui";
+import { formatCurrency, formatCalendarDate } from "@/components/ui";
+import { FinanceStatusBadge } from "@/lib/financeStatus";
 import { PERCENTUAL_BASE_LABELS, PAYER_TYPE_LABELS } from "@/lib/honorarioLancamento";
 import { valorLiquido, saldoEmAberto, HONORARIO_LANCAMENTO_DELETE_CONFIRM } from "@/lib/financeCalc";
 import MobileSettleForm from "@/components/mobile/MobileSettleForm";
@@ -93,7 +94,7 @@ export default function MobileHonorarioLancamentoGroup({
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 mt-1.5">
-                <Badge color={financeStatusColors[p.status] ?? "slate"}>{financeStatusLabel(p.status)}</Badge>
+                <FinanceStatusBadge status={p.status} kind="receivable" />
                 <DeleteEntityButton
                   entityType="RECEIVABLE"
                   entityId={p.id}

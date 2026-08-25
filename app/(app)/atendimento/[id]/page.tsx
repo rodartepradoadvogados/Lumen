@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, Badge, formatDate, formatCalendarDate, EmptyState, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import { Card, Badge, ConclusionChip, formatDate, formatCalendarDate, EmptyState, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import NewTaskModal from "@/components/NewTaskModal";
 import AttachmentList from "@/components/AttachmentList";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
@@ -284,9 +284,15 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                     <div key={t.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
-                          <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
-                          <p className="text-sm font-medium text-tx">{t.title}</p>
+                          {t.status === "CONCLUIDO" ? (
+                            <ConclusionChip>{taskConclusionLabel(t.type)}</ConclusionChip>
+                          ) : (
+                            <>
+                              <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
+                              <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
+                            </>
+                          )}
+                          <p className={`text-sm font-medium text-tx ${t.status === "CONCLUIDO" ? "line-through text-tx-3" : ""}`}>{t.title}</p>
                         </div>
                         {t.responsible && <p className="text-xs text-tx-3 mt-0.5">Responsável: {t.responsible.name}</p>}
                       </div>
