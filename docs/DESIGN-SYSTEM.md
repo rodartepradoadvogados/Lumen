@@ -46,6 +46,17 @@ perguntar, não inventar um hex.
 >   ícone-só com fundo só no hover (ex.: lápis/lixeira de ação rápida) — esse padrão está sem
 >   raio em TODO o produto, não só nos arquivos varridos aqui, e merece uma passada própria
 >   dedicada a ele, não uma correção incidental por acaso de cor.
+>
+> **Chip de conclusão (agosto/2026, quarta rodada).** `ConclusionChip` (`components/ui.tsx`):
+> check + rótulo, `rounded-sm` (4px), reaproveita `--concluido`/`--concluido-bg` (o mesmo verde
+> do `Badge` `green` — nenhum token novo). Pensado como componente espalhável, não como tela
+> nova — pilotado em: tarefa/compromisso concluído (`TaskActivityRow`, `AgendaView`
+> `DayPanelTaskRow`, `MobileAgendaTaskRow` — "Audiência realizada" só para o tipo Audiência,
+> "Prazo cumprido" para os demais, ver `taskConclusionLabel`) e status financeiro `PAGO`
+> (`FinanceStatusBadge`, agora com prop `kind: "payable" | "receivable"` — "Conta paga" vs
+> "Conta recebida"). Nos dois casos substitui o Badge de tipo/status só quando o item está
+> concluído; nos outros estados a tela continua exatamente como era. "Meta batida" ficou de
+> fora de propósito — o Lúmen ainda não tem uma feature de metas.
 
 Dois temas: **Manhã** (claro) e **Noite** (escuro, classe `.dark` no `<html>`).
 Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.

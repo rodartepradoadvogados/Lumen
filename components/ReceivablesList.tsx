@@ -173,7 +173,7 @@ export default function ReceivablesList({
                   <p className="text-xs text-tx-3">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
                 </div>
                 <div className="shrink-0 sm:w-24">
-                  <FinanceStatusBadge status={r.effectiveStatus} />
+                  <FinanceStatusBadge status={r.effectiveStatus} kind="receivable" />
                 </div>
               </div>
               <div className="shrink-0 flex items-center gap-1">

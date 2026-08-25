@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Check, Hourglass } from "lucide-react";
 import clsx from "clsx";
 import { toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, formatCurrency, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
+import { Badge, ConclusionChip, formatCurrency, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewTaskModal from "@/components/NewTaskModal";
 import TaskDetailModal from "@/components/TaskDetailModal";
@@ -691,13 +691,19 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
       <div className="min-w-0 flex-1">
         <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
-            <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
-            {isSafety && (
-              <Badge color="gold">
-                <Hourglass size={10} className="inline -mt-0.5 mr-1" />
-                Prazo de segurança (24h antes)
-              </Badge>
+            {done ? (
+              <ConclusionChip>{taskConclusionLabel(t.type)}</ConclusionChip>
+            ) : (
+              <>
+                <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
+                <Badge color={priorityColors[t.priority]}>{t.priority}</Badge>
+                {isSafety && (
+                  <Badge color="gold">
+                    <Hourglass size={10} className="inline -mt-0.5 mr-1" />
+                    Prazo de segurança (24h antes)
+                  </Badge>
+                )}
+              </>
             )}
             {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
           </div>
