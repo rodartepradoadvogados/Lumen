@@ -74,6 +74,13 @@
   --rail-tx: #9aa3ad;
   --menu-tx: #aeb6be;
 
+  /* Item ativo do rail (pílula, proposta "Editorial fino" de 2026-08) — mesmo raciocínio de
+     --rail-tx acima: o rail nunca clareia, então precisa da variante CLARA do bordô (a de Noite,
+     --marca-tx: #c9707f) fixa nos dois temas. Usar --marca-tx direto ficaria escuro demais sobre
+     o grafite na Manhã (ela usa a mesma cor de --marca ali, ~8:1 só sobre fundo BRANCO). */
+  --rail-marca: #c9707f;
+  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+
   /* Fonte da publicação (DESIGN-SYSTEM.md §9). O PJE precisa de um azul distinto de
      qualquer outro token — é o único azul que sobra no sistema, só para essa distinção. */
   --fonte-pje: #2f6fb0;
@@ -127,6 +134,9 @@
 
   --rail-tx: #8b949e;
   --menu-tx: #8b949e;
+
+  --rail-marca: #c9707f;
+  --rail-marca-bg: rgba(201, 112, 127, 0.16);
   --fonte-pje: #93c0f0;
 
   --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);

@@ -179,17 +179,17 @@ function RailButton({
       onClick={onClick}
       data-tip={label}
       className={clsx(
-        "relative w-full flex flex-col items-center gap-0.5 py-2.5 border-l-4 rounded-md transition-colors",
+        "relative w-full flex flex-col items-center gap-0.5 py-2.5 rounded-md transition-colors",
         active
-          ? // Item ativo é fixo nos dois temas (o rail nunca clareia) — documento 02 do handoff:
-            // fundo #2d2b2b (== neutro-900, mesma rampa do documento 01), filete de marca, texto
-            // branco.
-            "bg-neutro-900 border-marca text-white font-semibold"
-          : "border-transparent text-rail-tx hover:bg-white/5 hover:text-white"
+          ? // Item ativo — pílula (proposta "Editorial fino"/"Pílula bordô" de 2026-08, ver
+            // docs/DESIGN-SYSTEM.md): fundo bordô suave + ícone/rótulo na cor de marca, no lugar
+            // do antigo fundo #2d2b2b + filete de 4px à esquerda.
+            "bg-rail-marca-bg text-rail-marca font-semibold"
+          : "text-rail-tx hover:bg-white/5 hover:text-white"
       )}
     >
       <span className="relative">
-        <Icon size={17} strokeWidth={1.9} />
+        <Icon size={19} strokeWidth={1.5} />
         {badge > 0 && (
           <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-white text-[9px] font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}

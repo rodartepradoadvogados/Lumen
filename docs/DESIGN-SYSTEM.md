@@ -62,6 +62,20 @@ perguntar, não inventar um hex.
 > (lápis/lixeira/paginação com fundo só no hover) recebeu `rounded-md` (6px, mesma régua de
 > `ButtonPrimary`/`ButtonSecondary`) em todo o produto — não só nos arquivos que tinham chip de
 > status.
+>
+> **Rail — ícones e seleção (agosto/2026, sexta rodada).** Comparativo com 3 opções de ícone e
+> 3 de indicador de seleção, aprovado como "Editorial fino" + "Pílula bordô":
+> - **Ícones**: só os 3 genéricos o bastante pra valer trocar — Comunicação
+>   (`MessagesSquare`→`Inbox`), Jurídico (`Briefcase`→`Scale`), Financeiro (`Wallet`→`Landmark`).
+>   Painel/Agenda/Gestão/Ajustes ficam como estavam (já tinham só uma leitura possível). Traço de
+>   1,9px para 1,5px, tamanho de 17px para 19px — mais próximo do peso do Inter.
+> - **Seleção**: fundo `bg-neutro-900` + filete de 4px vira pílula (`bg-rail-marca-bg` +
+>   `text-rail-marca`, sem filete) — reaproveita o `rounded-md` do resto do sistema em vez de
+>   inventar uma linguagem visual só pro rail.
+> - **Tokens novos**: `--rail-marca`/`--rail-marca-bg` em `app/globals.css`, com o MESMO valor
+>   nos dois temas (`#c9707f`, a variante clara do bordô) — não dá pra usar `--marca-tx` direto
+>   porque ele escurece na Manhã (pensado pra texto sobre fundo BRANCO) e o rail nunca clareia,
+>   mesmo raciocínio de `--rail-tx` que já existia.
 
 Dois temas: **Manhã** (claro) e **Noite** (escuro, classe `.dark` no `<html>`).
 Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.

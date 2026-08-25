@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarDays, MessagesSquare, Briefcase, Wallet, BarChart3 } from "lucide-react";
+import { CalendarDays, Inbox, Scale, Landmark, BarChart3 } from "lucide-react";
 import type { OfficeModules } from "@/lib/officeModules";
 
 // Modelo de navegação do rail (components/NavRail.tsx) + abas de seção
@@ -57,7 +57,10 @@ export const RAIL_SECTIONS: SectionDef[] = [
   {
     key: "comunicacao",
     label: "Comunicação",
-    icon: MessagesSquare,
+    // Inbox no lugar do balão de mensagem genérico (MessagesSquare) — proposta de ícones
+    // "Editorial fino" aprovada em 2026-08: símbolo específico do que a seção faz (captação de
+    // publicações + atendimentos entrando), não um ícone de chat de qualquer SaaS.
+    icon: Inbox,
     items: [
       { href: "/publicacoes", label: "Publicações" },
       { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento" },
@@ -68,7 +71,9 @@ export const RAIL_SECTIONS: SectionDef[] = [
   {
     key: "juridico",
     label: "Jurídico",
-    icon: Briefcase,
+    // Balança no lugar da pasta genérica (Briefcase) — pasta poderia ser qualquer sistema de
+    // gestão de negócio; balança só tem uma leitura possível.
+    icon: Scale,
     items: [
       { href: "/publicacoes", label: "Publicações e andamentos" },
       { href: "/processos", label: "Processos e casos" },
@@ -78,7 +83,9 @@ export const RAIL_SECTIONS: SectionDef[] = [
   {
     key: "financeiro",
     label: "Financeiro",
-    icon: Wallet,
+    // Banco (Landmark) no lugar da carteira (Wallet) — lê como instituição financeira, mais
+    // alinhado ao Financeiro do escritório (contas, fluxo de caixa) do que a um gasto pessoal.
+    icon: Landmark,
     items: [
       { href: "/financeiro/despesas", label: "Despesas" },
       { href: "/financeiro/receitas", label: "Receitas" },
