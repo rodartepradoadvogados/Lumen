@@ -147,7 +147,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                       text={item.content}
                       label="Copiar conteúdo"
                       showLabel={false}
-                      className="shrink-0 p-1 text-tx-2 hover:bg-sf-apoio transition-colors"
+                      className="shrink-0 p-1 text-tx-2 hover:bg-sf-apoio transition-colors rounded-md"
                     />
                   </div>
                   <p className="text-sm text-tx-2 whitespace-pre-wrap">{item.content}</p>
@@ -160,7 +160,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                 text={pub.content}
                 label="Copiar conteúdo"
                 showLabel={false}
-                className="shrink-0 p-1.5 text-tx-2 hover:bg-sf-apoio transition-colors"
+                className="shrink-0 p-1.5 text-tx-2 hover:bg-sf-apoio transition-colors rounded-md"
               />
             </div>
           )}

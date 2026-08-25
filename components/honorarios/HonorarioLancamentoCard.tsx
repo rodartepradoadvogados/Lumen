@@ -199,7 +199,7 @@ export default function HonorarioLancamentoCard({
           <button
             onClick={() => setEditing(true)}
             data-tip="Editar parcelas"
-            className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio"
+            className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio rounded-md"
           >
             <Pencil size={14} />
           </button>

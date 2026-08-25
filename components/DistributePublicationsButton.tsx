@@ -89,7 +89,7 @@ export default function DistributePublicationsButton() {
                   Revise cada uma, escolha o(s) advogado(s) responsável(is), o prazo e se precisa de confirmação antes de distribuir.
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1.5 text-tx-3 hover:bg-sf-apoio shrink-0">
+              <button onClick={() => setOpen(false)} className="p-1.5 text-tx-3 hover:bg-sf-apoio shrink-0 rounded-md">
                 <X size={18} />
               </button>
             </div>

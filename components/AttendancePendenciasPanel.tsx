@@ -126,7 +126,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleComplete(p.id)}
                     disabled={pending}
                     title="Concluir"
-                    className="p-1.5 text-tx-3 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10"
+                    className="p-1.5 text-tx-3 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md"
                   >
                     <Check size={14} />
                   </button>
@@ -134,7 +134,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleDelete(p.id)}
                     disabled={pending}
                     title="Excluir"
-                    className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10"
+                    className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 rounded-md"
                   >
                     <X size={14} />
                   </button>

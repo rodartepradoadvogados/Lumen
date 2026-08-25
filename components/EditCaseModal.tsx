@@ -104,7 +104,7 @@ export default function EditCaseModal({
       <button
         onClick={() => setOpen(true)}
         data-tip="Editar processo"
-        className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors"
+        className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md"
       >
         <Pencil size={14} />
       </button>

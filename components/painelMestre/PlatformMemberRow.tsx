@@ -71,7 +71,7 @@ export default function PlatformMemberRow({
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={member.active ? "Desativar" : "Reativar"}
-            className="p-1.5 text-white/40 hover:text-marca-tx hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1.5 text-white/40 hover:text-marca-tx hover:bg-white/10 transition-colors disabled:opacity-40 rounded-md"
           >
             <Power size={14} />
           </button>

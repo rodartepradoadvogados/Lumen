@@ -104,7 +104,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
                       onClick={() => handleDelete(t.id)}
                       disabled={pending}
                       data-tip="Remover modelo"
-                      className="absolute top-1 right-1 p-1 text-tx-3 opacity-0 group-hover:opacity-100 hover:text-vinho hover:bg-sf transition-all bg-sf-apoio"
+                      className="absolute top-1 right-1 p-1 text-tx-3 opacity-0 group-hover:opacity-100 hover:text-vinho hover:bg-sf transition-all bg-sf-apoio rounded-md"
                     >
                       <X size={11} />
                     </button>

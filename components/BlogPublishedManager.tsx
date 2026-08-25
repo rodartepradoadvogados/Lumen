@@ -93,7 +93,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               onClick={() => setPickerPost(post)}
               disabled={pending}
               data-tip="Trocar foto"
-              className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors disabled:opacity-40 shrink-0"
+              className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors disabled:opacity-40 shrink-0 rounded-md"
             >
               <ImagePlus size={14} />
             </button>
@@ -101,7 +101,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
               onClick={() => handleUnpublish(post.id, post.title)}
               disabled={pending}
               data-tip="Despublicar"
-              className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 shrink-0"
+              className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 shrink-0 rounded-md"
             >
               <RotateCcw size={14} />
             </button>

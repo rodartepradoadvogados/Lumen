@@ -81,13 +81,13 @@ export default async function DrePage({
         action={
           !usingCustomRange ? (
             <div className="flex items-center gap-1">
-              <Link href={prevHref} className="p-1.5 hover:bg-sf-apoio text-tx-2">
+              <Link href={prevHref} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-md">
                 <ChevronLeft size={18} />
               </Link>
               <span className="text-sm font-semibold text-tx px-2">
                 {MONTHS[month]} {year}
               </span>
-              <Link href={nextHref} className="p-1.5 hover:bg-sf-apoio text-tx-2">
+              <Link href={nextHref} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-md">
                 <ChevronRight size={18} />
               </Link>
             </div>

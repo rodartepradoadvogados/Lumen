@@ -141,14 +141,14 @@ function BankAccountRow({ account }: { account: BankAccount }) {
       </div>
       <Badge color={account.active ? "green" : "slate"}>{account.active ? "Ativa" : "Inativa"}</Badge>
       <div className="flex items-center gap-1">
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
           <Pencil size={14} />
         </button>
         <button
           onClick={handleToggle}
           disabled={pending}
           data-tip={account.active ? "Desativar" : "Reativar"}
-          className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
+          className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 rounded-md"
         >
           <Power size={14} />
         </button>

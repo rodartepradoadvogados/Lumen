@@ -216,7 +216,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
                 type="button"
                 onClick={handleCopyLink}
                 data-tip="Copiar"
-                className="p-2 text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0"
+                className="p-2 text-tx-2 hover:text-tx hover:bg-sf-apoio shrink-0 rounded-md"
               >
                 {linkCopied ? <Check size={14} className="text-concluido" /> : <Copy size={14} />}
               </button>
@@ -307,7 +307,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             setLinkOpen(true);
           }}
           data-tip="Gerar link de redefinição de senha"
-          className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+          className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
         >
           <Link2 size={14} />
         </button>
@@ -321,7 +321,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
               setCredOpen(true);
             }}
             data-tip={user.username ? "Redefinir senha" : "Definir acesso"}
-            className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+            className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
           >
             <KeyRound size={14} />
           </button>
@@ -337,18 +337,18 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
           </button>
-          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
             <Pencil size={14} />
           </button>
           <button
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={user.active ? "Inativar" : "Reativar"}
-            className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
+            className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 rounded-md"
           >
             <Power size={14} />
           </button>
-          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40">
+          <button onClick={handleDelete} disabled={pending} data-tip="Excluir definitivamente" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40 rounded-md">
             <Trash2 size={14} />
           </button>
         </div>

@@ -427,7 +427,7 @@ export default function AttachmentList({
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                     disabled={pending}
                     data-tip="Editar tipo de documento"
-                    className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+                    className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
                   >
                     <Pencil size={11} />
                   </button>
@@ -435,7 +435,7 @@ export default function AttachmentList({
                     onClick={() => handleDelete(a.id)}
                     disabled={pending}
                     data-tip="Excluir anexo"
-                    className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
+                    className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors rounded-md"
                   >
                     <X size={12} />
                   </button>
@@ -485,7 +485,7 @@ export default function AttachmentList({
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                     disabled={pending}
                     data-tip="Editar tipo de documento"
-                    className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+                    className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
                   >
                     <Pencil size={11} />
                   </button>
@@ -493,7 +493,7 @@ export default function AttachmentList({
                     onClick={() => handleDelete(a.id)}
                     disabled={pending}
                     data-tip="Excluir anexo"
-                    className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
+                    className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors rounded-md"
                   >
                     <X size={12} />
                   </button>
@@ -559,7 +559,7 @@ export default function AttachmentList({
                         onClick={() => setEditingId(editingId === a.id ? null : a.id)}
                         disabled={pending}
                         data-tip="Editar tipo de documento"
-                        className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors"
+                        className="p-1 text-tx-3 hover:text-marca-tx hover:bg-marca-bg transition-colors rounded-md"
                       >
                         <Pencil size={11} />
                       </button>
@@ -567,7 +567,7 @@ export default function AttachmentList({
                         onClick={() => handleDelete(a.id)}
                         disabled={pending}
                         data-tip="Excluir anexo"
-                        className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors"
+                        className="p-1 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors rounded-md"
                       >
                         <X size={12} />
                       </button>

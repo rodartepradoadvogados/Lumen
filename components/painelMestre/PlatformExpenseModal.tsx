@@ -77,7 +77,7 @@ export default function PlatformExpenseModal({
         <button
           onClick={() => setOpen(true)}
           data-tip="Editar"
-          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 transition-colors rounded-md"
         >
           <Pencil size={14} />
         </button>
@@ -196,7 +196,7 @@ export function DeletePlatformExpenseButton({ id }: { id: string }) {
       onClick={handleClick}
       disabled={pending}
       data-tip="Excluir"
-      className="p-1.5 text-white/40 hover:text-atencao hover:bg-white/10 transition-colors disabled:opacity-40"
+      className="p-1.5 text-white/40 hover:text-atencao hover:bg-white/10 transition-colors disabled:opacity-40 rounded-md"
     >
       <Trash2 size={14} />
     </button>

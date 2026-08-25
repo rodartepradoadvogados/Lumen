@@ -39,7 +39,7 @@ export default function AnotacoesPanel() {
                 disabled={drafts.length >= 2}
                 title="Nova anotação"
                 aria-label="Nova anotação"
-                className="p-1.5 text-tx-2 hover:bg-marca-bg hover:text-marca-tx disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-tx-2 transition-colors"
+                className="p-1.5 text-tx-2 hover:bg-marca-bg hover:text-marca-tx disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-tx-2 transition-colors rounded-md"
               >
                 <Plus size={16} />
               </button>
@@ -48,7 +48,7 @@ export default function AnotacoesPanel() {
                 onClick={() => setOpen(false)}
                 title="Recolher painel de Anotações"
                 aria-label="Recolher painel de Anotações"
-                className="p-1.5 text-tx-2 hover:bg-sf-apoio transition-colors"
+                className="p-1.5 text-tx-2 hover:bg-sf-apoio transition-colors rounded-md"
               >
                 <PanelRightClose size={16} />
               </button>
