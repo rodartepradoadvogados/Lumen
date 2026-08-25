@@ -172,7 +172,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
         <ModalShell size="medio" title="Unificar cadastros" subtitle={`"${alvo.nome}" → "${canonico.nome}"`} onClose={fechar}>
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {conferindo && <p className="text-sm text-tx-2">Conferindo…</p>}
-            {erro && <p className="text-sm text-urgente bg-urgente-bg px-3 py-2">{erro}</p>}
+            {erro && <p className="text-sm text-urgente bg-urgente-bg rounded-md px-3 py-2">{erro}</p>}
 
             {!resultado && simulacao && (
               <>
@@ -203,7 +203,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                     <p className="text-xs font-semibold uppercase tracking-wide text-urgente">
                       {simulacao.conflitosPastaDrive.length} conflito(s) na pasta do Drive — não serão mexidos
                     </p>
-                    <ul className="text-xs text-urgente bg-urgente-bg border border-urgente/20 divide-y divide-urgente/20">
+                    <ul className="text-xs text-urgente bg-urgente-bg border border-urgente/20 rounded-md divide-y divide-urgente/20">
                       {simulacao.conflitosPastaDrive.map((c, i) => (
                         <li key={i} className="px-3 py-1.5">
                           <span className="font-mono">{c.caminho}</span> — {c.motivo}
@@ -252,7 +252,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                   </p>
                 ))}
                 {resultado.conflitosPastaDrive.length > 0 && (
-                  <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">
+                  <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">
                     {resultado.conflitosPastaDrive.length} item(ns) do Drive ficaram sem mexer por conflito de nome — confira
                     e mescle manualmente.
                   </p>

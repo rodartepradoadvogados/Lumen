@@ -261,7 +261,7 @@ export default function NewReceivableModal({
                     <span className="font-semibold text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
                   </p>
                 )}
-                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
                 <div>
                   <label className={labelCls}>Descrição</label>
@@ -470,7 +470,7 @@ export default function NewReceivableModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>

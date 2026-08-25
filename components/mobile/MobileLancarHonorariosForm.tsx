@@ -330,7 +330,7 @@ export default function MobileLancarHonorariosForm({
           Já recebido neste processo: <span className="font-semibold tabular-nums text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
         </p>
       )}
-      {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       {cases && (
         <div>
@@ -501,7 +501,7 @@ export default function MobileLancarHonorariosForm({
             </div>
 
             {Math.abs(divergencia) > 0.01 && (
-              <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+              <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                 A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                 {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
               </p>
@@ -638,7 +638,7 @@ export default function MobileLancarHonorariosForm({
                   <span className="font-semibold tabular-nums text-tx">{formatCurrency(percentualApurado)}</span> líquido
                 </p>
               ) : (
-                <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+                <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                   A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão &quot;A apurar&quot;, fora do
                   fluxo de caixa, até o desfecho do processo.
                 </p>

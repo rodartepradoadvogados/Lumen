@@ -85,7 +85,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
             <div className="p-6 space-y-4">
               {error && (
                 <p
-                  className={`text-xs px-3 py-2 ${
+                  className={`text-xs px-3 py-2 rounded-md ${
                     aguardaAprovacao
                       ? "text-aviso bg-aviso-bg"
                       : "text-atencao bg-atencao/10 dark:bg-atencao/15"

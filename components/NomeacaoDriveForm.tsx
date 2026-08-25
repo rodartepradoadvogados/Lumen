@@ -81,8 +81,8 @@ export default function NomeacaoDriveForm({
         </p>
       )}
 
-      {erro && <p className="text-xs text-urgente bg-urgente-bg px-2.5 py-1.5">{erro}</p>}
-      {ok && <p className="text-xs text-concluido bg-concluido-bg px-2.5 py-1.5">Nomes salvos.</p>}
+      {erro && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{erro}</p>}
+      {ok && <p className="text-xs text-concluido bg-concluido-bg rounded-md px-2.5 py-1.5">Nomes salvos.</p>}
 
       <button
         type="button"

@@ -415,10 +415,10 @@ export default function NewAttendanceModal({
 
             <form ref={formRef} onSubmit={handleSubmit} onChange={() => setDirty(true)} className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {formError && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{formError}</p>}
+                {formError && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{formError}</p>}
 
                 {uploadWarnings.length > 0 && (
-                  <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg px-3 py-2">
+                  <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg rounded-md px-3 py-2">
                     <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -515,7 +515,7 @@ export default function NewAttendanceModal({
                   </div>
 
                   {conflictMatches.length > 0 && (
-                    <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg px-3 py-2">
+                    <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg rounded-md px-3 py-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                       <div>
                         <p className="font-semibold">Possível conflito de interesses</p>

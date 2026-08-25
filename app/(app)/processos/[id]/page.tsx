@@ -337,7 +337,7 @@ export default async function CaseDetailPage({
       </Link>
 
       {anexosFalhos > 0 && (
-        <div className="mb-4 border border-urgente/30 bg-urgente-bg px-4 py-3 text-sm text-urgente">
+        <div className="mb-4 border border-urgente/30 bg-urgente-bg rounded-md px-4 py-3 text-sm text-urgente">
           {anexosFalhos === 1
             ? "1 anexo enviado no cadastro não pôde ser processado e não aparece na aba Anexos."
             : `${anexosFalhos} anexos enviados no cadastro não puderam ser processados e não aparecem na aba Anexos.`}{" "}

@@ -195,7 +195,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             />
           </div>
         ) : (
-          <p className="text-[11px] text-aviso bg-aviso-bg px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-2.5 py-1.5">
             Google Drive não conectado — conecte acima para anexar arquivos, ou cole um link já existente abaixo.
           </p>
         )}
@@ -207,7 +207,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
           </button>
         </div>
 
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
       </div>
     </div>
   );

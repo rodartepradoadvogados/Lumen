@@ -26,7 +26,7 @@ function movidoRowClass(action: LumenMigrationMovedEntry["action"]): string {
 }
 
 function movidoBadgeClass(action: LumenMigrationMovedEntry["action"]): string {
-  return action === "CONFLITO" ? "bg-urgente-bg text-urgente font-semibold" : "bg-concluido-bg text-concluido";
+  return action === "CONFLITO" ? "bg-urgente-bg text-urgente font-semibold rounded-sm" : "bg-concluido-bg text-concluido rounded-sm";
 }
 
 // Componente cliente da Tarefa A: dá interface à ação de servidor `migrarPastaMaeLumen`, que já
@@ -109,7 +109,7 @@ export default function MigrarPastaMaeButton() {
       </p>
 
       {erro && (
-        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2">
+        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2 rounded-md">
           {erro}
         </p>
       )}
@@ -123,7 +123,7 @@ export default function MigrarPastaMaeButton() {
           </p>
 
           {exibido.truncado && (
-            <p className="flex items-center gap-2 text-xs font-semibold text-urgente bg-urgente-bg border border-urgente/25 px-3 py-2">
+            <p className="flex items-center gap-2 text-xs font-semibold text-urgente bg-urgente-bg border border-urgente/25 px-3 py-2 rounded-md">
               <AlertTriangle size={14} className="shrink-0" /> A varredura parou antes de terminar (Drive muito grande). Rode a
               conferência de novo depois de tratar o que já apareceu — itens ainda não vistos não estão neste relatório.
             </p>
@@ -202,7 +202,7 @@ export default function MigrarPastaMaeButton() {
 
           {/* O que não foi identificado — nunca apagado, só relatado */}
           {exibido.naoIdentificados.length > 0 && (
-            <div className="border-l-[3px] border-aviso bg-aviso-bg p-3 space-y-1.5">
+            <div className="border-l-[3px] border-aviso bg-aviso-bg rounded-md p-3 space-y-1.5">
               <p className="flex items-center gap-2 text-xs font-semibold text-aviso">
                 <FileQuestion size={14} className="shrink-0" /> {exibido.naoIdentificados.length} item(ns) não identificado(s) — nada
                 foi movido nem apagado

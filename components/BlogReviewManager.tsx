@@ -163,7 +163,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
   return (
     <div className="p-5 space-y-3">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <div className="flex items-start gap-2 flex-wrap">
         <div className="flex-1 min-w-[220px]">

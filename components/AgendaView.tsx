@@ -60,7 +60,7 @@ type FinanceEntryData = {
 // e concluido (a receber) são os dois únicos tons semânticos que typeMeta ainda não usa.
 const financeMeta: Record<"PAGAR" | "RECEBER", { dot: string; chip: string; filete: string; label: string }> = {
   PAGAR: { dot: "bg-atencao", chip: "bg-atencao/10 dark:bg-atencao/15 text-atencao", filete: "border-atencao", label: "Conta a Pagar" },
-  RECEBER: { dot: "bg-concluido", chip: "bg-concluido-bg text-concluido", filete: "border-concluido", label: "Conta a Receber" },
+  RECEBER: { dot: "bg-concluido", chip: "bg-concluido-bg text-concluido rounded-sm", filete: "border-concluido", label: "Conta a Receber" },
 };
 
 type Option = { id: string; name: string };
@@ -79,9 +79,9 @@ const MONTHS = [
 export const typeMeta: Record<string, { dot: string; chip: string; filete: string }> = {
   TAREFA: { dot: "bg-tx-2", chip: "bg-sf-apoio text-tx-2", filete: "border-tx-2" },
   EVENTO: { dot: "bg-acao", chip: "bg-acao-bg text-acao", filete: "border-acao" },
-  AUDIENCIA: { dot: "bg-marca", chip: "bg-marca-bg text-marca-tx", filete: "border-marca" },
-  PERICIA: { dot: "bg-aviso", chip: "bg-aviso-bg text-aviso", filete: "border-aviso" },
-  PRAZO: { dot: "bg-urgente", chip: "bg-urgente-bg text-urgente", filete: "border-urgente" },
+  AUDIENCIA: { dot: "bg-marca", chip: "bg-marca-bg text-marca-tx rounded-sm", filete: "border-marca" },
+  PERICIA: { dot: "bg-aviso", chip: "bg-aviso-bg text-aviso rounded-sm", filete: "border-aviso" },
+  PRAZO: { dot: "bg-urgente", chip: "bg-urgente-bg text-urgente rounded-sm", filete: "border-urgente" },
 };
 
 function ymd(d: Date) {
@@ -293,7 +293,7 @@ export default function AgendaView({
 // Prazo de segurança usa uma cor de aviso FIXA, sempre diferente da cor por tipo — é a mesma
 // tarefa do prazo fatal, mas o objetivo aqui é chamar atenção de urgência, não repetir a cor do
 // tipo (que já aparece no dia do prazo fatal).
-const safetyChip = "bg-aviso-bg text-aviso";
+const safetyChip = "bg-aviso-bg text-aviso rounded-sm";
 
 // Chip do calendário (mês/semana): filete esquerdo de 3px na cor do tipo — mesma régua usada no
 // card do Kanban (DESIGN-SYSTEM.md §7/§12), em vez da bolinha (que fica só na legenda "Cores por

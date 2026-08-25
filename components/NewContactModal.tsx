@@ -70,7 +70,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
           <form action={submit} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4">
               {error && (
-                <p className="text-xs text-urgente bg-urgente-bg px-3 py-2 mb-3">{error}</p>
+                <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2 mb-3">{error}</p>
               )}
               <div className={kind === "client" ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start" : "space-y-3"}>
                 <div className="space-y-3">

@@ -85,7 +85,7 @@ export default function ImportManualModal() {
                     value="Preencha “Autor” e “Réu” com os nomes das partes, e diga em “Papel do cliente” qual das duas é o seu cliente (ex: “Autor” ou “Réu”). O sistema identifica automaticamente quem é o cliente e quem é a parte contrária."
                   />
                 </div>
-                <p className="text-xs text-aviso bg-aviso-bg border border-aviso/25 px-3 py-2">
+                <p className="text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
                   Atenção: se “Autor” ou “Réu” estiverem preenchidos, eles têm prioridade — a coluna “Cliente” é ignorada nesse caso.
                 </p>
               </section>

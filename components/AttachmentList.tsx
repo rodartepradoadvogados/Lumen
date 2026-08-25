@@ -296,7 +296,7 @@ export default function AttachmentList({
             </button>
           )}
           {folderError && (
-            <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 px-2.5 py-1.5 mt-2">{folderError}</p>
+            <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">{folderError}</p>
           )}
         </div>
       )}
@@ -586,7 +586,7 @@ export default function AttachmentList({
       )}
 
       {!driveConnected && (
-        <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 px-2.5 py-1.5 mb-2">
+        <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5 mb-2">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações, ou cole um link manualmente abaixo.
         </p>
       )}
@@ -657,7 +657,7 @@ export default function AttachmentList({
       )}
 
       {error && (
-        <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 px-2.5 py-1.5 mt-2">
+        <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">
           {error}
         </p>
       )}

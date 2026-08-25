@@ -232,7 +232,7 @@ export default function NewTaskModal({
             </div>
 
             <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-end gap-3 bg-sf-apoio">
-              {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2 flex-1">{error}</p>}
+              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2 flex-1">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}

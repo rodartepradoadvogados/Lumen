@@ -131,7 +131,7 @@ export default function DeleteEntityButton({
       </button>
       {msg && (
         <span
-          className={`absolute right-0 top-full mt-1 z-10 w-64 text-[11px] px-2.5 py-1.5 shadow-pop border ${
+          className={`absolute right-0 top-full mt-1 z-10 w-64 text-[11px] px-2.5 py-1.5 shadow-pop rounded-lg border ${
             msg.type === "error"
               ? "bg-urgente-bg text-urgente border-urgente/20"
               : "bg-blue-50 dark:bg-blue-400/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-400/20"

@@ -83,7 +83,7 @@ export default function MobileSettleForm({
   }
 
   return (
-    <div className="w-full border border-concluido/25 bg-concluido-bg p-3 space-y-2.5">
+    <div className="w-full border border-concluido/25 bg-concluido-bg rounded-md p-3 space-y-2.5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-tx">Confirmar baixa</p>
         <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Cancelar">
@@ -134,7 +134,7 @@ export default function MobileSettleForm({
           </div>
         </div>
         {ficaParcial && (
-          <p className="text-[11px] text-aviso bg-aviso-bg px-2.5 py-1.5">
+          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-2.5 py-1.5">
             Valor menor que o saldo em aberto — esta conta ficará <strong>Parcial</strong>.
           </p>
         )}
@@ -166,7 +166,7 @@ export default function MobileSettleForm({
           <label className="text-[11px] font-medium text-tx-2">Nº do comprovante (opcional)</label>
           <input name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}

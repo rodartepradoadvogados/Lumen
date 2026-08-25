@@ -364,7 +364,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
         </div>
       </div>
 
-      {erro && <p className="text-sm text-urgente bg-urgente-bg px-3 py-2">{erro}</p>}
+      {erro && <p className="text-sm text-urgente bg-urgente-bg rounded-md px-3 py-2">{erro}</p>}
 
       {/* ---------------- RESULTADO ---------------- */}
       {resultado && (

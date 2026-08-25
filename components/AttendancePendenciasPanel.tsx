@@ -102,7 +102,7 @@ export default function AttendancePendenciasPanel({
             return (
               <div
                 key={p.id}
-                className={`flex items-start justify-between gap-3 border px-3 py-2 ${
+                className={`flex items-start justify-between gap-3 border rounded-md px-3 py-2 ${
                   overdue
                     ? "border-urgente/40 bg-urgente-bg"
                     : "border-regua bg-sf-apoio"

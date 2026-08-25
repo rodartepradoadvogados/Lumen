@@ -96,7 +96,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
 
   return (
     <div className="space-y-4 p-5">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <form onSubmit={handleUpload} className="flex gap-2 flex-wrap items-end border border-regua p-3">
         <div className="flex-1 min-w-[200px]">

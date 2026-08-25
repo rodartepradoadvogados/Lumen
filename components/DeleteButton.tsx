@@ -41,7 +41,7 @@ export default function DeleteButton({
         <Trash2 size={14} />
       </button>
       {error && (
-        <span className="absolute right-0 top-full mt-1 z-10 w-64 text-[11px] bg-urgente-bg text-urgente border border-regua px-2.5 py-1.5 shadow-pop">
+        <span className="absolute right-0 top-full mt-1 z-10 w-64 text-[11px] bg-urgente-bg text-urgente border border-regua px-2.5 py-1.5 shadow-pop rounded-lg">
           {error}
         </span>
       )}

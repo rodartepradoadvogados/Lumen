@@ -54,7 +54,7 @@ export default function AddUserForm() {
           {loading ? "Adicionando..." : "Adicionar membro"}
         </button>
       </div>
-      {error && <p className="text-xs text-urgente bg-urgente-bg px-2.5 py-1.5">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
     </form>
   );
 }

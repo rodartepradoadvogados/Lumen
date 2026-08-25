@@ -127,7 +127,7 @@ export default function RecursoEscalaPrompt({
                   className="w-full mt-1 border border-regua bg-sf text-tx px-3 py-2 text-sm"
                 />
               </div>
-              {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep("ASK")}

@@ -26,6 +26,26 @@ perguntar, não inventar um hex.
 >   suspensos/contêiner da tela).
 > - **Tipografia**: Inter no lugar de Archivo (`--font-sans`) — Archivo lia como reta/
 >   mecânica demais; Inter é neutra e discreta.
+>
+> **Sweep dos chips/avisos soltos (agosto/2026, terceira rodada).** O ajuste acima só chegou
+> aos componentes compartilhados (`Card`, botões, rail, guias, `ModalShell`) — os ~61 arquivos
+> com chip/badge/aviso de status construído com classe solta (`bg-aviso-bg`/`bg-urgente-bg`/
+> `bg-concluido-bg` fora desses componentes) ficaram de fora de propósito, para não arriscar
+> um resultado inconsistente numa passada só. Revisados um a um nesta rodada:
+> - **Chip/badge pequeno** (pílula curta, `px-2`/`px-2.5 py-0.5`/`py-1`): `rounded-sm` (4px).
+> - **Botão** (`<button>` com estado de seleção, ex.: desfecho do honorário): `rounded-md`
+>   (6px), mesma régua de `ButtonPrimary`/`ButtonSecondary`.
+> - **Aviso/erro inline** (mensagem de formulário, notice de Drive desconectado, caixa de
+>   conflitos): `rounded-md` (6px) — não é chip nem é cartão elevado, fica no meio da escala.
+> - **Popover flutuante** (`shadow-pop`, menu de confirmar exclusão): `rounded-lg` (10px) —
+>   mesmo nível de painel suspenso, regra 3 (`§0`: sombra só em coisa que flutua de verdade).
+> - **Painel/bloco destacado** (ex.: card de inadimplência em Relatórios): `rounded-lg` (10px).
+> - **Deixado de fora nesta rodada**: linha de tabela/menu suspenso/linha de lista corrida
+>   (ex.: `<tr>`, item de dropdown, linha da Central de Alertas) — canto arredondado numa
+>   única linha dentro de uma lista contínua quebra visualmente contra as vizinhas; e botão
+>   ícone-só com fundo só no hover (ex.: lápis/lixeira de ação rápida) — esse padrão está sem
+>   raio em TODO o produto, não só nos arquivos varridos aqui, e merece uma passada própria
+>   dedicada a ele, não uma correção incidental por acaso de cor.
 
 Dois temas: **Manhã** (claro) e **Noite** (escuro, classe `.dark` no `<html>`).
 Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.

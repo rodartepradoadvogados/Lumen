@@ -436,7 +436,7 @@ export default function LancarHonorariosModal({
                     <span className="font-semibold text-tx">{formatCurrency(caseAlreadyReceived)}</span>
                   </p>
                 )}
-                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
                 {prefill && (
                   <p className="text-xs text-marca-tx bg-marca-bg px-3 py-2">
@@ -653,7 +653,7 @@ export default function LancarHonorariosModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>
@@ -823,7 +823,7 @@ export default function LancarHonorariosModal({
 
                       {cobrancaHasPercentual &&
                         (!hasCase ? (
-                          <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                             A base do percentual será conhecida depois de escolher o processo, na seção Identificação, acima.
                           </p>
                         ) : baseValue ? (
@@ -833,7 +833,7 @@ export default function LancarHonorariosModal({
                             {" "}= <span className="font-semibold text-tx">{formatCurrency(percentualApurado)}</span> líquido de honorário
                           </p>
                         ) : (
-                          <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                             A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão a apurar (status
                             &quot;A apurar&quot;), fora do fluxo de caixa e do DRE, até alguém registrar o desfecho do processo.
                           </p>

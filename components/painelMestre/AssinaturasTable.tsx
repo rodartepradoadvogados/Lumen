@@ -226,8 +226,8 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
     <div>
       {(error || message) && (
         <div className="px-5 pt-4">
-          {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2 mb-2">{error}</p>}
-          {message && <p className="text-xs text-concluido bg-concluido-bg px-3 py-2 mb-2">{message}</p>}
+          {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2 mb-2">{error}</p>}
+          {message && <p className="text-xs text-concluido bg-concluido-bg rounded-md px-3 py-2 mb-2">{message}</p>}
         </div>
       )}
       <div className="overflow-x-auto">

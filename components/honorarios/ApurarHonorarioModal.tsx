@@ -146,7 +146,7 @@ export default function ApurarHonorarioModal({
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-              {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+              {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
               {bases.length > 1 && (
                 <div>
@@ -169,7 +169,7 @@ export default function ApurarHonorarioModal({
                       key={o.value}
                       type="button"
                       onClick={() => setDesfecho(o.value)}
-                      className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
+                      className={`text-xs font-semibold px-3 py-1.5 border rounded-md transition-colors ${
                         desfecho === o.value
                           ? o.value === "IMPROCEDENTE"
                             ? "bg-urgente-bg text-urgente border-regua-forte"
@@ -247,7 +247,7 @@ export default function ApurarHonorarioModal({
               )}
 
               {semExito && (
-                <p className="text-[11px] text-urgente bg-urgente-bg px-3 py-2">
+                <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">
                   Não gera receita. {itensDaBase.length} parcela(s) desta base serão encerradas (status Cancelado) — o registro não é
                   apagado, continua consultável no histórico financeiro do processo.
                 </p>

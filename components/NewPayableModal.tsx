@@ -364,7 +364,7 @@ export default function NewPayableModal({
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
-                {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+                {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
                 <div>
                   <label className={labelCls}>Descrição</label>
@@ -637,7 +637,7 @@ export default function NewPayableModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg px-3 py-1.5">
+                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>

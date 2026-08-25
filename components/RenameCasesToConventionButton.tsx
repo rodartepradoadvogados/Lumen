@@ -94,7 +94,7 @@ export default function RenameCasesToConventionButton() {
         <SquarePen size={16} /> {loadingPreview ? "Conferindo..." : 'Aplicar padrão "Cliente x Parte Adversa" aos processos existentes'}
       </button>
 
-      {error && <p className="text-xs text-urgente bg-urgente-bg px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       {result && (
         <div className="text-xs text-tx-2 bg-sf-apoio border border-regua px-3 py-2 space-y-2">
