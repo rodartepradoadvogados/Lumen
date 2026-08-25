@@ -86,7 +86,12 @@ const config: Config = {
         atencao: "var(--vinho)",
         // Texto sobre as superfícies que são grafite nos dois temas (rail, barra de menus da
         // Bancada, faixa de guias) — --tx-2 não serve ali, sumiria no tema Manhã.
-        rail: { tx: "var(--rail-tx)" },
+        rail: {
+          tx: "var(--rail-tx)",
+          // Item ativo do rail (pílula) — variante clara do bordô, fixa nos dois temas pelo
+          // mesmo motivo de rail.tx acima (ver comentário em app/globals.css).
+          marca: { DEFAULT: "var(--rail-marca)", bg: "var(--rail-marca-bg)" },
+        },
         menu: { tx: "var(--menu-tx)" },
         // Azul distinto do azul-tinta de ação, para o filete de fonte PJE não se confundir
         // com o do DJE (DESIGN-SYSTEM.md §9).
