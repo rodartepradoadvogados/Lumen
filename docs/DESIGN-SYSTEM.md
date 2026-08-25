@@ -15,6 +15,18 @@ perguntar, não inventar um hex.
 > área, atualize a seção correspondente aqui no mesmo PR, para nunca haver duas verdades no
 > repositório.
 
+> **Ajuste de tema (agosto/2026, segunda rodada).** Três mudanças em cima do Modernist puro
+> acima, já aplicadas em `app/globals.css`/`tailwind.config.ts`/`app/layout.tsx` (fonte real
+> de verdade — as tabelas de hex mais abaixo neste documento ainda não foram todas
+> varridas):
+> - **Cor de ação/marca**: bordô `#8a2f42` no lugar do vermelho-alaranjado `#ec3013` — mais
+>   suave, e com contraste melhor sobre branco (~8:1 vs ~4,2:1).
+> - **Raio**: deixou de ser zero. Escala em 3 paradas — `sm` (4px, chips/badges), `DEFAULT`/
+>   `md` (6px, botões/inputs/rail), `lg`/`xl`/`2xl`/`3xl` (10px, cartões/modais/painéis
+>   suspensos/contêiner da tela).
+> - **Tipografia**: Inter no lugar de Archivo (`--font-sans`) — Archivo lia como reta/
+>   mecânica demais; Inter é neutra e discreta.
+
 Dois temas: **Manhã** (claro) e **Noite** (escuro, classe `.dark` no `<html>`).
 Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.
 
@@ -24,8 +36,9 @@ Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.
 
 1. **Nenhum hex solto em componente.** Toda cor vem de `app/globals.css` (variável CSS) ou de
    `tailwind.config.ts` (escala). Um `#` dentro de `components/` ou `app/` é bug de revisão.
-2. **O vermelho (`--marca`/`--acao`) é a única cor de destaque do produto.** Não há ouro nem
-   azul-tinta no sistema Modernist. Raio zero em toda superfície de interface.
+2. **O bordô (`--marca`/`--acao`) é a única cor de destaque do produto.** Não há ouro nem
+   azul-tinta no sistema Modernist. Raio em 3 paradas (4/6/10px conforme a superfície — ver
+   nota de ajuste de tema no topo do documento), não mais zero.
 3. **Sombra só em coisa que flutua de verdade.** Modal, menu suspenso e card sendo arrastado.
    Cartão parado se separa por régua, não por sombra.
 
@@ -39,16 +52,17 @@ Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.
 
 | Escala | 300 (hover) | 500 (base) | 700 (escuro/destrutivo) |
 |---|---|---|---|
-| **vermelho** (`--acao`/`--marca`/`--vinho`) | `#fb3f22` | `#ec3013` | `#ae1800` |
+| **bordô** (`--acao`/`--marca`) | `#9c3a4d` | `#8a2f42` | — |
+| **vinho** (`--vinho`, só ação destrutiva — não é a marca) | — | — | `#ae1800` |
 
 O rail é a única superfície que continua fixa em grafite (`#16191d`) nos dois temas — ver
 `components/NavRail.tsx` e o documento 02.
 
 > **Ouro e azul-tinta saíram da paleta.** O modelo B ("Modernist puro") do documento 01
-> substitui os dois pelo vermelho único acima — `--acao` e `--marca` resolvem para o mesmo
+> substitui os dois pelo bordô único acima — `--acao` e `--marca` resolvem para o mesmo
 > hex. As classes legadas `gold-*`/`bordo-*`/`magenta-*` continuam existindo em
 > `tailwind.config.ts` só para não quebrar componentes ainda não migrados, e já apontam para
-> esta escala vermelha.
+> esta escala.
 
 ---
 
@@ -58,21 +72,21 @@ São estes os nomes que os componentes usam. A escala base só aparece na defini
 
 | Token | Manhã | Noite | Papel |
 |---|---|---|---|
-| `--sf-fundo` | `#f3f2f2` | `#0f1216` | Fundo da janela |
-| `--sf-superficie` | `#ffffff` | `#161a1f` | Cartão, painel, barra |
-| `--sf-apoio` | `#eae9e9` | `#1b2026` | Cabeçalho de tabela, linha ativa, campo |
-| `--regua` | `#d7d3d3` | `#272d34` | Divisor de 1px |
-| `--regua-forte` | `#bab6b6` | `#39414a` | Borda de contêiner, moldura |
-| `--tx` | `#201e1d` | `#e6eaee` | Texto corrido |
-| `--tx-2` | `#605d5d` | `#98a1ab` | Rótulo, metadado |
-| `--tx-3` | `#9b9797` | `#79828c` | Texto desabilitado, placeholder |
-| `--acao` | `#ec3013` | `#ec3013` | Ação primária, aba ativa — não retematiza |
-| `--acao-hover` | `#fb3f22` | `#fb3f22` | Estado hover da ação |
-| `--acao-tx` | `#16191d` | `#16191d` | **Texto sobre `--acao`** — nunca `#fff` cravado |
-| `--acao-bg` | `rgba(236,48,19,.08)` | `rgba(236,48,19,.16)` | Fundo de chip informativo |
-| `--marca` | `#ec3013` | `#ec3013` | Marca e indicador de seção ativa — não retematiza |
-| `--marca-tx` | `#ae1800` | `#ec3013` | Vermelho **quando precisa ser texto** |
-| `--marca-bg` | `rgba(236,48,19,.15)` | `rgba(236,48,19,.18)` | Fundo de chip da marca |
+| `--sf-fundo` | `#f3f2f2` | `#14161c` | Fundo da janela |
+| `--sf-superficie` | `#ffffff` | `#1c1f27` | Cartão, painel, barra |
+| `--sf-apoio` | `#eae9e9` | `#262b35` | Cabeçalho de tabela, linha ativa, campo |
+| `--regua` | `#d7d3d3` | `#333844` | Divisor de 1px |
+| `--regua-forte` | `#bab6b6` | `#414755` | Borda de contêiner, moldura |
+| `--tx` | `#201e1d` | `#eef1f5` | Texto corrido |
+| `--tx-2` | `#605d5d` | `#a3aab6` | Rótulo, metadado |
+| `--tx-3` | `#9b9797` | `#767e8c` | Texto desabilitado, placeholder |
+| `--acao` | `#8a2f42` | `#8a2f42` | Ação primária, aba ativa — não retematiza |
+| `--acao-hover` | `#9c3a4d` | `#9c3a4d` | Estado hover da ação |
+| `--acao-tx` | `#f7eef0` | `#f7eef0` | **Texto sobre `--acao`** — claro nos dois temas (bordô é escuro demais para texto escuro em cima) |
+| `--acao-bg` | `rgba(138,47,66,.08)` | `rgba(138,47,66,.16)` | Fundo de chip informativo |
+| `--marca` | `#8a2f42` | `#8a2f42` | Marca e indicador de seção ativa — não retematiza |
+| `--marca-tx` | `= --marca` | `#c9707f` | Bordô **quando precisa ser texto/filete** — na Noite precisa de um tom mais claro (o sólido some contra o fundo escuro); na Manhã o sólido já contrasta bem sozinho |
+| `--marca-bg` | `rgba(138,47,66,.15)` | `rgba(138,47,66,.18)` | Fundo de chip da marca |
 | `--vinho` | `#ae1800` | `#ae1800` | **Ação destrutiva** — não retematiza |
 | `--urgente` | `#b3261e` | `#e2685a` | Vencido, atrasado, prazo estourado |
 | `--urgente-bg` | `rgba(179,38,30,.10)` | `rgba(226,104,90,.14)` | |
@@ -191,7 +205,8 @@ Fundo `--sf-superficie`, borda inferior `--regua`. Aba ativa: peso 600, `--tx`,
 > descreve o desenho anterior à cor de ação do modelo B — vale só a FORMA (borda/raio/
 > alinhamento), não a cor azul-tinta citada nos exemplos.
 
-Altura 32px no desktop, 26px em barra compacta. Raio **0**. Peso 600. Ícone 12–14px.
+Altura 32px no desktop, 26px em barra compacta. Raio **6px** (ajuste de tema, ver topo do
+documento — era 0). Peso 600. Ícone 12–14px.
 
 | Tipo | Fundo | Texto | Borda | Onde |
 |---|---|---|---|---|
@@ -392,9 +407,11 @@ O card é a única coisa branca da coluna — é isso que comunica que ele é o 
 
 ## 13. Superfícies, raios e sombras
 
-Raio zero em `tailwind.config.ts` desde a Fase 01/PR2 — a escala inteira (`sm`/`DEFAULT`/
-`md`/`lg`/`xl`/`2xl`/`3xl`) resolve a `0`; só `rounded-full` sobrevive (não redeclarado,
-segue o padrão do Tailwind), para avatar e **badge de contagem**. O padrão de cartão
+Raio em 3 paradas em `tailwind.config.ts` desde o ajuste de tema (ver topo do documento) —
+`sm` resolve a `4px` (chips/badges), `DEFAULT`/`md` a `6px` (botões/inputs/rail),
+`lg`/`xl`/`2xl`/`3xl` a `10px` (cartões/modais/painéis suspensos/contêiner da tela); só
+`rounded-full` sobrevive à parte (não redeclarado, segue o padrão do Tailwind), para avatar e
+**badge de contagem**. O padrão de cartão
 também mudou: em vez de borda de 1px nas quatro arestas, **filete de 2px no topo** em
 `--regua-forte` (ou na cor de severidade, quando houver — ex.: KPI de inadimplência em
 `--urgente`) e sem borda nas outras arestas — ver `Card`/`CardHeader` em

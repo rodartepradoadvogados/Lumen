@@ -300,7 +300,7 @@ function FilaCard({ group, selected, onSelect }: { group: TriageGroup; selected:
       type="button"
       onClick={onSelect}
       className={clsx(
-        "block w-full text-left px-4 py-3 border-l-4 transition-colors",
+        "block w-full text-left px-4 py-3 border-l-4 rounded-lg transition-colors",
         sourceBorderColor(pub.source),
         selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio/60"
       )}
@@ -321,7 +321,7 @@ function FilaCard({ group, selected, onSelect }: { group: TriageGroup; selected:
       {pub.case ? (
         <p className="text-[13px] font-extrabold text-tx mt-1 truncate">{pub.case.title}</p>
       ) : (
-        <span className="inline-block mt-1.5 text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5">
+        <span className="inline-block mt-1.5 text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5 rounded-sm">
           sem processo vinculado{pub.tribunalDetectado && ` · ${pub.tribunalDetectado}`}
         </span>
       )}
@@ -371,7 +371,7 @@ function Teor({
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
           {!pub.case && pub.tribunalDetectado && (
-            <span className="text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5">
+            <span className="text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5 rounded-sm">
               Tribunal identificado pelo número: {pub.tribunalDetectado}
             </span>
           )}
@@ -402,7 +402,7 @@ function Teor({
             type="button"
             disabled={busy}
             onClick={onCriarTarefa}
-            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2"
+            className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 rounded-md"
           >
             <CalendarClock size={15} /> Criar tarefa com prazo
           </button>
@@ -411,7 +411,7 @@ function Teor({
               type="button"
               disabled={busy}
               onClick={onVincular}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 rounded-md disabled:opacity-50"
             >
               <FilePlus2 size={15} /> Vincular a processo
             </button>
@@ -420,7 +420,7 @@ function Teor({
             type="button"
             disabled={busy}
             onClick={onDelegar}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 rounded-md disabled:opacity-50"
           >
             <UserPlus size={15} /> Delegar
           </button>
@@ -428,7 +428,7 @@ function Teor({
             type="button"
             disabled={busy}
             onClick={onArquivar}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 rounded-md disabled:opacity-50"
           >
             <Archive size={15} /> Arquivar
           </button>
@@ -437,7 +437,7 @@ function Teor({
             disabled={busy || group.allRead}
             onClick={onMarcarLida}
             title="Some da fila Não triadas só para você — os outros colegas do escritório continuam vendo"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2 rounded-md disabled:opacity-50"
           >
             <CheckCheck size={15} /> {group.allRead ? "Lida" : "Marcar como lida"}
           </button>

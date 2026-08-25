@@ -5,10 +5,11 @@
 /* ============================================================================
    TOKENS LÚMEN — fonte única de verdade das cores.
    Redesenho Modernist (agosto/2026) — ver design_handoff_lumen_redesign/01-tokens-e-tema.md.
-   Modelo aplicado: B ("Modernist puro" do documento 01) — o vermelho #ec3013 do
-   Modernist é a cor de ação E de marca; não há ouro nem azul-tinta neste sistema.
-   A especificação completa está em docs/DESIGN-SYSTEM.md. Nenhum hex vive dentro
-   de um componente: ou vem daqui, ou vem das escalas do tailwind.config.ts (que
+   Ajuste de tema (agosto/2026, segunda rodada): a cor de ação/marca passou do
+   vermelho-alaranjado #ec3013 para um bordô #8a2f42 — mais suave, menos agressivo, e
+   com contraste melhor sobre branco (~8:1 vs ~4,2:1). Não há ouro nem azul-tinta neste
+   sistema. A especificação completa está em docs/DESIGN-SYSTEM.md. Nenhum hex vive
+   dentro de um componente: ou vem daqui, ou vem das escalas do tailwind.config.ts (que
    apontam para estes mesmos valores).
 
    Dois temas e só dois: Manhã (:root) e Noite (.dark no <html>, ver lib/theme.ts).
@@ -39,27 +40,23 @@
   --tx-2: #605d5d;
   --tx-3: #9b9797;
 
-  /* Ação e marca, modelo B: o vermelho Modernist #ec3013 é a única cor de destaque do
-     produto — não muda entre Manhã e Noite (ver documento 01, "é uma mudança de três
-     linhas"). --acao-tx/--acao-hover/--acao-bg e --marca-tx/--marca-bg são DERIVADOS
-     por mim a partir dele, seguindo o mesmo padrão de contraste/alpha que o documento já
-     usa para os demais pares base/-bg — o documento não deu esses valores prontos.
-     --acao-tx escuro (não branco): sobre #ec3013 o texto escuro contrasta um pouco melhor
-     que o branco (≈4,46:1 vs ≈4,20:1) e é o mesmo par cor-de-marca/texto-escuro que o
-     documento 09 já usa explicitamente no bloco em pôster do site. */
-  --acao: #ec3013;
-  --acao-hover: #fb3f22;
-  --acao-tx: #16191d;
-  --acao-bg: rgba(236, 48, 19, 0.08);
+  /* Ação e marca: o bordô #8a2f42 é a única cor de destaque do produto — não muda entre
+     Manhã e Noite (mesmo princípio do vermelho Modernist que ele substituiu). --acao-tx
+     precisa ser CLARO (não escuro): o bordô é escuro o bastante que texto escuro sobre
+     ele quase não contrasta — o par antigo (texto escuro sobre vermelho-alaranjado
+     claro) não se aplica mais. */
+  --acao: #8a2f42;
+  --acao-hover: #9c3a4d;
+  --acao-tx: #f7eef0;
+  --acao-bg: rgba(138, 47, 66, 0.08);
 
-  --marca: #ec3013;
-  /* --marca-tx (vermelho como TEXTO, não como fundo) precisa de contraste por tema: o
-     vermelho puro só rende ~4,2:1 sobre branco (Manhã), por isso usa a variante escura
-     --vinho aqui; sobre o fundo quase-preto do Noite o vermelho puro já contrasta bem
-     (~4,4:1) e é reaproveitado direto — mesmo padrão do documento 01 (marca-tx = marca no
-     Noite, mais escuro que a marca no Manhã). */
-  --marca-tx: #ae1800;
-  --marca-bg: rgba(236, 48, 19, 0.15);
+  --marca: #8a2f42;
+  /* --marca-tx (bordô como TEXTO/filete, não como fundo) na Manhã pode ser igual a
+     --marca: sobre branco o bordô já rende ~8:1, melhor que o vermelho-alaranjado antigo
+     (~4,2:1) — não precisa mais de uma variante escurecida à parte (ver .dark abaixo,
+     onde a Noite ainda precisa de uma variante CLARA, pelo motivo oposto). */
+  --marca-tx: var(--marca);
+  --marca-bg: rgba(138, 47, 66, 0.15);
 
   /* Vinho é a única outra cor de marca: ação destrutiva. Modelo B: #ae1800 (documento 01),
      não muda entre temas. Não confundir com --urgente, que é DADO (algo venceu). */
@@ -91,26 +88,33 @@
 }
 
 .dark {
-  --sf-fundo: #0f1216;
-  --sf-superficie: #161a1f;
-  --sf-apoio: #1b2026;
-  --regua: #272d34;
-  --regua-forte: #39414a;
+  /* Camadas de fundo com degraus mais perceptíveis que antes (era #0f1216 → #161a1f →
+     #1b2026, uma diferença pequena demais para ler como profundidade real) — mesma
+     família de grafite-azulado, só mais espaçada. */
+  --sf-fundo: #14161c;
+  --sf-superficie: #1c1f27;
+  --sf-apoio: #262b35;
+  --regua: #333844;
+  --regua-forte: #414755;
 
-  --tx: #e6eaee;
-  --tx-2: #98a1ab;
-  --tx-3: #79828c;
+  --tx: #eef1f5;
+  --tx-2: #a3aab6;
+  --tx-3: #767e8c;
 
   /* --acao/--marca/--vinho não retematizam (ver :root) — só os derivados de -bg/-tx que
      dependem do fundo do tema mudam aqui. */
-  --acao: #ec3013;
-  --acao-hover: #fb3f22;
-  --acao-tx: #16191d;
-  --acao-bg: rgba(236, 48, 19, 0.16);
+  --acao: #8a2f42;
+  --acao-hover: #9c3a4d;
+  --acao-tx: #f7eef0;
+  --acao-bg: rgba(138, 47, 66, 0.16);
 
-  --marca: #ec3013;
-  --marca-tx: #ec3013;
-  --marca-bg: rgba(236, 48, 19, 0.18);
+  --marca: #8a2f42;
+  /* Aqui, diferente da Manhã, --marca-tx PRECISA ficar diferente de --marca: o bordô
+     sólido só rende ~2,3:1 sobre o novo fundo #14161c (ilegível como texto/filete). Esta
+     é uma variante mais clara, só para uso como texto/borda — o preenchimento de botão
+     continua no bordô sólido (--acao/--marca). */
+  --marca-tx: #c9707f;
+  --marca-bg: rgba(138, 47, 66, 0.18);
 
   --vinho: #ae1800;
 
