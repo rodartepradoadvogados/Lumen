@@ -378,13 +378,13 @@ function MonthView({
           {MONTHS[month]} {year}
         </h3>
         <div className="flex items-center gap-1">
-          <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80">
+          <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronLeft size={18} />
           </Link>
           <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80">
+          <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -467,13 +467,13 @@ function WeekView({
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
-          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80">
+          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronLeft size={18} />
           </Link>
           <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80">
+          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronRight size={18} />
           </Link>
         </div>

@@ -128,7 +128,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
                   onClick={() => handleRemove(t.id, t.termo)}
                   disabled={pending}
                   title="Excluir termo"
-                  className="p-1.5 text-tx-3 hover:text-atencao hover:bg-sf-apoio transition-colors"
+                  className="p-1.5 text-tx-3 hover:text-atencao hover:bg-sf-apoio transition-colors rounded-md"
                 >
                   <Trash2 size={14} />
                 </button>

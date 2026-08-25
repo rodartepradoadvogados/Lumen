@@ -110,7 +110,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
       data-tip={`Tema: ${THEME_LABEL[mode]} (clique p/ ${nextLabel})`}
       data-tip-pos="bottom"
       aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-      className="p-2 hover:bg-sf-apoio transition-colors text-tx"
+      className="p-2 hover:bg-sf-apoio transition-colors text-tx rounded-md"
     >
       <Icon size={20} />
     </button>

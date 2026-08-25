@@ -47,7 +47,7 @@ export default function BulkSettleBar({
             >
               <CheckCheck size={14} /> Dar Baixa em Bloco
             </button>
-            <button onClick={onClear} data-tip="Limpar seleção" className="p-2 text-white/60 hover:text-white hover:bg-white/10">
+            <button onClick={onClear} data-tip="Limpar seleção" className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-md">
               <X size={16} />
             </button>
           </div>

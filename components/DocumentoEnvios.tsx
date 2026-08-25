@@ -495,7 +495,7 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
                     onClick={() => handleExcluir(envio.id)}
                     disabled={pendingId === envio.id}
                     title="Excluir registro"
-                    className="text-tx-3 hover:text-atencao p-1.5 hover:bg-atencao/10 disabled:opacity-50"
+                    className="text-tx-3 hover:text-atencao p-1.5 hover:bg-atencao/10 disabled:opacity-50 rounded-md"
                   >
                     <Trash2 size={13} />
                   </button>

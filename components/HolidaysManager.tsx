@@ -98,10 +98,10 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
       <p className="text-sm text-tx flex-1 min-w-0 truncate">{holiday.name}</p>
       <span className="text-[11px] font-semibold text-tx-2 shrink-0">{SCOPE_LABELS[holiday.scope] ?? holiday.scope}</span>
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio">
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio rounded-md">
           <Pencil size={14} />
         </button>
-        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 disabled:opacity-40">
+        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 disabled:opacity-40 rounded-md">
           <Trash2 size={14} />
         </button>
       </div>

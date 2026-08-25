@@ -208,7 +208,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
                   text={item.content}
                   label="Copiar conteúdo"
                   showLabel={false}
-                  className="shrink-0 p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors"
+                  className="shrink-0 p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md"
                 />
               </div>
               <p className="text-sm text-tx whitespace-pre-wrap">{item.content}</p>

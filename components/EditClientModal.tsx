@@ -31,7 +31,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} data-tip="Editar cliente" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors">
+      <button onClick={() => setOpen(true)} data-tip="Editar cliente" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
         <Pencil size={14} />
       </button>
       {open && (

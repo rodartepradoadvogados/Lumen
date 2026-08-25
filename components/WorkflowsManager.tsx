@@ -87,7 +87,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
               onClick={() => run(() => toggleWorkflowActive(tpl.id))}
               disabled={pending}
               data-tip={tpl.active ? "Inativar" : "Ativar"}
-              className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40"
+              className="p-1.5 text-tx-3 hover:text-aviso hover:bg-aviso-bg transition-colors disabled:opacity-40 rounded-md"
             >
               <Power size={14} />
             </button>
@@ -97,7 +97,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
               }}
               disabled={pending}
               data-tip="Excluir workflow"
-              className="p-1.5 text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"
+              className="p-1.5 text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40 rounded-md"
             >
               <Trash2 size={14} />
             </button>
@@ -125,7 +125,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
                       }}
                       disabled={pending}
                       data-tip="Excluir passo"
-                      className="p-1 text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40"
+                      className="p-1 text-tx-3 hover:text-vinho hover:bg-sf-apoio transition-colors disabled:opacity-40 rounded-md"
                     >
                       <Trash2 size={13} />
                     </button>

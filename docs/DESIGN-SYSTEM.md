@@ -42,21 +42,26 @@ perguntar, não inventar um hex.
 > - **Painel/bloco destacado** (ex.: card de inadimplência em Relatórios): `rounded-lg` (10px).
 > - **Deixado de fora nesta rodada**: linha de tabela/menu suspenso/linha de lista corrida
 >   (ex.: `<tr>`, item de dropdown, linha da Central de Alertas) — canto arredondado numa
->   única linha dentro de uma lista contínua quebra visualmente contra as vizinhas; e botão
->   ícone-só com fundo só no hover (ex.: lápis/lixeira de ação rápida) — esse padrão está sem
->   raio em TODO o produto, não só nos arquivos varridos aqui, e merece uma passada própria
->   dedicada a ele, não uma correção incidental por acaso de cor.
+>   única linha dentro de uma lista contínua quebra visualmente contra as vizinhas.
 >
 > **Chip de conclusão (agosto/2026, quarta rodada).** `ConclusionChip` (`components/ui.tsx`):
 > check + rótulo, `rounded-sm` (4px), reaproveita `--concluido`/`--concluido-bg` (o mesmo verde
 > do `Badge` `green` — nenhum token novo). Pensado como componente espalhável, não como tela
-> nova — pilotado em: tarefa/compromisso concluído (`TaskActivityRow`, `AgendaView`
-> `DayPanelTaskRow`, `MobileAgendaTaskRow` — "Audiência realizada" só para o tipo Audiência,
-> "Prazo cumprido" para os demais, ver `taskConclusionLabel`) e status financeiro `PAGO`
-> (`FinanceStatusBadge`, agora com prop `kind: "payable" | "receivable"` — "Conta paga" vs
-> "Conta recebida"). Nos dois casos substitui o Badge de tipo/status só quando o item está
-> concluído; nos outros estados a tela continua exatamente como era. "Meta batida" ficou de
-> fora de propósito — o Lúmen ainda não tem uma feature de metas.
+> nova — hoje em: tarefa/compromisso concluído (`TaskActivityRow`, `AgendaView`
+> `DayPanelTaskRow`, `MobileAgendaTaskRow`, `KanbanBoard`, atendimento — "Audiência realizada"
+> só para o tipo Audiência, "Prazo cumprido" para os demais, ver `taskConclusionLabel`) e
+> status financeiro `PAGO` (`FinanceStatusBadge`, com prop `kind: "payable" | "receivable"` —
+> "Conta paga" vs "Conta recebida"; todo call site do produto, desktop e app, passa por ele —
+> não sobrou nenhum lugar lendo `financeStatusColors` direto). Nos dois casos substitui o Badge
+> de tipo/status só quando o item está concluído; nos outros estados a tela continua exatamente
+> como era. Deixado de fora de propósito: a tabela de pontuação em Produtividade (o tipo da
+> tarefa é o eixo do relatório ali, não faz sentido esconder atrás do chip) e "Meta batida" — o
+> Lúmen ainda não tem uma feature de metas.
+>
+> **Botão ícone-só (agosto/2026, quinta rodada).** O padrão apontado como pendente na rodada 3
+> (lápis/lixeira/paginação com fundo só no hover) recebeu `rounded-md` (6px, mesma régua de
+> `ButtonPrimary`/`ButtonSecondary`) em todo o produto — não só nos arquivos que tinham chip de
+> status.
 
 Dois temas: **Manhã** (claro) e **Noite** (escuro, classe `.dark` no `<html>`).
 Só existem esses dois — Dia/Tarde foram removidos antes desta rodada.

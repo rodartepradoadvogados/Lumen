@@ -125,7 +125,7 @@ export default function DeleteEntityButton({
         }}
         disabled={pending}
         data-tip="Excluir"
-        className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40"
+        className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40 rounded-md"
       >
         <Trash2 size={14} />
       </button>

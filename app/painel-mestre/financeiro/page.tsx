@@ -79,11 +79,11 @@ export default async function FinanceiroLumenPage({
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <Link href={prevHref} className="p-1.5 hover:bg-white/5 text-white/70">
+          <Link href={prevHref} className="p-1.5 hover:bg-white/5 text-white/70 rounded-md">
             <ChevronLeft size={18} />
           </Link>
           <span className="text-sm font-semibold text-white px-2 min-w-[9rem] text-center">{labelCompetencia(mesFoco)}</span>
-          <Link href={nextHref} className="p-1.5 hover:bg-white/5 text-white/70">
+          <Link href={nextHref} className="p-1.5 hover:bg-white/5 text-white/70 rounded-md">
             <ChevronRight size={18} />
           </Link>
         </div>
