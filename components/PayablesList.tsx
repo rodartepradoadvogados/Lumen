@@ -151,7 +151,7 @@ export default function PayablesList({
                 {p.reimbursementReceivable && (
                   <p className="text-[11px] text-tx-2 mt-1 flex items-center gap-1.5">
                     ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)}
-                    <FinanceStatusBadge status={p.reimbursementReceivable.status} />
+                    <FinanceStatusBadge status={p.reimbursementReceivable.status} kind="receivable" />
                   </p>
                 )}
               </div>
@@ -170,7 +170,7 @@ export default function PayablesList({
                   <p className="text-xs text-tx-3">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
                 </div>
                 <div className="shrink-0 sm:w-24">
-                  <FinanceStatusBadge status={p.effectiveStatus} />
+                  <FinanceStatusBadge status={p.effectiveStatus} kind="payable" />
                 </div>
               </div>
               <div className="shrink-0 flex items-center gap-1">

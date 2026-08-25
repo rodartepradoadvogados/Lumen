@@ -6,7 +6,7 @@ import TaskDetailModal from "@/components/TaskDetailModal";
 import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, formatCalendarDate, taskTypeColors, taskTypeLabels, priorityColors } from "@/components/ui";
+import { Badge, ConclusionChip, formatCalendarDate, taskConclusionLabel, taskTypeColors, taskTypeLabels, priorityColors } from "@/components/ui";
 import { Check, MessageSquare } from "lucide-react";
 
 // Linha da aba Atividades do processo, em estilo "card Trello": clicar no título abre o mesmo
@@ -61,8 +61,14 @@ export default function TaskActivityRow({
       <div className="min-w-0 flex-1">
         <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>
-            <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>
+            {done ? (
+              <ConclusionChip>{taskConclusionLabel(task.type)}</ConclusionChip>
+            ) : (
+              <>
+                <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>
+                <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>
+              </>
+            )}
             <p
               className={`text-sm font-medium text-tx ${
                 task.status === "CONCLUIDO" ? "line-through text-tx-3" : ""

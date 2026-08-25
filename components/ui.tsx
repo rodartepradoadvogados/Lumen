@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { ButtonHTMLAttributes, ReactNode } from "react";
+import { Check } from "lucide-react";
 
 // Botões do redesenho Modernist (design_handoff_lumen_redesign/01-tokens-e-tema.md, seção
 // "Botões"): primário usa a cor de AÇÃO (--acao/--acao-tx — nunca marca, nunca vinho fora da
@@ -97,6 +98,26 @@ export function Badge({ children, color = "slate", className }: { children: Reac
   );
 }
 
+// Chip de conclusão — "prazo cumprido", "audiência realizada", "conta paga/recebida": reaproveita
+// --concluido/--concluido-bg (o mesmo verde já usado no Badge "green" acima) num formato mais
+// celebrativo que um Badge comum, para o desfecho positivo se destacar numa lista em vez de virar
+// só mais uma pílula cinza. Não é uma tela nova — é este componente espalhado onde fizer sentido
+// (tarefa/compromisso concluído, conta paga/recebida). "Meta batida" ficou de fora de propósito:
+// o Lúmen ainda não tem uma feature de metas.
+export function ConclusionChip({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold whitespace-nowrap bg-concluido-bg text-concluido",
+        className
+      )}
+    >
+      <Check size={11} strokeWidth={3} className="shrink-0" />
+      {children}
+    </span>
+  );
+}
+
 export function StatCard({
   label,
   value,
@@ -187,6 +208,13 @@ export const taskTypeLabels: Record<string, string> = {
   PERICIA: "Perícia",
   PRAZO: "Prazo",
 };
+
+// Rótulo do ConclusionChip (acima) para uma tarefa/compromisso concluído — "Audiência realizada"
+// só para o tipo Audiência, "Prazo cumprido" para todos os outros tipos (Tarefa, Evento, Perícia,
+// Prazo propriamente dito).
+export function taskConclusionLabel(type: string): string {
+  return type === "AUDIENCIA" ? "Audiência realizada" : "Prazo cumprido";
+}
 
 // Ver DESIGN-SYSTEM.md §7 — a cor de cada tipo de tarefa aparece em três formas (bolinha de
 // legenda, chip e filete de 3px no Kanban/calendário), sempre a partir deste mapa.

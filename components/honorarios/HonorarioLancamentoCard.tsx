@@ -250,7 +250,7 @@ export default function HonorarioLancamentoCard({
                     {isApurar ? "—" : formatCurrency(liquido)}
                   </p>
                   {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
-                  <FinanceStatusBadge status={p.status} />
+                  <FinanceStatusBadge status={p.status} kind="receivable" />
                 </div>
                 {!isApurar && (
                   <SettleButton id={p.id} kind="receivable" liquido={liquido} alreadyPaid={p.paidSum} status={p.status} bankAccounts={bankAccounts} />

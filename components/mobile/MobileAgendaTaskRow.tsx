@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Clock } from "lucide-react";
-import { Badge, taskTypeLabels, taskTypeColors } from "@/components/ui";
+import { Badge, ConclusionChip, taskConclusionLabel, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import TaskDetailModal from "@/components/TaskDetailModal";
 
@@ -47,7 +47,11 @@ export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
       </div>
       <button type="button" onClick={() => setOpen(true)} className="min-w-0 flex-1 text-left">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
+          {done ? (
+            <ConclusionChip>{taskConclusionLabel(t.type)}</ConclusionChip>
+          ) : (
+            <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
+          )}
           {t.dueTime && (
             <span className="flex items-center gap-1 text-xs font-semibold text-tx-2">
               <Clock size={12} /> {t.dueTime}
