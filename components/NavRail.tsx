@@ -179,7 +179,7 @@ function RailButton({
       onClick={onClick}
       data-tip={label}
       className={clsx(
-        "relative w-full flex flex-col items-center gap-0.5 py-2.5 border-l-4 transition-colors",
+        "relative w-full flex flex-col items-center gap-0.5 py-2.5 border-l-4 rounded-md transition-colors",
         active
           ? // Item ativo é fixo nos dois temas (o rail nunca clareia) — documento 02 do handoff:
             // fundo #2d2b2b (== neutro-900, mesma rampa do documento 01), filete de marca, texto

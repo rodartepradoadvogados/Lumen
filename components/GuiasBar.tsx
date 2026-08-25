@@ -61,7 +61,7 @@ function Chip({
         // recebe mais espaço e o nome completo cabe sem truncar (pedido do dono do produto,
         // combinado com o teto de 5 guias em TabsProvider.tsx) — truncate continua como rede de
         // segurança pra nome mesmo assim maior que o teto de largura.
-        "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-[11px] font-semibold border-t-2 transition-colors",
+        "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-[11px] font-semibold border-t-2 rounded-t-lg transition-colors",
         active ? "bg-sf text-tx border-acao" : "text-rail-tx border-transparent hover:text-white"
       )}
     >
