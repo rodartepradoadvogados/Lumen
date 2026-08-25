@@ -1,21 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Voz tipográfica única da marca Lúmen (manual v2, ver docs/DESIGN-SYSTEM.md §14): Archivo do
-// título ao número de processo. A serifa (Cormorant Garamond) saiu — em tela cheia de dados ela
-// reduz legibilidade e era a principal responsável pela sensação de material antigo.
+// Voz tipográfica da marca Lúmen (ajuste de tema, agosto/2026): Inter do título ao número de
+// processo, no lugar de Archivo — mesmo motivo que tirou a serifa antes (legibilidade em tela
+// cheia de dados), mas Archivo lia como reta/mecânica demais; Inter é neutra e discreta, deixa
+// o conteúdo falar.
 //
-// `--` continua existindo e apontando para Archivo de propósito: 107 arquivos ainda
-// usam ``, e mantê-la como apelido faz todos eles renderizarem na fonte nova sem
+// `--font-sans` continua existindo e apontando para Inter de propósito: 107 arquivos ainda
+// usam `font-serif`, e mantê-la como apelido faz todos eles renderizarem na fonte nova sem
 // precisar de um commit gigante. A classe é removida arquivo a arquivo na migração por área,
 // e só então a variável sai daqui e do tailwind.config.ts.
-const archivo = Archivo({
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -39,7 +40,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       {/* `brand-texture` saiu: o grid dourado de fundo competia com o texto em leitura longa
           (DESIGN-SYSTEM.md §13). O fundo agora vem de --sf-fundo, em globals.css. */}
-      <body className={`${archivo.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         {/* Script anti-flash: decide se a classe `dark` entra no <html> antes da hidratação
             (mesmo padrão de app/m/layout.tsx, adaptado para os 3 estados dia/tarde/noite). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

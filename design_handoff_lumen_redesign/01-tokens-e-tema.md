@@ -11,6 +11,14 @@ Este documento é a **fonte única de verdade** de cor, tipografia, raio, régua
 redesenho. Substitui as seções §1, §2, §13 e §14 de `docs/DESIGN-SYSTEM.md` — atualize
 aquele arquivo no mesmo PR, para não haver duas verdades no repositório.
 
+> **Ajuste de tema (agosto/2026, segunda rodada) — supersede este documento em 3 pontos:**
+> cor de ação/marca virou bordô `#8a2f42` (era `#ec3013`); o raio deixou de ser zero — passa
+> a ter 3 paradas (4px chips/badges, 6px botões/inputs, 10px cartões/modais/painéis/
+> contêiner da tela); tipografia virou Inter (era Archivo). Fonte real de verdade agora é
+> `app/globals.css`/`tailwind.config.ts`/`app/layout.tsx` — ver `docs/DESIGN-SYSTEM.md` (nota
+> no topo) para a tabela completa. O resto deste documento (régua, sombra, decisão de manter
+> só duas cores de destaque) continua valendo.
+
 ## A decisão de marca
 
 Duas leituras foram apresentadas. **A versão aprovada é a A.**

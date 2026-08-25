@@ -1,9 +1,10 @@
 import type { Config } from "tailwindcss";
 
-// Paleta do redesenho Modernist (agosto/2026), modelo B ("Modernist puro" — vermelho #ec3013
-// como única cor de ação e marca, sem ouro nem azul-tinta). A especificação completa — qual cor
-// vai em qual detalhe, nos dois temas — está em design_handoff_lumen_redesign/01-tokens-e-tema.md
-// e em docs/DESIGN-SYSTEM.md, que manda numa dúvida.
+// Paleta do redesenho Modernist (agosto/2026), ajustada numa segunda rodada no mesmo mês:
+// bordô #8a2f42 como única cor de ação e marca (era vermelho-alaranjado #ec3013), sem ouro
+// nem azul-tinta. A especificação completa — qual cor vai em qual detalhe, nos dois temas —
+// está em design_handoff_lumen_redesign/01-tokens-e-tema.md e em docs/DESIGN-SYSTEM.md, que
+// manda numa dúvida.
 //
 // Duas famílias convivem aqui de propósito, durante a migração:
 //
@@ -60,13 +61,14 @@ const config: Config = {
           800: "#444141",
           900: "#2d2b2b",
         },
-        // Vermelho Modernist (documento 01, modelo B) — única cor de ação/marca do produto, e
-        // sua variante escura de ação destrutiva. Não retematiza entre Manhã e Noite; prefira
-        // `bg-acao`/`text-marca`/`text-vinho`, que já resolvem para estes mesmos valores.
+        // Bordô Modernist — única cor de ação/marca do produto, e sua variante escura de ação
+        // destrutiva (700/800/900 são semântica de PERIGO, não de marca — não mudam quando a
+        // marca muda). Não retematiza entre Manhã e Noite; prefira `bg-acao`/`text-marca`/
+        // `text-vinho`, que já resolvem para estes mesmos valores.
         vinho: {
-          300: "#fb3f22", // --acao-hover
-          500: "#ec3013", // --acao / --marca
-          700: "#ae1800", // --vinho / --marca-tx (Manhã)
+          300: "#9c3a4d", // --acao-hover
+          500: "#8a2f42", // --acao / --marca
+          700: "#ae1800", // --vinho / --marca-tx (Manhã, antes do ajuste — perigo, inalterado)
           800: "#ae1800",
           900: "#8a1300",
         },
@@ -111,11 +113,11 @@ const config: Config = {
           900: "#8a1300",
           800: "#ae1800",
           700: "#ae1800",
-          600: "#ec3013",
-          500: "#ec3013",
-          400: "#fb3f22",
-          300: "#fb3f22",
-          100: "rgba(236, 48, 19, 0.15)",
+          600: "#8a2f42",
+          500: "#8a2f42",
+          400: "#9c3a4d",
+          300: "#9c3a4d",
+          100: "rgba(138, 47, 66, 0.15)",
         },
         // cream/paper viram os neutros frios do Modernist — o creme e a palha saíram inteiros
         // da paleta.
@@ -131,9 +133,9 @@ const config: Config = {
           900: "#8a1300",
           700: "#ae1800",
           600: "#ae1800",
-          500: "#ec3013",
-          400: "#fb3f22",
-          100: "rgba(236, 48, 19, 0.1)",
+          500: "#8a2f42",
+          400: "#9c3a4d",
+          100: "rgba(138, 47, 66, 0.1)",
         },
         // magenta era o terceiro acento (só o hub de Contatos). Colapsa no vinho: o sistema
         // Modernist não tem uma terceira cor de acento, e manter uma inventada é o que gera
@@ -141,9 +143,9 @@ const config: Config = {
         magenta: {
           700: "#ae1800",
           600: "#ae1800",
-          500: "#ec3013",
-          400: "#fb3f22",
-          100: "rgba(236, 48, 19, 0.1)",
+          500: "#8a2f42",
+          400: "#9c3a4d",
+          100: "rgba(138, 47, 66, 0.1)",
         },
       },
       boxShadow: {
@@ -157,20 +159,25 @@ const config: Config = {
         arrasto: "var(--sombra-arrasto)",
       },
       borderRadius: {
-        // Raio zero em toda superfície de interface (documento 01, "Raio — tudo vira zero") —
-        // sobrescreve a escala inteira do Tailwind de uma vez, então qualquer `rounded-*`
-        // (inclusive as classes já espalhadas pelo código, ainda não varridas uma a uma) já
-        // renderiza sem canto. Só `rounded-full` sobrevive — não é redeclarado aqui, então
-        // continua no valor padrão do Tailwind (9999px), para avatar e badge de contagem.
+        // Escala em 3 paradas (ajuste de tema, agosto/2026 — substitui o "raio zero" original
+        // do documento 01). Sobrescreve a escala inteira do Tailwind de uma vez, então todo
+        // `rounded-*` já espalhado pelo código (inclusive o que ainda não foi revisado
+        // componente a componente) já renderiza no valor certo:
+        //   sm (4px)        → chips, badges, tags de status
+        //   DEFAULT/md (6px) → botões, inputs, itens de rail, ícones de ação
+        //   lg/xl/2xl/3xl (10px) → cartões, linhas de lista, modais, painéis suspensos,
+        //                          contêiner da própria tela (documento de tema: "md" único
+        //                          para todas essas superfícies, sem um nível "lg" à parte)
+        // `rounded-full` não é redeclarado aqui — continua no valor padrão do Tailwind
+        // (9999px), para avatar e badge de contagem.
         none: "0",
-        sm: "0",
-        DEFAULT: "0",
-        md: "0",
-        lg: "0",
-        xl: "0",
-        xl2: "0",
-        "2xl": "0",
-        "3xl": "0",
+        sm: "4px",
+        DEFAULT: "6px",
+        md: "6px",
+        lg: "10px",
+        xl: "10px",
+        "2xl": "10px",
+        "3xl": "10px",
       },
     },
   },
