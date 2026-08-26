@@ -6,8 +6,7 @@ import { Pencil, Power, Trash2, X, Wallet, WalletCards, KeyRound, Link2, Copy, C
 import { updateUser, toggleUserActive, deleteUser, setFinanceAccess, setUserCredentials } from "@/lib/actions/settings";
 import { adminGenerateResetLink } from "@/lib/actions/auth";
 import { Badge } from "@/components/ui";
-import MaskedInput from "@/components/MaskedInput";
-import { maskPhone } from "@/lib/masks";
+import PhoneInput from "@/components/PhoneInput";
 
 const ROLE_OPTIONS = ["Advogado", "Sócio", "Estagiário", "Financeiro", "Recepcionista", "Marketing", "Contador"];
 
@@ -19,6 +18,7 @@ type User = {
   role: string;
   oab: string | null;
   phone: string | null;
+  phoneDdi: string | null;
   color: string;
   active: boolean;
   isAdmin: boolean;
@@ -101,6 +101,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
         role: String(formData.get("role")),
         oab: String(formData.get("oab") || ""),
         phone: String(formData.get("phone") || ""),
+        phoneDdi: String(formData.get("phoneDdi") || ""),
         color: String(formData.get("color") || user.color),
       });
       setEditing(false);
@@ -150,7 +151,13 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             ))}
           </select>
           <input name="oab" defaultValue={user.oab ?? ""} placeholder="OAB (opcional)" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
-          <MaskedInput name="phone" mask={maskPhone} defaultValue={user.phone ?? ""} placeholder="Telefone (opcional)" className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3" />
+          <PhoneInput
+            name="phone"
+            defaultValue={user.phone ?? ""}
+            defaultDdi={user.phoneDdi}
+            placeholder="Telefone (opcional)"
+            className="cfg-input bg-sf border border-regua text-tx placeholder:text-tx-3"
+          />
           <input name="color" type="color" defaultValue={user.color} className="cfg-input bg-sf border border-regua h-9 p-1" />
         </div>
         <div className="flex gap-2">

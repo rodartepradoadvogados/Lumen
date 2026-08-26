@@ -298,6 +298,7 @@ model User {
   role          String   @default("Advogado") // Advogado, Estagiário, Financeiro, Admin
   oab           String?
   phone         String?
+  phoneDdi      String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
   color         String   @default("#0f1f3d") // cor de identificação em cards/agenda
   isAdmin       Boolean  @default(false) // sócios/donos do escritório: aprovam exclusões, gerenciam equipe e acesso ao financeiro
   financeAccess Boolean  @default(false) // controla visibilidade do módulo Financeiro; sócios sempre têm acesso independente deste campo
@@ -479,6 +480,7 @@ model Client {
   profession    String?
   email         String?
   phone         String?
+  phoneDdi      String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
   address       String?
   notes         String?
   createdAt     DateTime @default(now())
@@ -512,6 +514,7 @@ model Lawyer {
   side      String   @default("PARCEIRO") // PARCEIRO | ADVERSO
   email     String?
   phone     String?
+  phoneDdi  String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
   notes     String?
   createdAt DateTime @default(now())
 
@@ -527,6 +530,7 @@ model Supplier {
   document  String?
   email     String?
   phone     String?
+  phoneDdi  String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
   notes     String?
   createdAt DateTime @default(now())
 
@@ -1073,6 +1077,7 @@ model Attendance {
   clientName   String
   contact      String? // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
   contactPhone String? // telefone do contato, separado do e-mail (clientEmail abaixo)
+  contactPhoneDdi String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
   subject      String
   area         String? // matéria
   description  String? // descrição detalhada do que precisa

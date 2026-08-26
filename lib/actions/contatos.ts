@@ -14,6 +14,7 @@ type ClientInput = {
   profession?: string;
   email?: string;
   phone?: string;
+  phoneDdi?: string;
   address?: string;
   notes?: string;
 };
@@ -32,6 +33,7 @@ export async function createClient(data: ClientInput) {
       profession: data.profession || null,
       email: data.email || null,
       phone: data.phone || null,
+      phoneDdi: data.phone ? data.phoneDdi || null : null,
       address: data.address || null,
       notes: data.notes || null,
       officeId: viewer.officeId,
@@ -56,6 +58,7 @@ export async function updateClient(id: string, data: ClientInput) {
       profession: data.profession || null,
       email: data.email || null,
       phone: data.phone || null,
+      phoneDdi: data.phone ? data.phoneDdi || null : null,
       address: data.address || null,
       notes: data.notes || null,
     },
@@ -73,7 +76,9 @@ export async function createClientQuick(name: string): Promise<{ id: string; nam
   return { id: client.id, name: client.name };
 }
 
-export async function createLawyer(data: { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; notes?: string }) {
+type LawyerInput = { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; phoneDdi?: string; notes?: string };
+
+export async function createLawyer(data: LawyerInput) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   await prisma.lawyer.create({
@@ -84,6 +89,7 @@ export async function createLawyer(data: { name: string; oab?: string; firm?: st
       side: data.side,
       email: data.email || null,
       phone: data.phone || null,
+      phoneDdi: data.phone ? data.phoneDdi || null : null,
       notes: data.notes || null,
       officeId: viewer.officeId,
     },
@@ -92,10 +98,7 @@ export async function createLawyer(data: { name: string; oab?: string; firm?: st
   revalidatePath("/contatos");
 }
 
-export async function updateLawyer(
-  id: string,
-  data: { name: string; oab?: string; firm?: string; side: string; email?: string; phone?: string; notes?: string }
-) {
+export async function updateLawyer(id: string, data: LawyerInput) {
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
   await prisma.lawyer.updateMany({
@@ -107,6 +110,7 @@ export async function updateLawyer(
       side: data.side,
       email: data.email || null,
       phone: data.phone || null,
+      phoneDdi: data.phone ? data.phoneDdi || null : null,
       notes: data.notes || null,
     },
   });

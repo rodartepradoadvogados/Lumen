@@ -26,7 +26,9 @@ export async function createSupplierQuick(name: string): Promise<{ id: string; n
   return { id: supplier.id, name: supplier.name };
 }
 
-export async function createSupplier(data: { name: string; document?: string; email?: string; phone?: string; notes?: string }) {
+type SupplierInput = { name: string; document?: string; email?: string; phone?: string; phoneDdi?: string; notes?: string };
+
+export async function createSupplier(data: SupplierInput) {
   await requireFinanceAccess();
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
@@ -36,6 +38,7 @@ export async function createSupplier(data: { name: string; document?: string; em
       document: data.document || null,
       email: data.email || null,
       phone: data.phone || null,
+      phoneDdi: data.phone ? data.phoneDdi || null : null,
       notes: data.notes || null,
       officeId: viewer.officeId,
     },
@@ -43,10 +46,7 @@ export async function createSupplier(data: { name: string; document?: string; em
   revalidatePath("/contatos/fornecedores");
 }
 
-export async function updateSupplier(
-  id: string,
-  data: { name: string; document?: string; email?: string; phone?: string; notes?: string }
-) {
+export async function updateSupplier(id: string, data: SupplierInput) {
   await requireFinanceAccess();
   const viewer = await getCurrentUser();
   if (!viewer) throw new Error("Sessão expirada. Faça login novamente.");
@@ -57,6 +57,7 @@ export async function updateSupplier(
       document: data.document || null,
       email: data.email || null,
       phone: data.phone || null,
+      phoneDdi: data.phone ? data.phoneDdi || null : null,
       notes: data.notes || null,
     },
   });

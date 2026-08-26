@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateLawyer } from "@/lib/actions/contatos";
-import MaskedInput from "@/components/MaskedInput";
-import { maskPhone } from "@/lib/masks";
+import PhoneInput from "@/components/PhoneInput";
 import { Pencil } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 
@@ -16,6 +15,7 @@ type LawyerData = {
   side: string;
   email: string | null;
   phone: string | null;
+  phoneDdi: string | null;
   notes: string | null;
 };
 
@@ -42,6 +42,7 @@ export default function EditLawyerModal({ lawyer }: { lawyer: LawyerData }) {
                 side: String(formData.get("side")),
                 email: String(formData.get("email") || ""),
                 phone: String(formData.get("phone") || ""),
+                phoneDdi: String(formData.get("phoneDdi") || ""),
                 notes: String(formData.get("notes") || ""),
               });
               setLoading(false);
@@ -81,7 +82,7 @@ export default function EditLawyerModal({ lawyer }: { lawyer: LawyerData }) {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-tx-2">Telefone</label>
-                  <MaskedInput name="phone" mask={maskPhone} defaultValue={lawyer.phone || ""} className="cl-input" />
+                  <PhoneInput name="phone" defaultValue={lawyer.phone || ""} defaultDdi={lawyer.phoneDdi} className="cl-input" />
                 </div>
               </div>
               <div>

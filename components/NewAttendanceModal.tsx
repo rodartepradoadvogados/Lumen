@@ -19,8 +19,10 @@ import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEdit
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { useEscapeToClose } from "@/lib/useEscapeToClose";
 import MoneyInput from "@/components/MoneyInput";
+import PhoneInput, { type PhoneValue } from "@/components/PhoneInput";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 
-type ClientHit = { id: string; name: string; phone: string | null; email: string | null };
+type ClientHit = { id: string; name: string; phone: string | null; phoneDdi: string | null; email: string | null };
 type AssessoriaOption = { id: string; clientName: string; status?: string };
 type ConflictMatch = { id: string; title: string; processNumber: string | null };
 type FeeMode = "DINHEIRO" | "PERCENTUAL" | "AMBOS";
@@ -30,7 +32,7 @@ const emptyState = {
   clientMode: "novo" as "novo" | "selecionar",
   selectedClient: null as ClientHit | null,
   clientQuery: "",
-  contactPhone: "",
+  contactPhone: { ddi: DEFAULT_COUNTRY.ddi, numero: "" } as PhoneValue,
   clientEmail: "",
   clientNameNovo: "",
 };
@@ -238,7 +240,7 @@ export default function NewAttendanceModal({
 
   function pickClient(c: ClientHit) {
     setSelectedClient(c);
-    setContactPhone(c.phone || "");
+    setContactPhone({ ddi: c.phoneDdi || DEFAULT_COUNTRY.ddi, numero: c.phone || "" });
     setClientEmail(c.email || "");
     setClientQuery("");
     setDirty(true);
@@ -249,7 +251,8 @@ export default function NewAttendanceModal({
     const rawValue = String(fd.get("estimatedValue") || "").trim();
     return {
       clientName: clientMode === "selecionar" ? selectedClient?.name || "" : clientNameNovo,
-      contactPhone,
+      contactPhone: contactPhone.numero,
+      contactPhoneDdi: contactPhone.ddi,
       clientEmail,
       clientId: clientMode === "selecionar" ? selectedClient?.id : undefined,
       subject: String(fd.get("subject") || ""),
@@ -536,12 +539,14 @@ export default function NewAttendanceModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-medium text-tx-2">Telefone</label>
-                      <input
+                      <PhoneInput
                         name="contactPhone"
                         value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
+                        onChange={(v) => {
+                          setContactPhone(v);
+                          setDirty(true);
+                        }}
                         className="at-input"
-                        placeholder="(00) 00000-0000"
                       />
                     </div>
                     <div>

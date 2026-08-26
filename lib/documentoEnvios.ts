@@ -33,6 +33,19 @@ export function isDocumentoEnvioMetodo(v: string): v is DocumentoEnvioMetodo {
   return DOCUMENTO_ENVIO_METODOS.includes(v as DocumentoEnvioMetodo);
 }
 
+// Junta DDI + número num único texto "+<ddi> <número>" — o formato que sanitizePhoneForWhatsApp/
+// buildWhatsAppLink abaixo (que só tiram os caracteres não-numéricos) já sabem resolver sem
+// precisar saber de DDI à parte. Usar sempre que DDI e número vierem em campos separados (ex.:
+// components/PhoneInput.tsx, ou o retorno de listarContatosEnvio) antes de compor o texto salvo
+// em DocumentoEnvio.destinatarioContato ou passado para buildWhatsAppLink — é a correção do bug
+// de telefone cadastrado sem código de país não sendo reconhecido pelo WhatsApp.
+export function composePhoneWithDdi(ddi: string | null | undefined, numero: string): string {
+  const d = (ddi || "").replace(/\D/g, "");
+  const n = numero.trim();
+  if (!n) return "";
+  return d ? `+${d} ${n}` : n;
+}
+
 // Mantém dígitos, e o "+" quando é o primeiro caractere (formato internacional) — o resto
 // (espaço, parênteses, hífen) é só formatação visual de quem digitou o telefone.
 export function sanitizePhoneForWhatsApp(raw: string): string {

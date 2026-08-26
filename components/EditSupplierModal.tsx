@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateSupplier } from "@/lib/actions/suppliers";
 import MaskedInput from "@/components/MaskedInput";
-import { maskCpfCnpj, maskPhone } from "@/lib/masks";
+import PhoneInput from "@/components/PhoneInput";
+import { maskCpfCnpj } from "@/lib/masks";
 import { Pencil } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 
@@ -14,6 +15,7 @@ type SupplierData = {
   document: string | null;
   email: string | null;
   phone: string | null;
+  phoneDdi: string | null;
   notes: string | null;
 };
 
@@ -38,6 +40,7 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
                 document: String(formData.get("document") || ""),
                 email: String(formData.get("email") || ""),
                 phone: String(formData.get("phone") || ""),
+                phoneDdi: String(formData.get("phoneDdi") || ""),
                 notes: String(formData.get("notes") || ""),
               });
               setLoading(false);
@@ -64,7 +67,7 @@ export default function EditSupplierModal({ supplier }: { supplier: SupplierData
                 </div>
                 <div>
                   <label className="text-xs font-medium text-tx-2">Telefone</label>
-                  <MaskedInput name="phone" mask={maskPhone} defaultValue={supplier.phone || ""} className="cl-input" />
+                  <PhoneInput name="phone" defaultValue={supplier.phone || ""} defaultDdi={supplier.phoneDdi} className="cl-input" />
                 </div>
               </div>
               <div>

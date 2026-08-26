@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupplier } from "@/lib/actions/suppliers";
 import MaskedInput from "@/components/MaskedInput";
-import { maskCpfCnpj, maskPhone } from "@/lib/masks";
+import PhoneInput from "@/components/PhoneInput";
+import { maskCpfCnpj } from "@/lib/masks";
 import { Plus } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 
@@ -32,6 +33,7 @@ export default function NewSupplierModal() {
                 document: String(formData.get("document") || ""),
                 email: String(formData.get("email") || ""),
                 phone: String(formData.get("phone") || ""),
+                phoneDdi: String(formData.get("phoneDdi") || ""),
                 notes: String(formData.get("notes") || ""),
               });
               setLoading(false);
@@ -58,7 +60,7 @@ export default function NewSupplierModal() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-tx-2">Telefone</label>
-                  <MaskedInput name="phone" mask={maskPhone} className="cl-input" />
+                  <PhoneInput name="phone" className="cl-input" />
                 </div>
               </div>
               <div>
