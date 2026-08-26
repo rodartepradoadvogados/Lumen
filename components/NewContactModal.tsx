@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient, createLawyer } from "@/lib/actions/contatos";
 import MaskedInput from "@/components/MaskedInput";
-import { maskCpfCnpj, maskPhone } from "@/lib/masks";
+import PhoneInput from "@/components/PhoneInput";
+import { maskCpfCnpj } from "@/lib/masks";
 import { Plus } from "lucide-react";
 import ModalShell, { type ModalShellSize } from "@/components/ModalShell";
 
@@ -34,6 +35,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
           profession: String(formData.get("profession") || ""),
           email: String(formData.get("email") || ""),
           phone: String(formData.get("phone") || ""),
+          phoneDdi: String(formData.get("phoneDdi") || ""),
           address: String(formData.get("address") || ""),
           notes: String(formData.get("notes") || ""),
         });
@@ -45,6 +47,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
           side: String(formData.get("side")),
           email: String(formData.get("email") || ""),
           phone: String(formData.get("phone") || ""),
+          phoneDdi: String(formData.get("phoneDdi") || ""),
           notes: String(formData.get("notes") || ""),
         });
       }
@@ -125,7 +128,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                     </div>
                     <div>
                       <label className="text-xs font-medium text-tx-2">Telefone</label>
-                      <MaskedInput name="phone" mask={maskPhone} className="ct-input" />
+                      <PhoneInput name="phone" className="ct-input" />
                     </div>
                   </div>
 

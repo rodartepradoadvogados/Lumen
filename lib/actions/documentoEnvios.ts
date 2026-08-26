@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isCaseInOffice, isAssessoriaInOffice, isLicitacaoInOffice } from "@/lib/officeScope";
-import { isDocumentoEnvioMetodo } from "@/lib/documentoEnvios";
+import { isDocumentoEnvioMetodo, composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { downloadDriveFile, inferMimeTypeFromFileName, type StorageProvider } from "@/lib/storageProvider";
 import { extractDriveFileId } from "@/lib/googleDrive";
@@ -54,7 +54,12 @@ export type ContatoEnvio = {
   id: string;
   tipo: "CLIENTE" | "ADVOGADO" | "FORNECEDOR";
   name: string;
-  contato: string; // e-mail ou telefone, conforme o método pedido
+  contato: string; // e-mail, ou telefone já com o DDI embutido (composePhoneWithDdi) — pronto pra WhatsApp
+  // Telefone e DDI crus (sem compor), só preenchidos quando metodo !== "EMAIL" — usados por
+  // components/DocumentoEnvios.tsx para pré-preencher o país+número do PhoneInput ao escolher um
+  // contato sugerido (não dá pra "desmontar" de volta `contato` já composto).
+  phoneDdi?: string | null;
+  phoneNumero?: string | null;
 };
 
 // Contatos do escritório (não só do Processo/Assessoria de origem — um documento pode ir para
@@ -75,24 +80,30 @@ export async function listarContatosEnvio(origem: EnvioOrigem, metodo: string): 
   const [clients, lawyers, suppliers] = await Promise.all([
     prisma.client.findMany({
       where: { officeId: viewer.officeId, ...filtro },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, phoneDdi: true },
     }),
     prisma.lawyer.findMany({
       where: { officeId: viewer.officeId, ...filtro },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, phoneDdi: true },
     }),
     prisma.supplier.findMany({
       where: { officeId: viewer.officeId, ...filtro },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, phoneDdi: true },
     }),
   ]);
 
-  const toContato = (v: { email: string | null; phone: string | null }) => (metodo === "EMAIL" ? v.email : v.phone);
+  // Contato sugerido de WhatsApp já sai com o DDI embutido (composePhoneWithDdi) — é a correção
+  // do bug de telefone cadastrado sem código de país não sendo reconhecido pelo WhatsApp.
+  const toContato = (v: { email: string | null; phone: string | null; phoneDdi: string | null }) =>
+    metodo === "EMAIL" ? v.email : v.phone ? composePhoneWithDdi(v.phoneDdi, v.phone) : null;
+
+  const phoneParts = (v: { phone: string | null; phoneDdi: string | null }) =>
+    metodo === "EMAIL" ? {} : { phoneDdi: v.phoneDdi, phoneNumero: v.phone };
 
   const lista: ContatoEnvio[] = [
-    ...clients.map((c) => ({ id: c.id, tipo: "CLIENTE" as const, name: c.name, contato: toContato(c) ?? "" })),
-    ...lawyers.map((l) => ({ id: l.id, tipo: "ADVOGADO" as const, name: l.name, contato: toContato(l) ?? "" })),
-    ...suppliers.map((s) => ({ id: s.id, tipo: "FORNECEDOR" as const, name: s.name, contato: toContato(s) ?? "" })),
+    ...clients.map((c) => ({ id: c.id, tipo: "CLIENTE" as const, name: c.name, contato: toContato(c) ?? "", ...phoneParts(c) })),
+    ...lawyers.map((l) => ({ id: l.id, tipo: "ADVOGADO" as const, name: l.name, contato: toContato(l) ?? "", ...phoneParts(l) })),
+    ...suppliers.map((s) => ({ id: s.id, tipo: "FORNECEDOR" as const, name: s.name, contato: toContato(s) ?? "", ...phoneParts(s) })),
   ].filter((c) => c.contato.trim() !== "");
 
   return lista.sort((a, b) => a.name.localeCompare(b.name));

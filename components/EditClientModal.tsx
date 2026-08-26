@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateClient } from "@/lib/actions/contatos";
 import MaskedInput from "@/components/MaskedInput";
-import { maskCpfCnpj, maskPhone } from "@/lib/masks";
+import PhoneInput from "@/components/PhoneInput";
+import { maskCpfCnpj } from "@/lib/masks";
 import { Pencil } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 
@@ -19,6 +20,7 @@ type ClientData = {
   profession: string | null;
   email: string | null;
   phone: string | null;
+  phoneDdi: string | null;
   address: string | null;
   notes: string | null;
 };
@@ -51,6 +53,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
                   profession: String(formData.get("profession") || ""),
                   email: String(formData.get("email") || ""),
                   phone: String(formData.get("phone") || ""),
+                  phoneDdi: String(formData.get("phoneDdi") || ""),
                   address: String(formData.get("address") || ""),
                   notes: String(formData.get("notes") || ""),
                 });
@@ -94,7 +97,7 @@ export default function EditClientModal({ client }: { client: ClientData }) {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-tx-2">Telefone</label>
-                      <MaskedInput name="phone" mask={maskPhone} defaultValue={client.phone || ""} className="ct-input" />
+                      <PhoneInput name="phone" defaultValue={client.phone || ""} defaultDdi={client.phoneDdi} className="ct-input" />
                     </div>
                   </div>
                   <div>

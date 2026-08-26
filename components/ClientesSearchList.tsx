@@ -19,6 +19,7 @@ type ClientRow = {
   profession: string | null;
   email: string | null;
   phone: string | null;
+  phoneDdi: string | null;
   address: string | null;
   notes: string | null;
   _count: { cases: number };

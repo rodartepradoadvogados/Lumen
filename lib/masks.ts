@@ -3,7 +3,7 @@
 // usos existentes desses campos (CPF/CNPJ do cliente/fornecedor, telefone) só exibem a string
 // como veio — nenhum código depende de vir só dígitos — então adicionar pontuação é seguro.
 
-function onlyDigits(value: string): string {
+export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
 
@@ -46,4 +46,12 @@ export function maskPhone(value: string): string {
   if (d.length > 2) return d.replace(/^(\d{2})(\d{1,4})$/, "($1) $2");
   if (d.length > 0) return `(${d}`;
   return d;
+}
+
+// Telefone de fora do Brasil (components/PhoneInput.tsx, quando o país escolhido não é o
+// Brasil) — os formatos variam demais entre países pra valer uma máscara fixa por DDI, então
+// aqui é só dígito puro, sem pontuação, com um teto (15 é o máximo de um E.164 completo —
+// como o DDI já ocupa um campo à parte, o número em si nunca chega perto disso).
+export function maskDigitsOnly(value: string): string {
+  return onlyDigits(value).slice(0, 15);
 }

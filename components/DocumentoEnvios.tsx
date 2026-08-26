@@ -17,6 +17,7 @@ import {
 import {
   DOCUMENTO_ENVIO_METODO_LABELS,
   buildWhatsAppLink,
+  composePhoneWithDdi,
   formatEnvioMensagem,
   formatDocumentosLinks,
   mensagemPadraoEnvio,
@@ -25,6 +26,8 @@ import {
 import { looseIncludes } from "@/lib/textNormalize";
 import { getDocumentTypeIcon, getDocumentTypeLabel } from "@/lib/documentTypes";
 import { formatDate } from "@/components/ui";
+import PhoneInput, { type PhoneValue } from "@/components/PhoneInput";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 
 // Botão + modal + histórico "Enviar E-mail/WhatsApp" — genérico o bastante para servir tanto a
 // aba Protocolos de um Processo quanto a aba "Pareceres, Processos e Casos" de uma Assessoria
@@ -121,7 +124,12 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
   const router = useRouter();
   const [metodo, setMetodo] = useState<DocumentoEnvioMetodo>("EMAIL");
   const [nome, setNome] = useState("");
-  const [contato, setContato] = useState("");
+  const [contato, setContato] = useState(""); // e-mail, quando metodo === "EMAIL"
+  // Telefone do WhatsApp em DDI + número separados (components/PhoneInput.tsx) — a string final
+  // com o "+<ddi>" embutido só é composta na hora de validar/persistir/montar o link (ver
+  // telefoneContato abaixo), nunca fica solta num state próprio pra não desalinhar dos dois campos.
+  const [telefone, setTelefone] = useState<PhoneValue>({ ddi: DEFAULT_COUNTRY.ddi, numero: "" });
+  const telefoneContato = composePhoneWithDdi(telefone.ddi, telefone.numero);
   const [contatoTocado, setContatoTocado] = useState(false); // depois que a pessoa mexe no contato à mão, parar de sobrescrever ao trocar o nome
   const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
   const [contatos, setContatos] = useState<ContatoEnvio[] | null>(null);
@@ -152,7 +160,10 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
 
   function escolherContato(c: ContatoEnvio) {
     setNome(c.name);
-    setContato(c.contato);
+    if (metodo === "EMAIL") setContato(c.contato);
+    // Preenche país+número separados (não dá pra "desmontar" c.contato de volta) — vem pronto de
+    // listarContatosEnvio, já com o DDI cadastrado do contato escolhido.
+    else setTelefone({ ddi: c.phoneDdi || DEFAULT_COUNTRY.ddi, numero: c.phoneNumero || "" });
     setContatoTocado(true);
     setSugestoesAbertas(false);
   }
@@ -181,7 +192,9 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
 
   async function handleConfirm() {
     if (!nome.trim()) return setError("Informe o nome do destinatário.");
-    if (!contato.trim()) return setError(metodo === "EMAIL" ? "Informe o e-mail do destinatário." : "Informe o telefone do destinatário.");
+    if (metodo === "EMAIL" ? !contato.trim() : !telefone.numero.trim()) {
+      return setError(metodo === "EMAIL" ? "Informe o e-mail do destinatário." : "Informe o telefone do destinatário.");
+    }
     if (selected.length === 0) return setError("Selecione ao menos um documento.");
 
     setLoading(true);
@@ -209,12 +222,14 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
     }
 
     // WHATSAPP: continua sendo registro + link de conveniência (wa.me) — nunca envia nada de
-    // verdade (ver lib/documentoEnvios.ts).
+    // verdade (ver lib/documentoEnvios.ts). destinatarioContato já sai com o DDI embutido
+    // (composePhoneWithDdi) — é a correção do bug de telefone sem código de país não sendo
+    // reconhecido pelo WhatsApp.
     const res = await registrarEnvioDocumentos({
       origem: entityOrigem(entity),
       metodo,
       destinatarioNome: nome.trim(),
-      destinatarioContato: contato.trim(),
+      destinatarioContato: telefoneContato,
       documentoIds: selected,
     });
     setLoading(false);
@@ -223,7 +238,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
       return;
     }
     try {
-      window.open(buildWhatsAppLink(contato.trim(), mensagemFinal), "_blank", "noopener,noreferrer");
+      window.open(buildWhatsAppLink(telefoneContato, mensagemFinal), "_blank", "noopener,noreferrer");
     } catch {
       // silencioso — o registro já foi salvo, o link é só conveniência
     }
@@ -245,7 +260,10 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                     type="button"
                     onClick={() => {
                       setMetodo(m);
-                      if (!contatoTocado) setContato("");
+                      if (!contatoTocado) {
+                        setContato("");
+                        setTelefone({ ddi: DEFAULT_COUNTRY.ddi, numero: "" });
+                      }
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 ${
                       metodo === m
@@ -304,16 +322,30 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
 
             <div>
               <label className="text-xs font-medium text-tx-2">{metodo === "EMAIL" ? "E-mail" : "Telefone (WhatsApp)"}</label>
-              <input
-                value={contato}
-                onChange={(e) => {
-                  setContato(e.target.value);
-                  setContatoTocado(true);
-                }}
-                type={metodo === "EMAIL" ? "email" : "tel"}
-                placeholder={metodo === "EMAIL" ? "nome@exemplo.com" : "(62) 99999-9999"}
-                className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
-              />
+              {metodo === "EMAIL" ? (
+                <input
+                  value={contato}
+                  onChange={(e) => {
+                    setContato(e.target.value);
+                    setContatoTocado(true);
+                  }}
+                  type="email"
+                  placeholder="nome@exemplo.com"
+                  className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx"
+                />
+              ) : (
+                <div className="mt-1">
+                  <PhoneInput
+                    name="destinatarioTelefone"
+                    value={telefone}
+                    onChange={(v) => {
+                      setTelefone(v);
+                      setContatoTocado(true);
+                    }}
+                    className="w-full border border-regua px-3 py-2 text-sm bg-sf text-tx"
+                  />
+                </div>
+              )}
               <p className="text-[11px] text-tx-3 mt-1">
                 Não encontrou o contato na busca acima? Pode digitar o {metodo === "EMAIL" ? "e-mail" : "telefone"} direto aqui.
               </p>

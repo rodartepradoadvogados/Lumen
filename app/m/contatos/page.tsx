@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
-import { sanitizePhoneForWhatsApp } from "@/lib/documentoEnvios";
+import { sanitizePhoneForWhatsApp, composePhoneWithDdi } from "@/lib/documentoEnvios";
 import { ArrowLeft, Search, Phone, MessageCircle, Mail, Users, Scale as ScaleIcon, Truck, UserCog } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "fornecedores", label: "Fornecedores", icon: Truck },
 ];
 
-type Row = { id: string; name: string; phone: string | null; email: string | null; sub?: string | null };
+type Row = { id: string; name: string; phone: string | null; phoneDdi: string | null; email: string | null; sub?: string | null };
 
 export default async function MobileContatos({ searchParams }: { searchParams: { tab?: string; q?: string } }) {
   const viewer = await getCurrentUser();
@@ -32,23 +32,24 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
 
   let rows: Row[] = [];
   if (tab === "clientes") {
-    const clients = await prisma.client.findMany({ where, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, email: true, type: true } });
-    rows = clients.map((c) => ({ id: c.id, name: c.name, phone: c.phone, email: c.email, sub: c.type === "PJ" ? "Pessoa jurídica" : "Pessoa física" }));
+    const clients = await prisma.client.findMany({ where, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, phoneDdi: true, email: true, type: true } });
+    rows = clients.map((c) => ({ id: c.id, name: c.name, phone: c.phone, phoneDdi: c.phoneDdi, email: c.email, sub: c.type === "PJ" ? "Pessoa jurídica" : "Pessoa física" }));
   } else if (tab === "advogados") {
-    const lawyers = await prisma.lawyer.findMany({ where, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, email: true, oab: true, side: true } });
+    const lawyers = await prisma.lawyer.findMany({ where, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, phoneDdi: true, email: true, oab: true, side: true } });
     rows = lawyers.map((l) => ({
       id: l.id,
       name: l.name,
       phone: l.phone,
+      phoneDdi: l.phoneDdi,
       email: l.email,
       sub: [l.oab ? `OAB ${l.oab}` : null, l.side === "ADVERSO" ? "Adverso" : "Parceiro"].filter(Boolean).join(" · "),
     }));
   } else if (tab === "equipe") {
-    const team = await prisma.user.findMany({ where: { ...where, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, email: true, role: true } });
-    rows = team.map((u) => ({ id: u.id, name: u.name, phone: u.phone, email: u.email, sub: u.role }));
+    const team = await prisma.user.findMany({ where: { ...where, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, phoneDdi: true, email: true, role: true } });
+    rows = team.map((u) => ({ id: u.id, name: u.name, phone: u.phone, phoneDdi: u.phoneDdi, email: u.email, sub: u.role }));
   } else {
-    const suppliers = await prisma.supplier.findMany({ where, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, email: true } });
-    rows = suppliers.map((s) => ({ id: s.id, name: s.name, phone: s.phone, email: s.email }));
+    const suppliers = await prisma.supplier.findMany({ where, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true, phoneDdi: true, email: true } });
+    rows = suppliers.map((s) => ({ id: s.id, name: s.name, phone: s.phone, phoneDdi: s.phoneDdi, email: s.email }));
   }
 
   return (
@@ -104,14 +105,14 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                   {r.phone && (
                     <>
                       <a
-                        href={`tel:${sanitizePhoneForWhatsApp(r.phone)}`}
+                        href={`tel:${sanitizePhoneForWhatsApp(composePhoneWithDdi(r.phoneDdi, r.phone))}`}
                         aria-label={`Ligar para ${r.name}`}
                         className="p-2 text-tx-2 hover:text-acao hover:bg-sf-apoio rounded-md"
                       >
                         <Phone size={16} />
                       </a>
                       <a
-                        href={`https://wa.me/${sanitizePhoneForWhatsApp(r.phone).replace(/^\+/, "")}`}
+                        href={`https://wa.me/${sanitizePhoneForWhatsApp(composePhoneWithDdi(r.phoneDdi, r.phone)).replace(/^\+/, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`WhatsApp de ${r.name}`}

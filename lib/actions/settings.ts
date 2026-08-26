@@ -260,7 +260,7 @@ export async function createUser(data: { name: string; email: string; role: stri
 
 export async function updateUser(
   id: string,
-  data: { name: string; email: string; role: string; oab?: string; color: string; phone?: string }
+  data: { name: string; email: string; role: string; oab?: string; color: string; phone?: string; phoneDdi?: string }
 ): Promise<{ error?: string }> {
   const viewer = await getCurrentUser();
   if (!viewer?.isAdmin) return { error: "Apenas administradores podem editar membros da equipe." };
@@ -269,7 +269,15 @@ export async function updateUser(
   try {
     await prisma.user.update({
       where: { id },
-      data: { name: data.name, email: data.email, role: data.role, oab: data.oab || null, color: data.color, phone: data.phone || null },
+      data: {
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        oab: data.oab || null,
+        color: data.color,
+        phone: data.phone || null,
+        phoneDdi: data.phone ? data.phoneDdi || null : null,
+      },
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {

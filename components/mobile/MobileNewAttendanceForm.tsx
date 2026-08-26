@@ -10,6 +10,7 @@ import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
 import { Send, UploadCloud, X, AlertTriangle } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
+import PhoneInput from "@/components/PhoneInput";
 
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
@@ -115,6 +116,7 @@ export default function MobileNewAttendanceForm({
         const result = await createAttendance({
           clientName,
           contactPhone: String(formData.get("contactPhone") || "") || undefined,
+          contactPhoneDdi: String(formData.get("contactPhoneDdi") || "") || undefined,
           clientEmail: String(formData.get("clientEmail") || "") || undefined,
           subject,
           area: String(formData.get("area") || "") || undefined,
@@ -175,7 +177,7 @@ export default function MobileNewAttendanceForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Telefone</label>
-          <input name="contactPhone" className={inputClass} placeholder="(00) 00000-0000" />
+          <PhoneInput name="contactPhone" className={inputClass} />
         </div>
         <div>
           <label className={labelClass}>E-mail</label>

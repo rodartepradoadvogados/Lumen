@@ -24,6 +24,7 @@ async function assertAttendanceRelationsInOffice(
 type CreateAttendanceInput = {
   clientName: string;
   contactPhone?: string;
+  contactPhoneDdi?: string;
   clientEmail?: string;
   clientId?: string;
   isNewClient?: boolean;
@@ -69,6 +70,9 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<{ i
         name: data.clientName,
         type: "PF",
         phone: data.contactPhone || null,
+        // DDI cadastrado no atendimento vai junto pro cliente novo — sem isso, o Client.phoneDdi
+        // nasceria vazio mesmo com o telefone já certo (ver bug de WhatsApp sem código de país).
+        phoneDdi: data.contactPhone ? data.contactPhoneDdi || null : null,
         email: data.clientEmail || null,
         officeId: viewer.officeId,
       },
@@ -81,6 +85,7 @@ export async function createAttendance(data: CreateAttendanceInput): Promise<{ i
     data: {
       clientName: data.clientName,
       contactPhone: data.contactPhone || null,
+      contactPhoneDdi: data.contactPhone ? data.contactPhoneDdi || null : null,
       clientEmail: data.clientEmail || null,
       clientId,
       subject: data.subject,
@@ -176,6 +181,7 @@ export async function saveAttendanceDraft(
     data: {
       clientName: data.clientName || "(rascunho sem nome)",
       contactPhone: data.contactPhone || null,
+      contactPhoneDdi: data.contactPhone ? data.contactPhoneDdi || null : null,
       clientEmail: data.clientEmail || null,
       clientId: data.clientId || null,
       subject: data.subject || "(rascunho)",
@@ -205,14 +211,16 @@ export async function saveAttendanceDraft(
   return { id: created.id };
 }
 
-export async function searchClients(query: string): Promise<{ id: string; name: string; phone: string | null; email: string | null }[]> {
+export async function searchClients(
+  query: string
+): Promise<{ id: string; name: string; phone: string | null; phoneDdi: string | null; email: string | null }[]> {
   const q = query.trim();
   if (!q) return [];
   const viewer = await getCurrentUser();
   if (!viewer) return [];
   const clients = await prisma.client.findMany({
     where: { name: { contains: q, mode: "insensitive" }, officeId: viewer.officeId },
-    select: { id: true, name: true, phone: true, email: true },
+    select: { id: true, name: true, phone: true, phoneDdi: true, email: true },
     orderBy: { name: "asc" },
     take: 15,
   });
