@@ -245,7 +245,10 @@ export default async function MobileHome() {
 type Tone = "bordo" | "navy";
 
 const BADGE_TONE: Record<Tone, string> = {
-  bordo: "bg-atencao",
+  // bg-acao é o bordô da marca (mesmo tom de ButtonPrimary) — bg-atencao aqui era bug: aquele
+  // token é o vermelho-alaranjado de perigo/ação destrutiva (--vinho), não a cor de ação normal,
+  // e fazia os dois selos de "criar" (Novo Compromisso/Novo Atendimento) renderizarem vermelhos.
+  bordo: "bg-acao",
   navy: "bg-grafite-800",
 };
 
