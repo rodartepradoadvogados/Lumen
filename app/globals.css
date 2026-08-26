@@ -85,6 +85,15 @@
      qualquer outro token — é o único azul que sobra no sistema, só para essa distinção. */
   --fonte-pje: #2f6fb0;
 
+  /* Acabamento "premium" (agosto/2026, sétima rodada — Início/Painel): halo do bordô atrás da
+     saudação e textura granulada da superfície escura. Nos dois casos é o mesmo efeito com
+     intensidade MENOR na Manhã — o fundo já é claro (--sf-fundo quase branco), então tanto o
+     halo quanto o grão precisam de menos opacidade para não sujar a tela; na Noite (--sf-fundo
+     grafite) o mesmo efeito precisa de mais força para aparecer. Nunca usar rgba(0,0,0,...) ou
+     rgba(255,255,255,...) cravado num componente — os dois tons vivem só aqui. */
+  --halo-marca: rgba(138, 47, 66, 0.08);
+  --grain-opacity: 0.035;
+
   --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
   --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
   --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
@@ -138,6 +147,9 @@
   --rail-marca: #c9707f;
   --rail-marca-bg: rgba(201, 112, 127, 0.16);
   --fonte-pje: #93c0f0;
+
+  --halo-marca: rgba(138, 47, 66, 0.16);
+  --grain-opacity: 0.05;
 
   --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
   --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);

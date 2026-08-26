@@ -48,7 +48,7 @@ export default function DayQueueRow({ item }: { item: DayQueueItem }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="shrink-0 inline-flex items-center justify-start h-[30px] border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx font-semibold text-xs px-3 transition-colors"
+        className="shrink-0 inline-flex items-center justify-start h-[30px] rounded-md border-2 border-regua-forte bg-transparent hover:bg-acao-bg text-tx font-semibold text-xs px-3 transition-colors"
       >
         Abrir
       </button>

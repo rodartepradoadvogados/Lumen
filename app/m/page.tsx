@@ -9,6 +9,7 @@ import { naturezaWhere } from "@/lib/caseNatureza";
 import { Card, formatCurrency } from "@/components/ui";
 import { valorLiquido } from "@/lib/financeCalc";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
+import GrainOverlay from "@/components/GrainOverlay";
 import AlertRow from "@/components/AlertRow";
 import {
   CalendarPlus,
@@ -102,13 +103,23 @@ export default async function MobileHome() {
   const saldoMes = showFinance && user ? await getMonthlyNetFlow(user.officeId) : null;
 
   return (
-    <div className="p-4 space-y-4 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-bold text-tx">
-          {greeting()}
-          {firstName ? `, ${firstName}` : ""}
-        </h1>
-        <p className="text-sm text-tx-2">O que você quer resolver agora?</p>
+    <div className="relative">
+      <GrainOverlay />
+      <div className="relative z-10 p-4 space-y-4 animate-fade-in">
+      {/* Halo sutil do bordô atrás da saudação — gradiente de fundo, não sombra (regra do
+          produto: sombra só em coisa que flutua de verdade, DESIGN-SYSTEM.md §13). */}
+      <div className="relative">
+        <div
+          className="absolute -top-6 -left-6 h-36 w-56 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at top left, var(--halo-marca), transparent 70%)" }}
+        />
+        <div className="relative">
+          <h1 className="text-xl font-bold text-tx">
+            {greeting()}
+            {firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="text-sm text-tx-2">O que você quer resolver agora?</p>
+        </div>
       </div>
 
       <MobileGlobalSearch />
@@ -149,11 +160,11 @@ export default async function MobileHome() {
             não cabe direito no formato compacto dos atalhos de "Acompanhar" abaixo. */}
         <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1">
           <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-tx-2">
-            <Bell size={12} /> Central de Alertas
+            <Bell size={12} strokeWidth={1.5} /> Central de Alertas
           </span>
           {totalAlerts > 0 && (
             <span className="flex items-center gap-1 text-xs font-semibold text-urgente">
-              {totalAlerts} pendente{totalAlerts > 1 ? "s" : ""} <ChevronRight size={13} />
+              {totalAlerts} pendente{totalAlerts > 1 ? "s" : ""} <ChevronRight size={13} strokeWidth={1.5} />
             </span>
           )}
         </Link>
@@ -234,6 +245,7 @@ export default async function MobileHome() {
           />
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -248,16 +260,19 @@ const BADGE_TONE: Record<Tone, string> = {
   // bg-acao é o bordô da marca (mesmo tom de ButtonPrimary) — bg-atencao aqui era bug: aquele
   // token é o vermelho-alaranjado de perigo/ação destrutiva (--vinho), não a cor de ação normal,
   // e fazia os dois selos de "criar" (Novo Compromisso/Novo Atendimento) renderizarem vermelhos.
-  bordo: "bg-acao",
+  // Degradê nos dois tons de bordô (--acao/--acao-hover, nenhuma cor nova) no tom de AÇÃO — é o
+  // selo do que "cria algo novo"; navy (acompanhar) fica chapado de propósito, sem o mesmo realce.
+  bordo: "bg-gradient-to-br from-acao to-acao-hover",
   navy: "bg-grafite-800",
 };
 
-// Selo do ícone em "squircle" (quadrado bem arredondado, não círculo) — mesma cor em todo
-// tema (Manhã/Noite), só o cartão ao redor muda.
+// Selo do ícone em "squircle" (quadrado bem arredondado, raio 14px sobre 44px — não é a escala
+// padrão de rounded-lg/md, é um tratamento próprio do selo de ícone, ver DESIGN-SYSTEM.md,
+// sétima rodada) — mesma cor em todo tema (Manhã/Noite), só o cartão ao redor muda.
 function TileBadge({ icon: Icon, tone, size = 18 }: { icon: LucideIcon; tone: Tone; size?: number }) {
   return (
-    <span className={`h-11 w-11 flex items-center justify-center text-white shrink-0 ${BADGE_TONE[tone]}`}>
-      <Icon size={size} />
+    <span className={`h-11 w-11 rounded-[14px] flex items-center justify-center text-white shrink-0 ${BADGE_TONE[tone]}`}>
+      <Icon size={size} strokeWidth={1.5} />
     </span>
   );
 }
@@ -343,13 +358,13 @@ function HubCard({
             <p className="text-sm font-bold text-tx">{title}</p>
             {subtitle && <p className="text-xs text-tx-2 truncate">{subtitle}</p>}
           </div>
-          <ChevronDown size={16} className="text-tx-3 transition-transform group-open:rotate-180 shrink-0" />
+          <ChevronDown size={16} strokeWidth={1.5} className="text-tx-3 transition-transform group-open:rotate-180 shrink-0" />
         </summary>
       ) : (
         <summary className="flex flex-col p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <div className="flex items-start justify-between">
             <TileBadge icon={Icon} tone={tone} />
-            <ChevronDown size={15} className="text-tx-3 transition-transform group-open:rotate-180 mt-1.5" />
+            <ChevronDown size={15} strokeWidth={1.5} className="text-tx-3 transition-transform group-open:rotate-180 mt-1.5" />
           </div>
           <p className="text-sm font-bold text-tx mt-2.5">{title}</p>
           {subtitle && <p className="text-[11px] text-tx-2 mt-0.5">{subtitle}</p>}
@@ -372,7 +387,7 @@ function HubChip({ href, label, icon: Icon }: Chip) {
       href={href}
       className="flex items-center gap-2 border border-regua text-tx-2 px-3 py-2.5 text-xs font-semibold hover:bg-sf-apoio transition-colors"
     >
-      <Icon size={15} className="shrink-0" />
+      <Icon size={15} strokeWidth={1.5} className="shrink-0" />
       <span className="truncate">{label}</span>
     </Link>
   );
