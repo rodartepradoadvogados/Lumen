@@ -263,7 +263,7 @@ export default async function DashboardPage() {
             accentClassName="border-t-urgente"
             valueClassName="text-[34px] leading-none font-extrabold text-urgente"
             title="Minhas Atrasadas"
-            icon={Clock}
+            icon={<Clock size={15} strokeWidth={1.5} />}
             iconClassName="bg-urgente-bg text-urgente"
           >
             <div className="divide-y divide-regua">
@@ -291,7 +291,7 @@ export default async function DashboardPage() {
                 label="A receber · 7 dias"
                 value={formatCurrency(totalReceivableSoon)}
                 title="A Receber — Próximos 7 Dias"
-                icon={ArrowDown}
+                icon={<ArrowDown size={15} strokeWidth={1.5} />}
                 iconClassName="bg-gradient-to-br from-acao to-acao-hover text-acao-tx"
               >
                 <div className="divide-y divide-regua">
@@ -329,7 +329,7 @@ export default async function DashboardPage() {
                 label="A pagar · 7 dias"
                 value={formatCurrency(totalPayableSoon)}
                 title="A Pagar — Próximos 7 Dias"
-                icon={ArrowUp}
+                icon={<ArrowUp size={15} strokeWidth={1.5} />}
                 iconClassName="bg-gradient-to-br from-acao to-acao-hover text-acao-tx"
               >
                 <div className="divide-y divide-regua">
