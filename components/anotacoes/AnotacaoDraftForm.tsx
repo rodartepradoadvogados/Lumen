@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
-import RichTextEditor from "./RichTextEditor";
+import RichTextEditor from "@/components/RichTextEditor";
 import { useAnotacoes, type AnotacaoDraft } from "./AnotacoesContext";
 import { createAnotacao } from "@/lib/actions/anotacoes";
 import { ANOTACAO_LINK_LABELS, anotacaoLinkNeedsEntity, todayIsoDate, type AnotacaoLinkType } from "@/lib/anotacoes";

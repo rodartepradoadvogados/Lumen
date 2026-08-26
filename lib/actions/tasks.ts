@@ -7,6 +7,7 @@ import { sendPushIfEnabled } from "@/lib/push";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice, isLicitacaoInOffice } from "@/lib/officeScope";
 import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
+import { sanitizeRichTextHtml } from "@/lib/richText";
 
 async function assertTaskRelationsInOffice(
   data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
@@ -106,7 +107,7 @@ export async function createTask(data: {
       attendanceId: data.attendanceId || null,
       responsibleId: data.responsibleId || null,
       columnId: data.columnId || firstColumn?.id || null,
-      description: data.description || null,
+      description: data.description ? sanitizeRichTextHtml(data.description) : null,
       meetingType: data.meetingType || null,
       location: data.location || null,
       meetingUrl: data.meetingUrl || null,
@@ -192,7 +193,7 @@ export async function delegateTask(data: {
         responsibleId,
         delegatedById: viewer.id,
         columnId: firstColumn?.id || null,
-        description: data.description || null,
+        description: data.description ? sanitizeRichTextHtml(data.description) : null,
         meetingType: data.meetingType || null,
         location: data.location || null,
         meetingUrl: data.meetingUrl || null,
@@ -413,7 +414,7 @@ export async function updateTask(id: string, data: {
       safetyDueDate: computeSafetyDueDate(dueDate),
       priority: data.priority,
       responsibleId: data.responsibleId || null,
-      description: data.description || null,
+      description: data.description ? sanitizeRichTextHtml(data.description) : null,
       meetingType: data.meetingType || null,
       location: data.location || null,
       meetingUrl: data.meetingUrl || null,
