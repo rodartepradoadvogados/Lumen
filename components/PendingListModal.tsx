@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
-import { X } from "lucide-react";
+import { X, type LucideIcon } from "lucide-react";
 import clsx from "clsx";
 
 // Card gerencial clicável do painel (documento 03 do handoff do redesenho Modernist, coluna
@@ -18,6 +18,8 @@ export default function PendingListModal({
   accentClassName = "border-t-regua-forte",
   valueClassName = "text-[26px] leading-none font-extrabold text-tx",
   title,
+  icon: Icon,
+  iconClassName,
   children,
 }: {
   label: string;
@@ -29,6 +31,10 @@ export default function PendingListModal({
   // coluna estreita).
   valueClassName?: string;
   title: string;
+  // Selo squircle do ícone (acabamento "premium", agosto/2026, sétima rodada) — opcional: sem
+  // ícone, o card renderiza como antes (só rótulo + valor).
+  icon?: LucideIcon;
+  iconClassName?: string;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -36,9 +42,16 @@ export default function PendingListModal({
   return (
     <>
       <button onClick={() => setOpen(true)} className="text-left w-full block">
-        <div className={clsx("bg-sf border-t-2 p-5 h-full", accentClassName)}>
-          <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">{label}</p>
-          <p className={clsx("mt-2 tabular-nums", valueClassName)}>{value}</p>
+        <div className={clsx("bg-sf border-t-2 rounded-lg p-5 h-full", accentClassName)}>
+          <div className="flex items-center gap-2.5">
+            {Icon && (
+              <span className={clsx("h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0", iconClassName)}>
+                <Icon size={15} strokeWidth={1.5} />
+              </span>
+            )}
+            <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">{label}</p>
+          </div>
+          <p className={clsx("mt-2.5 tabular-nums", valueClassName)}>{value}</p>
         </div>
       </button>
       {open && (

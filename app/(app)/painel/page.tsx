@@ -14,12 +14,13 @@ import {
   formatDate,
   formatCalendarDate,
 } from "@/components/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Clock, ArrowDown, ArrowUp, Filter } from "lucide-react";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PendingListModal from "@/components/PendingListModal";
 import SettleButton from "@/components/SettleButton";
 import OverdueTaskRow from "@/components/OverdueTaskRow";
 import DayQueueRow, { type DayQueueItem } from "@/components/DayQueueRow";
+import GrainOverlay from "@/components/GrainOverlay";
 
 export const dynamic = "force-dynamic";
 
@@ -184,14 +185,24 @@ export default async function DashboardPage() {
   const unreadPreview = unreadGroups.slice(0, 3);
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
-        <h1 className="text-[30px] font-extrabold text-tx leading-tight">
-          {greeting(now.getHours())}, {viewer.name.split(" ")[0]}
-        </h1>
-        <p className="text-[15px] text-tx-2 capitalize mt-1">
-          {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
-        </p>
+    <div className="relative">
+      <GrainOverlay />
+      <div className="relative z-10 p-6 max-w-[1400px] mx-auto animate-fade-in">
+      {/* Halo sutil do bordô atrás da saudação — mesmo tratamento da Início mobile (gradiente de
+          fundo, não sombra: DESIGN-SYSTEM.md §13). */}
+      <div className="relative mb-6">
+        <div
+          className="absolute -top-8 -left-8 h-40 w-[340px] pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at top left, var(--halo-marca), transparent 70%)" }}
+        />
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
+          <h1 className="text-[30px] font-extrabold text-tx leading-tight">
+            {greeting(now.getHours())}, {viewer.name.split(" ")[0]}
+          </h1>
+          <p className="text-[15px] text-tx-2 capitalize mt-1">
+            {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
@@ -202,7 +213,7 @@ export default async function DashboardPage() {
               title={`O dia — ${prazosCount} prazo${prazosCount === 1 ? "" : "s"}, ${audienciasCount} audiência${audienciasCount === 1 ? "" : "s"}`}
               action={
                 <Link href="/agenda" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
-                  Ver agenda <ArrowRight size={13} />
+                  Ver agenda <ArrowRight size={13} strokeWidth={1.5} />
                 </Link>
               }
             />
@@ -224,7 +235,7 @@ export default async function DashboardPage() {
               title={`Publicações não lidas — ${unreadGroups.length}`}
               action={
                 <Link href="/publicacoes" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
-                  Triar <ArrowRight size={13} />
+                  Triar <ArrowRight size={13} strokeWidth={1.5} />
                 </Link>
               }
             />
@@ -252,6 +263,8 @@ export default async function DashboardPage() {
             accentClassName="border-t-urgente"
             valueClassName="text-[34px] leading-none font-extrabold text-urgente"
             title="Minhas Atrasadas"
+            icon={Clock}
+            iconClassName="bg-urgente-bg text-urgente"
           >
             <div className="divide-y divide-regua">
               {myOverdueTasks.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
@@ -274,7 +287,13 @@ export default async function DashboardPage() {
 
           {hasFinanceAccess && (
             <>
-              <PendingListModal label="A receber · 7 dias" value={formatCurrency(totalReceivableSoon)} title="A Receber — Próximos 7 Dias">
+              <PendingListModal
+                label="A receber · 7 dias"
+                value={formatCurrency(totalReceivableSoon)}
+                title="A Receber — Próximos 7 Dias"
+                icon={ArrowDown}
+                iconClassName="bg-gradient-to-br from-acao to-acao-hover text-acao-tx"
+              >
                 <div className="divide-y divide-regua">
                   {receivablesSoon.length === 0 && <EmptyState title="Nenhuma conta nos próximos 7 dias" />}
                   {receivablesSoon.map((r) => (
@@ -306,7 +325,13 @@ export default async function DashboardPage() {
                 </div>
               </PendingListModal>
 
-              <PendingListModal label="A pagar · 7 dias" value={formatCurrency(totalPayableSoon)} title="A Pagar — Próximos 7 Dias">
+              <PendingListModal
+                label="A pagar · 7 dias"
+                value={formatCurrency(totalPayableSoon)}
+                title="A Pagar — Próximos 7 Dias"
+                icon={ArrowUp}
+                iconClassName="bg-gradient-to-br from-acao to-acao-hover text-acao-tx"
+              >
                 <div className="divide-y divide-regua">
                   {payablesSoon.length === 0 && <EmptyState title="Nenhuma conta nos próximos 7 dias" />}
                   {payablesSoon.map((p) => (
@@ -340,9 +365,14 @@ export default async function DashboardPage() {
             </>
           )}
 
-          <div className="bg-sf border-t-2 border-regua-forte p-5">
-            <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
-            <div className="mt-2 space-y-1.5">
+          <div className="bg-sf border-t-2 border-regua-forte rounded-lg p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0 bg-sf-apoio text-tx-2">
+                <Filter size={15} strokeWidth={1.5} />
+              </span>
+              <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
+            </div>
+            <div className="mt-2.5 space-y-1.5">
               {funilHoje.length === 0 && <p className="text-sm text-tx-2">Nenhum follow-up para hoje.</p>}
               {funilHoje.slice(0, 2).map((a) => (
                 <p key={a.id} className="text-sm text-tx truncate">
@@ -351,10 +381,11 @@ export default async function DashboardPage() {
               ))}
             </div>
             <Link href="/atendimento/funil" className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover mt-2">
-              Ver funil <ArrowRight size={13} />
+              Ver funil <ArrowRight size={13} strokeWidth={1.5} />
             </Link>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
