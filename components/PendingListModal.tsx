@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
-import { X, type LucideIcon } from "lucide-react";
+import { X } from "lucide-react";
 import clsx from "clsx";
 
 // Card gerencial clicável do painel (documento 03 do handoff do redesenho Modernist, coluna
@@ -18,7 +18,7 @@ export default function PendingListModal({
   accentClassName = "border-t-regua-forte",
   valueClassName = "text-[26px] leading-none font-extrabold text-tx",
   title,
-  icon: Icon,
+  icon,
   iconClassName,
   children,
 }: {
@@ -32,8 +32,11 @@ export default function PendingListModal({
   valueClassName?: string;
   title: string;
   // Selo squircle do ícone (acabamento "premium", agosto/2026, sétima rodada) — opcional: sem
-  // ícone, o card renderiza como antes (só rótulo + valor).
-  icon?: LucideIcon;
+  // ícone, o card renderiza como antes (só rótulo + valor). Recebe o <Icon /> já montado (não o
+  // componente em si): PendingListModal é "use client", e passar a referência da função de um
+  // Server Component pro client não serializa (é exatamente o bug de produção do PR #105 —
+  // "Functions cannot be passed directly to Client Components").
+  icon?: ReactNode;
   iconClassName?: string;
   children: ReactNode;
 }) {
@@ -44,9 +47,9 @@ export default function PendingListModal({
       <button onClick={() => setOpen(true)} className="text-left w-full block">
         <div className={clsx("bg-sf border-t-2 rounded-lg p-5 h-full", accentClassName)}>
           <div className="flex items-center gap-2.5">
-            {Icon && (
+            {icon && (
               <span className={clsx("h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0", iconClassName)}>
-                <Icon size={15} strokeWidth={1.5} />
+                {icon}
               </span>
             )}
             <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">{label}</p>
