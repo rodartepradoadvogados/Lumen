@@ -6,6 +6,7 @@ import { createTask } from "@/lib/actions/tasks";
 import { Plus } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
 import { typeMeta } from "@/components/AgendaView";
+import RichTextEditor from "@/components/RichTextEditor";
 
 type Option = { id: string; name: string };
 
@@ -34,6 +35,7 @@ export default function NewTaskModal({
   const [error, setError] = useState("");
   const [type, setType] = useState("TAREFA");
   const [meetingType, setMeetingType] = useState("PRESENCIAL");
+  const [description, setDescription] = useState("");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -50,7 +52,7 @@ export default function NewTaskModal({
         attendanceId: defaultAttendanceId,
         responsibleId: String(formData.get("responsibleId") || ""),
         columnId: String(formData.get("columnId") || ""),
-        description: String(formData.get("description") || ""),
+        description,
         meetingType: String(formData.get("meetingType") || ""),
         location: String(formData.get("location") || ""),
         meetingUrl: String(formData.get("meetingUrl") || ""),
@@ -70,7 +72,10 @@ export default function NewTaskModal({
     <>
       {/* "Nova"/"Novo" é Secundário (DESIGN-SYSTEM.md §4) — o azul de ação fica pro "Criar" dentro do modal. */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setDescription("");
+          setOpen(true);
+        }}
         className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 transition-colors"
       >
         <Plus size={16} /> {label ?? "Nova Tarefa"}
@@ -176,7 +181,7 @@ export default function NewTaskModal({
                   {(type === "EVENTO" || type === "AUDIENCIA") && (
                     // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio
                     // + filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
-                    <div className={`border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
+                    <div className={`reuniao-panel border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
                       <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                         {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                       </p>
@@ -218,7 +223,9 @@ export default function NewTaskModal({
 
                   <div>
                     <label className="text-xs font-medium text-tx-2">Descrição (opcional)</label>
-                    <textarea name="description" rows={type === "AUDIENCIA" ? 3 : 6} className="input" />
+                    <div className="mt-1">
+                      <RichTextEditor value={description} onChange={setDescription} placeholder="Detalhes, orientações, checklist..." />
+                    </div>
                   </div>
 
                   {type === "AUDIENCIA" && (
@@ -254,11 +261,20 @@ export default function NewTaskModal({
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
           color: var(--tx);
-          background: var(--sf-superficie);
+          /* --sf-apoio, não --sf-superficie: o modal em si (ModalShell, bg-sf) já usa
+             --sf-superficie — campo com o mesmo tom do fundo do modal é o que fazia os campos
+             "sumirem" visualmente (DESIGN-SYSTEM.md, ajuste de contraste, agosto/2026). */
+          background: var(--sf-apoio);
         }
         .input:focus {
           outline: none;
           box-shadow: 0 0 0 2px var(--acao-bg);
+        }
+        /* Painel de reunião (.reuniao-panel) já é --sf-apoio — um campo também --sf-apoio dentro
+           dele voltaria a "sumir" contra o próprio painel; aqui o campo recua um degrau para
+           --sf-superficie em vez do padrão acima. */
+        .reuniao-panel .input {
+          background: var(--sf-superficie);
         }
       `}</style>
     </>

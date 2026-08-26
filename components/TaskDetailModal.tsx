@@ -10,6 +10,7 @@ import CommentBox from "@/components/CommentBox";
 import { formatDate } from "@/components/ui";
 import { typeMeta } from "@/components/AgendaView";
 import ModalShell from "@/components/ModalShell";
+import RichTextEditor from "@/components/RichTextEditor";
 
 // Rótulo discreto de auditoria (tooltip) exibido no botão de concluir/reabrir quando a
 // tarefa já está concluída — mesmo formato usado na Agenda (components/AgendaView.tsx).
@@ -34,6 +35,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
   const [error, setError] = useState("");
   const [type, setType] = useState("TAREFA");
   const [meetingType, setMeetingType] = useState("PRESENCIAL");
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -43,6 +45,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
         setTask(res.task);
         setType(res.task.type);
         setMeetingType(res.task.meetingType || "PRESENCIAL");
+        setDescription(res.task.description || "");
       }
       setUsers(res.users);
       setLoading(false);
@@ -70,7 +73,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
         dueTime: String(formData.get("dueTime") || ""),
         priority: String(formData.get("priority")),
         responsibleId: String(formData.get("responsibleId") || ""),
-        description: String(formData.get("description") || ""),
+        description,
         meetingType: String(formData.get("meetingType") || ""),
         location: String(formData.get("location") || ""),
         meetingUrl: String(formData.get("meetingUrl") || ""),
@@ -170,7 +173,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                 {(type === "EVENTO" || type === "AUDIENCIA") && (
                   // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio +
                   // filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
-                  <div className={`border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
+                  <div className={`reuniao-panel border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
                     <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                       {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                     </p>
@@ -214,7 +217,9 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
 
                 <div>
                   <label className="text-xs font-medium text-tx-2">Descrição (opcional)</label>
-                  <textarea name="description" rows={type === "AUDIENCIA" ? 3 : 5} defaultValue={task.description || ""} className="input" />
+                  <div className="mt-1">
+                    <RichTextEditor value={description} onChange={setDescription} placeholder="Detalhes, orientações, checklist..." />
+                  </div>
                 </div>
 
                 {type === "AUDIENCIA" && (
@@ -298,11 +303,20 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
           color: var(--tx);
-          background: var(--sf-superficie);
+          /* --sf-apoio, não --sf-superficie: o modal em si (ModalShell, bg-sf) já usa
+             --sf-superficie — campo com o mesmo tom do fundo do modal é o que fazia os campos
+             "sumirem" visualmente (DESIGN-SYSTEM.md, ajuste de contraste, agosto/2026). */
+          background: var(--sf-apoio);
         }
         .input:focus {
           outline: none;
           box-shadow: 0 0 0 2px var(--acao-bg);
+        }
+        /* Painel de reunião (.reuniao-panel) já é --sf-apoio — um campo também --sf-apoio dentro
+           dele voltaria a "sumir" contra o próprio painel; aqui o campo recua um degrau para
+           --sf-superficie em vez do padrão acima. */
+        .reuniao-panel .input {
+          background: var(--sf-superficie);
         }
       `}</style>
     </ModalShell>
