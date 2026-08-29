@@ -15,6 +15,7 @@ import SupportAccessBanner from "@/components/SupportAccessBanner";
 import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
 import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
+import { getOfficeModules } from "@/lib/officeModules";
 
 export const dynamic = "force-dynamic";
 
@@ -69,12 +70,15 @@ export default async function MobileLayout({ children }: { children: React.React
   // documento 08, o sino é o único caminho até /m/alertas agora). A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
-  const [totalAlerts, todayAgendaCount, sessionSeconds] = await Promise.all([
+  const [totalAlerts, todayAgendaCount, sessionSeconds, modules] = await Promise.all([
     getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
     // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
     // bolinha da aba "Agenda" na barra inferior (documento 08).
     getTodayAgendaCount(user.officeId),
     getCurrentSessionElapsedSeconds(user.id),
+    // Alimenta o menu do "+" central (MobileBottomNav -> MobileNewEntitySheet): Atendimento e
+    // Assessoria só aparecem como opção de cadastro se o módulo estiver contratado.
+    getOfficeModules(user.officeId),
   ]);
 
   return (
@@ -144,7 +148,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen">{children}</main>
 
-      <MobileBottomNav todayAgendaCount={todayAgendaCount} />
+      <MobileBottomNav todayAgendaCount={todayAgendaCount} modules={modules} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>

@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Newspaper, Calendar, Plus, Briefcase, DollarSign } from "lucide-react";
+import MobileNewEntitySheet from "@/components/mobile/MobileNewEntitySheet";
+import type { OfficeModules } from "@/lib/officeModules";
 
 // Cinco abas fixas (documento 08 do handoff do redesenho — Fase 4, PWA): Publicações, Agenda,
 // "+" central (Novo Atendimento), Processo, Financeiro (resumo) — substitui as cinco antigas
@@ -22,33 +25,43 @@ const items = [
   { href: "/m/publicacoes", label: "Publ.", Icon: Newspaper, badge: null },
   { href: "/m/agenda", label: "Agenda", Icon: Calendar, badge: "agenda" as const },
   // Central — tratamento visual próprio (quadrado 52px em --acao), não faz parte do padrão
-  // ícone-circular+rótulo das outras quatro abas.
-  { href: "/m/atendimento/novo", label: "", Icon: Plus, badge: null, central: true },
+  // ícone-circular+rótulo das outras quatro abas. Antes ia direto para Novo Atendimento; agora
+  // abre o menu de escolha (components/mobile/MobileNewEntitySheet.tsx) — pedido do dono do
+  // produto: "o botão de + tinha que dar a opção de escolher o que adicionar".
+  { href: null, label: "", Icon: Plus, badge: null, central: true },
   { href: "/m/processos", label: "Processo", Icon: Briefcase, badge: null },
   { href: "/m/financeiro", label: "R$", Icon: DollarSign, badge: null },
 ];
 
-export default function MobileBottomNav({ todayAgendaCount = 0 }: { todayAgendaCount?: number }) {
+export default function MobileBottomNav({ todayAgendaCount = 0, modules }: { todayAgendaCount?: number; modules: OfficeModules }) {
   const pathname = usePathname();
+  const [newEntityOpen, setNewEntityOpen] = useState(false);
 
   return (
+    <>
     <nav className="fixed bottom-0 inset-x-0 h-[76px] bg-sf border-t-2 border-regua-forte flex items-center z-40">
       {items.map(({ href, label, Icon, badge, central }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
+        const active = href !== null && (pathname === href || pathname.startsWith(`${href}/`));
         const badgeCount = badge === "agenda" ? todayAgendaCount : 0;
 
         if (central) {
           return (
-            <Link key={href} href={href} className="flex-1 flex items-center justify-center" aria-label="Novo atendimento">
+            <button
+              key="central"
+              type="button"
+              onClick={() => setNewEntityOpen(true)}
+              className="flex-1 flex items-center justify-center"
+              aria-label="Novo"
+            >
               <span className="h-[52px] w-[52px] bg-acao text-acao-tx rounded-md flex items-center justify-center">
                 <Icon size={24} />
               </span>
-            </Link>
+            </button>
           );
         }
 
         return (
-          <Link key={href} href={href} className="flex-1 flex flex-col items-center justify-center gap-0.5">
+          <Link key={href} href={href as string} className="flex-1 flex flex-col items-center justify-center gap-0.5">
             <span className="relative">
               <span className={`flex items-center justify-center h-8 w-8 rounded-full transition-colors ${active ? "bg-marca" : ""}`}>
                 <Icon size={19} className={active ? "text-marca-tx" : "text-tx-2"} />
@@ -64,5 +77,7 @@ export default function MobileBottomNav({ todayAgendaCount = 0 }: { todayAgendaC
         );
       })}
     </nav>
+    <MobileNewEntitySheet open={newEntityOpen} onClose={() => setNewEntityOpen(false)} modules={modules} />
+    </>
   );
 }
