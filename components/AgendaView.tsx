@@ -170,7 +170,7 @@ export default function AgendaView({
 
   const controls = (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      <div className="flex gap-1 bg-sf-apoio border border-regua p-1">
+      <div className="flex gap-1 bg-sf-apoio border border-regua rounded-md p-1">
         {[
           { key: "mes", label: "Mês" },
           { key: "semana", label: "Semana" },
@@ -180,7 +180,7 @@ export default function AgendaView({
             key={v.key}
             href={buildHref({ visao: v.key === "mes" ? undefined : v.key })}
             className={clsx(
-              "text-xs font-semibold px-3 py-1.5 transition-colors",
+              "text-xs font-semibold px-3 py-1.5 rounded-sm transition-colors",
               visao === v.key
                 ? "bg-acao text-acao-tx"
                 : "text-tx-2 hover:bg-sf"
@@ -194,7 +194,7 @@ export default function AgendaView({
       <select
         value={responsibleId}
         onChange={(e) => onFilterChange("responsibleId", e.target.value)}
-        className="text-xs font-medium border border-regua-forte px-2.5 py-2 bg-sf text-tx"
+        className="text-xs font-medium border border-regua-forte rounded-md px-2.5 py-2 bg-sf text-tx"
       >
         <option value="">Todos os responsáveis</option>
         {users.map((u) => (
@@ -207,7 +207,7 @@ export default function AgendaView({
       <select
         value={tipo}
         onChange={(e) => onFilterChange("tipo", e.target.value)}
-        className="text-xs font-medium border border-regua-forte px-2.5 py-2 bg-sf text-tx"
+        className="text-xs font-medium border border-regua-forte rounded-md px-2.5 py-2 bg-sf text-tx"
       >
         <option value="">Todos os tipos</option>
         {Object.keys(typeMeta).map((k) => (
@@ -307,7 +307,7 @@ function EventChip({ t }: { t: TaskData }) {
     <div
       data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : doneTip || undefined}
       className={clsx(
-        "text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px]",
+        "text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm",
         isSafety ? clsx(safetyChip, "border-aviso") : clsx(meta.chip, meta.filete),
         done && "line-through opacity-60"
       )}
@@ -325,7 +325,7 @@ function EventChip({ t }: { t: TaskData }) {
 function FinanceEventChip({ f }: { f: FinanceEntryData }) {
   const meta = financeMeta[f.kind];
   return (
-    <div className={clsx("text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px]", meta.chip, meta.filete)}>
+    <div className={clsx("text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm", meta.chip, meta.filete)}>
       <span className="shrink-0">{f.kind === "PAGAR" ? "↓" : "↑"}</span>
       <span className="truncate">{f.description}</span>
     </div>
@@ -372,7 +372,7 @@ function MonthView({
   const nextMonthHref = buildHref({ year: String(month === 11 ? year + 1 : year), month: String(month === 11 ? 0 : month + 1) });
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte rounded-lg overflow-hidden flex flex-col min-h-0">
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">
           {MONTHS[month]} {year}
@@ -381,7 +381,7 @@ function MonthView({
           <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao px-2 py-1 hover:bg-acao-bg">
+          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao rounded-sm px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
           <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
@@ -398,7 +398,12 @@ function MonthView({
         ))}
       </div>
 
-      <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+      {/* Grade "de tabuleiro" (ajuste de tema, agosto/2026): antes cada dia era só uma célula com
+          borda nas 4 arestas, cantos retos — destoava dos próprios chips arredondados de dentro
+          (EventChip/FinanceEventChip, ver acima). Agora o fundo entre as células é --sf-apoio e
+          cada dia é um quadrado próprio (bg-sf, rounded-md) com um respiro de 4px — o "traço" da
+          grade vira o próprio gap, não uma borda. */}
+      <div className="grid grid-cols-7 gap-1 p-1 bg-sf-apoio flex-1 auto-rows-fr">
         {cells.map(({ date, inMonth }) => {
           const key = ymd(date);
           const dayTasks = tasksByDay[key] || [];
@@ -411,8 +416,8 @@ function MonthView({
               key={key}
               onClick={() => setSelected(key)}
               className={clsx(
-                "border-b border-r border-regua p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
-                !inMonth && "bg-sf-apoio text-tx-3",
+                "rounded-md p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
+                inMonth ? "bg-sf" : "bg-sf-apoio/50 text-tx-3",
                 isSelected && "bg-acao-bg ring-1 ring-inset ring-acao"
               )}
             >
@@ -463,14 +468,14 @@ function WeekView({
   const label = `${start.getDate()}/${String(start.getMonth() + 1).padStart(2, "0")} – ${days[6].getDate()}/${String(days[6].getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte rounded-lg overflow-hidden flex flex-col min-h-0">
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
           <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao px-2 py-1 hover:bg-acao-bg">
+          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao rounded-sm px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
           <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
@@ -478,7 +483,9 @@ function WeekView({
           </Link>
         </div>
       </div>
-      <div className="grid grid-cols-7 flex-1 min-h-0">
+      {/* Mesmo tratamento "de tabuleiro" do MonthView acima — gap + célula própria arredondada,
+          em vez de borda entre colunas. */}
+      <div className="grid grid-cols-7 gap-1 p-1 bg-sf-apoio flex-1 min-h-0">
         {days.map((date) => {
           const key = ymd(date);
           const dayTasks = (tasksByDay[key] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
@@ -490,7 +497,7 @@ function WeekView({
               key={key}
               onClick={() => setSelected(key)}
               className={clsx(
-                "border-r border-regua last:border-r-0 p-1.5 text-left flex flex-col overflow-hidden transition-colors",
+                "rounded-md bg-sf p-1.5 text-left flex flex-col overflow-hidden transition-colors",
                 isSelected && "bg-acao-bg"
               )}
             >
@@ -531,7 +538,7 @@ function ListView({
   const days = Array.from(new Set([...Object.keys(tasksByDay), ...Object.keys(financeByDay)])).sort();
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+    <div className="bg-sf border-t-2 border-regua-forte rounded-lg flex-1 min-h-0 overflow-y-auto scrollbar-thin">
       {days.length === 0 && <p className="text-center text-sm text-tx-3 py-16">Nada agendado nos próximos 30 dias</p>}
       {days.map((day) => {
         const items = (tasksByDay[day] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
@@ -608,7 +615,7 @@ function DayPanel({
   const totalCount = selectedTasks.length + selectedFinance.length;
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte rounded-lg overflow-hidden flex flex-col min-h-0">
       <div className="px-5 py-4 border-b border-regua flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-tx">
@@ -616,7 +623,7 @@ function DayPanel({
           </h3>
           <p className="text-xs text-tx-3 mt-0.5">{totalCount} item(ns) neste dia</p>
         </div>
-        <NewTaskModal key={selected} cases={cases} users={users} columns={columns} defaultDate={selected} label="+ Nova neste dia" />
+        <NewTaskModal key={selected} cases={cases} users={users} columns={columns} defaultDate={selected} label="+ Nova neste dia" tone="accent" />
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua">
         {totalCount === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}

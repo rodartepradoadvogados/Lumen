@@ -81,7 +81,7 @@ const config: Config = {
         },
         regua: { DEFAULT: "var(--regua)", forte: "var(--regua-forte)" },
         tx: { DEFAULT: "var(--tx)", 2: "var(--tx-2)", 3: "var(--tx-3)" },
-        acao: { DEFAULT: "var(--acao)", hover: "var(--acao-hover)", tx: "var(--acao-tx)", bg: "var(--acao-bg)" },
+        acao: { DEFAULT: "var(--acao)", hover: "var(--acao-hover)", tx: "var(--acao-tx)", bg: "var(--acao-bg)", light: "var(--acao-light)" },
         marca: { DEFAULT: "var(--marca)", tx: "var(--marca-tx)", bg: "var(--marca-bg)" },
         atencao: "var(--vinho)",
         // Texto sobre as superfícies que são grafite nos dois temas (rail, barra de menus da

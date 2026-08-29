@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import { createTask } from "@/lib/actions/tasks";
 import { Plus } from "lucide-react";
 import ModalShell from "@/components/ModalShell";
@@ -19,6 +20,7 @@ export default function NewTaskModal({
   defaultCaseId,
   defaultAttendanceId,
   label,
+  tone = "secondary",
 }: {
   cases: Option[];
   users: Option[];
@@ -28,6 +30,10 @@ export default function NewTaskModal({
   defaultCaseId?: string;
   defaultAttendanceId?: string;
   label?: string;
+  // "secondary" (padrão, DESIGN-SYSTEM.md §4: contorno neutro) em toda parte que reaproveita
+  // este gatilho (Kanban, Processo, Atendimento) — "accent" (bordô cheio) só na Agenda, a
+  // pedido explícito do dono do produto para "Nova Tarefa"/"Nova neste dia" nessa tela.
+  tone?: "secondary" | "accent";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -70,13 +76,17 @@ export default function NewTaskModal({
 
   return (
     <>
-      {/* "Nova"/"Novo" é Secundário (DESIGN-SYSTEM.md §4) — o azul de ação fica pro "Criar" dentro do modal. */}
       <button
         onClick={() => {
           setDescription("");
           setOpen(true);
         }}
-        className="flex items-center gap-1.5 bg-sf border border-regua hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 py-2 transition-colors"
+        className={clsx(
+          "flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 transition-colors",
+          tone === "accent"
+            ? "bg-acao hover:bg-acao-hover text-acao-tx rounded-md"
+            : "bg-sf border border-regua hover:bg-sf-apoio text-tx"
+        )}
       >
         <Plus size={16} /> {label ?? "Nova Tarefa"}
       </button>

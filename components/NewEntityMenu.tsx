@@ -18,12 +18,12 @@ export default function NewEntityMenu() {
 
   return (
     <div className="relative" ref={ref}>
-      {/* "Novo" é botão SECUNDÁRIO (DESIGN-SYSTEM.md §4: contorno neutro em --regua) — não
-          primário; a ação primária mais visível do produto é Peticionar
-          (components/PeticionarButton.tsx), que fica ao lado. */}
+      {/* "Novo" é bordô mais claro que o Peticionar (components/PeticionarButton.tsx, a ação
+          mais forte da tela) — pedido explícito para diferenciar as duas sem virar contorno
+          neutro (ajuste de tema, agosto/2026: --acao-light em vez do outline anterior). */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="hidden sm:flex items-center gap-1.5 h-8 rounded-md border border-regua bg-sf hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 transition-colors"
+        className="hidden sm:flex items-center gap-1.5 h-8 rounded-md bg-acao-light hover:bg-acao text-acao-tx text-sm font-medium px-3.5 transition-colors"
       >
         <Plus size={16} /> Novo
       </button>
