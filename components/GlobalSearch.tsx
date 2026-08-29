@@ -196,15 +196,18 @@ export default function GlobalSearch({
 
   return (
     <>
+      {/* Borda + raio própria (ajuste de tema, agosto/2026): a faixa de topo deixou de ter uma
+          "ilha clara" (bg-sf) por baixo do gatilho — sem contorno próprio, o botão ficaria só
+          texto solto direto na faixa, sem nenhuma pista de que é clicável. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Abrir busca (⌘K)"
-        className="flex items-center gap-2 h-8 px-3 text-sm text-tx-2 hover:text-tx transition-colors"
+        className="flex items-center gap-2 h-8 px-3 rounded-md border border-regua hover:bg-sf-apoio text-sm text-tx-2 hover:text-tx transition-colors"
       >
         <Search size={15} />
         <span className="hidden lg:inline">Buscar...</span>
-        <kbd className="hidden lg:inline text-[10px] font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5">⌘K</kbd>
+        <kbd className="hidden lg:inline text-[10px] font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5 rounded-sm">⌘K</kbd>
       </button>
 
       {open && (

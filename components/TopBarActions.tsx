@@ -16,12 +16,7 @@ export default async function TopBarActions() {
     : "??";
   const sessionSeconds = user ? await getCurrentSessionElapsedSeconds(user.id) : 0;
 
-  return (
-    // Ilha clara (--sf) flutuando na faixa escura de components/TopBar.tsx: em vez de recolorir
-    // cada botão filho (Peticionar/Novo/Timesheet/avatar já têm cor própria testada nos dois
-    // temas), o cluster inteiro ganha uma superfície clara própria por cima do escuro.
-    <div className="bg-sf pl-2.5 pr-1.5 py-1 shadow-menu">
-      <TopBarActionsContent user={user} initials={initials} todayCount={todayItems.length} sessionSeconds={sessionSeconds} />
-    </div>
-  );
+  // A faixa de topo (components/TopBar.tsx) já é bg-sf — não precisa mais da "ilha clara" que
+  // existia quando o fundo dela era escuro fixo (ajuste de tema, agosto/2026).
+  return <TopBarActionsContent user={user} initials={initials} todayCount={todayItems.length} sessionSeconds={sessionSeconds} />;
 }

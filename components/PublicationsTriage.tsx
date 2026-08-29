@@ -139,8 +139,9 @@ export default function PublicationsTriage({
   //
   // A seleção avança IMEDIATAMENTE (pra fila com teclado continuar rápida, sem esperar a
   // animação) — só a mutação de verdade em `items` (que tira o card da lista) espera
-  // DISMISS_ANIMATION_MS, tempo do card terminar de animar sob a classe de `dismissing`.
-  const DISMISS_ANIMATION_MS = 320;
+  // DISMISS_ANIMATION_MS, tempo do card terminar de animar sob a classe de `dismissing`. 1000ms
+  // (1 segundo completo) a pedido explícito, pras quatro variantes por igual — antes era 320ms.
+  const DISMISS_ANIMATION_MS = 1000;
   function dismissGroup(key: string, kind: DismissKind, primaryPatch: Partial<TriagePub>, markRead: boolean) {
     const nextKey = pickNextKey(key);
     setDismissing((d) => ({ ...d, [key]: kind }));

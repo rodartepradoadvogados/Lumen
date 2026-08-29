@@ -23,12 +23,12 @@ export default function NewEntityMenu() {
           (components/PeticionarButton.tsx), que fica ao lado. */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="hidden sm:flex items-center gap-1.5 h-8 border border-regua bg-sf hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 transition-colors"
+        className="hidden sm:flex items-center gap-1.5 h-8 rounded-md border border-regua bg-sf hover:bg-sf-apoio text-tx text-sm font-medium px-3.5 transition-colors"
       >
         <Plus size={16} /> Novo
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-56 bg-sf border border-regua shadow-menu z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-1.5 w-56 rounded-lg bg-sf border border-regua shadow-menu z-50 overflow-hidden">
           <Link href="/processos/novo?type=JUDICIAL" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-tx hover:bg-sf-apoio transition-colors">
             <Scale size={15} /> Processo Judicial
           </Link>

@@ -71,7 +71,7 @@ export default function DistributePublicationsButton() {
     <div>
       <button
         onClick={handleOpen}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 "
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 rounded-md"
       >
         <Shuffle size={15} /> Distribuir pendentes
       </button>

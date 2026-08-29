@@ -276,8 +276,9 @@ input[type="radio"] {
 /* Animações de saída da triagem de Publicações (components/PublicationsTriage.tsx) — cada uma
    emparelhada com o desfecho da ação: sai pela esquerda (marcar como lida), cai pra baixo
    (arquivar), pisca bordô (bloquear, "resultado ruim") ou pisca verde (delegar/criar tarefa/
-   vincular, "resolvido"). Duração (320ms) precisa bater com DISMISS_ANIMATION_MS no componente —
-   é o tempo que ele espera antes de tirar o item de verdade da lista. */
+   vincular, "resolvido"). Duração (1000ms, a pedido explícito — "1 segundo completo, até o card
+   sair da tela") precisa bater com DISMISS_ANIMATION_MS no componente — é o tempo que ele espera
+   antes de tirar o item de verdade da lista. */
 @keyframes slideOutLeft {
   from { opacity: 1; transform: translateX(0); }
   to { opacity: 0; transform: translateX(-40px); }
@@ -296,10 +297,10 @@ input[type="radio"] {
   55% { background-color: var(--concluido); opacity: 1; }
   100% { background-color: var(--concluido); opacity: 0; }
 }
-.animate-slide-out-left { animation: slideOutLeft 320ms ease-in forwards; }
-.animate-slide-out-down { animation: slideOutDown 320ms ease-in forwards; }
-.animate-flash-wine-out { animation: flashWineOut 320ms ease-in forwards; }
-.animate-flash-green-out { animation: flashGreenOut 320ms ease-in forwards; }
+.animate-slide-out-left { animation: slideOutLeft 1000ms ease-in forwards; }
+.animate-slide-out-down { animation: slideOutDown 1000ms ease-in forwards; }
+.animate-flash-wine-out { animation: flashWineOut 1000ms ease-in forwards; }
+.animate-flash-green-out { animation: flashGreenOut 1000ms ease-in forwards; }
 
 /* Tooltip global por CSS puro — aplique data-tip="..." em qualquer elemento.
    IMPORTANTE: fica dentro de `@layer base` (não solto no arquivo) para que utilitários do

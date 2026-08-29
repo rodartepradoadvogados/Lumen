@@ -25,7 +25,7 @@ export default function SyncPublicationsButton() {
           })
         }
         disabled={pending}
-        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2"
+        className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-50 text-acao-tx text-sm font-semibold px-4 py-2 rounded-md"
       >
         <RefreshCw size={15} className={pending ? "animate-spin" : ""} />
         {pending ? "Sincronizando..." : "Sincronizar publicações e andamentos processuais"}

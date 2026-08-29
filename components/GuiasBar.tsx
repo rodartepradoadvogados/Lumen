@@ -61,8 +61,14 @@ function Chip({
         // recebe mais espaço e o nome completo cabe sem truncar (pedido do dono do produto,
         // combinado com o teto de 5 guias em TabsProvider.tsx) — truncate continua como rede de
         // segurança pra nome mesmo assim maior que o teto de largura.
+        //
+        // Cores por tema (ajuste de agosto/2026): a faixa de topo deixou de ter fundo escuro
+        // fixo (ver components/TopBar.tsx), então a guia ativa precisa de um degrau PRÓPRIO
+        // (--sf-apoio) pra continuar se destacando da faixa (--sf) — só o filete de --acao no
+        // topo não bastaria. As inativas usam --tx-2 (não mais --rail-tx, que pressupunha fundo
+        // sempre escuro).
         "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-[11px] font-semibold border-t-2 rounded-t-lg transition-colors",
-        active ? "bg-sf text-tx border-acao" : "text-rail-tx border-transparent hover:text-white"
+        active ? "bg-sf-apoio text-tx border-acao" : "text-tx-2 border-transparent hover:bg-sf-apoio/60 hover:text-tx"
       )}
     >
       <FileText size={11} className="shrink-0" />
@@ -77,10 +83,7 @@ function Chip({
           aria-label={`Fechar aba ${label}`}
           className={clsx(
             "p-0.5 shrink-0",
-            // Cor do "x" depende do fundo do próprio chip (claro quando ativo, grafite escuro
-            // quando inativo) — não dá pra usar só --tx-2 aqui, ele inverteria errado num dos
-            // dois fundos conforme o tema do site.
-            active ? "text-tx-2/45 hover:text-tx" : "text-white/45 hover:text-white"
+            active ? "text-tx-2/45 hover:text-tx" : "text-tx-3/60 hover:text-tx-2"
           )}
         >
           <X size={11} />
