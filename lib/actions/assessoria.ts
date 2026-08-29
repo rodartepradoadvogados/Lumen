@@ -23,12 +23,14 @@ export async function listAssessorias() {
   });
 }
 
-export async function createAssessoria(data: {
+type CreateAssessoriaInput = {
   clientId: string;
   monthlyFee: string;
   dueDay: string;
   responsibleId?: string;
-}): Promise<{ error?: string }> {
+};
+
+async function buildAssessoria(data: CreateAssessoriaInput): Promise<{ error?: string; id?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
   if (!(await getOfficeModules(user.officeId)).assessoria) {
@@ -72,7 +74,21 @@ export async function createAssessoria(data: {
     },
   });
   revalidatePath("/assessoria");
-  redirect(`/assessoria/${created.id}`);
+  return { id: created.id };
+}
+
+export async function createAssessoria(data: CreateAssessoriaInput): Promise<{ error?: string }> {
+  const result = await buildAssessoria(data);
+  if (result.error) return { error: result.error };
+  redirect(`/assessoria/${result.id}`);
+}
+
+// Mesmo cadastro de createAssessoria, mas sem redirect() — o redirect da versão desktop aponta
+// pra "/assessoria/{id}" (fora de /m), então o app mobile precisa navegar ele mesmo, pro
+// equivalente "/m/assessoria/{id}" (mesmo padrão de createCaseMobile em lib/actions/cases.ts,
+// ver components/mobile/MobileNewAssessoriaForm.tsx).
+export async function createAssessoriaMobile(data: CreateAssessoriaInput): Promise<{ error?: string; id?: string }> {
+  return buildAssessoria(data);
 }
 
 export async function updateAssessoria(
