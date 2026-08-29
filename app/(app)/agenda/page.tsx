@@ -129,7 +129,7 @@ export default async function AgendaPage({
       <PageHeader
         title="Agenda"
         subtitle="Integrada ao Kanban — dar baixa aqui reflete automaticamente lá"
-        action={<NewTaskModal cases={cases.map((c) => ({ id: c.id, name: c.title }))} users={users} columns={columns} />}
+        action={<NewTaskModal cases={cases.map((c) => ({ id: c.id, name: c.title }))} users={users} columns={columns} tone="accent" />}
       />
       <AgendaView
         visao={visao}

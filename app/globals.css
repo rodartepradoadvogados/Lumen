@@ -49,6 +49,10 @@
   --acao-hover: #9c3a4d;
   --acao-tx: #f7eef0;
   --acao-bg: rgba(138, 47, 66, 0.08);
+  /* Variante mais clara do bordô sólido — pedido explícito para o "+Novo" da faixa de topo se
+     diferenciar do Peticionar (a ação mais forte da tela) sem virar contorno/outline. Não
+     retematiza, mesmo raciocínio de --acao/--marca/--vinho logo abaixo. */
+  --acao-light: #a8495c;
 
   --marca: #8a2f42;
   /* --marca-tx (bordô como TEXTO/filete, não como fundo) na Manhã pode ser igual a
@@ -123,6 +127,7 @@
   --acao-hover: #9c3a4d;
   --acao-tx: #f7eef0;
   --acao-bg: rgba(138, 47, 66, 0.16);
+  --acao-light: #a8495c;
 
   --marca: #8a2f42;
   /* Aqui, diferente da Manhã, --marca-tx PRECISA ficar diferente de --marca: o bordô
