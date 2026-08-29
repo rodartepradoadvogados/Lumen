@@ -7,13 +7,16 @@ import TabLink from "@/components/TabLink";
 import clsx from "clsx";
 import {
   markPublicationsRead,
+  markPublicationsUnread,
   setPublicationTriageStatus,
   searchCasesForLinking,
   linkPublicationToCase,
   blockProcessNumber,
+  unblockProcessNumber,
 } from "@/lib/actions/publications";
 import DelegateTaskForm, { type DelegateTaskInitial } from "@/components/DelegateTaskForm";
 import ModalShell from "@/components/ModalShell";
+import { useUndoToast } from "@/components/UndoToastProvider";
 import CopyButton from "@/components/CopyButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PeticionarButton from "@/components/PeticionarButton";
@@ -41,6 +44,10 @@ export type TriagePub = {
 };
 
 export type TriageGroup = PublicationGroup<TriagePub> & { prazoSugeridoDate: string; prazoSugeridoDiasUteis: number };
+
+// Desfecho visual de um card saindo da fila (ver dismissGroup, mais abaixo, e as animações
+// .animate-slide-out-*/.animate-flash-*-out em app/globals.css).
+type DismissKind = "read" | "archive" | "block" | "resolve";
 
 // Mesma tabela de cores por fonte do manual (DESIGN-SYSTEM.md §9) já usada em
 // components/PublicationsList.tsx — chaves batem com Publication.source de verdade.
@@ -79,6 +86,7 @@ export default function PublicationsTriage({
   viewerId: string;
 }) {
   const router = useRouter();
+  const { showUndo } = useUndoToast();
   const [items, setItems] = useState(groups);
   useEffect(() => setItems(groups), [groups]);
 
@@ -103,6 +111,12 @@ export default function PublicationsTriage({
   const [linkModal, setLinkModal] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Card "saindo" da fila — cada ação tem seu próprio desfecho visual (ver .animate-slide-out-*/
+  // .animate-flash-*-out em app/globals.css): sair pela esquerda (marcar como lida), cair pra
+  // baixo (arquivar), piscar bordô (bloquear) ou piscar verde (delegar/criar tarefa/vincular).
+  // DISMISS_ANIMATION_MS precisa bater com a duração dessas animações no CSS.
+  const [dismissing, setDismissing] = useState<Record<string, DismissKind>>({});
+
   function pickNextKey(currentKey: string): string | null {
     const idx = visible.findIndex((g) => g.key === currentKey);
     if (idx === -1) return visible[0]?.key ?? null;
@@ -117,37 +131,59 @@ export default function PublicationsTriage({
   }
 
   // Atualiza o grupo localmente (sem esperar o servidor) e, se ele deixou de bater com o chip
-  // ativo, já avança a seleção para o próximo item visível — usado depois de toda ação que muda
-  // um dado que decide inclusão no chip (triageStatus, leitura, responsável, processo vinculado).
+  // ativo, avança a seleção pro próximo item visível — usado depois de toda ação que muda um dado
+  // que decide inclusão no chip (triageStatus, leitura, responsável, processo vinculado).
   // `markRead` também marca todos os itens do grupo como lidos (allRead) — usado depois de
-  // arquivar/gerar tarefa, nunca depois de só vincular a processo (que não resolve a pendência).
-  function patchGroup(key: string, primaryPatch: Partial<TriagePub>, markRead = false) {
+  // arquivar/bloquear/gerar tarefa, nunca depois de só vincular a processo (que não resolve a
+  // pendência — pode continuar aparecendo em "Não triadas", só sem mais o aviso "sem processo").
+  //
+  // A seleção avança IMEDIATAMENTE (pra fila com teclado continuar rápida, sem esperar a
+  // animação) — só a mutação de verdade em `items` (que tira o card da lista) espera
+  // DISMISS_ANIMATION_MS, tempo do card terminar de animar sob a classe de `dismissing`.
+  const DISMISS_ANIMATION_MS = 320;
+  function dismissGroup(key: string, kind: DismissKind, primaryPatch: Partial<TriagePub>, markRead: boolean) {
     const nextKey = pickNextKey(key);
-    setItems((prev) =>
-      prev.map((g) =>
-        g.key === key
-          ? {
-              ...g,
-              primary: { ...g.primary, ...primaryPatch },
-              allRead: markRead ? true : g.allRead,
-              items: markRead ? g.items.map((i) => ({ ...i, read: true })) : g.items,
-            }
-          : g
-      )
-    );
+    setDismissing((d) => ({ ...d, [key]: kind }));
     setSelectedKey(nextKey);
+    window.setTimeout(() => {
+      setItems((prev) =>
+        prev.map((g) =>
+          g.key === key
+            ? {
+                ...g,
+                primary: { ...g.primary, ...primaryPatch },
+                allRead: markRead ? true : g.allRead,
+                items: markRead ? g.items.map((i) => ({ ...i, read: true })) : g.items,
+              }
+            : g
+        )
+      );
+      setDismissing((d) => {
+        if (!(key in d)) return d;
+        const next = { ...d };
+        delete next[key];
+        return next;
+      });
+    }, DISMISS_ANIMATION_MS);
   }
 
   async function archive() {
     if (!selected || busy) return;
     const group = selected;
+    const previousStatus = group.primary.triageStatus;
+    const ids = group.items.map((i) => i.id);
     setBusy(true);
-    patchGroup(group.key, { triageStatus: "TRATADA" }, true);
+    dismissGroup(group.key, "archive", { triageStatus: "TRATADA" }, true);
     try {
-      await Promise.all([
-        setPublicationTriageStatus(group.primary.id, "TRATADA"),
-        markPublicationsRead(group.items.map((i) => i.id)),
-      ]);
+      await Promise.all([setPublicationTriageStatus(group.primary.id, "TRATADA"), markPublicationsRead(ids)]);
+      showUndo({
+        message: "Publicação arquivada.",
+        durationMs: 4000,
+        onUndo: async () => {
+          await Promise.all([setPublicationTriageStatus(group.primary.id, previousStatus), markPublicationsUnread(ids)]);
+          router.refresh();
+        },
+      });
     } finally {
       setBusy(false);
       router.refresh();
@@ -161,10 +197,19 @@ export default function PublicationsTriage({
   async function marcarLida() {
     if (!selected || busy) return;
     const group = selected;
+    const ids = group.items.map((i) => i.id);
     setBusy(true);
-    patchGroup(group.key, {}, true);
+    dismissGroup(group.key, "read", {}, true);
     try {
-      await markPublicationsRead(group.items.map((i) => i.id));
+      await markPublicationsRead(ids);
+      showUndo({
+        message: "Publicação marcada como lida.",
+        durationMs: 4000,
+        onUndo: async () => {
+          await markPublicationsUnread(ids);
+          router.refresh();
+        },
+      });
     } finally {
       setBusy(false);
       router.refresh();
@@ -225,9 +270,13 @@ export default function PublicationsTriage({
       }
     : undefined;
 
+  // Guarda o resultado em vez de já tirar o card da fila — o card ainda está atrás do modal
+  // aberto, então a animação (piscar verde) só faz sentido depois que o modal fecha e a fila
+  // volta a aparecer (ver onClose do ModalShell abaixo).
+  const [taskSuccess, setTaskSuccess] = useState<{ key: string; patch: Partial<TriagePub> } | null>(null);
   function handleTaskSuccess(responsibleIds: string[]) {
     if (!taskModal.groupKey) return;
-    patchGroup(taskModal.groupKey, { assignedToId: responsibleIds[0] ?? null, deadlineGenerated: true }, true);
+    setTaskSuccess({ key: taskModal.groupKey, patch: { assignedToId: responsibleIds[0] ?? null, deadlineGenerated: true } });
   }
 
   return (
@@ -238,7 +287,13 @@ export default function PublicationsTriage({
         ) : (
           <div className="divide-y divide-regua">
             {visible.map((g) => (
-              <FilaCard key={g.key} group={g} selected={g.key === selectedKey} onSelect={() => setSelectedKey(g.key)} />
+              <FilaCard
+                key={g.key}
+                group={g}
+                selected={g.key === selectedKey}
+                dismissing={dismissing[g.key]}
+                onSelect={() => setSelectedKey(g.key)}
+              />
             ))}
           </div>
         )}
@@ -266,7 +321,12 @@ export default function PublicationsTriage({
           size="medio"
           title={taskModal.type === "PRAZO" ? "Criar tarefa com prazo" : "Delegar publicação"}
           onClose={() => {
+            const key = taskModal.groupKey;
             setTaskModal({ open: false, groupKey: null, type: "PRAZO" });
+            if (key && taskSuccess?.key === key) {
+              dismissGroup(key, "resolve", taskSuccess.patch, true);
+              setTaskSuccess(null);
+            }
             router.refresh();
           }}
         >
@@ -282,8 +342,31 @@ export default function PublicationsTriage({
           onClose={() => setLinkModal(false)}
           onLinked={(hit) => {
             if (!selected) return;
-            patchGroup(selected.key, { case: { id: hit.id, title: hit.title, processNumber: hit.processNumber } });
+            const key = selected.key;
             setLinkModal(false);
+            // markRead fica false — vincular a processo não resolve a pendência (ver comentário
+            // de dismissGroup acima); em "Não triadas" o card pode reaparecer normalmente depois
+            // do flash verde, já com o processo linkado — é o comportamento certo, não um bug.
+            dismissGroup(key, "resolve", { case: { id: hit.id, title: hit.title, processNumber: hit.processNumber } }, false);
+            router.refresh();
+          }}
+          onBlocked={(blockedId) => {
+            if (!selected) return;
+            const key = selected.key;
+            const ids = selected.items.map((i) => i.id);
+            setLinkModal(false);
+            dismissGroup(key, "block", {}, true);
+            if (blockedId) {
+              showUndo({
+                message: "Processo bloqueado — você não vai mais receber publicações dele.",
+                durationMs: 4000,
+                onUndo: async () => {
+                  await unblockProcessNumber(blockedId);
+                  await markPublicationsUnread(ids);
+                  router.refresh();
+                },
+              });
+            }
             router.refresh();
           }}
         />
@@ -292,17 +375,36 @@ export default function PublicationsTriage({
   );
 }
 
-function FilaCard({ group, selected, onSelect }: { group: TriageGroup; selected: boolean; onSelect: () => void }) {
+const DISMISS_ANIMATION_CLASS: Record<DismissKind, string> = {
+  read: "animate-slide-out-left",
+  archive: "animate-slide-out-down",
+  block: "animate-flash-wine-out",
+  resolve: "animate-flash-green-out",
+};
+
+function FilaCard({
+  group,
+  selected,
+  dismissing,
+  onSelect,
+}: {
+  group: TriageGroup;
+  selected: boolean;
+  dismissing?: DismissKind;
+  onSelect: () => void;
+}) {
   const pub = group.primary;
   const hasMultiple = group.items.length > 1;
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={Boolean(dismissing)}
       className={clsx(
         "block w-full text-left px-4 py-3 border-l-4 rounded-lg transition-colors",
         sourceBorderColor(pub.source),
-        selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio/60"
+        selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio/60",
+        dismissing && [DISMISS_ANIMATION_CLASS[dismissing], "pointer-events-none"]
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -351,7 +453,10 @@ function Teor({
   const pub = group.primary;
   const assignedToName = users.find((u) => u.id === pub.assignedToId)?.name;
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    // bg-sf: sem isso o painel herdava --sf-fundo direto do body, a mesma cor do fundo da tela
+    // — o quadro do teor "sumia" contra o resto da página em vez de flutuar como os outros
+    // cartões do produto (mesmo token que a FilaCard da fila já usa).
+    <div className="flex-1 flex flex-col min-h-0 bg-sf">
       <div className="px-6 pt-5 pb-4 border-b border-regua shrink-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2">
           {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {formatDate(pub.publishedAt)}
@@ -456,8 +561,17 @@ function Teor({
 // "Bloquear" (só quando há número de processo identificado) mora aqui dentro em vez de virar uma
 // 5ª ação na barra do teor — documento 05 define só 4 ações na barra; bloquear é um desfecho raro
 // dentro do MESMO fluxo de "isto não tem processo", igual já era em LinkPublicationMenu.
-function LinkModal({ group, onClose, onLinked }: { group: TriageGroup; onClose: () => void; onLinked: (hit: CaseHit) => void }) {
-  const router = useRouter();
+function LinkModal({
+  group,
+  onClose,
+  onLinked,
+  onBlocked,
+}: {
+  group: TriageGroup;
+  onClose: () => void;
+  onLinked: (hit: CaseHit) => void;
+  onBlocked: (blockedId?: string) => void;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CaseHit[]>([]);
   const [searching, setSearching] = useState(false);
@@ -493,11 +607,11 @@ function LinkModal({ group, onClose, onLinked }: { group: TriageGroup; onClose: 
 
   async function confirmBlock() {
     setBlocking(true);
-    await blockProcessNumber(group.primary.id);
+    const res = await blockProcessNumber(group.primary.id);
     setBlocking(false);
     setBlockConfirm(false);
     onClose();
-    router.refresh();
+    onBlocked(res.blockedId);
   }
 
   const newCaseHref = `/processos/novo?type=JUDICIAL&publicationId=${encodeURIComponent(group.primary.id)}${
