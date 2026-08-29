@@ -310,7 +310,7 @@ export type BlockedProcessNumberRow = {
   createdAt: string;
 };
 
-export async function blockProcessNumber(publicationId: string): Promise<{ error?: string }> {
+export async function blockProcessNumber(publicationId: string): Promise<{ error?: string; blockedId?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
@@ -325,7 +325,10 @@ export async function blockProcessNumber(publicationId: string): Promise<{ error
   const normalized = normalizeProcessNumber(pub.processNumberRaw);
   if (!normalized) return { error: "Não foi possível interpretar o número deste processo." };
 
-  await prisma.blockedProcessNumber.upsert({
+  // `id` devolvido ao caller (components/PublicationsTriage.tsx) — precisa dele pra oferecer
+  // "Desfazer" chamando unblockProcessNumber, já que o upsert não tem outro jeito de descobrir o
+  // id depois.
+  const blocked = await prisma.blockedProcessNumber.upsert({
     where: { userId_processNumber: { userId: user.id, processNumber: normalized } },
     update: {},
     create: { officeId: user.officeId, processNumber: normalized, displayNumber: pub.processNumberRaw, userId: user.id },
@@ -353,7 +356,7 @@ export async function blockProcessNumber(publicationId: string): Promise<{ error
   revalidatePath("/alertas");
   revalidatePath("/painel");
   revalidatePath("/configuracoes");
-  return {};
+  return { blockedId: blocked.id };
 }
 
 export async function unblockProcessNumber(id: string): Promise<{ error?: string }> {

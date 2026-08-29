@@ -5,8 +5,13 @@ import { Undo2 } from "lucide-react";
 
 const UNDO_TOAST_DURATION_MS = 5000;
 
-type UndoToast = { id: number; message: string; onUndo: () => void | Promise<void> };
-type UndoToastContextValue = { showUndo: (opts: { message: string; onUndo: () => void | Promise<void> }) => void };
+type UndoToast = { id: number; message: string; onUndo: () => void | Promise<void>; durationMs: number };
+type UndoToastContextValue = {
+  // durationMs é opcional (default 5s, o mesmo de sempre) — só a triagem de Publicações
+  // (components/PublicationsTriage.tsx) passa 4s, pra bater com o ritmo mais rápido de triar
+  // várias publicações em sequência pelo teclado.
+  showUndo: (opts: { message: string; onUndo: () => void | Promise<void>; durationMs?: number }) => void;
+};
 
 const UndoToastContext = createContext<UndoToastContextValue | null>(null);
 
@@ -18,11 +23,12 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
   const idRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showUndo = useCallback((opts: { message: string; onUndo: () => void | Promise<void> }) => {
+  const showUndo = useCallback((opts: { message: string; onUndo: () => void | Promise<void>; durationMs?: number }) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const id = ++idRef.current;
-    setToast({ id, message: opts.message, onUndo: opts.onUndo });
-    timerRef.current = setTimeout(() => setToast((t) => (t?.id === id ? null : t)), UNDO_TOAST_DURATION_MS);
+    const durationMs = opts.durationMs ?? UNDO_TOAST_DURATION_MS;
+    setToast({ id, message: opts.message, onUndo: opts.onUndo, durationMs });
+    timerRef.current = setTimeout(() => setToast((t) => (t?.id === id ? null : t)), durationMs);
   }, []);
 
   async function handleUndo() {
@@ -50,7 +56,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={toast.id}
             className="h-1 bg-marca"
-            style={{ animation: `undoToastShrink ${UNDO_TOAST_DURATION_MS}ms linear forwards` }}
+            style={{ animation: `undoToastShrink ${toast.durationMs}ms linear forwards` }}
           />
         </div>
       )}
