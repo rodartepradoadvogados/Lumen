@@ -2,6 +2,8 @@
 // Módulo puro (sem Prisma) — usado pela prévia ao vivo no editor E pelo envio de teste, garante
 // que as duas coisas rendem exatamente igual.
 
+import { escapeHtml } from "@/lib/htmlEscape";
+
 export const TEMPLATE_VARS = ["cliente", "processo", "tribunal", "prazo", "link", "responsavel", "teor"] as const;
 export type TemplateVar = (typeof TEMPLATE_VARS)[number];
 export type TemplateVarValues = Partial<Record<TemplateVar, string>>;
@@ -32,7 +34,11 @@ export function renderTemplateBody(html: string, vars: TemplateVarValues): strin
       return Boolean(v);
     });
   });
-  return kept.map((line) => line.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key as TemplateVar] ?? "")).join("\n");
+  // escapeHtml (achado F4 da auditoria de segurança, docs/security-audit/) — as variáveis são
+  // texto livre digitado pelo usuário (nome de cliente, teor de publicação/tarefa etc.), nunca
+  // HTML; sem escapar aqui, iam cruas pro e-mail final. O bodyHtml em volta continua HTML de
+  // verdade (autoria do admin no editor), só o VALOR de cada variável é escapado.
+  return kept.map((line) => line.replace(/\{\{(\w+)\}\}/g, (_, key: string) => escapeHtml(vars[key as TemplateVar]))).join("\n");
 }
 
 const NAVY = "#0b1730";
@@ -53,7 +59,7 @@ export const RODAPE_OBRIGATORIO = "Você recebe este resumo uma vez por dia. Alt
 export function buildDigestEmailHtml(params: { subject: string; bodyHtml: string; url?: string; vars: TemplateVarValues }): string {
   const corpo = renderTemplateBody(params.bodyHtml, params.vars);
   const prazoLinha = params.vars.prazo
-    ? `<tr><td style="padding:16px 24px 0;"><div style="border-left:3px solid ${GOLD};background:#f9f6ef;padding:10px 14px;font-size:13px;color:${NAVY};">Prazo: <strong>${params.vars.prazo}</strong></div></td></tr>`
+    ? `<tr><td style="padding:16px 24px 0;"><div style="border-left:3px solid ${GOLD};background:#f9f6ef;padding:10px 14px;font-size:13px;color:${NAVY};">Prazo: <strong>${escapeHtml(params.vars.prazo)}</strong></div></td></tr>`
     : "";
   const botao = params.url
     ? `<tr><td style="padding:20px 24px;text-align:center;"><a href="${params.url}" style="background:${NAVY};color:#fff;padding:12px 24px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block;">Abrir no Lúmen</a></td></tr>`
@@ -69,7 +75,7 @@ export function buildDigestEmailHtml(params: { subject: string; bodyHtml: string
   </tr>
   <tr>
     <td style="padding:24px 24px 0;">
-      <h1 style="font-size:18px;color:${NAVY};margin:0;">${params.subject}</h1>
+      <h1 style="font-size:18px;color:${NAVY};margin:0;">${escapeHtml(params.subject)}</h1>
     </td>
   </tr>
   <tr>

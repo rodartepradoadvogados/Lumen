@@ -4,6 +4,7 @@ import { sendSimpleEmail } from "@/lib/email";
 import { buildDigestEmailHtml, type TemplateVarValues } from "@/lib/emailTemplateRender";
 import { DEFAULT_TEMPLATES } from "@/lib/comunicadosTemplatesPadrao";
 import type { NotificationEvent } from "@/lib/comunicadosEventos";
+import { escapeHtml } from "@/lib/htmlEscape";
 
 type OutboxPayload = { title: string; body: string; url: string | null; vars?: TemplateVarValues };
 type OutboxRow = { id: string; userId: string; officeId: string; channel: string; event: string; payload: unknown };
@@ -21,14 +22,14 @@ async function renderGroupEmail(officeId: string, items: (OutboxPayload & { even
     const item = items[0];
     const event = item.event as NotificationEvent;
     const salvo = await prisma.emailTemplate.findUnique({ where: { officeId_event: { officeId, event } } });
-    const template = salvo ?? DEFAULT_TEMPLATES[event] ?? { subject: item.title, bodyHtml: `<p>${item.body}</p>` };
+    const template = salvo ?? DEFAULT_TEMPLATES[event] ?? { subject: item.title, bodyHtml: `<p>${escapeHtml(item.body)}</p>` };
     return {
       subject: template.subject,
       html: buildDigestEmailHtml({ subject: template.subject, bodyHtml: template.bodyHtml, url: item.url ?? undefined, vars: item.vars ?? {} }),
     };
   }
   const listaHtml = items
-    .map((i) => `<p><strong>${i.title}</strong><br/>${i.body}</p>`)
+    .map((i) => `<p><strong>${escapeHtml(i.title)}</strong><br/>${escapeHtml(i.body)}</p>`)
     .join("");
   return { subject: "Seu resumo do Lúmen", html: buildDigestEmailHtml({ subject: "Seu resumo do Lúmen", bodyHtml: listaHtml, vars: {} }) };
 }

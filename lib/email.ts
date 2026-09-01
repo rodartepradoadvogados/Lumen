@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { valorLiquido } from "@/lib/financeCalc";
 import { getOAuthClient } from "@/lib/googleDrive";
 import { getMicrosoftAccessToken } from "@/lib/microsoftGraph";
+import { escapeHtml } from "@/lib/htmlEscape";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -153,8 +154,8 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${t.dueTime ?? "—"}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${typeLabels[t.type] ?? t.type}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${t.title}${t.case ? `<br/><span style="color:#888;font-size:12px;">${t.case.title}</span>` : ""}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#555;">${t.responsible?.name ?? "—"}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${escapeHtml(t.title)}${t.case ? `<br/><span style="color:#888;font-size:12px;">${escapeHtml(t.case.title)}</span>` : ""}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#555;">${escapeHtml(t.responsible?.name) || "—"}</td>
       </tr>`
     )
     .join("");
@@ -164,8 +165,8 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
     .map(
       (p) => `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${pubKindLabels[p.kind] ?? p.kind}</span> <span style="color:#999;font-size:11px;">${p.source}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${p.content.slice(0, 220)}${p.content.length > 220 ? "…" : ""}${p.case ? `<br/><span style="color:#888;font-size:12px;">${p.case.title}</span>` : ""}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${pubKindLabels[p.kind] ?? p.kind}</span> <span style="color:#999;font-size:11px;">${escapeHtml(p.source)}</span></td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${escapeHtml(p.content.slice(0, 220))}${p.content.length > 220 ? "…" : ""}${p.case ? `<br/><span style="color:#888;font-size:12px;">${escapeHtml(p.case.title)}</span>` : ""}</td>
       </tr>`
     )
     .join("");
@@ -535,10 +536,10 @@ function digestSection(opts: { color: string; title: string; count: number; item
       <div style="border-bottom:1px solid #ece7d9;padding:10px 2px;">
         <p style="font-size:13.5px;color:#0a1128;margin:0 0 2px;line-height:1.4;">${
           i.urgent
-            ? `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#fbe9e6;color:#8a1f1f;">${i.meta}</span>`
-            : `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#ece3d2;color:#7a5c14;">${i.meta}</span>`
-        }${i.title}</p>
-        ${i.subtitle ? `<p style="font-size:11.5px;color:#948e7d;margin:0;">${i.subtitle}</p>` : ""}
+            ? `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#fbe9e6;color:#8a1f1f;">${escapeHtml(i.meta)}</span>`
+            : `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#ece3d2;color:#7a5c14;">${escapeHtml(i.meta)}</span>`
+        }${escapeHtml(i.title)}</p>
+        ${i.subtitle ? `<p style="font-size:11.5px;color:#948e7d;margin:0;">${escapeHtml(i.subtitle)}</p>` : ""}
       </div>`
     )
     .join("");
@@ -567,7 +568,7 @@ function digestFinanceSection(rows: DigestFinanceRow[]): string {
         .map(
           (r) => `
       <tr>
-        <td style="padding:7px 2px;border-bottom:1px solid #ece7d9;color:#0a1128;">${r.kind === "pagar" ? "A pagar" : "A receber"}<br/><span style="color:#948e7d;font-size:11px;">${r.label}${r.sub ? ` — ${r.sub}` : ""}</span></td>
+        <td style="padding:7px 2px;border-bottom:1px solid #ece7d9;color:#0a1128;">${r.kind === "pagar" ? "A pagar" : "A receber"}<br/><span style="color:#948e7d;font-size:11px;">${escapeHtml(r.label)}${r.sub ? ` — ${escapeHtml(r.sub)}` : ""}</span></td>
         <td style="padding:7px 2px;border-bottom:1px solid #ece7d9;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:${r.kind === "pagar" ? "#8a1f1f" : "#2f6b4f"};">${r.kind === "pagar" ? "− " : "+ "}${money(r.amount)}</td>
       </tr>`
         )

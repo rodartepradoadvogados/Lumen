@@ -44,17 +44,19 @@ Convenção de status: `[ ]` pendente · `[~]` em andamento · `[x]` concluído.
 
 ## Fase B — Próximas duas semanas
 
-- [ ] **B1. Conteúdo de usuário sem escape em e-mails HTML** (Achado F4)
-  Arquivos: `lib/email.ts:536-541`, `lib/actions/tasks.ts:452` (`addComment`),
-  `lib/notificationOutboxDrain.ts:30-33`, `lib/comunicadosVarredura.ts`
-  Ação: criar um helper `escapeHtml()` central e aplicá-lo a todo texto livre de usuário antes
-  de entrar em template de e-mail (comentários/menções, título/descrição de tarefa, nome de
-  cliente).
+- [x] **B1. Conteúdo de usuário sem escape em e-mails HTML** (Achado F4)
+  Arquivos: `lib/htmlEscape.ts` (novo helper `escapeHtml`), `lib/email.ts` (`digestSection`,
+  `digestFinanceSection`, `buildDailyAgendaHtml`), `lib/notificationOutboxDrain.ts`,
+  `lib/emailTemplateRender.ts` (`renderTemplateBody`, `buildDigestEmailHtml`)
+  Feito: todo texto livre de usuário que entra nesses templates (comentários/menções, título/
+  descrição de tarefa, nome de cliente, conteúdo de publicação, variáveis `{{teor}}`/`{{cliente}}`/
+  `{{prazo}}` dos comunicados) passa a ser escapado antes de virar HTML. O HTML do próprio
+  template (`EmailTemplate.bodyHtml`, autoria do admin no editor) continua intocado — só as
+  variáveis que entram nele.
 
-- [ ] **B2. Rota de foto de perfil sem exigir sessão** (Achado F1)
+- [x] **B2. Rota de foto de perfil sem exigir sessão** (Achado F1)
   Arquivo: `app/api/perfil/foto/[userId]/route.ts:10-16`
-  Ação: exigir `getCurrentUser()` no início do handler (401 se ausente). Não precisa checar
-  `officeId` — só sessão válida.
+  Feito: exige `getCurrentUser()` no início do handler (401 se ausente).
 
 ---
 
