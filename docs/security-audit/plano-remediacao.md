@@ -16,20 +16,19 @@ Convenção de status: `[ ]` pendente · `[~]` em andamento · `[x]` concluído.
   webhook do Asaas). `.env.example` atualizado para deixar claro que a variável não é opcional
   em produção assim que o módulo WhatsApp estiver ativo em algum escritório.
 
-- [~] **A2. `javascript:` não bloqueado em `meetingUrl`/`tribunalLink`** (Achado F5)
+- [x] **A2. `javascript:` não bloqueado em `meetingUrl`/`tribunalLink`** (Achado F5)
   Arquivos: `lib/urlSafety.ts` (novo helper `sanitizeExternalUrl`), `lib/actions/tasks.ts:113,199,420`,
   `lib/actions/cases.ts:269,385,600,746`, `components/AgendaView.tsx:727`,
   `app/(app)/processos/[id]/page.tsx:487`, `app/m/processos/[id]/page.tsx:428`
   Feito: protocolo validado (só `http:`/`https:`) ao salvar nas Server Actions, e de novo na
   renderização dos 3 pontos que exibem o link como `<a href>` (desktop + mobile).
-  **Ainda pendente:** auditar os registros que já existem no banco de produção — esta sessão
-  não tem acesso a `DATABASE_URL` para rodar essa checagem. Rodar, com acesso ao banco:
+  **Banco de produção auditado em 01/09/2026** (Neon Console, pelo Rodrigo): as duas consultas
+  abaixo retornaram 0 linhas — nenhum `meetingUrl`/`tribunalLink` fora do padrão `http(s)` já
+  gravado. Nada a limpar na origem.
   ```sql
   SELECT id, "meetingUrl" FROM "Task" WHERE "meetingUrl" IS NOT NULL AND "meetingUrl" NOT ILIKE 'http%';
   SELECT id, "tribunalLink" FROM "Case" WHERE "tribunalLink" IS NOT NULL AND "tribunalLink" NOT ILIKE 'http%';
   ```
-  Qualquer linha aqui já está neutralizada na tela (defesa em profundidade), mas vale limpar o
-  dado na origem.
 
 - [~] **A3. Senhas reais em texto puro em `prisma/seed.ts`** (Achado F3)
   Arquivo: `prisma/seed.ts`
@@ -84,8 +83,23 @@ Convenção de status: `[ ]` pendente · `[~]` em andamento · `[x]` concluído.
   estão no `.gitignore`.
 
 **Fase C concluída — as 3 fases do plano estão 100% resolvidas no código/documentação.**
-Restam só as duas ações manuais da Fase A (auditoria do banco de produção e rotação das senhas
-reais de Jairo/Rodrigo), que dependem de acesso que esta sessão não tem.
+Da Fase A, a auditoria do banco de produção (A2) já foi feita e confirmou dado limpo. Resta só a
+rotação das senhas reais de Jairo/Rodrigo (A3), ação manual que depende de acesso que esta sessão
+não tem.
+
+---
+
+## Fora do plano original — corrigido durante a Fase D
+
+- [x] **D1. Sócio/admin sem opção de editar os próprios dados básicos**
+  Arquivo: `components/UserRow.tsx`
+  Achado ao tentar trocar o e-mail de login do Rodrigo (Configurações → Equipe): o botão
+  "Editar" (nome/e-mail/OAB/telefone) estava dentro do mesmo bloco condicional
+  `canManage && !user.isAdmin` que Credenciais/Financeiro/Inativar/Excluir — restrição correta
+  para essas quatro ações (anti-bloqueio entre admins), mas que também escondia a edição básica,
+  reversível e não destrutiva. O backend (`updateUser`, `lib/actions/settings.ts`) já permitia a
+  edição para qualquer usuário do escritório; era só a UI que bloqueava.
+  Feito: "Editar" passa a ficar em bloco próprio, sob `canManage` isoladamente (PR #117).
 
 ---
 
