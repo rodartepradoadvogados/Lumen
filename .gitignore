@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# venv da auditoria de segurança (docs/security-audit/gerar_relatorio.py) — reinstala com
+# `python3 -m venv docs/security-audit/.venv && docs/security-audit/.venv/bin/pip install reportlab matplotlib`
+docs/security-audit/.venv/
