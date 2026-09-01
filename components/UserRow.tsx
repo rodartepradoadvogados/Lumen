@@ -319,6 +319,17 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
           <Link2 size={14} />
         </button>
       )}
+      {/* Editar (nome/e-mail/OAB/telefone) fica fora do bloco "!user.isAdmin" de propósito —
+          diferente de credenciais/Financeiro/inativar/excluir (abaixo, que continuam bloqueados
+          para sócio por segurança: um admin não pode travar/apagar outro), trocar o e-mail de um
+          sócio é uma edição reversível e não destrutiva, e o servidor (updateUser, lib/actions/
+          settings.ts) já permitia isso sem restrição — só a UI escondia o botão. Sem isso, não
+          havia NENHUM jeito de mudar o e-mail de login de um sócio pelo produto. */}
+      {canManage && (
+        <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
+          <Pencil size={14} />
+        </button>
+      )}
       {canManage && !user.isAdmin && (
         <div className="flex items-center gap-1">
           <button
@@ -343,9 +354,6 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
             }`}
           >
             {user.financeAccess ? <Wallet size={14} /> : <WalletCards size={14} />}
-          </button>
-          <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio transition-colors rounded-md">
-            <Pencil size={14} />
           </button>
           <button
             onClick={handleToggleActive}
