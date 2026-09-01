@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
 import { authorDisplayName } from "@/lib/authorDisplay";
+import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import NewTaskModal from "@/components/NewTaskModal";
 import EditReceivableModal from "@/components/EditReceivableModal";
 import LancarHonorariosModal from "@/components/honorarios/LancarHonorariosModal";
@@ -482,9 +483,12 @@ export default async function CaseDetailPage({
                   <Field label="Matéria" value={c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : undefined} />
                 </>
               )}
-              {c.tribunalLink && (
+              {/* Defesa em profundidade (achado F5 da auditoria) — a Server Action já recusa
+                  protocolo inseguro ao salvar (lib/actions/cases.ts), mas um registro gravado
+                  antes dessa correção não pode virar link clicável só porque ainda está no banco. */}
+              {sanitizeExternalUrl(c.tribunalLink) && (
                 <a
-                  href={c.tribunalLink}
+                  href={sanitizeExternalUrl(c.tribunalLink)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-semibold text-marca-tx hover:underline"

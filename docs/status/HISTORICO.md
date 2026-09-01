@@ -21,6 +21,16 @@ trabalho de fundo como esta auditoria). PRs pequenos de ajuste fino podem ser ag
 - **Estrutura do vault de chaves** — mapa de todas as variáveis de ambiente do projeto (o quê,
   onde obter/rotacionar), para organizar num gerenciador de senhas dedicado. Nenhum valor real
   neste repositório — ver `docs/vault-chaves/README.md`.
+- **Fase A do plano de remediação (os 3 achados de severidade Alta)**:
+  - Webhook do WhatsApp agora recusa requisição não autenticada quando o secret não está
+    configurado (era fail-open antes).
+  - Links de reunião (`Task.meetingUrl`) e de tribunal (`Case.tribunalLink`) não aceitam mais
+    protocolo `javascript:` — validado ao salvar e de novo ao exibir o link (novo
+    `lib/urlSafety.ts`).
+  - `prisma/seed.ts` não tem mais senha fixa em texto puro — gera uma aleatória a cada execução.
+  - **Ficam pendentes duas ações manuais**, fora do que dá para fazer só com código: auditar se
+    já existe algum registro com `javascript:` salvo no banco de produção (ver queries no plano),
+    e rotacionar as senhas reais das contas de Jairo e Rodrigo em produção.
 
 ## App mobile
 

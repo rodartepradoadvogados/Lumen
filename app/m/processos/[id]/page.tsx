@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { authorDisplayName } from "@/lib/authorDisplay";
+import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { Card, Badge, EmptyState, formatCurrency, formatDate, formatCalendarDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileCommentForm from "@/components/mobile/MobileCommentForm";
 import MobileNewTaskForm from "@/components/mobile/MobileNewTaskForm";
@@ -423,9 +424,12 @@ export default async function MobileCaseDetail({
               <Field label="Matéria" value={c.adminMateria ? MATERIA_LABELS[c.adminMateria] : undefined} />
             </>
           )}
-          {c.tribunalLink && (
+          {/* Defesa em profundidade (achado F5 da auditoria) — a Server Action já recusa
+              protocolo inseguro ao salvar (lib/actions/cases.ts), mas um registro gravado antes
+              dessa correção não pode virar link clicável só porque ainda está no banco. */}
+          {sanitizeExternalUrl(c.tribunalLink) && (
             <a
-              href={c.tribunalLink}
+              href={sanitizeExternalUrl(c.tribunalLink)!}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:underline"

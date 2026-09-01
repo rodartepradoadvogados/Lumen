@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
+import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { sendPushIfEnabled } from "@/lib/push";
 import { enqueueNotification } from "@/lib/notificationOutbox";
 import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice, isLicitacaoInOffice } from "@/lib/officeScope";
@@ -110,7 +111,7 @@ export async function createTask(data: {
       description: data.description ? sanitizeRichTextHtml(data.description) : null,
       meetingType: data.meetingType || null,
       location: data.location || null,
-      meetingUrl: data.meetingUrl || null,
+      meetingUrl: sanitizeExternalUrl(data.meetingUrl),
       strategy: data.strategy || null,
       points,
       officeId: viewer.officeId,
@@ -196,7 +197,7 @@ export async function delegateTask(data: {
         description: data.description ? sanitizeRichTextHtml(data.description) : null,
         meetingType: data.meetingType || null,
         location: data.location || null,
-        meetingUrl: data.meetingUrl || null,
+        meetingUrl: sanitizeExternalUrl(data.meetingUrl),
         strategy: data.strategy || null,
         points,
         officeId: viewer.officeId,
@@ -417,7 +418,7 @@ export async function updateTask(id: string, data: {
       description: data.description ? sanitizeRichTextHtml(data.description) : null,
       meetingType: data.meetingType || null,
       location: data.location || null,
-      meetingUrl: data.meetingUrl || null,
+      meetingUrl: sanitizeExternalUrl(data.meetingUrl),
       strategy: data.strategy || null,
     },
   });

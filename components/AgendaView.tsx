@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Check, Hourglass } from "lucide-react";
 import clsx from "clsx";
 import { toggleTaskDone } from "@/lib/actions/tasks";
+import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { Badge, ConclusionChip, formatCurrency, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewTaskModal from "@/components/NewTaskModal";
@@ -682,6 +683,10 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
   const [open, setOpen] = useState(false);
   const done = t.status === "CONCLUIDO";
   const isSafety = t.entryKind === "seguranca";
+  // Defesa em profundidade (achado F5 da auditoria) — a Server Action já recusa protocolo
+  // inseguro ao salvar (lib/actions/tasks.ts), mas um registro gravado antes dessa correção
+  // não pode virar link clicável só porque ainda está no banco.
+  const safeMeetingUrl = sanitizeExternalUrl(t.meetingUrl);
 
   return (
     <div className="px-5 py-3.5 flex gap-3">
@@ -723,9 +728,9 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
             {t.case.title}
           </Link>
         )}
-        {t.meetingType === "ONLINE" && t.meetingUrl && (
-          <a href={t.meetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-acao hover:underline mt-1 block truncate">
-            🔗 {t.meetingUrl}
+        {t.meetingType === "ONLINE" && safeMeetingUrl && (
+          <a href={safeMeetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-acao hover:underline mt-1 block truncate">
+            🔗 {safeMeetingUrl}
           </a>
         )}
       </div>
