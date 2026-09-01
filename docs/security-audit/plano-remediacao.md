@@ -10,24 +10,35 @@ Convenção de status: `[ ]` pendente · `[~]` em andamento · `[x]` concluído.
 
 ## Fase A — Esta semana (achados de severidade Alta)
 
-- [ ] **A1. Webhook do WhatsApp aceita requisição não autenticada sem `WHATSAPP_APP_SECRET`** (Achado F2)
+- [x] **A1. Webhook do WhatsApp aceita requisição não autenticada sem `WHATSAPP_APP_SECRET`** (Achado F2)
   Arquivo: `lib/whatsapp.ts:148-150`
-  Ação: inverter `verifySignature()` para fail-closed (recusar quando o secret estiver ausente,
-  igual ao webhook do Asaas). Atualizar `.env.example` para não descrever a variável como
-  "opcional" sem ressalva.
+  Feito: `verifySignature()` agora é fail-closed (recusa quando o secret está ausente, igual ao
+  webhook do Asaas). `.env.example` atualizado para deixar claro que a variável não é opcional
+  em produção assim que o módulo WhatsApp estiver ativo em algum escritório.
 
-- [ ] **A2. `javascript:` não bloqueado em `meetingUrl`/`tribunalLink`** (Achado F5)
-  Arquivos: `lib/actions/tasks.ts:113,199,420`, `lib/actions/cases.ts:269,385,600,746`,
-  `components/AgendaView.tsx:727`, `app/(app)/processos/[id]/page.tsx:487`
-  Ação: validar protocolo (só `http:`/`https:`) ao salvar essas Server Actions; como defesa
-  extra, validar de novo antes de renderizar o `<a href>`. Rodar uma migração de dado para
-  identificar/limpar registros já existentes com protocolo inseguro.
+- [~] **A2. `javascript:` não bloqueado em `meetingUrl`/`tribunalLink`** (Achado F5)
+  Arquivos: `lib/urlSafety.ts` (novo helper `sanitizeExternalUrl`), `lib/actions/tasks.ts:113,199,420`,
+  `lib/actions/cases.ts:269,385,600,746`, `components/AgendaView.tsx:727`,
+  `app/(app)/processos/[id]/page.tsx:487`, `app/m/processos/[id]/page.tsx:428`
+  Feito: protocolo validado (só `http:`/`https:`) ao salvar nas Server Actions, e de novo na
+  renderização dos 3 pontos que exibem o link como `<a href>` (desktop + mobile).
+  **Ainda pendente:** auditar os registros que já existem no banco de produção — esta sessão
+  não tem acesso a `DATABASE_URL` para rodar essa checagem. Rodar, com acesso ao banco:
+  ```sql
+  SELECT id, "meetingUrl" FROM "Task" WHERE "meetingUrl" IS NOT NULL AND "meetingUrl" NOT ILIKE 'http%';
+  SELECT id, "tribunalLink" FROM "Case" WHERE "tribunalLink" IS NOT NULL AND "tribunalLink" NOT ILIKE 'http%';
+  ```
+  Qualquer linha aqui já está neutralizada na tela (defesa em profundidade), mas vale limpar o
+  dado na origem.
 
-- [ ] **A3. Senhas reais em texto puro em `prisma/seed.ts`** (Achado F3)
-  Arquivo: `prisma/seed.ts:43-68`
-  Ação: trocar a senha fixa por uma gerada aleatoriamente (ou lida de env var só de dev) a cada
-  execução do seed. Rotacionar, em produção, as senhas reais das contas de Jairo e Rodrigo como
-  precaução — o hash convive com a senha em claro no mesmo repositório desde sempre.
+- [~] **A3. Senhas reais em texto puro em `prisma/seed.ts`** (Achado F3)
+  Arquivo: `prisma/seed.ts`
+  Feito: o seed gera uma senha aleatória por execução (nunca mais fixa) e imprime no console ao
+  final — nada persistido em arquivo.
+  **Ainda pendente (ação manual, fora do que dá para automatizar por aqui):** rotacionar em
+  produção as senhas reais das contas de Jairo e Rodrigo, já que a senha antiga conviveu em
+  texto puro com o hash no histórico do git. Pelo próprio Lúmen: Configurações → Equipe → botão
+  de link de redefinição de senha, para cada uma das duas contas.
 
 ---
 

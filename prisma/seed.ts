@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { createDefaultKanbanColumns, createDefaultChartOfAccounts } from "../lib/defaultOfficeData";
 import { createPrismaClient } from "../lib/prisma";
@@ -5,6 +6,14 @@ import { createPrismaClient } from "../lib/prisma";
 // Mesma fábrica do app (lib/prisma.ts). Fora de requisição a máscara do "Vidro Fosco" é
 // no-op, então o seed continua lendo e gravando dado cru.
 const prisma = createPrismaClient();
+
+// Senha aleatória por execução do seed — nunca mais fixa (achado F3 da auditoria de segurança,
+// docs/security-audit/): uma senha fixa, mesmo hasheada, ficava em texto puro no código-fonte e
+// no histórico do git, associada a nome/e-mail/OAB reais dos sócios do escritório. Impressa no
+// console ao final do seed (ver main()) — nunca persistida em arquivo nenhum.
+function generateSeedPassword(): string {
+  return crypto.randomBytes(9).toString("base64url");
+}
 
 function daysFromNow(days: number, hour = 9, minute = 0) {
   const d = new Date();
@@ -40,6 +49,8 @@ async function main() {
   const officeId = office.id;
 
   console.log("Criando equipe...");
+  const jairoPassword = generateSeedPassword();
+  const rodrigoPassword = generateSeedPassword();
   const jairo = await prisma.user.create({
     data: {
       officeId,
@@ -49,7 +60,7 @@ async function main() {
       oab: "OAB/GO 78.295",
       color: "#0f1f3d",
       username: "JairoRodarte",
-      passwordHash: await bcrypt.hash("Goiabada1#", 10),
+      passwordHash: await bcrypt.hash(jairoPassword, 10),
       isAdmin: true,
     },
   });
@@ -62,7 +73,7 @@ async function main() {
       oab: "OAB/GO 32.943",
       color: "#8a6a1f",
       username: "RodrigoPrado",
-      passwordHash: await bcrypt.hash("Goiabada1", 10),
+      passwordHash: await bcrypt.hash(rodrigoPassword, 10),
       isAdmin: true,
     },
   });
@@ -274,6 +285,12 @@ async function main() {
       { officeId, clientName: "Juliana Mendes", contact: "(62) 99876-1122", subject: "Divórcio consensual", channel: "TELEFONE", status: "NOVO", responsibleId: jairo.id },
     ],
   });
+
+  console.log("\n" + "=".repeat(64));
+  console.log("Senhas geradas para este seed — só aparecem aqui, uma vez:");
+  console.log(`  ${jairo.username} → ${jairoPassword}`);
+  console.log(`  ${rodrigo.username} → ${rodrigoPassword}`);
+  console.log("=".repeat(64) + "\n");
 
   console.log("Seed concluído!");
 }

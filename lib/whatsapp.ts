@@ -142,12 +142,15 @@ function extractGraphError(data: GraphResponse | null): string | null {
 
 /**
  * Valida a assinatura HMAC-SHA256 do corpo bruto enviado pela Meta.
- * Se WHATSAPP_APP_SECRET não estiver setado, não bloqueia (retorna true) —
- * assim o esqueleto funciona em ambiente sem secret configurado.
+ * Fail-closed (achado F2 da auditoria de segurança, docs/security-audit/): sem
+ * WHATSAPP_APP_SECRET configurado, a requisição é recusada — mesmo padrão já usado por
+ * ASAAS_WEBHOOK_TOKEN (lib/asaas.ts). Antes disto, ausência do secret fazia a rota aceitar
+ * qualquer POST não autenticado, permitindo injetar mensagem forjada num Atendimento real de
+ * um escritório com o módulo WhatsApp ativo.
  */
 export function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
   const secret = process.env.WHATSAPP_APP_SECRET;
-  if (!secret) return true; // sem secret configurado → não valida
+  if (!secret) return false; // sem secret configurado → recusa (fail-closed)
   if (!signatureHeader) return false;
 
   const expected = "sha256=" + crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");

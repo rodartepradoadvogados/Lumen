@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isClientInOffice, isUserInOffice, isCaseInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
+import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import { renameDriveFolder } from "@/lib/storageProvider";
 import { sendEmailReply } from "@/lib/gmailSend";
@@ -266,7 +267,7 @@ export async function createCase(data: {
       tribunalSigla: data.tribunalSigla || null,
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,
-      tribunalLink: data.tribunalLink || null,
+      tribunalLink: sanitizeExternalUrl(data.tribunalLink),
       adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
       adminMateria: isAdministrativo ? data.adminMateria || null : null,
       officeId: viewer.officeId,
@@ -382,7 +383,7 @@ export async function updateCase(
       tribunalSigla: data.tribunalSigla || null,
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,
-      tribunalLink: data.tribunalLink || null,
+      tribunalLink: sanitizeExternalUrl(data.tribunalLink),
       adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
       adminMateria: isAdministrativo ? data.adminMateria || null : null,
       description: data.description || null,
@@ -597,7 +598,7 @@ export async function createCaseMobile(data: {
       tribunalSigla: data.tribunalSigla || null,
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,
-      tribunalLink: data.tribunalLink || null,
+      tribunalLink: sanitizeExternalUrl(data.tribunalLink),
       adminEsfera: isAdministrativo ? data.adminEsfera || null : null,
       adminMateria: isAdministrativo ? data.adminMateria || null : null,
       officeId: viewer.officeId,
@@ -743,7 +744,7 @@ export async function escalarTribunalSuperior(
       tribunalSigla: data.tribunalSigla,
       tribunalNome: data.tribunalNome,
       tribunalSistema: data.tribunalSistema || null,
-      tribunalLink: data.tribunalLink || null,
+      tribunalLink: sanitizeExternalUrl(data.tribunalLink),
       currentInstance: data.currentInstance,
       currentInstanceDetail: data.currentInstanceDetail || null,
       // Origem passa a espelhar o registro que acabamos de empilhar — é o que um próximo
