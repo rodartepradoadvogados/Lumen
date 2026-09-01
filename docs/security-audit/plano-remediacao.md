@@ -62,24 +62,30 @@ Convenção de status: `[ ]` pendente · `[~]` em andamento · `[x]` concluído.
 
 ## Fase C — Antes de ir ao mercado / disciplina contínua
 
-- [ ] **C1. Padronizar "fail-closed" como regra para todo webhook/integração externa nova**
-  Documentar (README ou CLAUDE.md) o padrão já usado corretamente por `CRON_SECRET` e
-  `ASAAS_WEBHOOK_TOKEN`, e linkar o Achado F2 como o contraexemplo do que não fazer.
+- [x] **C1. Padronizar "fail-closed" como regra para todo webhook/integração externa nova**
+  Feito: seção nova em `CLAUDE.md` documentando o padrão correto (`CRON_SECRET`,
+  `ASAAS_WEBHOOK_TOKEN`) e o Achado F2 como contraexemplo já corrigido — vale para toda
+  integração externa nova, não só as que já existem.
 
-- [ ] **C2. Checagem automatizada para `dangerouslySetInnerHTML` novo**
-  Adicionar um lint/CI check que sinalize qualquer ocorrência nova para revisão manual — hoje
-  só existem 4 no projeto inteiro, vale manter esse número baixo e sempre revisado.
+- [x] **C2. Checagem automatizada para `dangerouslySetInnerHTML` novo**
+  Feito: `react/no-danger` como `"warn"` em `.eslintrc.json`. As 4 ocorrências existentes
+  (revisadas e legítimas) têm `eslint-disable-next-line react/no-danger` com o motivo ao lado;
+  qualquer ocorrência nova sem esse comentário aparece no lint.
 
-- [ ] **C3. Gerenciador de senhas dedicado para os segredos reais do projeto**
-  Decidido em 01/09/2026: os segredos reais (chaves, tokens, senha de banco) passam a viver só
-  no gerenciador de senhas do escritório (1Password/Bitwarden), nunca em arquivo de texto no
-  disco ou no git. Ver `docs/vault-chaves/README.md` para a estrutura de categorias e o modelo
-  de importação (sem nenhum valor real).
+- [x] **C3. Gerenciador de senhas dedicado para os segredos reais do projeto**
+  Feito em 01/09/2026: os segredos reais (chaves, tokens, senha de banco) passam a viver só no
+  gerenciador de senhas do escritório (1Password/Bitwarden), nunca em arquivo de texto no disco
+  ou no git. Ver `docs/vault-chaves/README.md` para a estrutura de categorias e o modelo de
+  importação (sem nenhum valor real).
 
-- [ ] **C4. Nunca commitar segredo real em nenhum arquivo do repositório**
-  Reforçar isso como regra explícita de revisão de PR (mesmo em arquivo aparentemente
-  inofensivo — foi assim que o Achado F3 aconteceu). `.env`, `.env.local` e
-  `docs/vault-chaves/.venv` (ou qualquer arquivo com valor real) sempre no `.gitignore`.
+- [x] **C4. Nunca commitar segredo real em nenhum arquivo do repositório**
+  Feito: seção nova em `CLAUDE.md` fixando essa regra para revisão de PR, com o Achado F3 como
+  o exemplo do que dá errado sem ela. `.env`, `.env.local` e `docs/security-audit/.venv/` já
+  estão no `.gitignore`.
+
+**Fase C concluída — as 3 fases do plano estão 100% resolvidas no código/documentação.**
+Restam só as duas ações manuais da Fase A (auditoria do banco de produção e rotação das senhas
+reais de Jairo/Rodrigo), que dependem de acesso que esta sessão não tem.
 
 ---
 

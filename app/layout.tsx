@@ -43,6 +43,8 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         {/* Script anti-flash: decide se a classe `dark` entra no <html> antes da hidratação
             (mesmo padrão de app/m/layout.tsx, adaptado para os 3 estados dia/tarde/noite). */}
+        {/* eslint-disable-next-line react/no-danger -- THEME_INIT_SCRIPT é string 100% estática
+            (lib/theme.ts), nenhum dado de usuário entra aqui. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
         <Analytics />
