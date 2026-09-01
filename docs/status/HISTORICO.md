@@ -31,6 +31,15 @@ trabalho de fundo como esta auditoria). PRs pequenos de ajuste fino podem ser ag
   - **Ficam pendentes duas ações manuais**, fora do que dá para fazer só com código: auditar se
     já existe algum registro com `javascript:` salvo no banco de produção (ver queries no plano),
     e rotacionar as senhas reais das contas de Jairo e Rodrigo em produção.
+- **Fase B do plano de remediação (os achados médio e baixo)**:
+  - E-mails (resumo diário, notificação de menção, comunicados) escapam todo texto de usuário
+    antes de montar o HTML — comentário, título de tarefa, nome de cliente e as variáveis
+    `{{teor}}`/`{{cliente}}`/`{{prazo}}` dos comunicados não viram mais HTML executável dentro
+    do e-mail (novo `lib/htmlEscape.ts`).
+  - A rota de foto de perfil (`/api/perfil/foto/{userId}`) agora exige sessão válida — antes
+    respondia sem pedir login nenhum.
+  - Fase A e B do plano estão concluídas no código; restam só as duas ações manuais citadas
+    acima (banco de produção e rotação de senha).
 
 ## App mobile
 
