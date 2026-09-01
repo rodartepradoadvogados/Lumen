@@ -49,6 +49,15 @@ trabalho de fundo como esta auditoria). PRs pequenos de ajuste fino podem ser ag
   - **As 3 fases do plano de remediação de segurança estão concluídas** — restam só as duas
     ações manuais da Fase A (auditoria do banco de produção e rotação de senha de Jairo/
     Rodrigo).
+- **Auditoria do banco de produção (A2) concluída** — as duas consultas do plano rodaram no
+  Neon Console: 0 registros de `Task.meetingUrl`/`Case.tribunalLink` fora do padrão `http(s)`.
+  Nada a limpar na origem. Resta só a rotação de senha de Jairo/Rodrigo (A3).
+- **Sócio/admin sem opção de editar os próprios dados básicos** — o botão "Editar" (nome/e-mail/
+  OAB/telefone) de Configurações → Equipe estava escondido para linhas de admin/sócio junto com
+  Credenciais/Financeiro/Inativar/Excluir. Essas quatro continuam bloqueadas de propósito
+  (anti-bloqueio entre admins), mas "Editar" — reversível, não destrutivo — passa a ficar
+  disponível também para admin/sócio. Sem essa correção não havia como trocar o e-mail de login
+  de um sócio pelo produto.
 
 ## App mobile
 
