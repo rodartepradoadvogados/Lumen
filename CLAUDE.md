@@ -38,3 +38,40 @@ Projeto usa `prisma db push` puro — não há pasta `prisma/migrations` version
    (estilo já usado no histórico do repositório).
 4. Depois do merge, avisar o usuário com um resumo curto do que foi feito — não é preciso
    pedir permissão antes, mas transparência depois é sempre esperada.
+
+## Padrão fail-closed para webhooks e integrações externas
+
+Todo endpoint que recebe requisição de fora (webhook, callback OAuth, cron) deve **recusar por
+padrão** quando o segredo de verificação não estiver configurado — nunca aceitar "por segurança
+ser opcional". Referência correta, já no código: `CRON_SECRET` (`app/api/cron/*/route.ts`) e
+`ASAAS_WEBHOOK_TOKEN` (`lib/asaas.ts`) — ambos recusam (401/403) quando a variável de ambiente
+está ausente.
+
+Contraexemplo, já corrigido: `WHATSAPP_APP_SECRET` (`lib/whatsapp.ts:verifySignature`, achado F2
+da auditoria de segurança, `docs/security-audit/`) — antes retornava "assinatura válida" quando
+o secret estava ausente, permitindo requisição forjada sem credencial nenhuma. Ao criar uma
+integração externa nova, siga o mesmo padrão desde o início — fail-closed não é um ajuste
+posterior, é o comportamento correto de partida.
+
+## Nunca commitar segredo real
+
+Nenhum valor real de chave, senha, token ou string de conexão de banco entra no repositório —
+nem em código, nem em `.env.example` (que só documenta o NOME da variável, sempre vazio), nem
+em script de seed, nem em documentação. Segredos reais vivem em dois lugares: (1) variáveis de
+ambiente da Vercel (produção), e (2) um gerenciador de senhas dedicado para consulta da equipe —
+ver `docs/vault-chaves/README.md` (mapa de onde cada chave vem, sem nenhum valor real).
+
+O achado F3 da auditoria de segurança (`docs/security-audit/`) foi exatamente isso acontecendo:
+uma senha real ficou em texto puro em `prisma/seed.ts`, versionada permanentemente no histórico
+do git — mesmo removida depois, continua recuperável em qualquer commit anterior. Se precisar de
+um valor para desenvolvimento/teste, gere algo aleatório (como `prisma/seed.ts` faz agora) ou
+peça para o dono do projeto compartilhar via o gerenciador de senhas — nunca cole segredo real no
+código, em commit, ou no chat.
+
+## dangerouslySetInnerHTML sempre revisado
+
+`.eslintrc.json` tem `react/no-danger` como `warn` (item C2 do plano de remediação) — toda
+ocorrência nova aparece no lint para revisão manual antes de virar rotina. As ocorrências já
+revisadas e legítimas têm `eslint-disable-next-line react/no-danger` com o motivo ao lado; uma
+ocorrência nova sem esse comentário e sem justificativa clara (dado vindo de usuário sem passar
+por sanitização) é bloqueio de revisão, não só aviso a ignorar.

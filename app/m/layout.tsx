@@ -84,6 +84,8 @@ export default async function MobileLayout({ children }: { children: React.React
   return (
     <UndoToastProvider>
     <div className="min-h-screen bg-sf-fundo transition-colors">
+      {/* eslint-disable-next-line react/no-danger -- THEME_INIT_SCRIPT é string 100% estática
+          (definida logo acima neste arquivo), nenhum dado de usuário entra aqui. */}
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <InactivityNotice />
       <AppBadgeSync initialCount={totalAlerts} />

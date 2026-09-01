@@ -40,6 +40,15 @@ trabalho de fundo como esta auditoria). PRs pequenos de ajuste fino podem ser ag
     respondia sem pedir login nenhum.
   - Fase A e B do plano estão concluídas no código; restam só as duas ações manuais citadas
     acima (banco de produção e rotação de senha).
+- **Fase C do plano de remediação (disciplina contínua, antes de ir ao mercado)**:
+  - `CLAUDE.md` ganhou duas seções permanentes: o padrão "fail-closed" que todo webhook/
+    integração externa nova deve seguir (com o Achado F2 como contraexemplo já corrigido), e a
+    regra de nunca commitar segredo real em nenhum arquivo do repositório.
+  - Lint (`react/no-danger`) passa a sinalizar qualquer `dangerouslySetInnerHTML` novo para
+    revisão — as 4 ocorrências já existentes e legítimas ficam documentadas com o motivo.
+  - **As 3 fases do plano de remediação de segurança estão concluídas** — restam só as duas
+    ações manuais da Fase A (auditoria do banco de produção e rotação de senha de Jairo/
+    Rodrigo).
 
 ## App mobile
 

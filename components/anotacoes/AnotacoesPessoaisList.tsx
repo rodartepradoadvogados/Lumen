@@ -58,6 +58,9 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
           </div>
           <div
             className="anotacao-content text-sm text-tx/85 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1"
+            // a.content é HTML de anotação já sanitizado por sanitizeAnotacaoHtml
+            // (lib/anotacoes.ts) no único ponto de escrita, antes de chegar ao banco.
+            // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: a.content }}
           />
           <p className="mt-2 text-[10px] text-tx-3">Criada em {formatDate(a.createdAt)}</p>

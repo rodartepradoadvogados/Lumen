@@ -193,6 +193,9 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-tx-3 mb-1.5">Prévia</p>
             <div className="border border-regua bg-sf-apoio p-3 max-w-[440px] overflow-x-auto">
+              {/* eslint-disable-next-line react/no-danger -- prévia do próprio admin do HTML que
+                  ele mesmo está editando agora (atual.bodyHtml); as variáveis vêm de SAMPLE_VARS,
+                  dado de amostra fixo, nunca de outro usuário. */}
               <div dangerouslySetInnerHTML={{ __html: previaHtml }} />
             </div>
           </div>

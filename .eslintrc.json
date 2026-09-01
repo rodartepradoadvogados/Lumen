@@ -1,3 +1,11 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    // Item C2 do plano de remediação de segurança (docs/security-audit/plano-remediacao.md):
+    // sinaliza toda ocorrência NOVA de dangerouslySetInnerHTML para revisão manual — HTML bruto
+    // injetado sem passar pelo escape automático do React é o vetor mais direto de XSS
+    // armazenado (ver achados F4/F5 da auditoria). As poucas ocorrências já revisadas e
+    // legítimas têm `eslint-disable-next-line react/no-danger` com o motivo ao lado.
+    "react/no-danger": "warn"
+  }
 }
