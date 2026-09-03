@@ -25,6 +25,7 @@ import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import BlockedProcessNumbersManager from "@/components/BlockedProcessNumbersManager";
 import BankAccountsManager from "@/components/BankAccountsManager";
 import HolidaysManager from "@/components/HolidaysManager";
+import InstallAppButton from "@/components/InstallAppButton";
 import { Upload, Users, DollarSign, SlidersHorizontal, Workflow, Newspaper, ShieldCheck, CreditCard, Download, Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getDriveStatus } from "@/lib/googleDrive";
@@ -545,6 +546,18 @@ export default async function ConfiguracoesPage({
           subtitle='Processos que você optou por deixar de acompanhar (botão "Bloquear" em Publicações/Andamentos, disponível só para processos ainda não cadastrados) — some só da sua fila, os demais advogados do escritório continuam recebendo normalmente, até você reverter o bloqueio aqui'
         />
         <BlockedProcessNumbersManager items={blockedProcessNumbers} />
+      </Card>
+      )}
+
+      {secao === "geral" && (
+      <Card>
+        <CardHeader
+          title="Aplicativo para computador"
+          subtitle="Instala o Lúmen como um app próprio no Chrome/Edge — janela separada, ícone na barra de tarefas, sem a barra de endereço do navegador. Mesmo mecanismo do app instalável no celular."
+        />
+        <div className="p-5">
+          <InstallAppButton />
+        </div>
       </Card>
       )}
 
