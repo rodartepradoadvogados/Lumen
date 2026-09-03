@@ -13,8 +13,9 @@ export async function middleware(req: NextRequest) {
   // essa exceção, o middleware barrava até a busca interna do otimizador de imagem do
   // Next, /_next/image, que primeiro precisa buscar o arquivo original em
   // /homepage/*.webp neste mesmo domínio), o sitemap/robots (senão buscadores recebem
-  // redirect pro login em vez do conteúdo) e — para o PWA funcionar sem sessão — o
-  // manifesto e os ícones gerados por convenção (/manifest.webmanifest, /icon*, /apple-icon).
+  // redirect pro login em vez do conteúdo) e — para os dois PWAs (mobile e desktop)
+  // funcionarem sem sessão — os manifestos e os ícones gerados por convenção
+  // (/manifest.webmanifest, /manifest-desktop.webmanifest, /icon*, /apple-icon).
   if (
     pathname === "/" ||
     pathname === "/login" ||
@@ -26,6 +27,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
     pathname === "/manifest.webmanifest" ||
+    pathname === "/manifest-desktop.webmanifest" ||
     pathname === "/apple-icon" ||
     pathname.startsWith("/icon") ||
     pathname === "/favicon.ico" ||

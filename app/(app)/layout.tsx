@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
 import InactivityNotice from "@/components/InactivityNotice";
 import AppBadgeSync from "@/components/AppBadgeSync";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import ActingOfficeBanner from "@/components/ActingOfficeBanner";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
 import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
@@ -19,6 +21,12 @@ import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
+
+// Manifesto do PWA de desktop (ver app/manifest-desktop.webmanifest/route.ts) — só para estas
+// rotas. As rotas /m continuam com o manifest.ts padrão (app/layout.tsx), inalterado.
+export const metadata: Metadata = {
+  manifest: "/manifest-desktop.webmanifest",
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // O middleware só valida a assinatura do token (roda no Edge, sem acesso ao banco).
@@ -69,6 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           (que lê o contexto só para se deslocar quando o painel está aberto — ver
           components/anotacoes/AnotacoesContext.tsx). */}
       <AnotacoesProvider>
+        <ServiceWorkerRegister />
         {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
             server-side de sempre e repassa como children/props. Guarda também as abas internas
             (duplo clique num item da Sidebar) — ver components/AppShell.tsx. */}
