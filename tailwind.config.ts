@@ -99,6 +99,10 @@ const config: Config = {
         urgente: { DEFAULT: "var(--urgente)", bg: "var(--urgente-bg)" },
         aviso: { DEFAULT: "var(--aviso)", bg: "var(--aviso-bg)" },
         concluido: { DEFAULT: "var(--concluido)", bg: "var(--concluido-bg)" },
+        // Dourado de acento (Início, setembro/2026) — NÃO é o `gold` legado logo abaixo (esse
+        // continua reapontado pro bordô, sem relação). `ouro-acento` é a cor nova de verdade,
+        // usada só como filete de destaque pontual (hoje: cartão de Assessoria Jurídica).
+        "ouro-acento": "var(--ouro-acento)",
 
         /* ---------- Legado reapontado ---------- */
         // navy era o azul-marinho da marca antiga; agora é grafite, com os mesmos degraus.

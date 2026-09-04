@@ -6,7 +6,7 @@ import { getAlerts, type AlertItem } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
 import { naturezaWhere } from "@/lib/caseNatureza";
-import { Card, formatCurrency } from "@/components/ui";
+import { Card, formatCurrency, type CardAccent } from "@/components/ui";
 import { valorLiquido } from "@/lib/financeCalc";
 import MobileGlobalSearch from "@/components/mobile/MobileGlobalSearch";
 import GrainOverlay from "@/components/GrainOverlay";
@@ -212,6 +212,7 @@ export default async function MobileHome() {
             href="/m/processos"
             icon={Briefcase}
             tone="navy"
+            accent="azul"
             title="Processos"
             count={activeCasesCount}
             countLabel="ativo(s)"
@@ -220,21 +221,22 @@ export default async function MobileHome() {
             // (sem poluir com "0 adm." pra ninguém).
             subCaption={activeAdministrativoCount > 0 ? `${activeJudicialCount} jud. · ${activeAdministrativoCount} adm.` : undefined}
           />
-          <TileLink href="/m/publicacoes" icon={Newspaper} tone="navy" title="Publicações" count={unreadCount} countLabel="não lida(s)" />
+          <TileLink href="/m/publicacoes" icon={Newspaper} tone="navy" accent="aviso" title="Publicações" count={unreadCount} countLabel="não lida(s)" />
           <TileLink
             href="/m/relatorios"
             icon={FileBarChart}
             tone="navy"
+            accent="verde"
             title="Relatórios"
             subtitle="Produtividade, processos, funil, publicações e personalizado"
           />
           {modules.assessoria && (
-            <TileLink href="/m/assessoria" icon={Building2} tone="navy" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
+            <TileLink href="/m/assessoria" icon={Building2} tone="navy" accent="ouro" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
           )}
           {/* Vai direto pro blog público — sem fila de revisão, sem tela de administração.
               Revisar/editar/publicar continua só em Configurações (ver Group "Blog Jurídico"). */}
           {blogAccess && (
-            <TileLink href="/blog" icon={BookMarked} tone="navy" title="Blog Jurídico" subtitle="Conteúdo publicado no site" />
+            <TileLink href="/blog" icon={BookMarked} tone="navy" accent="verde" title="Blog Jurídico" subtitle="Conteúdo publicado no site" />
           )}
         </div>
 
@@ -294,6 +296,7 @@ function TileLink({
   href,
   icon,
   tone,
+  accent,
   title,
   count,
   countLabel,
@@ -304,6 +307,9 @@ function TileLink({
   href: string;
   icon: LucideIcon;
   tone: Tone;
+  // Faixa colorida no topo do cartão (proposta C aprovada em artefato de design, setembro/2026)
+  // — sem isso, cai no neutro de sempre (ver Card em components/ui.tsx).
+  accent?: CardAccent;
   title: string;
   // Sem contagem ao vivo (ex.: Relatórios, que cobre várias seções sem um número único que as
   // resuma), usa `subtitle` no lugar — texto fixo em vez de dado; nunca os dois juntos.
@@ -320,7 +326,7 @@ function TileLink({
 }) {
   return (
     <Link href={href} className="block h-full">
-      <Card className="p-3.5 h-full">
+      <Card className="p-3.5 h-full" accent={accent}>
         <TileBadge icon={icon} tone={tone} size={17} />
         <p className="text-[13px] font-bold text-tx mt-2.5 leading-tight">{title}</p>
         {count !== undefined ? (

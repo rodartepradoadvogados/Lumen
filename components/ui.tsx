@@ -33,13 +33,30 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
   );
 }
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
+// Faixa colorida opcional (Início do app mobile, setembro/2026 — proposta C aprovada em
+// artefato de design): troca só a cor do filete de topo do Card, por categoria. Sem `accent`,
+// comportamento idêntico ao de sempre (neutro, --regua-forte) — todo card do resto do produto
+// continua igual. Mapa fechado (em vez de aceitar qualquer classe Tailwind arbitrária) porque o
+// compilador do Tailwind só gera CSS para classe que aparece LITERAL no código-fonte.
+export type CardAccent = "vinho" | "azul" | "verde" | "aviso" | "ouro";
+const ACCENT_BORDER: Record<CardAccent, string> = {
+  vinho: "border-acao",
+  azul: "border-fonte-pje",
+  verde: "border-concluido",
+  aviso: "border-aviso",
+  ouro: "border-ouro-acento",
+};
+
+export function Card({ children, className, accent }: { children: ReactNode; className?: string; accent?: CardAccent }) {
   return (
     // Régua faz o trabalho da sombra (documento 01 do redesenho Modernist,
     // "01-tokens-e-tema.md"): em vez de borda de 1px nas quatro arestas, filete de 2px só no
-    // topo, em --regua-forte. Sem sombra em cartão parado. Raio (ajuste de tema, agosto/2026):
-    // rounded-lg (10px, tier de "cartões" da nova escala — ver tailwind.config.ts).
-    <div className={clsx("bg-sf border-t-2 border-regua-forte rounded-lg", className)}>{children}</div>
+    // topo, em --regua-forte (ou na cor de `accent`, ver acima). Sem sombra em cartão parado.
+    // Raio (ajuste de tema, agosto/2026): rounded-lg (10px, tier de "cartões" da nova escala —
+    // ver tailwind.config.ts).
+    <div className={clsx("bg-sf border-t-2 rounded-lg", accent ? ACCENT_BORDER[accent] : "border-regua-forte", className)}>
+      {children}
+    </div>
   );
 }
 
