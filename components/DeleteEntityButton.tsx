@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, X } from "lucide-react";
 import { requestDeletion, requestDeletionScoped, type DeletionScope } from "@/lib/actions/deletion";
@@ -62,15 +62,31 @@ export default function DeleteEntityButton({
   redirectTo?: string;
 }) {
   const router = useRouter();
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [confirmingLinked, setConfirmingLinked] = useState(false);
   const [alsoDeleteLinked, setAlsoDeleteLinked] = useState(false);
 
+  // Proposta "Slide & Sumir" (setembro/2026) — a linha encolhe e esvanece ANTES da exclusão
+  // acontecer de verdade, em vez de sumir seca quando router.refresh() troca os dados. Não muda
+  // o que a exclusão faz (o destino final da linha é o mesmo de sempre), só adia o corte visual
+  // pela duração da animação. Opt-in: só afeta quem envolve este botão com
+  // `<div data-delete-row>` (ver TaskActivityRow.tsx, PayablesList.tsx, ReceivablesList.tsx,
+  // AgendaView.tsx, KanbanBoard.tsx) — sem esse ancestral, comportamento idêntico a antes.
+  async function collapseRowIfPresent() {
+    const row = buttonRef.current?.closest<HTMLElement>("[data-delete-row]");
+    if (!row) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    row.classList.add("animate-item-collapse");
+    await new Promise((resolve) => setTimeout(resolve, 160));
+  }
+
   function runDeletion(scope: DeletionScope, deleteLinked?: boolean) {
     setMsg(null);
     startTransition(async () => {
+      await collapseRowIfPresent();
       const result =
         scope === "ONLY" && !groupKind
           ? await requestDeletion(entityType, entityId, entityLabel, deleteLinked)
@@ -113,6 +129,7 @@ export default function DeleteEntityButton({
   return (
     <span className="relative" onClick={(e) => e.stopPropagation()}>
       <button
+        ref={buttonRef}
         onClick={() => {
           if (linkedReimbursement) {
             setAlsoDeleteLinked(false);

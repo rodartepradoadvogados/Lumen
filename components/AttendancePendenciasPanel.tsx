@@ -110,7 +110,7 @@ export default function AttendancePendenciasPanel({
                 className={clsx(
                   "flex items-start justify-between gap-3 border rounded-md px-3 py-2",
                   urgencia === "vencida"
-                    ? "border-urgente/40 bg-urgente-bg motion-safe:animate-attention-pulse"
+                    ? "border-urgente/40 bg-urgente-bg animate-attention-pulse"
                     : urgencia === "vencendo"
                       ? "border-aviso/40 bg-aviso-bg"
                       : "border-regua bg-sf-apoio"

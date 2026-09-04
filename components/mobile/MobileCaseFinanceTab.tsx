@@ -116,7 +116,7 @@ export default function MobileCaseFinanceTab({
                   className={clsx(
                     "px-4 py-3 border-l-[3px] target:bg-acao-bg scroll-mt-20",
                     PRAZO_URGENCIA_BORDER[urgencia],
-                    urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+                    urgencia === "vencida" && "animate-attention-pulse"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -175,7 +175,7 @@ export default function MobileCaseFinanceTab({
                   className={clsx(
                     "px-4 py-3 border-l-[3px] target:bg-acao-bg scroll-mt-20",
                     PRAZO_URGENCIA_BORDER[urgencia],
-                    urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+                    urgencia === "vencida" && "animate-attention-pulse"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">

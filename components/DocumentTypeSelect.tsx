@@ -149,7 +149,7 @@ export default function DocumentTypeSelect({
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4" onClick={handleClose}>
           <div
-            className="bg-sf shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col motion-safe:animate-fade-in"
+            className="bg-sf shadow-modal w-full max-w-lg max-h-[85vh] flex flex-col animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-regua">

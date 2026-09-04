@@ -45,7 +45,7 @@ export default function NewDocumentTypeDialog({
 
   return (
     <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-sf shadow-modal w-full max-w-sm motion-safe:animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-sf shadow-modal w-full max-w-sm animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
           <h3 className="font-bold text-tx">Novo tipo de documento</h3>
           <button type="button" onClick={onClose} className="text-tx-3 hover:text-tx">

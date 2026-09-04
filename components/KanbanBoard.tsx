@@ -107,6 +107,8 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
   const urgencia = done ? "a-vencer" : classificarPrazo(task.dueDate);
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // Pop no check ao concluir (proposta "Slide & Sumir") — mesmo raciocínio de TaskActivityRow.tsx.
+  const [justCompleted, setJustCompleted] = useState(false);
   const completedTip =
     done && task.completedBy && task.completedAt
       ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
@@ -120,6 +122,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
+      data-delete-row
       className={clsx(
         // Card: fundo --sf-superficie, borda 1px --regua, filete esquerdo de 3px na cor de
         // URGÊNCIA (não mais do tipo — o tipo continua no Badge logo abaixo). Sombra + leve
@@ -130,18 +133,22 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         PRAZO_URGENCIA_BORDER[urgencia],
         dragging ? "shadow-arrasto scale-[1.02] duration-150" : "shadow-none scale-100",
         done && "opacity-[.72]",
-        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+        urgencia === "vencida" && "animate-attention-pulse"
       )}
     >
       <div className="flex items-center justify-between mb-1.5">
         {done ? <ConclusionChip>{taskConclusionLabel(task.type)}</ConclusionChip> : <Badge color={taskTypeColors[task.type]}>{taskTypeLabels[task.type]}</Badge>}
         <div className="flex items-center gap-1">
           <button
-            onClick={onToggle}
+            onClick={() => {
+              if (!done) setJustCompleted(true);
+              onToggle();
+            }}
             data-tip={done ? completedTip || "Reabrir" : "Concluir"}
             className={clsx(
               "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
-              done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
+              done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido",
+              justCompleted && "animate-check-pop"
             )}
           >
             <Check size={12} strokeWidth={3} />

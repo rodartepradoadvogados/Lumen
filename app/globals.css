@@ -347,12 +347,30 @@ input[type="radio"] {
 /* Movimento 4 · sumir — item encolhe e esvanece antes de sair da lista (ver referência já em
    produção: components/PublicationsTriage.tsx usa o mesmo princípio com slideOutLeft/-Down
    acima). Disponível para quem precisa de uma saída neutra, sem direção lateral/vertical
-   específica. */
+   específica. Usada só na EXCLUSÃO (ver DeleteEntityButton.tsx: `data-delete-row` no ancestral
+   da linha) — nunca em "concluir", que continua visível de propósito (ver animate-check-pop
+   abaixo). max-height parte de um valor folgado (a maior linha real da lista cabe nele); como
+   o passo final já está com opacity:0, um corte um pouco antes do fim da transição de altura é
+   imperceptível. `from`/os estágios sem padding/margem/borda herdam o valor computado real da
+   linha (padrão de @keyframes), então não precisa repetir py-3.5 etc. aqui. */
 @keyframes itemCollapse {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(-8px); }
+  0% { opacity: 1; max-height: 260px; transform: translateX(0); }
+  55% { opacity: 0; transform: translateX(-8px); }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    transform: translateX(-8px);
+  }
 }
-.animate-item-collapse { animation: itemCollapse 160ms ease-out forwards; }
+.animate-item-collapse {
+  animation: itemCollapse 160ms ease-out forwards;
+  overflow: hidden;
+}
 
 /* Movimento 5 · pop-up — menu nasce do próprio gatilho (escala 0,96 → 1 + fade). Origem no
    canto onde o menu costuma abrir (canto superior, o mesmo dos dois usos atuais — "Novo" no
@@ -374,10 +392,27 @@ input[type="radio"] {
 }
 .animate-attention-pulse { animation: attentionSettle 500ms ease-out; }
 
-/* Quem desativou movimento no sistema operacional recebe o estado final imediato, sem
-   animação nenhuma — cobre também as classes acima (as que já usavam motion-safe: do Tailwind,
-   ex. animate-fade-in em ModalShell, continuam cobertas por aquele prefixo; este bloco é a rede
-   de segurança para as que disparam via classe JS pura, como as deste catálogo). */
+/* Movimento 4 (variante) · concluir — pop no botão de check no instante do clique. Proposta do
+   artefato "Slide & Sumir" (setembro/2026) como alternativa a encolher a linha inteira ao
+   concluir: a linha continua visível e riscada, como sempre (isso é comportamento, não
+   estética — é o "recibo" de que algo foi feito); só o botão pulsa, uma vez, no clique. Ver
+   TaskActivityRow.tsx/AgendaView.tsx (DayPanelTaskRow)/KanbanBoard.tsx (TaskCard): aplicada via
+   estado local (`justCompleted`), nunca a partir do `done` vindo do servidor — senão tocaria de
+   novo em todo carregamento de página com a tarefa já concluída antes. */
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.animate-check-pop { animation: checkPop 320ms ease-out; }
+
+/* Quem desativou movimento no sistema operacional recebe o estado final imediato, sem animação
+   nenhuma. Único mecanismo do catálogo inteiro (nenhuma classe daqui usa mais o prefixo
+   `motion-safe:` do Tailwind — ele nunca funcionou para essas classes: Tailwind só gera a
+   variante `motion-safe:` para utilitários que ele reconhece, e `animate-attention-pulse` &
+   cia. não estão registradas em tailwind.config.ts, então a regra `.motion-safe\:animate-X`
+   nunca existiu no CSS gerado — bug pré-existente, corrigido junto com o artefato "Slide &
+   Sumir"; confirmado no CSS de produção antes da correção). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

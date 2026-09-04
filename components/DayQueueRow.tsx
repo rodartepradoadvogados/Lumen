@@ -34,7 +34,7 @@ export default function DayQueueRow({ item }: { item: DayQueueItem }) {
       className={clsx(
         "flex items-center gap-3 pl-3 pr-5 py-2.5 border-l-4",
         PRAZO_URGENCIA_BORDER[item.urgencia],
-        item.urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+        item.urgencia === "vencida" && "animate-attention-pulse"
       )}
     >
       <div className="min-w-0 flex-1">

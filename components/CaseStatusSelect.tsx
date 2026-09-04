@@ -71,7 +71,7 @@ export default function CaseStatusSelect({
       </select>
 
       {confirmArquivar && (
-        <div className="absolute right-0 top-full mt-2 z-20 w-72 border border-regua bg-sf shadow-menu p-3.5 text-left origin-top-right motion-safe:animate-popup-in">
+        <div className="absolute right-0 top-full mt-2 z-20 w-72 border border-regua bg-sf shadow-menu p-3.5 text-left origin-top-right animate-popup-in">
           <p className="text-xs font-semibold text-tx">Este processo tem honorário a apurar.</p>
           <p className="text-[11px] text-tx-2 mt-1">Informar o desfecho agora, antes de arquivar?</p>
           <div className="flex flex-col gap-1.5 mt-3">

@@ -37,6 +37,10 @@ export default function TaskActivityRow({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Pop no check ao concluir (proposta "Slide & Sumir") — só quando o CLIQUE causa a conclusão
+  // nesta sessão, nunca quando a linha já chega concluída do servidor (senão tocaria de novo em
+  // todo carregamento de página).
+  const [justCompleted, setJustCompleted] = useState(false);
   const done = task.status === "CONCLUIDO";
   const urgencia = done ? "a-vencer" : classificarPrazo(task.dueDate);
   const doneTip =
@@ -46,10 +50,11 @@ export default function TaskActivityRow({
 
   return (
     <div
+      data-delete-row
       className={clsx(
         "flex items-center gap-3 px-5 py-3.5 border-l-[3px]",
         PRAZO_URGENCIA_BORDER[urgencia],
-        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+        urgencia === "vencida" && "animate-attention-pulse"
       )}
     >
       <button
@@ -57,14 +62,18 @@ export default function TaskActivityRow({
         disabled={loading}
         data-tip={doneTip}
         onClick={async () => {
+          const wasDone = done;
           setLoading(true);
           await toggleTaskDone(task.id);
+          if (!wasDone) setJustCompleted(true);
           router.refresh();
           setLoading(false);
         }}
-        className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center disabled:opacity-50 ${
-          done ? "bg-concluido border-concluido text-white" : "border-regua-forte hover:border-concluido"
-        }`}
+        className={clsx(
+          "h-5 w-5 shrink-0 rounded-full border flex items-center justify-center disabled:opacity-50",
+          done ? "bg-concluido border-concluido text-white" : "border-regua-forte hover:border-concluido",
+          justCompleted && "animate-check-pop"
+        )}
       >
         <Check size={12} strokeWidth={3} />
       </button>

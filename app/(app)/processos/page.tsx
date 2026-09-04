@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { PageHeader, Card, Badge, formatCurrency, EmptyState } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
+import CaseQuickViewButton from "@/components/CaseQuickViewButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import ProcessosFiltroForm from "@/components/ProcessosFiltroForm";
 import { buildCasesWhere } from "@/lib/casesFilter";
@@ -228,48 +229,55 @@ export default async function ProcessosPage({
             {cases.map((c) => {
               const nat = naturezaOf(c.type);
               return (
-                <Link key={c.id} href={`/processos/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors">
-                  <div className="h-10 w-10 rounded-full bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
-                    <Scale size={18} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
-                      <p className="font-medium text-tx truncate">{c.title}</p>
-                      <Badge color={statusColors[c.status]}>{c.status}</Badge>
-                      {/* Etiqueta de matéria não repete o ouro da natureza — vira chip neutro, para a
-                          natureza continuar sendo o único elemento em destaque de cada linha. */}
-                      {c.materias.map((m) => (
-                        <Badge key={m} color="slate">
-                          {m}
-                        </Badge>
-                      ))}
+                <div key={c.id} data-delete-row className="flex items-center gap-4 px-5 py-4 hover:bg-sf-apoio transition-colors">
+                  <Link href={`/processos/${c.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="h-10 w-10 rounded-full bg-sf-apoio text-tx-2 flex items-center justify-center shrink-0">
+                      <Scale size={18} />
                     </div>
-                    <p className="text-xs text-tx-2 mt-1 truncate tabular-nums">
-                      {nat === "ADMINISTRATIVO" ? (
-                        // Linha secundária administrativa: número · órgão · matéria (em vez do
-                        // formato "cliente x parte adversa", que não se aplica a esse setor).
-                        [c.processNumber, c.tribunalSigla, c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : null]
-                          .filter(Boolean)
-                          .join(" · ") || "Sem detalhes cadastrados"
-                      ) : (
-                        <>
-                          {c.processNumber ? `${c.processNumber} · ` : ""}
-                          {joinCaseNames(effectiveCaseClients(c).map((cc) => cc.name))}
-                          {c.parties.length || c.opposingPartyName ? ` x ${joinCaseNames(effectiveCaseParties(c).map((p) => p.name))}` : ""}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0 hidden sm:block">
-                    {c.caseValue != null && <p className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(c.caseValue)}</p>}
-                    <p className="text-xs text-tx-3 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
-                  </div>
-                  <div className="text-xs text-tx-3 shrink-0 w-20 text-right hidden md:block tabular-nums">
-                    {c._count.tasks} tarefa(s)
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
+                        <p className="font-medium text-tx truncate">{c.title}</p>
+                        <Badge color={statusColors[c.status]}>{c.status}</Badge>
+                        {/* Etiqueta de matéria não repete o ouro da natureza — vira chip neutro, para a
+                            natureza continuar sendo o único elemento em destaque de cada linha. */}
+                        {c.materias.map((m) => (
+                          <Badge key={m} color="slate">
+                            {m}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-tx-2 mt-1 truncate tabular-nums">
+                        {nat === "ADMINISTRATIVO" ? (
+                          // Linha secundária administrativa: número · órgão · matéria (em vez do
+                          // formato "cliente x parte adversa", que não se aplica a esse setor).
+                          [c.processNumber, c.tribunalSigla, c.adminMateria ? MATERIA_LABELS[c.adminMateria] || c.adminMateria : null]
+                            .filter(Boolean)
+                            .join(" · ") || "Sem detalhes cadastrados"
+                        ) : (
+                          <>
+                            {c.processNumber ? `${c.processNumber} · ` : ""}
+                            {joinCaseNames(effectiveCaseClients(c).map((cc) => cc.name))}
+                            {c.parties.length || c.opposingPartyName ? ` x ${joinCaseNames(effectiveCaseParties(c).map((p) => p.name))}` : ""}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 hidden sm:block">
+                      {c.caseValue != null && <p className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(c.caseValue)}</p>}
+                      <p className="text-xs text-tx-3 mt-0.5">{c.responsible?.name ?? "Sem responsável"}</p>
+                    </div>
+                    <div className="text-xs text-tx-3 shrink-0 w-20 text-right hidden md:block tabular-nums">
+                      {c._count.tasks} tarefa(s)
+                    </div>
+                  </Link>
+                  {/* Movimento 1 · deslizar (Slide) — ficha rápida ao lado da lista, sem navegar.
+                      Fora do <Link> acima de propósito: dois elementos interativos não podem se
+                      aninhar (mesmo motivo de DeleteEntityButton logo abaixo já ser um irmão, não
+                      um filho, do link). */}
+                  <CaseQuickViewButton caseId={c.id} caseTitle={c.title} />
                   <DeleteEntityButton entityType="CASE" entityId={c.id} entityLabel={c.title} confirmMessage={`Excluir "${c.title}"?`} />
-                </Link>
+                </div>
               );
             })}
           </div>

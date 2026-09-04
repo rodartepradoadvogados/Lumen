@@ -59,7 +59,7 @@ export default function ModalShell({
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
       <div
-        className={`bg-sf shadow-pop flex flex-col overflow-hidden rounded-lg motion-safe:animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
+        className={`bg-sf shadow-pop flex flex-col overflow-hidden rounded-lg animate-fade-in ${SIZE_CLASSES[size]} ${className}`}
       >
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b-2 border-regua-forte">
           <div className="min-w-0">

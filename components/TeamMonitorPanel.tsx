@@ -139,7 +139,7 @@ export default function TeamMonitorPanel({
       </button>
 
       {open && (
-        <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf border border-regua shadow-menu z-50 overflow-hidden origin-top-right motion-safe:animate-popup-in">
+        <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf border border-regua shadow-menu z-50 overflow-hidden origin-top-right animate-popup-in">
           {/* Ordem do menu (DESIGN-SYSTEM.md §5): identificação → tema → Meu perfil → Sair
               (vinho, separado por régua). O bloco "Modo de visualização" saiu — Régua/Bancada
               não existem mais, ver components/AppShell.tsx e documento 02 do handoff. */}
