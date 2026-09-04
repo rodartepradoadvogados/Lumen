@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { EmptyState, formatCurrency } from "@/components/ui";
+import { classificarPrazoFinanceiro, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
+import clsx from "clsx";
 import EditReceivableModal from "@/components/EditReceivableModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
@@ -106,14 +109,25 @@ export default function ReceivablesList({
 
   return (
     <div>
-      <div className="divide-y divide-regua">
+      <div className="divide-y divide-regua stagger-in">
         {receivables.map((r) => {
           const isApurar = r.effectiveStatus === "A_APURAR";
           const selectable = r.status !== "PAGO" && !isApurar;
           const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
           const saldo = saldoEmAberto(r.amount, r.discount, r.surcharge, r.paidSum);
+          // Urgência de prazo (proposta "Movimento & Prazos") — ver PayablesList.tsx (mesmo
+          // raciocínio, mesma função em lib/dueStatus.ts).
+          const urgencia = classificarPrazoFinanceiro(r.effectiveStatus, r.dueDate, r.noDueDate);
           return (
-            <div key={r.id} id={`receivable-${r.id}`} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 target:bg-acao-bg scroll-mt-20">
+            <div
+              key={r.id}
+              id={`receivable-${r.id}`}
+              className={clsx(
+                "flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 border-l-[3px] target:bg-acao-bg scroll-mt-20",
+                PRAZO_URGENCIA_BORDER[urgencia],
+                urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+              )}
+            >
               <div className="shrink-0 flex items-center">
                 {selectable ? (
                   <input
@@ -170,7 +184,9 @@ export default function ReceivablesList({
                   {r.effectiveStatus === "PARCIAL" && (
                     <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
                   )}
-                  <p className="text-xs text-tx-3">{r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}</p>
+                  <p className={clsx("text-xs", r.noDueDate || isApurar ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
+                    {r.noDueDate ? "Sem vencimento" : formatRelativeDueDate(r.dueDate)}
+                  </p>
                 </div>
                 <div className="shrink-0 sm:w-24">
                   <FinanceStatusBadge status={r.effectiveStatus} kind="receivable" />

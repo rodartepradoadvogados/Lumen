@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import TaskDetailModal from "@/components/TaskDetailModal";
-import { Badge, formatCalendarDate, taskTypeColors, taskTypeLabels } from "@/components/ui";
+import { Badge, taskTypeColors, taskTypeLabels } from "@/components/ui";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 
 // Linha de uma tarefa atrasada dentro do modal "Prazos Atrasados" do painel: clicar na
 // linha abre o card do compromisso; o número do processo é um link separado (não aninhado
@@ -24,15 +25,19 @@ export default function OverdueTaskRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="px-5 py-3 hover:bg-sf-apoio transition-colors">
+    // Filete vermelho fixo (não classificarPrazo): esta linha só existe dentro do modal "Prazos
+    // Atrasados", já pré-filtrado — toda linha aqui é, por definição, vencida. Sem pulso de
+    // atenção (Movimento 6): repetir o "acende e assenta" em 20 linhas de uma vez é ruído, não
+    // destaque — o próprio título do modal já concentra a atenção.
+    <div className="px-5 py-3 border-l-[3px] border-urgente hover:bg-sf-apoio transition-colors">
       <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge color={taskTypeColors[task.type] ?? "slate"}>{taskTypeLabels[task.type] ?? task.type}</Badge>
           <p className="text-sm font-medium text-tx">{task.title}</p>
         </div>
-        <p className="text-xs text-tx-2 mt-0.5">
-          {task.responsibleName && <>Responsável: {task.responsibleName} · </>}
-          Venceu em {formatCalendarDate(task.dueDate)}
+        <p className="text-xs text-urgente font-semibold mt-0.5">
+          {task.responsibleName && <span className="text-tx-2 font-normal">Responsável: {task.responsibleName} · </span>}
+          Venceu {formatRelativeDueDate(task.dueDate)}
         </p>
       </button>
       {task.caseId && (

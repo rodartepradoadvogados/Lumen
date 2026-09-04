@@ -6,8 +6,11 @@ import TaskDetailModal from "@/components/TaskDetailModal";
 import TaskResponsibleSelect from "@/components/TaskResponsibleSelect";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import { toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, ConclusionChip, formatCalendarDate, taskConclusionLabel, taskTypeColors, taskTypeLabels, priorityColors } from "@/components/ui";
+import { Badge, ConclusionChip, taskConclusionLabel, taskTypeColors, taskTypeLabels, priorityColors } from "@/components/ui";
+import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 import { Check, MessageSquare } from "lucide-react";
+import clsx from "clsx";
 
 // Linha da aba Atividades do processo, em estilo "card Trello": clicar no título abre o mesmo
 // card de compromisso (TaskDetailModal) usado no resto do site — com a conversa em comentários
@@ -35,13 +38,20 @@ export default function TaskActivityRow({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const done = task.status === "CONCLUIDO";
+  const urgencia = done ? "a-vencer" : classificarPrazo(task.dueDate);
   const doneTip =
     done && task.completedBy && task.completedAt
       ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
       : undefined;
 
   return (
-    <div className="flex items-center gap-3 px-5 py-3.5">
+    <div
+      className={clsx(
+        "flex items-center gap-3 px-5 py-3.5 border-l-[3px]",
+        PRAZO_URGENCIA_BORDER[urgencia],
+        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+      )}
+    >
       <button
         type="button"
         disabled={loading}
@@ -85,7 +95,9 @@ export default function TaskActivityRow({
         </button>
         <TaskResponsibleSelect taskId={task.id} responsibleId={task.responsibleId} users={users} />
       </div>
-      <p className="text-xs font-semibold text-tx-2 shrink-0">{formatCalendarDate(task.dueDate)}</p>
+      <p className={clsx("text-xs font-semibold shrink-0", done ? "text-tx-2" : PRAZO_URGENCIA_TEXT[urgencia])}>
+        {formatRelativeDueDate(task.dueDate)}
+      </p>
       <DeleteEntityButton entityType="TASK" entityId={task.id} entityLabel={task.title} confirmMessage={`Excluir a atividade "${task.title}"?`} />
       {open && <TaskDetailModal taskId={task.id} onClose={() => setOpen(false)} />}
     </div>
