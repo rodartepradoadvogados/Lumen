@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAlerts, getTodayItems } from "@/lib/alerts";
 import { getCurrentUser } from "@/lib/currentUser";
-import { Card, EmptyState, dueStatusClassName } from "@/components/ui";
+import { Card, EmptyState, dueStatusClassName, dueStatusPulseClassName } from "@/components/ui";
 import AlertRow from "@/components/AlertRow";
 import DismissibleAlertRow from "@/components/DismissibleAlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
@@ -87,7 +87,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
           {alerts.length === 0 ? (
             <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
           ) : (
-            <div className="divide-y divide-regua">
+            <div className="divide-y divide-regua stagger-in">
               {alerts.map((a) => {
                 const meta = kindMeta[a.kind];
                 const Icon = meta.icon;
@@ -96,7 +96,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                     key={a.id}
                     kind={a.kind}
                     entityId={a.entityId}
-                    rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
+                    rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)} ${dueStatusPulseClassName(a.dueStatus)}`}
                   >
                     <AlertRow alert={a} className="flex items-start gap-3 px-4 py-3 w-full text-left">
                       <div className="p-2 bg-sf-apoio text-tx-2 shrink-0">
@@ -123,7 +123,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
           {todayItems.length === 0 ? (
             <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
           ) : (
-            <div className="divide-y divide-regua">
+            <div className="divide-y divide-regua stagger-in">
               {todayItems.map((item) => {
                 const meta = todayMeta[item.kind];
                 const Icon = meta.icon;
@@ -131,7 +131,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                   <Link
                     key={item.id}
                     href={item.href}
-                    className={`flex items-start gap-3 px-4 py-3 ${dueStatusClassName(item.dueStatus)}`}
+                    className={`flex items-start gap-3 px-4 py-3 ${dueStatusClassName(item.dueStatus)} ${dueStatusPulseClassName(item.dueStatus)}`}
                   >
                     <div className="p-2 bg-sf-apoio text-tx-2 shrink-0">
                       <Icon size={16} />

@@ -303,3 +303,10 @@ const dueStatusBg: Record<"atrasado" | "hoje", string> = {
 export function dueStatusClassName(dueStatus?: "atrasado" | "hoje"): string {
   return dueStatus ? dueStatusBg[dueStatus] : "";
 }
+
+// Pulso de atenção (Movimento 6, proposta "Movimento & Prazos") — reservado só a "atrasado" na
+// Central de Alertas, igual ao resto do produto (KanbanBoard/AgendaView/DayQueueRow/etc.): um
+// único "acende e assenta" ao entrar como vencido, nunca em "hoje" (esse é aviso, não urgência).
+export function dueStatusPulseClassName(dueStatus?: "atrasado" | "hoje"): string {
+  return dueStatus === "atrasado" ? "motion-safe:animate-attention-pulse" : "";
+}
