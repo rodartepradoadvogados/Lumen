@@ -602,7 +602,7 @@ export default async function CaseDetailPage({
             {c.tasks.length === 0 ? (
               <EmptyState title="Nenhuma atividade cadastrada" />
             ) : (
-              <div className="divide-y divide-regua">
+              <div className="divide-y divide-regua stagger-in">
                 {c.tasks.map((t) => (
                   <TaskActivityRow
                     key={t.id}

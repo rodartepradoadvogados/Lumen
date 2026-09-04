@@ -54,3 +54,24 @@ export const PRAZO_URGENCIA_LABEL: Record<PrazoUrgencia, string> = {
   vencendo: "vencendo",
   "a-vencer": "a vencer",
 };
+
+// Variante para Contas a Pagar/Receber — não pode se basear só na data: `effective()` em
+// lib/financeQuery.ts já decide, por regra de negócio documentada lá, que só PENDENTE vira
+// ATRASADO (PARCIAL já tem pagamento real lançado, A_APURAR não tem valor real, PAGO/CANCELADO
+// estão resolvidos). Reusar aqui em vez de recalcular pela data evita um card mostrar badge
+// "Parcial" e filete vermelho de "vencida" ao mesmo tempo — duas leituras contraditórias na
+// mesma linha.
+export function classificarPrazoFinanceiro(
+  effectiveStatus: string,
+  dueDate: Date | string | null,
+  noDueDate: boolean,
+  now: Date = new Date()
+): PrazoUrgencia {
+  if (effectiveStatus === "ATRASADO") return "vencida";
+  if (noDueDate || !dueDate || (effectiveStatus !== "PENDENTE" && effectiveStatus !== "PARCIAL")) return "a-vencer";
+  const bruto = classificarPrazo(dueDate, now);
+  // PARCIAL nunca lê como "vencida" (mesma regra de effective(), lib/financeQuery.ts) — só
+  // PENDENTE chega aqui com data passada, e já teria virado "ATRASADO" antes desta função rodar;
+  // esta linha é só a rede de segurança para PARCIAL com data passada.
+  return bruto === "vencida" ? "a-vencer" : bruto;
+}

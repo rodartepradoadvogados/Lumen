@@ -11,9 +11,9 @@ import {
   CardHeader,
   EmptyState,
   formatCurrency,
-  formatDate,
-  formatCalendarDate,
 } from "@/components/ui";
+import { classificarPrazo } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 import { ArrowRight, Clock, ArrowDown, ArrowUp, Filter } from "lucide-react";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
 import PendingListModal from "@/components/PendingListModal";
@@ -140,14 +140,15 @@ export default async function DashboardPage() {
     return 6;
   }
 
-  function timeLabel(task: { dueDate: Date; dueTime: string | null }): { label: string; urgent: boolean } {
-    const overdue = task.dueDate < hoje;
-    const isToday = !overdue && task.dueDate >= hoje && task.dueDate <= fimHoje;
-    const isTomorrow = !overdue && !isToday && task.dueDate >= amanha && task.dueDate <= fimAmanha;
-    if (overdue) return { label: `venceu em ${formatCalendarDate(task.dueDate)}`, urgent: true };
-    if (isToday) return { label: task.dueTime ? `hoje ${task.dueTime}` : "hoje", urgent: true };
-    if (isTomorrow) return { label: task.dueTime ? `amanhã ${task.dueTime}` : "amanhã", urgent: false };
-    return { label: formatCalendarDate(task.dueDate), urgent: false };
+  // Rótulo em linguagem de pessoa (proposta "Movimento & Prazos", apartado item 3) — mesmo
+  // helper usado em Agenda/Kanban, só em minúsculas pra manter a voz já usada nesta fila
+  // ("venceu em...", "hoje", "amanhã").
+  function timeLabel(task: { dueDate: Date; dueTime: string | null }): string {
+    const rel = formatRelativeDueDate(task.dueDate).toLowerCase();
+    const urgencia = classificarPrazo(task.dueDate);
+    if (urgencia === "vencida") return `venceu ${rel}`;
+    if ((rel === "hoje" || rel === "amanhã") && task.dueTime) return `${rel} ${task.dueTime}`;
+    return rel;
   }
 
   const dayQueueSource = [...overdueTasksList, ...upcomingTasks];
@@ -155,19 +156,16 @@ export default async function DashboardPage() {
     .slice()
     .sort((a, b) => severityRank(a) - severityRank(b) || a.dueDate.getTime() - b.dueDate.getTime());
 
-  const dayQueueItems: DayQueueItem[] = dayQueueSorted.map((t) => {
-    const { label, urgent } = timeLabel(t);
-    return {
-      id: t.id,
-      type: t.type,
-      title: t.title,
-      subtitle: t.case?.title ?? null,
-      timeLabel: label,
-      urgent,
-      caseId: t.case?.id ?? null,
-      caseLabel: t.case ? t.case.processNumber || t.case.title : null,
-    };
-  });
+  const dayQueueItems: DayQueueItem[] = dayQueueSorted.map((t) => ({
+    id: t.id,
+    type: t.type,
+    title: t.title,
+    subtitle: t.case?.title ?? null,
+    timeLabel: timeLabel(t),
+    urgencia: classificarPrazo(t.dueDate),
+    caseId: t.case?.id ?? null,
+    caseLabel: t.case ? t.case.processNumber || t.case.title : null,
+  }));
 
   const prazosCount = dayQueueSource.filter((t) => t.type === "PRAZO").length;
   const audienciasCount = dayQueueSource.filter((t) => t.type === "AUDIENCIA").length;
@@ -217,7 +215,7 @@ export default async function DashboardPage() {
                 </Link>
               }
             />
-            <div className="divide-y divide-regua">
+            <div className="divide-y divide-regua stagger-in">
               {dayQueueVisible.length === 0 && <EmptyState title="Nada vencido ou agendado para os próximos dias" />}
               {dayQueueVisible.map((item) => (
                 <DayQueueRow key={item.id} item={item} />
@@ -266,7 +264,7 @@ export default async function DashboardPage() {
             icon={<Clock size={15} strokeWidth={1.5} />}
             iconClassName="bg-urgente-bg text-urgente"
           >
-            <div className="divide-y divide-regua">
+            <div className="divide-y divide-regua stagger-in">
               {myOverdueTasks.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
               {myOverdueTasks.map((t) => (
                 <OverdueTaskRow
@@ -296,11 +294,15 @@ export default async function DashboardPage() {
               >
                 <div className="divide-y divide-regua">
                   {receivablesSoon.length === 0 && <EmptyState title="Nenhuma conta nos próximos 7 dias" />}
-                  {receivablesSoon.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  {receivablesSoon.map((r) => {
+                    const urgencia = classificarPrazo(r.dueDate);
+                    return (
+                    <div key={r.id} className={`flex items-center justify-between gap-3 px-5 py-3 border-l-[3px] ${urgencia === "vencida" ? "border-urgente" : urgencia === "vencendo" ? "border-aviso" : "border-regua-forte"}`}>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-tx truncate">{r.description}</p>
-                        <p className="text-xs text-tx-3 mt-0.5">{r.dueDate < hoje ? "Venceu em " : "Vence em "}{formatDate(r.dueDate)}</p>
+                        <p className={`text-xs mt-0.5 ${urgencia === "vencida" ? "text-urgente" : urgencia === "vencendo" ? "text-aviso" : "text-tx-3"}`}>
+                          {urgencia === "vencida" ? "Venceu " : "Vence "}{formatRelativeDueDate(r.dueDate)}
+                        </p>
                         {r.case && (
                           <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-acao hover:underline">
                             {r.case.processNumber || r.case.title}
@@ -321,7 +323,7 @@ export default async function DashboardPage() {
                         />
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               </PendingListModal>
 
@@ -334,11 +336,15 @@ export default async function DashboardPage() {
               >
                 <div className="divide-y divide-regua">
                   {payablesSoon.length === 0 && <EmptyState title="Nenhuma conta nos próximos 7 dias" />}
-                  {payablesSoon.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  {payablesSoon.map((p) => {
+                    const urgencia = classificarPrazo(p.dueDate);
+                    return (
+                    <div key={p.id} className={`flex items-center justify-between gap-3 px-5 py-3 border-l-[3px] ${urgencia === "vencida" ? "border-urgente" : urgencia === "vencendo" ? "border-aviso" : "border-regua-forte"}`}>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-tx truncate">{p.description}</p>
-                        <p className="text-xs text-tx-3 mt-0.5">{p.dueDate < hoje ? "Venceu em " : "Vence em "}{formatDate(p.dueDate)}</p>
+                        <p className={`text-xs mt-0.5 ${urgencia === "vencida" ? "text-urgente" : urgencia === "vencendo" ? "text-aviso" : "text-tx-3"}`}>
+                          {urgencia === "vencida" ? "Venceu " : "Vence "}{formatRelativeDueDate(p.dueDate)}
+                        </p>
                         {p.case && (
                           <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-acao hover:underline">
                             {p.case.processNumber || p.case.title}
@@ -359,7 +365,7 @@ export default async function DashboardPage() {
                         />
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               </PendingListModal>
             </>

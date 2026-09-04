@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import { EmptyState, formatCurrency } from "@/components/ui";
 import EditPayableModal from "@/components/EditPayableModal";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import SettleButton from "@/components/SettleButton";
@@ -13,6 +13,9 @@ import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { financeGroupKind } from "@/lib/financeGroupKind";
 import { DOCUMENT_TYPE_OPTIONS } from "@/lib/honorarioLancamento";
 import { FinanceStatusBadge } from "@/lib/financeStatus";
+import { classificarPrazoFinanceiro, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
+import clsx from "clsx";
 
 const documentTypeLabels: Record<string, string> = Object.fromEntries(DOCUMENT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
@@ -115,13 +118,25 @@ export default function PayablesList({
 
   return (
     <div>
-      <div className="divide-y divide-regua">
+      <div className="divide-y divide-regua stagger-in">
         {payables.map((p) => {
           const selectable = p.status !== "PAGO";
           const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
           const saldo = saldoEmAberto(p.amount, p.discount, p.surcharge, p.paidSum);
+          // Urgência de prazo (proposta "Movimento & Prazos") — baseada em effectiveStatus, não
+          // recalculada da data crua, pra não contradizer o badge (ver lib/dueStatus.ts:
+          // classificarPrazoFinanceiro).
+          const urgencia = classificarPrazoFinanceiro(p.effectiveStatus, p.dueDate, p.noDueDate);
           return (
-            <div key={p.id} id={`payable-${p.id}`} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 target:bg-acao-bg scroll-mt-20">
+            <div
+              key={p.id}
+              id={`payable-${p.id}`}
+              className={clsx(
+                "flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 border-l-[3px] target:bg-acao-bg scroll-mt-20",
+                PRAZO_URGENCIA_BORDER[urgencia],
+                urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+              )}
+            >
               <div className="shrink-0 flex items-center">
                 {selectable ? (
                   <input
@@ -167,7 +182,9 @@ export default function PayablesList({
                   {p.effectiveStatus === "PARCIAL" && (
                     <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
                   )}
-                  <p className="text-xs text-tx-3">{p.noDueDate ? "Sem vencimento" : formatDate(p.dueDate)}</p>
+                  <p className={clsx("text-xs", p.noDueDate ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
+                    {p.noDueDate ? "Sem vencimento" : formatRelativeDueDate(p.dueDate)}
+                  </p>
                 </div>
                 <div className="shrink-0 sm:w-24">
                   <FinanceStatusBadge status={p.effectiveStatus} kind="payable" />

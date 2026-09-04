@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Plus, Check, Undo2, X } from "lucide-react";
 import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEditor";
 import { pendenciaKindLabel, PENDENCIA_DIRECTION_LABELS } from "@/lib/pendencias";
-import { formatCalendarDate } from "@/components/ui";
+import { classificarPrazo } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
+import clsx from "clsx";
 import {
   createAttendancePendencias,
   completeAttendancePendencia,
@@ -96,17 +98,23 @@ export default function AttendancePendenciasPanel({
       {abertas.length === 0 && !adding && <p className="text-sm text-tx-2">Nenhuma pendência em aberto.</p>}
 
       {abertas.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 stagger-in">
           {abertas.map((p) => {
-            const overdue = p.dueDate && new Date(p.dueDate) < new Date();
+            // Urgência de prazo (proposta "Movimento & Prazos") — antes comparava dueDate contra
+            // a hora cheia (mesmo bug de "vencimento hoje conta como atrasado" já corrigido em
+            // Kanban/Agenda). classificarPrazo já normaliza isso.
+            const urgencia = p.dueDate ? classificarPrazo(p.dueDate) : "a-vencer";
             return (
               <div
                 key={p.id}
-                className={`flex items-start justify-between gap-3 border rounded-md px-3 py-2 ${
-                  overdue
-                    ? "border-urgente/40 bg-urgente-bg"
-                    : "border-regua bg-sf-apoio"
-                }`}
+                className={clsx(
+                  "flex items-start justify-between gap-3 border rounded-md px-3 py-2",
+                  urgencia === "vencida"
+                    ? "border-urgente/40 bg-urgente-bg motion-safe:animate-attention-pulse"
+                    : urgencia === "vencendo"
+                      ? "border-aviso/40 bg-aviso-bg"
+                      : "border-regua bg-sf-apoio"
+                )}
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tx">
@@ -118,7 +126,7 @@ export default function AttendancePendenciasPanel({
                   {p.description && <p className="text-xs text-tx-2">{p.description}</p>}
                   <p className="text-[11px] text-tx-3 mt-0.5">
                     {p.responsible?.name ? `${p.responsible.name} · ` : ""}
-                    {p.dueDate ? (overdue ? `Vencida em ${formatCalendarDate(p.dueDate)}` : `Prazo: ${formatCalendarDate(p.dueDate)}`) : "Sem prazo"}
+                    {p.dueDate ? (urgencia === "vencida" ? `Vencida ${formatRelativeDueDate(p.dueDate)}` : `Prazo: ${formatRelativeDueDate(p.dueDate)}`) : "Sem prazo"}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
