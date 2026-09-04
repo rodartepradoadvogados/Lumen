@@ -11,6 +11,9 @@ import WhatsappConfigForm from "@/components/WhatsappConfigForm";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import WorkflowsManager from "@/components/WorkflowsManager";
 import OfficeBillingSummary from "@/components/OfficeBillingSummary";
+import BlogReviewManager from "@/components/BlogReviewManager";
+import BlogPublishedManager from "@/components/BlogPublishedManager";
+import PhotoLibraryManager from "@/components/PhotoLibraryManager";
 import { getDriveStatus, listGoogleAccounts } from "@/lib/googleDrive";
 import { getOfficeModules, hasBlogAccess, type OfficeModules } from "@/lib/officeModules";
 import { getOwnOfficeBilling } from "@/lib/actions/subscriptionBilling";
@@ -35,6 +38,7 @@ import {
   ChevronRight,
   Upload,
   CreditCard,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,7 +54,11 @@ const MODULE_LABELS: Record<keyof OfficeModules, string> = {
   assessoria: "Assessoria Jurídica",
 };
 
-export default async function MobileConfiguracoes() {
+export default async function MobileConfiguracoes({
+  searchParams,
+}: {
+  searchParams: { blogTab?: string };
+}) {
   const viewer = await getCurrentUser();
   if (!viewer) return null;
   const officeId = viewer.officeId;
@@ -70,8 +78,9 @@ export default async function MobileConfiguracoes() {
     whatsappConfig,
     workflowTemplates,
     taskTypePoints,
-    blogPending,
-    blogPublished,
+    blogPendingRaw,
+    blogPublishedRaw,
+    photosRaw,
     roboExecucaoLogs,
     processosMonitoradosCount,
     ownBilling,
@@ -89,15 +98,29 @@ export default async function MobileConfiguracoes() {
           include: { steps: { orderBy: { order: "asc" } } },
         }),
         prisma.taskTypePoints.findMany({ where: { officeId } }),
-        prisma.blogPost.count({ where: { officeId, status: "AGUARDANDO_REVISAO" } }),
-        prisma.blogPost.count({ where: { officeId, status: "PUBLICADO" } }),
+        // Registros completos (não só contagem) — igual ao computador (app/(app)/configuracoes/
+        // page.tsx): permite revisar/publicar/editar direto daqui, não só ver o número.
+        prisma.blogPost.findMany({ where: { officeId, status: "AGUARDANDO_REVISAO" }, orderBy: { createdAt: "asc" } }),
+        prisma.blogPost.findMany({ where: { officeId, status: "PUBLICADO" }, orderBy: { publishedAt: "desc" } }),
+        prisma.photo.findMany({ where: { officeId }, orderBy: { createdAt: "desc" } }),
         // Tabelas globais espelhadas do robô Python (sem officeId) — só pra mostrar o status
         // real das últimas execuções, igual ao card equivalente no computador.
         prisma.roboExecucaoLog.findMany({ orderBy: { executadoEm: "desc" }, take: 10 }),
         prisma.roboProcessoMonitorado.count(),
         getOwnOfficeBilling(),
       ])
-    : [null, false, null, [], [], null, [], [], 0, 0, [], 0, { subscription: null, invoices: [] }];
+    : [null, false, null, [], [], null, [], [], [], [], [], [], 0, { subscription: null, invoices: [] }];
+
+  const photos = photosRaw.map((p) => ({
+    id: p.id,
+    url: p.url,
+    category: p.category,
+    court: p.court,
+    caption: p.caption,
+    createdAt: p.createdAt.toISOString(),
+  }));
+  const blogTab =
+    searchParams.blogTab === "publicadas" ? "publicadas" : searchParams.blogTab === "fotos" ? "fotos" : "revisao";
 
   const initials = viewer.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
   const minhaConexao = googleAccounts.find((a) => a.userId === viewer.id);
@@ -383,13 +406,85 @@ export default async function MobileConfiguracoes() {
           </details>
           )}
 
+          {/* Fallback pra abrir o site completo (desktop) direto do app mobile — útil quando o
+              PWA instalado no computador abre errado, ou quando alguém do celular precisa mesmo
+              da versão completa por algum motivo pontual. Visível a QUALQUER usuário (não só
+              admin), de propósito: é uma saída de emergência, não um recurso de administração. */}
+          <a
+            href="/painel"
+            className="flex items-center justify-between gap-2 px-4 py-3.5 bg-sf border border-regua"
+          >
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-marca-tx" />
+              <h3 className="font-bold text-tx text-sm">Acessar site completo</h3>
+            </div>
+            <ChevronRight size={14} className="text-tx-3 shrink-0" />
+          </a>
+
           {isAdmin && blogAccess && (
             <details className="group">
-              <Group icon={Newspaper} title="Blog Jurídico" meta={`${blogPending} pendente(s)`}>
+              <Group icon={Newspaper} title="Blog Jurídico" meta={`${blogPendingRaw.length} pendente(s)`}>
                 <Card className=" border-t-0">
-                  <p className="text-xs text-tx-2 leading-relaxed p-4">
-                    {blogPending} matéria(s) aguardando revisão · {blogPublished} publicada(s). Ajustável só no computador.
-                  </p>
+                  <div className="p-4 flex gap-2 flex-wrap">
+                    <Link
+                      href="/m/configuracoes?blogTab=revisao"
+                      className={`text-xs font-semibold px-3 py-1.5 transition-colors ${
+                        blogTab === "revisao" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
+                      }`}
+                    >
+                      Revisão {blogPendingRaw.length > 0 && `(${blogPendingRaw.length})`}
+                    </Link>
+                    <Link
+                      href="/m/configuracoes?blogTab=publicadas"
+                      className={`text-xs font-semibold px-3 py-1.5 transition-colors ${
+                        blogTab === "publicadas" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
+                      }`}
+                    >
+                      Publicadas ({blogPublishedRaw.length})
+                    </Link>
+                    <Link
+                      href="/m/configuracoes?blogTab=fotos"
+                      className={`text-xs font-semibold px-3 py-1.5 transition-colors ${
+                        blogTab === "fotos" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
+                      }`}
+                    >
+                      Fotos ({photos.length})
+                    </Link>
+                  </div>
+                  <div className="border-t border-regua">
+                    {blogTab === "revisao" ? (
+                      <BlogReviewManager
+                        posts={blogPendingRaw.map((p) => ({
+                          id: p.id,
+                          slug: p.slug,
+                          title: p.title,
+                          area: p.area,
+                          type: p.type,
+                          summary: p.summary,
+                          content: p.content,
+                          sources: p.sources,
+                          imageUrl: p.imageUrl,
+                          createdAt: p.createdAt.toISOString(),
+                        }))}
+                        photos={photos}
+                      />
+                    ) : blogTab === "publicadas" ? (
+                      <BlogPublishedManager
+                        posts={blogPublishedRaw.map((p) => ({
+                          id: p.id,
+                          slug: p.slug,
+                          title: p.title,
+                          area: p.area,
+                          type: p.type,
+                          imageUrl: p.imageUrl,
+                          publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+                        }))}
+                        photos={photos}
+                      />
+                    ) : (
+                      <PhotoLibraryManager photos={photos} />
+                    )}
+                  </div>
                 </Card>
               </Group>
             </details>
