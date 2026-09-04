@@ -11,6 +11,8 @@ import { Badge, ConclusionChip, formatCurrency, taskConclusionLabel, taskTypeLab
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewTaskModal from "@/components/NewTaskModal";
 import TaskDetailModal from "@/components/TaskDetailModal";
+import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 
 type TaskData = {
   id: string;
@@ -239,6 +241,13 @@ export default function AgendaView({
           </>
         )}
       </div>
+      {/* Desde a proposta "Movimento & Prazos" (setembro/2026): o filete/borda dos cartões abaixo
+          passou a indicar URGÊNCIA (vencida/vencendo/a vencer), não mais o tipo — que continua
+          só no fundo+texto do chip/badge e na bolinha desta legenda. */}
+      <p className="text-[10.5px] text-tx-3 -mt-1">
+        A borda de cada compromisso indica prazo — <span className="text-urgente font-semibold">vencida</span>,{" "}
+        <span className="text-aviso font-semibold">vencendo</span> (hoje/amanhã) ou neutra (a vencer).
+      </p>
     </div>
   );
 
@@ -296,20 +305,22 @@ export default function AgendaView({
 // tipo (que já aparece no dia do prazo fatal).
 const safetyChip = "bg-aviso-bg text-aviso rounded-sm";
 
-// Chip do calendário (mês/semana): filete esquerdo de 3px na cor do tipo — mesma régua usada no
-// card do Kanban (DESIGN-SYSTEM.md §7/§12), em vez da bolinha (que fica só na legenda "Cores por
-// tipo", 10px).
+// Chip do calendário (mês/semana): fundo+texto na cor do TIPO (meta.chip, inalterado), filete
+// esquerdo de 3px na cor de URGÊNCIA (proposta "Movimento & Prazos", setembro/2026 — antes era a
+// mesma cor do tipo; ver docs/DESIGN-SYSTEM.md §7). Concluído nunca conta como vencido para fins
+// de cor, mesmo com data passada.
 function EventChip({ t }: { t: TaskData }) {
   const done = t.status === "CONCLUIDO";
   const isSafety = t.entryKind === "seguranca";
   const meta = typeMeta[t.type] || typeMeta.TAREFA;
+  const urgencia = done ? "a-vencer" : classificarPrazo(t.dueDate);
   const doneTip = done ? completedLabel(t) : null;
   return (
     <div
       data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : doneTip || undefined}
       className={clsx(
         "text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm",
-        isSafety ? clsx(safetyChip, "border-aviso") : clsx(meta.chip, meta.filete),
+        isSafety ? clsx(safetyChip, "border-aviso") : clsx(meta.chip, PRAZO_URGENCIA_BORDER[urgencia]),
         done && "line-through opacity-60"
       )}
     >
@@ -626,7 +637,7 @@ function DayPanel({
         </div>
         <NewTaskModal key={selected} cases={cases} users={users} columns={columns} defaultDate={selected} label="+ Nova neste dia" tone="accent" />
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua">
+      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua stagger-in">
         {totalCount === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}
         {selectedTasks.map((t) => (
           <DayPanelTaskRow key={`${t.id}-${t.entryKind}`} t={t} onToggle={onToggle} />
@@ -683,13 +694,23 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
   const [open, setOpen] = useState(false);
   const done = t.status === "CONCLUIDO";
   const isSafety = t.entryKind === "seguranca";
+  // Urgência no filete esquerdo (proposta "Movimento & Prazos") — esta linha não tinha nenhum
+  // indicador de prazo antes; o painel do dia já agrupa por data, mas nada distinguia "vence
+  // hoje" de "venceu há 3 dias" dentro do mesmo dia selecionado.
+  const urgencia = done ? "a-vencer" : classificarPrazo(t.dueDate);
   // Defesa em profundidade (achado F5 da auditoria) — a Server Action já recusa protocolo
   // inseguro ao salvar (lib/actions/tasks.ts), mas um registro gravado antes dessa correção
   // não pode virar link clicável só porque ainda está no banco.
   const safeMeetingUrl = sanitizeExternalUrl(t.meetingUrl);
 
   return (
-    <div className="px-5 py-3.5 flex gap-3">
+    <div
+      className={clsx(
+        "px-5 py-3.5 flex gap-3 border-l-[3px]",
+        PRAZO_URGENCIA_BORDER[urgencia],
+        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+      )}
+    >
       <button
         onClick={() => onToggle(t.id)}
         data-tip={done ? completedLabel(t) || undefined : undefined}
@@ -718,6 +739,11 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
               </>
             )}
             {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
+            {!done && (
+              <span className={clsx("text-[11px] font-semibold", PRAZO_URGENCIA_TEXT[urgencia])}>
+                {formatRelativeDueDate(t.dueDate)}
+              </span>
+            )}
           </div>
           <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
           {t.responsible && <p className="text-[11px] text-tx-3 mt-1">Responsável: {t.responsible.name}</p>}

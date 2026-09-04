@@ -315,6 +315,78 @@ input[type="radio"] {
 .animate-flash-wine-out { animation: flashWineOut 1000ms ease-in forwards; }
 .animate-flash-green-out { animation: flashGreenOut 1000ms ease-in forwards; }
 
+/* ============================================================================
+   Catálogo de movimento — proposta de design "Movimento & Prazos" (setembro/2026).
+   Seis padrões, cada um com um lugar e um motivo (nunca decorativo, ver docs/DESIGN-SYSTEM.md).
+   Duração curta (120-200ms) e contida, igual ao resto da casa (compare com fadeIn acima).
+   ============================================================================ */
+
+/* Movimento 1 · deslizar — painel lateral (SlideDrawer, components/motion/SlideDrawer.tsx). */
+@keyframes drawerSlideIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-drawer-in { animation: drawerSlideIn 160ms ease-out; }
+
+/* Movimento 3 · aparecer — lista em cascata sutil (12ms/item, até 8 itens). Puro CSS: aplique
+   `stagger-in` no CONTAINER da lista; cada filho direto ganha um atraso crescente via
+   nth-child, sem precisar de JS. Itens depois do 8º saem no mesmo atraso do 8º (não crescem
+   pra sempre numa lista longa). */
+.stagger-in > * {
+  animation: fadeIn 140ms ease-out backwards;
+}
+.stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-in > *:nth-child(2) { animation-delay: 12ms; }
+.stagger-in > *:nth-child(3) { animation-delay: 24ms; }
+.stagger-in > *:nth-child(4) { animation-delay: 36ms; }
+.stagger-in > *:nth-child(5) { animation-delay: 48ms; }
+.stagger-in > *:nth-child(6) { animation-delay: 60ms; }
+.stagger-in > *:nth-child(7) { animation-delay: 72ms; }
+.stagger-in > *:nth-child(n+8) { animation-delay: 84ms; }
+
+/* Movimento 4 · sumir — item encolhe e esvanece antes de sair da lista (ver referência já em
+   produção: components/PublicationsTriage.tsx usa o mesmo princípio com slideOutLeft/-Down
+   acima). Disponível para quem precisa de uma saída neutra, sem direção lateral/vertical
+   específica. */
+@keyframes itemCollapse {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-8px); }
+}
+.animate-item-collapse { animation: itemCollapse 160ms ease-out forwards; }
+
+/* Movimento 5 · pop-up — menu nasce do próprio gatilho (escala 0,96 → 1 + fade). Origem no
+   canto onde o menu costuma abrir (canto superior, o mesmo dos dois usos atuais — "Novo" no
+   TopBar e o menu de vincular publicação); ajuste `transform-origin` por classe utilitária do
+   Tailwind (`origin-top-left`/`origin-top-right`) no elemento que usar esta animação. */
+@keyframes popupIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-popup-in { animation: popupIn 120ms ease-out; }
+
+/* Movimento 6 · atenção — o único destaque do sistema, reservado ao que VENCEU (ver
+   lib/dueStatus.ts:classificarPrazo). Um único "acende e assenta" ao entrar como vencido — nunca
+   em loop. Roda uma vez por montagem (o próprio ciclo de vida do componente já garante isso: não
+   há como reativar sem desmontar/remontar a linha). */
+@keyframes attentionSettle {
+  0% { box-shadow: 0 0 0 0 rgba(179, 38, 30, 0.45); }
+  100% { box-shadow: 0 0 0 8px rgba(179, 38, 30, 0); }
+}
+.animate-attention-pulse { animation: attentionSettle 500ms ease-out; }
+
+/* Quem desativou movimento no sistema operacional recebe o estado final imediato, sem
+   animação nenhuma — cobre também as classes acima (as que já usavam motion-safe: do Tailwind,
+   ex. animate-fade-in em ModalShell, continuam cobertas por aquele prefixo; este bloco é a rede
+   de segurança para as que disparam via classe JS pura, como as deste catálogo). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Tooltip global por CSS puro — aplique data-tip="..." em qualquer elemento.
    IMPORTANTE: fica dentro de `@layer base` (não solto no arquivo) para que utilitários do
    Tailwind (`@tailwind utilities`, camada `utilities`) sempre ganhem dele em caso de conflito.

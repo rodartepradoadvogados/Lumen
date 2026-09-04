@@ -28,7 +28,7 @@ export default function NewEntityMenu() {
         <Plus size={16} /> Novo
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-56 rounded-lg bg-sf border border-regua shadow-menu z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-1.5 w-56 rounded-lg bg-sf border border-regua shadow-menu z-50 overflow-hidden origin-top-right motion-safe:animate-popup-in">
           <Link href="/processos/novo?type=JUDICIAL" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-tx hover:bg-sf-apoio transition-colors">
             <Scale size={15} /> Processo Judicial
           </Link>

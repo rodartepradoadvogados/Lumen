@@ -288,12 +288,16 @@ export function financeStatusLabel(status: string): string {
 
 // Fundo por urgência de data na Central de Alertas (compromissos/atividades/audiências/
 // prazos/perícias/tarefas delegadas/pendências distribuídas — ver AlertItem/TodayItem.dueStatus
-// em lib/alerts.ts): atrasado usa o token `urgente`, hoje usa o token `marca` (ouro), os dois já
-// com a opacidade certa embutida na variável (--urgente-bg/--marca-bg); sem dueStatus (vincendo)
-// não aplica nada, a linha continua como já era.
+// em lib/alerts.ts): atrasado usa o token `urgente`, hoje usa o token `aviso` (âmbar) — os dois já
+// com a opacidade certa embutida na variável (--urgente-bg/--aviso-bg); sem dueStatus (vincendo)
+// não aplica nada, a linha continua como já era. Unificado com o filete de urgência de
+// lib/dueStatus.ts (proposta "Movimento & Prazos", setembro/2026) — antes "hoje" usava `marca`
+// (bordô) aqui, mas âmbar em todo o resto do produto (Kanban/Agenda/mobile via PRAZO_URGENCIA_*);
+// dois "hoje" de cor diferente na mesma tela diluíam exatamente a clareza que a proposta busca —
+// ver apartado, item 2 ("um único estado de atenção contínua").
 const dueStatusBg: Record<"atrasado" | "hoje", string> = {
   atrasado: "bg-urgente-bg",
-  hoje: "bg-marca-bg",
+  hoje: "bg-aviso-bg",
 };
 
 export function dueStatusClassName(dueStatus?: "atrasado" | "hoje"): string {

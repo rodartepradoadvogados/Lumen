@@ -2,27 +2,17 @@
 
 import { useState } from "react";
 import { Clock } from "lucide-react";
+import clsx from "clsx";
 import { Badge, ConclusionChip, taskConclusionLabel, taskTypeLabels, taskTypeColors } from "@/components/ui";
 import MobileTaskToggle from "@/components/mobile/MobileTaskToggle";
 import TaskDetailModal from "@/components/TaskDetailModal";
-
-// Mesma tradução tipo -> cor de filete de app/m/agenda/page.tsx (duplicada aqui de propósito:
-// "use client" não pode importar de um Server Component, e o arquivo original não expunha essa
-// tabela como export).
-const TYPE_BORDER_COLORS: Record<string, string> = {
-  slate: "border-l-tx-2",
-  blue: "border-l-acao",
-  gold: "border-l-marca",
-  amber: "border-l-aviso",
-  red: "border-l-urgente",
-};
-function taskTypeBorder(type: string): string {
-  return TYPE_BORDER_COLORS[taskTypeColors[type] ?? "slate"] ?? "border-l-tx-3";
-}
+import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 
 type MobileAgendaTask = {
   id: string;
   type: string;
+  dueDate: string; // ISO — necessário para a urgência (proposta "Movimento & Prazos", ver lib/dueStatus.ts)
   dueTime: string | null;
   title: string;
   status: string;
@@ -36,12 +26,23 @@ type MobileAgendaTask = {
 // components/AgendaView.tsx:DayPanelTaskRow (desktop): editar título/tipo/prioridade/data/hora
 // ("adiar")/responsável/reunião/descrição, concluir/reabrir e excluir, direto do app. Antes
 // disso, o card do app só dava pra marcar como concluído (MobileTaskToggle) — sem editar nada.
+//
+// Filete esquerdo indica URGÊNCIA (vencida/vencendo/a vencer), não mais o tipo — mesma mudança
+// de components/AgendaView.tsx:EventChip/DayPanelTaskRow (proposta "Movimento & Prazos",
+// setembro/2026). O tipo continua no Badge logo abaixo.
 export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
   const [open, setOpen] = useState(false);
   const done = t.status === "CONCLUIDO";
+  const urgencia = done ? "a-vencer" : classificarPrazo(t.dueDate);
 
   return (
-    <div className={`flex items-start gap-3 px-4 py-3.5 border-l-[3px] ${taskTypeBorder(t.type)}`}>
+    <div
+      className={clsx(
+        "flex items-start gap-3 px-4 py-3.5 border-l-[3px]",
+        PRAZO_URGENCIA_BORDER[urgencia],
+        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+      )}
+    >
       <div className="pt-0.5">
         <MobileTaskToggle taskId={t.id} done={done} />
       </div>
@@ -55,6 +56,11 @@ export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
           {t.dueTime && (
             <span className="flex items-center gap-1 text-xs font-semibold text-tx-2">
               <Clock size={12} /> {t.dueTime}
+            </span>
+          )}
+          {!done && (
+            <span className={clsx("text-xs font-semibold", PRAZO_URGENCIA_TEXT[urgencia])}>
+              {formatRelativeDueDate(t.dueDate)}
             </span>
           )}
         </div>

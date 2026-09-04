@@ -171,13 +171,14 @@ async function DayView({
         {tasks.length === 0 && financeItems.length === 0 ? (
           <EmptyState title="Nada agendado para este dia" />
         ) : (
-          <div className="divide-y divide-regua">
+          <div className="divide-y divide-regua stagger-in">
             {tasks.map((t) => (
               <MobileAgendaTaskRow
                 key={t.id}
                 t={{
                   id: t.id,
                   type: t.type,
+                  dueDate: t.dueDate.toISOString(),
                   dueTime: t.dueTime,
                   title: t.title,
                   status: t.status,

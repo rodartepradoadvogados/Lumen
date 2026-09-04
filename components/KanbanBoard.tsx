@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { moveTask, toggleTaskDone } from "@/lib/actions/tasks";
-import { Badge, ConclusionChip, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors, formatCalendarDate } from "@/components/ui";
-import { typeMeta } from "@/components/AgendaView";
+import { Badge, ConclusionChip, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import TaskDetailModal from "@/components/TaskDetailModal";
+import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
+import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 import { Check, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
@@ -83,7 +84,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
                 {colTasks.length}
               </span>
             </div>
-            <div className="p-2.5 space-y-2 overflow-y-auto scrollbar-thin flex-1">
+            <div className="p-2.5 space-y-2 overflow-y-auto scrollbar-thin flex-1 stagger-in">
               {colTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onToggle={() => startTransition(async () => { await toggleTaskDone(task.id); router.refresh(); })} />
               ))}
@@ -99,11 +100,13 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
 }
 
 function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void }) {
-  const overdue = new Date(task.dueDate) < new Date() && task.status !== "CONCLUIDO";
   const done = task.status === "CONCLUIDO";
+  // Urgência (não mais tipo) no filete — proposta "Movimento & Prazos", setembro/2026 (apartado,
+  // item 1: "tipo no chip, tempo no filete"). Concluído nunca é "vencido" pra fins de cor/pulso,
+  // mesmo que a data já tenha passado — daí o `done &&` curto-circuitando pra "a-vencer" (neutro).
+  const urgencia = done ? "a-vencer" : classificarPrazo(task.dueDate);
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const filete = (typeMeta[task.type] || typeMeta.TAREFA).filete;
   const completedTip =
     done && task.completedBy && task.completedAt
       ? `Concluído por ${task.completedBy.name} em ${new Date(task.completedAt).toLocaleDateString("pt-BR")} às ${new Date(task.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
@@ -118,14 +121,16 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
       }}
       onDragEnd={() => setDragging(false)}
       className={clsx(
-        // Card: fundo --sf-superficie, borda 1px --regua, filete esquerdo de 3px na cor do tipo
-        // de tarefa. Sombra só enquanto está sendo arrastado; concluído leva opacidade 72% +
-        // riscado (DESIGN-SYSTEM.md §12).
-        "bg-sf border p-3 cursor-grab active:cursor-grabbing border-l-[3px] transition-shadow",
-        filete,
-        overdue ? "border-urgente" : "border-regua",
-        dragging && "shadow-arrasto",
-        done && "opacity-[.72]"
+        // Card: fundo --sf-superficie, borda 1px --regua, filete esquerdo de 3px na cor de
+        // URGÊNCIA (não mais do tipo — o tipo continua no Badge logo abaixo). Sombra + leve
+        // levantada (Movimento 2 · arrastar) enquanto está sendo arrastado; volta ao normal em
+        // 200ms ao soltar (a própria `transition-all` cobre os dois sentidos). Concluído leva
+        // opacidade 72% + riscado (DESIGN-SYSTEM.md §12).
+        "bg-sf border p-3 cursor-grab active:cursor-grabbing border-l-[3px] transition-all duration-200",
+        PRAZO_URGENCIA_BORDER[urgencia],
+        dragging ? "shadow-arrasto scale-[1.02] duration-150" : "shadow-none scale-100",
+        done && "opacity-[.72]",
+        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
       )}
     >
       <div className="flex items-center justify-between mb-1.5">
@@ -162,8 +167,8 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
           )}
         </div>
         <div className="flex items-center gap-1">
-          <span className={clsx("text-[11px] font-semibold", overdue ? "text-urgente" : "text-tx-3")}>
-            {formatCalendarDate(task.dueDate)}
+          <span className={clsx("text-[11px] font-semibold", done ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
+            {formatRelativeDueDate(task.dueDate)}
           </span>
           {task.responsible && (
             <span
