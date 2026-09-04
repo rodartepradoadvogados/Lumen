@@ -89,6 +89,13 @@
      qualquer outro token — é o único azul que sobra no sistema, só para essa distinção. */
   --fonte-pje: #2f6fb0;
 
+  /* Ouro de acento (Início, setembro/2026 — faixa colorida dos cartões, proposta C aprovada).
+     NÃO é o mesmo "ouro" legado de tailwind.config.ts (gold-*, que hoje só reaponta pro bordô
+     desde o redesenho Modernist) — este é dourado de verdade, reintroduzido de propósito só
+     como acento pontual (hoje: filete de Assessoria Jurídica na Início). Evitar espalhar em
+     preenchimento grande/texto — é decoração de destaque, não uma cor de marca nova. */
+  --ouro-acento: #a6790f;
+
   /* Acabamento "premium" (agosto/2026, sétima rodada — Início/Painel): halo do bordô atrás da
      saudação e textura granulada da superfície escura. Nos dois casos é o mesmo efeito com
      intensidade MENOR na Manhã — o fundo já é claro (--sf-fundo quase branco), então tanto o
@@ -152,6 +159,7 @@
   --rail-marca: #c9707f;
   --rail-marca-bg: rgba(201, 112, 127, 0.16);
   --fonte-pje: #93c0f0;
+  --ouro-acento: #e0ad3d;
 
   --halo-marca: rgba(138, 47, 66, 0.16);
   --grain-opacity: 0.05;
