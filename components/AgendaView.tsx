@@ -563,7 +563,7 @@ function ListView({
                 {date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </p>
             </div>
-            <div className="divide-y divide-regua">
+            <div className="divide-y divide-regua stagger-in">
               {items.map((t) => {
                 const done = t.status === "CONCLUIDO";
                 const isSafety = t.entryKind === "seguranca";

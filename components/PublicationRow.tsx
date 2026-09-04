@@ -273,7 +273,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
             <CalendarClock size={12} /> Agenda <ChevronDown size={11} />
           </button>
           {agendaOpen && (
-            <div className="absolute left-0 top-full mt-1 w-48 bg-sf border border-regua shadow-menu z-20 overflow-hidden">
+            <div className="absolute left-0 top-full mt-1 w-48 bg-sf border border-regua shadow-menu z-20 overflow-hidden origin-top-left motion-safe:animate-popup-in">
               {actionButtons.map((a) => (
                 <button
                   key={a.type}

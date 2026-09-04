@@ -128,7 +128,7 @@ export default function DistributePublicationsButton() {
                                 {selectedNames.length > 0 ? selectedNames.join(", ") : "Selecionar advogado(s)"}
                               </summary>
                               <div className="relative">
-                                <div className="absolute z-20 mt-1 w-56 max-h-52 overflow-y-auto scrollbar-thin bg-sf border border-regua shadow-menu">
+                                <div className="absolute z-20 mt-1 w-56 max-h-52 overflow-y-auto scrollbar-thin bg-sf border border-regua shadow-menu origin-top motion-safe:animate-popup-in">
                                   {users.length === 0 && (
                                     <p className="text-xs text-tx-3 px-2.5 py-2">Nenhum advogado/sócio ativo.</p>
                                   )}

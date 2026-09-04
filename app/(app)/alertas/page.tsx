@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getAlerts, getTodayItems } from "@/lib/alerts";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card, CardHeader, EmptyState, dueStatusClassName } from "@/components/ui";
+import { PageHeader, Card, CardHeader, EmptyState, dueStatusClassName, dueStatusPulseClassName } from "@/components/ui";
 import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
 import DismissibleAlertRow from "@/components/DismissibleAlertRow";
@@ -110,7 +110,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
             {alerts.length === 0 ? (
               <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
             ) : (
-              <div className="divide-y divide-regua">
+              <div className="divide-y divide-regua stagger-in">
                 {alerts.map((a) => {
                   const meta = kindMeta[a.kind];
                   const Icon = meta.icon;
@@ -119,7 +119,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                       key={a.id}
                       kind={a.kind}
                       entityId={a.entityId}
-                      rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)}`}
+                      rowClassName={`${severityStyle[a.severity]} ${dueStatusClassName(a.dueStatus)} ${dueStatusPulseClassName(a.dueStatus)}`}
                     >
                       <AlertRow alert={a} className="flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors w-full text-left">
                         <div className="p-2 bg-sf-apoio text-tx shrink-0">
@@ -147,7 +147,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
           {todayItems.length === 0 ? (
             <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
           ) : (
-            <div className="divide-y divide-regua">
+            <div className="divide-y divide-regua stagger-in">
               {todayItems.map((item) => {
                 const meta = todayMeta[item.kind];
                 const Icon = meta.icon;
@@ -155,7 +155,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                   <Link
                     key={item.id}
                     href={item.href}
-                    className={`flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors ${dueStatusClassName(item.dueStatus)}`}
+                    className={`flex items-start gap-3 px-5 py-3.5 hover:bg-sf-apoio transition-colors ${dueStatusClassName(item.dueStatus)} ${dueStatusPulseClassName(item.dueStatus)}`}
                   >
                     <div className="p-2 bg-sf-apoio text-tx shrink-0">
                       <Icon size={16} />
