@@ -96,7 +96,7 @@ export default function LinkPublicationMenu({
         {menuOpen && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-0 top-full mt-1 w-56 bg-sf border border-regua shadow-menu z-20 overflow-hidden"
+            className="absolute left-0 top-full mt-1 w-56 bg-sf border border-regua shadow-menu z-20 overflow-hidden origin-top-left motion-safe:animate-popup-in"
           >
             <Link
               href={newCaseHref}

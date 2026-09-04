@@ -336,8 +336,15 @@ régua horizontal de 1px `--regua`, **não** a linha vertical pontilhada de hoje
 ## 7. Tipos de tarefa — agenda, kanban, alertas
 
 Cinco tipos, definidos em `components/ui.tsx` (`taskTypeColors`, `typeMeta`).
-A cor aparece em três formas: **bolinha** de legenda (10px), **chip** de rótulo, e
-**filete esquerdo de 3px** no card do Kanban e no chip do calendário.
+A cor aparece em duas formas: **bolinha** de legenda (10px) e **chip** de rótulo.
+
+> **Setembro/2026 — proposta "Movimento & Prazos":** o **filete esquerdo de 3px** (card do
+> Kanban, chip do calendário, linha do painel do dia, linha do app mobile) **deixou de ser a cor
+> do tipo e passou a ser a cor de URGÊNCIA** — vencida (`--urgente`), vencendo/hoje-ou-amanhã
+> (`--aviso`) ou a vencer (neutro, `--regua-forte`). Ver `lib/dueStatus.ts`
+> (`classificarPrazo`/`PRAZO_URGENCIA_BORDER`). O tipo continua 100% identificável pelo chip/
+> Badge — só o filete trocou de significado. Motivo: um Prazo que vence em 30 dias não deve
+> parecer tão urgente quanto um que já venceu, e antes os dois usavam a mesma borda vermelha.
 
 | Tipo | Cor (Manhã) | Cor (Noite) | Fundo do chip | Texto do chip |
 |---|---|---|---|---|
@@ -446,9 +453,10 @@ este par único (`--sf-apoio` + filete), reduzindo dez variáveis a cinco.
 - **Coluna:** fundo `--sf-apoio`, borda 1px `--regua`, raio 6px. Cabeçalho com régua inferior.
 - **Contador da coluna:** fundo `--sf-superficie`, borda 1px `--regua`, raio 9px, `--tx-2`.
 - **Card:** fundo `--sf-superficie`, borda 1px `--regua`, raio 5px,
-  **filete esquerdo 3px na cor do tipo de tarefa** (tabela da seção 7).
-- **Card sendo arrastado:** este sim ganha sombra — `0 8px 24px rgba(22,25,29,.18)` no Manhã,
-  `rgba(0,0,0,.45)` no Noite.
+  **filete esquerdo 3px na cor de URGÊNCIA** (não mais o tipo — ver nota de setembro/2026 na
+  seção 7; o tipo continua no Badge do card).
+- **Card sendo arrastado:** sombra (`shadow-arrasto`) + leve escala (`scale-[1.02]`,
+  Movimento 2 · arrastar da proposta "Movimento & Prazos") — volta ao normal em 200ms ao soltar.
 - **Card concluído:** opacidade 72% e `line-through` no título.
 
 O card é a única coisa branca da coluna — é isso que comunica que ele é o que se pega.
