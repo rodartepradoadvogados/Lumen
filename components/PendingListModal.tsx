@@ -60,7 +60,7 @@ export default function PendingListModal({
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf shadow-pop w-full max-w-2xl max-h-[80vh] flex flex-col motion-safe:animate-fade-in"
+            className="bg-sf shadow-pop w-full max-w-2xl max-h-[80vh] flex flex-col animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b-2 border-regua-forte shrink-0">

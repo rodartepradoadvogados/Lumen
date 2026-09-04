@@ -18,7 +18,7 @@ export default function ImportManualModal() {
       {open && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">
           <div
-            className="bg-sf shadow-pop w-full max-w-2xl max-h-[85vh] overflow-y-auto motion-safe:animate-fade-in"
+            className="bg-sf shadow-pop w-full max-w-2xl max-h-[85vh] overflow-y-auto animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-regua sticky top-0 bg-sf ">

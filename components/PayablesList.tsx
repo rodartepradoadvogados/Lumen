@@ -131,10 +131,11 @@ export default function PayablesList({
             <div
               key={p.id}
               id={`payable-${p.id}`}
+              data-delete-row
               className={clsx(
                 "flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 border-l-[3px] target:bg-acao-bg scroll-mt-20",
                 PRAZO_URGENCIA_BORDER[urgencia],
-                urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+                urgencia === "vencida" && "animate-attention-pulse"
               )}
             >
               <div className="shrink-0 flex items-center">

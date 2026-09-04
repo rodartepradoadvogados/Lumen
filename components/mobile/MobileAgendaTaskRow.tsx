@@ -40,7 +40,7 @@ export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
       className={clsx(
         "flex items-start gap-3 px-4 py-3.5 border-l-[3px]",
         PRAZO_URGENCIA_BORDER[urgencia],
-        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+        urgencia === "vencida" && "animate-attention-pulse"
       )}
     >
       <div className="pt-0.5">

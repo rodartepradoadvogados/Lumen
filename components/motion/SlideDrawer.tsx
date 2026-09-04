@@ -28,9 +28,9 @@ export default function SlideDrawer({
   useEscapeToClose(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-50 bg-grafite-900/40 motion-safe:animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-grafite-900/40 animate-fade-in" onClick={onClose}>
       <div
-        className={`absolute inset-y-0 right-0 ${widthClassName} bg-sf shadow-pop flex flex-col overflow-hidden motion-safe:animate-drawer-in`}
+        className={`absolute inset-y-0 right-0 ${widthClassName} bg-sf shadow-pop flex flex-col overflow-hidden animate-drawer-in`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-b-2 border-regua-forte">

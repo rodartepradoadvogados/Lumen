@@ -692,6 +692,9 @@ function FinanceListRow({ f }: { f: FinanceEntryData }) {
 // interativo aninhado dentro de outro — <button>/<a> dentro de <button> quebra a hidratação).
 function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) => void }) {
   const [open, setOpen] = useState(false);
+  // Pop no check ao concluir (proposta "Slide & Sumir") — só no clique desta sessão, nunca a
+  // partir do `done` vindo do servidor (ver mesmo raciocínio em TaskActivityRow.tsx).
+  const [justCompleted, setJustCompleted] = useState(false);
   const done = t.status === "CONCLUIDO";
   const isSafety = t.entryKind === "seguranca";
   // Urgência no filete esquerdo (proposta "Movimento & Prazos") — esta linha não tinha nenhum
@@ -705,18 +708,23 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
 
   return (
     <div
+      data-delete-row
       className={clsx(
         "px-5 py-3.5 flex gap-3 border-l-[3px]",
         PRAZO_URGENCIA_BORDER[urgencia],
-        urgencia === "vencida" && "motion-safe:animate-attention-pulse"
+        urgencia === "vencida" && "animate-attention-pulse"
       )}
     >
       <button
-        onClick={() => onToggle(t.id)}
+        onClick={() => {
+          if (!done) setJustCompleted(true);
+          onToggle(t.id);
+        }}
         data-tip={done ? completedLabel(t) || undefined : undefined}
         className={clsx(
           "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
-          done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido"
+          done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido",
+          justCompleted && "animate-check-pop"
         )}
       >
         <Check size={12} strokeWidth={3} />
