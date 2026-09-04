@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
-import { getOfficeModules } from "@/lib/officeModules";
+import { getOfficeModules, hasBlogAccess } from "@/lib/officeModules";
 import { getAlerts, type AlertItem } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
@@ -26,6 +26,7 @@ import {
   FileBarChart,
   LineChart,
   BookOpen,
+  BookMarked,
   ChevronDown,
   ChevronRight,
   Building2,
@@ -101,6 +102,11 @@ export default async function MobileHome() {
   const modules = user ? await getOfficeModules(user.officeId) : { financeiro: false, whatsapp: false, atendimento: false, assessoria: false };
   const showFinance = modules.financeiro && Boolean(user?.isAdmin || user?.financeAccess);
   const saldoMes = showFinance && user ? await getMonthlyNetFlow(user.officeId) : null;
+  // Blog Jurídico não é um módulo contratável — é recurso da própria plataforma, hoje só do
+  // escritório dono (ver lib/officeModules.ts:hasBlogAccess). Esse atalho vai direto pro blog
+  // público (/blog), pra QUALQUER usuário do escritório — revisar/editar/publicar continua só
+  // em Configurações, restrito a admin (Jairo e Rodrigo).
+  const blogAccess = user ? await hasBlogAccess(user.officeId) : false;
 
   return (
     <div className="relative">
@@ -224,6 +230,11 @@ export default async function MobileHome() {
           />
           {modules.assessoria && (
             <TileLink href="/m/assessoria" icon={Building2} tone="navy" title="Assessoria Jurídica" count={assessoriaCount} countLabel="ativa(s)" />
+          )}
+          {/* Vai direto pro blog público — sem fila de revisão, sem tela de administração.
+              Revisar/editar/publicar continua só em Configurações (ver Group "Blog Jurídico"). */}
+          {blogAccess && (
+            <TileLink href="/blog" icon={BookMarked} tone="navy" title="Blog Jurídico" subtitle="Conteúdo publicado no site" />
           )}
         </div>
 
