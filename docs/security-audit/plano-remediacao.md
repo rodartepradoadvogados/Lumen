@@ -116,3 +116,51 @@ não tem.
 
 Relatório completo com evidência linha a linha: `docs/security-audit/relatorio-auditoria-seguranca.pdf`.
 Para regenerar o PDF depois de atualizar achados: `docs/security-audit/.venv/bin/python docs/security-audit/gerar_relatorio.py`.
+
+---
+
+## Rodada 2 — 05/09/2026 (framework de 15 leis, zero-trust)
+
+Auditoria SEPARADA da acima — não a substitui. Metodologia: 6 agentes de auditoria
+independentes, um por camada (identidade/autorização, Server Actions/dados, integrações
+externas/SSRF, segredos/config/headers, código novo desta sessão, corridas no financeiro),
+achados cruzados e consolidados manualmente. Relatório completo (exploração, PoC, código
+corrigido proposto, testes): `docs/security-audit/relatorio-auditoria-seguranca-2026-09.pdf`.
+Regenerar com `docs/security-audit/.venv/bin/python docs/security-audit/gerar_relatorio_2026-09.py`.
+
+**Nenhuma correção da Rodada 2 foi aplicada ainda — aguardando validação do dono do projeto.**
+
+- [ ] **V1 (Alta).** Corrida de pagamento duplicado em `markPayablePaid`/`markReceivablePaid`/
+  `markManyPayablesPaid`/`markManyReceivablesPaid` (`lib/actions/financeiro.ts`) e
+  `markHonorarioPaid` (`lib/actions/assessoria.ts`) — sem lock de linha/transação, duas chamadas
+  concorrentes duplicam o `FinancePayment`.
+- [ ] **V2 (Alta).** `updateCase` (`lib/actions/cases.ts`) grava `caseValue`/`convictionValue`/
+  `economicBenefitValue` (bases do honorário percentual) sem exigir `financeAccess` nem
+  registrar quem alterou.
+- [ ] **V3 (Alta).** Fluxo OAuth do BTG (`app/api/btg/callback`, `app/api/btg/connect`,
+  `lib/btg.ts`) sem `verifyAndConsumeOAuthState` — as outras 3 integrações OAuth (Google/
+  Microsoft/Dropbox) já usam desde o achado A61; BTG foi adicionado depois e ficou de fora.
+- [ ] **V4 (Alta).** Dependência `xlsx` travada em `0.18.5` (npm nunca recebeu correção de
+  Prototype Pollution/ReDoS) — trocar pela distribuição do CDN da SheetJS ou migrar para
+  `exceljs`.
+- [ ] **V5 (Alta).** Nenhum header de segurança configurado (`next.config.mjs` vazio) — sem CSP,
+  X-Frame-Options, HSTS, X-Content-Type-Options.
+- [ ] **V6 (Alta).** `app/api/admin/migrate-legacy/route.ts` sem checagem de sessão (só
+  `MIGRATION_SECRET` via query string) e com `error.message` cru na resposta.
+- [ ] **V7 (Média).** `delegateTask`/`submitPublicationDistribution` sem compare-and-swap em
+  `Publication.assignedToId` — mesma publicação pode ser atribuída duas vezes.
+- [ ] **V8 (Média).** Sem paginação em Processos/Clientes/`globalSearch` — leitura completa do
+  tenant a cada render/tecla.
+- [ ] **V9 (Média).** `sanitizeRichTextHtml` (`lib/richText.ts`) é regex artesanal, não um parser
+  real — trocar por `isomorphic-dompurify` como defesa em profundidade (nenhum bypass
+  confirmado, mas classe de solução frágil).
+- [ ] **V10 (Média).** `syncReceivableStatus`/`ensureRecurringFeeReceivables`/
+  `ensureRecurringExpensePayables` (`lib/actions/financeiro.ts`) e
+  `autoResolvePendenciasForAttachment` (`lib/actions/attendancePendencias.ts`) aceitam `officeId`
+  cru em vez de derivar da sessão — violação estrutural da Lei 5, sem exploração comprovada hoje.
+- [ ] **V11 (Baixa).** `apurarHonorario` (`lib/actions/apuracao.ts`) não-transacional no caminho
+  de sucesso — corrida possível, mas sem duplicar dinheiro (só a tarefa de lembrete).
+- [ ] **V12 (Baixa).** Upload de foto (`app/api/photos/upload`, `app/api/perfil/foto/upload`)
+  confia só no MIME declarado pelo cliente — restringir a PNG/JPEG/WEBP.
+- [ ] **V13 (Baixa).** `app/api/photos/file/[id]/route.ts` serve qualquer foto sem checar sessão/
+  officeId — vazamento cross-tenant de imagens decorativas (sem PII).
