@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
+import { ALLOWED_IMAGE_MIME_TYPES, isAllowedImageMimeType } from "@/lib/imageUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,11 @@ export async function POST(request: NextRequest) {
   if (!file) {
     return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "O arquivo precisa ser uma imagem." }, { status: 400 });
+  if (!isAllowedImageMimeType(file.type)) {
+    return NextResponse.json(
+      { error: `Formato de imagem não aceito. Envie um arquivo ${ALLOWED_IMAGE_MIME_TYPES.join(", ")}.` },
+      { status: 400 }
+    );
   }
 
   try {

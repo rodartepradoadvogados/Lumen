@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureRecurringExpensePayables } from "@/lib/actions/financeiro";
+import { ensureRecurringExpensePayables } from "@/lib/recurringFeesEngine";
 
 export const maxDuration = 60;
 

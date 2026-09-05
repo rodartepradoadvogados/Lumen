@@ -9,6 +9,7 @@ import { valorLiquido, statusPorPagamentos } from "@/lib/financeCalc";
 import { renameDriveFile } from "@/lib/storageProvider";
 import { buildReceiptFileName, extensionFromFileName } from "@/lib/financeReceiptNaming";
 import { enqueueNotification } from "@/lib/notificationOutbox";
+import { ensureRecurringFeeReceivables, ensureRecurringExpensePayables } from "@/lib/recurringFeesEngine";
 
 // Documento 06 (Fase 3 — Comunicados), evento HONORARIO_RECEBIDO (exceção — fura a fila): só
 // pra Receivable de honorário (kind começando com HONORARIOS — REEMBOLSO/OUTROS não contam,
@@ -1073,30 +1074,10 @@ export async function createReceivable(data: CreateReceivableInput): Promise<{ e
   return { id: firstReceivableId ?? undefined };
 }
 
-// Quantos meses (mês corrente + à frente) RecurringFee/RecurringExpense sempre mantêm
-// materializados em Receivable/Payable — precisa cobrir a janela do Fluxo de Caixa (hoje: 3
-// meses à frente, ver app/(app)/financeiro/fluxo-de-caixa/page.tsx), senão os meses futuros
-// aparecem zerados na projeção até o dia em que cada um "chegar" e o cron gerar a linha. Gerando
-// com antecedência, a página de projeção não precisa de nenhuma lógica própria de extrapolação —
-// ela já soma linhas reais como sempre fez. Nome mantido do tempo em que só RecurringFee
-// existia — reaproveitado por ensureRecurringExpensePayables abaixo, não vale a pena renomear.
-const RECURRING_FEE_MONTHS_AHEAD = 4;
-
-function competenciaFor(year: number, month0: number): string {
-  return `${year}-${String(month0 + 1).padStart(2, "0")}`;
-}
-
-// Usa o menor entre o dia configurado e o último dia do mês (evita "31 de fevereiro" virar 3 de
-// março sozinho, que é o que Date faz por padrão quando o dia não existe naquele mês).
-function dueDateFor(year: number, month0: number, dueDay: number): Date {
-  const daysInMonth = new Date(year, month0 + 1, 0).getDate();
-  return new Date(year, month0, Math.min(dueDay, daysInMonth));
-}
-
 // Cria um honorário "até o arquivamento": diferente do parcelamento comum de createReceivable
 // (quantidade fixa, tudo gerado de uma vez), aqui não existe uma quantidade final — o cron diário
-// (ensureRecurringFeeReceivables, ver app/api/cron/recurring-fees/route.ts) mantém sempre os
-// próximos RECURRING_FEE_MONTHS_AHEAD meses gerados, e para sozinho quando o processo é arquivado.
+// (ensureRecurringFeeReceivables, ver lib/recurringFeesEngine.ts) mantém sempre os próximos meses
+// gerados, e para sozinho quando o processo é arquivado.
 export async function createRecurringFee(data: {
   description: string;
   amount: string;
@@ -1130,73 +1111,6 @@ export async function createRecurringFee(data: {
   revalidateFinance();
   revalidateCase(data.caseId);
   return {};
-}
-
-// Roda diariamente via cron (app/api/cron/recurring-fees/route.ts), sem argumento — varre a
-// plataforma inteira de propósito. `officeId` é passado só pelo caminho de requisição do usuário
-// (createRecurringFee acima), pra não repetir o trabalho (e as ESCRITAS de desativação abaixo)
-// de todo escritório da plataforma dentro do clique de um único usuário.
-// Idempotente: a constraint única (recurringFeeId, competencia) em Receivable garante que rodar
-// todo dia em vez de só no dia 1 não duplica nada. Também é quem desliga sozinho um RecurringFee
-// cujo processo já foi arquivado, sem precisar de nenhum hook em updateCaseStatus.
-export async function ensureRecurringFeeReceivables(officeId?: string): Promise<{ created: number; deactivated: number; failed: number }> {
-  const now = new Date();
-  const fees = await prisma.recurringFee.findMany({
-    where: { active: true, ...(officeId ? { officeId } : {}) },
-    include: { case: { select: { status: true, clientId: true } } },
-  });
-
-  let created = 0;
-  let deactivated = 0;
-  let failed = 0;
-  // try/catch por item (mesmo padrão de lib/driveSync.ts:syncAllOfficesDrive) — sem isso, uma
-  // exceção num único RecurringFee (FK de categoria/centro de custo já removida, timeout de
-  // conexão no meio da lista) propagava e travava a geração de TODOS os escritórios seguintes
-  // na ordem do findMany, todo dia, até alguém notar (achado A75 da revisão gauntlet).
-  for (const fee of fees) {
-    try {
-      if (fee.case.status === "ARQUIVADO") {
-        await prisma.recurringFee.update({ where: { id: fee.id }, data: { active: false } });
-        deactivated++;
-        continue;
-      }
-      for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
-        const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        const year = target.getFullYear();
-        const month0 = target.getMonth();
-        const competencia = competenciaFor(year, month0);
-        const exists = await prisma.receivable.findUnique({
-          where: { recurringFeeId_competencia: { recurringFeeId: fee.id, competencia } },
-        });
-        if (exists) continue;
-
-        const dueDate = dueDateFor(year, month0, fee.dueDay);
-        const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-        await prisma.receivable.create({
-          data: {
-            officeId: fee.officeId,
-            description: `${fee.description} — ${monthLabel}`,
-            amount: fee.amount,
-            dueDate,
-            kind: fee.kind,
-            categoryId: fee.categoryId,
-            costCenterId: fee.costCenterId,
-            clientId: fee.case.clientId,
-            caseId: fee.caseId,
-            recurringFeeId: fee.id,
-            competencia,
-          },
-        });
-        created++;
-      }
-    } catch (e) {
-      failed++;
-      console.error(`[recurring-fees] falha ao gerar receivable do RecurringFee ${fee.id} (escritório ${fee.officeId}):`, e);
-    }
-  }
-
-  revalidateFinance();
-  return { created, deactivated, failed };
 }
 
 // Encerra manualmente um honorário até o arquivamento antes do processo ser arquivado (ex.:
@@ -1269,64 +1183,6 @@ export async function createRecurringExpense(data: {
   revalidateFinance();
   if (data.assessoriaId) revalidatePath(`/assessoria/${data.assessoriaId}`);
   return {};
-}
-
-// Roda diariamente via cron (app/api/cron/recurring-expenses/route.ts), sem argumento — varre a
-// plataforma inteira de propósito. `officeId` só é passado pelo caminho de requisição do usuário
-// (createRecurringExpense acima) — idempotente, mesma constraint única (recurringExpenseId,
-// competencia) em Payable que RecurringFee usa do lado das Receivable. Diferente de
-// ensureRecurringFeeReceivables: NUNCA desativa sozinha (não existe processo pra arquivar aqui) —
-// só para quando o usuário encerra manualmente.
-export async function ensureRecurringExpensePayables(officeId?: string): Promise<{ created: number; failed: number }> {
-  const now = new Date();
-  const expenses = await prisma.recurringExpense.findMany({ where: { active: true, ...(officeId ? { officeId } : {}) } });
-
-  let created = 0;
-  let failed = 0;
-  // try/catch por item — mesmo raciocínio de ensureRecurringFeeReceivables acima (achado A75):
-  // uma despesa recorrente com dado ruim não pode travar a geração das despesas de todos os
-  // outros escritórios que vêm depois dela na lista.
-  for (const expense of expenses) {
-    try {
-      const supplierName = await payablePayeeDisplayName(expense.supplierId ?? undefined, expense.payeeUserId ?? undefined, expense.officeId, expense.payeeClientId ?? undefined);
-      for (let i = 0; i < RECURRING_FEE_MONTHS_AHEAD; i++) {
-        const target = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        const year = target.getFullYear();
-        const month0 = target.getMonth();
-        const competencia = competenciaFor(year, month0);
-        const exists = await prisma.payable.findUnique({
-          where: { recurringExpenseId_competencia: { recurringExpenseId: expense.id, competencia } },
-        });
-        if (exists) continue;
-
-        const dueDate = dueDateFor(year, month0, expense.dueDay);
-        const monthLabel = dueDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-        await prisma.payable.create({
-          data: {
-            officeId: expense.officeId,
-            description: `${expense.description} — ${monthLabel}`,
-            amount: expense.amount,
-            dueDate,
-            categoryId: expense.categoryId,
-            costCenterId: expense.costCenterId,
-            supplierId: expense.supplierId,
-            payeeUserId: expense.payeeUserId,
-            payeeClientId: expense.payeeClientId,
-            supplier: supplierName,
-            recurringExpenseId: expense.id,
-            competencia,
-          },
-        });
-        created++;
-      }
-    } catch (e) {
-      failed++;
-      console.error(`[recurring-expenses] falha ao gerar payable do RecurringExpense ${expense.id} (escritório ${expense.officeId}):`, e);
-    }
-  }
-
-  revalidateFinance();
-  return { created, failed };
 }
 
 // Encerra manualmente uma despesa recorrente (ex.: contrato do advogado/estagiário terminou,

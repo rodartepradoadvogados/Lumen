@@ -194,16 +194,52 @@ Aprovado pelo dono do projeto em 05/09/2026: "pode implementar tudo". Implementa
   truncamento, em vez de paginação de verdade (mudaria a busca client-side de Clientes, que
   depende da lista inteira já carregada). As 4 consultas de candidatos de `globalSearch` (rodam a
   cada tecla digitada) ganharam `take: 1000`.
-- [ ] **V9 (Média).** `sanitizeRichTextHtml` (`lib/richText.ts`) é regex artesanal, não um parser
+- [x] **V9 (Média).** `sanitizeRichTextHtml` (`lib/richText.ts`) é regex artesanal, não um parser
   real — trocar por `isomorphic-dompurify` como defesa em profundidade (nenhum bypass
   confirmado, mas classe de solução frágil).
-- [ ] **V10 (Média).** `syncReceivableStatus`/`ensureRecurringFeeReceivables`/
+  Feito: `lib/richText.ts` agora usa `DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR: [] })`
+  (mesma lista de tags/zero atributos de antes) em vez de replace() em cadeia. Dependência nova
+  (`isomorphic-dompurify`, que já traz `dompurify`+`jsdom` pro lado servidor) verificada com
+  `npm audit --omit=dev` antes/depois — nenhuma vulnerabilidade nova (continuam as mesmas 9
+  pré-existentes, PostCSS/qs, nada relacionado).
+- [x] **V10 (Média).** `syncReceivableStatus`/`ensureRecurringFeeReceivables`/
   `ensureRecurringExpensePayables` (`lib/actions/financeiro.ts`) e
   `autoResolvePendenciasForAttachment` (`lib/actions/attendancePendencias.ts`) aceitam `officeId`
   cru em vez de derivar da sessão — violação estrutural da Lei 5, sem exploração comprovada hoje.
-- [ ] **V11 (Baixa).** `apurarHonorario` (`lib/actions/apuracao.ts`) não-transacional no caminho
+  Feito (com escopo ajustado depois de reler as 4 funções com calma): `ensureRecurringFeeReceivables`
+  e `ensureRecurringExpensePayables` eram as duas com brecha real — sem `officeId`, nenhuma
+  checagem de existência/posse nenhuma, e sem argumento (o padrão do Server Action chamado direto)
+  varriam e ESCREVIAM na plataforma inteira de propósito. Mudaram de `lib/actions/financeiro.ts`
+  (arquivo `"use server"`, onde todo export vira endpoint HTTP de Server Action mesmo sem nenhum
+  import client-side) para `lib/recurringFeesEngine.ts` (módulo comum, sem `"use server"`) — a
+  função deixa de existir como endpoint chamável e só pode ser invocada por outro código do
+  servidor que já a importa por nome; createRecurringFee/createRecurringExpense (que já validam o
+  officeId via `requireFinanceOfficeId()`) e os dois crons (que já validam `CRON_SECRET`) foram
+  atualizados pra importar do novo módulo. `syncReceivableStatus`/`syncPayableStatus`/
+  `syncReminderTask` e `autoResolvePendenciasForAttachment` ficaram como estão: nos quatro casos,
+  toda leitura/escrita já é filtrada por um WHERE composto (`{ id, officeId }` ou
+  `{ attendanceId, officeId, ... }`) — um `officeId` que não bate com o registro real não vaza
+  nem escreve nada de outro escritório, só resulta num no-op silencioso; explorar exigiria já
+  saber o par exato de IDs internos de outro tenant (um vazamento maior, em outro lugar). Mover
+  essas quatro pra fora do arquivo `"use server"` teria um raio de impacto bem maior (usadas em
+  vários pontos de `financeiro.ts` e reexportadas em `assessoria.ts`) pra fechar um risco
+  residual, não uma brecha ativa — avaliado e deixado de fora deste ciclo por esse motivo.
+- [x] **V11 (Baixa).** `apurarHonorario` (`lib/actions/apuracao.ts`) não-transacional no caminho
   de sucesso — corrida possível, mas sem duplicar dinheiro (só a tarefa de lembrete).
-- [ ] **V12 (Baixa).** Upload de foto (`app/api/photos/upload`, `app/api/perfil/foto/upload`)
+  Feito: toda a função (os dois desfechos, Improcedente e com êxito) agora roda dentro de um único
+  `prisma.$transaction`, travando com `FOR UPDATE` as parcelas `A_APURAR` da base+processo antes
+  de processá-las — mesmo padrão de `markPayablePaid`/`markReceivablePaid` (achado V1). Uma
+  segunda chamada concorrente só continua depois da primeira commitar, e nesse ponto não encontra
+  mais parcela `A_APURAR` nenhuma (retorna o erro "Não há parcela a apurar..." em vez de duplicar
+  a tarefa "Conferir trânsito em julgado").
+- [x] **V12 (Baixa).** Upload de foto (`app/api/photos/upload`, `app/api/perfil/foto/upload`)
   confia só no MIME declarado pelo cliente — restringir a PNG/JPEG/WEBP.
-- [ ] **V13 (Baixa).** `app/api/photos/file/[id]/route.ts` serve qualquer foto sem checar sessão/
+  Feito: `lib/imageUpload.ts` (novo) centraliza a lista fechada (`image/png`, `image/jpeg`,
+  `image/webp`) — as duas rotas trocaram `file.type.startsWith("image/")` (aceitava
+  `image/svg+xml`, que pode conter `<script>`) por essa checagem.
+- [x] **V13 (Baixa).** `app/api/photos/file/[id]/route.ts` serve qualquer foto sem checar sessão/
   officeId — vazamento cross-tenant de imagens decorativas (sem PII).
+  Feito: a rota agora só serve sem sessão quando a foto está de fato embutida como imagem de capa
+  de um post do Blog já `PUBLICADO` (`imageUrl === photoFileUrl(photo.id)` — o único uso público
+  legítimo, a página pública do blog carregando a imagem pra um visitante anônimo). Fora esse
+  caso, exige sessão com o mesmo `officeId` da foto.
