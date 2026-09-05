@@ -43,6 +43,8 @@ import {
   getOrCreateCategoryFolder,
   getOrCreateAssessoriaCompanyFolder,
   getOrCreateParecerFolder,
+  getOrCreateLicitacaoFolder,
+  getOrCreateLicitacaoDemandaFolder,
   ASSESSORIA_DOC_TYPE_FOLDERS,
   allRootFolderNames,
   DRIVE_FOLDER_MIME_TYPE,
@@ -143,6 +145,10 @@ type AttachmentRow = {
   attendanceId: string | null;
   case: { title: string } | null;
   attendance: { subject: string } | null;
+  licitacaoId: string | null;
+  licitacao: { nome: string | null; objeto: string; assessoria: { client: { name: string } } } | null;
+  taskId: string | null;
+  task: { title: string } | null;
 };
 type AssessoriaDocRow = {
   id: string;
@@ -191,6 +197,10 @@ async function preloadMaps(officeId: string): Promise<LegacyMaps> {
         attendanceId: true,
         case: { select: { title: true } },
         attendance: { select: { subject: true } },
+        licitacaoId: true,
+        licitacao: { select: { nome: true, objeto: true, assessoria: { select: { client: { select: { name: true } } } } } },
+        taskId: true,
+        task: { select: { title: true } },
       },
     }),
     prisma.assessoriaDocumento.findMany({
@@ -251,6 +261,14 @@ type Match =
       caseTitle: string | null;
       attendanceId: string | null;
       attendanceSubject: string | null;
+      // Anexo de uma Licitação (aba Licitações da Assessoria) — correção de 05/09/2026
+      // (docs/auditoria-pastas-drive-2026-09.md, achado P0): antes, este tipo de anexo não tinha
+      // NENHUM destino calculável aqui e caía sempre em "não identificado".
+      licitacaoId: string | null;
+      licitacaoNome: string | null;
+      companyName: string | null;
+      taskId: string | null;
+      taskTitle: string | null;
       docType: string;
     }
   | {
@@ -285,6 +303,11 @@ function matchItem(driveId: string, maps: LegacyMaps): Match | null {
       caseTitle: att.case?.title ?? null,
       attendanceId: att.attendanceId,
       attendanceSubject: att.attendance?.subject ?? null,
+      licitacaoId: att.licitacaoId,
+      licitacaoNome: att.licitacao ? att.licitacao.nome || att.licitacao.objeto : null,
+      companyName: att.licitacao?.assessoria.client.name ?? null,
+      taskId: att.taskId,
+      taskTitle: att.task?.title ?? null,
       docType: att.docType,
     };
   const doc = maps.assessoriaDocByFileId.get(driveId);
@@ -375,7 +398,12 @@ function describeFileTarget(match: Extract<Match, { folder: false }>): string {
   if (match.kind === "ATTACHMENT") {
     if (match.caseTitle) return `pasta do processo/caso "${match.caseTitle}" (categoria "${getDocumentTypeLabel(match.docType)}")`;
     if (match.attendanceSubject) return `pasta do atendimento "${match.attendanceSubject}" (categoria "${getDocumentTypeLabel(match.docType)}")`;
-    return "não identificado (o anexo não está vinculado a processo nem atendimento)";
+    if (match.licitacaoNome && match.companyName) {
+      return match.taskTitle
+        ? `pasta da licitação "${match.licitacaoNome}" → demanda "${match.taskTitle}" (empresa "${match.companyName}")`
+        : `pasta da licitação "${match.licitacaoNome}" (empresa "${match.companyName}")`;
+    }
+    return "não identificado (o anexo não está vinculado a processo, atendimento nem licitação)";
   }
   if (match.parecerName) return `pasta do parecer "${match.parecerName}" (empresa "${match.companyName}")`;
   const subName = ASSESSORIA_DOC_TYPE_FOLDERS[match.docType];
@@ -393,6 +421,12 @@ async function resolveFileTarget(match: Extract<Match, { folder: false }>, offic
     if (match.attendanceId && match.attendanceSubject) {
       const containerId = await getOrCreateAttendanceFolder(match.attendanceId, match.attendanceSubject, officeId);
       return getOrCreateCategoryFolder(containerId, getDocumentTypeLabel(match.docType), officeId);
+    }
+    if (match.licitacaoId && match.licitacaoNome && match.companyName) {
+      if (match.taskId && match.taskTitle) {
+        return getOrCreateLicitacaoDemandaFolder(match.taskId, match.licitacaoId, match.companyName, match.licitacaoNome, match.taskTitle, officeId);
+      }
+      return getOrCreateLicitacaoFolder(match.licitacaoId, match.companyName, match.licitacaoNome, officeId);
     }
     return null;
   }
