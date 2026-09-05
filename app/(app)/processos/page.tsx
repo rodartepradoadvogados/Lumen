@@ -103,7 +103,13 @@ export default async function ProcessosPage({
     q,
   });
 
-  const [cases, totalCount, areaRows, users, countTodos, countJudicial, countAdministrativo, countCaso] = await Promise.all([
+  // SEGURANÇA (achado V8, auditoria de 05/09/2026): a lista carregava TODO processo do
+  // escritório que bater no filtro, sem limite — em vez de paginação de verdade (mudança maior
+  // de UX), aplicado o mesmo padrão já usado em app/(app)/publicacoes/page.tsx e
+  // app/m/processos/page.tsx (achado A21): um teto alto (bem acima do que qualquer escritório
+  // real tem hoje) mais um aviso de truncamento, para nunca cortar silenciosamente.
+  const CASES_TAKE = 500;
+  const [cases, filteredCount, totalCount, areaRows, users, countTodos, countJudicial, countAdministrativo, countCaso] = await Promise.all([
     prisma.case.findMany({
       where,
       include: {
@@ -114,7 +120,9 @@ export default async function ProcessosPage({
         _count: { select: { tasks: true, comments: true } },
       },
       orderBy: SORTS[sortKey],
+      take: CASES_TAKE,
     }),
+    prisma.case.count({ where }),
     prisma.case.count({ where: { officeId: viewer.officeId } }),
     // Prisma não faz distinct em elementos de coluna String[] — traz todas as listas não-vazias e
     // achata/deduplica em memória (ver `areas` abaixo). Volume de Processos de um escritório não
@@ -140,6 +148,11 @@ export default async function ProcessosPage({
         subtitle={isFiltered ? `${cases.length} de ${totalCount} processo(s)` : `${cases.length} registro(s)`}
         action={<NewEntityMenu />}
       />
+      {cases.length < filteredCount && (
+        <p className="text-xs text-tx-3 -mt-2 mb-4">
+          Mostrando os primeiros {cases.length} de {filteredCount} — use a busca ou os filtros para encontrar os demais.
+        </p>
+      )}
 
       {/* Abas de NATUREZA (Todos/Judiciais/Administrativos/Casos) — mesmo visual de borda inferior
           dourada usado nas abas do processo (app/(app)/processos/[id]/page.tsx). Trocar de aba

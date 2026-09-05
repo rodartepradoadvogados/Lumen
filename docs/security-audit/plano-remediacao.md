@@ -163,14 +163,37 @@ Aprovado pelo dono do projeto em 05/09/2026: "pode implementar tudo". Implementa
   Feito: trocado para a distribuição corrigida `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`
   (a mesma API pública, sem mudança de código em `lib/importers/parse.ts`). Confirmado via
   `npm audit` que `xlsx` não aparece mais na lista de vulnerabilidades.
-- [ ] **V5 (Alta).** Nenhum header de segurança configurado (`next.config.mjs` vazio) — sem CSP,
+- [x] **V5 (Alta).** Nenhum header de segurança configurado (`next.config.mjs` vazio) — sem CSP,
   X-Frame-Options, HSTS, X-Content-Type-Options.
-- [ ] **V6 (Alta).** `app/api/admin/migrate-legacy/route.ts` sem checagem de sessão (só
+  Feito: `next.config.mjs` ganhou `headers()` com `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security` e
+  `poweredByHeader: false`. `X-Frame-Options: SAMEORIGIN` (não `DENY`, que teria quebrado o
+  sistema de "abas" internas do próprio AppShell.tsx — ele embute a aplicação em `<iframe>`
+  same-origin de propósito). Content-Security-Policy ficou de fora desta correção — o app usa
+  scripts inline legítimos (service worker, toggle de tema) que uma CSP mal calibrada bloquearia
+  sem aviso, e não há como validar isso sem um navegador real contra produção; o próprio relatório
+  já recomendava começar em modo Report-Only, o que fica como próximo passo, não parte desta PR.
+- [x] **V6 (Alta).** `app/api/admin/migrate-legacy/route.ts` sem checagem de sessão (só
   `MIGRATION_SECRET` via query string) e com `error.message` cru na resposta.
-- [ ] **V7 (Média).** `delegateTask`/`submitPublicationDistribution` sem compare-and-swap em
+  Feito: soma `getCurrentUser()?.isPlatformOwner` como segunda camada (mesmo padrão de
+  `setup-painel-mestre`) — o segredo na URL continua existindo de propósito (é o motivo do design:
+  disparar colando um link no navegador, sem terminal), só deixou de ser suficiente sozinho. Erro
+  devolvido ao cliente virou uma mensagem genérica; o detalhe completo vai para o log do servidor.
+- [x] **V7 (Média).** `delegateTask`/`submitPublicationDistribution` sem compare-and-swap em
   `Publication.assignedToId` — mesma publicação pode ser atribuída duas vezes.
-- [ ] **V8 (Média).** Sem paginação em Processos/Clientes/`globalSearch` — leitura completa do
+  Feito: `delegateTask` reivindica a publicação (`updateMany` com `assignedToId: null` na
+  condição) ANTES de criar qualquer Task — se outra chamada já reivindicou, recusa sem criar Task
+  órfã. `submitPublicationDistribution` foi ajustada para chamar `delegateTask` uma vez por
+  publicação com a lista inteira de responsáveis (não uma vez por pessoa) — preserva o
+  comportamento de sempre (todos os selecionados recebem sua tarefa) sem que a reivindicação da
+  segunda pessoa em diante seja recusada como "já atribuída a outro".
+- [x] **V8 (Média).** Sem paginação em Processos/Clientes/`globalSearch` — leitura completa do
   tenant a cada render/tecla.
+  Feito: aplicado o mesmo padrão já usado em `app/(app)/publicacoes/page.tsx` e no app mobile
+  (achado A21) — um teto alto (`take`, bem acima de qualquer volume real hoje) com aviso de
+  truncamento, em vez de paginação de verdade (mudaria a busca client-side de Clientes, que
+  depende da lista inteira já carregada). As 4 consultas de candidatos de `globalSearch` (rodam a
+  cada tecla digitada) ganharam `take: 1000`.
 - [ ] **V9 (Média).** `sanitizeRichTextHtml` (`lib/richText.ts`) é regex artesanal, não um parser
   real — trocar por `isomorphic-dompurify` como defesa em profundidade (nenhum bypass
   confirmado, mas classe de solução frágil).
