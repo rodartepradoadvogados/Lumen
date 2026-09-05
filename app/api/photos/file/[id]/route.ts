@@ -1,5 +1,7 @@
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/currentUser";
+import { photoFileUrl } from "@/lib/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,25 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const photo = await prisma.photo.findUnique({ where: { id: params.id } });
   if (!photo) {
     return new Response("Foto não encontrada", { status: 404 });
+  }
+
+  // SEGURANÇA (achado V13, auditoria de 05/09/2026): antes, esta rota servia QUALQUER foto da
+  // biblioteca sem checar nada — nem sessão, nem escritório (a foto de outro escritório podia ser
+  // baixada só sabendo o id, sequencial/enumerável, do Photo). A biblioteca (PhotoLibraryManager)
+  // é ferramenta interna — a ÚNICA razão legítima pra servir uma foto sem sessão nenhuma é ela já
+  // estar embutida como imagem de capa de um post do Blog já PUBLICADO (a página pública do blog,
+  // app/blog/[slug]/page.tsx, precisa carregar essa imagem pra um visitante anônimo). Fora esse
+  // caso, exige sessão com o MESMO officeId da foto — mesmo padrão de toda outra rota que serve
+  // arquivo por id (ex.: app/api/assessoria/documentos/[id]/route.ts).
+  const linkedToPublicPost = await prisma.blogPost.findFirst({
+    where: { imageUrl: photoFileUrl(photo.id), status: "PUBLICADO" },
+    select: { id: true },
+  });
+  if (!linkedToPublicPost) {
+    const user = await getCurrentUser();
+    if (!user || user.officeId !== photo.officeId) {
+      return new Response("Não autorizado", { status: 401 });
+    }
   }
 
   let lastError: unknown = null;
