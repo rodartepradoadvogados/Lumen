@@ -156,6 +156,22 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
   }
 }
 
+// Mesma pasta acima, mas reaproveitando Assessoria.driveFolderId como atalho quando possível —
+// só o Google tem essa verificação (getOrCreateAssessoriaCompanyFolderCached, achado P0 da
+// auditoria); OneDrive/Dropbox já resolvem pelo nome a cada chamada (auto-cura por design, sem
+// cache), então caem na mesma função de sempre.
+export async function getOrCreateAssessoriaCompanyFolderCached(assessoriaId: string, companyName: string, officeId: string): Promise<string> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.getOrCreateAssessoriaCompanyFolder(companyName, officeId);
+    case "DROPBOX":
+      return dropboxStorage.getOrCreateAssessoriaCompanyFolder(companyName, officeId);
+    default:
+      return googleDrive.getOrCreateAssessoriaCompanyFolderCached(assessoriaId, companyName, officeId);
+  }
+}
+
 // Pasta de um Parecer (Assessoria/{empresa}/Pareceres/{nome do parecer}) — ver model Parecer.
 export async function getOrCreateParecerFolder(parecerId: string, companyName: string, parecerName: string, officeId: string): Promise<string> {
   const provider = await providerFor(officeId);

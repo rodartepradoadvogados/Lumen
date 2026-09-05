@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { del } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
-import { uploadFileToDrive, uploadFileToDriveFolder, getOrCreateParecerFolder } from "@/lib/storageProvider";
-import { translateDriveError } from "@/lib/googleDrive";
+import {
+  uploadFileToDrive,
+  uploadFileToDriveFolder,
+  getOrCreateParecerFolder,
+  getOrCreateAssessoriaCompanyFolderCached,
+  getOrCreateCategoryFolder,
+} from "@/lib/storageProvider";
+import { translateDriveError, ASSESSORIA_DOC_TYPE_FOLDERS } from "@/lib/googleDrive";
 import { isValidBlobUrl } from "@/lib/blobUrl";
 
 // Etapa 2 do upload de documentos da Assessoria (ver app/api/attachments/blob-token/route.ts para
@@ -70,7 +76,17 @@ export async function POST(request: NextRequest) {
     if (parecer) {
       folderId = await getOrCreateParecerFolder(parecer.id, assessoria.client.name, parecer.name, user.officeId);
     } else {
-      folderId = assessoria.driveFolderId;
+      // Correção de 05/09/2026 (docs/auditoria-pastas-drive-2026-09.md, achados P0 e P1): antes,
+      // esse ramo lia assessoria.driveFolderId direto do banco (sem verificar se a pasta ainda
+      // existe — P0) e sempre soltava o documento na raiz da empresa, nunca na subpasta certa por
+      // tipo (P1; só "Reorganizar anexos" corrigia isso depois, retroativamente). Agora resolve
+      // com auto-cura (getOrCreateAssessoriaCompanyFolderCached) e já desce pra subpasta do
+      // docType (Contratos/Licitações/Regimentos Internos), igual ao que
+      // resolverDestinoAssessoriaDocumento (lib/actions/driveReorg.ts) já fazia só na reorganização.
+      // OUTRO/ACAO_VINCULADA não têm subpasta própria por desenho — ficam na raiz da empresa.
+      const companyFolderId = await getOrCreateAssessoriaCompanyFolderCached(assessoria.id, assessoria.client.name, user.officeId);
+      const subName = ASSESSORIA_DOC_TYPE_FOLDERS[finalDocType];
+      folderId = subName ? await getOrCreateCategoryFolder(companyFolderId, subName, user.officeId) : companyFolderId;
     }
   } catch (e) {
     console.error("[assessoria/documentos/upload] falha ao resolver pasta de destino:", e);
