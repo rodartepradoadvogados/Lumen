@@ -658,8 +658,10 @@ async function getOrCreateRootFolder(
 
 // Cria (se ainda não existir) a estrutura de pastas de uma empresa em Assessoria:
 // "Lúmen - Assessoria/{empresa}/{Contratos,Pareceres,Licitações,Regimentos Internos}", dentro
-// do Drive DESTE escritório. Chamado uma única vez, na criação da Assessoria — o id da pasta da
-// empresa fica salvo em Assessoria.driveFolderId para nunca precisar refazer essa busca depois.
+// do Drive DESTE escritório. Sempre resolve o caminho pelo NOME (auto-cura por design, como as
+// raízes de Processos/Casos/Atendimentos) — não lê nem grava Assessoria.driveFolderId; quem quer
+// reaproveitar esse id salvo como atalho rápido, mas com verificação, usa
+// getOrCreateAssessoriaCompanyFolderCached logo abaixo.
 export async function getOrCreateAssessoriaCompanyFolder(companyName: string, officeId: string): Promise<string> {
   const { drive, cred } = await getDriveClient(officeId);
   const rootId = await getOrCreateRootFolder(drive, cred, "assessoria", officeId);
@@ -668,6 +670,29 @@ export async function getOrCreateAssessoriaCompanyFolder(companyName: string, of
     await findOrCreateChildFolder(drive, companyFolderId, subName);
   }
   return companyFolderId;
+}
+
+// Atalho com cache + auto-cura para a mesma pasta acima — achado P0 da auditoria
+// (docs/auditoria-pastas-drive-2026-09.md): o único ponto que lia Assessoria.driveFolderId
+// (app/api/assessoria/documentos/upload/route.ts) usava o id salvo direto do banco, sem NENHUMA
+// verificação — diferente de Case/Attendance/Parecer/Licitacao acima, que já confirmam
+// existência/lixeira antes de reaproveitar. Se a pasta da empresa fosse apagada ou movida pra
+// Lixeira fora do sistema, todo upload seguinte quebrava com 404 sem se recuperar sozinho. Mesmo
+// padrão de auto-cura das demais: recria e regrava se o id salvo não existir mais.
+export async function getOrCreateAssessoriaCompanyFolderCached(assessoriaId: string, companyName: string, officeId: string): Promise<string> {
+  const existing = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) {
+    try {
+      const info = await getDriveFileInfo(existing.driveFolderId, officeId);
+      if (info && !info.trashed) return existing.driveFolderId;
+    } catch {
+      return existing.driveFolderId;
+    }
+  }
+
+  const folderId = await getOrCreateAssessoriaCompanyFolder(companyName, officeId);
+  await prisma.assessoria.updateMany({ where: { id: assessoriaId, officeId }, data: { driveFolderId: folderId } });
+  return folderId;
 }
 
 // Pasta de um Parecer (ver model Parecer, prisma/schema.prisma) dentro de
