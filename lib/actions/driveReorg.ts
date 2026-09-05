@@ -29,6 +29,39 @@ export type ReorgPlanItem = {
 
 export type ReorgPlan = { itens: ReorgPlanItem[]; naoMovivel: number } | { error: string };
 
+// Cache de pastas já resolvidas nesta execução do plano — vários Attachment/AssessoriaDocumento
+// costumam apontar para o mesmo processo/atendimento/empresa/licitação, e sem isso cada um
+// disparava sua própria cadeia de chamadas ao Drive (getOrCreateCaseFolder etc., cada uma com
+// sua checagem de auto-cura) mesmo quando o resultado seria idêntico ao do item anterior. Guarda
+// a Promise (não só o resultado) para também deduplicar chamadas concorrentes com a mesma chave.
+type FolderCache = Map<string, Promise<string>>;
+function cachedFolder(cache: FolderCache, key: string, compute: () => Promise<string>): Promise<string> {
+  let p = cache.get(key);
+  if (!p) {
+    p = compute();
+    cache.set(key, p);
+  }
+  return p;
+}
+
+// Roda `fn` sobre `items` com no máximo `limite` chamadas em voo ao mesmo tempo — reduz o tempo
+// total (as chamadas ao Drive são round-trips de rede, ficam a maior parte do tempo só esperando)
+// sem disparar tudo de uma vez, o que estouraria limite de taxa da API do Google Drive.
+async function mapComConcorrencia<T, R>(items: T[], limite: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let proximo = 0;
+  async function worker() {
+    for (;;) {
+      const i = proximo++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limite, items.length) }, worker));
+  return results;
+}
+const CONCORRENCIA_DRIVE = 6;
+
 async function resolverDestinoAttachment(
   att: {
     id: string;
@@ -42,7 +75,8 @@ async function resolverDestinoAttachment(
     licitacao: { id: string; nome: string | null; objeto: string; assessoria: { client: { name: string } } } | null;
     task: { id: string; title: string } | null;
   },
-  officeId: string
+  officeId: string,
+  cache: FolderCache
 ): Promise<{ fileId: string; targetFolderId: string; destino: string } | null> {
   // Correção de 05/09/2026 (docs/auditoria-pastas-drive-2026-09.md, achado P0): Attachment de
   // Licitação usa storageFileId — extractDriveFileId (regex de URL do Google) nunca funcionou
@@ -51,25 +85,27 @@ async function resolverDestinoAttachment(
   const fileId = att.storageFileId || extractDriveFileId(att.driveUrl);
   if (!fileId) return null;
   if (att.case) {
-    const containerFolderId = await getOrCreateCaseFolder(att.case.id, att.case.title, officeId);
+    const containerFolderId = await cachedFolder(cache, `case:${att.case.id}`, () => getOrCreateCaseFolder(att.case!.id, att.case!.title, officeId));
     const categoryLabel = getDocumentTypeLabel(att.docType);
-    const targetFolderId = await getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId);
+    const targetFolderId = await cachedFolder(cache, `case:${att.case.id}:cat:${categoryLabel}`, () => getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId));
     return { fileId, targetFolderId, destino: `${att.case.title} → ${categoryLabel}` };
   }
   if (att.attendance) {
-    const containerFolderId = await getOrCreateAttendanceFolder(att.attendance.id, att.attendance.subject, officeId);
+    const containerFolderId = await cachedFolder(cache, `attendance:${att.attendance.id}`, () => getOrCreateAttendanceFolder(att.attendance!.id, att.attendance!.subject, officeId));
     const categoryLabel = getDocumentTypeLabel(att.docType);
-    const targetFolderId = await getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId);
+    const targetFolderId = await cachedFolder(cache, `attendance:${att.attendance.id}:cat:${categoryLabel}`, () => getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId));
     return { fileId, targetFolderId, destino: `${att.attendance.subject} → ${categoryLabel}` };
   }
   if (att.licitacao) {
     const companyName = att.licitacao.assessoria.client.name;
     const licitacaoNome = att.licitacao.nome || att.licitacao.objeto;
     if (att.task) {
-      const targetFolderId = await getOrCreateLicitacaoDemandaFolder(att.task.id, att.licitacao.id, companyName, licitacaoNome, att.task.title, officeId);
+      const targetFolderId = await cachedFolder(cache, `licitacao:${att.licitacao.id}:task:${att.task.id}`, () =>
+        getOrCreateLicitacaoDemandaFolder(att.task!.id, att.licitacao!.id, companyName, licitacaoNome, att.task!.title, officeId)
+      );
       return { fileId, targetFolderId, destino: `${companyName} → Licitações → ${licitacaoNome} → ${att.task.title}` };
     }
-    const targetFolderId = await getOrCreateLicitacaoFolder(att.licitacao.id, companyName, licitacaoNome, officeId);
+    const targetFolderId = await cachedFolder(cache, `licitacao:${att.licitacao.id}`, () => getOrCreateLicitacaoFolder(att.licitacao!.id, companyName, licitacaoNome, officeId));
     return { fileId, targetFolderId, destino: `${companyName} → Licitações → ${licitacaoNome}` };
   }
   return null;
@@ -86,20 +122,23 @@ async function resolverDestinoAssessoriaDocumento(
     assessoria: { client: { name: string } };
     parecer: { id: string; name: string } | null;
   },
-  officeId: string
+  officeId: string,
+  cache: FolderCache
 ): Promise<{ fileId: string; targetFolderId: string; destino: string } | null> {
   const fileId = doc.storageFileId || extractDriveFileId(doc.driveUrl);
   if (!fileId) return null;
   const companyName = doc.assessoria.client.name;
   if (doc.parecer) {
-    const targetFolderId = await getOrCreateParecerFolder(doc.parecerId!, companyName, doc.parecer.name, officeId);
+    const targetFolderId = await cachedFolder(cache, `parecer:${doc.parecerId}`, () => getOrCreateParecerFolder(doc.parecerId!, companyName, doc.parecer!.name, officeId));
     return { fileId, targetFolderId, destino: `${companyName} → Pareceres → ${doc.parecer.name}` };
   }
-  const companyFolderId = await getOrCreateAssessoriaCompanyFolder(companyName, officeId);
+  const companyFolderId = await cachedFolder(cache, `assessoria:${companyName}`, () => getOrCreateAssessoriaCompanyFolder(companyName, officeId));
   // OUTRO/ACAO_VINCULADA não têm subpasta própria por desenho (ver lib/googleDrive.ts,
   // ASSESSORIA_DOC_TYPE_FOLDERS) — ficam soltos na raiz da empresa, de propósito.
   const subName = ASSESSORIA_DOC_TYPE_FOLDERS[doc.docType];
-  const targetFolderId = subName ? await getOrCreateCategoryFolder(companyFolderId, subName, officeId) : companyFolderId;
+  const targetFolderId = subName
+    ? await cachedFolder(cache, `assessoria:${companyName}:cat:${subName}`, () => getOrCreateCategoryFolder(companyFolderId, subName, officeId))
+    : companyFolderId;
   return { fileId, targetFolderId, destino: subName ? `${companyName} → ${subName}` : companyName };
 }
 
@@ -133,33 +172,41 @@ export async function planoReorganizacao(): Promise<ReorgPlan> {
     }),
   ]);
 
+  // Correção de 05/09/2026: os dois laços abaixo rodavam sequencialmente, um item de cada vez —
+  // cada item podia disparar de 1 a 3 round-trips ao Drive (resolver pasta + getDriveFileInfo),
+  // e em escritórios com muitos documentos isso estourava os 300s de execução da função (erro
+  // "Task timed out after 300 seconds" visto em produção). `mapComConcorrencia` processa vários
+  // itens por vez (rede é majoritariamente espera) e `cache` evita refazer a mesma resolução de
+  // pasta para itens do mesmo processo/atendimento/empresa/licitação.
+  const cache: FolderCache = new Map();
+  type Resolvido = { item: ReorgPlanItem | null; naoMovivel: boolean };
+
+  const [attResultados, docResultados] = await Promise.all([
+    mapComConcorrencia(attachments, CONCORRENCIA_DRIVE, async (att): Promise<Resolvido> => {
+      const resolved = await resolverDestinoAttachment(att, officeId, cache);
+      if (!resolved) return { item: null, naoMovivel: true };
+      if (podeChecarJaCorreto) {
+        const info = await getDriveFileInfo(resolved.fileId, officeId);
+        if (!info || info.parents.includes(resolved.targetFolderId)) return { item: null, naoMovivel: false }; // já correto, ou some do Drive (nada a mover)
+      }
+      return { item: { kind: "ATTACHMENT", id: att.id, name: att.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, destino: resolved.destino }, naoMovivel: false };
+    }),
+    mapComConcorrencia(documentos, CONCORRENCIA_DRIVE, async (doc): Promise<Resolvido> => {
+      const resolved = await resolverDestinoAssessoriaDocumento(doc, officeId, cache);
+      if (!resolved) return { item: null, naoMovivel: true };
+      if (podeChecarJaCorreto) {
+        const info = await getDriveFileInfo(resolved.fileId, officeId);
+        if (!info || info.parents.includes(resolved.targetFolderId)) return { item: null, naoMovivel: false };
+      }
+      return { item: { kind: "ASSESSORIA_DOCUMENTO", id: doc.id, name: doc.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, destino: resolved.destino }, naoMovivel: false };
+    }),
+  ]);
+
   const itens: ReorgPlanItem[] = [];
   let naoMovivel = 0;
-
-  for (const att of attachments) {
-    const resolved = await resolverDestinoAttachment(att, officeId);
-    if (!resolved) {
-      naoMovivel++;
-      continue;
-    }
-    if (podeChecarJaCorreto) {
-      const info = await getDriveFileInfo(resolved.fileId, officeId);
-      if (!info || info.parents.includes(resolved.targetFolderId)) continue; // já correto, ou some do Drive (nada a mover)
-    }
-    itens.push({ kind: "ATTACHMENT", id: att.id, name: att.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, destino: resolved.destino });
-  }
-
-  for (const doc of documentos) {
-    const resolved = await resolverDestinoAssessoriaDocumento(doc, officeId);
-    if (!resolved) {
-      naoMovivel++;
-      continue;
-    }
-    if (podeChecarJaCorreto) {
-      const info = await getDriveFileInfo(resolved.fileId, officeId);
-      if (!info || info.parents.includes(resolved.targetFolderId)) continue;
-    }
-    itens.push({ kind: "ASSESSORIA_DOCUMENTO", id: doc.id, name: doc.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, destino: resolved.destino });
+  for (const r of [...attResultados, ...docResultados]) {
+    if (r.naoMovivel) naoMovivel++;
+    else if (r.item) itens.push(r.item);
   }
 
   return { itens, naoMovivel };
