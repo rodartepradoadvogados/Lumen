@@ -128,21 +128,41 @@ achados cruzados e consolidados manualmente. Relatório completo (exploração, 
 corrigido proposto, testes): `docs/security-audit/relatorio-auditoria-seguranca-2026-09.pdf`.
 Regenerar com `docs/security-audit/.venv/bin/python docs/security-audit/gerar_relatorio_2026-09.py`.
 
-**Nenhuma correção da Rodada 2 foi aplicada ainda — aguardando validação do dono do projeto.**
+Aprovado pelo dono do projeto em 05/09/2026: "pode implementar tudo". Implementação em etapas
+(P1 → P2 → P3), cada etapa com PR própria.
 
-- [ ] **V1 (Alta).** Corrida de pagamento duplicado em `markPayablePaid`/`markReceivablePaid`/
+- [x] **V1 (Alta).** Corrida de pagamento duplicado em `markPayablePaid`/`markReceivablePaid`/
   `markManyPayablesPaid`/`markManyReceivablesPaid` (`lib/actions/financeiro.ts`) e
   `markHonorarioPaid` (`lib/actions/assessoria.ts`) — sem lock de linha/transação, duas chamadas
   concorrentes duplicam o `FinancePayment`.
-- [ ] **V2 (Alta).** `updateCase` (`lib/actions/cases.ts`) grava `caseValue`/`convictionValue`/
+  Feito: cada baixa roda dentro de `prisma.$transaction` com `SELECT ... FOR UPDATE` travando a
+  linha antes de recalcular o saldo; a baixa individual recusa (mensagem clara ao usuário) se a
+  conta já estiver quitada ou se o valor informado exceder o saldo em aberto; a baixa em bloco
+  passa a processar cada item em sua própria transação/lock, em vez de ler o saldo de todos de
+  uma vez antes do loop.
+- [x] **V2 (Alta).** `updateCase` (`lib/actions/cases.ts`) grava `caseValue`/`convictionValue`/
   `economicBenefitValue` (bases do honorário percentual) sem exigir `financeAccess` nem
   registrar quem alterou.
-- [ ] **V3 (Alta).** Fluxo OAuth do BTG (`app/api/btg/callback`, `app/api/btg/connect`,
+  Feito: alterar qualquer uma das três bases agora exige `isAdmin` ou `financeAccess` — sem isso,
+  a Server Action recusa com um erro claro exibido no modal de edição. Não foi criado um
+  mecanismo de auditoria/log dedicado para essa mudança específica (o achado citava "sem
+  registrar quem alterou" como agravante, não como o problema central) — as tabelas de auditoria
+  já existentes no projeto (`AccessAuditLog`, `AuditEvent`) têm propósito fechado e diferente
+  (sessão de suporte mascarada; LGPD), então usá-las aqui seria incorreto; um log genérico de
+  alteração de processo ficou fora do escopo desta correção.
+- [x] **V3 (Alta).** Fluxo OAuth do BTG (`app/api/btg/callback`, `app/api/btg/connect`,
   `lib/btg.ts`) sem `verifyAndConsumeOAuthState` — as outras 3 integrações OAuth (Google/
   Microsoft/Dropbox) já usam desde o achado A61; BTG foi adicionado depois e ficou de fora.
-- [ ] **V4 (Alta).** Dependência `xlsx` travada em `0.18.5` (npm nunca recebeu correção de
+  Feito: `app/api/btg/connect` agora gera o `state` via `buildOAuthState("btg")` (nonce em cookie
+  httpOnly) em vez de `user.id`; `app/api/btg/callback` verifica esse nonce com
+  `verifyAndConsumeOAuthState` antes de trocar o `code`, recusando quando não bate — mesmo padrão
+  já usado pelas outras 3 integrações.
+- [x] **V4 (Alta).** Dependência `xlsx` travada em `0.18.5` (npm nunca recebeu correção de
   Prototype Pollution/ReDoS) — trocar pela distribuição do CDN da SheetJS ou migrar para
   `exceljs`.
+  Feito: trocado para a distribuição corrigida `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`
+  (a mesma API pública, sem mudança de código em `lib/importers/parse.ts`). Confirmado via
+  `npm audit` que `xlsx` não aparece mais na lista de vulnerabilidades.
 - [ ] **V5 (Alta).** Nenhum header de segurança configurado (`next.config.mjs` vazio) — sem CSP,
   X-Frame-Options, HSTS, X-Content-Type-Options.
 - [ ] **V6 (Alta).** `app/api/admin/migrate-legacy/route.ts` sem checagem de sessão (só

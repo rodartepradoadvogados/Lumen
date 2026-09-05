@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, type AppPrismaTx } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireFinanceAccess } from "@/lib/permissions";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -199,6 +199,15 @@ export async function createInstallmentReminder(
   });
 }
 
+// Cliente de banco genérico (prisma "de verdade" OU o `tx` de dentro de um prisma.$transaction) —
+// permite que syncPayableStatus/syncReceivableStatus/syncReminderTask sejam chamadas de dentro de
+// uma transação (ver markPayablePaid/markReceivablePaid, achado V1 da auditoria de segurança de
+// 05/09/2026: a baixa individual precisa ler e escrever dentro do MESMO lock de linha, senão a
+// proteção contra baixa em corrida não vale nada) sem duplicar a função. AppPrismaTx (lib/prisma.ts)
+// já existe exatamente para isso — client completo tem mais métodos que o `tx`, então é
+// atribuível a ele, e um parâmetro só cobre os dois casos.
+type Db = AppPrismaTx;
+
 // Recalcula status/campos legados de uma Payable a partir da SOMA real dos FinancePayment dela —
 // chamada depois de toda operação que cria/apaga uma linha em FinancePayment (baixa, baixa em
 // bloco, reabertura), para os dois nunca divergirem (várias telas ainda leem só os campos
@@ -206,14 +215,14 @@ export async function createInstallmentReminder(
 // guardar a SOMA (não mais "o último valor pago"); paidDate/paymentReceiptNumber/paymentMethod
 // espelham o pagamento mais recente (createdAt desc), única aproximação possível já que são
 // campos singulares e um lançamento pode ter N pagamentos (Fase 3 — baixa parcial).
-async function syncPayableStatus(id: string, officeId: string): Promise<void> {
-  const p = await prisma.payable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
+async function syncPayableStatus(id: string, officeId: string, db: Db = prisma): Promise<void> {
+  const p = await db.payable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
   if (!p) return;
   const soma = p.payments.reduce((s, x) => s + x.amount, 0);
   const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
   const status = statusPorPagamentos(liquido, soma);
   const last = p.payments[0];
-  await prisma.payable.update({
+  await db.payable.update({
     where: { id },
     data: {
       status,
@@ -223,7 +232,7 @@ async function syncPayableStatus(id: string, officeId: string): Promise<void> {
       paymentMethod: last?.paymentMethod ?? null,
     },
   });
-  await syncReminderTask("payableId", id, officeId, status);
+  await syncReminderTask("payableId", id, officeId, status, db);
 }
 
 // Conclui (ou reabre) o lembrete de vencimento (Task type=PRAZO, criado por
@@ -232,14 +241,14 @@ async function syncPayableStatus(id: string, officeId: string): Promise<void> {
 // Kanban, Central de Alertas e o e-mail diário com prazos que já foram cumpridos (achado A26 da
 // revisão gauntlet). Não mexe num lembrete que o usuário cancelou manualmente (status
 // CANCELADO) — pagar a parcela não deveria reviver uma tarefa que ele descartou de propósito.
-async function syncReminderTask(entityField: "payableId" | "receivableId", entityId: string, officeId: string, status: string): Promise<void> {
+async function syncReminderTask(entityField: "payableId" | "receivableId", entityId: string, officeId: string, status: string, db: Db = prisma): Promise<void> {
   if (status === "PAGO") {
-    await prisma.task.updateMany({
+    await db.task.updateMany({
       where: { [entityField]: entityId, officeId, status: { not: "CANCELADO" } },
       data: { status: "CONCLUIDO", completedAt: new Date() },
     });
   } else {
-    await prisma.task.updateMany({
+    await db.task.updateMany({
       where: { [entityField]: entityId, officeId, status: "CONCLUIDO" },
       data: { status: "PENDENTE", completedAt: null },
     });
@@ -255,14 +264,14 @@ async function syncReminderTask(entityField: "payableId" | "receivableId", entit
 // assessoria dá baixa direto por FinancePayment + este sync, sem passar por requireFinanceOfficeId
 // (a baixa de honorário de assessoria é do módulo Assessoria, não do Financeiro; ver
 // markHonorarioPaid, achado A06 da revisão gauntlet).
-export async function syncReceivableStatus(id: string, officeId: string): Promise<void> {
-  const r = await prisma.receivable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
+export async function syncReceivableStatus(id: string, officeId: string, db: Db = prisma): Promise<void> {
+  const r = await db.receivable.findFirst({ where: { id, officeId }, include: { payments: { orderBy: { createdAt: "desc" } } } });
   if (!r) return;
   const soma = r.payments.reduce((s, x) => s + x.amount, 0);
   const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
   const status = statusPorPagamentos(liquido, soma);
   const last = r.payments[0];
-  await prisma.receivable.update({
+  await db.receivable.update({
     where: { id },
     data: {
       status,
@@ -272,51 +281,87 @@ export async function syncReceivableStatus(id: string, officeId: string): Promis
       paymentMethod: last?.paymentMethod ?? null,
     },
   });
-  await syncReminderTask("receivableId", id, officeId, status);
+  await syncReminderTask("receivableId", id, officeId, status, db);
 }
 
 // Dar baixa (Fase 3 — aceita valor PARCIAL, menor que o saldo em aberto): cada chamada cria UM
 // FinancePayment novo (nunca sobrescreve os anteriores) e recalcula o status pela soma real —
 // ver syncPayableStatus. bankAccountId é opcional pelo mesmo motivo dos demais vínculos
 // opcionais deste arquivo: só checado quando informado.
+//
+// SEGURANÇA (achado V1, auditoria de 05/09/2026 — corrida de pagamento duplicado): tudo dentro
+// de uma única transação, com um SELECT ... FOR UPDATE travando a linha da conta ANTES de somar
+// os pagamentos existentes. Sem isso, duas requisições concorrentes (duplo clique, duas abas,
+// retry de rede) liam o mesmo saldo "em aberto" antes de qualquer uma escrever e criavam dois
+// FinancePayment — o valor pago em dobro ia direto para Livro Caixa/DRE/Fluxo de Caixa (que somam
+// FinancePayment, não o campo legado paidAmount). Com o lock, a segunda chamada só roda depois
+// que a primeira commitou, vê o saldo já zerado e é recusada.
 export async function markPayablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.payable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true } });
-  if (!existing) throw new Error("Conta a pagar não encontrada.");
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
-  await prisma.financePayment.create({
-    data: {
-      officeId,
-      amount: paidAmount,
-      paidDate: new Date(paidDate),
-      paymentMethod: paymentMethod || null,
-      documentNumber: receiptNumber || null,
-      bankAccountId: bankAccountId || null,
-      payableId: id,
-    },
+
+  const caseId = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Payable" WHERE id = ${id} AND "officeId" = ${officeId} FOR UPDATE`;
+    if (locked.length === 0) throw new Error("Conta a pagar não encontrada.");
+    const payable = await tx.payable.findFirstOrThrow({ where: { id, officeId }, select: { caseId: true, amount: true, discount: true, surcharge: true } });
+    const pagos = await tx.financePayment.aggregate({ where: { payableId: id }, _sum: { amount: true } });
+    const soma = pagos._sum.amount ?? 0;
+    const saldo = valorLiquido(payable.amount, payable.discount, payable.surcharge) - soma;
+    if (saldo <= 0.005) throw new Error("Este lançamento já foi quitado (baixa duplicada recusada).");
+    if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (${paidAmount.toFixed(2)}) é maior que o saldo em aberto (${saldo.toFixed(2)}).`);
+
+    await tx.financePayment.create({
+      data: {
+        officeId,
+        amount: paidAmount,
+        paidDate: new Date(paidDate),
+        paymentMethod: paymentMethod || null,
+        documentNumber: receiptNumber || null,
+        bankAccountId: bankAccountId || null,
+        payableId: id,
+      },
+    });
+    await syncPayableStatus(id, officeId, tx);
+    return payable.caseId;
   });
-  await syncPayableStatus(id, officeId);
+
   revalidateFinance();
-  revalidateCase(existing.caseId);
+  revalidateCase(caseId);
 }
 
 export async function markReceivablePaid(id: string, paidAmount: number, paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string) {
   const officeId = await requireFinanceOfficeId();
-  const existing = await prisma.receivable.findFirst({ where: { id, officeId }, select: { id: true, caseId: true, kind: true, description: true, clientId: true } });
-  if (!existing) throw new Error("Conta a receber não encontrada.");
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
-  await prisma.financePayment.create({
-    data: {
-      officeId,
-      amount: paidAmount,
-      paidDate: new Date(paidDate),
-      paymentMethod: paymentMethod || null,
-      documentNumber: receiptNumber || null,
-      bankAccountId: bankAccountId || null,
-      receivableId: id,
-    },
+
+  // SEGURANÇA (achado V1): mesmo lock de linha de markPayablePaid, adaptado para Receivable.
+  const existing = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Receivable" WHERE id = ${id} AND "officeId" = ${officeId} FOR UPDATE`;
+    if (locked.length === 0) throw new Error("Conta a receber não encontrada.");
+    const receivable = await tx.receivable.findFirstOrThrow({
+      where: { id, officeId },
+      select: { id: true, caseId: true, kind: true, description: true, clientId: true, amount: true, discount: true, surcharge: true },
+    });
+    const pagos = await tx.financePayment.aggregate({ where: { receivableId: id }, _sum: { amount: true } });
+    const soma = pagos._sum.amount ?? 0;
+    const saldo = valorLiquido(receivable.amount, receivable.discount, receivable.surcharge) - soma;
+    if (saldo <= 0.005) throw new Error("Este lançamento já foi quitado (baixa duplicada recusada).");
+    if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (${paidAmount.toFixed(2)}) é maior que o saldo em aberto (${saldo.toFixed(2)}).`);
+
+    await tx.financePayment.create({
+      data: {
+        officeId,
+        amount: paidAmount,
+        paidDate: new Date(paidDate),
+        paymentMethod: paymentMethod || null,
+        documentNumber: receiptNumber || null,
+        bankAccountId: bankAccountId || null,
+        receivableId: id,
+      },
+    });
+    await syncReceivableStatus(id, officeId, tx);
+    return receivable;
   });
-  await syncReceivableStatus(id, officeId);
+
   await notificarHonorarioRecebido(officeId, [existing]);
   revalidateFinance();
   revalidateCase(existing.caseId);
@@ -328,63 +373,76 @@ export async function markReceivablePaid(id: string, paidAmount: number, paidDat
 // zero) é ignorada silenciosamente — na prática nunca chega selecionável aqui (as listas só
 // deixam marcar contas com status != PAGO), mas o guard evita criar um FinancePayment de valor
 // zero se algo mudar por trás enquanto a tela estava aberta.
+//
+// SEGURANÇA (achado V1): cada item processado dentro do seu próprio lock de linha (mesmo padrão
+// de markPayablePaid) — o saldo de cada conta é recalculado DENTRO da transação daquele item, não
+// lido uma única vez antes do loop inteiro. Duas chamadas de "baixa em bloco" se sobrepondo (ex.:
+// duplo clique) não duplicam mais o pagamento de cada conta selecionada.
 export async function markManyPayablesPaid(ids: string[], paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string): Promise<{ count: number }> {
   const officeId = await requireFinanceOfficeId();
   if (ids.length === 0) return { count: 0 };
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
-  const items = await prisma.payable.findMany({ where: { id: { in: ids }, officeId }, include: { payments: true } });
   const date = new Date(paidDate);
-  for (const p of items) {
-    const soma = p.payments.reduce((s, x) => s + x.amount, 0);
-    const saldo = Math.max(0, valorLiquido(p.amount, p.discount, p.surcharge) - soma);
-    if (saldo <= 0) continue;
-    await prisma.financePayment.create({
-      data: {
-        officeId,
-        amount: saldo,
-        paidDate: date,
-        paymentMethod: paymentMethod || null,
-        documentNumber: receiptNumber || null,
-        bankAccountId: bankAccountId || null,
-        payableId: p.id,
-      },
+  const caseIds = new Set<string>();
+  let count = 0;
+  for (const id of [...new Set(ids)]) {
+    const caseId = await prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Payable" WHERE id = ${id} AND "officeId" = ${officeId} FOR UPDATE`;
+      if (locked.length === 0) return undefined;
+      const p = await tx.payable.findFirstOrThrow({ where: { id, officeId }, select: { caseId: true, amount: true, discount: true, surcharge: true } });
+      const pagos = await tx.financePayment.aggregate({ where: { payableId: id }, _sum: { amount: true } });
+      const soma = pagos._sum.amount ?? 0;
+      const saldo = Math.max(0, valorLiquido(p.amount, p.discount, p.surcharge) - soma);
+      if (saldo <= 0) return undefined;
+      await tx.financePayment.create({
+        data: { officeId, amount: saldo, paidDate: date, paymentMethod: paymentMethod || null, documentNumber: receiptNumber || null, bankAccountId: bankAccountId || null, payableId: id },
+      });
+      await syncPayableStatus(id, officeId, tx);
+      return p.caseId;
     });
-    await syncPayableStatus(p.id, officeId);
+    if (caseId !== undefined) {
+      count++;
+      if (caseId) caseIds.add(caseId);
+    }
   }
   revalidateFinance();
-  for (const caseId of new Set(items.map((p) => p.caseId).filter((id): id is string => Boolean(id)))) revalidateCase(caseId);
-  return { count: items.length };
+  for (const caseId of caseIds) revalidateCase(caseId);
+  return { count };
 }
 
 export async function markManyReceivablesPaid(ids: string[], paidDate: string, receiptNumber?: string, paymentMethod?: string, bankAccountId?: string): Promise<{ count: number }> {
   const officeId = await requireFinanceOfficeId();
   if (ids.length === 0) return { count: 0 };
   if (bankAccountId) await assertFinanceRelationsInOffice({ bankAccountId }, officeId);
-  const items = await prisma.receivable.findMany({ where: { id: { in: ids }, officeId }, include: { payments: true } });
   const date = new Date(paidDate);
-  const pagos: typeof items = [];
-  for (const r of items) {
-    const soma = r.payments.reduce((s, x) => s + x.amount, 0);
-    const saldo = Math.max(0, valorLiquido(r.amount, r.discount, r.surcharge) - soma);
-    if (saldo <= 0) continue;
-    await prisma.financePayment.create({
-      data: {
-        officeId,
-        amount: saldo,
-        paidDate: date,
-        paymentMethod: paymentMethod || null,
-        documentNumber: receiptNumber || null,
-        bankAccountId: bankAccountId || null,
-        receivableId: r.id,
-      },
+  const caseIds = new Set<string>();
+  const pagos: { id: string; kind: string; description: string; clientId: string | null; caseId: string | null }[] = [];
+  for (const id of [...new Set(ids)]) {
+    const settled = await prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Receivable" WHERE id = ${id} AND "officeId" = ${officeId} FOR UPDATE`;
+      if (locked.length === 0) return null;
+      const r = await tx.receivable.findFirstOrThrow({
+        where: { id, officeId },
+        select: { id: true, caseId: true, kind: true, description: true, clientId: true, amount: true, discount: true, surcharge: true },
+      });
+      const soma = (await tx.financePayment.aggregate({ where: { receivableId: id }, _sum: { amount: true } }))._sum.amount ?? 0;
+      const saldo = Math.max(0, valorLiquido(r.amount, r.discount, r.surcharge) - soma);
+      if (saldo <= 0) return null;
+      await tx.financePayment.create({
+        data: { officeId, amount: saldo, paidDate: date, paymentMethod: paymentMethod || null, documentNumber: receiptNumber || null, bankAccountId: bankAccountId || null, receivableId: id },
+      });
+      await syncReceivableStatus(id, officeId, tx);
+      return r;
     });
-    await syncReceivableStatus(r.id, officeId);
-    pagos.push(r);
+    if (settled) {
+      pagos.push(settled);
+      if (settled.caseId) caseIds.add(settled.caseId);
+    }
   }
   await notificarHonorarioRecebido(officeId, pagos);
   revalidateFinance();
-  for (const caseId of new Set(items.map((r) => r.caseId).filter((id): id is string => Boolean(id)))) revalidateCase(caseId);
-  return { count: items.length };
+  for (const caseId of caseIds) revalidateCase(caseId);
+  return { count: pagos.length };
 }
 
 // Reabrir (Fase 3): apaga TODOS os FinancePayment da conta, não só limpa os campos legados —
