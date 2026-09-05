@@ -92,6 +92,34 @@ export async function getOrCreateCaseFolder(caseId: string, caseTitle: string, o
   }
 }
 
+// Ids das raízes "Processos"/"Casos" deste escritório (cria se ainda não existir) — usado por
+// convertAttendanceToCase (lib/actions/attendance.ts) para MOVER de verdade a pasta de um
+// atendimento convertido pra dentro da raiz certa, em vez de só renomear e deixá-la fisicamente
+// dentro de "Atendimentos" para sempre (achado P2, docs/auditoria-pastas-drive-2026-09.md).
+export async function getProcessosRootFolderId(officeId: string): Promise<string> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.getProcessosRootFolderId(officeId);
+    case "DROPBOX":
+      return dropboxStorage.getProcessosRootFolderId(officeId);
+    default:
+      return googleDrive.getProcessosRootFolderId(officeId);
+  }
+}
+
+export async function getCasosRootFolderId(officeId: string): Promise<string> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.getCasosRootFolderId(officeId);
+    case "DROPBOX":
+      return dropboxStorage.getCasosRootFolderId(officeId);
+    default:
+      return googleDrive.getCasosRootFolderId(officeId);
+  }
+}
+
 export async function getOrCreateAttendanceFolder(attendanceId: string, subject: string, officeId: string): Promise<string> {
   const provider = await providerFor(officeId);
   switch (provider) {

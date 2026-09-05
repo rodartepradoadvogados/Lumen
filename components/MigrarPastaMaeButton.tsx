@@ -15,6 +15,7 @@ const KIND_LABEL: Record<string, string> = {
   PARECER: "Parecer",
   ATTACHMENT: "Anexo",
   ASSESSORIA_DOCUMENTO: "Documento de assessoria",
+  ARQUIVO_SOLTO: "Arquivo sem dono",
 };
 
 // "O que casou" (achou o registro correspondente no sistema) é --concluido; dentro desse mesmo

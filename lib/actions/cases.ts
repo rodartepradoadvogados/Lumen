@@ -11,7 +11,8 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { isClientInOffice, isUserInOffice, isCaseInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
-import { renameDriveFolder } from "@/lib/storageProvider";
+import { renameDriveFolder, moveDriveFile, getProcessosRootFolderId, getCasosRootFolderId } from "@/lib/storageProvider";
+import { naturezaOf } from "@/lib/caseNatureza";
 import { sendEmailReply } from "@/lib/gmailSend";
 import { linkPublicationToCase } from "@/lib/actions/publications";
 import { deriveArea } from "@/lib/caseMaterias";
@@ -424,6 +425,22 @@ export async function updateCase(
       await renameDriveFolder(existing.driveFolderId, newTitle, viewer.officeId);
     } catch (e) {
       console.error(`[cases] falha ao renomear a pasta do processo ${caseId} no armazenamento:`, e);
+    }
+  }
+
+  // Trocar o tipo pode trocar a NATUREZA (Processo x Caso — ver lib/caseNatureza.ts), que decide
+  // em qual raiz a pasta vive ("Lúmen - Processos" ou "Lúmen - Casos"). getOrCreateCaseFolder só
+  // escolhe a raiz na hora de CRIAR a pasta (Case.driveFolderId ainda nulo) — sem isto, editar o
+  // tipo de um processo/caso que já tem pasta deixava ela fisicamente na raiz errada para sempre
+  // (achado P2, docs/auditoria-pastas-drive-2026-09.md). Best-effort, mesmo espírito do rename
+  // acima — nunca impede a atualização do cadastro em si.
+  if (data.type && existing.driveFolderId && naturezaOf(data.type) !== naturezaOf(existing.type)) {
+    try {
+      const targetRootId =
+        naturezaOf(data.type) === "CASO" ? await getCasosRootFolderId(viewer.officeId) : await getProcessosRootFolderId(viewer.officeId);
+      await moveDriveFile(existing.driveFolderId, targetRootId, viewer.officeId);
+    } catch (e) {
+      console.error(`[cases] falha ao mover a pasta do processo ${caseId} para a raiz correta no armazenamento:`, e);
     }
   }
 
