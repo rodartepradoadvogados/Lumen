@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { sendWhatsappText } from "@/lib/whatsapp";
 import { sendEmailReply } from "@/lib/gmailSend";
-import { renameDriveFolder } from "@/lib/storageProvider";
+import { renameDriveFolder, moveDriveFile, getProcessosRootFolderId, getCasosRootFolderId } from "@/lib/storageProvider";
+import { naturezaOf } from "@/lib/caseNatureza";
 import { isClientInOffice, isUserInOffice, isAssessoriaInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
 import { normalizeForCompare } from "@/lib/textNormalize";
@@ -518,14 +519,19 @@ export async function convertAttendanceToCase(
   });
 
   // Os anexos já enviados no atendimento passam a pertencer ao processo criado — e a MESMA
-  // pasta do Drive (se já existir) é só renomeada e transferida, em vez de deixar uma pasta
-  // órfã pra trás e criar outra do zero no próximo anexo.
+  // pasta do Drive (se já existir) é reaproveitada (renomeada e MOVIDA para a raiz certa —
+  // Processos ou Casos, conforme o tipo escolhido — em vez de deixar uma pasta órfã fisicamente
+  // dentro de "Atendimentos" pra sempre, achado P2 de docs/auditoria-pastas-drive-2026-09.md),
+  // em vez de deixar uma pasta órfã pra trás e criar outra do zero no próximo anexo.
   await prisma.attachment.updateMany({
     where: { attendanceId, officeId },
     data: { caseId: created.id, attendanceId: null },
   });
   if (attendance.driveFolderId) {
     try {
+      const targetRootId =
+        naturezaOf(created.type) === "CASO" ? await getCasosRootFolderId(officeId) : await getProcessosRootFolderId(officeId);
+      await moveDriveFile(attendance.driveFolderId, targetRootId, officeId);
       await renameDriveFolder(attendance.driveFolderId, created.title, officeId);
       await prisma.case.update({ where: { id: created.id }, data: { driveFolderId: attendance.driveFolderId } });
     } catch {

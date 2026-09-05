@@ -313,7 +313,20 @@ async function getOrCreateLumenParentFolder(
   cred: { id: string; rootFolderId: string | null },
   officeId: string
 ): Promise<string> {
-  if (cred.rootFolderId) return cred.rootFolderId;
+  // Auto-cura (correção de 05/09/2026, docs/auditoria-pastas-drive-2026-09.md, achado P2): antes,
+  // um id cacheado aqui nunca era revalidado — se a pasta-mãe fosse apagada/mandada pra Lixeira
+  // manualmente fora do sistema, TODO upload do escritório inteiro (tudo vive dentro dela) parava
+  // de funcionar (ou ia parar num lugar órfão) pra sempre, sem nenhum jeito de se corrigir
+  // sozinho. Mesmo padrão best-effort de getOrCreateParecerFolder: se a própria checagem falhar
+  // (Drive momentaneamente inacessível), devolve o id salvo como antes desta mudança.
+  if (cred.rootFolderId) {
+    try {
+      const info = await getDriveFileInfo(cred.rootFolderId, officeId);
+      if (info && !info.trashed) return cred.rootFolderId;
+    } catch {
+      return cred.rootFolderId;
+    }
+  }
 
   const { pastaMae } = await nomeacaoDoEscritorio(officeId);
   const res = await drive.files.list({
@@ -341,7 +354,15 @@ async function getOrCreateFolderId(kind: keyof typeof FOLDERS, officeId: string)
   const { raiz, field } = FOLDERS[kind];
   const name = (await nomeacaoDoEscritorio(officeId)).raizes[raiz];
   const existingId = cred[field];
-  if (existingId) return existingId;
+  // Auto-cura — mesmo raciocínio de getOrCreateLumenParentFolder acima.
+  if (existingId) {
+    try {
+      const info = await getDriveFileInfo(existingId, officeId);
+      if (info && !info.trashed) return existingId;
+    } catch {
+      return existingId;
+    }
+  }
 
   // Dentro da pasta-mãe do escritório (ver getOrCreateLumenParentFolder), não mais solta em qualquer
   // lugar do Drive — a busca antiga não filtrava nem por pasta-mãe nem por 'root', então uma
@@ -366,6 +387,22 @@ async function getOrCreateFolderId(kind: keyof typeof FOLDERS, officeId: string)
   if (!folderId) throw new Error("Não foi possível criar a pasta no Google Drive.");
   await prisma.googleCredential.update({ where: { id: cred.id }, data: { [field]: folderId } });
   return folderId;
+}
+
+// Ids das três raízes "flat" do sistema (sem entidade dona — Anexo solto, Modelos de Documento,
+// Documentos Gerados) — exportados para lib/actions/driveParentMigration.ts mover pra lá um
+// arquivo legado que não tem NENHUM registro no banco para casar (ex.: documento gerado pelo
+// Peticionar, que nunca vira Attachment — ver docs/auditoria-pastas-drive-2026-09.md).
+export async function getAnexosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateFolderId("anexos", officeId);
+}
+
+export async function getModelosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateFolderId("modelos", officeId);
+}
+
+export async function getGeradosRootFolderId(officeId: string): Promise<string> {
+  return getOrCreateFolderId("gerados", officeId);
 }
 
 async function uploadBufferToFolder(

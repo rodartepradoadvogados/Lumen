@@ -45,13 +45,20 @@ import {
   getOrCreateParecerFolder,
   getOrCreateLicitacaoFolder,
   getOrCreateLicitacaoDemandaFolder,
+  getAnexosRootFolderId,
+  getModelosRootFolderId,
+  getGeradosRootFolderId,
   ASSESSORIA_DOC_TYPE_FOLDERS,
   allRootFolderNames,
   DRIVE_FOLDER_MIME_TYPE,
   type DriveChildEntry,
 } from "@/lib/googleDrive";
+import { RAIZ_SUFIXO } from "@/lib/driveNaming";
 
-type EntityKind = "CASE" | "ATTENDANCE" | "ASSESSORIA" | "PARECER" | "ATTACHMENT" | "ASSESSORIA_DOCUMENTO";
+// ARQUIVO_SOLTO: item dentro de uma raiz "flat" legada (Anexos/Modelos de Documento/Documentos
+// Gerados) sem NENHUM registro no banco pra casar (ex.: documento gerado pelo Peticionar) — ver
+// flatRootKindForLegacyName abaixo. Não tem entityId de verdade (usa o próprio driveFileId).
+type EntityKind = "CASE" | "ATTENDANCE" | "ASSESSORIA" | "PARECER" | "ATTACHMENT" | "ASSESSORIA_DOCUMENTO" | "ARQUIVO_SOLTO";
 
 export type LumenMigrationMovedEntry = {
   kind: EntityKind;
@@ -121,6 +128,35 @@ async function moverRaizesLumenSoltas(officeId: string, soltas: DriveChildEntry[
     }
   }
   return movidas;
+}
+
+// Uma raiz legada "RP Financeiro - X" cujo X é uma das três pastas "flat" do sistema (sem
+// entidade dona) tem destino óbvio pra QUALQUER coisa dentro dela — arquivo ou pasta, registrado
+// no banco ou não — sem precisar casar nada por id: tudo que está em "RP Financeiro - Anexos"
+// pertence à nova "Lúmen - Anexos" (ou o que o escritório tiver configurado como prefixo), e o
+// mesmo vale para Modelos de Documento e Documentos Gerados. Isso resolve, por exemplo, um
+// documento gerado pelo Peticionar (nunca vira Attachment — sem NENHUM registro no banco pra
+// casar, ver docs/auditoria-pastas-drive-2026-09.md) que hoje cai sempre em "não identificado"
+// mesmo já estando exatamente onde deveria, só que na raiz antiga.
+type FlatRootKind = "anexos" | "modelos" | "gerados";
+
+function flatRootKindForLegacyName(name: string): FlatRootKind | null {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(RAIZ_SUFIXO.anexos.toLowerCase())) return "anexos";
+  if (lower.endsWith(RAIZ_SUFIXO.modelos.toLowerCase())) return "modelos";
+  if (lower.endsWith(RAIZ_SUFIXO.gerados.toLowerCase())) return "gerados";
+  return null;
+}
+
+async function flatRootTargetFolderId(kind: FlatRootKind, officeId: string): Promise<string> {
+  switch (kind) {
+    case "anexos":
+      return getAnexosRootFolderId(officeId);
+    case "modelos":
+      return getModelosRootFolderId(officeId);
+    case "gerados":
+      return getGeradosRootFolderId(officeId);
+  }
 }
 
 // ============ ETAPA (b): auditoria das raízes legadas "RP Financeiro - *" ============
@@ -459,7 +495,11 @@ async function auditarPasta(
   depth: number,
   simulacao: boolean,
   maps: LegacyMaps,
-  ctx: AuditContext
+  ctx: AuditContext,
+  // Preenchido quando esta subárvore inteira está dentro de uma raiz legada "flat" (Anexos/
+  // Modelos/Documentos Gerados, ver flatRootKindForLegacyName) — todo item sem match de banco
+  // vai direto pra cá, arquivo ou pasta, em vez de "não identificado".
+  flatRootTarget: string | null = null
 ): Promise<void> {
   if (ctx.truncado) return;
   if (depth > MAX_DEPTH) {
@@ -525,8 +565,49 @@ async function auditarPasta(
       continue; // subtree já resolvido junto com o pai — não desce mais
     }
 
+    if (flatRootTarget) {
+      // Sem match de banco, mas dentro de uma raiz "flat" (sem entidade dona) — o destino já é
+      // óbvio pelo NOME da raiz, arquivo ou pasta: move o item inteiro (não desce dentro dele,
+      // mesmo se for pasta — preserva qualquer subestrutura que já exista lá dentro).
+      try {
+        if (simulacao) {
+          ctx.movidos.push({
+            kind: "ARQUIVO_SOLTO",
+            entityId: child.id,
+            label: child.name,
+            driveFileId: child.id,
+            path: childPath,
+            action: "MOVER",
+            detail: "Sem registro correspondente no banco, mas dentro de uma raiz sem dono (Anexos/Modelos/Documentos Gerados) — será movido para a mesma raiz, já dentro de \"Lúmen\".",
+          });
+        } else {
+          await moveDriveFile(child.id, flatRootTarget, officeId);
+          ctx.movidos.push({
+            kind: "ARQUIVO_SOLTO",
+            entityId: child.id,
+            label: child.name,
+            driveFileId: child.id,
+            path: childPath,
+            action: "MOVER",
+            detail: "Movido para a mesma raiz (sem dono), já dentro de \"Lúmen\".",
+          });
+        }
+      } catch (e) {
+        ctx.movidos.push({
+          kind: "ARQUIVO_SOLTO",
+          entityId: child.id,
+          label: child.name,
+          driveFileId: child.id,
+          path: childPath,
+          action: "CONFLITO",
+          detail: `Erro ao mover: ${msg(e)}. Nenhuma alteração foi feita neste item — verifique manualmente.`,
+        });
+      }
+      continue;
+    }
+
     if (isFolder) {
-      await auditarPasta(officeId, child.id, childPath, depth + 1, simulacao, maps, ctx);
+      await auditarPasta(officeId, child.id, childPath, depth + 1, simulacao, maps, ctx, flatRootTarget);
     } else {
       ctx.naoIdentificados.push({ driveFileId: child.id, name: child.name, path: childPath, isFolder: false, webViewLink: child.webViewLink });
     }
@@ -555,7 +636,11 @@ export async function migrarPastaMaeLumen(simulacao: boolean): Promise<LumenMigr
 
   const ctx: AuditContext = { movidos: [], naoIdentificados: [], itemCount: 0, truncado: false };
   for (const raiz of raizesLegadas) {
-    await auditarPasta(officeId, raiz.id, raiz.name, 0, simulacao, maps, ctx);
+    const flatKind = flatRootKindForLegacyName(raiz.name);
+    // Best-effort: se resolver a raiz nova falhar por qualquer motivo, cai pro comportamento de
+    // sempre (auditoria por match individual) em vez de travar a migração inteira.
+    const flatRootTarget = flatKind ? await flatRootTargetFolderId(flatKind, officeId).catch(() => null) : null;
+    await auditarPasta(officeId, raiz.id, raiz.name, 0, simulacao, maps, ctx, flatRootTarget);
   }
 
   return {
