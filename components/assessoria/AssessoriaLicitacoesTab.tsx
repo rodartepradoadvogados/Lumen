@@ -9,7 +9,7 @@ import {
 } from "@/lib/actions/assessoria";
 import { Badge, EmptyState, formatCurrency, formatCalendarDate, formatDate } from "@/components/ui";
 import { authorDisplayName } from "@/lib/authorDisplay";
-import { Plus } from "lucide-react";
+import { Plus, Paperclip, ChevronDown, ChevronRight } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
 import AttachmentList from "@/components/AttachmentList";
 import CommentBox from "@/components/CommentBox";
@@ -28,17 +28,30 @@ const STATUS_OPTIONS = [
 ];
 const statusMeta = (status: string) => STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
 
+// Formata um Attachment (Prisma) no shape que AttachmentList espera (createdAt como string ISO)
+// — mesmo ajuste que app/(app)/processos/[id]/page.tsx faz para os anexos do Processo.
+function toAttachmentData(a: { id: string; name: string; driveUrl: string; docType: string; createdAt: string | Date; uploadedBy: { name: string } | null }) {
+  return {
+    id: a.id,
+    name: a.name,
+    driveUrl: a.driveUrl,
+    docType: a.docType,
+    createdAt: new Date(a.createdAt).toISOString(),
+    uploadedBy: a.uploadedBy ? { name: a.uploadedBy.name } : null,
+  };
+}
+
 // Ordenação da tabela de licitações — critérios próprios (prazo/valor/objeto), diferente do
 // SORT_OPTIONS de lib/attachmentControls.ts (feito para listas de documento, com data de envio e
 // tipo de documento, que não existem aqui).
-type LicitacaoSort = "recente" | "prazo_asc" | "prazo_desc" | "valor_desc" | "valor_asc" | "objeto_asc";
+type LicitacaoSort = "recente" | "prazo_asc" | "prazo_desc" | "valor_desc" | "valor_asc" | "nome_asc";
 const LICITACAO_SORT_OPTIONS: { value: LicitacaoSort; label: string }[] = [
   { value: "recente", label: "Mais recente primeiro" },
   { value: "prazo_asc", label: "Prazo mais próximo" },
   { value: "prazo_desc", label: "Prazo mais distante" },
   { value: "valor_desc", label: "Maior valor estimado" },
   { value: "valor_asc", label: "Menor valor estimado" },
-  { value: "objeto_asc", label: "Objeto (A→Z)" },
+  { value: "nome_asc", label: "Nome (A→Z)" },
 ];
 
 export default function AssessoriaLicitacoesTab({
@@ -57,6 +70,7 @@ export default function AssessoriaLicitacoesTab({
   const [selectedId, setSelectedId] = useState<string | null>(assessoria.licitacoes[0]?.id || null);
   const [formOpen, setFormOpen] = useState(false);
   const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -88,25 +102,22 @@ export default function AssessoriaLicitacoesTab({
       case "valor_asc":
         arr.sort((a, b) => (a.valorEstimado ?? Infinity) - (b.valorEstimado ?? Infinity));
         break;
-      case "objeto_asc":
-        arr.sort((a, b) => a.objeto.localeCompare(b.objeto, "pt-BR", { numeric: true }));
+      case "nome_asc":
+        arr.sort((a, b) => (a.nome || a.objeto).localeCompare(b.nome || b.objeto, "pt-BR", { numeric: true }));
         break;
     }
     return arr;
   }, [assessoria.licitacoes, statusFilter, tableSort]);
 
-  // Anexos da licitação selecionada, no formato que AttachmentList espera (createdAt como string
-  // ISO) — mesmo ajuste que app/(app)/processos/[id]/page.tsx faz para os anexos do Processo.
+  // Anexos GERAIS da licitação selecionada (sem taskId — os de uma demanda específica aparecem só
+  // dentro dela, ver selected.tasks[].attachments abaixo), no formato que AttachmentList espera
+  // (createdAt como string ISO) — mesmo ajuste que app/(app)/processos/[id]/page.tsx faz para os
+  // anexos do Processo.
   const selectedAttachments = useMemo(
     () =>
-      (selected?.attachments ?? []).map((a) => ({
-        id: a.id,
-        name: a.name,
-        driveUrl: a.driveUrl,
-        docType: a.docType,
-        createdAt: new Date(a.createdAt).toISOString(),
-        uploadedBy: a.uploadedBy ? { name: a.uploadedBy.name } : null,
-      })),
+      (selected?.attachments ?? [])
+        .filter((a) => !a.taskId)
+        .map((a) => toAttachmentData(a)),
     [selected]
   );
 
@@ -139,6 +150,7 @@ export default function AssessoriaLicitacoesTab({
     setError(null);
     startTransition(async () => {
       const result = await addLicitacao(assessoria.id, {
+        nome: String(formData.get("nome") || ""),
         objeto: String(formData.get("objeto") || ""),
         orgao: String(formData.get("orgao") || ""),
         modalidade: String(formData.get("modalidade") || "") || undefined,
@@ -189,6 +201,14 @@ export default function AssessoriaLicitacoesTab({
 
       {formOpen && (
         <form action={handleNewLicitacao} className="mb-4 p-4 border border-regua bg-sf-apoio space-y-3">
+          <div>
+            <label className="text-[11px] text-tx-2">Nome da licitação</label>
+            <input name="nome" required placeholder="Ex: Pregão 014/2026 — Locação de Veículos" className="lic-input" />
+            <p className="text-[10.5px] text-tx-3 mt-0.5">
+              Nome curto para gestão — aparece na lista e vira o nome da pasta no Drive. O objeto completo do edital
+              continua abaixo.
+            </p>
+          </div>
           <input name="objeto" required placeholder="Objeto (ex: Fornecimento de insumos)" className="lic-input" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="orgao" required placeholder="Órgão" className="lic-input" />
@@ -256,7 +276,7 @@ export default function AssessoriaLicitacoesTab({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
-                  <th className="pb-2 pr-3">Objeto / Órgão</th>
+                  <th className="pb-2 pr-3">Licitação</th>
                   <th className="pb-2 pr-3">Modalidade</th>
                   <th className="pb-2 pr-3">Prazo final</th>
                   <th className="pb-2 pr-3">Valor estimado</th>
@@ -271,7 +291,7 @@ export default function AssessoriaLicitacoesTab({
                     className={`cursor-pointer ${selectedId === l.id ? "bg-acao-bg" : "hover:bg-sf-apoio"}`}
                   >
                     <td className="py-2.5 pr-3">
-                      <p className="font-medium text-tx">{l.objeto}</p>
+                      <p className="font-medium text-tx">{l.nome || l.objeto}</p>
                       <p className="text-xs text-tx-2">{l.orgao}</p>
                     </td>
                     <td className="py-2.5 pr-3 text-tx-2">{l.modalidade || "—"}</td>
@@ -292,12 +312,13 @@ export default function AssessoriaLicitacoesTab({
           {selected && (
             <>
               <p className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2">
-                {selected.modalidade || selected.objeto} — detalhe
+                {selected.nome || selected.objeto} — detalhe
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div className="bg-sf border border-regua p-4">
                   <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Dados da licitação</h4>
                   <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between gap-3"><span className="text-tx-2 shrink-0">Objeto</span><span className="text-tx text-right">{selected.objeto}</span></div>
                     <div className="flex justify-between"><span className="text-tx-2">Órgão</span><span className="text-tx">{selected.orgao}</span></div>
                     <div className="flex justify-between"><span className="text-tx-2">Modalidade</span><span className="text-tx">{selected.modalidade || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-tx-2">Valor estimado</span><span className="text-tx tabular-nums">{selected.valorEstimado ? formatCurrency(selected.valorEstimado) : "—"}</span></div>
@@ -359,14 +380,43 @@ export default function AssessoriaLicitacoesTab({
                     <p className="text-sm text-tx-3">Nenhuma tarefa cadastrada.</p>
                   ) : (
                     <div className="divide-y divide-regua">
-                      {selected.tasks.map((t) => (
-                        <div key={t.id} className="flex justify-between gap-3 py-2 text-sm">
-                          <span className={t.status === "CONCLUIDO" ? "line-through text-tx-3" : "text-tx"}>{t.title}</span>
-                          <span className="text-tx-2 whitespace-nowrap tabular-nums">
-                            {formatCalendarDate(t.dueDate)}{t.responsible ? ` · ${t.responsible.name.split(" ")[0]}` : ""}
-                          </span>
-                        </div>
-                      ))}
+                      {selected.tasks.map((t) => {
+                        const expanded = expandedTaskId === t.id;
+                        const taskAttachments = (t.attachments ?? []).map((a) => toAttachmentData(a));
+                        return (
+                          <div key={t.id} className="py-2">
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                              <span className={t.status === "CONCLUIDO" ? "line-through text-tx-3" : "text-tx"}>{t.title}</span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-tx-2 whitespace-nowrap tabular-nums">
+                                  {formatCalendarDate(t.dueDate)}{t.responsible ? ` · ${t.responsible.name.split(" ")[0]}` : ""}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedTaskId(expanded ? null : t.id)}
+                                  className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-acao px-1.5 py-0.5"
+                                  title="Documentos desta demanda"
+                                >
+                                  <Paperclip size={11} />
+                                  {taskAttachments.length > 0 && <span className="tabular-nums">{taskAttachments.length}</span>}
+                                  {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                </button>
+                              </div>
+                            </div>
+                            {expanded && (
+                              <div className="mt-2 ml-1 pl-3 border-l-2 border-regua">
+                                <p className="text-[10.5px] font-bold uppercase tracking-wide text-tx-3 mb-1.5">Documentos desta demanda</p>
+                                <AttachmentList
+                                  attachments={taskAttachments}
+                                  licitacaoId={selected.id}
+                                  taskId={t.id}
+                                  driveConnected={driveConnected}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -376,7 +426,7 @@ export default function AssessoriaLicitacoesTab({
                 <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
                   <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Documentos</h4>
                   <EnviarDocumentosButton
-                    entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.objeto }}
+                    entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.nome || selected.objeto }}
                     attachments={selectedAttachmentOptions}
                   />
                 </div>
@@ -391,7 +441,7 @@ export default function AssessoriaLicitacoesTab({
                   driveConnected={driveConnected}
                 />
                 <HistoricoEnvios
-                  entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.objeto }}
+                  entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.nome || selected.objeto }}
                   envios={selectedEnvios}
                 />
               </div>

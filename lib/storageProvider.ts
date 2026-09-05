@@ -141,6 +141,42 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
   }
 }
 
+// Pasta de uma Licitação (Assessoria/{empresa}/Licitações/{nome da licitação}) — ver model
+// Licitacao. Correção de 05/09/2026: antes, Attachment.licitacaoId não tinha pasta própria (ia
+// direto pra raiz da pasta da empresa) — ver docs/auditoria-pastas-drive-2026-09.md.
+export async function getOrCreateLicitacaoFolder(licitacaoId: string, companyName: string, licitacaoNome: string, officeId: string): Promise<string> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.getOrCreateLicitacaoFolder(licitacaoId, companyName, licitacaoNome, officeId);
+    case "DROPBOX":
+      return dropboxStorage.getOrCreateLicitacaoFolder(licitacaoId, companyName, licitacaoNome, officeId);
+    default:
+      return googleDrive.getOrCreateLicitacaoFolder(licitacaoId, companyName, licitacaoNome, officeId);
+  }
+}
+
+// Subpasta de UMA demanda/tarefa dentro da pasta própria da Licitação — ver model
+// Task.driveFolderId.
+export async function getOrCreateLicitacaoDemandaFolder(
+  taskId: string,
+  licitacaoId: string,
+  companyName: string,
+  licitacaoNome: string,
+  demandaNome: string,
+  officeId: string
+): Promise<string> {
+  const provider = await providerFor(officeId);
+  switch (provider) {
+    case "ONEDRIVE":
+      return oneDriveStorage.getOrCreateLicitacaoDemandaFolder(taskId, licitacaoId, companyName, licitacaoNome, demandaNome, officeId);
+    case "DROPBOX":
+      return dropboxStorage.getOrCreateLicitacaoDemandaFolder(taskId, licitacaoId, companyName, licitacaoNome, demandaNome, officeId);
+    default:
+      return googleDrive.getOrCreateLicitacaoDemandaFolder(taskId, licitacaoId, companyName, licitacaoNome, demandaNome, officeId);
+  }
+}
+
 // Raiz "Lúmen - Financeiro - Despesas"/"Lúmen - Financeiro - Receitas" — comprovante de
 // pagamento/recebimento (Payable/Receivable). Ver lib/financeReceiptNaming.ts para o nome do
 // arquivo dentro dela; a pasta em si é flat, sem subpasta por conta.

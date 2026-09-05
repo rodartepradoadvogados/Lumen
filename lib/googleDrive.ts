@@ -666,6 +666,71 @@ export async function getOrCreateParecerFolder(parecerId: string, companyName: s
   return folderId;
 }
 
+// Pasta de uma Licitação (ver model Licitacao, prisma/schema.prisma) dentro de
+// "Lúmen - Assessoria/{empresa}/Licitações/{nome da licitação}" — mesmo padrão de cache de
+// getOrCreateParecerFolder acima (correção de 05/09/2026: antes desta função existir,
+// Attachment.licitacaoId ia direto pra raiz da pasta da empresa, sem pasta própria nenhuma —
+// ver docs/auditoria-pastas-drive-2026-09.md).
+export async function getOrCreateLicitacaoFolder(licitacaoId: string, companyName: string, licitacaoNome: string, officeId: string): Promise<string> {
+  const existing = await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId }, select: { driveFolderId: true } });
+  // Auto-cura: mesmo raciocínio de getOrCreateParecerFolder acima.
+  if (existing?.driveFolderId) {
+    try {
+      const info = await getDriveFileInfo(existing.driveFolderId, officeId);
+      if (info && !info.trashed) return existing.driveFolderId;
+    } catch {
+      return existing.driveFolderId;
+    }
+  }
+
+  const { drive, cred } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, cred, "assessoria", officeId);
+  const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
+  const licitacoesFolderId = await findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.LICITACAO);
+  const folderId = await findOrCreateChildFolder(drive, licitacoesFolderId, licitacaoNome);
+  await prisma.licitacao.updateMany({ where: { id: licitacaoId, officeId }, data: { driveFolderId: folderId } });
+  return folderId;
+}
+
+// Subpasta de UMA demanda/tarefa dentro da pasta própria da Licitação —
+// "Lúmen - Assessoria/{empresa}/Licitações/{nome da licitação}/{título da demanda}". Chama
+// getOrCreateLicitacaoFolder acima para garantir/obter o pai antes de descer mais um nível —
+// mesmo raciocínio de getOrCreateCategoryFolder para Processo/Atendimento.
+export async function getOrCreateLicitacaoDemandaFolder(
+  taskId: string,
+  licitacaoId: string,
+  companyName: string,
+  licitacaoNome: string,
+  demandaNome: string,
+  officeId: string
+): Promise<string> {
+  const existing = await prisma.task.findFirst({ where: { id: taskId, officeId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) {
+    try {
+      const info = await getDriveFileInfo(existing.driveFolderId, officeId);
+      if (info && !info.trashed) return existing.driveFolderId;
+    } catch {
+      return existing.driveFolderId;
+    }
+  }
+
+  const { drive } = await getDriveClient(officeId);
+  const licitacaoFolderId = await getOrCreateLicitacaoFolder(licitacaoId, companyName, licitacaoNome, officeId);
+  const folderId = await findOrCreateChildFolder(drive, licitacaoFolderId, demandaNome);
+  await prisma.task.updateMany({ where: { id: taskId, officeId }, data: { driveFolderId: folderId } });
+  return folderId;
+}
+
+// Subpasta "Licitações" dentro da pasta da empresa (garante a estrutura completa) — mesmo papel
+// de getAssessoriaPareceresContainerFolderId abaixo, usado pela migração de pastas legadas para
+// saber onde realocar um Licitacao.driveFolderId antigo sem reconsultar a Licitação.
+export async function getAssessoriaLicitacoesContainerFolderId(companyName: string, officeId: string): Promise<string> {
+  const { drive, cred } = await getDriveClient(officeId);
+  const rootId = await getOrCreateRootFolder(drive, cred, "assessoria", officeId);
+  const companyFolderId = await findOrCreateChildFolder(drive, rootId, companyName);
+  return findOrCreateChildFolder(drive, companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.LICITACAO);
+}
+
 // Id da raiz "Lúmen - Assessoria" (cria se ainda não existir) — bare root, sem empresa nenhuma.
 // Exportado para lib/actions/driveParentMigration.ts mover uma pasta de EMPRESA legada pra dentro
 // dela.

@@ -114,15 +114,15 @@ model Office {
   // sempre, nenhum escritório existente muda de valor na migração deste recurso) ou calculado a
   // partir dos 4 preços acima toda vez que o operador salva módulos (MODULAR) — a troca é uma
   // ação humana e deliberada por escritório (ver updateOfficePlanModules), nunca automática.
-  planId            String?
-  plan              Plan?    @relation(fields: [planId], references: [id])
-  precoFinanceiro   Float?
-  precoWhatsapp     Float?
-  precoAtendimento  Float?
-  precoAssessoria   Float?
-  oabLimit          Int?
-  caseLimit         Int?
-  pricingMode       String   @default("MANUAL") // MANUAL | MODULAR
+  planId           String?
+  plan             Plan?   @relation(fields: [planId], references: [id])
+  precoFinanceiro  Float?
+  precoWhatsapp    Float?
+  precoAtendimento Float?
+  precoAssessoria  Float?
+  oabLimit         Int?
+  caseLimit        Int?
+  pricingMode      String  @default("MANUAL") // MANUAL | MODULAR
 
   // Provedor de armazenamento de anexos (Processos/Atendimentos/Assessoria) escolhido por este
   // escritório — "GOOGLE_DRIVE" | "ONEDRIVE" | "DROPBOX" (texto livre, mesmo padrão do resto do
@@ -899,6 +899,18 @@ model Task {
   licitacaoId String?
   licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
 
+  // Pasta própria desta demanda/tarefa DENTRO de uma Licitação —
+  // "Assessoria/{empresa}/Licitações/{nome da licitação}/{título da tarefa}", criada sob demanda
+  // no primeiro anexo (getOrCreateLicitacaoDemandaFolder). Só usado quando licitacaoId também
+  // está preenchido; Task de qualquer outra natureza (Processo, Atendimento, avulsa) nunca ganha
+  // pasta própria — o anexo dela, se algum dia existir, viveria na pasta do Case/Attendance.
+  driveFolderId String?
+
+  // Anexos desta tarefa específica — hoje só populado quando ela é uma demanda de Licitação (ver
+  // licitacaoId acima e Attachment.taskId). Nenhuma outra tela do produto tem upload no nível de
+  // Task ainda.
+  attachments Attachment[]
+
   // Lembrete de vencimento (type=PRAZO) criado junto com a conta em createInstallmentReminder
   // (lib/actions/financeiro.ts) — aponta pra exatamente uma das duas ou pra nenhuma (tarefa comum,
   // sem vínculo financeiro). onDelete: Cascade porque o lembrete não faz sentido sem a parcela que
@@ -1073,18 +1085,18 @@ model Mention {
 // ============ ATENDIMENTO (setor de atendimento / triagem) ============
 
 model Attendance {
-  id           String   @id @default(cuid())
-  clientName   String
-  contact      String? // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
-  contactPhone String? // telefone do contato, separado do e-mail (clientEmail abaixo)
+  id              String   @id @default(cuid())
+  clientName      String
+  contact         String? // legado: telefone/e-mail juntos em texto livre (formulários antigos, mantido sem migração destrutiva)
+  contactPhone    String? // telefone do contato, separado do e-mail (clientEmail abaixo)
   contactPhoneDdi String? // dígitos do código do país (ex.: "55") — ver components/PhoneInput.tsx
-  subject      String
-  area         String? // matéria
-  description  String? // descrição detalhada do que precisa
-  channel      String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
-  status       String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
-  notes        String?
-  createdAt    DateTime @default(now())
+  subject         String
+  area            String? // matéria
+  description     String? // descrição detalhada do que precisa
+  channel         String   @default("WHATSAPP") // WHATSAPP | EMAIL | TELEFONE | PRESENCIAL
+  status          String   @default("NOVO") // NOVO | EM_TRIAGEM | CONVERTIDO | ARQUIVADO | RASCUNHO
+  notes           String?
+  createdAt       DateTime @default(now())
 
   // Funil comercial (CRM de captação) — eixo independente do status operacional acima
   stage          String    @default("NOVO") // NOVO | QUALIFICACAO | PROPOSTA | FECHADO | PERDIDO
@@ -1273,10 +1285,18 @@ model Attachment {
   attendance   Attendance? @relation(fields: [attendanceId], references: [id])
 
   // Anexo de uma Licitação (aba Licitações da Assessoria) — mesmo padrão de caseId/attendanceId
-  // acima: coluna própria opcional, não FK genérica. O arquivo em si vive na pasta do Drive da
-  // Assessoria dona da licitação (Licitacao não tem pasta própria).
+  // acima: coluna própria opcional, não FK genérica. Documento GERAL da licitação (sem taskId
+  // abaixo) vive em Licitacao.driveFolderId; documento de uma demanda específica (com taskId)
+  // vive na subpasta própria dela, um nível mais fundo.
   licitacaoId String?
   licitacao   Licitacao? @relation(fields: [licitacaoId], references: [id])
+
+  // Escopa um Attachment de Licitação a UMA demanda/tarefa específica dela — opcional: sem
+  // taskId, o documento é "geral" da licitação (Licitacao.driveFolderId); com taskId, vive dentro
+  // da pasta própria daquela tarefa (Task.driveFolderId). Só usado hoje quando licitacaoId também
+  // está preenchido; Attachment de Processo/Atendimento nunca tem taskId.
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id])
 
   // Protocolos que REFERENCIAM este anexo (ver ProtocoloLoteItem) e protocolos dos quais este
   // anexo é o comprovante. Um mesmo documento pode entrar em vários protocolos sem nunca ser
@@ -2209,17 +2229,17 @@ model Assessoria {
   responsibleId String?
   responsible   User?   @relation("AssessoriaResponsible", fields: [responsibleId], references: [id])
 
-  documents       AssessoriaDocumento[]
-  honorarios      Honorario[]
-  licitacoes      Licitacao[]
-  cases           Case[]
-  attendances     Attendance[]
+  documents         AssessoriaDocumento[]
+  honorarios        Honorario[]
+  licitacoes        Licitacao[]
+  cases             Case[]
+  attendances       Attendance[]
   // Anotações pessoais (painel global "Anotações", chip "Assessoria") vinculadas a esta Assessoria.
-  anotacoes       Anotacao[]
+  anotacoes         Anotacao[]
   // Envios de documentos (E-mail/WhatsApp) desta assessoria — ver model DocumentoEnvio.
-  documentoEnvios DocumentoEnvio[]
+  documentoEnvios   DocumentoEnvio[]
   // Pareceres (pastas de documentos) desta assessoria — ver model Parecer mais abaixo.
-  pareceres       Parecer[]
+  pareceres         Parecer[]
   // Despesas recorrentes mensais vinculadas (ex.: repasse a um parceiro da assessoria) — ver
   // comentário em RecurringExpense.assessoriaId.
   recurringExpenses RecurringExpense[]
@@ -2343,6 +2363,14 @@ model Honorario {
 
 model Licitacao {
   id            String    @id @default(cuid())
+  // Nome de gestão, curto — o que aparece em lista/card/breadcrumb e vira o nome da pasta própria
+  // desta licitação no armazenamento (achado do dono do escritório, 05/09/2026: usar `objeto`,
+  // o texto integral do edital, como título/nome de pasta não é prático). Nullable só para não
+  // quebrar Licitacao já existentes antes desta entrega — scripts/backfill-licitacao-nome.ts
+  // preenche `nome = objeto` nelas; toda Licitacao NOVA exige o campo (validado em addLicitacao,
+  // lib/actions/assessoria.ts). `objeto` continua existindo tal e qual, sem mudar de sentido — é
+  // o dado jurídico (o que o edital pede), não o nome de gestão.
+  nome          String?
   objeto        String
   orgao         String
   modalidade    String?
@@ -2353,15 +2381,25 @@ model Licitacao {
   status        String    @default("EM_ANALISE") // EM_ANALISE | PARTICIPANDO | VENCEDORA | PERDIDA | CANCELADA
   createdAt     DateTime  @default(now())
 
+  // Pasta própria desta licitação no armazenamento — "Assessoria/{empresa}/Licitações/{nome}",
+  // criada sob demanda no primeiro anexo (getOrCreateLicitacaoFolder, lib/googleDrive.ts e
+  // espelhos). Antes desta entrega, Attachment.licitacaoId não tinha pasta própria nenhuma — o
+  // arquivo ia direto para a raiz de Assessoria.driveFolderId (ver comentário em
+  // Attachment.licitacaoId abaixo).
+  driveFolderId   String?
+  // Mesmo par de campos de Parecer.driveFolderId/storageProvider, e pelo mesmo motivo: um
+  // escritório pode trocar de provedor de armazenamento depois de a pasta já existir no antigo.
+  storageProvider String  @default("GOOGLE_DRIVE")
+
   officeId String
   office   Office @relation(fields: [officeId], references: [id])
 
   assessoriaId String
   assessoria   Assessoria @relation(fields: [assessoriaId], references: [id])
 
-  tasks       Task[]
-  attachments Attachment[]
-  comments    Comment[]
+  tasks           Task[]
+  attachments     Attachment[]
+  comments        Comment[]
   // Envios de documentos (E-mail/WhatsApp) desta licitação — ver model DocumentoEnvio.
   documentoEnvios DocumentoEnvio[]
 
@@ -2385,10 +2423,10 @@ model Publication {
   lawyerTag         String? // nome do advogado identificado pela OAB citada no conteúdo (ver Fase 4 — hoje regex hardcoded por escritório)
   createdAt         DateTime @default(now())
 
-  emailMessageId   String? @unique
-  emailAccount     String?
-  emailSubject     String?
-  processNumberRaw String?
+  emailMessageId    String? @unique
+  emailAccount      String?
+  emailSubject      String?
+  processNumberRaw  String?
   // Sigla do tribunal identificado a partir de processNumberRaw (ver lib/cnjTribunal.ts),
   // preenchido mesmo quando não há caseId — é o que permite mostrar "TJSP" etc. em publicações
   // ainda não vinculadas a um processo cadastrado (tela de Publicações, card "sem processo
@@ -2583,9 +2621,9 @@ model RoboAndamento {
   dataCaptura        DateTime @default(now()) @map("data_captura")
   statusLido         Boolean  @default(false) @map("status_lido")
 
+  @@unique([numeroProcesso, dataMovimentacao, codigoMovimento], name: "uq_andamento_processo_data_codigo")
   // Mesma justificativa de RoboPublicacao.statusLido acima.
   @@index([statusLido])
-  @@unique([numeroProcesso, dataMovimentacao, codigoMovimento], name: "uq_andamento_processo_data_codigo")
   @@map("andamentos")
 }
 

@@ -10,6 +10,8 @@ import {
   getOrCreateCaseFolder,
   getOrCreateAttendanceFolder,
   getOrCreateCategoryFolder,
+  getOrCreateLicitacaoFolder,
+  getOrCreateLicitacaoDemandaFolder,
   deleteDriveFile,
   type StorageProvider,
 } from "@/lib/storageProvider";
@@ -32,6 +34,7 @@ export async function createAttachment(data: {
   caseId?: string;
   attendanceId?: string;
   licitacaoId?: string;
+  taskId?: string;
 }): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
@@ -53,6 +56,12 @@ export async function createAttachment(data: {
     if (!l) return { error: "Licitação não encontrada." };
     licitacaoAssessoriaId = l.assessoriaId;
   }
+  // taskId só faz sentido junto de licitacaoId (demanda dentro de uma licitação) — precisa ser a
+  // MESMA licitação, senão um usuário poderia escopar o link a uma tarefa de outra licitação.
+  if (data.taskId) {
+    const t = await prisma.task.findFirst({ where: { id: data.taskId, officeId: user.officeId, licitacaoId: data.licitacaoId || undefined }, select: { id: true } });
+    if (!t) return { error: "Demanda não encontrada." };
+  }
 
   await prisma.attachment.create({
     data: {
@@ -62,6 +71,7 @@ export async function createAttachment(data: {
       caseId: data.caseId || null,
       attendanceId: data.attendanceId || null,
       licitacaoId: data.licitacaoId || null,
+      taskId: data.taskId || null,
       uploadedById: user.id,
       officeId: user.officeId,
     },
@@ -85,6 +95,7 @@ export async function finalizeAttachmentUpload(data: {
   caseId?: string;
   attendanceId?: string;
   licitacaoId?: string;
+  taskId?: string;
 }): Promise<{ id?: string; name?: string; driveUrl?: string; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão expirada. Faça login novamente." };
@@ -98,6 +109,7 @@ export async function finalizeAttachmentUpload(data: {
   const resolvedCaseId = data.caseId || null;
   const resolvedAttendanceId = data.attendanceId || null;
   const resolvedLicitacaoId = data.licitacaoId || null;
+  let resolvedTaskId: string | null = null;
   let licitacaoAssessoriaId: string | null = null;
 
   // Resolve a pasta de destino ANTES de tocar no arquivo — se isso falhar (Drive desconectado,
@@ -118,13 +130,27 @@ export async function finalizeAttachmentUpload(data: {
       const containerFolderId = await getOrCreateAttendanceFolder(resolvedAttendanceId, a.subject, user.officeId);
       targetFolderId = await getOrCreateCategoryFolder(containerFolderId, getDocumentTypeLabel(data.docType), user.officeId);
     } else if (resolvedLicitacaoId) {
-      // Licitação não tem pasta própria — o arquivo vai direto para a pasta da Assessoria dona
-      // dela (mesmo comportamento de um Documento de Assessoria sem Parecer, ver
-      // app/api/assessoria/documentos/upload/route.ts).
-      const l = await prisma.licitacao.findFirst({ where: { id: resolvedLicitacaoId, officeId: user.officeId }, select: { assessoriaId: true, assessoria: { select: { driveFolderId: true } } } });
+      // Correção de 05/09/2026 (docs/auditoria-pastas-drive-2026-09.md): antes, uma Licitação não
+      // tinha pasta própria — o arquivo ia direto pra pasta da Assessoria dona dela. Agora ganha
+      // pasta própria em Licitações/{nome} e, se vier taskId (documento de uma demanda
+      // específica), mais um nível: Licitações/{nome}/{título da demanda}.
+      const l = await prisma.licitacao.findFirst({
+        where: { id: resolvedLicitacaoId, officeId: user.officeId },
+        select: { nome: true, objeto: true, assessoriaId: true, assessoria: { select: { client: { select: { name: true } } } } },
+      });
       if (!l) return { error: "Licitação não encontrada." };
       licitacaoAssessoriaId = l.assessoriaId;
-      targetFolderId = l.assessoria.driveFolderId;
+      const licitacaoNome = l.nome || l.objeto;
+      const companyName = l.assessoria.client.name;
+
+      if (data.taskId) {
+        const t = await prisma.task.findFirst({ where: { id: data.taskId, officeId: user.officeId, licitacaoId: resolvedLicitacaoId }, select: { id: true, title: true } });
+        if (!t) return { error: "Demanda não encontrada." };
+        resolvedTaskId = t.id;
+        targetFolderId = await getOrCreateLicitacaoDemandaFolder(t.id, resolvedLicitacaoId, companyName, licitacaoNome, t.title, user.officeId);
+      } else {
+        targetFolderId = await getOrCreateLicitacaoFolder(resolvedLicitacaoId, companyName, licitacaoNome, user.officeId);
+      }
     }
   } catch (e) {
     console.error("[finalizeAttachmentUpload] falha ao resolver pasta de destino:", e);
@@ -155,6 +181,7 @@ export async function finalizeAttachmentUpload(data: {
         caseId: resolvedCaseId,
         attendanceId: resolvedAttendanceId,
         licitacaoId: resolvedLicitacaoId,
+        taskId: resolvedTaskId,
         uploadedById: user.id,
         storageProvider: result.storageProvider,
         storageFileId: result.id,

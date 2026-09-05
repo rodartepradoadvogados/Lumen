@@ -35,6 +35,7 @@ export default function AttachmentList({
   caseId,
   attendanceId,
   licitacaoId,
+  taskId,
   driveConnected,
   tribunais = [],
 }: {
@@ -42,6 +43,9 @@ export default function AttachmentList({
   caseId?: string;
   attendanceId?: string;
   licitacaoId?: string;
+  // Escopa o upload a UMA demanda (Task) dentro da licitação — sempre acompanhado de licitacaoId;
+  // ver Attachment.taskId. Sem isso, o documento é "geral" da licitação.
+  taskId?: string;
   driveConnected: boolean;
   // Catálogo de tribunais para o pop-up "vincular a tribunal superior?" (ver
   // components/processo/RecursoEscalaPrompt.tsx) — só faz sentido para anexo de Processo
@@ -139,6 +143,7 @@ export default function AttachmentList({
         caseId,
         attendanceId,
         licitacaoId,
+        taskId,
       });
 
       if (result.error) {
@@ -174,6 +179,7 @@ export default function AttachmentList({
         caseId,
         attendanceId,
         licitacaoId,
+        taskId,
       });
       if (result.error) {
         setError(result.error);
