@@ -140,7 +140,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             {assessoria.licitacoes.map((l) => (
               <div key={l.id} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-tx truncate">{l.objeto}</p>
+                  <p className="text-sm font-medium text-tx truncate">{l.nome || l.objeto}</p>
                   <Badge color={licitacaoStatusColors[l.status] || "slate"}>{licitacaoStatusLabels[l.status] || l.status}</Badge>
                 </div>
                 <p className="text-xs text-tx-2 mt-0.5">

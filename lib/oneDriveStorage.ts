@@ -276,6 +276,41 @@ export async function getOrCreateCategoryFolder(parentFolderId: string, category
   return getOrCreateChildFolder(parentFolderId, categoryLabel, officeId);
 }
 
+// Pasta de uma Licitação (ver model Licitacao, prisma/schema.prisma) em
+// "Lúmen/Lúmen - Assessoria/{empresa}/Licitações/{nome da licitação}" — mesmo padrão de cache do
+// lado Google (getOrCreateLicitacaoFolder em lib/googleDrive.ts). Correção de 05/09/2026: antes,
+// Attachment.licitacaoId não tinha pasta própria (ia direto pra raiz da pasta da empresa).
+export async function getOrCreateLicitacaoFolder(licitacaoId: string, companyName: string, licitacaoNome: string, officeId: string): Promise<string> {
+  const existing = await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) return existing.driveFolderId;
+
+  const rootId = await getOrCreateNamedRootFolder("assessoria", officeId);
+  const companyFolderId = await getOrCreateChildFolder(rootId, companyName, officeId);
+  const licitacoesFolderId = await getOrCreateChildFolder(companyFolderId, ASSESSORIA_DOC_TYPE_FOLDERS.LICITACAO, officeId);
+  const folderId = await getOrCreateChildFolder(licitacoesFolderId, licitacaoNome, officeId);
+  await prisma.licitacao.updateMany({ where: { id: licitacaoId, officeId }, data: { driveFolderId: folderId, storageProvider: "ONEDRIVE" } });
+  return folderId;
+}
+
+// Subpasta de UMA demanda/tarefa dentro da pasta própria da Licitação — mesmo padrão do lado
+// Google (getOrCreateLicitacaoDemandaFolder em lib/googleDrive.ts).
+export async function getOrCreateLicitacaoDemandaFolder(
+  taskId: string,
+  licitacaoId: string,
+  companyName: string,
+  licitacaoNome: string,
+  demandaNome: string,
+  officeId: string
+): Promise<string> {
+  const existing = await prisma.task.findFirst({ where: { id: taskId, officeId }, select: { driveFolderId: true } });
+  if (existing?.driveFolderId) return existing.driveFolderId;
+
+  const licitacaoFolderId = await getOrCreateLicitacaoFolder(licitacaoId, companyName, licitacaoNome, officeId);
+  const folderId = await getOrCreateChildFolder(licitacaoFolderId, demandaNome, officeId);
+  await prisma.task.updateMany({ where: { id: taskId, officeId }, data: { driveFolderId: folderId } });
+  return folderId;
+}
+
 async function uploadBufferToFolder(
   fileName: string,
   mimeType: string,

@@ -10,6 +10,8 @@ import {
   getOrCreateCategoryFolder,
   getOrCreateAssessoriaCompanyFolder,
   getOrCreateParecerFolder,
+  getOrCreateLicitacaoFolder,
+  getOrCreateLicitacaoDemandaFolder,
   moveDriveFile,
 } from "@/lib/storageProvider";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
@@ -28,25 +30,49 @@ export type ReorgPlanItem = {
 export type ReorgPlan = { itens: ReorgPlanItem[]; naoMovivel: number } | { error: string };
 
 async function resolverDestinoAttachment(
-  att: { id: string; name: string; docType: string; driveUrl: string; case: { id: string; title: string } | null; attendance: { id: string; subject: string } | null },
+  att: {
+    id: string;
+    name: string;
+    docType: string;
+    driveUrl: string;
+    storageFileId: string | null;
+    taskId: string | null;
+    case: { id: string; title: string } | null;
+    attendance: { id: string; subject: string } | null;
+    licitacao: { id: string; nome: string | null; objeto: string; assessoria: { client: { name: string } } } | null;
+    task: { id: string; title: string } | null;
+  },
   officeId: string
 ): Promise<{ fileId: string; targetFolderId: string; destino: string } | null> {
-  const fileId = extractDriveFileId(att.driveUrl);
+  // Correção de 05/09/2026 (docs/auditoria-pastas-drive-2026-09.md, achado P0): Attachment de
+  // Licitação usa storageFileId — extractDriveFileId (regex de URL do Google) nunca funcionou
+  // para quem já enviou pelo Drive novo (URLs não têm mais o id no formato antigo) nem para
+  // OneDrive/Dropbox. Tenta storageFileId primeiro, cai pro regex só pra Attachment bem antigo.
+  const fileId = att.storageFileId || extractDriveFileId(att.driveUrl);
   if (!fileId) return null;
-  let containerFolderId: string;
-  let containerLabel: string;
   if (att.case) {
-    containerFolderId = await getOrCreateCaseFolder(att.case.id, att.case.title, officeId);
-    containerLabel = att.case.title;
-  } else if (att.attendance) {
-    containerFolderId = await getOrCreateAttendanceFolder(att.attendance.id, att.attendance.subject, officeId);
-    containerLabel = att.attendance.subject;
-  } else {
-    return null;
+    const containerFolderId = await getOrCreateCaseFolder(att.case.id, att.case.title, officeId);
+    const categoryLabel = getDocumentTypeLabel(att.docType);
+    const targetFolderId = await getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId);
+    return { fileId, targetFolderId, destino: `${att.case.title} → ${categoryLabel}` };
   }
-  const categoryLabel = getDocumentTypeLabel(att.docType);
-  const targetFolderId = await getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId);
-  return { fileId, targetFolderId, destino: `${containerLabel} → ${categoryLabel}` };
+  if (att.attendance) {
+    const containerFolderId = await getOrCreateAttendanceFolder(att.attendance.id, att.attendance.subject, officeId);
+    const categoryLabel = getDocumentTypeLabel(att.docType);
+    const targetFolderId = await getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId);
+    return { fileId, targetFolderId, destino: `${att.attendance.subject} → ${categoryLabel}` };
+  }
+  if (att.licitacao) {
+    const companyName = att.licitacao.assessoria.client.name;
+    const licitacaoNome = att.licitacao.nome || att.licitacao.objeto;
+    if (att.task) {
+      const targetFolderId = await getOrCreateLicitacaoDemandaFolder(att.task.id, att.licitacao.id, companyName, licitacaoNome, att.task.title, officeId);
+      return { fileId, targetFolderId, destino: `${companyName} → Licitações → ${licitacaoNome} → ${att.task.title}` };
+    }
+    const targetFolderId = await getOrCreateLicitacaoFolder(att.licitacao.id, companyName, licitacaoNome, officeId);
+    return { fileId, targetFolderId, destino: `${companyName} → Licitações → ${licitacaoNome}` };
+  }
+  return null;
 }
 
 async function resolverDestinoAssessoriaDocumento(
@@ -93,8 +119,13 @@ export async function planoReorganizacao(): Promise<ReorgPlan> {
 
   const [attachments, documentos] = await Promise.all([
     prisma.attachment.findMany({
-      where: { officeId, OR: [{ caseId: { not: null } }, { attendanceId: { not: null } }] },
-      include: { case: { select: { id: true, title: true } }, attendance: { select: { id: true, subject: true } } },
+      where: { officeId, OR: [{ caseId: { not: null } }, { attendanceId: { not: null } }, { licitacaoId: { not: null } }] },
+      include: {
+        case: { select: { id: true, title: true } },
+        attendance: { select: { id: true, subject: true } },
+        licitacao: { select: { id: true, nome: true, objeto: true, assessoria: { select: { client: { select: { name: true } } } } } },
+        task: { select: { id: true, title: true } },
+      },
     }),
     prisma.assessoriaDocumento.findMany({
       where: { officeId },

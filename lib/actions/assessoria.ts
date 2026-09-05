@@ -158,7 +158,18 @@ export async function getAssessoriaDetail(id: string) {
       licitacoes: {
         orderBy: { createdAt: "desc" },
         include: {
-          tasks: { include: { responsible: true }, orderBy: { dueDate: "asc" } },
+          tasks: {
+            include: {
+              responsible: true,
+              // Documentos de UMA demanda específica desta licitação (ver Attachment.taskId) —
+              // exibidos dentro do próprio card da tarefa em AssessoriaLicitacoesTab.tsx,
+              // separados dos documentos gerais da licitação (attachments logo abaixo, sem taskId).
+              attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
+            },
+            orderBy: { dueDate: "asc" },
+          },
+          // Documentos GERAIS da licitação — a UI filtra os que também têm taskId (esses aparecem
+          // só dentro da demanda deles, não aqui, ver AssessoriaLicitacoesTab.tsx).
           attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
           comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
           // Histórico do botão "Enviar E-mail/WhatsApp" desta licitação — mesmo padrão do
@@ -468,6 +479,7 @@ export async function deleteParecer(id: string): Promise<{ error?: string }> {
 export async function addLicitacao(
   assessoriaId: string,
   data: {
+    nome: string;
     objeto: string;
     orgao: string;
     modalidade?: string;
@@ -479,6 +491,7 @@ export async function addLicitacao(
 ): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
+  if (!data.nome.trim()) return { error: "Preencha o nome da licitação." };
   if (!data.objeto.trim() || !data.orgao.trim()) return { error: "Preencha ao menos o objeto e o órgão." };
 
   const assessoria = await prisma.assessoria.findFirst({ where: { id: assessoriaId, officeId: user.officeId } });
@@ -488,6 +501,7 @@ export async function addLicitacao(
     data: {
       officeId: assessoria.officeId,
       assessoriaId,
+      nome: data.nome.trim(),
       objeto: data.objeto.trim(),
       orgao: data.orgao.trim(),
       modalidade: data.modalidade || null,
@@ -497,6 +511,10 @@ export async function addLicitacao(
       editalUrl: data.editalUrl || null,
     },
   });
+  // Não cria a pasta aqui de propósito (mesmo raciocínio de createParecer/createAssessoria) —
+  // getOrCreateLicitacaoFolder é chamada de novo, idempotente, no primeiro anexo
+  // (finalizeAttachmentUpload, lib/actions/attachments.ts), sem bloquear o cadastro se o Drive
+  // estiver desconectado ou a chamada falhar.
   revalidatePath(`/assessoria/${assessoriaId}`);
   return {};
 }
