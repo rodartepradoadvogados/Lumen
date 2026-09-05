@@ -331,10 +331,29 @@ export async function updateCase(
 
   const existing = await prisma.case.findFirst({
     where: { id: caseId, officeId: viewer.officeId },
-    select: { id: true, title: true, driveFolderId: true, type: true },
+    select: { id: true, title: true, driveFolderId: true, type: true, caseValue: true, convictionValue: true, economicBenefitValue: true },
   });
   if (!existing) return { error: "Processo não encontrado." };
   const isAdministrativo = (data.type || existing.type) === "ADMINISTRATIVO";
+
+  // SEGURANÇA (achado V2, auditoria de 05/09/2026): caseValue/convictionValue/
+  // economicBenefitValue são exatamente as "bases" que createHonorarioLancamento usa para
+  // calcular o valor devido pelo cliente num honorário percentual (ver lib/actions/apuracao.ts,
+  // lib/honorarioLancamento.ts) — sem este gate, qualquer usuário com acesso normal de editar o
+  // cadastro do processo (não precisa de financeAccess) poderia inflar/reduzir esses valores e
+  // afetar quanto o financeiro cobra do cliente depois. O fluxo pensado para alterar essas bases
+  // depois de definidas é apurarHonorario (exige acesso financeiro) — updateCase (edição de
+  // cadastro) não deveria poder mexer nelas por trás.
+  const novoCaseValue = data.caseValue ? parseFloat(data.caseValue) : null;
+  const novoConvictionValue = data.convictionValue ? parseFloat(data.convictionValue) : null;
+  const novoEconomicBenefitValue = data.economicBenefitValue ? parseFloat(data.economicBenefitValue) : null;
+  const mudouBaseFinanceira =
+    novoCaseValue !== existing.caseValue ||
+    novoConvictionValue !== existing.convictionValue ||
+    novoEconomicBenefitValue !== existing.economicBenefitValue;
+  if (mudouBaseFinanceira && !viewer.isAdmin && !viewer.financeAccess) {
+    return { error: "Alterar valor da causa, da condenação ou do proveito econômico exige acesso ao Financeiro." };
+  }
 
   let resolvedClients: { id: string; name: string; role: string | null }[];
   let resolvedParties: PartyInput[];
@@ -377,9 +396,9 @@ export async function updateCase(
       opposingPartyAddress: primaryParty?.address || null,
       responsibleId: data.responsibleId || null,
       court: data.court || null,
-      caseValue: data.caseValue ? parseFloat(data.caseValue) : null,
-      convictionValue: data.convictionValue ? parseFloat(data.convictionValue) : null,
-      economicBenefitValue: data.economicBenefitValue ? parseFloat(data.economicBenefitValue) : null,
+      caseValue: novoCaseValue,
+      convictionValue: novoConvictionValue,
+      economicBenefitValue: novoEconomicBenefitValue,
       tribunalSigla: data.tribunalSigla || null,
       tribunalNome: data.tribunalNome || null,
       tribunalSistema: data.tribunalSistema || null,

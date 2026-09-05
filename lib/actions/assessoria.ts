@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder, deleteDriveFile, type StorageProvider } from "@/lib/storageProvider";
 import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
 import { syncReceivableStatus } from "@/lib/actions/financeiro";
+import { valorLiquido } from "@/lib/financeCalc";
 import { isUserInOffice, isCaseInOffice } from "@/lib/officeScope";
 import { getOfficeModules } from "@/lib/officeModules";
 
@@ -547,6 +548,10 @@ export async function addLicitacaoTask(
 // ativa mas sem Financeiro contratado precisa continuar conseguindo baixar a própria mensalidade.
 // Mesma checagem de acesso das demais Server Actions deste arquivo (sessão + officeId — o gate de
 // moduloAssessoria já vive no layout da rota, não repetido tela a tela aqui).
+// SEGURANÇA (achado V1, auditoria de 05/09/2026 — corrida de pagamento duplicado): mesmo lock de
+// linha de markPayablePaid/markReceivablePaid (lib/actions/financeiro.ts) — sem ele, duas
+// chamadas concorrentes (duplo clique, duas abas) liam o mesmo saldo antes de qualquer uma
+// escrever e criavam dois FinancePayment para a mesma mensalidade.
 export async function markHonorarioPaid(honorarioId: string, paidAmount: number, paidDate: string): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
@@ -555,12 +560,28 @@ export async function markHonorarioPaid(honorarioId: string, paidAmount: number,
   // Tombstone de mensalidade cancelada (receivableId null, ver model Honorario) — não deveria
   // ser alcançável pela UI (getAssessoriaDetail já filtra), mas defende contra chamada direta.
   if (!honorario.receivableId) return { error: "Esta mensalidade foi cancelada." };
-  const receivable = await prisma.receivable.findFirst({ where: { id: honorario.receivableId, officeId: user.officeId }, select: { id: true } });
-  if (!receivable) return { error: "Conta a receber não encontrada." };
-  await prisma.financePayment.create({
-    data: { officeId: user.officeId, amount: paidAmount, paidDate: new Date(paidDate), receivableId: receivable.id },
-  });
-  await syncReceivableStatus(receivable.id, user.officeId);
+  const receivableId = honorario.receivableId;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Receivable" WHERE id = ${receivableId} AND "officeId" = ${user.officeId} FOR UPDATE`;
+      if (locked.length === 0) throw new Error("Conta a receber não encontrada.");
+      const receivable = await tx.receivable.findFirstOrThrow({ where: { id: receivableId, officeId: user.officeId }, select: { amount: true, discount: true, surcharge: true } });
+      const pagos = await tx.financePayment.aggregate({ where: { receivableId }, _sum: { amount: true } });
+      const soma = pagos._sum.amount ?? 0;
+      const saldo = valorLiquido(receivable.amount, receivable.discount, receivable.surcharge) - soma;
+      if (saldo <= 0.005) throw new Error("Esta mensalidade já foi quitada (baixa duplicada recusada).");
+      if (paidAmount > saldo + 0.005) throw new Error(`Valor informado (${paidAmount.toFixed(2)}) é maior que o saldo em aberto (${saldo.toFixed(2)}).`);
+
+      await tx.financePayment.create({
+        data: { officeId: user.officeId, amount: paidAmount, paidDate: new Date(paidDate), receivableId },
+      });
+      await syncReceivableStatus(receivableId, user.officeId, tx);
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erro ao confirmar a baixa." };
+  }
+
   // Mesma lista de revalidatePath de revalidateFinance() em lib/actions/financeiro.ts — não
   // importável direto (não é async, "use server" só permite exportar async), então repetida
   // aqui como lib/actions/honorarioLancamento.ts já faz.
