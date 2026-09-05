@@ -218,21 +218,28 @@ export async function submitPublicationDistribution(
         ? `Publicação — ${pub.processNumberRaw}`
         : "Publicação sem processo vinculado";
 
-    for (const userId of item.userIds) {
-      const result = await delegateTask({
-        responsibleIds: [userId],
-        type: "PRAZO",
-        title,
-        dueDate: item.dueDate,
-        priority: "MEDIA",
-        caseId: pub.caseId || undefined,
-        publicationId: pub.id,
-      });
-      const taskId = result.taskIds?.[0];
-      if (result.error || !taskId) continue;
-      if (!item.requireConfirmation) await acknowledgeDelegation(taskId);
-      created++;
+    // Uma única chamada de delegateTask para TODOS os advogados selecionados desta publicação
+    // (não uma por usuário) — achado V7 (auditoria de 05/09/2026): delegateTask agora reivindica
+    // a publicação (compare-and-swap em assignedToId) uma vez por chamada, antes de criar
+    // qualquer Task; chamar uma vez por usuário faria só o primeiro "vencer" a reivindicação e os
+    // demais seriam recusados como "já atribuída", perdendo a tarefa deles. Em uma chamada só,
+    // a reivindicação acontece uma vez e todos os responsibleIds recebem sua Task normalmente —
+    // exatamente o comportamento de sempre (só o primeiro da lista fica como "dono" formal da
+    // publicação, mas todos os selecionados são notificados e ganham compromisso).
+    const result = await delegateTask({
+      responsibleIds: item.userIds,
+      type: "PRAZO",
+      title,
+      dueDate: item.dueDate,
+      priority: "MEDIA",
+      caseId: pub.caseId || undefined,
+      publicationId: pub.id,
+    });
+    if (result.error || !result.taskIds?.length) continue;
+    if (!item.requireConfirmation) {
+      await Promise.all(result.taskIds.map((taskId) => acknowledgeDelegation(taskId)));
     }
+    created += result.taskIds.length;
   }
 
   revalidatePath("/publicacoes");

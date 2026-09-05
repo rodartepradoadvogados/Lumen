@@ -66,19 +66,28 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
       }),
       // Candidatos p/ nº de processo (ex.: "5027823-91") e p/ nome tolerante a acento/pontuação
       // (ex.: "edina", "jose-carlos") — mesma consulta serve às duas comparações abaixo.
+      //
+      // SEGURANÇA (achado V8, auditoria de 05/09/2026): as 4 consultas de candidatos abaixo
+      // varriam TODO registro do escritório (sem take nenhum) a cada chamada — e globalSearch
+      // roda a cada tecla digitada na busca do TopBar. `take: 1000` limita o pior caso sem afetar
+      // nenhum escritório real hoje (bem acima do volume atual), evitando que uma sessão
+      // autenticada disparando buscas repetidas amplifique o custo contra o pool de conexão do
+      // banco.
       prisma.case.findMany({
         where: { officeId },
         select: { id: true, title: true, processNumber: true, opposingPartyName: true, type: true },
+        take: 1000,
       }),
       normalizedQuery
         ? prisma.publication.findMany({
             where: { officeId, processNumberRaw: { not: null } },
             select: { id: true, content: true, processNumberRaw: true, source: true },
             orderBy: { publishedAt: "desc" },
+            take: 1000,
           })
         : Promise.resolve([]),
-      prisma.client.findMany({ where: { officeId }, select: { id: true, name: true, document: true, type: true } }),
-      prisma.attendance.findMany({ where: { officeId }, select: { id: true, clientName: true, subject: true } }),
+      prisma.client.findMany({ where: { officeId }, select: { id: true, name: true, document: true, type: true }, take: 1000 }),
+      prisma.attendance.findMany({ where: { officeId }, select: { id: true, clientName: true, subject: true }, take: 1000 }),
     ]);
 
   for (const c of caseCandidates) {

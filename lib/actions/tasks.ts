@@ -171,6 +171,24 @@ export async function delegateTask(data: {
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return { error: "Processo não encontrado." };
   if (data.attendanceId && !(await isAttendanceInOffice(data.attendanceId, viewer.officeId))) return { error: "Atendimento não encontrado." };
 
+  // SEGURANÇA (achado V7, auditoria de 05/09/2026): reivindica a publicação ANTES de criar
+  // qualquer Task — compare-and-swap (assignedToId: null na condição), não um updateMany
+  // incondicional depois. Sem isso, duas delegações quase simultâneas para a mesma publicação
+  // (ex.: "Distribuir pendentes" em lote cruzando com alguém clicando "Delegar" nela) liam
+  // assignedToId ainda null nas duas, e cada uma criava sua própria Task — duas pessoas com
+  // compromisso ativo para a mesma publicação, e só a última escrita de assignedToId "vencia"
+  // silenciosamente. Fazer a reivindicação primeiro, e só criar a(s) Task(s) se ela realmente
+  // aconteceu, evita a Task órfã que sobraria se o check viesse depois da criação.
+  if (data.publicationId) {
+    const { count } = await prisma.publication.updateMany({
+      where: { id: data.publicationId, officeId: viewer.officeId, assignedToId: null },
+      data: { assignedToId: responsibleIds[0] },
+    });
+    if (count === 0) {
+      return { error: "Esta publicação já foi atribuída a outra pessoa." };
+    }
+  }
+
   const firstColumn = await prisma.kanbanColumn.findFirst({ where: { officeId: viewer.officeId }, orderBy: { order: "asc" } });
 
   const typePoints = await prisma.taskTypePoints.findUnique({ where: { officeId_type: { officeId: viewer.officeId, type: data.type } } });
@@ -221,7 +239,8 @@ export async function delegateTask(data: {
   }
 
   if (data.publicationId) {
-    await prisma.publication.updateMany({ where: { id: data.publicationId, officeId: viewer.officeId }, data: { assignedToId: responsibleIds[0] } });
+    // assignedToId já foi gravado pela reivindicação (compare-and-swap) lá em cima — aqui só
+    // resolve o grupo, já com a publicação atribuída de fato.
     // Compromisso criado (prazo, audiência ou tarefa delegada) = alguém ASSUMIU. A partir daqui a
     // publicação sai da fila do escritório inteiro, não só de quem clicou — ver
     // lib/publicationResolution.ts para a regra e para o motivo de ela valer só neste caminho
