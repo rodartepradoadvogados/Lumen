@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { Card, EmptyState, formatDate } from "@/components/ui";
 import { getDocumentTypeIcon, getDocumentTypeLabel, isEmpresaDocumentType } from "@/lib/documentTypes";
 import MobileDocumentUpload from "@/components/mobile/MobileDocumentUpload";
 import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
-import { ChevronDown, ExternalLink, FolderOpen, Building2 } from "lucide-react";
+import { ChevronRight, ExternalLink, FolderOpen, Building2, Plus } from "lucide-react";
 
 type DocumentoItem = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
 
@@ -86,18 +87,37 @@ export default function MobileAssessoriaDocumentsSection({
             </div>
           )}
 
-          <div className="divide-y divide-regua">
-            {pareceres.map((p) => (
-              <ParecerFolderMobileRow
-                key={p.id}
-                parecer={p}
-                assessoriaId={assessoriaId}
-                storageConnected={storageConnected}
-                storageMessage={storageMessage}
-              />
-            ))}
+          <div className="border-b border-regua">
+            <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-2">Demandas</p>
+              <Link href={`/m/assessoria/${assessoriaId}/pareceres/nova`} className="flex items-center gap-1 text-[11px] font-semibold text-acao shrink-0">
+                <Plus size={11} /> Nova
+              </Link>
+            </div>
+            {pareceres.length === 0 ? (
+              <p className="px-4 pb-3 text-xs text-tx-3">Nenhuma demanda cadastrada ainda.</p>
+            ) : (
+              <div className="divide-y divide-regua">
+                {pareceres.map((p) => (
+                  <Link key={p.id} href={`/m/assessoria/${assessoriaId}/pareceres/${p.id}`} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <span className="flex items-center gap-2 min-w-0">
+                      <FolderOpen size={15} className="shrink-0 text-marca-tx" />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-tx truncate">{p.name}</span>
+                        <span className="block text-xs text-tx-2">
+                          {p.documents.length} documento{p.documents.length === 1 ? "" : "s"} · {formatDate(p.date)}
+                        </span>
+                      </span>
+                    </span>
+                    <ChevronRight size={16} className="shrink-0 text-tx-3" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {soltos.length > 0 && pareceres.length > 0 && (
+          <div className="divide-y divide-regua">
+            {soltos.length > 0 && (
               <p className="px-4 pt-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-tx-2">
                 Sem pasta
               </p>
@@ -114,56 +134,6 @@ export default function MobileAssessoriaDocumentsSection({
         </>
       )}
     </Card>
-  );
-}
-
-// Uma linha "pasta" de Parecer, recolhível via <details>/<summary> nativo — mesmo padrão de
-// components/mobile/MobileSecaoLancamento.tsx. Precisa de "use client" só no widget de envio
-// embutido (MobileDocumentUpload) — a listagem em si continua toda vinda do servidor.
-function ParecerFolderMobileRow({
-  parecer,
-  assessoriaId,
-  storageConnected,
-  storageMessage,
-}: {
-  parecer: ParecerFolder;
-  assessoriaId: string;
-  storageConnected: boolean;
-  storageMessage?: string;
-}) {
-  return (
-    <details className="group">
-      <summary className="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-sf-apoio">
-        <span className="flex items-center gap-2 min-w-0">
-          <FolderOpen size={16} className="shrink-0 text-marca-tx" />
-          <span className="min-w-0">
-            <span className="block text-sm font-medium text-tx truncate">{parecer.name}</span>
-            <span className="block text-xs text-tx-2">
-              {parecer.documents.length} documento{parecer.documents.length === 1 ? "" : "s"} · {formatDate(parecer.date)}
-            </span>
-          </span>
-        </span>
-        <ChevronDown size={16} className="shrink-0 text-tx-3 transition-transform group-open:rotate-180" />
-      </summary>
-
-      <div className="px-4 pb-3 pt-0.5 bg-sf-apoio space-y-2">
-        {parecer.description && <p className="text-xs text-tx-2 whitespace-pre-wrap py-2">{parecer.description}</p>}
-        {parecer.documents.length === 0 ? (
-          <p className="text-xs text-tx-2 py-2">Nenhum documento dentro desta demanda ainda.</p>
-        ) : (
-          <div className="divide-y divide-regua">
-            {parecer.documents.map((d) => (
-              <DocumentoRow key={d.id} doc={d} indent />
-            ))}
-          </div>
-        )}
-        {storageConnected ? (
-          <MobileDocumentUpload assessoriaId={assessoriaId} parecerId={parecer.id} />
-        ) : (
-          <StorageDisconnectedNotice message={storageMessage} />
-        )}
-      </div>
-    </details>
   );
 }
 
