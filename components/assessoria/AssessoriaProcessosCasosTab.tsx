@@ -1,18 +1,35 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setCaseAssessoria, createParecer, retryParecerDriveFolder, type getAssessoriaDetail } from "@/lib/actions/assessoria";
+import { setCaseAssessoria, createParecer, type getAssessoriaDetail } from "@/lib/actions/assessoria";
 import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
-import { Plus, Search, ExternalLink, Link2, X } from "lucide-react";
+import { Plus, Search, ExternalLink, Link2, X, ChevronRight, ArrowRight } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
-import ParecerFolderRow from "@/components/assessoria/ParecerFolderRow";
+import ParecerCard from "@/components/assessoria/ParecerCard";
 import ParecerSoltoRow from "@/components/assessoria/ParecerSoltoRow";
-import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
 import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 import { SORT_OPTIONS_SEM_TIPO, sortByOption, type SortOption } from "@/lib/attachmentControls";
+import CaseQuickViewButton from "@/components/CaseQuickViewButton";
+import SlideDrawer from "@/components/motion/SlideDrawer";
+import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
+import { stageLabels } from "@/lib/funil";
+
+const attendanceStatusColors: Record<string, "green" | "slate" | "bordo" | "amber" | "blue"> = {
+  NOVO: "blue",
+  EM_TRIAGEM: "amber",
+  CONVERTIDO: "green",
+  ARQUIVADO: "slate",
+  RASCUNHO: "slate",
+};
+const channelLabels: Record<string, string> = {
+  WHATSAPP: "WhatsApp",
+  EMAIL: "E-mail",
+  TELEFONE: "Telefone",
+  PRESENCIAL: "Presencial",
+};
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 type CaseOption = { id: string; title: string; processNumber: string | null };
@@ -52,6 +69,11 @@ export default function AssessoriaProcessosCasosTab({
   const [parecerFormOpen, setParecerFormOpen] = useState(false);
   const [parecerError, setParecerError] = useState<string | null>(null);
   const [parecerPending, startParecerTransition] = useTransition();
+
+  // Ficha rápida de um "Caso vinculado" (Atendimento) — mesmo modelo de card + gaveta suspensa da
+  // aba Licitações, usando campos já carregados por getAssessoriaDetail (sem action nova).
+  const [openAttendanceId, setOpenAttendanceId] = useState<string | null>(null);
+  const openAttendance = assessoria.linkedAttendances.find((a) => a.id === openAttendanceId) || null;
 
   // Pareceres antigos, cadastrados ANTES de Parecer virar pasta (docType="PARECER" com um único
   // arquivo, ver migração no schema): continuam com parecerId nulo até o backfill rodar (ver
@@ -222,19 +244,7 @@ export default function AssessoriaProcessosCasosTab({
         ) : (
           <div className="space-y-2">
             {pareceresOrdenados.map((p) => (
-              <div key={p.id} className="space-y-1.5">
-                <ParecerFolderRow parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} storageMessage={storageMessage} />
-                {/* driveFolderId nulo com o armazenamento conectado só acontece se a criação da
-                    pasta falhou silenciosamente (bug corrigido na Tarefa C, ver createParecer em
-                    lib/actions/assessoria.ts) — o upload de documento tenta de novo sozinho, mas
-                    até lá a demanda fica visivelmente sem pasta. */}
-                {driveConnected && !p.driveFolderId && (
-                  <DriveFolderMissingNotice
-                    message={`A demanda "${p.name}" ainda não tem pasta no armazenamento em nuvem.`}
-                    retry={retryParecerDriveFolder.bind(null, p.id)}
-                  />
-                )}
-              </div>
+              <ParecerCard key={p.id} parecer={p} assessoriaId={assessoria.id} driveConnected={driveConnected} storageMessage={storageMessage} />
             ))}
 
             {/* Pareceres antigos (um arquivo = um parecer), ainda sem pasta — ver comentário em
@@ -277,16 +287,39 @@ export default function AssessoriaProcessosCasosTab({
         {assessoria.linkedCases.length === 0 ? (
           <p className="text-sm text-tx-3">Nenhum processo vinculado a esta empresa ainda.</p>
         ) : (
-          <div className="divide-y divide-regua">
+          <div className="flex flex-col gap-2">
             {assessoria.linkedCases.map((c) => (
-              <Link
+              <CaseQuickViewButton
                 key={c.id}
-                href={`/processos/${c.id}`}
-                className="flex justify-between gap-3 py-2 text-sm hover:bg-sf-apoio -mx-1 px-1 rounded"
-              >
-                <span className="font-medium text-tx underline decoration-tx/20">{c.title}</span>
-                <Badge color={caseStatusColors[c.status] || "slate"}>{caseStatusLabels[c.status] || c.status}</Badge>
-              </Link>
+                caseId={c.id}
+                caseTitle={c.title}
+                trigger={(open) => (
+                  <button
+                    type="button"
+                    onClick={open}
+                    className="w-full text-left border border-regua rounded-lg bg-sf p-3.5 hover:border-regua-forte transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-semibold text-tx text-[14px] truncate">{c.title}</p>
+                      <ChevronRight size={16} className="text-tx-3 shrink-0 mt-0.5" />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 mt-2">
+                      <div>
+                        <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Número</p>
+                        <p className="text-[12.5px] text-tx truncate">{c.processNumber || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Atualizado em</p>
+                        <p className="text-[12.5px] text-tx tabular-nums">{formatDate(c.updatedAt)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
+                        <Badge color={caseStatusColors[c.status] || "slate"}>{caseStatusLabels[c.status] || c.status}</Badge>
+                      </div>
+                    </div>
+                  </button>
+                )}
+              />
             ))}
           </div>
         )}
@@ -309,16 +342,37 @@ export default function AssessoriaProcessosCasosTab({
         {assessoria.linkedAttendances.length === 0 ? (
           <p className="text-sm text-tx-3">Nenhum atendimento vinculado a esta assessoria ainda.</p>
         ) : (
-          <div className="divide-y divide-regua">
+          <div className="flex flex-col gap-2">
             {assessoria.linkedAttendances.map((a) => (
-              <Link
+              <button
                 key={a.id}
-                href={`/atendimento/${a.id}`}
-                className="flex justify-between gap-3 py-2 text-sm hover:bg-sf-apoio -mx-1 px-1 rounded"
+                type="button"
+                onClick={() => setOpenAttendanceId(a.id)}
+                className="w-full text-left border border-regua rounded-lg bg-sf p-3.5 hover:border-regua-forte transition-colors"
               >
-                <span className="font-medium text-tx underline decoration-tx/20 truncate">{a.subject}</span>
-                <span className="text-tx-2 whitespace-nowrap">{formatDate(a.createdAt)}</span>
-              </Link>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-semibold text-tx text-[14px] truncate">{a.subject}</p>
+                  <ChevronRight size={16} className="text-tx-3 shrink-0 mt-0.5" />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mt-2">
+                  <div>
+                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Área</p>
+                    <p className="text-[12.5px] text-tx truncate">{a.area || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Canal</p>
+                    <p className="text-[12.5px] text-tx truncate">{channelLabels[a.channel] || a.channel}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Criado em</p>
+                    <p className="text-[12.5px] text-tx tabular-nums">{formatDate(a.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
+                    <Badge color={attendanceStatusColors[a.status] || "slate"}>{attendanceStatusLabels[a.status] || a.status}</Badge>
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         )}
@@ -387,6 +441,38 @@ export default function AssessoriaProcessosCasosTab({
           </div>
         </div>
       )}
+
+      {openAttendance && (
+        <SlideDrawer title={openAttendance.subject} subtitle={formatDate(openAttendance.createdAt)} onClose={() => setOpenAttendanceId(null)}>
+          <div className="p-5 flex flex-col gap-3">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Badge color={attendanceStatusColors[openAttendance.status] || "slate"}>{attendanceStatusLabels[openAttendance.status] || openAttendance.status}</Badge>
+              <Badge color="slate">{stageLabels[openAttendance.stage] || openAttendance.stage}</Badge>
+            </div>
+            <Field label="Cliente/contato">{openAttendance.clientName}</Field>
+            {openAttendance.area && <Field label="Área">{openAttendance.area}</Field>}
+            <Field label="Canal">{channelLabels[openAttendance.channel] || openAttendance.channel}</Field>
+            {openAttendance.description && <Field label="Descrição">{openAttendance.description}</Field>}
+            <div className="pt-2 mt-1 border-t border-regua">
+              <Link
+                href={`/atendimento/${openAttendance.id}`}
+                className="flex items-center justify-center gap-1.5 text-sm font-semibold text-acao hover:underline py-1"
+              >
+                Abrir atendimento completo <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </SlideDrawer>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">{label}</p>
+      <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{children}</p>
     </div>
   );
 }

@@ -18,12 +18,16 @@ export default function SlideDrawer({
   onClose,
   children,
   widthClassName = "w-[86vw] sm:w-96",
+  actions,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   onClose: () => void;
   children: ReactNode;
   widthClassName?: string;
+  // Botões extras no cabeçalho, entre o título e o X de fechar (ex.: "Editar") — opcional, sem
+  // mudança nenhuma para quem já usa este componente sem passar isto.
+  actions?: ReactNode;
 }) {
   useEscapeToClose(true, onClose);
 
@@ -38,9 +42,12 @@ export default function SlideDrawer({
             <h3 className="font-bold text-tx truncate">{title}</h3>
             {subtitle && <p className="text-xs text-tx-2 mt-0.5">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="shrink-0 text-tx-3 hover:text-tx">
-            <X size={18} />
-          </button>
+          <div className="shrink-0 flex items-center gap-2">
+            {actions}
+            <button type="button" onClick={onClose} className="text-tx-3 hover:text-tx">
+              <X size={18} />
+            </button>
+          </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
       </div>

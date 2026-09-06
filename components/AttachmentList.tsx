@@ -28,6 +28,9 @@ type AttachmentData = {
   docType: string;
   createdAt: string;
   uploadedBy: { name: string } | null;
+  // Só populado (e só relevante) quando `taskOptions` também é passado — ver comentário logo
+  // abaixo. Demais chamadores (Processo/Atendimento) seguem sem precisar disso.
+  taskId?: string | null;
 };
 
 export default function AttachmentList({
@@ -36,6 +39,7 @@ export default function AttachmentList({
   attendanceId,
   licitacaoId,
   taskId,
+  taskOptions,
   driveConnected,
   tribunais = [],
 }: {
@@ -46,6 +50,12 @@ export default function AttachmentList({
   // Escopa o upload a UMA demanda (Task) dentro da licitação — sempre acompanhado de licitacaoId;
   // ver Attachment.taskId. Sem isso, o documento é "geral" da licitação.
   taskId?: string;
+  // Demandas/prazos da licitação para o campo "Atribuir a" — só aparece quando `taskId` (acima)
+  // NÃO vem fixo, ou seja, quando esta lista mostra documentos de mais de uma demanda ao mesmo
+  // tempo (view "Todos"/"Geral" da aba Licitações) e o upload precisa perguntar a qual demanda
+  // (ou "geral") o documento pertence. Também usado para rotular cada item da lista com sua
+  // demanda (ou "Geral"), já que aqui um documento pode ser de qualquer uma delas.
+  taskOptions?: { id: string; title: string }[];
   driveConnected: boolean;
   // Catálogo de tribunais para o pop-up "vincular a tribunal superior?" (ver
   // components/processo/RecursoEscalaPrompt.tsx) — só faz sentido para anexo de Processo
@@ -67,6 +77,11 @@ export default function AttachmentList({
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [stagedName, setStagedName] = useState("");
   const [stagedDocType, setStagedDocType] = useState("OUTRO");
+  const [stagedTaskId, setStagedTaskId] = useState("");
+  const [linkTaskId, setLinkTaskId] = useState("");
+  // Só pergunta "atribuir a qual demanda" quando o chamador não já fixou uma (taskId prop) — ver
+  // comentário de `taskOptions` acima.
+  const showTaskPicker = Boolean(taskOptions && taskOptions.length > 0 && !taskId);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -89,6 +104,14 @@ export default function AttachmentList({
 
   // "Parecer" só faz sentido como anexo de Processo — Atendimento não tem esse conceito.
   const excludeParecer = !caseId ? ["PARECER"] : undefined;
+
+  // Rótulo da demanda de um documento, só quando `taskOptions` foi passado (ver comentário no
+  // topo do arquivo) — nos demais chamadores (Processo/Atendimento) isto nunca aparece.
+  function taskTag(a: AttachmentData): string | null {
+    if (!taskOptions || taskOptions.length === 0) return null;
+    if (!a.taskId) return "Geral";
+    return taskOptions.find((t) => t.id === a.taskId)?.title || "Geral";
+  }
 
   const filtered = useMemo(() => {
     return attachments.filter((a) => {
@@ -143,13 +166,14 @@ export default function AttachmentList({
         caseId,
         attendanceId,
         licitacaoId,
-        taskId,
+        taskId: taskId || stagedTaskId || undefined,
       });
 
       if (result.error) {
         setError(result.error);
       } else {
         setStagedFile(null);
+        setStagedTaskId("");
         if (caseId && isRecursoQueEscalaInstancia(stagedDocType)) setRecursoPrompt(stagedDocType);
         router.refresh();
       }
@@ -179,7 +203,7 @@ export default function AttachmentList({
         caseId,
         attendanceId,
         licitacaoId,
-        taskId,
+        taskId: taskId || linkTaskId || undefined,
       });
       if (result.error) {
         setError(result.error);
@@ -188,6 +212,7 @@ export default function AttachmentList({
       setLinkMode(false);
       if (caseId && isRecursoQueEscalaInstancia(linkDocType)) setRecursoPrompt(linkDocType);
       setLinkDocType("OUTRO");
+      setLinkTaskId("");
       router.refresh();
     });
   }
@@ -423,6 +448,11 @@ export default function AttachmentList({
                     <p className="text-[10px] text-tx-2 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
                       {getDocumentTypeLabel(a.docType)}
                     </p>
+                    {taskTag(a) && (
+                      <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2 truncate max-w-full">
+                        {taskTag(a)}
+                      </span>
+                    )}
                     <span className="flex items-center gap-0.5 text-[10px] text-marca-tx">
                       <ExternalLink size={10} /> {getLinkSourceLabel(a.driveUrl)}
                     </span>
@@ -485,6 +515,11 @@ export default function AttachmentList({
                     </span>
                   </a>
                 )}
+                {taskTag(a) && (
+                  <span className="shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2">
+                    {taskTag(a)}
+                  </span>
+                )}
                 <span className="shrink-0 text-[10px] text-tx-2">{formatDate(a.createdAt)}</span>
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                   <button
@@ -523,6 +558,7 @@ export default function AttachmentList({
                 <th className="pb-2 pr-3">Nome</th>
                 <th className="pb-2 pr-3">Formato</th>
                 <th className="pb-2 pr-3">Tipo</th>
+                {taskOptions && taskOptions.length > 0 && <th className="pb-2 pr-3">Demanda</th>}
                 <th className="pb-2 pr-3">Enviado em</th>
                 <th className="pb-2 pr-3">Enviado por</th>
                 <th className="pb-2"></th>
@@ -557,6 +593,7 @@ export default function AttachmentList({
                       getDocumentTypeLabel(a.docType)
                     )}
                   </td>
+                  {taskOptions && taskOptions.length > 0 && <td className="py-2 pr-3 text-tx-2">{taskTag(a)}</td>}
                   <td className="py-2 pr-3 text-tx-2 whitespace-nowrap">{formatDate(a.createdAt)}</td>
                   <td className="py-2 pr-3 text-tx-2">{a.uploadedBy?.name || "—"}</td>
                   <td className="py-2">
@@ -643,6 +680,18 @@ export default function AttachmentList({
             className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
             allowCreate
           />
+          {showTaskPicker && (
+            <select
+              value={stagedTaskId}
+              onChange={(e) => setStagedTaskId(e.target.value)}
+              className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
+            >
+              <option value="">Geral da licitação</option>
+              {taskOptions!.map((t) => (
+                <option key={t.id} value={t.id}>{t.title}</option>
+              ))}
+            </select>
+          )}
           <div className="flex gap-2">
             <button
               onClick={confirmStagedFile}
@@ -694,6 +743,18 @@ export default function AttachmentList({
             allowCreate
           />
             </div>
+            {showTaskPicker && (
+              <select
+                value={linkTaskId}
+                onChange={(e) => setLinkTaskId(e.target.value)}
+                className="w-full text-sm border border-regua bg-sf text-tx px-2.5 py-1.5"
+              >
+                <option value="">Geral da licitação</option>
+                {taskOptions!.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+            )}
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -707,6 +768,7 @@ export default function AttachmentList({
                 onClick={() => {
                   setLinkMode(false);
                   setLinkDocType("OUTRO");
+                  setLinkTaskId("");
                 }}
                 className="px-3 text-xs font-semibold text-tx-2 hover:text-tx"
               >

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
-import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder, deleteDriveFile, type StorageProvider } from "@/lib/storageProvider";
+import { getOrCreateAssessoriaCompanyFolder, getOrCreateParecerFolder, deleteDriveFile, renameDriveFolder, type StorageProvider } from "@/lib/storageProvider";
 import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile } from "@/lib/googleDrive";
 import { syncReceivableStatus } from "@/lib/actions/financeiro";
 import { valorLiquido } from "@/lib/financeCalc";
@@ -159,17 +159,12 @@ export async function getAssessoriaDetail(id: string) {
         orderBy: { createdAt: "desc" },
         include: {
           tasks: {
-            include: {
-              responsible: true,
-              // Documentos de UMA demanda específica desta licitação (ver Attachment.taskId) —
-              // exibidos dentro do próprio card da tarefa em AssessoriaLicitacoesTab.tsx,
-              // separados dos documentos gerais da licitação (attachments logo abaixo, sem taskId).
-              attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
-            },
+            include: { responsible: true },
             orderBy: { dueDate: "asc" },
           },
-          // Documentos GERAIS da licitação — a UI filtra os que também têm taskId (esses aparecem
-          // só dentro da demanda deles, não aqui, ver AssessoriaLicitacoesTab.tsx).
+          // TODOS os documentos da licitação, geral ou de uma demanda específica (ver
+          // Attachment.taskId) — a UI (AssessoriaLicitacoesTab.tsx) filtra esta MESMA lista pelo
+          // campo "Documentos", em vez de buscar de novo por dentro de cada tarefa.
           attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
           comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
           // Histórico do botão "Enviar E-mail/WhatsApp" desta licitação — mesmo padrão do
@@ -392,14 +387,27 @@ export async function updateParecer(
   if (!existing) return { error: "Parecer não encontrado." };
   if (data.name !== undefined && !data.name.trim()) return { error: "Preencha o nome do parecer." };
 
+  const newName = data.name !== undefined ? data.name.trim() : undefined;
   await prisma.parecer.update({
     where: { id },
     data: {
-      name: data.name !== undefined ? data.name.trim() : undefined,
+      name: newName,
       date: data.date ? new Date(data.date) : undefined,
       description: data.description !== undefined ? data.description.trim() || null : undefined,
     },
   });
+
+  // A pasta da demanda no Drive é nomeada com `name` (ver getOrCreateParecerFolder) — se mudou e
+  // a pasta já existe, renomeia junto pra não destoar. Best-effort, mesmo raciocínio de
+  // updateCase (lib/actions/cases.ts): uma falha aqui não pode impedir salvar o cadastro em si.
+  if (newName && newName !== existing.name && existing.driveFolderId) {
+    try {
+      await renameDriveFolder(existing.driveFolderId, newName, user.officeId);
+    } catch (e) {
+      console.error(`[assessoria] falha ao renomear a pasta do parecer ${id} no armazenamento:`, e);
+    }
+  }
+
   revalidatePath(`/assessoria/${existing.assessoriaId}`);
   return {};
 }
@@ -516,6 +524,61 @@ export async function addLicitacao(
   // (finalizeAttachmentUpload, lib/actions/attachments.ts), sem bloquear o cadastro se o Drive
   // estiver desconectado ou a chamada falhar.
   revalidatePath(`/assessoria/${assessoriaId}`);
+  return {};
+}
+
+// Edita os dados de uma licitação já cadastrada — antes desta função não existia NENHUM jeito de
+// corrigir nome/objeto/órgão/etc. depois de criada (só o status, ver updateLicitacaoStatus
+// abaixo), o que travava quem precisasse dar um nome de gestão de verdade a uma licitação antiga
+// (nascida com `nome` = cópia de `objeto` pelo backfill de scripts/backfill-licitacao-nome.ts).
+export async function updateLicitacao(
+  licitacaoId: string,
+  data: {
+    nome: string;
+    objeto: string;
+    orgao: string;
+    modalidade?: string;
+    dataAbertura?: string;
+    prazoFinal?: string;
+    valorEstimado?: string;
+    editalUrl?: string;
+  }
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sessão inválida." };
+  if (!data.nome.trim()) return { error: "Preencha o nome da licitação." };
+  if (!data.objeto.trim() || !data.orgao.trim()) return { error: "Preencha ao menos o objeto e o órgão." };
+
+  const existing = await prisma.licitacao.findFirst({ where: { id: licitacaoId, officeId: user.officeId } });
+  if (!existing) return { error: "Licitação não encontrada." };
+
+  const nomeNovo = data.nome.trim();
+  await prisma.licitacao.update({
+    where: { id: licitacaoId },
+    data: {
+      nome: nomeNovo,
+      objeto: data.objeto.trim(),
+      orgao: data.orgao.trim(),
+      modalidade: data.modalidade || null,
+      dataAbertura: data.dataAbertura ? new Date(data.dataAbertura) : null,
+      prazoFinal: data.prazoFinal ? new Date(data.prazoFinal) : null,
+      valorEstimado: data.valorEstimado ? parseFloat(data.valorEstimado) : null,
+      editalUrl: data.editalUrl || null,
+    },
+  });
+
+  // A pasta da licitação no Drive é nomeada com `nome` (ver getOrCreateLicitacaoFolder) — se
+  // mudou e a pasta já existe, renomeia junto pra não destoar. Best-effort, mesmo raciocínio de
+  // updateCase (lib/actions/cases.ts): uma falha aqui não pode impedir salvar o cadastro em si.
+  if (nomeNovo !== existing.nome && existing.driveFolderId) {
+    try {
+      await renameDriveFolder(existing.driveFolderId, nomeNovo, user.officeId);
+    } catch (e) {
+      console.error(`[assessoria] falha ao renomear a pasta da licitação ${licitacaoId} no armazenamento:`, e);
+    }
+  }
+
+  revalidatePath(`/assessoria/${existing.assessoriaId}`);
   return {};
 }
 
