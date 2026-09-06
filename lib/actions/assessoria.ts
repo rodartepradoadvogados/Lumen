@@ -295,6 +295,8 @@ export async function deleteDocumento(id: string): Promise<{ error?: string }> {
 
   await prisma.assessoriaDocumento.delete({ where: { id } });
   revalidatePath(`/assessoria/${doc.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${doc.assessoriaId}`);
+  if (doc.parecerId) revalidatePath(`/m/assessoria/${doc.assessoriaId}/pareceres/${doc.parecerId}`);
   return {};
 }
 
@@ -373,6 +375,7 @@ export async function createParecer(
   }
 
   revalidatePath(`/assessoria/${assessoriaId}`);
+  revalidatePath(`/m/assessoria/${assessoriaId}`);
   return { id: created.id };
 }
 
@@ -409,6 +412,8 @@ export async function updateParecer(
   }
 
   revalidatePath(`/assessoria/${existing.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${existing.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${existing.assessoriaId}/pareceres/${id}`);
   return {};
 }
 
@@ -458,6 +463,8 @@ export async function retryParecerDriveFolder(parecerId: string): Promise<{ erro
   }
 
   revalidatePath(`/assessoria/${parecer.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${parecer.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${parecer.assessoriaId}/pareceres/${parecerId}`);
   return {};
 }
 
@@ -481,6 +488,7 @@ export async function deleteParecer(id: string): Promise<{ error?: string }> {
 
   await prisma.parecer.delete({ where: { id } });
   revalidatePath(`/assessoria/${existing.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${existing.assessoriaId}`);
   return {};
 }
 
@@ -524,6 +532,7 @@ export async function addLicitacao(
   // (finalizeAttachmentUpload, lib/actions/attachments.ts), sem bloquear o cadastro se o Drive
   // estiver desconectado ou a chamada falhar.
   revalidatePath(`/assessoria/${assessoriaId}`);
+  revalidatePath(`/m/assessoria/${assessoriaId}`);
   return {};
 }
 
@@ -579,6 +588,8 @@ export async function updateLicitacao(
   }
 
   revalidatePath(`/assessoria/${existing.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${existing.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${existing.assessoriaId}/licitacoes/${licitacaoId}`);
   return {};
 }
 
@@ -589,6 +600,8 @@ export async function updateLicitacaoStatus(licitacaoId: string, status: string)
   if (!existing) return { error: "Licitação não encontrada." };
   const licitacao = await prisma.licitacao.update({ where: { id: licitacaoId }, data: { status } });
   revalidatePath(`/assessoria/${licitacao.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${licitacao.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${licitacao.assessoriaId}/licitacoes/${licitacaoId}`);
   return {};
 }
 
@@ -619,6 +632,8 @@ export async function addLicitacaoTask(
     },
   });
   revalidatePath(`/assessoria/${licitacao.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${licitacao.assessoriaId}`);
+  revalidatePath(`/m/assessoria/${licitacao.assessoriaId}/licitacoes/${licitacaoId}`);
   revalidatePath("/agenda");
   return {};
 }

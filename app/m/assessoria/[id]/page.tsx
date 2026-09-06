@@ -8,6 +8,7 @@ import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/component
 import { FinanceStatusBadge } from "@/lib/financeStatus";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
+import MobileLicitacoesSection from "@/components/mobile/MobileLicitacoesSection";
 import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList";
 import MobileNovaAnotacaoForm from "@/components/mobile/MobileNovaAnotacaoForm";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -20,21 +21,6 @@ const statusColors: Record<string, "green" | "slate" | "bordo"> = {
   ENCERRADA: "bordo",
 };
 const statusLabels: Record<string, string> = { ATIVA: "Ativa", SUSPENSA: "Suspensa", ENCERRADA: "Encerrada" };
-
-const licitacaoStatusColors: Record<string, "slate" | "amber" | "green" | "bordo"> = {
-  EM_ANALISE: "slate",
-  PARTICIPANDO: "amber",
-  VENCEDORA: "green",
-  PERDIDA: "bordo",
-  CANCELADA: "slate",
-};
-const licitacaoStatusLabels: Record<string, string> = {
-  EM_ANALISE: "Em análise",
-  PARTICIPANDO: "Participando",
-  VENCEDORA: "Vencedora",
-  PERDIDA: "Perdida",
-  CANCELADA: "Cancelada",
-};
 
 const caseStatusColors: Record<string, "green" | "slate" | "bordo" | "amber"> = {
   ATIVO: "green",
@@ -129,29 +115,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
         storageMessage={storageStatus.message}
       />
 
-      <Card>
-        <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-bold text-tx text-sm">Licitações</h2>
-        </div>
-        {assessoria.licitacoes.length === 0 ? (
-          <EmptyState title="Nenhuma licitação cadastrada" />
-        ) : (
-          <div className="divide-y divide-regua">
-            {assessoria.licitacoes.map((l) => (
-              <div key={l.id} className="px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-tx truncate">{l.nome || l.objeto}</p>
-                  <Badge color={licitacaoStatusColors[l.status] || "slate"}>{licitacaoStatusLabels[l.status] || l.status}</Badge>
-                </div>
-                <p className="text-xs text-tx-2 mt-0.5">
-                  {l.orgao}
-                  {l.prazoFinal && ` · prazo final ${formatDate(l.prazoFinal)}`}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+      <MobileLicitacoesSection assessoriaId={assessoria.id} licitacoes={assessoria.licitacoes} />
 
       <Card>
         <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2 flex-wrap">
