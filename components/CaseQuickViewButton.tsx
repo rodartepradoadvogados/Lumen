@@ -15,7 +15,17 @@ import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
 // (ModalShell/TaskDetailModal continuam intocados). A ficha abre ao lado da lista de Processos
 // sem navegar para outra rota — fechar volta pro mesmo lugar da lista, com filtro/scroll
 // intactos. "Abrir processo completo" (link no fim) é a saída para quem precisa editar algo.
-export default function CaseQuickViewButton({ caseId, caseTitle }: { caseId: string; caseTitle: string }) {
+export default function CaseQuickViewButton({
+  caseId,
+  caseTitle,
+  trigger,
+}: {
+  caseId: string;
+  caseTitle: string;
+  // Substitui o ícone padrão abaixo por um gatilho próprio (ex.: o card inteiro de "Processos
+  // vinculados" na Assessoria, não só um ícone) — recebe a mesma função de abrir a gaveta.
+  trigger?: (open: () => void) => ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CaseQuickView | null>(null);
@@ -30,14 +40,18 @@ export default function CaseQuickViewButton({ caseId, caseTitle }: { caseId: str
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleOpen}
-        data-tip="Ficha rápida"
-        className="p-1.5 text-tx-3 hover:text-acao hover:bg-acao-bg transition-colors rounded-md"
-      >
-        <Eye size={15} />
-      </button>
+      {trigger ? (
+        trigger(handleOpen)
+      ) : (
+        <button
+          type="button"
+          onClick={handleOpen}
+          data-tip="Ficha rápida"
+          className="p-1.5 text-tx-3 hover:text-acao hover:bg-acao-bg transition-colors rounded-md"
+        >
+          <Eye size={15} />
+        </button>
+      )}
       {open && (
         <SlideDrawer title="Ficha rápida" subtitle={caseTitle} onClose={() => setOpen(false)}>
           <div className="p-5 flex flex-col gap-4">
