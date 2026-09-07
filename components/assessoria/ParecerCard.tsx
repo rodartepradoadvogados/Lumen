@@ -236,6 +236,9 @@ export default function ParecerCard({
           title={parecer.name}
           subtitle={formatDate(parecer.date)}
           onClose={() => setOpen(false)}
+          // Mesma largura da gaveta de Licitações (ver AssessoriaLicitacoesTab.tsx) — pedido
+          // explícito para toda a aba "Demandas, Processos e Casos" usar a mesma medida.
+          widthClassName="w-[92vw] sm:w-[980px]"
           actions={
             <button
               type="button"

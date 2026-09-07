@@ -321,7 +321,10 @@ export default function AssessoriaLicitacoesTab({
           title={selected.nome || selected.objeto}
           subtitle={selected.orgao}
           onClose={closeDrawer}
-          widthClassName="w-[92vw] sm:w-[560px]"
+          // 980px = 1,75x a largura original (560px) — pedido explícito, a mesma largura vale
+          // para as gavetas de "Demandas, Processos e Casos" (ver ParecerCard.tsx,
+          // CaseQuickViewButton.tsx e AssessoriaProcessosCasosTab.tsx).
+          widthClassName="w-[92vw] sm:w-[980px]"
           actions={
             <button
               type="button"

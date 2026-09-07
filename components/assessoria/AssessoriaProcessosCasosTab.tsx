@@ -293,6 +293,9 @@ export default function AssessoriaProcessosCasosTab({
                 key={c.id}
                 caseId={c.id}
                 caseTitle={c.title}
+                // Mesma largura da gaveta de Licitações (ver AssessoriaLicitacoesTab.tsx) —
+                // pedido explícito para toda a aba "Demandas, Processos e Casos".
+                widthClassName="w-[92vw] sm:w-[980px]"
                 trigger={(open) => (
                   <button
                     type="button"
@@ -443,7 +446,14 @@ export default function AssessoriaProcessosCasosTab({
       )}
 
       {openAttendance && (
-        <SlideDrawer title={openAttendance.subject} subtitle={formatDate(openAttendance.createdAt)} onClose={() => setOpenAttendanceId(null)}>
+        <SlideDrawer
+          title={openAttendance.subject}
+          subtitle={formatDate(openAttendance.createdAt)}
+          onClose={() => setOpenAttendanceId(null)}
+          // Mesma largura da gaveta de Licitações — pedido explícito para toda a aba "Demandas,
+          // Processos e Casos".
+          widthClassName="w-[92vw] sm:w-[980px]"
+        >
           <div className="p-5 flex flex-col gap-3">
             <div className="flex items-center gap-1.5 flex-wrap">
               <Badge color={attendanceStatusColors[openAttendance.status] || "slate"}>{attendanceStatusLabels[openAttendance.status] || openAttendance.status}</Badge>
