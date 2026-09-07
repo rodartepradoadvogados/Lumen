@@ -203,7 +203,7 @@ Marque `[x]` conforme concluir, no mesmo PR da correção.
 
 | | # | ID | Título | Sev. | Esforço | Risco |
 |---|---|---|---|---|---|---|
-| [ ] | 1 | [G05](#g05) | Desativar um membro não derruba a sessão dele | P0 | P | baixo |
+| [x] | 1 | [G05](#g05) | Desativar um membro não derruba a sessão dele | P0 | P | baixo |
 | [ ] | 2 | [G11](#g11) | Excluir série recorrente apaga parcela paga parcialmente e leva o caixa junto | P0 | P | baixo |
 | [ ] | 3 | [G34](#g34) | Excluir conta já baixada apaga o pagamento em cascata, sem trava e sem registro | P1 | P | baixo |
 | [ ] | 4 | [G04](#g04) | O robô de publicações casa número de processo entre todos os escritórios | P0 | M | medio |

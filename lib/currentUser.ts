@@ -43,6 +43,14 @@ export async function getCurrentUser(options?: { ignoreActing?: boolean }): Prom
   const realUser = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!realUser) return null;
 
+  // G05: o gate de membro desativado fica AQUI, e não só nos layouts. Os layouts checam
+  // `user.active`, mas layout não roda antes de Server Action nem de Route Handler — então um
+  // membro inativado continuaria agindo via POST direto (ex.: /api/admin/export-office) mesmo
+  // sem conseguir abrir nenhuma tela. Devolver null fecha os 228 call sites de uma vez: todo
+  // o resto do app já trata null como sessão inválida. (A reativação não passa por aqui —
+  // toggleUserActive lê/escreve o User direto via Prisma.)
+  if (!realUser.active) return null;
+
   if (!options?.ignoreActing && realUser.isPlatformOwner) {
     const cookieValue = cookies().get(ACTING_OFFICE_COOKIE)?.value;
     // Cookie guarda "<officeId>:<sessionId>" (ver lib/officeActing.ts) — o cookie sozinho não
