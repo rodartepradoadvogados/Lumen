@@ -7,7 +7,7 @@
 
 ## Rodada 1 — seção 3, item 1 · G05 (primeira parte)
 
-**Data:** 2026-09-07 · **Branch:** `fix/g05-sessao-membro-desativado` · **PR:** _a abrir_
+**Data:** 2026-09-07 · **Branch:** `fix/g05-sessao-membro-desativado` · **PR:** [#140](https://github.com/rodartepradoadvogados/Lumen/pull/140)
 
 ### O que foi feito
 
