@@ -19,12 +19,17 @@ export default function CaseQuickViewButton({
   caseId,
   caseTitle,
   trigger,
+  widthClassName,
 }: {
   caseId: string;
   caseTitle: string;
   // Substitui o ícone padrão abaixo por um gatilho próprio (ex.: o card inteiro de "Processos
   // vinculados" na Assessoria, não só um ícone) — recebe a mesma função de abrir a gaveta.
   trigger?: (open: () => void) => ReactNode;
+  // Repassado pra SlideDrawer — ausente mantém a largura padrão dela (uso normal, ícone de ficha
+  // rápida em /processos); "Processos vinculados" na Assessoria passa a mesma largura da gaveta
+  // de Licitações, pedido explícito para toda a aba "Demandas, Processos e Casos".
+  widthClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,7 +58,7 @@ export default function CaseQuickViewButton({
         </button>
       )}
       {open && (
-        <SlideDrawer title="Ficha rápida" subtitle={caseTitle} onClose={() => setOpen(false)}>
+        <SlideDrawer title="Ficha rápida" subtitle={caseTitle} onClose={() => setOpen(false)} widthClassName={widthClassName}>
           <div className="p-5 flex flex-col gap-4">
             {loading && <p className="text-sm text-tx-2">Carregando...</p>}
             {!loading && data && "error" in data && <p className="text-sm text-urgente">{data.error}</p>}
