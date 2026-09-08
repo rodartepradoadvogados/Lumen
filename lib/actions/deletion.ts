@@ -11,12 +11,27 @@ type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "H
 // existentes (ver performDeleteScoped abaixo) — usados fora disso, caem de volta em ONLY.
 export type DeletionScope = "ONLY" | "FOLLOWING" | "ALL";
 
+export type DeletionResult = {
+  error?: string;
+  pending?: boolean;
+  warning?: string;
+  requiresConfirmation?: boolean;
+  confirmationData?: { valor: number; pagamentos: { id: string; amount: unknown; paidDate: Date }[] };
+};
+
 // warning: só preenchido quando alsoDeleteLinked pediu para apagar um registro vinculado
 // (reembolso ↔ despesa, ver Payable.reimbursementReceivable/Receivable.reimbursesPayableId) mas
 // o vinculado estava com status PAGO — nesse caso ele é PRESERVADO (mesma proteção usada em toda
 // exclusão em lote deste arquivo: nunca apagar de fato um registro financeiro já quitado) e o
 // aviso volta para quem chamou explicar por quê o vínculo não sumiu junto.
-async function performDelete(entityType: string, entityId: string, officeId: string, alsoDeleteLinked?: boolean): Promise<{ warning?: string }> {
+async function performDelete(
+  entityType: string,
+  entityId: string,
+  officeId: string,
+  alsoDeleteLinked?: boolean,
+  actorId?: string,
+  confirmadoComPagamentos?: boolean
+): Promise<DeletionResult> {
   let warning: string | undefined;
   if (entityType === "TASK") {
     await prisma.$transaction([
@@ -74,8 +89,22 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     ]);
     revalidatePath("/atendimento");
   } else if (entityType === "PAYABLE") {
-    const payable = await prisma.payable.findFirst({ where: { id: entityId, officeId }, include: { reimbursementReceivable: true } });
+    const payable = await prisma.payable.findFirst({
+      where: { id: entityId, officeId },
+      include: { reimbursementReceivable: true, payments: true },
+    });
     if (!payable) return {};
+
+    if (payable.payments.length > 0 && !confirmadoComPagamentos) {
+      return {
+        requiresConfirmation: true,
+        confirmationData: {
+          valor: Number(payable.amount),
+          pagamentos: payable.payments,
+        },
+      };
+    }
+
     let deletedReimbursement = false;
     if (alsoDeleteLinked && payable.reimbursementReceivable) {
       if (payable.reimbursementReceivable.status === "PAGO") {
@@ -85,7 +114,27 @@ async function performDelete(entityType: string, entityId: string, officeId: str
         deletedReimbursement = true;
       }
     }
-    await prisma.payable.delete({ where: { id: entityId } });
+
+    if (payable.payments.length > 0 && actorId) {
+      const somaPagos = payable.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+      const dataUltimo = payable.payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+      await prisma.$transaction([
+        prisma.auditEvent.create({
+          data: {
+            kind: "EXCLUSAO",
+            entityType: "PAYABLE",
+            entityId,
+            actorId,
+            officeId,
+            meta: { valorOriginal: Number(payable.amount), valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: payable.payments.length },
+          },
+        }),
+        prisma.payable.delete({ where: { id: entityId } }),
+      ]);
+    } else {
+      await prisma.payable.delete({ where: { id: entityId } });
+    }
+
     revalidatePath("/financeiro");
     revalidatePath("/financeiro/despesas");
     revalidatePath("/financeiro/dre");
@@ -95,8 +144,22 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     if (deletedReimbursement) revalidatePath("/financeiro/receitas");
     if (payable.caseId) revalidatePath(`/processos/${payable.caseId}`);
   } else if (entityType === "RECEIVABLE") {
-    const receivable = await prisma.receivable.findFirst({ where: { id: entityId, officeId }, include: { reimbursesPayable: true } });
+    const receivable = await prisma.receivable.findFirst({
+      where: { id: entityId, officeId },
+      include: { reimbursesPayable: true, payments: true },
+    });
     if (!receivable) return {};
+
+    if (receivable.payments.length > 0 && !confirmadoComPagamentos) {
+      return {
+        requiresConfirmation: true,
+        confirmationData: {
+          valor: Number(receivable.amount),
+          pagamentos: receivable.payments,
+        },
+      };
+    }
+
     let deletedReimbursedPayable = false;
     if (alsoDeleteLinked && receivable.reimbursesPayable) {
       if (receivable.reimbursesPayable.status === "PAGO") {
@@ -115,8 +178,29 @@ async function performDelete(entityType: string, entityId: string, officeId: str
     // mesma competência na manhã seguinte. Em vez disso vira um tombstone (receivableId null +
     // canceladoEm), que continua bloqueando o cron mas some das telas de Honorários (ver
     // getAssessoriaDetail, que filtra por receivableId não-nulo).
-    await prisma.honorario.updateMany({ where: { receivableId: entityId }, data: { receivableId: null, canceladoEm: new Date() } });
-    await prisma.receivable.delete({ where: { id: entityId } });
+
+    if (receivable.payments.length > 0 && actorId) {
+      const somaPagos = receivable.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+      const dataUltimo = receivable.payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+      await prisma.$transaction([
+        prisma.auditEvent.create({
+          data: {
+            kind: "EXCLUSAO",
+            entityType: "RECEIVABLE",
+            entityId,
+            actorId,
+            officeId,
+            meta: { valorOriginal: Number(receivable.amount), valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: receivable.payments.length },
+          },
+        }),
+        prisma.honorario.updateMany({ where: { receivableId: entityId }, data: { receivableId: null, canceladoEm: new Date() } }),
+        prisma.receivable.delete({ where: { id: entityId } }),
+      ]);
+    } else {
+      await prisma.honorario.updateMany({ where: { receivableId: entityId }, data: { receivableId: null, canceladoEm: new Date() } });
+      await prisma.receivable.delete({ where: { id: entityId } });
+    }
+
     // Se esta era a última parcela de um lançamento de honorários parcelado, o cabeçalho fica
     // órfão (sem nenhuma parcela) — apaga junto para não sobrar um HonorarioLancamento vazio.
     if (receivable.honorarioLancamentoId) {
@@ -199,7 +283,7 @@ function revalidateCaseScoped(caseId: string | null | undefined) {
 // olhar para reembolso vinculado nenhum: na prática a UI (DeleteEntityButton) nunca mostra o
 // checkbox de "excluir também o vinculado" junto com a escolha de escopo FOLLOWING/ALL, então este
 // parâmetro chega como false/undefined nesses ramos.
-async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityId: string, officeId: string, scope: DeletionScope, alsoDeleteLinked?: boolean): Promise<{ warning?: string }> {
+async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityId: string, officeId: string, scope: DeletionScope, alsoDeleteLinked?: boolean, actorId?: string, confirmadoComPagamentos?: boolean): Promise<DeletionResult> {
   if (scope === "ONLY") {
     // Mesma proteção que DeleteEntityButton.tsx já aplica na UI (não oferece "só este" para
     // groupKind RECORRENTE) — coberta aqui também, caso esta função seja alcançada sem passar
@@ -217,7 +301,7 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
         await prisma.recurringFee.update({ where: { id: anchor.recurringFeeId }, data: { active: false } });
       }
     }
-    return performDelete(entityType, entityId, officeId, alsoDeleteLinked);
+    return performDelete(entityType, entityId, officeId, alsoDeleteLinked, actorId, confirmadoComPagamentos);
   }
   const includePago = scope === "ALL";
 
@@ -233,14 +317,46 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       // independente do escopo — excluir "este e os seguintes" (ou "todos") da série implica
       // parar de gerar as próximas competências também, não só apagar o que já existe.
       const recurringExpenseId = anchor.recurringExpenseId;
-      const siblings = await prisma.payable.findMany({ where: { recurringExpenseId, officeId } });
+      // Preserva a parcela que já teve pagamento — inclusive PARCIAL — não só a PAGO (mesmo
+      // critério dos ramos groupId/honorarioLancamentoId; FinancePayment é onDelete: Cascade).
+      const siblings = await prisma.payable.findMany({ where: { recurringExpenseId, officeId }, include: { payments: true } });
       const alvo =
         scope === "FOLLOWING" && anchor.competencia
           ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
           : siblings;
-      const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.status !== "PAGO")).map((s) => s.id);
+      const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.payments.length === 0)).map((s) => s.id);
+
+      if (includePago && !confirmadoComPagamentos) {
+        const alvosPagos = alvo.filter((s) => s.payments.length > 0);
+        if (alvosPagos.length > 0) {
+          const payments = alvosPagos.flatMap((s) => s.payments);
+          const valor = alvosPagos.reduce((acc, s) => acc + Number(s.amount), 0);
+          return { requiresConfirmation: true, confirmationData: { valor, pagamentos: payments } };
+        }
+      }
+
       if (idsParaExcluir.length > 0) {
-        await prisma.payable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+        if (includePago && actorId) {
+          const alvosPagos = alvo.filter((s) => s.payments.length > 0);
+          if (alvosPagos.length > 0) {
+            const payments = alvosPagos.flatMap((s) => s.payments);
+            const somaPagos = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+            const dataUltimo = payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+            await prisma.$transaction([
+              prisma.auditEvent.create({
+                data: {
+                  kind: "EXCLUSAO", entityType: "PAYABLE", entityId: recurringExpenseId, actorId, officeId,
+                  meta: { escopo: scope, notas: "Série recorrente", valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: payments.length },
+                },
+              }),
+              prisma.payable.deleteMany({ where: { id: { in: idsParaExcluir } } })
+            ]);
+          } else {
+            await prisma.payable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+          }
+        } else {
+          await prisma.payable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+        }
       }
       await prisma.recurringExpense.update({ where: { id: recurringExpenseId }, data: { active: false } });
     } else if (anchor.groupId) {
@@ -251,11 +367,45 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       // Mesmo critério do lado de Receivable: fora do includePago (exclusão deliberada de tudo),
       // preserva a conta que já teve pagamento — inclusive PARCIAL. FinancePayment.payable também
       // é onDelete: Cascade (prisma/schema.prisma), então apagar levaria o histórico junto.
-      await prisma.payable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, payments: { none: {} } } });
+      if (includePago) {
+        const alvos = await prisma.payable.findMany({ where: siblingsWhere, include: { payments: true } });
+        if (!confirmadoComPagamentos) {
+          const alvosPagos = alvos.filter((s) => s.payments.length > 0);
+          if (alvosPagos.length > 0) {
+            const payments = alvosPagos.flatMap((s) => s.payments);
+            const valor = alvosPagos.reduce((acc, s) => acc + Number(s.amount), 0);
+            return { requiresConfirmation: true, confirmationData: { valor, pagamentos: payments } };
+          }
+        }
+
+        if (actorId) {
+          const alvosPagos = alvos.filter((s) => s.payments.length > 0);
+          if (alvosPagos.length > 0) {
+            const payments = alvosPagos.flatMap((s) => s.payments);
+            const somaPagos = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+            const dataUltimo = payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+            await prisma.$transaction([
+              prisma.auditEvent.create({
+                data: {
+                  kind: "EXCLUSAO", entityType: "PAYABLE", entityId: anchor.groupId, actorId, officeId,
+                  meta: { escopo: scope, notas: "Série parcelada", valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: payments.length },
+                },
+              }),
+              prisma.payable.deleteMany({ where: siblingsWhere })
+            ]);
+          } else {
+            await prisma.payable.deleteMany({ where: siblingsWhere });
+          }
+        } else {
+          await prisma.payable.deleteMany({ where: siblingsWhere });
+        }
+      } else {
+        await prisma.payable.deleteMany({ where: { ...siblingsWhere, payments: { none: {} } } });
+      }
     } else {
       // Avulso (sem parcelamento nem recorrência) — "seguintes"/"todos" não têm o que agrupar,
       // comporta-se como ONLY.
-      return performDelete(entityType, entityId, officeId, alsoDeleteLinked);
+      return performDelete(entityType, entityId, officeId, alsoDeleteLinked, actorId, confirmadoComPagamentos);
     }
     revalidateFinanceScoped();
     revalidateCaseScoped(anchor.caseId);
@@ -282,7 +432,37 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       // lançamento inteiro" pelo próprio HonorarioLancamento (entityType HONORARIO_LANCAMENTO em
       // performDelete, acima), que continua preservando parcelas pagas (motivo de produto
       // diferente: lá é "apaguei sem querer o cabeçalho", aqui é "quero mesmo excluir tudo").
-      await prisma.receivable.deleteMany({ where: siblingsWhere });
+      const alvos = await prisma.receivable.findMany({ where: siblingsWhere, include: { payments: true } });
+      if (!confirmadoComPagamentos) {
+        const alvosPagos = alvos.filter((s) => s.payments.length > 0);
+        if (alvosPagos.length > 0) {
+          const payments = alvosPagos.flatMap((s) => s.payments);
+          const valor = alvosPagos.reduce((acc, s) => acc + Number(s.amount), 0);
+          return { requiresConfirmation: true, confirmationData: { valor, pagamentos: payments } };
+        }
+      }
+
+      if (actorId) {
+        const alvosPagos = alvos.filter((s) => s.payments.length > 0);
+        if (alvosPagos.length > 0) {
+          const payments = alvosPagos.flatMap((s) => s.payments);
+          const somaPagos = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+          const dataUltimo = payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+          await prisma.$transaction([
+            prisma.auditEvent.create({
+              data: {
+                kind: "EXCLUSAO", entityType: "RECEIVABLE", entityId: honorarioLancamentoId, actorId, officeId,
+                meta: { escopo: scope, notas: "Honorário parcelado", valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: payments.length },
+              },
+            }),
+            prisma.receivable.deleteMany({ where: siblingsWhere })
+          ]);
+        } else {
+          await prisma.receivable.deleteMany({ where: siblingsWhere });
+        }
+      } else {
+        await prisma.receivable.deleteMany({ where: siblingsWhere });
+      }
     } else {
       // Mesmo critério de performDelete/HONORARIO_LANCAMENTO: preserva o que já recebeu algo
       // (inclusive PARCIAL), não só o que está PAGO — senão o FinancePayment ia junto em cascata.
@@ -304,14 +484,46 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
     // Honorário recorrente até o arquivamento — mesmo raciocínio do PAYABLE.recurringExpenseId
     // acima: RecurringFee.active=false sempre, independente do escopo.
     const recurringFeeId = anchor.recurringFeeId;
-    const siblings = await prisma.receivable.findMany({ where: { recurringFeeId, officeId } });
+    // Preserva a parcela que já recebeu algo — inclusive PARCIAL — não só a PAGO (FinancePayment
+    // é onDelete: Cascade, então apagar levaria o histórico de baixa junto).
+    const siblings = await prisma.receivable.findMany({ where: { recurringFeeId, officeId }, include: { payments: true } });
     const alvo =
       scope === "FOLLOWING" && anchor.competencia
         ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
         : siblings;
-    const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.status !== "PAGO")).map((s) => s.id);
+    const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.payments.length === 0)).map((s) => s.id);
+
+    if (includePago && !confirmadoComPagamentos) {
+      const alvosPagos = alvo.filter((s) => s.payments.length > 0);
+      if (alvosPagos.length > 0) {
+        const payments = alvosPagos.flatMap((s) => s.payments);
+        const valor = alvosPagos.reduce((acc, s) => acc + Number(s.amount), 0);
+        return { requiresConfirmation: true, confirmationData: { valor, pagamentos: payments } };
+      }
+    }
+
     if (idsParaExcluir.length > 0) {
-      await prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+      if (includePago && actorId) {
+        const alvosPagos = alvo.filter((s) => s.payments.length > 0);
+        if (alvosPagos.length > 0) {
+          const payments = alvosPagos.flatMap((s) => s.payments);
+          const somaPagos = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+          const dataUltimo = payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+          await prisma.$transaction([
+            prisma.auditEvent.create({
+              data: {
+                kind: "EXCLUSAO", entityType: "RECEIVABLE", entityId: recurringFeeId, actorId, officeId,
+                meta: { escopo: scope, notas: "Série recorrente", valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: payments.length },
+              },
+            }),
+            prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } })
+          ]);
+        } else {
+          await prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+        }
+      } else {
+        await prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } });
+      }
     }
     const fee = await prisma.recurringFee.update({ where: { id: recurringFeeId }, data: { active: false } });
     revalidateCaseScoped(fee.caseId);
@@ -323,11 +535,45 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
         : { groupId: anchor.groupId, officeId };
     // includePago = a pessoa pediu explicitamente para apagar tudo, pagas incluídas. Fora disso,
     // preserva o que já recebeu algo (inclusive PARCIAL) — não só o que está PAGO.
-    await prisma.receivable.deleteMany({ where: includePago ? siblingsWhere : { ...siblingsWhere, payments: { none: {} } } });
+    if (includePago) {
+      const alvos = await prisma.receivable.findMany({ where: siblingsWhere, include: { payments: true } });
+      if (!confirmadoComPagamentos) {
+        const alvosPagos = alvos.filter((s) => s.payments.length > 0);
+        if (alvosPagos.length > 0) {
+          const payments = alvosPagos.flatMap((s) => s.payments);
+          const valor = alvosPagos.reduce((acc, s) => acc + Number(s.amount), 0);
+          return { requiresConfirmation: true, confirmationData: { valor, pagamentos: payments } };
+        }
+      }
+
+      if (actorId) {
+        const alvosPagos = alvos.filter((s) => s.payments.length > 0);
+        if (alvosPagos.length > 0) {
+          const payments = alvosPagos.flatMap((s) => s.payments);
+          const somaPagos = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+          const dataUltimo = payments.sort((a, b) => b.paidDate.getTime() - a.paidDate.getTime())[0]?.paidDate;
+          await prisma.$transaction([
+            prisma.auditEvent.create({
+              data: {
+                kind: "EXCLUSAO", entityType: "RECEIVABLE", entityId: anchor.groupId, actorId, officeId,
+                meta: { escopo: scope, notas: "Série parcelada", valorPago: somaPagos, paidDate: dataUltimo, qtdePagamentos: payments.length },
+              },
+            }),
+            prisma.receivable.deleteMany({ where: siblingsWhere })
+          ]);
+        } else {
+          await prisma.receivable.deleteMany({ where: siblingsWhere });
+        }
+      } else {
+        await prisma.receivable.deleteMany({ where: siblingsWhere });
+      }
+    } else {
+      await prisma.receivable.deleteMany({ where: { ...siblingsWhere, payments: { none: {} } } });
+    }
     revalidateCaseScoped(anchor.caseId);
   } else {
     // Avulso — sem agrupamento nenhum, comporta-se como ONLY.
-    return performDelete(entityType, entityId, officeId, alsoDeleteLinked);
+    return performDelete(entityType, entityId, officeId, alsoDeleteLinked, actorId, confirmadoComPagamentos);
   }
 
   revalidateFinanceScoped();
@@ -339,7 +585,7 @@ export async function requestDeletion(
   entityId: string,
   entityLabel: string,
   alsoDeleteLinked?: boolean
-): Promise<{ error?: string; pending?: boolean; warning?: string }> {
+): Promise<DeletionResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
@@ -373,13 +619,17 @@ export async function requestDeletionScoped(
   entityId: string,
   entityLabel: string,
   scope: DeletionScope,
-  alsoDeleteLinked?: boolean
-): Promise<{ error?: string; pending?: boolean; warning?: string }> {
+  alsoDeleteLinked?: boolean,
+  confirmadoComPagamentos?: boolean
+): Promise<DeletionResult> {
   const user = await getCurrentUser();
   if (!user) return { error: "Sessão inválida." };
 
   if (user.isAdmin) {
-    const result = await performDeleteScoped(entityType, entityId, user.officeId, scope, alsoDeleteLinked);
+    const result = await performDeleteScoped(entityType, entityId, user.officeId, scope, alsoDeleteLinked, user.id, confirmadoComPagamentos);
+    if (result.requiresConfirmation) {
+      return result;
+    }
     return { warning: result.warning };
   }
 
@@ -404,9 +654,11 @@ export async function approveDeletion(id: string): Promise<{ error?: string }> {
 
   try {
     if (req.scope && (req.entityType === "RECEIVABLE" || req.entityType === "PAYABLE")) {
-      await performDeleteScoped(req.entityType, req.entityId, user.officeId, req.scope as DeletionScope, req.alsoDeleteLinked);
+      // Confirma automaticamente na aprovação assíncrona, já que o usuário comum não tem
+      // como passar por outro modal após a aprovação do admin.
+      await performDeleteScoped(req.entityType, req.entityId, user.officeId, req.scope as DeletionScope, req.alsoDeleteLinked, user.id, true);
     } else {
-      await performDelete(req.entityType, req.entityId, user.officeId, req.alsoDeleteLinked);
+      await performDelete(req.entityType, req.entityId, user.officeId, req.alsoDeleteLinked, user.id, true);
     }
   } catch (e) {
     // P2025 (registro já não existe — foi removido por outro caminho) é benigno: segue para
