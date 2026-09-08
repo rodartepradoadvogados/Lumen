@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, X } from "lucide-react";
-import { requestDeletion, requestDeletionScoped, type DeletionScope } from "@/lib/actions/deletion";
+import { requestDeletion, requestDeletionScoped, type DeletionScope, type DeletionResult } from "@/lib/actions/deletion";
 import { formatCurrency } from "@/components/ui";
 
 type EntityType = "TASK" | "CASE" | "ATTENDANCE" | "PAYABLE" | "RECEIVABLE" | "HONORARIO_LANCAMENTO";
@@ -50,7 +50,7 @@ export default function DeleteEntityButton({
   confirmMessage: string;
   groupKind?: FinanceGroupKind;
   linkedReimbursement?: LinkedReimbursement | null;
-  onDone?: (result: { error?: string; pending?: boolean; warning?: string }) => void;
+  onDone?: (result: DeletionResult) => void;
   // Presente = esta entidade é exibida numa tela PRÓPRIA (ex.: /processos/[id]) que deixa de
   // existir assim que a exclusão é confirmada — sem isto, router.refresh() abaixo recarregava a
   // MESMA rota, que agora aponta pra um registro apagado, e o usuário caía direto no 404 do Next
@@ -83,14 +83,31 @@ export default function DeleteEntityButton({
     await new Promise((resolve) => setTimeout(resolve, 160));
   }
 
-  function runDeletion(scope: DeletionScope, deleteLinked?: boolean) {
+  function runDeletion(scope: DeletionScope, deleteLinked?: boolean, confirmadoComPagamentos?: boolean) {
     setMsg(null);
     startTransition(async () => {
       await collapseRowIfPresent();
       const result =
         scope === "ONLY" && !groupKind
           ? await requestDeletion(entityType, entityId, entityLabel, deleteLinked)
-          : await requestDeletionScoped(entityType as "PAYABLE" | "RECEIVABLE", entityId, entityLabel, scope, deleteLinked);
+          : await requestDeletionScoped(entityType as "PAYABLE" | "RECEIVABLE", entityId, entityLabel, scope, deleteLinked, confirmadoComPagamentos);
+
+      if (result.requiresConfirmation && result.confirmationData) {
+        // Restaurar a visibilidade da linha que foi escondida
+        const row = buttonRef.current?.closest<HTMLElement>("[data-delete-row]");
+        if (row) row.classList.remove("animate-item-collapse");
+
+        const qtde = result.confirmationData.pagamentos.length;
+        const msgConfirmacao = `ATENÇÃO: A operação envolve a exclusão de ${qtde} pagamento(s)/recebimento(s) já baixado(s), totalizando ${formatCurrency(result.confirmationData.valor)}.\n\nEles serão deletados do sistema permanentemente. Você tem certeza absoluta de que deseja excluir os lançamentos pagos em conjunto com os demais?`;
+
+        if (window.confirm(msgConfirmacao)) {
+          runDeletion(scope, deleteLinked, true);
+        } else {
+          setMsg({ type: "info", text: "Exclusão cancelada." });
+        }
+        return;
+      }
+
       if (result.error) {
         setMsg({ type: "error", text: result.error });
       } else if (result.pending) {
