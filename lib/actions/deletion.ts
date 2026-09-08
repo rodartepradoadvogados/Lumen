@@ -233,12 +233,14 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
       // independente do escopo — excluir "este e os seguintes" (ou "todos") da série implica
       // parar de gerar as próximas competências também, não só apagar o que já existe.
       const recurringExpenseId = anchor.recurringExpenseId;
-      const siblings = await prisma.payable.findMany({ where: { recurringExpenseId, officeId } });
+      // Preserva a parcela que já teve pagamento — inclusive PARCIAL — não só a PAGO (mesmo
+      // critério dos ramos groupId/honorarioLancamentoId; FinancePayment é onDelete: Cascade).
+      const siblings = await prisma.payable.findMany({ where: { recurringExpenseId, officeId }, include: { payments: true } });
       const alvo =
         scope === "FOLLOWING" && anchor.competencia
           ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
           : siblings;
-      const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.status !== "PAGO")).map((s) => s.id);
+      const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.payments.length === 0)).map((s) => s.id);
       if (idsParaExcluir.length > 0) {
         await prisma.payable.deleteMany({ where: { id: { in: idsParaExcluir } } });
       }
@@ -304,12 +306,14 @@ async function performDeleteScoped(entityType: "PAYABLE" | "RECEIVABLE", entityI
     // Honorário recorrente até o arquivamento — mesmo raciocínio do PAYABLE.recurringExpenseId
     // acima: RecurringFee.active=false sempre, independente do escopo.
     const recurringFeeId = anchor.recurringFeeId;
-    const siblings = await prisma.receivable.findMany({ where: { recurringFeeId, officeId } });
+    // Preserva a parcela que já recebeu algo — inclusive PARCIAL — não só a PAGO (FinancePayment
+    // é onDelete: Cascade, então apagar levaria o histórico de baixa junto).
+    const siblings = await prisma.receivable.findMany({ where: { recurringFeeId, officeId }, include: { payments: true } });
     const alvo =
       scope === "FOLLOWING" && anchor.competencia
         ? siblings.filter((s) => (s.competencia ?? "") >= (anchor.competencia as string))
         : siblings;
-    const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.status !== "PAGO")).map((s) => s.id);
+    const idsParaExcluir = (includePago ? alvo : alvo.filter((s) => s.payments.length === 0)).map((s) => s.id);
     if (idsParaExcluir.length > 0) {
       await prisma.receivable.deleteMany({ where: { id: { in: idsParaExcluir } } });
     }
