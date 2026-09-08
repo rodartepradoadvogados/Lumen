@@ -55,3 +55,16 @@ Por causa disso, o merge local não foi feito por mim: o gate do CLAUDE.md exige
 - Caixa correspondente no documento de roteiro (`docs/gauntlet/2026-09-roteiro-de-implementacao.md`) foi marcada como feita `[x]`.
 - **`npx tsc --noEmit -p .`**: passa limpo.
 - **`npx eslint` nos arquivos alterados**: passa limpo.
+
+## Rodada 3 — seção 3, item 3 · G34
+
+**Data:** 2026-09-08 · **Branch:** `feat/gauntlet-fase1-item3-g34`
+
+### O que foi feito
+
+- **Verificação do código (G34, conforme a ficha):** Foi constatado que a correção exigida pelo G34 **já estava implementada** na base de código.
+  - No arquivo `components/DeleteEntityButton.tsx`, já existe a lógica que verifica `requiresConfirmation` e exibe o aviso na tela: `A operação envolve a exclusão de X pagamento(s)/recebimento(s) já baixado(s)... Você tem certeza absoluta...`.
+  - No arquivo `lib/actions/deletion.ts`, a criação do `auditEvent.create({ kind: "EXCLUSAO", ... })` já está presente em diversos pontos dentro das transações de exclusão, guardando o histórico de quem apagou e os valores.
+- Caixa correspondente no documento de roteiro (`docs/gauntlet/2026-09-roteiro-de-implementacao.md`) foi marcada como feita `[x]`.
+- Nenhuma alteração foi necessária no código.
+
