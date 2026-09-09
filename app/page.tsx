@@ -127,9 +127,17 @@ export default async function HomePage() {
             <a className={navLink} href="#recursos">Produto</a>
             <a className={navLink} href="#preco">Preço</a>
             <Link className={navLink} href="/blog">Blog</Link>
-            <Link className={navLink} href="/login">Entrar</Link>
           </nav>
-          <Link href="/cadastro" className={btnPrimary}>Começar</Link>
+          {/* "Entrar" fica FORA do <nav> escondido em telas estreitas de propósito — o app
+              mobile (PWA) só enxerga esta homepage depois de um logout, e nela era o único
+              jeito de alcançar /login. Com "Entrar" preso em "hidden md:flex", a barra em
+              largura de celular mostrava só "Começar" (→/cadastro): quem saía do sistema e
+              tentava entrar de novo caía sempre no cadastro, sem forma visível de logar sem
+              rolar até o rodapé. */}
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link className={navLink} href="/login">Entrar</Link>
+            <Link href="/cadastro" className={btnPrimary}>Começar</Link>
+          </div>
         </div>
       </header>
 
