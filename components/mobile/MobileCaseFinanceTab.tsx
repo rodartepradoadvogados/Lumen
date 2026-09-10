@@ -122,7 +122,7 @@ export default function MobileCaseFinanceTab({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm text-tx">{r.description}</p>
-                      <p className={clsx("text-xs mt-0.5", r.noDueDate || isApurar ? "text-tx-2" : PRAZO_URGENCIA_TEXT[urgencia])}>
+                      <p className={clsx("text-[13px] mt-0.5", r.noDueDate || isApurar ? "text-tx-2" : PRAZO_URGENCIA_TEXT[urgencia])}>
                         {r.noDueDate ? "Sem vencimento" : formatRelativeDueDate(r.dueDate)}
                         {r.payerType !== "CLIENTE" && (
                           <> · pagador: {r.payerType === "OUTRO" ? r.payerName || "Outro" : r.payerType === "ADVERSA" ? "Parte adversa" : r.payerType}</>
@@ -136,7 +136,7 @@ export default function MobileCaseFinanceTab({
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold tabular-nums text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                      {r.status === "PARCIAL" && <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
+                      {r.status === "PARCIAL" && <p className="text-[13px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">
@@ -181,11 +181,11 @@ export default function MobileCaseFinanceTab({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm text-tx">{p.description}</p>
-                      <p className={clsx("text-xs mt-0.5", p.noDueDate ? "text-tx-2" : PRAZO_URGENCIA_TEXT[urgencia])}>
+                      <p className={clsx("text-[13px] mt-0.5", p.noDueDate ? "text-tx-2" : PRAZO_URGENCIA_TEXT[urgencia])}>
                         {p.noDueDate ? "Sem vencimento" : formatRelativeDueDate(p.dueDate)}
                       </p>
                       {p.reimbursementReceivable && (
-                        <p className="mt-1 flex items-center gap-1.5 flex-wrap text-[11px] text-tx-2">
+                        <p className="mt-1 flex items-center gap-1.5 flex-wrap text-[13px] text-tx-2">
                           ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)}
                           <FinanceStatusBadge status={p.reimbursementReceivable.status} kind="receivable" />
                         </p>
@@ -193,7 +193,7 @@ export default function MobileCaseFinanceTab({
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(liquido)}</p>
-                      {p.status === "PARCIAL" && <p className="text-[11px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
+                      {p.status === "PARCIAL" && <p className="text-[13px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-1.5">

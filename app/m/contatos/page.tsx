@@ -54,7 +54,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/mais" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+      <Link href="/m/mais" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
         <ArrowLeft size={13} /> Menu
       </Link>
 
@@ -68,7 +68,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
           <Link
             key={t.key}
             href={`/m/contatos?tab=${t.key}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 text-[13px] font-semibold px-3 py-2 whitespace-nowrap transition-colors ${
               tab === t.key ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
             }`}
           >
@@ -98,7 +98,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tx truncate">{r.name}</p>
                   {(r.sub || r.phone) && (
-                    <p className="text-xs text-tx-2 truncate mt-0.5">{[r.sub, r.phone].filter(Boolean).join(" · ")}</p>
+                    <p className="text-[13px] text-tx-2 truncate mt-0.5">{[r.sub, r.phone].filter(Boolean).join(" · ")}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">

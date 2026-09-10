@@ -59,13 +59,13 @@ export default function MobileSettleForm({
               }
             })
           }
-          className={`flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio ${
+          className={`flex items-center gap-1 text-[13px] font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio ${
             pending ? "opacity-50" : ""
           }`}
         >
           <RotateCcw size={12} /> Reabrir
         </button>
-        {error && <p className="text-[10px] text-urgente">{error}</p>}
+        {error && <p className="text-[13px] text-urgente">{error}</p>}
       </div>
     );
   }
@@ -75,7 +75,7 @@ export default function MobileSettleForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1.5 "
+        className="flex items-center gap-1 text-[13px] font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1.5 "
       >
         <Check size={12} /> Dar Baixa
       </button>
@@ -85,13 +85,13 @@ export default function MobileSettleForm({
   return (
     <div className="w-full border border-concluido/25 bg-concluido-bg rounded-md p-3 space-y-2.5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-tx">Confirmar baixa</p>
+        <p className="text-[13px] font-semibold text-tx">Confirmar baixa</p>
         <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Cancelar">
           <X size={14} />
         </button>
       </div>
       {alreadyPaid > 0 && (
-        <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-2.5 py-1.5">
+        <p className="text-[13px] text-tx-2 bg-white/60 dark:bg-white/5 px-2.5 py-1.5">
           Já pago: <span className="font-semibold text-tx tabular-nums">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
           <span className="font-semibold text-tx tabular-nums">{formatCurrency(saldoAtual)}</span>
         </p>
@@ -120,7 +120,7 @@ export default function MobileSettleForm({
       >
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="text-[11px] font-medium text-tx-2">Valor pago (R$)</label>
+            <label className="text-[13px] font-medium text-tx-2">Valor pago (R$)</label>
             <MoneyInput
               value={paidAmount}
               onChange={setPaidAmount}
@@ -129,17 +129,17 @@ export default function MobileSettleForm({
             />
           </div>
           <div>
-            <label className="text-[11px] font-medium text-tx-2">Data</label>
+            <label className="text-[13px] font-medium text-tx-2">Data</label>
             <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="mobile-input" />
           </div>
         </div>
         {ficaParcial && (
-          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-2.5 py-1.5">
+          <p className="text-[13px] text-aviso bg-aviso-bg rounded-md px-2.5 py-1.5">
             Valor menor que o saldo em aberto — esta conta ficará <strong>Parcial</strong>.
           </p>
         )}
         <div>
-          <label className="text-[11px] font-medium text-tx-2">Conta bancária</label>
+          <label className="text-[13px] font-medium text-tx-2">Conta bancária</label>
           <select name="bankAccountId" defaultValue="" className="mobile-input">
             <option value="">Nenhuma</option>
             {bankAccounts.map((b) => (
@@ -150,7 +150,7 @@ export default function MobileSettleForm({
           </select>
         </div>
         <div>
-          <label className="text-[11px] font-medium text-tx-2">Forma de pagamento</label>
+          <label className="text-[13px] font-medium text-tx-2">Forma de pagamento</label>
           <select name="paymentMethod" required defaultValue="" className="mobile-input">
             <option value="" disabled>
               Selecione...
@@ -163,10 +163,10 @@ export default function MobileSettleForm({
           </select>
         </div>
         <div>
-          <label className="text-[11px] font-medium text-tx-2">Nº do comprovante (opcional)</label>
+          <label className="text-[13px] font-medium text-tx-2">Nº do comprovante (opcional)</label>
           <input name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-[13px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}

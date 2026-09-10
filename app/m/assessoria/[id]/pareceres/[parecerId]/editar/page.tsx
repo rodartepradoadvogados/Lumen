@@ -20,7 +20,7 @@ export default async function EditarDemandaMobilePage({ params }: { params: { id
   return (
     <div className="animate-fade-in">
       <div className="p-4 pb-0">
-        <Link href={`/m/assessoria/${assessoria.id}/pareceres/${parecer.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+        <Link href={`/m/assessoria/${assessoria.id}/pareceres/${parecer.id}`} className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
           <ArrowLeft size={13} /> Cancelar
         </Link>
         <h1 className="text-lg font-bold text-tx leading-tight mt-2">Editar demanda</h1>

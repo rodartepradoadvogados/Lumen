@@ -58,7 +58,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m/atendimento"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Atendimento
       </Link>
@@ -99,19 +99,19 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
       </Card>
 
       <Card className="p-4">
-        <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Descrição</h4>
+        <h4 className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">Descrição</h4>
         <p className="text-sm text-tx-2 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
       </Card>
 
       <div>
-        <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</h4>
+        <h4 className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</h4>
         <MobileCaseAttachmentsTab attachments={serializedAttachments} />
       </div>
 
       {!a.convertedCaseId && (
         <Card className="p-4">
           <h4 className="text-sm font-semibold text-tx mb-1">Transformar em Processo/Caso</h4>
-          <p className="text-xs italic text-tx-3 mb-3">
+          <p className="text-[13px] italic text-tx-3 mb-3">
             Cria um novo Caso ou Processo vinculado ao cliente, mantendo o histórico deste atendimento.
           </p>
           <MobileConvertAttendanceForm attendanceId={a.id} />
@@ -122,7 +122,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
         <Card className="p-4">
           <div className="flex items-start justify-between mb-3 gap-2">
             <h4 className="text-sm font-semibold text-tx">Conversa do WhatsApp</h4>
-            {a.waPhone && <span className="text-xs text-tx-2 shrink-0">{a.waPhone}</span>}
+            {a.waPhone && <span className="text-[13px] text-tx-2 shrink-0">{a.waPhone}</span>}
           </div>
 
           {a.whatsappMessages.length === 0 ? (
@@ -141,7 +141,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
                       }
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                      <p className={out ? "mt-1 text-[10px] text-acao-tx/60 text-right" : "mt-1 text-[10px] text-tx-2"}>
+                      <p className={out ? "mt-1 text-[13px] text-acao-tx/60 text-right" : "mt-1 text-[13px] text-tx-2"}>
                         {formatDate(m.createdAt)}{" "}
                         {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         {out && m.status === "FAILED" ? " · falhou" : ""}
@@ -153,7 +153,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
             </div>
           )}
 
-          <p className="mt-3 text-xs italic text-tx-2">Para responder, use o computador.</p>
+          <p className="mt-3 text-[13px] italic text-tx-2">Para responder, use o computador.</p>
         </Card>
       )}
 
@@ -165,21 +165,21 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
               <div key={m.id} className=" border border-regua bg-sf-apoio px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-tx truncate">{m.subject}</p>
-                  <span className="shrink-0 text-[10px] text-tx-2">
+                  <span className="shrink-0 text-[13px] text-tx-2">
                     {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-tx-2">
+                <p className="mt-1 text-[13px] text-tx-2">
                   De {m.fromAddress} para {m.toAddress}
                 </p>
                 <p className="mt-1 text-sm text-tx whitespace-pre-wrap break-words">{m.body}</p>
                 {m.status === "FAILED" && (
-                  <p className="mt-1 text-xs font-medium text-urgente">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
+                  <p className="mt-1 text-[13px] font-medium text-urgente">Falhou{m.errorMessage ? `: ${m.errorMessage}` : ""}</p>
                 )}
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs italic text-tx-2">Para responder, use o computador.</p>
+          <p className="mt-3 text-[13px] italic text-tx-2">Para responder, use o computador.</p>
         </Card>
       )}
 

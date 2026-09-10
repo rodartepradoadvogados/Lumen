@@ -152,11 +152,11 @@ async function DayView({
         <div className="text-center min-w-0 flex-1">
           <p className="font-bold text-tx text-sm capitalize truncate">{label}</p>
           {!isToday && (
-            <Link href="/m/agenda" className="text-[11px] font-semibold text-acao">
+            <Link href="/m/agenda" className="text-[13px] font-semibold text-acao">
               Voltar para hoje
             </Link>
           )}
-          {isToday && <p className="text-[11px] font-semibold text-acao">Hoje</p>}
+          {isToday && <p className="text-[13px] font-semibold text-acao">Hoje</p>}
         </div>
         <Link
           href={`/m/agenda?d=${toISODate(next)}`}
@@ -240,11 +240,11 @@ function MobileAgendaFinanceRow({
       <span className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${isPagar ? "bg-atencao" : "bg-concluido"}`} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <span className={`text-[11px] font-semibold ${isPagar ? "text-atencao" : "text-concluido"}`}>{isPagar ? "Conta a Pagar" : "Conta a Receber"}</span>
+          <span className={`text-[13px] font-semibold ${isPagar ? "text-atencao" : "text-concluido"}`}>{isPagar ? "Conta a Pagar" : "Conta a Receber"}</span>
           <Badge color={statusColor}>{isApurar ? "A apurar" : f.effectiveStatus}</Badge>
         </div>
         <p className="text-sm font-medium text-tx">{f.description}</p>
-        {f.caseTitle && <p className="text-xs text-acao mt-0.5 truncate">{f.caseTitle}</p>}
+        {f.caseTitle && <p className="text-[13px] text-acao mt-0.5 truncate">{f.caseTitle}</p>}
       </div>
       <p className="text-sm font-semibold text-tx tabular-nums shrink-0">{f.amount === null ? "—" : formatCurrency(f.amount)}</p>
     </Link>
@@ -319,7 +319,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
       <Card className="p-3">
         <div className="grid grid-cols-7 gap-1.5">
           {WEEKDAY_LABELS.map((wd, i) => (
-            <div key={i} className="text-center text-[11px] font-semibold text-tx-2">
+            <div key={i} className="text-center text-[13px] font-semibold text-tx-2">
               {wd}
             </div>
           ))}
@@ -350,7 +350,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
         </div>
       </Card>
 
-      <p className="text-center text-xs text-tx-2">Toque em um dia para ver as atividades.</p>
+      <p className="text-center text-[13px] text-tx-2">Toque em um dia para ver as atividades.</p>
     </div>
   );
 }
@@ -362,7 +362,7 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
     <div className="flex gap-1 bg-sf-apoio border border-regua p-1">
       <Link
         href={`/m/agenda?view=day&d=${d}`}
-        className={`flex-1 text-center text-xs font-semibold py-1.5 transition-colors ${
+        className={`flex-1 text-center text-[13px] font-semibold py-1.5 transition-colors ${
           view === "day" ? "bg-tx text-sf" : "text-tx-2"
         }`}
       >
@@ -370,7 +370,7 @@ function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
       </Link>
       <Link
         href={`/m/agenda?view=week&d=${d}`}
-        className={`flex-1 text-center text-xs font-semibold py-1.5 transition-colors ${
+        className={`flex-1 text-center text-[13px] font-semibold py-1.5 transition-colors ${
           view === "week" ? "bg-tx text-sf" : "text-tx-2"
         }`}
       >

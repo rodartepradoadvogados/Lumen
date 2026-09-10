@@ -125,7 +125,7 @@ export default function MobileGlobalSearch() {
               if (groupItems.length === 0) return null;
               return (
                 <div key={group} className="border-b border-regua last:border-0">
-                  <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold text-tx-2 uppercase tracking-wide">
+                  <p className="px-4 pt-2.5 pb-1 text-[13px] font-semibold text-tx-2 uppercase tracking-wide">
                     {group}
                   </p>
                   {groupItems.map((item) => {
@@ -144,7 +144,7 @@ export default function MobileGlobalSearch() {
                           {item.titulo}
                         </span>
                         {item.subtitulo && (
-                          <span className="text-xs text-tx-2 truncate w-full">
+                          <span className="text-[13px] text-tx-2 truncate w-full">
                             {item.subtitulo}
                           </span>
                         )}

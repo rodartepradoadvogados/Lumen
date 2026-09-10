@@ -96,7 +96,7 @@ export default function MobileDocumentUpload({
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover border border-dashed border-regua hover:border-acao/40 py-2.5 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 text-[13px] font-semibold text-acao hover:text-acao-hover border border-dashed border-regua hover:border-acao/40 py-2.5 transition-colors"
       >
         <Paperclip size={13} /> Anexar documento
         <input
@@ -115,7 +115,7 @@ export default function MobileDocumentUpload({
   return (
     <div className=" border border-regua bg-sf-apoio p-2.5 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="flex-1 min-w-0 text-xs font-medium text-tx truncate" title={file.name}>
+        <span className="flex-1 min-w-0 text-[13px] font-medium text-tx truncate" title={file.name}>
           {file.name}
         </span>
         <button type="button" onClick={cancel} disabled={uploading} className="shrink-0 text-tx-3 hover:text-atencao disabled:opacity-50" aria-label="Cancelar">
@@ -126,21 +126,21 @@ export default function MobileDocumentUpload({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nome do documento"
-        className="w-full text-xs border border-regua bg-sf text-tx px-2.5 py-1.5"
+        className="w-full text-[13px] border border-regua bg-sf text-tx px-2.5 py-1.5"
       />
       <DocumentTypeSelect
         value={docType}
         onChange={setDocType}
         excludeKeys={["PARECER"]}
-        className="w-full text-xs border border-regua bg-sf text-tx px-2.5 py-1.5"
+        className="w-full text-[13px] border border-regua bg-sf text-tx px-2.5 py-1.5"
         allowCreate
       />
-      {error && <p className="text-[11px] text-urgente">{error}</p>}
+      {error && <p className="text-[13px] text-urgente">{error}</p>}
       <button
         type="button"
         onClick={send}
         disabled={uploading}
-        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold py-1.5 disabled:opacity-50"
+        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold py-1.5 disabled:opacity-50"
       >
         {uploading ? "Enviando..." : "Enviar para o Drive"}
       </button>

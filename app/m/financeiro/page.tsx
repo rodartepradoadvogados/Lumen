@@ -41,7 +41,7 @@ export default async function MobileFinanceiroHub() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+      <Link href="/m" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
@@ -105,7 +105,7 @@ function SummaryRow({
     <div className={`flex items-center justify-between gap-3 px-4 py-3.5 border-t-4 first:border-t-0 ${borderTone}`}>
       <div>
         <p className="text-sm font-medium text-tx">{label}</p>
-        {hint && <p className="text-xs text-tx-2">{hint}</p>}
+        {hint && <p className="text-[13px] text-tx-2">{hint}</p>}
       </div>
       <p className={`text-base font-bold tabular-nums shrink-0 ${textTone}`}>{formatCurrency(value)}</p>
     </div>

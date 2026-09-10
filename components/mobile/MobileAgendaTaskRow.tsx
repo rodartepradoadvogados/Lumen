@@ -54,21 +54,21 @@ export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
             <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
           )}
           {t.dueTime && (
-            <span className="flex items-center gap-1 text-xs font-semibold text-tx-2">
+            <span className="flex items-center gap-1 text-[13px] font-semibold text-tx-2">
               <Clock size={12} /> {t.dueTime}
             </span>
           )}
           {!done && (
-            <span className={clsx("text-xs font-semibold", PRAZO_URGENCIA_TEXT[urgencia])}>
+            <span className={clsx("text-[13px] font-semibold", PRAZO_URGENCIA_TEXT[urgencia])}>
               {formatRelativeDueDate(t.dueDate)}
             </span>
           )}
         </div>
         <p className={`text-sm font-medium ${done ? "line-through text-tx-2" : "text-tx"}`}>{t.title}</p>
-        {t.caseTitle && <p className="text-xs text-acao mt-0.5 truncate">{t.caseTitle}</p>}
-        {t.responsibleName && <p className="text-xs text-tx-2 mt-0.5">{t.responsibleName}</p>}
+        {t.caseTitle && <p className="text-[13px] text-acao mt-0.5 truncate">{t.caseTitle}</p>}
+        {t.responsibleName && <p className="text-[13px] text-tx-2 mt-0.5">{t.responsibleName}</p>}
         {done && t.completedByName && t.completedAt && (
-          <p className="text-[11px] text-tx-3 mt-0.5">
+          <p className="text-[13px] text-tx-3 mt-0.5">
             Concluído por {t.completedByName} em {new Date(t.completedAt).toLocaleDateString("pt-BR")} às{" "}
             {new Date(t.completedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
           </p>

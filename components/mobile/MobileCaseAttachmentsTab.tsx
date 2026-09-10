@@ -21,7 +21,7 @@ type AttachmentData = {
 export default function MobileCaseAttachmentsTab({ attachments }: { attachments: AttachmentData[] }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
+      <p className="text-[13px] text-tx-2 bg-sf-apoio px-3 py-2">
         Só leitura por aqui — para enviar ou gerar um novo anexo, use o computador.
       </p>
       <Card>
@@ -44,7 +44,7 @@ export default function MobileCaseAttachmentsTab({ attachments }: { attachments:
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-tx truncate">{a.name}</p>
-                    <p className="text-[11px] text-tx-2">
+                    <p className="text-[13px] text-tx-2">
                       {getDocumentTypeLabel(a.docType)} · {formatDate(a.createdAt)}
                       {a.uploadedBy && <> · {a.uploadedBy.name}</>}
                       {a.driveUrl.startsWith("http") && !a.driveUrl.includes("drive.google.com") && <> · {getLinkSourceLabel(a.driveUrl)}</>}

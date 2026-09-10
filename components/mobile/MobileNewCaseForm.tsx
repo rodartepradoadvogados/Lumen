@@ -18,7 +18,7 @@ import MoneyInput from "@/components/MoneyInput";
 
 const inputClass =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
-const labelClass = "text-xs font-medium text-tx-2";
+const labelClass = "text-[13px] font-medium text-tx-2";
 
 // Mesma máscara do desktop (ver formatCnj em components/NovoCaseNaturezaSection.tsx) — duplicada
 // aqui, não importada, mesmo padrão dos demais helpers pequenos compartilhados entre site/app
@@ -401,7 +401,7 @@ export default function MobileNewCaseForm({
 
       <NewCaseAttachmentsField driveConnected={driveConnected} />
 
-      {error && <p className="text-xs font-semibold text-urgente">{error}</p>}
+      {error && <p className="text-[13px] font-semibold text-urgente">{error}</p>}
 
       <button
         type="submit"

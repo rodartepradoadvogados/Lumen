@@ -96,7 +96,7 @@ export default async function MobileRelatoriosFinanceiro() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
@@ -127,8 +127,8 @@ export default async function MobileRelatoriosFinanceiro() {
             <div key={m.key} className="px-4 py-3 flex items-center justify-between gap-3">
               <span className="text-sm font-semibold text-tx w-12 shrink-0 capitalize">{m.label}</span>
               <div className="flex-1 text-right leading-tight">
-                <p className="text-xs tabular-nums text-concluido">+{formatCurrency(m.receita)}</p>
-                <p className="text-xs tabular-nums text-urgente">-{formatCurrency(m.despesa)}</p>
+                <p className="text-[13px] tabular-nums text-concluido">+{formatCurrency(m.receita)}</p>
+                <p className="text-[13px] tabular-nums text-urgente">-{formatCurrency(m.despesa)}</p>
               </div>
               <span
                 className={`text-sm font-semibold tabular-nums w-28 text-right shrink-0 ${
@@ -180,9 +180,9 @@ function StatBlock({
   }[tone];
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium text-tx-2 uppercase tracking-wide">{label}</p>
+      <p className="text-[13px] font-medium text-tx-2 uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-bold tabular-nums mt-1 ${toneClass}`}>{value}</p>
-      {hint && <p className="text-xs text-tx-2 mt-1">{hint}</p>}
+      {hint && <p className="text-[13px] text-tx-2 mt-1">{hint}</p>}
     </Card>
   );
 }

@@ -35,7 +35,7 @@ export default function MobileAttendanceStatusSelect({ attendanceId, status }: {
           router.refresh();
         })
       }
-      className={`text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer disabled:opacity-50 ${colors[status] ?? colors.ARQUIVADO}`}
+      className={`text-[13px] font-semibold px-3 py-1.5 rounded-full border cursor-pointer disabled:opacity-50 ${colors[status] ?? colors.ARQUIVADO}`}
     >
       {allOptions.map((o) => (
         <option key={o} value={o}>

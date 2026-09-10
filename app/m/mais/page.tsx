@@ -57,7 +57,7 @@ export default async function MobileMais() {
           <div>
             <p className="font-bold text-tx leading-tight">{viewer.name}</p>
             {viewer.role && (
-              <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2">
+              <span className="inline-block mt-1 text-[13px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2">
                 {viewer.role}
               </span>
             )}

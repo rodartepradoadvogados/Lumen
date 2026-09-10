@@ -63,7 +63,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/assessoria" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+      <Link href="/m/assessoria" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
         <ArrowLeft size={13} /> Assessoria Jurídica
       </Link>
 
@@ -80,7 +80,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
         <Field label="Início do contrato" value={formatDate(assessoria.startDate)} />
         {assessoria.planningNotes && (
           <div className="pt-1">
-            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">Planejamento</p>
+            <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-1">Planejamento</p>
             <p className="text-sm text-tx-2 whitespace-pre-wrap">{assessoria.planningNotes}</p>
           </div>
         )}
@@ -98,7 +98,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
               <div key={h.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tx">{h.competencia}</p>
-                  <p className="text-xs tabular-nums text-tx-2">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
+                  <p className="text-[13px] tabular-nums text-tx-2">{formatCurrency(h.receivable.amount)} · vence {formatDate(h.receivable.dueDate)}</p>
                 </div>
                 <FinanceStatusBadge status={h.receivable.status} kind="receivable" />
               </div>
@@ -129,13 +129,13 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             <MobileSearchCasesModal assessoriaId={assessoria.id} availableCases={availableCases} />
             <Link
               href={`/m/processos/novo?assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 shrink-0"
+              className="flex items-center gap-1 text-[13px] font-semibold text-acao px-2.5 py-1 shrink-0"
             >
               <Plus size={12} /> Novo processo
             </Link>
             <Link
               href={`/m/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 shrink-0"
+              className="flex items-center gap-1 text-[13px] font-semibold text-acao px-2.5 py-1 shrink-0"
             >
               <Plus size={12} /> Novo caso
             </Link>
@@ -166,7 +166,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             {assessoria.linkedAttendances.map((a) => (
               <Link key={a.id} href={`/m/atendimento/${a.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-sf-apoio">
                 <p className="text-sm font-medium text-tx truncate">{a.subject}</p>
-                <span className="text-xs text-tx-2 shrink-0">{formatDate(a.createdAt)}</span>
+                <span className="text-[13px] text-tx-2 shrink-0">{formatDate(a.createdAt)}</span>
               </Link>
             ))}
           </div>

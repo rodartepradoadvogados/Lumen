@@ -115,7 +115,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
             <Link
               key={p.label}
               href={pillHref(p.natureza)}
-              className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+              className={`shrink-0 inline-flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${
                 active
                   ? "bg-acao border-acao text-acao-tx"
                   : "bg-sf border-regua text-tx-2"
@@ -169,7 +169,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-xs text-tx-2 mt-0.5 truncate">
+                    <p className="text-[13px] text-tx-2 mt-0.5 truncate">
                       {nat === "ADMINISTRATIVO"
                         ? [c.processNumber, c.tribunalSigla, c.adminMateria ? MATERIA_LABELS[c.adminMateria] : null]
                             .filter(Boolean)
@@ -190,7 +190,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
           alfabético simplesmente some da navegação por lista, sem nenhum indício do porquê
           (achado A21 da revisão gauntlet). */}
       {cases.length < activeTotal && (
-        <p className="text-xs text-tx-2 text-center">
+        <p className="text-[13px] text-tx-2 text-center">
           Mostrando os primeiros {cases.length} de {activeTotal} — use a busca para encontrar os demais
         </p>
       )}
