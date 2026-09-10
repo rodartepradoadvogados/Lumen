@@ -51,7 +51,7 @@ export default function MobileChangePasswordForm() {
         <input id="change-password-confirm" name="confirmPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       {error && (
-        <p className="text-[13px] text-urgente bg-urgente-bg border border-urgente rounded-md px-2.5 py-1.5">
+        <p role="alert" className="text-[13px] text-urgente bg-urgente-bg border border-urgente rounded-md px-2.5 py-1.5">
           {error}
         </p>
       )}

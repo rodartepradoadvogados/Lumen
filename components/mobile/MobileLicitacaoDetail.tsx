@@ -145,7 +145,7 @@ export default function MobileLicitacaoDetail({
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            {error && <p className="text-[13px] text-urgente">{error}</p>}
+            {error && <p role="alert" className="text-[13px] text-urgente">{error}</p>}
             <div className="flex gap-2">
               <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-1.5 disabled:opacity-50">
                 Adicionar

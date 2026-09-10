@@ -402,7 +402,7 @@ export default function MobileNewCaseForm({
 
       <NewCaseAttachmentsField driveConnected={driveConnected} />
 
-      {error && <p className="text-[13px] font-semibold text-urgente">{error}</p>}
+      {error && <p role="alert" className="text-[13px] font-semibold text-urgente">{error}</p>}
 
       <button
         type="submit"

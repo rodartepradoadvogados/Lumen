@@ -126,7 +126,7 @@ export default function MobileLicitacaoDocumentUpload({
           ))}
         </select>
       )}
-      {error && <p className="text-[13px] text-urgente">{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-urgente">{error}</p>}
       <button
         type="button"
         onClick={send}

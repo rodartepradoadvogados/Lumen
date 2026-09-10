@@ -90,7 +90,7 @@ export default function MobileSearchCasesModal({
                   className="w-full text-sm border border-regua bg-sf text-tx pl-8 pr-3 py-2"
                 />
               </div>
-              {error && <p className="text-[13px] text-urgente mt-2">{error}</p>}
+              {error && <p role="alert" className="text-[13px] text-urgente mt-2">{error}</p>}
             </div>
 
             <div className="overflow-y-auto scrollbar-thin flex-1 divide-y divide-regua">

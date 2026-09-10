@@ -151,7 +151,7 @@ export default function NotificationPreferences() {
         </button>
       </div>
 
-      {error && <p className="px-4 pb-2 text-[13px] font-semibold text-urgente">{error}</p>}
+      {error && <p role="alert" className="px-4 pb-2 text-[13px] font-semibold text-urgente">{error}</p>}
 
       {subscribed && prefs && (
         <div className="divide-y divide-regua border-t border-regua">
