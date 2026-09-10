@@ -7,6 +7,7 @@ import { calcularPrecoDoPlano, MODULOS } from "@/lib/officePricing";
 import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
+import MobileNav from "@/components/site/MobileNav";
 
 // Homepage PÚBLICA do produto de software "Lúmen" (documento 09 do redesenho: "o site passa a
 // vender o Lúmen como SaaS de gestão jurídica para outros escritórios, não é mais a homepage do
@@ -211,6 +212,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link className={navLink} href="/login">Entrar</Link>
             <Link href="/cadastro" className={btnPrimary}>Começar</Link>
+            <MobileNav />
           </div>
         </div>
       </header>
