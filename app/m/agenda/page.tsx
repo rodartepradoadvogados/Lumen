@@ -144,7 +144,7 @@ async function DayView({
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/m/agenda?d=${toISODate(prev)}`}
-          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-11 w-11 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Dia anterior"
         >
           <ChevronLeft size={18} />
@@ -160,7 +160,7 @@ async function DayView({
         </div>
         <Link
           href={`/m/agenda?d=${toISODate(next)}`}
-          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-11 w-11 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próximo dia"
         >
           <ChevronRight size={18} />
@@ -299,7 +299,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
       <div className="flex items-center justify-between gap-2">
         <Link
           href={`/m/agenda?view=week&d=${toISODate(prevWeek)}`}
-          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-11 w-11 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Semana anterior"
         >
           <ChevronLeft size={18} />
@@ -309,7 +309,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
         </p>
         <Link
           href={`/m/agenda?view=week&d=${toISODate(nextWeek)}`}
-          className="h-9 w-9 bg-sf border border-regua flex items-center justify-center text-tx-2"
+          className="h-11 w-11 bg-sf border border-regua flex items-center justify-center text-tx-2"
           aria-label="Próxima semana"
         >
           <ChevronRight size={18} />
