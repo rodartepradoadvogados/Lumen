@@ -253,6 +253,7 @@ export default async function HomePage() {
         {/* 4. Linhas de recurso */}
         <section id="recursos" className="border-t-2 border-regua-forte">
           <div className="max-w-[1120px] mx-auto px-6">
+            <h2 className="sr-only">Recursos</h2>
             {FEATURES.map((f, i) => (
               <div key={f.title} className={`grid md:grid-cols-2 gap-10 items-center py-16 ${i > 0 ? "border-t border-regua" : ""}`}>
                 <div className={i % 2 === 1 ? "md:order-2" : ""}>

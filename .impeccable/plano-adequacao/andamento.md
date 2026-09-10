@@ -36,7 +36,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P1-7 · PWA · label sem htmlFor | **concluído (PR #152, merge manual)** |
 | P1-8 · PWA · erro sem aria-live | **concluído (PR #154)** |
 | P1-9 · Site · alvo de toque nav/rodapé | **concluído (PR #155)** |
-| P1-10 · Site · heading h1→h3 | pendente (sem mockup — mecânico) |
+| P1-10 · Site · heading h1→h3 | **concluído (PR #156)** |
 | P2-3 · Site · blog sem paginação | pendente (sem mockup — mecânico) |
 | P2-4 · Site · imagens sem lazy | pendente (sem mockup — mecânico) |
 | P2-5 · Site · force-dynamic sem cache | pendente (sem mockup — mecânico) |
@@ -655,3 +655,41 @@ projeto ("faça o P1-9").
 
 - Nenhuma. Próximo item da ordem de execução: **P1-10** (Site · hierarquia de heading pula de h1
   para h3) — mecânico, sem mockup necessário.
+
+## Rodada 14 — P1-10 implementado
+
+**Data:** 2026-09-10 · **Sessão:** mesma sessão das Rodadas 0-13, retomada a pedido do dono do
+projeto ("prossiga com o P1-10").
+
+### O que foi feito
+
+- **P1-10 implementado** em `app/page.tsx`. Entre o `<h1>` do hero e o `<h3>` de cada recurso
+  (seção `#recursos`) não havia nenhum `<h2>` — escolhida a segunda opção oferecida pelo roteiro
+  ("inserir um `<h2>` de seção visualmente oculto"), em vez de promover cada título de recurso a
+  `<h2>`: os cinco recursos são subseções de uma única seção "Recursos", não seções de primeiro
+  nível cada uma — um `<h2 className="sr-only">Recursos</h2>` acima do `.map` de `FEATURES`
+  corrige a hierarquia sem tocar em nenhum título visível nem em nenhuma classe de estilo
+  (nenhum seletor de tag `h1`/`h2`/`h3` existe em `app/globals.css` — toda a estilização já era
+  via `className`, então a troca de nível de heading não muda nada visualmente). `sr-only` já era
+  usado no projeto (`components/mobile/MobileNovaAnotacaoForm.tsx`), reaproveitado em vez de
+  inventar um padrão novo de texto oculto.
+  - Hierarquia resultante: `h1` → `h2` (oculto, "Recursos") → `h3` (título de cada recurso) →
+    `h2` ("Um plano para cada tamanho de escritório") → `h2` (CTA final) — nenhum nível pulado
+    entre o `h1` e o primeiro `h2`, que é exatamente o critério de aceite do item.
+  - Os três `<h4>` do rodapé (Produto/Contato/Legal) ficaram de fora — o critério de aceite do
+    roteiro é escopado ao trecho "entre o `<h1>` e o primeiro `<h2>` de conteúdo", e o rodapé é um
+    padrão comum (`role="contentinfo"`) de headings de bloco não ligados ao fluxo do documento
+    principal; não fazia parte do "Onde" citado pelo achado.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados no working tree — `docs/gauntlet/*`, `lib/roboBridge.ts` — ficaram de
+  fora do `git add`, sem alteração): `rm -rf .next && tsc --noEmit -p .` limpo, `eslint
+  app/page.tsx` limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/156**, branch
+  `fix/p1-10-heading-h1-h2-h3` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Todos os **10 itens P1** do roteiro estão concluídos (P1-1 a P1-10). Próximo item da
+  ordem de execução: **P2-1** (Site · plano recomendado — já validado, requer o requisito
+  adicional de configuração em Painel Mestre → Preços registrado na validação do dono do projeto).
