@@ -44,6 +44,9 @@ export const metadata = {
     "Publicações triadas, o dia na frente, peticionamento com o timbrado do escritório e financeiro que fecha — tudo em um só sistema de gestão para escritórios de advocacia.",
 };
 
+// Cada `figure` também é a legenda acessível (aria-label) do diagrama de marca ao lado —
+// ver FeatureDiagram. Diagrama provisório (réguas + bordô), não uma fotografia real do produto
+// (P0-2 do roteiro de adequação, .impeccable/plano-adequacao/roteiro-de-adequacao.md).
 const FEATURES = [
   {
     kicker: "Publicações",
@@ -51,6 +54,7 @@ const FEATURES = [
     p1: "DJEN e DATAJUD entram direto na fila do escritório, já separadas por processo e por fonte — sem copiar e colar de e-mail nem abrir site de tribunal um por um.",
     p2: "Cada publicação vem com um toque para gerar prazo, marcar audiência ou delegar — o texto de origem fica sempre acessível, sem sair da tela.",
     figure: "Lista de Publicações: card com filete por fonte (DJEN/DATAJUD/PJe), badge “Não lida”, ações “Gerar Prazo” e “Delegar”",
+    diagram: "publicacoes" as const,
   },
   {
     kicker: "Painel",
@@ -58,6 +62,7 @@ const FEATURES = [
     p1: "Um painel mostra o que vence hoje, o que já passou do prazo e a agenda da semana — com o calendário de feriados de cada tribunal já embutido no cálculo do prazo fatal.",
     p2: "Cada advogado vê a própria fila; quem administra o escritório vê o todo, sem precisar abrir uma planilha à parte.",
     figure: "Painel: cartões “Hoje”, “Atrasados”, agenda da semana, prazo de segurança marcado em cor distinta",
+    diagram: "painel" as const,
   },
   {
     kicker: "Peticionamento",
@@ -65,6 +70,7 @@ const FEATURES = [
     p1: "Modelos de peça já saem formatados com o timbrado, os dados do processo e da parte preenchidos automaticamente — o texto jurídico continua sendo escrito pelo advogado.",
     p2: "O histórico de peças de cada processo fica junto com ele, pesquisável, sem depender de pasta de rede.",
     figure: "Editor de petição com timbrado do escritório, campos de processo/parte preenchidos, botão “Baixar .docx”",
+    diagram: "peticionamento" as const,
   },
   {
     kicker: "Financeiro",
@@ -72,6 +78,7 @@ const FEATURES = [
     p1: "DRE, livro caixa e conciliação bancária num só módulo — honorários contratuais, de êxito e de sucumbência entram separados, com baixa parcial de verdade.",
     p2: "Contas a pagar e a receber conversam com a agenda: vencimento vira lembrete, não vira surpresa no fim do mês.",
     figure: "DRE por categoria, gráfico de fluxo de caixa, tabela de Contas a Receber com status Pendente/Parcial/Pago",
+    diagram: "financeiro" as const,
   },
   {
     kicker: "Sigilo",
@@ -79,8 +86,77 @@ const FEATURES = [
     p1: "Documento e telefone de cliente aparecem mascarados por padrão; revelar exige motivo registrado, com validade de 15 minutos — e fica na trilha de auditoria do escritório.",
     p2: "Suporte técnico só entra na conta de um escritório com sessão de tempo limitado e visível para o administrador — nunca em silêncio.",
     figure: "Campo de CPF mascarado com botão “Revelar” e caixa de motivo, trilha de auditoria listando revelações",
+    diagram: "sigilo" as const,
   },
 ];
+
+// Diagrama de marca por feature (réguas + bordô), substituindo a legenda "Captura de tela — …"
+// até haver fotografia real do produto (P0-2). Um `<g>` fixo por chave de FEATURES.diagram —
+// não um ícone genérico repetido, cada um lê como a própria tela que descreve.
+function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }) {
+  const row = (y: number, accent: string) => (
+    <g key={y}>
+      <rect x="8" y={y} width="84" height="20" rx="3" className="fill-sf stroke-regua-forte" strokeWidth="2" />
+      <rect x="8" y={y} width="4" height="20" className={accent} />
+    </g>
+  );
+  switch (kind) {
+    case "publicacoes":
+      return (
+        <>
+          {row(14, "fill-marca-tx")}
+          {row(40, "fill-fonte-pje")}
+          {row(66, "fill-aviso")}
+          <circle cx="86" cy="20" r="3" className="fill-marca-tx" />
+        </>
+      );
+    case "painel":
+      return (
+        <>
+          <rect x="8" y="14" width="38" height="34" rx="3" className="fill-sf stroke-regua-forte" strokeWidth="2" />
+          <rect x="8" y="14" width="38" height="8" className="fill-marca-bg" />
+          <rect x="54" y="14" width="38" height="34" rx="3" className="fill-sf stroke-urgente" strokeWidth="2" />
+          <rect x="54" y="14" width="38" height="8" className="fill-urgente" fillOpacity="0.25" />
+          {Array.from({ length: 7 }, (_, i) => (
+            <rect key={i} x={8 + i * 12.3} y="60" width="9" height="26" rx="2" className={i === 3 ? "fill-marca-tx" : "fill-regua"} />
+          ))}
+        </>
+      );
+    case "peticionamento":
+      return (
+        <>
+          <rect x="20" y="8" width="60" height="78" rx="2" className="fill-sf stroke-regua-forte" strokeWidth="2" />
+          <rect x="20" y="8" width="60" height="10" className="fill-marca-tx" fillOpacity="0.35" />
+          <rect x="28" y="30" width="44" height="4" className="fill-regua-forte" />
+          <rect x="28" y="40" width="44" height="4" className="fill-regua-forte" />
+          <rect x="28" y="50" width="30" height="4" className="fill-regua-forte" />
+          <rect x="46" y="70" width="26" height="10" rx="2" className="fill-marca-tx" />
+        </>
+      );
+    case "financeiro":
+      return (
+        <>
+          {[20, 36, 52, 68].map((h, i) => (
+            <rect key={h} x={8 + i * 22} y={88 - h} width="14" height={h} rx="2" className="fill-marca-tx" fillOpacity={i === 3 ? 1 : 0.4} />
+          ))}
+          <polyline points="8,68 30,52 52,58 74,20" className="stroke-tx-2" strokeWidth="2" fill="none" />
+        </>
+      );
+    case "sigilo":
+      return (
+        <>
+          <rect x="8" y="14" width="84" height="20" rx="3" className="fill-sf stroke-regua-forte" strokeWidth="2" />
+          {Array.from({ length: 6 }, (_, i) => (
+            <circle key={i} cx={20 + i * 8} cy="24" r="2.5" className="fill-tx-3" />
+          ))}
+          <rect x="72" y="18" width="14" height="12" rx="2" className="fill-marca-tx" />
+          <rect x="8" y="46" width="60" height="4" className="fill-regua" />
+          <rect x="8" y="56" width="44" height="4" className="fill-regua" />
+          <rect x="8" y="66" width="52" height="4" className="fill-regua" />
+        </>
+      );
+  }
+}
 
 // "93 tribunais integrados" é dado real (contagem de lib/tribunaisCatalog.ts); os outros 3 ficam
 // em branco de propósito — sem número que o escritório não possa comprovar (documento 09) — até
@@ -182,8 +258,10 @@ export default async function HomePage() {
                   <p className="text-[15px] text-tx-2 max-w-[46ch]">{f.p1}</p>
                   <p className="text-[15px] text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
                 </div>
-                <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf flex items-center p-6 ${i % 2 === 1 ? "md:order-1" : ""}`}>
-                  <p className="text-xs font-semibold text-tx-3">Captura de tela — {f.figure}</p>
+                <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf flex items-center p-10 ${i % 2 === 1 ? "md:order-1" : ""}`}>
+                  <svg viewBox="0 0 100 100" role="img" aria-label={f.figure} className="w-full h-full">
+                    <FeatureDiagram kind={f.diagram} />
+                  </svg>
                 </div>
               </div>
             ))}
