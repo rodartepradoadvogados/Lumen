@@ -8,9 +8,24 @@ import { finalizeAttachmentUpload } from "@/lib/actions/attachments";
 import PendenciasEditor, { type PendenciaRow } from "@/components/PendenciasEditor";
 import DocumentTypeSelect from "@/components/DocumentTypeSelect";
 import { PERCENTUAL_BASE_LABELS } from "@/lib/honorarioLancamento";
-import { Send, UploadCloud, X, AlertTriangle } from "lucide-react";
+import { Send, UploadCloud, X, AlertTriangle, Mic, Plus, Minus } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
 import PhoneInput from "@/components/PhoneInput";
+import { ButtonSecondary } from "@/components/ui";
+
+// Web Speech API não tem tipo oficial no lib.dom.ts do TypeScript — declaração mínima só do que
+// este componente usa, para não precisar de @types de terceiro nem `any` solto pelo arquivo.
+type SpeechRecognitionResultLike = { transcript: string };
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((e: { results: SpeechRecognitionResultLike[][] }) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
 
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
@@ -49,6 +64,18 @@ export default function MobileNewAttendanceForm({
   const [feePercentualBase, setFeePercentualBase] = useState("VALOR_CAUSA");
   const [pendenciaRows, setPendenciaRows] = useState<PendenciaRow[]>([]);
 
+  // P0-4 do roteiro de adequação (.impeccable/plano-adequacao/roteiro-de-adequacao.md):
+  // design_handoff_lumen_redesign/08-pwa.md chama esta tela de "a que justifica o PWA" — só
+  // Nome/Telefone/Assunto + ditado + Salvar. Honorário/pendências/anexos (e também e-mail, canal,
+  // matéria, prazo de resposta — nenhum deles está nos 3 campos da especificação) ficam atrás de
+  // "Mais detalhes", com destaque visual real (ButtonSecondary), não texto apagado de rodapé —
+  // ajuste pedido pelo dono do projeto ao validar o mockup.
+  const [showMore, setShowMore] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
   // Anexos ficam "em espera" (File no navegador) até o atendimento ser criado — ver
   // uploadStagedAttachments/handleSubmit, mesmo fluxo do NewAttendanceModal desktop.
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
@@ -63,6 +90,43 @@ export default function MobileNewAttendanceForm({
   useEffect(() => {
     setResponseDeadline(toDatetimeLocal(new Date(Date.now() + 24 * 3600 * 1000)));
   }, []);
+
+  // Degradação silenciosa onde SpeechRecognition não existir (08-pwa.md) — o botão de microfone
+  // simplesmente não aparece, sem erro nem estado quebrado.
+  useEffect(() => {
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+    setSpeechSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  // Os anexos que falharam (e a pendência que criou algum item) moram atrás de "Mais detalhes" —
+  // se o envio falhar depois de já ter criado o atendimento, abre a seção sozinho para não
+  // esconder o aviso de reenvio.
+  useEffect(() => {
+    if (uploadWarnings.length > 0) setShowMore(true);
+  }, [uploadWarnings]);
+
+  function toggleDictation() {
+    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const recognition = new Ctor();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript;
+      if (transcript) setSubject((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }
 
   function stageFiles(files: FileList) {
     const next: StagedAttachment[] = Array.from(files).map((file) => ({
@@ -170,19 +234,70 @@ export default function MobileNewAttendanceForm({
       </div>
 
       <div>
-        <label className={labelClass}>Assunto</label>
-        <input name="subject" required className={inputClass} placeholder="Do que se trata" />
+        <label className={labelClass}>Telefone</label>
+        <PhoneInput name="contactPhone" className={inputClass} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>Telefone</label>
-          <PhoneInput name="contactPhone" className={inputClass} />
+      <div>
+        <label className={labelClass}>Assunto</label>
+        <div className="mt-1 flex gap-2">
+          <input
+            name="subject"
+            required
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="flex-1 min-w-0 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40"
+            placeholder="Do que se trata"
+          />
+          {speechSupported && (
+            <button
+              type="button"
+              onClick={toggleDictation}
+              aria-label={listening ? "Parar ditado" : "Ditar assunto por voz"}
+              className={`shrink-0 w-11 flex items-center justify-center border transition-colors ${
+                listening ? "bg-urgente text-white border-urgente animate-pulse" : "border-regua text-tx-2 hover:bg-sf-apoio"
+              }`}
+            >
+              <Mic size={17} />
+            </button>
+          )}
         </div>
-        <div>
-          <label className={labelClass}>E-mail</label>
-          <input name="clientEmail" type="email" className={inputClass} placeholder="cliente@exemplo.com" />
+      </div>
+
+      {error && <p className="text-xs font-semibold text-urgente">{error}</p>}
+
+      {loading && progressText && (
+        <p className="text-xs font-semibold text-acao">{progressText}</p>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full h-[52px] flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm transition-colors disabled:opacity-50"
+      >
+        <Send size={15} /> {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Salvar atendimento"}
+      </button>
+
+      <ButtonSecondary type="button" onClick={() => setShowMore((v) => !v)} className="w-full justify-center">
+        {showMore ? <Minus size={15} /> : <Plus size={15} />}
+        {showMore ? "Menos detalhes" : "Mais detalhes (honorário, pendências, anexos)"}
+      </ButtonSecondary>
+
+      {uploadWarnings.length > 0 && (
+        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
+          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
+            <p>{uploadWarnings.join(", ")} — os arquivos continuam abaixo, prontos para tentar de novo.</p>
+          </div>
         </div>
+      )}
+
+      {showMore && (
+      <div className="space-y-3 border-t border-regua pt-3">
+      <div>
+        <label className={labelClass}>E-mail</label>
+        <input name="clientEmail" type="email" className={inputClass} placeholder="cliente@exemplo.com" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -361,30 +476,8 @@ export default function MobileNewAttendanceForm({
           </>
         )}
       </div>
-
-      {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
-          <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
-            <p>{uploadWarnings.join(", ")} — os arquivos continuam acima, prontos para tentar de novo.</p>
-          </div>
-        </div>
+      </div>
       )}
-
-      {error && <p className="text-xs font-semibold text-urgente">{error}</p>}
-
-      {loading && progressText && (
-        <p className="text-xs font-semibold text-acao">{progressText}</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx font-semibold text-sm py-2.5 transition-colors disabled:opacity-50"
-      >
-        <Send size={15} /> {loading ? "Salvando..." : createdAttendanceId ? "Reenviar anexos" : "Criar atendimento"}
-      </button>
     </form>
   );
 }
