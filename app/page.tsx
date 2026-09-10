@@ -170,9 +170,10 @@ const STATS = [
   { value: null, label: "tempo médio de triagem" },
 ];
 
-const navLink = "text-sm font-semibold text-tx hover:underline underline-offset-4";
+const navLink = "inline-block py-2 text-sm font-semibold text-tx hover:underline underline-offset-4";
 const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm";
 const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg";
+const footerLink = "inline-block py-2 text-tx-2 hover:text-tx hover:underline underline-offset-2";
 
 export default async function HomePage() {
   // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel (ou pro
@@ -374,26 +375,26 @@ export default async function HomePage() {
             <div>
               <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h4>
               <ul className="space-y-2.5 text-sm">
-                <li><a href="#recursos" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Recursos</a></li>
-                <li><a href="#preco" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Preço</a></li>
-                <li><Link href="/login" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Entrar</Link></li>
+                <li><a href="#recursos" className={footerLink}>Recursos</a></li>
+                <li><a href="#preco" className={footerLink}>Preço</a></li>
+                <li><Link href="/login" className={footerLink}>Entrar</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h4>
               <ul className="space-y-2.5 text-sm">
                 <li className="text-tx-2">Goiânia — GO</li>
-                <li><a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">(62) 98128-3481</a></li>
-                <li><a href="mailto:contato@rodarteprado.com.br" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">contato@rodarteprado.com.br</a></li>
+                <li><a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer" className={footerLink}>(62) 98128-3481</a></li>
+                <li><a href="mailto:contato@rodarteprado.com.br" className={footerLink}>contato@rodarteprado.com.br</a></li>
               </ul>
             </div>
             <div>
               <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h4>
               <ul className="space-y-2.5 text-sm">
-                <li><Link href="/privacidade" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Política de privacidade</Link></li>
+                <li><Link href="/privacidade" className={footerLink}>Política de privacidade</Link></li>
                 {/* DPO reaproveita o contato real já existente no rodapé em vez de um dado fictício —
                     sem CNPJ aqui pela mesma razão: melhor omitir do que publicar um valor inventado. */}
-                <li><a href="mailto:contato@rodarteprado.com.br" className="text-tx-2 hover:text-tx hover:underline underline-offset-2">Encarregado de dados (DPO)</a></li>
+                <li><a href="mailto:contato@rodarteprado.com.br" className={footerLink}>Encarregado de dados (DPO)</a></li>
               </ul>
             </div>
           </div>
