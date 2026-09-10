@@ -46,3 +46,6 @@ next-env.d.ts
 # `python3 -m venv docs/security-audit/.venv && docs/security-audit/.venv/bin/pip install reportlab matplotlib`
 docs/security-audit/.venv/
 docs/security-audit/__pycache__/
+
+# claude code — preferências/hooks locais de cada máquina, não do time
+.claude/settings.local.json
