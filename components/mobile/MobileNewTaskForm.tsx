@@ -92,13 +92,13 @@ export default function MobileNewTaskForm({
 
       <form action={handleSubmit} className="space-y-3">
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Título</label>
-          <input name="title" required className="mobile-input" placeholder="Ex: Audiência de instrução" />
+          <label className="text-[13px] font-medium text-tx-2" htmlFor="task-title">Título</label>
+          <input id="task-title" name="title" required className="mobile-input" placeholder="Ex: Audiência de instrução" />
         </div>
 
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Tipo</label>
-          <select name="type" className="mobile-input" value={type} onChange={(e) => setType(e.target.value)}>
+          <label className="text-[13px] font-medium text-tx-2" htmlFor="task-type">Tipo</label>
+          <select id="task-type" name="type" className="mobile-input" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="TAREFA">Tarefa</option>
             <option value="EVENTO">Evento / Reunião</option>
             <option value="AUDIENCIA">Audiência</option>
@@ -109,12 +109,12 @@ export default function MobileNewTaskForm({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Data</label>
-            <input type="date" name="dueDate" required className="mobile-input" />
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="task-due-date">Data</label>
+            <input id="task-due-date" type="date" name="dueDate" required className="mobile-input" />
           </div>
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Hora (opcional)</label>
-            <input type="time" name="dueTime" className="mobile-input" />
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="task-due-time">Hora (opcional)</label>
+            <input id="task-due-time" type="time" name="dueTime" className="mobile-input" />
           </div>
         </div>
 
@@ -144,29 +144,29 @@ export default function MobileNewTaskForm({
             </div>
             {meetingType === "PRESENCIAL" ? (
               <div>
-                <label className="text-[13px] font-medium text-tx-2">Endereço (opcional)</label>
-                <input name="location" className="mobile-input" placeholder="Ex: Rua X, nº 123 - Goiânia/GO" />
+                <label className="text-[13px] font-medium text-tx-2" htmlFor="task-location">Endereço (opcional)</label>
+                <input id="task-location" name="location" className="mobile-input" placeholder="Ex: Rua X, nº 123 - Goiânia/GO" />
               </div>
             ) : (
               <div>
-                <label className="text-[13px] font-medium text-tx-2">
+                <label className="text-[13px] font-medium text-tx-2" htmlFor="task-meeting-url">
                   {type === "AUDIENCIA" ? "Link da audiência" : "Link da reunião"} (opcional)
                 </label>
-                <input name="meetingUrl" type="url" className="mobile-input" placeholder="https://meet.google.com/..." />
+                <input id="task-meeting-url" name="meetingUrl" type="url" className="mobile-input" placeholder="https://meet.google.com/..." />
               </div>
             )}
           </div>
         )}
 
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Descrição (opcional)</label>
-          <textarea name="description" rows={2} className="mobile-input" />
+          <label className="text-[13px] font-medium text-tx-2" htmlFor="task-description">Descrição (opcional)</label>
+          <textarea id="task-description" name="description" rows={2} className="mobile-input" />
         </div>
 
         {type === "AUDIENCIA" && (
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Estratégia (opcional)</label>
-            <textarea name="strategy" rows={2} className="mobile-input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="task-strategy">Estratégia (opcional)</label>
+            <textarea id="task-strategy" name="strategy" rows={2} className="mobile-input" placeholder="Teses, pontos de atenção, preparo para a audiência..." />
           </div>
         )}
 

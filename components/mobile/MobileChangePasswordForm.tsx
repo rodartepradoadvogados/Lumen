@@ -39,16 +39,16 @@ export default function MobileChangePasswordForm() {
   return (
     <form id="mobile-change-password-form" action={submit} className="space-y-3">
       <div>
-        <label className={labelClass}>Senha atual</label>
-        <input name="currentPassword" type="password" required className={inputClass} />
+        <label className={labelClass} htmlFor="change-password-current">Senha atual</label>
+        <input id="change-password-current" name="currentPassword" type="password" required className={inputClass} />
       </div>
       <div>
-        <label className={labelClass}>Nova senha</label>
-        <input name="newPassword" type="password" required minLength={6} className={inputClass} />
+        <label className={labelClass} htmlFor="change-password-new">Nova senha</label>
+        <input id="change-password-new" name="newPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       <div>
-        <label className={labelClass}>Confirmar nova senha</label>
-        <input name="confirmPassword" type="password" required minLength={6} className={inputClass} />
+        <label className={labelClass} htmlFor="change-password-confirm">Confirmar nova senha</label>
+        <input id="change-password-confirm" name="confirmPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       {error && (
         <p className="text-[13px] text-urgente bg-urgente-bg border border-urgente rounded-md px-2.5 py-1.5">

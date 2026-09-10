@@ -229,19 +229,22 @@ export default function MobileNewAttendanceForm({
   return (
     <form action={handleSubmit} className="space-y-3">
       <div>
-        <label className={labelClass}>Nome do contato</label>
-        <input name="clientName" required className={inputClass} placeholder="Nome completo" />
+        <label className={labelClass} htmlFor="attendance-client-name">Nome do contato</label>
+        <input id="attendance-client-name" name="clientName" required className={inputClass} placeholder="Nome completo" />
       </div>
 
       <div>
-        <label className={labelClass}>Telefone</label>
-        <PhoneInput name="contactPhone" className={inputClass} />
+        <label className={labelClass} id="attendance-phone-label">Telefone</label>
+        <div role="group" aria-labelledby="attendance-phone-label">
+          <PhoneInput name="contactPhone" className={inputClass} />
+        </div>
       </div>
 
       <div>
-        <label className={labelClass}>Assunto</label>
+        <label className={labelClass} htmlFor="attendance-subject">Assunto</label>
         <div className="mt-1 flex gap-2">
           <input
+            id="attendance-subject"
             name="subject"
             required
             value={subject}
@@ -296,14 +299,14 @@ export default function MobileNewAttendanceForm({
       {showMore && (
       <div className="space-y-3 border-t border-regua pt-3">
       <div>
-        <label className={labelClass}>E-mail</label>
-        <input name="clientEmail" type="email" className={inputClass} placeholder="cliente@exemplo.com" />
+        <label className={labelClass} htmlFor="attendance-email">E-mail</label>
+        <input id="attendance-email" name="clientEmail" type="email" className={inputClass} placeholder="cliente@exemplo.com" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelClass}>Canal</label>
-          <select name="channel" defaultValue="WHATSAPP" className={inputClass}>
+          <label className={labelClass} htmlFor="attendance-channel">Canal</label>
+          <select id="attendance-channel" name="channel" defaultValue="WHATSAPP" className={inputClass}>
             <option value="WHATSAPP">WhatsApp</option>
             <option value="EMAIL">E-mail</option>
             <option value="TELEFONE">Telefone</option>
@@ -311,8 +314,8 @@ export default function MobileNewAttendanceForm({
           </select>
         </div>
         <div>
-          <label className={labelClass}>Matéria</label>
-          <select name="area" defaultValue="" className={inputClass}>
+          <label className={labelClass} htmlFor="attendance-area">Matéria</label>
+          <select id="attendance-area" name="area" defaultValue="" className={inputClass}>
             <option value="">Não definida</option>
             <option value="Cível">Cível</option>
             <option value="Trabalhista">Trabalhista</option>
@@ -330,8 +333,9 @@ export default function MobileNewAttendanceForm({
       </div>
 
       <div>
-        <label className={labelClass}>Prazo de resposta ao lead</label>
+        <label className={labelClass} htmlFor="attendance-response-deadline">Prazo de resposta ao lead</label>
         <input
+          id="attendance-response-deadline"
           type="datetime-local"
           value={responseDeadline}
           onChange={(e) => setResponseDeadline(e.target.value)}
@@ -360,15 +364,16 @@ export default function MobileNewAttendanceForm({
         <div className="grid grid-cols-2 gap-3">
           {feeMode !== "PERCENTUAL" && (
             <div>
-              <label className={labelClass}>Valor (R$)</label>
-              <MoneyInput name="estimatedValue" className={inputClass} />
+              <label className={labelClass} htmlFor="attendance-fee-value">Valor (R$)</label>
+              <MoneyInput id="attendance-fee-value" name="estimatedValue" className={inputClass} />
             </div>
           )}
           {feeMode !== "DINHEIRO" && (
             <>
               <div>
-                <label className={labelClass}>Percentual (%)</label>
+                <label className={labelClass} htmlFor="attendance-fee-percentual">Percentual (%)</label>
                 <input
+                  id="attendance-fee-percentual"
                   type="number"
                   step="0.01"
                   min="0"
@@ -378,8 +383,8 @@ export default function MobileNewAttendanceForm({
                 />
               </div>
               <div className="col-span-2">
-                <label className={labelClass}>Base</label>
-                <select value={feePercentualBase} onChange={(e) => setFeePercentualBase(e.target.value)} className={inputClass}>
+                <label className={labelClass} htmlFor="attendance-fee-base">Base</label>
+                <select id="attendance-fee-base" value={feePercentualBase} onChange={(e) => setFeePercentualBase(e.target.value)} className={inputClass}>
                   {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}

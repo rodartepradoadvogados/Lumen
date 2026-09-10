@@ -212,8 +212,8 @@ export default function MobileNewCaseForm({
   return (
     <form ref={formRef} action={handleSubmit} className="space-y-3">
       <div>
-        <label className={labelClass}>Título do Caso</label>
-        <input name="title" required className={inputClass} placeholder="Ex: Fulano de Tal x Empresa XYZ" />
+        <label className={labelClass} htmlFor="case-title">Título do Caso</label>
+        <input id="case-title" name="title" required className={inputClass} placeholder="Ex: Fulano de Tal x Empresa XYZ" />
       </div>
 
       {/* Natureza — a decisão que muda o resto do formulário embaixo (tribunal x órgão,
@@ -255,8 +255,8 @@ export default function MobileNewCaseForm({
       {natureza === "JUDICIAL" ? (
         <>
           <div>
-            <label className={labelClass}>Tipo</label>
-            <select name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
+            <label className={labelClass} htmlFor="case-type">Tipo</label>
+            <select id="case-type" name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
               <option value="JUDICIAL">Judicial</option>
               <option value="EXTRAJUDICIAL">Extrajudicial</option>
               <option value="ATENDIMENTO">Atendimento</option>
@@ -268,8 +268,8 @@ export default function MobileNewCaseForm({
 
           {type === "JUDICIAL" && (
             <div>
-              <label className={labelClass}>Data da distribuição</label>
-              <input name="distributedAt" type="date" className={inputClass} />
+              <label className={labelClass} htmlFor="case-distributed-at">Data da distribuição</label>
+              <input id="case-distributed-at" name="distributedAt" type="date" className={inputClass} />
             </div>
           )}
 
@@ -283,8 +283,9 @@ export default function MobileNewCaseForm({
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>Número do Processo</label>
+                  <label className={labelClass} htmlFor="case-process-number">Número do Processo</label>
                   <input
+                    id="case-process-number"
                     name="processNumber"
                     value={processNumber}
                     onChange={(e) => setProcessNumber(formatCnj(e.target.value))}
@@ -294,8 +295,8 @@ export default function MobileNewCaseForm({
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Vara/Comarca</label>
-                  <input name="court" className={inputClass} />
+                  <label className={labelClass} htmlFor="case-court">Vara/Comarca</label>
+                  <input id="case-court" name="court" className={inputClass} />
                 </div>
               </div>
 
@@ -310,18 +311,18 @@ export default function MobileNewCaseForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Número do processo administrativo</label>
-              <input name="processNumber" defaultValue={defaultProcessNumber} className={inputClass} placeholder="Ex.: TC 012.345/2026-7" />
+              <label className={labelClass} htmlFor="case-process-number-admin">Número do processo administrativo</label>
+              <input id="case-process-number-admin" name="processNumber" defaultValue={defaultProcessNumber} className={inputClass} placeholder="Ex.: TC 012.345/2026-7" />
             </div>
             <div>
-              <label className={labelClass}>Vara/Comarca</label>
-              <input name="court" className={inputClass} />
+              <label className={labelClass} htmlFor="case-court">Vara/Comarca</label>
+              <input id="case-court" name="court" className={inputClass} />
             </div>
           </div>
 
           <div>
-            <label className={labelClass}>Órgão administrativo</label>
-            <select value={orgaoSigla} onChange={(e) => handleOrgaoChange(e.target.value)} className={inputClass}>
+            <label className={labelClass} htmlFor="case-orgao">Órgão administrativo</label>
+            <select id="case-orgao" value={orgaoSigla} onChange={(e) => handleOrgaoChange(e.target.value)} className={inputClass}>
               <option value="">Selecione...</option>
               {CATEGORIA_ORDER_ADMIN.map((categoria) => (
                 <optgroup key={categoria} label={categoria}>
@@ -337,8 +338,8 @@ export default function MobileNewCaseForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Esfera</label>
-              <select value={adminEsfera} onChange={(e) => setAdminEsfera(e.target.value)} className={inputClass}>
+              <label className={labelClass} htmlFor="case-admin-esfera">Esfera</label>
+              <select id="case-admin-esfera" value={adminEsfera} onChange={(e) => setAdminEsfera(e.target.value)} className={inputClass}>
                 <option value="">Selecione...</option>
                 {ESFERAS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -348,8 +349,8 @@ export default function MobileNewCaseForm({
               </select>
             </div>
             <div>
-              <label className={labelClass}>Matéria</label>
-              <select value={adminMateria} onChange={(e) => setAdminMateria(e.target.value)} className={inputClass}>
+              <label className={labelClass} htmlFor="case-admin-materia">Matéria</label>
+              <select id="case-admin-materia" value={adminMateria} onChange={(e) => setAdminMateria(e.target.value)} className={inputClass}>
                 <option value="">Selecione...</option>
                 {MATERIAS_ADMIN.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -368,13 +369,13 @@ export default function MobileNewCaseForm({
       <div className={isProcessoFlow ? "grid grid-cols-2 gap-3" : ""}>
         {isProcessoFlow && (
           <div>
-            <label className={labelClass}>Valor da Causa (R$)</label>
-            <MoneyInput name="caseValue" className={inputClass} />
+            <label className={labelClass} htmlFor="case-value">Valor da Causa (R$)</label>
+            <MoneyInput id="case-value" name="caseValue" className={inputClass} />
           </div>
         )}
         <div>
-          <label className={labelClass}>Responsável</label>
-          <select name="responsibleId" defaultValue="" className={inputClass}>
+          <label className={labelClass} htmlFor="case-responsible">Responsável</label>
+          <select id="case-responsible" name="responsibleId" defaultValue="" className={inputClass}>
             <option value="">Não definido</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
@@ -395,8 +396,8 @@ export default function MobileNewCaseForm({
       <AssuntosField inputClassName={inputClass} />
 
       <div>
-        <label className={labelClass}>Descrição (observações livres)</label>
-        <textarea name="description" rows={2} className={inputClass} />
+        <label className={labelClass} htmlFor="case-description">Descrição (observações livres)</label>
+        <textarea id="case-description" name="description" rows={2} className={inputClass} />
       </div>
 
       <NewCaseAttachmentsField driveConnected={driveConnected} />

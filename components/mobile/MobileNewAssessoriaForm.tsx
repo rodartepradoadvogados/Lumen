@@ -34,8 +34,8 @@ export default function MobileNewAssessoriaForm({ clients, users }: { clients: C
   return (
     <form action={handleSubmit} className="space-y-4">
       <div>
-        <label className={labelClass}>Empresa (cliente PJ)</label>
-        <select name="clientId" required className={inputClass}>
+        <label className={labelClass} htmlFor="assessoria-client">Empresa (cliente PJ)</label>
+        <select id="assessoria-client" name="clientId" required className={inputClass}>
           <option value="">Selecionar empresa...</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -50,18 +50,18 @@ export default function MobileNewAssessoriaForm({ clients, users }: { clients: C
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Honorário mensal (R$)</label>
-          <MoneyInput name="monthlyFee" required className={inputClass} />
+          <label className={labelClass} htmlFor="assessoria-monthly-fee">Honorário mensal (R$)</label>
+          <MoneyInput id="assessoria-monthly-fee" name="monthlyFee" required className={inputClass} />
         </div>
         <div>
-          <label className={labelClass}>Dia de vencimento</label>
-          <input name="dueDay" type="number" min="1" max="28" defaultValue="5" required className={inputClass} />
+          <label className={labelClass} htmlFor="assessoria-due-day">Dia de vencimento</label>
+          <input id="assessoria-due-day" name="dueDay" type="number" min="1" max="28" defaultValue="5" required className={inputClass} />
         </div>
       </div>
 
       <div>
-        <label className={labelClass}>Responsável</label>
-        <select name="responsibleId" className={inputClass}>
+        <label className={labelClass} htmlFor="assessoria-responsible">Responsável</label>
+        <select id="assessoria-responsible" name="responsibleId" className={inputClass}>
           <option value="">Não definido</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>{u.name}</option>

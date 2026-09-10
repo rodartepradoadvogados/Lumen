@@ -58,12 +58,12 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
   return (
     <form action={handleJudicial} className="space-y-3">
       <div>
-        <label className={labelClass}>Número do processo</label>
-        <input name="processNumber" required className={inputClass} placeholder="0000000-00.2026.8.09.0051" />
+        <label className={labelClass} htmlFor="convert-attendance-process-number">Número do processo</label>
+        <input id="convert-attendance-process-number" name="processNumber" required className={inputClass} placeholder="0000000-00.2026.8.09.0051" />
       </div>
       <div>
-        <label className={labelClass}>Vara/Comarca</label>
-        <input name="court" className={inputClass} />
+        <label className={labelClass} htmlFor="convert-attendance-court">Vara/Comarca</label>
+        <input id="convert-attendance-court" name="court" className={inputClass} />
       </div>
       <div className="flex gap-2">
         <button
