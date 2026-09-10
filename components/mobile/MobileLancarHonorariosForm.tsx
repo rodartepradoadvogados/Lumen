@@ -334,8 +334,9 @@ export default function MobileLancarHonorariosForm({
 
       {cases && (
         <div>
-          <label className={labelCls}>Processo</label>
+          <label className={labelCls} htmlFor="honorarios-case">Processo</label>
           <select
+            id="honorarios-case"
             value={selectedCaseId}
             onChange={(e) => setSelectedCaseId(e.target.value)}
             required
@@ -354,14 +355,14 @@ export default function MobileLancarHonorariosForm({
       )}
 
       <div>
-        <label className={labelCls}>Descrição</label>
-        <input name="description" required className="mobile-input" placeholder="Ex: Honorários contratuais" />
+        <label className={labelCls} htmlFor="honorarios-description">Descrição</label>
+        <input id="honorarios-description" name="description" required className="mobile-input" placeholder="Ex: Honorários contratuais" />
       </div>
 
       <MobileSecaoLancamento title="Identificação" tone="palha">
         <div>
-          <label className={labelCls}>Natureza</label>
-          <div className="mt-1">
+          <label className={labelCls} id="honorarios-natureza-label">Natureza</label>
+          <div className="mt-1" role="group" aria-labelledby="honorarios-natureza-label">
             <Segmented<Natureza>
               value={natureza}
               onChange={handleNaturezaChange}
@@ -374,8 +375,8 @@ export default function MobileLancarHonorariosForm({
           </div>
         </div>
         <div>
-          <label className={labelCls}>Pagador</label>
-          <select value={payerType} onChange={(e) => setPayerType(e.target.value as PayerType)} className="mobile-input">
+          <label className={labelCls} htmlFor="honorarios-payer-type">Pagador</label>
+          <select id="honorarios-payer-type" value={payerType} onChange={(e) => setPayerType(e.target.value as PayerType)} className="mobile-input">
             <option value="CLIENTE">Cliente do processo</option>
             <option value="ADVERSA">Parte adversa</option>
             <option value="OUTRO">Outro</option>
@@ -383,13 +384,13 @@ export default function MobileLancarHonorariosForm({
         </div>
         {payerType === "OUTRO" && (
           <div>
-            <label className={labelCls}>Nome do pagador</label>
-            <input value={payerName} onChange={(e) => setPayerName(e.target.value)} required className="mobile-input" />
+            <label className={labelCls} htmlFor="honorarios-payer-name">Nome do pagador</label>
+            <input id="honorarios-payer-name" value={payerName} onChange={(e) => setPayerName(e.target.value)} required className="mobile-input" />
           </div>
         )}
         <div>
-          <label className={labelCls}>Cliente</label>
-          <select name="clientId" defaultValue={defaultClientId ?? ""} className="mobile-input">
+          <label className={labelCls} htmlFor="honorarios-client">Cliente</label>
+          <select id="honorarios-client" name="clientId" defaultValue={defaultClientId ?? ""} className="mobile-input">
             <option value="">Nenhum</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -399,8 +400,8 @@ export default function MobileLancarHonorariosForm({
           </select>
         </div>
         <div>
-          <label className={labelCls}>Centro de custo</label>
-          <select name="costCenterId" defaultValue="" className="mobile-input">
+          <label className={labelCls} htmlFor="honorarios-cost-center">Centro de custo</label>
+          <select id="honorarios-cost-center" name="costCenterId" defaultValue="" className="mobile-input">
             <option value="">Nenhum</option>
             {costCenters.map((c) => (
               <option key={c.id} value={c.id}>
@@ -410,8 +411,8 @@ export default function MobileLancarHonorariosForm({
           </select>
         </div>
         <div>
-          <label className={labelCls}>Categoria</label>
-          <select name="categoryId" defaultValue="" className="mobile-input">
+          <label className={labelCls} htmlFor="honorarios-category">Categoria</label>
+          <select id="honorarios-category" name="categoryId" defaultValue="" className="mobile-input">
             <option value="">Sem categoria</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -421,8 +422,8 @@ export default function MobileLancarHonorariosForm({
           </select>
         </div>
         <div>
-          <label className={labelCls}>Responsável pelo lançamento</label>
-          <select name="responsibleId" defaultValue={defaultResponsibleId} className="mobile-input">
+          <label className={labelCls} htmlFor="honorarios-responsible">Responsável pelo lançamento</label>
+          <select id="honorarios-responsible" name="responsibleId" defaultValue={defaultResponsibleId} className="mobile-input">
             {responsibles.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -434,8 +435,8 @@ export default function MobileLancarHonorariosForm({
 
       <MobileSecaoLancamento title="Documento" tone="azul" defaultOpen={false}>
         <div>
-          <label className={labelCls}>Tipo de documento</label>
-          <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} className="mobile-input">
+          <label className={labelCls} htmlFor="honorarios-document-type">Tipo de documento</label>
+          <select id="honorarios-document-type" value={documentType} onChange={(e) => setDocumentType(e.target.value)} className="mobile-input">
             <option value="">Não informado</option>
             {DOCUMENT_TYPE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -445,12 +446,12 @@ export default function MobileLancarHonorariosForm({
           </select>
         </div>
         <div>
-          <label className={labelCls}>Número do documento</label>
-          <input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className="mobile-input" />
+          <label className={labelCls} htmlFor="honorarios-document-number">Número do documento</label>
+          <input id="honorarios-document-number" value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className="mobile-input" />
         </div>
         <div>
-          <label className={labelCls}>Data de emissão</label>
-          <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="mobile-input" />
+          <label className={labelCls} htmlFor="honorarios-issue-date">Data de emissão</label>
+          <input id="honorarios-issue-date" type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="mobile-input" />
         </div>
       </MobileSecaoLancamento>
 
@@ -468,13 +469,14 @@ export default function MobileLancarHonorariosForm({
         {parcelado && (
           <div className="space-y-3">
             <div>
-              <label className={labelCls}>Valor total indicado (R$)</label>
-              <MoneyInput value={valorTotalIndicado} onChange={setValorTotalIndicado} className="mobile-input" />
+              <label className={labelCls} htmlFor="honorarios-valor-total-indicado">Valor total indicado (R$)</label>
+              <MoneyInput id="honorarios-valor-total-indicado" value={valorTotalIndicado} onChange={setValorTotalIndicado} className="mobile-input" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Parcelas</label>
+                <label className={labelCls} htmlFor="honorarios-installment-count">Parcelas</label>
                 <input
+                  id="honorarios-installment-count"
                   type="number"
                   min={1}
                   value={installmentCount}
@@ -486,8 +488,9 @@ export default function MobileLancarHonorariosForm({
                 />
               </div>
               <div>
-                <label className={labelCls}>Intervalo (dias)</label>
+                <label className={labelCls} htmlFor="honorarios-installment-interval">Intervalo (dias)</label>
                 <input
+                  id="honorarios-installment-interval"
                   type="number"
                   min={1}
                   value={installmentIntervalDays}
@@ -551,12 +554,13 @@ export default function MobileLancarHonorariosForm({
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Valor mensal (R$)</label>
-                <MoneyInput value={amountMensal} onChange={setAmountMensal} required={recorrente} className="mobile-input" />
+                <label className={labelCls} htmlFor="honorarios-amount-mensal">Valor mensal (R$)</label>
+                <MoneyInput id="honorarios-amount-mensal" value={amountMensal} onChange={setAmountMensal} required={recorrente} className="mobile-input" />
               </div>
               <div>
-                <label className={labelCls}>Dia de vencimento</label>
+                <label className={labelCls} htmlFor="honorarios-due-day">Dia de vencimento</label>
                 <input
+                  id="honorarios-due-day"
                   type="number"
                   min={1}
                   max={28}
@@ -588,31 +592,31 @@ export default function MobileLancarHonorariosForm({
             />
             {cobrancaHasDinheiro && (
               <div>
-                <label className={labelCls}>Valor em dinheiro (R$)</label>
-                <MoneyInput value={amount} onChange={setAmount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
+                <label className={labelCls} htmlFor="honorarios-amount">Valor em dinheiro (R$)</label>
+                <MoneyInput id="honorarios-amount" value={amount} onChange={setAmount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
                 {parcelado && <p className="text-[13px] text-tx-2 mt-1">Substituído pela tabela de parcelas, acima.</p>}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Desconto (R$)</label>
-                <MoneyInput value={discount} onChange={setDiscount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
+                <label className={labelCls} htmlFor="honorarios-discount">Desconto (R$)</label>
+                <MoneyInput id="honorarios-discount" value={discount} onChange={setDiscount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
               </div>
               <div>
-                <label className={labelCls}>Acréscimo (R$)</label>
-                <MoneyInput value={surcharge} onChange={setSurcharge} disabled={parcelado} className="mobile-input disabled:opacity-50" />
+                <label className={labelCls} htmlFor="honorarios-surcharge">Acréscimo (R$)</label>
+                <MoneyInput id="honorarios-surcharge" value={surcharge} onChange={setSurcharge} disabled={parcelado} className="mobile-input disabled:opacity-50" />
               </div>
             </div>
 
             {cobrancaHasPercentual && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls}>Percentual (%)</label>
-                  <input type="number" step="0.01" value={percentual} onChange={(e) => setPercentual(e.target.value)} className="mobile-input" />
+                  <label className={labelCls} htmlFor="honorarios-percentual">Percentual (%)</label>
+                  <input id="honorarios-percentual" type="number" step="0.01" value={percentual} onChange={(e) => setPercentual(e.target.value)} className="mobile-input" />
                 </div>
                 <div>
-                  <label className={labelCls}>Base</label>
-                  <select value={percentualBase} onChange={(e) => setPercentualBase(e.target.value)} className="mobile-input">
+                  <label className={labelCls} htmlFor="honorarios-percentual-base">Base</label>
+                  <select id="honorarios-percentual-base" value={percentualBase} onChange={(e) => setPercentualBase(e.target.value)} className="mobile-input">
                     {Object.entries(PERCENTUAL_BASE_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
@@ -652,8 +656,9 @@ export default function MobileLancarHonorariosForm({
             </label>
             {!semVencimento ? (
               <div>
-                <label className={labelCls}>Data de vencimento</label>
+                <label className={labelCls} htmlFor="honorarios-due-date">Data de vencimento</label>
                 <input
+                  id="honorarios-due-date"
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
@@ -680,17 +685,17 @@ export default function MobileLancarHonorariosForm({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls}>Data do pagamento</label>
-                  <input type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} required={recebido} className="mobile-input" />
+                  <label className={labelCls} htmlFor="honorarios-paid-date">Data do pagamento</label>
+                  <input id="honorarios-paid-date" type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} required={recebido} className="mobile-input" />
                 </div>
                 <div>
-                  <label className={labelCls}>Valor pago (R$)</label>
-                  <MoneyInput value={paidAmount} onChange={setPaidAmount} required={recebido} className="mobile-input" />
+                  <label className={labelCls} htmlFor="honorarios-paid-amount">Valor pago (R$)</label>
+                  <MoneyInput id="honorarios-paid-amount" value={paidAmount} onChange={setPaidAmount} required={recebido} className="mobile-input" />
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Conta bancária</label>
-                <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)} className="mobile-input">
+                <label className={labelCls} htmlFor="honorarios-bank-account">Conta bancária</label>
+                <select id="honorarios-bank-account" value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)} className="mobile-input">
                   <option value="">Nenhuma</option>
                   {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -700,12 +705,12 @@ export default function MobileLancarHonorariosForm({
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Nº do documento de pagamento</label>
-                <input value={paymentDocumentNumber} onChange={(e) => setPaymentDocumentNumber(e.target.value)} className="mobile-input" />
+                <label className={labelCls} htmlFor="honorarios-payment-document-number">Nº do documento de pagamento</label>
+                <input id="honorarios-payment-document-number" value={paymentDocumentNumber} onChange={(e) => setPaymentDocumentNumber(e.target.value)} className="mobile-input" />
               </div>
               <div>
-                <label className={labelCls}>Forma de pagamento</label>
-                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="mobile-input">
+                <label className={labelCls} htmlFor="honorarios-payment-method">Forma de pagamento</label>
+                <select id="honorarios-payment-method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="mobile-input">
                   {PAYMENT_METHOD_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}

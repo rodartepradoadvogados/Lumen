@@ -163,17 +163,18 @@ export default function MobileNewPayableForm({
         className="space-y-3"
       >
         <div>
-          <label className={labelCls}>Descrição</label>
-          <input name="description" required className="mobile-input" placeholder="Ex: Aluguel escritório" />
+          <label className={labelCls} htmlFor="payable-description">Descrição</label>
+          <input id="payable-description" name="description" required className="mobile-input" placeholder="Ex: Aluguel escritório" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>Valor (R$)</label>
-            <MoneyInput name="amount" required className="mobile-input" />
+            <label className={labelCls} htmlFor="payable-amount">Valor (R$)</label>
+            <MoneyInput id="payable-amount" name="amount" required className="mobile-input" />
           </div>
           <div>
-            <label className={labelCls}>Vencimento</label>
+            <label className={labelCls} htmlFor="payable-due-date">Vencimento</label>
             <input
+              id="payable-due-date"
               name="dueDate"
               type="date"
               required={!semVencimento}
@@ -188,7 +189,7 @@ export default function MobileNewPayableForm({
         </label>
         <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
-          <label className={labelCls}>Pago a (opcional)</label>
+          <label className={labelCls} htmlFor="payable-payee">Pago a (opcional)</label>
           {clients && (
             <div className="mt-1 mb-1.5">
               <Segmented<"FORNECEDOR" | "CLIENTE">
@@ -202,7 +203,7 @@ export default function MobileNewPayableForm({
             </div>
           )}
           {payeeMode === "FORNECEDOR" || !clients ? (
-            <select name="supplierId" defaultValue="" className="mobile-input">
+            <select id="payable-payee" name="supplierId" defaultValue="" className="mobile-input">
               <option value="">Nenhum</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -211,7 +212,7 @@ export default function MobileNewPayableForm({
               ))}
             </select>
           ) : (
-            <select name="payeeClientId" defaultValue="" className="mobile-input">
+            <select id="payable-payee" name="payeeClientId" defaultValue="" className="mobile-input">
               <option value="">Nenhum</option>
               {clients.map((cl) => (
                 <option key={cl.id} value={cl.id}>
@@ -223,8 +224,8 @@ export default function MobileNewPayableForm({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>Categoria</label>
-            <select name="categoryId" defaultValue="" className="mobile-input">
+            <label className={labelCls} htmlFor="payable-category">Categoria</label>
+            <select id="payable-category" name="categoryId" defaultValue="" className="mobile-input">
               <option value="">Sem categoria</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -234,8 +235,8 @@ export default function MobileNewPayableForm({
             </select>
           </div>
           <div>
-            <label className={labelCls}>Centro de Custo</label>
-            <select name="costCenterId" defaultValue="" className="mobile-input">
+            <label className={labelCls} htmlFor="payable-cost-center">Centro de Custo</label>
+            <select id="payable-cost-center" name="costCenterId" defaultValue="" className="mobile-input">
               <option value="">Nenhum</option>
               {costCenters.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -251,14 +252,14 @@ export default function MobileNewPayableForm({
         {fixedCaseId && (
           <>
             <div>
-              <label className={labelCls}>Natureza da despesa</label>
-              <div className="mt-1">
+              <label className={labelCls} id="payable-kind-label">Natureza da despesa</label>
+              <div className="mt-1" role="group" aria-labelledby="payable-kind-label">
                 <Segmented value={kind} onChange={setKind} options={PAYABLE_KIND_OPTIONS} />
               </div>
             </div>
             <div>
-              <label className={labelCls}>Quem arca com o custo</label>
-              <div className="mt-1">
+              <label className={labelCls} id="payable-expense-payer-label">Quem arca com o custo</label>
+              <div className="mt-1" role="group" aria-labelledby="payable-expense-payer-label">
                 <Segmented<ExpensePayer>
                   value={expensePayer}
                   onChange={setExpensePayer}

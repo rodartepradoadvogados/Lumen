@@ -120,8 +120,9 @@ export default function MobileSettleForm({
       >
         <div className="grid grid-cols-2 gap-2.5">
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Valor pago (R$)</label>
+            <label className="text-[13px] font-medium text-tx-2" htmlFor={`settle-${id}-paid-amount`}>Valor pago (R$)</label>
             <MoneyInput
+              id={`settle-${id}-paid-amount`}
               value={paidAmount}
               onChange={setPaidAmount}
               required
@@ -129,8 +130,8 @@ export default function MobileSettleForm({
             />
           </div>
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Data</label>
-            <input name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="mobile-input" />
+            <label className="text-[13px] font-medium text-tx-2" htmlFor={`settle-${id}-paid-date`}>Data</label>
+            <input id={`settle-${id}-paid-date`} name="paidDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required className="mobile-input" />
           </div>
         </div>
         {ficaParcial && (
@@ -139,8 +140,8 @@ export default function MobileSettleForm({
           </p>
         )}
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Conta bancária</label>
-          <select name="bankAccountId" defaultValue="" className="mobile-input">
+          <label className="text-[13px] font-medium text-tx-2" htmlFor={`settle-${id}-bank-account`}>Conta bancária</label>
+          <select id={`settle-${id}-bank-account`} name="bankAccountId" defaultValue="" className="mobile-input">
             <option value="">Nenhuma</option>
             {bankAccounts.map((b) => (
               <option key={b.id} value={b.id}>
@@ -150,8 +151,8 @@ export default function MobileSettleForm({
           </select>
         </div>
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Forma de pagamento</label>
-          <select name="paymentMethod" required defaultValue="" className="mobile-input">
+          <label className="text-[13px] font-medium text-tx-2" htmlFor={`settle-${id}-payment-method`}>Forma de pagamento</label>
+          <select id={`settle-${id}-payment-method`} name="paymentMethod" required defaultValue="" className="mobile-input">
             <option value="" disabled>
               Selecione...
             </option>
@@ -163,8 +164,8 @@ export default function MobileSettleForm({
           </select>
         </div>
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Nº do comprovante (opcional)</label>
-          <input name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
+          <label className="text-[13px] font-medium text-tx-2" htmlFor={`settle-${id}-receipt-number`}>Nº do comprovante (opcional)</label>
+          <input id={`settle-${id}-receipt-number`} name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
         {error && <p className="text-[13px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
         <button

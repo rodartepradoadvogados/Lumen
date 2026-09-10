@@ -55,37 +55,37 @@ export default function MobileLicitacaoForm({
     <form action={handleSubmit} className="flex flex-col" style={{ minHeight: "calc(100dvh - 3.5rem)" }}>
       <div className="flex-1 p-4 space-y-3 pb-24">
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Nome da licitação</label>
-          <input name="nome" required defaultValue={licitacao?.nome || ""} placeholder="Ex: Pregão 014/2026 — Locação de Veículos" className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-nome">Nome da licitação</label>
+          <input id="licitacao-nome" name="nome" required defaultValue={licitacao?.nome || ""} placeholder="Ex: Pregão 014/2026 — Locação de Veículos" className="mobile-lic-input" />
           <p className="text-[13px] text-tx-3 mt-1">Aparece na lista e vira o nome da pasta no Drive.</p>
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Objeto</label>
-          <textarea name="objeto" required rows={3} defaultValue={licitacao?.objeto || ""} placeholder="Texto completo do edital" className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-objeto">Objeto</label>
+          <textarea id="licitacao-objeto" name="objeto" required rows={3} defaultValue={licitacao?.objeto || ""} placeholder="Texto completo do edital" className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Órgão</label>
-          <input name="orgao" required defaultValue={licitacao?.orgao || ""} className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-orgao">Órgão</label>
+          <input id="licitacao-orgao" name="orgao" required defaultValue={licitacao?.orgao || ""} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Modalidade</label>
-          <input name="modalidade" defaultValue={licitacao?.modalidade || ""} placeholder="Ex: Pregão Eletrônico 014/2026" className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-modalidade">Modalidade</label>
+          <input id="licitacao-modalidade" name="modalidade" defaultValue={licitacao?.modalidade || ""} placeholder="Ex: Pregão Eletrônico 014/2026" className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Abertura</label>
-          <input name="dataAbertura" type="date" defaultValue={dateInputValue(licitacao?.dataAbertura)} className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-abertura">Abertura</label>
+          <input id="licitacao-abertura" name="dataAbertura" type="date" defaultValue={dateInputValue(licitacao?.dataAbertura)} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Prazo final</label>
-          <input name="prazoFinal" type="date" defaultValue={dateInputValue(licitacao?.prazoFinal)} className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-prazo-final">Prazo final</label>
+          <input id="licitacao-prazo-final" name="prazoFinal" type="date" defaultValue={dateInputValue(licitacao?.prazoFinal)} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Valor estimado (R$)</label>
-          <MoneyInput name="valorEstimado" defaultValue={licitacao?.valorEstimado != null ? String(licitacao.valorEstimado) : undefined} className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-valor-estimado">Valor estimado (R$)</label>
+          <MoneyInput id="licitacao-valor-estimado" name="valorEstimado" defaultValue={licitacao?.valorEstimado != null ? String(licitacao.valorEstimado) : undefined} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Link do edital (Drive)</label>
-          <input name="editalUrl" type="url" defaultValue={licitacao?.editalUrl || ""} placeholder="https://..." className="mobile-lic-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-edital-url">Link do edital (Drive)</label>
+          <input id="licitacao-edital-url" name="editalUrl" type="url" defaultValue={licitacao?.editalUrl || ""} placeholder="https://..." className="mobile-lic-input" />
         </div>
         {error && <p className="text-sm text-urgente">{error}</p>}
       </div>

@@ -41,16 +41,16 @@ export default function MobileParecerForm({ assessoriaId, parecer }: { assessori
     <form action={handleSubmit} className="flex flex-col" style={{ minHeight: "calc(100dvh - 3.5rem)" }}>
       <div className="flex-1 p-4 space-y-3 pb-24">
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Nome da demanda</label>
-          <input name="name" required defaultValue={parecer?.name || ""} className="mobile-parecer-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="parecer-name">Nome da demanda</label>
+          <input id="parecer-name" name="name" required defaultValue={parecer?.name || ""} className="mobile-parecer-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Data</label>
-          <input name="date" type="date" defaultValue={dateInputValue(parecer?.date)} className="mobile-parecer-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="parecer-date">Data</label>
+          <input id="parecer-date" name="date" type="date" defaultValue={dateInputValue(parecer?.date)} className="mobile-parecer-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2">Descrição</label>
-          <textarea name="description" rows={4} defaultValue={parecer?.description || ""} placeholder="Descrição (opcional)" className="mobile-parecer-input" />
+          <label className="text-[13px] font-semibold text-tx-2" htmlFor="parecer-description">Descrição</label>
+          <textarea id="parecer-description" name="description" rows={4} defaultValue={parecer?.description || ""} placeholder="Descrição (opcional)" className="mobile-parecer-input" />
         </div>
         {error && <p className="text-sm text-urgente">{error}</p>}
       </div>

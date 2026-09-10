@@ -94,22 +94,22 @@ export default function MobileNewReceivableForm({
         className="space-y-3"
       >
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Descrição</label>
-          <input name="description" required className="mobile-input" placeholder="Ex: Honorários - parcela 1/6" />
+          <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-description">Descrição</label>
+          <input id="receivable-description" name="description" required className="mobile-input" placeholder="Ex: Honorários - parcela 1/6" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Valor (R$)</label>
-            <MoneyInput name="amount" required className="mobile-input" />
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-amount">Valor (R$)</label>
+            <MoneyInput id="receivable-amount" name="amount" required className="mobile-input" />
           </div>
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Vencimento</label>
-            <input name="dueDate" type="date" required className="mobile-input" />
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-due-date">Vencimento</label>
+            <input id="receivable-due-date" name="dueDate" type="date" required className="mobile-input" />
           </div>
         </div>
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Tipo de Honorário</label>
-          <select name="kind" defaultValue="HONORARIOS_CONTRATUAIS" className="mobile-input">
+          <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-kind">Tipo de Honorário</label>
+          <select id="receivable-kind" name="kind" defaultValue="HONORARIOS_CONTRATUAIS" className="mobile-input">
             {RECEIVABLE_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
                 {k.label}
@@ -119,8 +119,8 @@ export default function MobileNewReceivableForm({
         </div>
         <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
-          <label className="text-[13px] font-medium text-tx-2">Cliente (opcional)</label>
-          <select name="clientId" defaultValue="" className="mobile-input">
+          <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-client">Cliente (opcional)</label>
+          <select id="receivable-client" name="clientId" defaultValue="" className="mobile-input">
             <option value="">Nenhum</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -131,8 +131,8 @@ export default function MobileNewReceivableForm({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Categoria</label>
-            <select name="categoryId" defaultValue="" className="mobile-input">
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-category">Categoria</label>
+            <select id="receivable-category" name="categoryId" defaultValue="" className="mobile-input">
               <option value="">Sem categoria</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -142,8 +142,8 @@ export default function MobileNewReceivableForm({
             </select>
           </div>
           <div>
-            <label className="text-[13px] font-medium text-tx-2">Centro de Custo</label>
-            <select name="costCenterId" defaultValue="" className="mobile-input">
+            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-cost-center">Centro de Custo</label>
+            <select id="receivable-cost-center" name="costCenterId" defaultValue="" className="mobile-input">
               <option value="">Nenhum</option>
               {costCenters.map((c) => (
                 <option key={c.id} value={c.id}>
