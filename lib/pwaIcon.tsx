@@ -1,15 +1,21 @@
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 
-// Ícone "A Fresta" da marca Lúmen, usado pelos ícones do PWA gerados via ImageResponse
-// (next/og): app/icon.tsx, app/apple-icon.tsx, app/icon-192/route.tsx, app/icon-512/route.tsx.
-// Reconstrói o mesmo desenho do componente components/LumenMark.tsx (dois planos de ouro
-// separados por um vão em "L" azul-marinho, vértice e base em bordô), mas com <div>s em vez
-// de <svg>/gradiente SVG — o renderizador do ImageResponse (Satori) suporta flexbox/posição
-// absoluta e gradiente CSS em background, não o elemento <linearGradient> do SVG.
+// Ícone "A Fresta" da marca Lúmen. Reconstrói o mesmo desenho do componente
+// components/LumenMark.tsx (dois planos de ouro separados por um vão em "L" azul-marinho,
+// vértice e base em bordô), mas com <div>s em vez de <svg>/gradiente SVG — o renderizador
+// usado para gerar o PNG (Satori) suporta flexbox/posição absoluta e gradiente CSS em
+// background, não o elemento <linearGradient> do SVG.
 //
 // Todas as medidas são frações do desenho original (viewBox 120×120 do manual de
 // identidade), escaladas pelo `size` pedido — assim o ícone fica proporcional em qualquer
 // tamanho (16 a 512px) sem redesenhar nada.
+//
+// Usado só por scripts/generate-pwa-icons.tsx (rodar de novo só se este desenho mudar).
+// Os ícones do app em si (app/icon.png, app/apple-icon.png, public/icons/icon-*.png) são PNG
+// estático versionado — não são mais gerados a cada build/request via next/og porque o
+// next/og (ImageResponse) tem um bug no Windows (path.join aplicado a um file:// URL do
+// import.meta.url, quebra `next dev` e `next build` com "TypeError: Invalid URL") — ver
+// .impeccable/plano-adequacao/andamento.md, Rodada 2.
 export function lumenIcon(size: number): ReactElement {
   const px = (fraction: number) => size * fraction;
 

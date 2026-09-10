@@ -28,7 +28,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api") ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/manifest-desktop.webmanifest" ||
-    pathname === "/apple-icon" ||
+    pathname.startsWith("/apple-icon") ||
     pathname.startsWith("/icon") ||
     pathname === "/favicon.ico" ||
     pathname === "/sitemap.xml" ||
