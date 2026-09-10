@@ -34,7 +34,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P3-1 · Site · token vinho | pendente (resolve junto com P0-1) |
 | P0-5 · Site · contraste do CTA | pendente (sem mockup — mecânico) |
 | P1-7 · PWA · label sem htmlFor | **concluído (PR #152, merge manual)** |
-| P1-8 · PWA · erro sem aria-live | pendente (sem mockup — mecânico) |
+| P1-8 · PWA · erro sem aria-live | **concluído (PR #154)** |
 | P1-9 · Site · alvo de toque nav/rodapé | pendente (sem mockup — mecânico) |
 | P1-10 · Site · heading h1→h3 | pendente (sem mockup — mecânico) |
 | P2-3 · Site · blog sem paginação | pendente (sem mockup — mecânico) |
@@ -568,3 +568,48 @@ projeto ("prossiga").
   em markdown — nada sensível).
 - Commitada diretamente em `main` (não é código de produto, dispensa o gate de build do
   `CLAUDE.md`).
+
+## Rodada 12 — P1-8 implementado
+
+**Data:** 2026-09-10 · **Sessão:** mesma sessão das Rodadas 0-11, retomada a pedido do dono do
+projeto ("vamos seguir com o plano, conforme andamento... P1-8").
+
+### O que foi feito
+
+- **P1-8 implementado.** `role="alert"` acrescentado no parágrafo de erro de validação de todo
+  formulário mobile que segue o padrão `{error && <p ...>{error}</p>}`, para o erro ser anunciado
+  automaticamente por leitor de tela no momento em que aparece (o achado citava
+  `MobileNewAttendanceForm.tsx:375` como exemplo, mas o padrão se repete em praticamente todo
+  `components/mobile/`). 17 arquivos, 18 ocorrências (`MobileSettleForm.tsx` tem duas):
+  `MobileChangePasswordForm.tsx`, `MobileDocumentUpload.tsx`, `MobileLancarHonorariosForm.tsx`,
+  `MobileLicitacaoDetail.tsx`, `MobileLicitacaoDocumentUpload.tsx`, `MobileLicitacaoForm.tsx`,
+  `MobileNewAssessoriaForm.tsx`, `MobileNewAttendanceForm.tsx`, `MobileNewCaseForm.tsx`,
+  `MobileNewPayableForm.tsx`, `MobileNewReceivableForm.tsx`, `MobileNewTaskForm.tsx`,
+  `MobileNovaAnotacaoForm.tsx`, `MobileParecerForm.tsx`, `MobileSearchCasesModal.tsx`,
+  `MobileSettleForm.tsx`, `NotificationPreferences.tsx`. Escopo deliberadamente mais amplo que só
+  "formulários de criar/editar" citado no roteiro — incluiu também `MobileSearchCasesModal.tsx`
+  (busca) e `MobileDocumentUpload.tsx`/`MobileLicitacaoDocumentUpload.tsx` (upload), porque
+  seguem exatamente o mesmo anti-padrão (erro visual sem anúncio a tecnologia assistiva) e o
+  WCAG 4.1.3 (Status Messages) não distingue por tipo de formulário.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados no working tree — `docs/gauntlet/*`, `lib/roboBridge.ts` — ficaram de
+  fora do `git add`, sem alteração):
+  - `rm -rf .next && tsc --noEmit -p .` → limpo.
+  - `eslint` nos 17 arquivos alterados → limpo.
+  - `next build` → **falhou na primeira tentativa**, mas por causa alheia: `components/BancadaMenu.tsx`
+    (arquivo não versionado, de outra frente de trabalho) tinha um import não usado
+    (`usePathname`) e um `any` explícito, e o `next build` linta todo `.tsx` do diretório de
+    trabalho independente de rastreamento pelo git. Como isso bloqueava a verificação completa do
+    P1-8, perguntado ao dono do projeto como proceder — escolheu corrigir os dois erros triviais
+    (`usePathname` removido do import, `icon: any` → `icon: LucideIcon` de `lucide-react`). Com o
+    ambiente desbloqueado, `next build` fechou **exit 0**. `BancadaMenu.tsx` continua fora do
+    controle de versão (não fazia parte deste PR) — a correção fica só em disco local, à espera de
+    quem estiver trabalhando nesse arquivo.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`),
+  PR **https://github.com/rodartepradoadvogados/Lumen/pull/154**, branch
+  `fix/p1-8-erro-validacao-role-alert` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P1-9** (Site · alvo de toque do nav/rodapé abaixo
+  do mínimo) — mecânico, sem mockup necessário.

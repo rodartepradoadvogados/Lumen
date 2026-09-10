@@ -330,7 +330,7 @@ export default function MobileLancarHonorariosForm({
           Já recebido neste processo: <span className="font-semibold tabular-nums text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
         </p>
       )}
-      {error && <p className="text-[13px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       {cases && (
         <div>

@@ -87,7 +87,7 @@ export default function MobileLicitacaoForm({
           <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-edital-url">Link do edital (Drive)</label>
           <input id="licitacao-edital-url" name="editalUrl" type="url" defaultValue={licitacao?.editalUrl || ""} placeholder="https://..." className="mobile-lic-input" />
         </div>
-        {error && <p className="text-sm text-urgente">{error}</p>}
+        {error && <p role="alert" className="text-sm text-urgente">{error}</p>}
       </div>
       <div className="fixed bottom-0 left-0 right-0 flex gap-2 p-3 bg-sf-superficie border-t border-regua" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <button type="button" onClick={() => router.back()} className="flex-1 text-sm font-semibold text-tx-2 bg-sf-apoio py-2.5">Cancelar</button>

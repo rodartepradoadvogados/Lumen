@@ -267,7 +267,7 @@ export default function MobileNewAttendanceForm({
         </div>
       </div>
 
-      {error && <p className="text-[13px] font-semibold text-urgente">{error}</p>}
+      {error && <p role="alert" className="text-[13px] font-semibold text-urgente">{error}</p>}
 
       {loading && progressText && (
         <p className="text-[13px] font-semibold text-acao">{progressText}</p>

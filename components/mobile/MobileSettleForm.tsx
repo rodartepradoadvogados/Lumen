@@ -65,7 +65,7 @@ export default function MobileSettleForm({
         >
           <RotateCcw size={12} /> Reabrir
         </button>
-        {error && <p className="text-[13px] text-urgente">{error}</p>}
+        {error && <p role="alert" className="text-[13px] text-urgente">{error}</p>}
       </div>
     );
   }
@@ -167,7 +167,7 @@ export default function MobileSettleForm({
           <label className="text-[13px] font-medium text-tx-2" htmlFor={`settle-${id}-receipt-number`}>Nº do comprovante (opcional)</label>
           <input id={`settle-${id}-receipt-number`} name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
-        {error && <p className="text-[13px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
+        {error && <p role="alert" className="text-[13px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}

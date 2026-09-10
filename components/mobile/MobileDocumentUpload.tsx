@@ -135,7 +135,7 @@ export default function MobileDocumentUpload({
         className="w-full text-[13px] border border-regua bg-sf text-tx px-2.5 py-1.5"
         allowCreate
       />
-      {error && <p className="text-[13px] text-urgente">{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-urgente">{error}</p>}
       <button
         type="button"
         onClick={send}
