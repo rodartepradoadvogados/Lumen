@@ -1,0 +1,472 @@
+<title>Adequação Lúmen</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg:#f3f2f2; --surface:#ffffff; --surface-2:#eae9e9;
+    --rule:#d7d3d3; --rule-strong:#bab6b6;
+    --ink:#201e1d; --ink-2:#605d5d; --ink-3:#9b9797;
+    --accent:#8a2f42; --accent-hover:#9c3a4d; --accent-tx:#f7eef0; --accent-light:#a8495c;
+    --accent-label:#8a2f42;
+    --danger:#ae1800;
+    --warn:#9a6700; --warn-bg:rgba(154,103,0,.12);
+    --success:#1c6b52; --success-bg:rgba(28,107,82,.1);
+    --slate:#16191d;
+    --p0-bg:rgba(174,24,0,.08); --p0-tx:#ae1800;
+    --p1-bg:rgba(154,103,0,.12); --p1-tx:#7d5900;
+    --p2-bg:rgba(138,47,66,.1); --p2-tx:#8a2f42;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14161c; --surface:#1c1f27; --surface-2:#262b35;
+      --rule:#333844; --rule-strong:#414755;
+      --ink:#eef1f5; --ink-2:#a3aab6; --ink-3:#767e8c;
+      --accent:#8a2f42; --accent-hover:#9c3a4d; --accent-tx:#f7eef0; --accent-light:#a8495c;
+      --accent-label:#c9707f;
+      --danger:#e2685a;
+      --warn:#d0a02a; --warn-bg:rgba(208,160,42,.14);
+      --success:#4fb28c; --success-bg:rgba(79,178,140,.14);
+      --p0-bg:rgba(226,104,90,.14); --p0-tx:#e2685a;
+      --p1-bg:rgba(208,160,42,.16); --p1-tx:#d0a02a;
+      --p2-bg:rgba(201,112,127,.16); --p2-tx:#c9707f;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14161c; --surface:#1c1f27; --surface-2:#262b35;
+    --rule:#333844; --rule-strong:#414755;
+    --ink:#eef1f5; --ink-2:#a3aab6; --ink-3:#767e8c;
+    --accent:#8a2f42; --accent-hover:#9c3a4d; --accent-tx:#f7eef0; --accent-light:#a8495c;
+    --accent-label:#c9707f;
+    --danger:#e2685a;
+    --warn:#d0a02a; --warn-bg:rgba(208,160,42,.16);
+    --success:#4fb28c; --success-bg:rgba(79,178,140,.14);
+    --p0-bg:rgba(226,104,90,.14); --p0-tx:#e2685a;
+    --p1-bg:rgba(208,160,42,.16); --p1-tx:#d0a02a;
+    --p2-bg:rgba(201,112,127,.16); --p2-tx:#c9707f;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-variant-numeric:tabular-nums;
+    margin:0; padding-inline:20px; padding-block:0;
+    overflow-x:hidden;
+  }
+  a{color:var(--accent);}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  p{margin:0;}
+
+  .shell{max-width:1180px; margin:0 auto; display:grid; grid-template-columns:220px 1fr; gap:40px; align-items:start;}
+  @media (max-width:860px){ .shell{grid-template-columns:1fr;} }
+
+  /* ---- header ---- */
+  .top{grid-column:1/-1; padding-block:40px 28px; border-bottom:2px solid var(--rule-strong);}
+  .kicker{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-label);}
+  .top h1{font-size:clamp(28px,4vw,40px); font-weight:800; letter-spacing:-.02em; line-height:1.1; margin-top:8px; max-width:22ch;}
+  .top p.lede{margin-top:12px; font-size:16px; color:var(--ink-2); max-width:62ch; line-height:1.55;}
+  .top .meta{margin-top:18px; display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--ink-3);}
+  .top .meta b{color:var(--ink-2); font-weight:600;}
+
+  /* ---- nav rail ---- */
+  nav.index{position:sticky; top:24px; padding-block:28px 0;}
+  nav.index h2{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); margin-bottom:12px;}
+  nav.index ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.index a{display:flex; align-items:baseline; gap:8px; text-decoration:none; color:var(--ink-2); font-size:13.5px; font-weight:600; padding:7px 0; border-top:1px solid var(--rule);}
+  nav.index li:first-child a{border-top:none;}
+  nav.index a:hover{color:var(--ink);}
+  nav.index .tag{font-size:10px; font-weight:800; padding:1px 5px; border-radius:4px; flex-shrink:0;}
+  .tag.p0{background:var(--p0-bg); color:var(--p0-tx);}
+  .tag.p1{background:var(--p1-bg); color:var(--p1-tx);}
+  .tag.p2{background:var(--p2-bg); color:var(--p2-tx);}
+  @media (max-width:860px){
+    nav.index{position:static; border-bottom:2px solid var(--rule-strong); padding-bottom:20px;}
+    nav.index ol{flex-direction:row; flex-wrap:wrap; gap:8px;}
+    nav.index a{border-top:none; border:1px solid var(--rule); border-radius:6px; padding:6px 10px;}
+  }
+
+  /* ---- main column ---- */
+  main{padding-block:28px 80px; display:flex; flex-direction:column; gap:64px; min-width:0;}
+  section.item{scroll-margin-top:20px;}
+  .item-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  .item-head .tag{font-size:11px; font-weight:800; padding:2px 7px; border-radius:4px;}
+  .item-head .id{font-size:12px; font-weight:600; color:var(--ink-3);}
+  .item h3{font-size:22px; font-weight:700; letter-spacing:-.01em;}
+  .item .why{margin-top:10px; font-size:14.5px; color:var(--ink-2); max-width:70ch; line-height:1.6;}
+  .item .why b{color:var(--ink); font-weight:600;}
+
+  .compare{margin-top:24px; display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;}
+  @media (max-width:720px){ .compare{grid-template-columns:1fr;} }
+  .panel{border-top:2px solid var(--rule-strong); border-radius:10px; background:var(--surface); overflow:hidden;}
+  .panel-label{display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--rule); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;}
+  .panel-label.before{color:var(--ink-3);}
+  .panel-label.after{color:var(--success); background:var(--success-bg);}
+  .panel-body{padding:18px;}
+  .panel.before .panel-body{opacity:.85;}
+
+  /* ---- phone frame for PWA items ---- */
+  .phone{width:100%; max-width:280px; margin:0 auto; border:8px solid var(--slate); border-radius:28px; background:var(--surface); overflow:hidden; box-shadow:0 12px 32px rgba(45,43,43,.18);}
+  .phone-screen{min-height:360px; display:flex; flex-direction:column; background:var(--bg);}
+  .phone-top{padding:10px 14px; font-size:11px; font-weight:700; color:var(--ink-2); border-bottom:1px solid var(--rule); background:var(--surface); display:flex; justify-content:space-between;}
+  .phone-body{flex:1; padding:12px; display:flex; flex-direction:column; gap:8px;}
+  .phone-nav{display:flex; border-top:2px solid var(--rule-strong); background:var(--surface);}
+  .phone-nav a{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 0 8px; font-size:10px; font-weight:600; color:var(--ink-3); text-decoration:none;}
+  .phone-nav a.active{color:var(--accent-label);}
+  .phone-nav .dot{width:20px; height:20px; border-radius:6px;}
+  .phone-nav a.active .dot{background:var(--p2-bg);}
+  .phone-nav .center{width:38px; height:38px; border-radius:6px; background:var(--accent); color:var(--accent-tx); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; margin-top:-14px; box-shadow:0 6px 16px rgba(138,47,66,.35);}
+
+  /* ---- generic mini components reused across mocks ---- */
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border-radius:6px; background:var(--surface); border-top:2px solid var(--rule-strong);}
+  .row + .row{margin-top:8px;}
+  .row .lbl{font-size:13px; font-weight:600;}
+  .row .val{font-size:13px; color:var(--ink-3);}
+  .chip{display:inline-flex; align-items:center; padding:2px 8px; border-radius:9999px; font-size:10.5px; font-weight:700;}
+  .chip.warn{background:var(--warn-bg); color:var(--warn);}
+  .chip.danger{background:rgba(174,24,0,.1); color:var(--danger);}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{font-size:11px; font-weight:600; color:var(--ink-2);}
+  .field .input{border:1px solid var(--rule); border-radius:6px; padding:9px 10px; font-size:13px; color:var(--ink-3); background:var(--surface);}
+  .btn-primary{display:inline-flex; align-items:center; justify-content:flex-start; gap:6px; height:34px; background:var(--accent); color:var(--accent-tx); font-weight:600; font-size:13px; padding:0 14px; border-radius:6px; border:none; width:100%;}
+  .btn-secondary{display:inline-flex; align-items:center; justify-content:flex-start; gap:6px; height:34px; background:transparent; color:var(--ink); font-weight:600; font-size:13px; padding:0 14px; border-radius:6px; border:2px solid var(--rule-strong); width:100%;}
+  .muted-note{font-size:11.5px; color:var(--ink-3); margin-top:6px;}
+  .strike{text-decoration:line-through; opacity:.55;}
+
+  /* ---- site (desktop) frame ---- */
+  .browser{border:1px solid var(--rule-strong); border-radius:10px; overflow:hidden; background:var(--surface);}
+  .browser-bar{display:flex; gap:5px; padding:9px 12px; background:var(--surface-2); border-bottom:1px solid var(--rule);}
+  .browser-bar span{width:8px; height:8px; border-radius:50%; background:var(--rule-strong);}
+  .browser-body{padding:20px;}
+
+  .site-header{display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:2px solid var(--rule-strong); margin-bottom:16px;}
+  .site-logo{font-weight:800; font-size:13px; letter-spacing:.14em;}
+  .site-nav{display:flex; gap:16px; font-size:12px; font-weight:600; color:var(--ink);}
+  .site-nav.hidden-mobile{display:none;}
+  .hamburger{width:30px; height:30px; border:1px solid var(--rule-strong); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;}
+  .cta-mini{background:var(--accent); color:var(--accent-tx); font-size:11px; font-weight:800; padding:6px 10px; border-radius:6px;}
+
+  .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  @media (max-width:520px){ .price-grid{grid-template-columns:1fr 1fr;} }
+  .price-card{border:2px solid var(--rule-strong); border-radius:8px; padding:12px;}
+  .price-card .plan-name{font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2);}
+  .price-card .price{font-size:19px; font-weight:800; margin-top:6px;}
+  .price-card.recommended{border-color:var(--accent-light); position:relative;}
+  .price-card.recommended::before{content:"Recomendado"; position:absolute; top:-11px; left:10px; background:var(--accent-light); color:var(--accent-tx); font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:4px;}
+  .price-card.broken{border:2px dashed var(--danger); background:rgba(174,24,0,.04);}
+  .price-card .badge-fix{display:inline-block; font-size:9px; font-weight:800; text-transform:uppercase; color:var(--danger); border:1px solid var(--danger); padding:1px 5px; border-radius:4px; margin-bottom:6px;}
+  .price-card .fixed-copy{font-size:12px; color:var(--ink-2); margin-top:6px; line-height:1.4;}
+
+  .feature-row{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:center; padding-block:14px; border-top:1px solid var(--rule);}
+  .feature-row:first-child{border-top:none;}
+  @media (max-width:560px){ .feature-row{grid-template-columns:1fr;} }
+  .feature-row .kicker-mini{font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--accent-label);}
+  .feature-row h4{font-size:14px; font-weight:700; margin-top:4px;}
+  .feature-row .figure{aspect-ratio:4/3; border:2px solid var(--rule-strong); border-radius:6px; display:flex; align-items:center; justify-content:center; background:var(--surface);}
+  .figure .txt{font-size:10px; color:var(--ink-3); text-align:center; padding:8px;}
+  .figure.diagram{background:linear-gradient(135deg, var(--surface) 60%, var(--rule) 60%); position:relative; overflow:hidden;}
+  .figure.diagram svg{width:60%; height:60%;}
+
+  .mobile-overlay{position:absolute; inset:0; background:var(--surface); display:flex; flex-direction:column; padding:16px; gap:10px; z-index:5;}
+  .demo-toggle{display:none;}
+  .demo-toggle:checked ~ .mobile-overlay{display:flex;}
+  .frame-relative{position:relative;}
+  .overlay-link{font-size:13px; font-weight:600; padding:9px 4px; border-bottom:1px solid var(--rule);}
+  .toggle-label{display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--accent-label); cursor:pointer; margin-top:10px;}
+
+  .footnote{margin-top:16px; font-size:12.5px; color:var(--ink-3); line-height:1.5;}
+  .footnote code{background:var(--surface-2); padding:1px 5px; border-radius:4px; font-size:11.5px;}
+
+  .end{grid-column:1/-1; border-top:2px solid var(--rule-strong); padding-block:28px 60px; font-size:13px; color:var(--ink-3); line-height:1.6;}
+  .end a{font-weight:600;}
+</style>
+
+<div class="shell">
+  <header class="top">
+    <p class="kicker">Plano de adequação · validação visual</p>
+    <h1>Sete decisões antes de mexer no código</h1>
+    <p class="lede">Comparação lado a lado do que existe hoje ("Antes") contra a direção proposta ("Depois") para os itens do roteiro que envolvem uma escolha visual — não um bug mecânico. Nada aqui foi implementado ainda.</p>
+    <div class="meta">
+      <span><b>Gerado</b> 2026-09-10</span>
+      <span><b>Fonte</b> $impeccable critique (site + PWA)</span>
+      <span><b>Roteiro</b> .impeccable/plano-adequacao/roteiro-de-adequacao.md</span>
+    </div>
+  </header>
+
+  <nav class="index">
+    <h2>Itens</h2>
+    <ol>
+      <li><a href="#p0-1"><span class="tag p0">P0</span> Preço "Substituir"</a></li>
+      <li><a href="#p0-2"><span class="tag p0">P0</span> Recursos sem imagem</a></li>
+      <li><a href="#p0-3"><span class="tag p0">P0</span> Aba Financeiro (PWA)</a></li>
+      <li><a href="#p0-4"><span class="tag p0">P0</span> Novo Atendimento (PWA)</a></li>
+      <li><a href="#p1-1"><span class="tag p1">P1</span> Nav mobile do site</a></li>
+      <li><a href="#p2-1"><span class="tag p2">P2</span> Plano recomendado</a></li>
+      <li><a href="#p2-2"><span class="tag p2">P2</span> Menu "+" (PWA)</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section class="item" id="p0-1">
+      <div class="item-head"><span class="tag p0" style="background:var(--p0-bg);color:var(--p0-tx)">P0-1 · Site</span><span class="id">app/page.tsx — seção Preço</span></div>
+      <h3>Cartão de preço sem "Substituir"</h3>
+      <p class="why">Hoje todo plano sem preço configurado mostra uma etiqueta admin ("Substituir") e moldura tracejada — ao vivo, para qualquer visitante. A proposta esconde a etiqueta e dá uma saída de contato, sem usar o token <code>vinho</code> (reservado para ação destrutiva).</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje)</div>
+          <div class="panel-body">
+            <div class="price-card broken">
+              <span class="badge-fix">Substituir</span>
+              <div class="plan-name">Gold</div>
+              <div class="price" style="color:var(--danger)">R$ —<span style="font-size:11px;font-weight:600;color:var(--ink-2)">/mês</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel after">
+          <div class="panel-label after">Depois (proposta)</div>
+          <div class="panel-body">
+            <div class="price-card" style="border-color:var(--rule-strong)">
+              <div class="plan-name">Gold</div>
+              <div class="fixed-copy">Fale com a gente para o valor deste plano.</div>
+              <div style="margin-top:10px" class="btn-secondary">Falar com a gente</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="item" id="p0-2">
+      <div class="item-head"><span class="tag p0" style="background:var(--p0-bg);color:var(--p0-tx)">P0-2 · Site</span><span class="id">app/page.tsx — Linhas de recurso</span></div>
+      <h3>Diagrama de marca em vez de legenda de "captura de tela"</h3>
+      <p class="why">As 5 seções de recurso mostram hoje um texto descrevendo a imagem que falta. A proposta troca por um diagrama simples na linguagem do sistema (réguas + bordô) — provisório, mas desenhado, não um placeholder de desenvolvedor.</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje)</div>
+          <div class="panel-body">
+            <p class="kicker-mini">Publicações</p>
+            <h4>Publicações que chegam triadas</h4>
+            <div class="figure" style="margin-top:10px">
+              <p class="txt">Captura de tela — Lista de Publicações: card com filete por fonte (DJEN/DATAJUD/PJe), badge "Não lida"</p>
+            </div>
+          </div>
+        </div>
+        <div class="panel after">
+          <div class="panel-label after">Depois (proposta)</div>
+          <div class="panel-body">
+            <p class="kicker-mini">Publicações</p>
+            <h4>Publicações que chegam triadas</h4>
+            <div class="figure diagram" style="margin-top:10px">
+              <svg viewBox="0 0 100 100" fill="none">
+                <rect x="8" y="14" width="84" height="20" rx="3" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="2"/>
+                <rect x="8" y="14" width="4" height="20" fill="var(--accent)"/>
+                <rect x="8" y="40" width="84" height="20" rx="3" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="2"/>
+                <rect x="8" y="40" width="4" height="20" fill="var(--warn)"/>
+                <rect x="8" y="66" width="84" height="20" rx="3" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="2"/>
+                <rect x="8" y="66" width="4" height="20" fill="var(--success)"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="footnote">Mesma ideia se repete para as outras 4 linhas de recurso (Painel, Peticionamento, Financeiro, Sigilo) — cada uma com seu próprio diagrama, não uma imagem genérica repetida.</p>
+    </section>
+
+    <section class="item" id="p0-3">
+      <div class="item-head"><span class="tag p0" style="background:var(--p0-bg);color:var(--p0-tx)">P0-3 · PWA</span><span class="id">app/m/financeiro/page.tsx</span></div>
+      <h3>Aba "R$": resumo de 3 números antes do menu</h3>
+      <p class="why">A especificação (<code>08-pwa.md</code>) pede "resumo do mês, três números" nesta aba. Hoje é uma lista de 6 sub-rotas. A proposta mantém as 6 sub-rotas — só um toque mais fundo, atrás de "Ver detalhes".</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje)</div>
+          <div class="panel-body">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-top"><span>R$ Financeiro</span><span>9:41</span></div>
+              <div class="phone-body">
+                <div class="row"><span class="lbl">Despesas</span><span class="val">›</span></div>
+                <div class="row"><span class="lbl">Receitas</span><span class="val">›</span></div>
+                <div class="row"><span class="lbl">Relatórios Gerenciais</span><span class="val">›</span></div>
+                <div class="row"><span class="lbl">Fluxo de Caixa</span><span class="val">›</span></div>
+                <div class="row"><span class="lbl">DRE</span><span class="val">›</span></div>
+                <div class="row"><span class="lbl">Livro Caixa</span><span class="val">›</span></div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+        <div class="panel after">
+          <div class="panel-label after">Depois (proposta)</div>
+          <div class="panel-body">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-top"><span>R$ Financeiro</span><span>9:41</span></div>
+              <div class="phone-body">
+                <div class="row" style="border-top-color:var(--success)"><span class="lbl">Saldo em caixa</span><span class="val" style="color:var(--success);font-weight:700">R$ 42.180</span></div>
+                <div class="row" style="border-top-color:var(--warn)"><span class="lbl">A vencer hoje</span><span class="val" style="color:var(--warn);font-weight:700">R$ 1.240</span></div>
+                <div class="row" style="border-top-color:var(--danger)"><span class="lbl">Atrasadas</span><span class="val" style="color:var(--danger);font-weight:700">R$ 380</span></div>
+                <div class="btn-secondary" style="margin-top:6px">Ver detalhes</div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="item" id="p0-4">
+      <div class="item-head"><span class="tag p0" style="background:var(--p0-bg);color:var(--p0-tx)">P0-4 · PWA</span><span class="id">MobileNewAttendanceForm.tsx — /m/atendimento/novo</span></div>
+      <h3>"Novo atendimento": 3 campos + ditado, o resto atrás de "mais detalhes"</h3>
+      <p class="why">A especificação chama esta tela de "a que justifica o PWA": 3 campos + microfone. Hoje tem 10+ campos (honorário, pendências, anexos). A proposta mantém tudo isso, só move para trás de uma ação explícita — com destaque real (botão, não texto apagado), por pedido do dono do projeto.</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje)</div>
+          <div class="panel-body">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-top"><span>Novo atendimento</span><span>✕</span></div>
+              <div class="phone-body">
+                <div class="field"><label>Nome</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Telefone</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>E-mail</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Canal</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Matéria</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Honorário (fixo / % / base)</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Pendências (6 itens)</label><div class="input">&nbsp;</div></div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+        <div class="panel after">
+          <div class="panel-label after">Depois (proposta)</div>
+          <div class="panel-body">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-top"><span>Novo atendimento</span><span>✕</span></div>
+              <div class="phone-body">
+                <div class="field"><label>Nome</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Telefone</label><div class="input">&nbsp;</div></div>
+                <div class="field"><label>Assunto 🎙️</label><div class="input">&nbsp;</div></div>
+                <div class="btn-primary" style="margin-top:8px">Salvar atendimento</div>
+                <div class="btn-secondary" style="margin-top:8px">＋ Mais detalhes (honorário, pendências, anexos)</div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="item" id="p1-1">
+      <div class="item-head"><span class="tag p1" style="background:var(--p1-bg);color:var(--p1-tx)">P1-1 · Site</span><span class="id">app/page.tsx — cabeçalho</span></div>
+      <h3>Menu do cabeçalho no mobile</h3>
+      <p class="why">Abaixo de <code>md</code>, o nav inteiro some hoje — sem hambúrguer nem alternativa. Toque no ícone abaixo para ver a proposta abrindo.</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje) — 375px</div>
+          <div class="panel-body">
+            <div class="site-header" style="margin:0; padding-bottom:12px;">
+              <span class="site-logo">LÚMEN</span>
+              <span class="cta-mini">Começar</span>
+            </div>
+            <p class="footnote">Produto · Preço · Blog · Entrar — nenhum inalcançável neste viewport.</p>
+          </div>
+        </div>
+        <div class="panel after frame-relative">
+          <div class="panel-label after">Depois (proposta) — 375px</div>
+          <div class="panel-body">
+            <input type="checkbox" id="demo-nav" class="demo-toggle">
+            <div class="site-header" style="margin:0; padding-bottom:12px;">
+              <span class="site-logo">LÚMEN</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <span class="cta-mini">Começar</span>
+                <label for="demo-nav" class="hamburger">☰</label>
+              </div>
+            </div>
+            <label for="demo-nav" class="toggle-label">▸ toque para abrir o menu</label>
+            <div class="mobile-overlay">
+              <div class="site-header" style="margin:0;padding-bottom:12px;">
+                <span class="site-logo">LÚMEN</span>
+                <label for="demo-nav" class="hamburger">✕</label>
+              </div>
+              <a class="overlay-link" href="#">Produto</a>
+              <a class="overlay-link" href="#">Preço</a>
+              <a class="overlay-link" href="#">Blog</a>
+              <a class="overlay-link" href="#" style="border-bottom:none;">Entrar</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="item" id="p2-1">
+      <div class="item-head"><span class="tag p2" style="background:var(--p2-bg);color:var(--p2-tx)">P2-1 · Site</span><span class="id">app/page.tsx — seção Preço</span></div>
+      <h3>Um plano recomendado entre os 5</h3>
+      <p class="why">5 cartões idênticos, nenhuma âncora de escolha. A proposta usa <code>--acao-light</code> — já reservado no DESIGN.md para isso — em vez de um token novo. Qual plano leva o destaque vira uma configuração em Painel Mestre → Preços, não um valor fixo no código.</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje)</div>
+          <div class="panel-body">
+            <div class="price-grid">
+              <div class="price-card"><div class="plan-name">Standard</div><div class="price">R$ 190</div></div>
+              <div class="price-card"><div class="plan-name">Silver</div><div class="price">R$ 340</div></div>
+              <div class="price-card"><div class="plan-name">Gold</div><div class="price">R$ 590</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel after">
+          <div class="panel-label after">Depois (proposta)</div>
+          <div class="panel-body">
+            <div class="price-grid">
+              <div class="price-card"><div class="plan-name">Standard</div><div class="price">R$ 190</div></div>
+              <div class="price-card recommended"><div class="plan-name">Silver</div><div class="price">R$ 340</div></div>
+              <div class="price-card"><div class="plan-name">Gold</div><div class="price">R$ 590</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="item" id="p2-2">
+      <div class="item-head"><span class="tag p2" style="background:var(--p2-bg);color:var(--p2-tx)">P2-2 · PWA</span><span class="id">MobileNewEntitySheet.tsx</span></div>
+      <h3>Menu "+": Atendimento em destaque, pendências recolhidas</h3>
+      <p class="why">Hoje o menu "+" mostra 9 opções no mesmo peso visual. A proposta destaca "Atendimento" (o item que a própria especificação trata como prioritário) acima do restante.</p>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-label before">Antes (hoje)</div>
+          <div class="panel-body">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-top"><span>Novo</span><span>✕</span></div>
+              <div class="phone-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Atendimento</div>
+                <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Cliente</div>
+                <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Fornecedor</div>
+                <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Processo</div>
+                <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Tarefa</div>
+                <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Audiência</div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+        <div class="panel after">
+          <div class="panel-label after">Depois (proposta)</div>
+          <div class="panel-body">
+            <div class="phone"><div class="phone-screen">
+              <div class="phone-top"><span>Novo</span><span>✕</span></div>
+              <div class="phone-body">
+                <div class="row" style="border-top-color:var(--accent); background:var(--accent); color:var(--accent-tx); font-weight:700;">Atendimento</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+                  <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Cliente</div>
+                  <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Fornecedor</div>
+                  <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Processo</div>
+                  <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;">Tarefa</div>
+                </div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="end">
+    Itens sem mockup porque não têm ambiguidade visual a validar (mudança mecânica de valor):
+    <b>P1-2</b> alvo de toque para 44px, <b>P1-3</b> piso tipográfico de 13px, <b>P3-1</b> troca do token <code>vinho</code> por um neutro. Roteiro completo e critério de aceite de cada item em <code>.impeccable/plano-adequacao/roteiro-de-adequacao.md</code>.
+  </footer>
+</div>
