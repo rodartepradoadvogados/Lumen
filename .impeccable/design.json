@@ -1,0 +1,303 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-09-10T05:22:00Z",
+	"title": "Design System: Lúmen",
+	"extensions": {
+		"colorMeta": {
+			"acao": {
+				"role": "primary",
+				"displayName": "Bordô Editorial",
+				"canonical": "#8a2f42",
+				"tonalRamp": [
+					"#3d141d",
+					"#5c1e2b",
+					"#7a2838",
+					"#8a2f42",
+					"#9c3a4d",
+					"#c9707f",
+					"#e0a9b0",
+					"#f7eef0"
+				]
+			},
+			"vinho": {
+				"role": "danger",
+				"displayName": "Vinho Institucional",
+				"canonical": "#ae1800",
+				"tonalRamp": [
+					"#4d0b00",
+					"#701000",
+					"#8a1300",
+					"#ae1800",
+					"#c94e3a",
+					"#e2685a",
+					"#f0a89e",
+					"#fbe6e2"
+				]
+			},
+			"urgente": {
+				"role": "status-danger",
+				"displayName": "Urgente (dado vencido)",
+				"canonical": "#b3261e",
+				"tonalRamp": [
+					"#4f100c",
+					"#711712",
+					"#93201a",
+					"#b3261e",
+					"#e2685a",
+					"#eb8f84",
+					"#f4bab3",
+					"#fbe3e0"
+				]
+			},
+			"aviso": {
+				"role": "status-warning",
+				"displayName": "Aviso (perto de vencer)",
+				"canonical": "#9a6700",
+				"tonalRamp": [
+					"#453000",
+					"#634600",
+					"#7d5900",
+					"#9a6700",
+					"#d0a02a",
+					"#e0bd5e",
+					"#eed595",
+					"#f9edcf"
+				]
+			},
+			"concluido": {
+				"role": "status-success",
+				"displayName": "Concluído (resolvido)",
+				"canonical": "#1c6b52",
+				"tonalRamp": [
+					"#0c2e22",
+					"#124a37",
+					"#175a43",
+					"#1c6b52",
+					"#4fb28c",
+					"#7cc7ab",
+					"#addecb",
+					"#deefe6"
+				]
+			},
+			"ardosia-noturna": {
+				"role": "surface-fixed",
+				"displayName": "Ardósia Noturna",
+				"canonical": "#16191d",
+				"tonalRamp": [
+					"#0f1216",
+					"#16191d",
+					"#22272e",
+					"#39414a",
+					"#5b646e",
+					"#8b939c",
+					"#bac0c6",
+					"#e4e6e8"
+				]
+			},
+			"neutro": {
+				"role": "neutral",
+				"displayName": "Neutro Morno",
+				"canonical": "#2d2b2b",
+				"tonalRamp": [
+					"#2d2b2b",
+					"#444141",
+					"#605d5d",
+					"#7d7979",
+					"#9b9797",
+					"#bab6b6",
+					"#d7d3d3",
+					"#eae7e7",
+					"#f8f4f4"
+				]
+			},
+			"fonte-pje": {
+				"role": "provenance",
+				"displayName": "Azul PJE",
+				"canonical": "#2f6fb0",
+				"tonalRamp": [
+					"#122a44",
+					"#1c4467",
+					"#245a86",
+					"#2f6fb0",
+					"#5c93c9",
+					"#8fb6db",
+					"#c0d6ec",
+					"#e6f0f8"
+				]
+			},
+			"ouro-acento": {
+				"role": "accent-pointual",
+				"displayName": "Ouro de Acento",
+				"canonical": "#a6790f",
+				"tonalRamp": [
+					"#4a3607",
+					"#6b4e0a",
+					"#87610c",
+					"#a6790f",
+					"#d0a02a",
+					"#e0bd5e",
+					"#eed595",
+					"#f9edcf"
+				]
+			}
+		},
+		"typographyMeta": {
+			"display": {
+				"displayName": "Display",
+				"purpose": "Valor de destaque em StatCard — o número que a tela mais quer mostrar primeiro."
+			},
+			"headline": {
+				"displayName": "Headline",
+				"purpose": "Título de página (PageHeader)."
+			},
+			"title": {
+				"displayName": "Title",
+				"purpose": "Título de cartão/seção (CardHeader)."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Texto corrido, rótulo de botão, conteúdo de tabela."
+			},
+			"label": {
+				"displayName": "Label",
+				"purpose": "Rótulo de campo acima de valor, rótulo de seção discreta."
+			}
+		},
+		"shadows": [
+			{
+				"name": "pop",
+				"value": "0 3px 10px rgba(45, 43, 43, 0.16)",
+				"purpose": "Popover, menu suspenso, tooltip (Manhã)."
+			},
+			{
+				"name": "modal",
+				"value": "0 12px 32px rgba(45, 43, 43, 0.22)",
+				"purpose": "Modal (ModalShell)."
+			},
+			{
+				"name": "arrasto",
+				"value": "0 12px 32px rgba(45, 43, 43, 0.22)",
+				"purpose": "Cartão sendo arrastado (Kanban)."
+			},
+			{
+				"name": "card",
+				"value": "none",
+				"purpose": "Cartão parado — deliberadamente sem sombra, separado por régua."
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "md",
+				"value": "768px"
+			},
+			{
+				"name": "lg",
+				"value": "1024px"
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Button Primary",
+			"kind": "button",
+			"refersTo": "button-primary",
+			"description": "Ação principal da tela — fundo Bordô Editorial, rótulo alinhado à esquerda.",
+			"html": "<button class=\"ds-btn-primary\">Salvar</button>",
+			"css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: flex-start; gap: 6px; height: 32px; background: #8a2f42; color: #f7eef0; font-weight: 600; font-size: 14px; padding: 0 16px; border-radius: 6px; border: none; transition: background-color 0.15s ease-out; } .ds-btn-primary:hover { background: #9c3a4d; } .ds-btn-primary:focus-visible { outline: 2px solid #8a2f42; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: default; }"
+		},
+		{
+			"name": "Button Secondary",
+			"kind": "button",
+			"refersTo": "button-secondary",
+			"description": "Ação secundária — contorno neutro, fundo transparente.",
+			"html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+			"css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: flex-start; gap: 6px; height: 32px; background: transparent; color: #201e1d; font-weight: 600; font-size: 14px; padding: 0 16px; border-radius: 6px; border: 2px solid #bab6b6; transition: background-color 0.15s ease-out; } .ds-btn-secondary:hover { background: rgba(138, 47, 66, 0.08); } .ds-btn-secondary:focus-visible { outline: 2px solid #8a2f42; outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.6; cursor: default; }"
+		},
+		{
+			"name": "Card",
+			"kind": "card",
+			"refersTo": "card",
+			"description": "Contêiner de conteúdo — separado do resto por filete de topo, nunca por sombra.",
+			"html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><h3 class=\"ds-card-title\">Título do cartão</h3><p class=\"ds-card-subtitle\">Subtítulo opcional</p></div><div class=\"ds-card-body\">Conteúdo do cartão.</div></div>",
+			"css": ".ds-card { background: #ffffff; border-top: 2px solid #bab6b6; border-radius: 10px; } .ds-card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid #bab6b6; } .ds-card-title { font-weight: 600; font-size: 16px; color: #201e1d; margin: 0; } .ds-card-subtitle { font-size: 12px; color: #605d5d; margin: 2px 0 0; } .ds-card-body { padding: 20px; color: #201e1d; font-size: 14px; }"
+		},
+		{
+			"name": "Badge",
+			"kind": "chip",
+			"refersTo": "badge",
+			"description": "Pílula de status por papel semântico (aqui: variante neutra 'slate').",
+			"html": "<span class=\"ds-badge\">Tarefa</span>",
+			"css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: #eae9e9; color: #605d5d; }"
+		},
+		{
+			"name": "Conclusion Chip",
+			"kind": "chip",
+			"refersTo": "conclusion-chip",
+			"description": "Desfecho positivo — prazo cumprido, conta paga. Único tom celebrativo do sistema.",
+			"html": "<span class=\"ds-conclusion-chip\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg>Prazo cumprido</span>",
+			"css": ".ds-conclusion-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; background: rgba(28, 107, 82, 0.1); color: #1c6b52; }"
+		},
+		{
+			"name": "Rail Nav Item (active)",
+			"kind": "nav",
+			"refersTo": "rail-nav-item",
+			"description": "Item selecionado do rail lateral — pílula de fundo, sobre Ardósia Noturna fixa nos dois temas.",
+			"html": "<button class=\"ds-rail-item ds-rail-item--active\"><svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\"/></svg><span>Painel</span></button>",
+			"css": ".ds-rail-item { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 0; border-radius: 6px; background: transparent; border: none; font-size: 10px; cursor: pointer; color: #9aa3ad; } .ds-rail-item--active { background: rgba(201, 112, 127, 0.16); color: #c9707f; font-weight: 600; }"
+		}
+	],
+	"narrative": {
+		"northStar": "O Arquivo Vivo",
+		"overview": "O Lúmen é o dossiê de um escritório de advocacia que se mantém atualizado sozinho: publicações chegam triadas, prazos se recalculam, um lançamento financeiro nasce onde a régua do livro-caixa sempre esteve. A tela nunca finge ser um aplicativo de consumo — ela se parece com o processo, o livro-razão contábil e a pauta de audiência que substitui, só que vivos. Uma régua de 1–2px separa cada seção, exatamente como uma linha de tabela separaria um lançamento do próximo; a sombra só aparece em algo que está literalmente flutuando sobre o resto (um modal, um menu, um cartão sendo arrastado). Isso é o que o torna caloroso e acessível sem decoração: a calidez não vem de gradiente, ilustração ou cor extra — vem de rótulo direto, alinhado à esquerda, de verde de conclusão que celebra o que foi resolvido, e de nunca esconder atrás de jargão de sistema o que é, no fundo, 'isso está pago', 'esse prazo venceu', 'essa publicação foi lida'.",
+		"keyCharacteristics": [
+			"Régua substitui sombra: cartão parado se separa por filete de 1–2px, nunca por box-shadow.",
+			"Uma cor de ação/marca (Bordô Editorial, #8a2f42) — sem ouro, sem azul-tinta, sem gradiente.",
+			"Raio pequeno e discreto em três paradas (4/6/10px) — nunca zero, nunca insanamente arredondado.",
+			"Rótulo de botão sempre alinhado à esquerda, nunca centralizado.",
+			"Ardósia Noturna (#16191d) é a única superfície que não retematiza entre Manhã e Noite.",
+			"Movimento é sempre curto (120–200ms), sempre com um motivo nomeado — nunca decorativo."
+		],
+		"rules": [
+			{
+				"name": "A Regra da Régua",
+				"body": "Sombra só existe em algo que está flutuando de verdade — modal, menu suspenso, cartão sendo arrastado. Um cartão parado no lugar se separa do resto por régua de 1–2px, nunca por box-shadow.",
+				"section": "colors"
+			},
+			{
+				"name": "A Regra da Cor Única",
+				"body": "O Bordô Editorial é a única cor de ação/marca do produto. A tríade urgente/aviso/concluído comunica fato sobre um dado, nunca hierarquia de interface — nenhuma delas substitui o bordô como cor de botão primário ou link.",
+				"section": "colors"
+			},
+			{
+				"name": "A Regra do Peso, não do Tamanho",
+				"body": "Hierarquia visual entre título e corpo vem primeiro de font-weight, só depois de font-size — a escala tipográfica é deliberadamente curta.",
+				"section": "typography"
+			},
+			{
+				"name": "A Regra do Flutuar de Verdade",
+				"body": "Só três coisas no sistema inteiro têm sombra: modal, menu/popover suspenso, e cartão em arrasto ativo. Qualquer outro uso de sombra é bug de revisão.",
+				"section": "elevation"
+			}
+		],
+		"dos": [
+			"Do usar régua de 1–2px para separar cartão/seção em repouso; reservar sombra só para modal, popover e item em arrasto.",
+			"Do manter o Bordô Editorial (#8a2f42) como única cor de ação/marca — a tríade urgente/aviso/concluído descreve dado, nunca substitui a cor de botão primário.",
+			"Do alinhar rótulo de botão à esquerda, sempre — mesmo em botão mais largo que o texto.",
+			"Do usar peso tipográfico (não tamanho) como primeira ferramenta de hierarquia dentro de uma mesma tela densa em dados.",
+			"Do tratar o EntityPicker azul como um padrão à parte, intencional — não corrigir para bordô sem confirmar."
+		],
+		"donts": [
+			"Don't aplicar box-shadow a um cartão parado — mesmo que uma classe legada shadow-card apareça no arquivo, ela já resolve para nenhuma sombra.",
+			"Don't introduzir ouro ou azul-tinta como cor de marca/ação — só existe o Bordô Editorial.",
+			"Don't usar o token urgente (vermelho, dado) no lugar do vinho (ação destrutiva) ou vice-versa.",
+			"Don't centralizar rótulo de botão ou título de página — o sistema é alinhado à esquerda por princípio.",
+			"Don't dar raio maior que 10px a cartão, modal ou painel — a escala para em três paradas (4/6/10px) de propósito."
+		]
+	},
+	"Resources": {
+		"Form": {
+			"Type": "AWS::AmplifyUIBuilder::Form",
+			"Properties": {}
+		}
+	}
+}
