@@ -96,8 +96,6 @@ const STATS = [
 const navLink = "text-sm font-semibold text-tx hover:underline underline-offset-4";
 const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm";
 const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg";
-const placeholderBox = "border-2 border-dashed border-atencao bg-sf";
-const placeholderTag = "inline-block text-[10px] font-extrabold uppercase tracking-[.1em] text-atencao border border-atencao bg-sf px-1.5 py-0.5";
 
 export default async function HomePage() {
   // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel (ou pro
@@ -208,8 +206,10 @@ export default async function HomePage() {
         </section>
 
         {/* 6. Preço — lido ao vivo do catálogo (Plan/ModulePrice, Painel Mestre → Preços), sem
-            array hardcoded. Plano com módulo incluso ainda sem preço configurado mantém a
-            moldura tracejada "Substituir"; some sozinho assim que o preço for preenchido. */}
+            array hardcoded. Plano com módulo incluso ainda sem preço configurado mostra "Sob
+            consulta" (mesma copy do plano sob medida abaixo) em vez de expor a etiqueta interna
+            "Substituir"; vira preço real sozinho assim que o operador preencher o preço do
+            módulo. */}
         <section id="preco" className="border-t-2 border-regua-forte py-20">
           <div className="max-w-[1120px] mx-auto px-6">
             <h2 className="text-[30px] font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
@@ -224,8 +224,7 @@ export default async function HomePage() {
                   return plan.moduloAtendimento;
                 });
                 return (
-                  <div key={plan.id} className={`p-6 ${semPreco ? placeholderBox : "border-2 border-regua-forte bg-sf"}`}>
-                    {semPreco && <span className={placeholderTag}>Substituir</span>}
+                  <div key={plan.id} className="p-6 border-2 border-regua-forte bg-sf">
                     <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
                     <div className="text-[13px] text-tx-3 mt-1">
                       {plan.maxOabs != null && `Até ${plan.maxOabs} OAB${plan.maxOabs > 1 ? "s" : ""}`}
@@ -233,8 +232,14 @@ export default async function HomePage() {
                       {plan.maxProcessos != null && `até ${plan.maxProcessos} processos`}
                     </div>
                     <div className="text-4xl font-extrabold mt-3">
-                      {semPreco ? "R$ —" : formatCurrency(calc.total)}
-                      <span className="text-sm font-semibold text-tx-2">/mês</span>
+                      {semPreco ? (
+                        "Sob consulta"
+                      ) : (
+                        <>
+                          {formatCurrency(calc.total)}
+                          <span className="text-sm font-semibold text-tx-2">/mês</span>
+                        </>
+                      )}
                     </div>
                     <ul className="mt-5 space-y-2.5">
                       {modulosInclusos.map((m) => (
@@ -244,7 +249,9 @@ export default async function HomePage() {
                         </li>
                       ))}
                     </ul>
-                    <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Começar</Link>
+                    <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>
+                      {semPreco ? "Falar com a gente" : "Começar"}
+                    </Link>
                   </div>
                 );
               })}
