@@ -111,7 +111,7 @@ export default async function MobileLayout({ children }: { children: React.React
                 <span className="h-1.5 w-1.5 rounded-full bg-concluido shrink-0" aria-hidden="true" />
               </div>
               {office?.name && (
-                <p className="text-[10px] text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
+                <p className="text-[13px] text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
               )}
             </div>
           </Link>
@@ -123,7 +123,7 @@ export default async function MobileLayout({ children }: { children: React.React
             >
               <Bell size={16} />
               {totalAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-atencao text-white text-[9px] font-bold flex items-center justify-center border border-grafite-800">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-white text-[13px] font-bold flex items-center justify-center border border-grafite-800">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}

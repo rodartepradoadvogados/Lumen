@@ -86,7 +86,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-xs font-semibold px-3 py-1.5 border transition-colors ${
+          className={`text-[13px] font-semibold px-3 py-1.5 border transition-colors ${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua"
@@ -99,7 +99,7 @@ function Segmented<T extends string>({
   );
 }
 
-const labelCls = "text-xs font-medium text-tx-2";
+const labelCls = "text-[13px] font-medium text-tx-2";
 
 // Formulário mobile de Lançar Honorários — página inteira própria (nunca modal de 80vw como o
 // desktop, ver components/honorarios/LancarHonorariosModal.tsx, que é exclusivo do outro agente
@@ -326,11 +326,11 @@ export default function MobileLancarHonorariosForm({
   return (
     <form action={handleSubmit} className="space-y-3 pb-4">
       {alreadyReceivedForCase !== undefined && (
-        <p className="text-xs text-tx-2 bg-sf-apoio px-3 py-2">
+        <p className="text-[13px] text-tx-2 bg-sf-apoio px-3 py-2">
           Já recebido neste processo: <span className="font-semibold tabular-nums text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
         </p>
       )}
-      {error && <p className="text-xs text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p className="text-[13px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       {cases && (
         <div>
@@ -501,7 +501,7 @@ export default function MobileLancarHonorariosForm({
             </div>
 
             {Math.abs(divergencia) > 0.01 && (
-              <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+              <p className="text-[13px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                 A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                 {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
               </p>
@@ -511,10 +511,10 @@ export default function MobileLancarHonorariosForm({
               {parcelas.map((p, i) => (
                 <div key={p.key} className=" border border-regua bg-sf-apoio p-2.5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-tx-2">
+                    <span className="text-[13px] font-semibold text-tx-2">
                       Parcela {i + 1}/{parcelas.length}
                     </span>
-                    <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+                    <label className="flex items-center gap-1.5 text-[13px] text-tx-2">
                       <input type="checkbox" checked={p.pago} onChange={(e) => updateParcela(p.key, { pago: e.target.checked })} />
                       Pago
                     </label>
@@ -541,7 +541,7 @@ export default function MobileLancarHonorariosForm({
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-tx-2">
+            <p className="text-[13px] text-tx-2">
               Parcela quitada antes do cadastro se marca em &quot;Pago&quot; na própria linha — único caminho para lançamento retroativo parcelado.
             </p>
           </div>
@@ -567,7 +567,7 @@ export default function MobileLancarHonorariosForm({
                 />
               </div>
             </div>
-            <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+            <p className="text-[13px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
               Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado.
             </p>
           </div>
@@ -590,7 +590,7 @@ export default function MobileLancarHonorariosForm({
               <div>
                 <label className={labelCls}>Valor em dinheiro (R$)</label>
                 <MoneyInput value={amount} onChange={setAmount} disabled={parcelado} className="mobile-input disabled:opacity-50" />
-                {parcelado && <p className="text-[11px] text-tx-2 mt-1">Substituído pela tabela de parcelas, acima.</p>}
+                {parcelado && <p className="text-[13px] text-tx-2 mt-1">Substituído pela tabela de parcelas, acima.</p>}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
@@ -624,7 +624,7 @@ export default function MobileLancarHonorariosForm({
             )}
 
             {cobranca === "AMBOS" && (
-              <label className="flex items-center gap-2 text-xs text-tx-2">
+              <label className="flex items-center gap-2 text-[13px] text-tx-2">
                 <input type="checkbox" checked={abaterEntrada} onChange={(e) => setAbaterEntrada(e.target.checked)} />
                 Abater do percentual o que já foi pago em dinheiro
               </label>
@@ -632,13 +632,13 @@ export default function MobileLancarHonorariosForm({
 
             {cobrancaHasPercentual &&
               (baseValue ? (
-                <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+                <p className="text-[13px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                   {percentualNum || 0}% de {formatCurrency(baseValue)}
                   {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago</>} ={" "}
                   <span className="font-semibold tabular-nums text-tx">{formatCurrency(percentualApurado)}</span> líquido
                 </p>
               ) : (
-                <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+                <p className="text-[13px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                   A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão &quot;A apurar&quot;, fora do
                   fluxo de caixa, até o desfecho do processo.
                 </p>
@@ -646,7 +646,7 @@ export default function MobileLancarHonorariosForm({
           </MobileSecaoLancamento>
 
           <MobileSecaoLancamento title="Vencimento" tone="azul">
-            <label className="flex items-center gap-2 text-xs text-tx-2">
+            <label className="flex items-center gap-2 text-[13px] text-tx-2">
               <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
               Sem vencimento definido
             </label>
@@ -662,7 +662,7 @@ export default function MobileLancarHonorariosForm({
                 />
               </div>
             ) : (
-              <p className="text-[11px] text-tx-2">
+              <p className="text-[13px] text-tx-2">
                 Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
               </p>
             )}
@@ -672,7 +672,7 @@ export default function MobileLancarHonorariosForm({
 
       {forma === "UNICO" && (
         <MobileSecaoLancamento title="Recebimento" tone="verde" defaultOpen={false}>
-          <label className="flex items-center gap-2 text-xs text-tx-2">
+          <label className="flex items-center gap-2 text-[13px] text-tx-2">
             <input type="checkbox" checked={recebido} onChange={(e) => setRecebido(e.target.checked)} />
             Já foi recebido
           </label>
@@ -722,14 +722,14 @@ export default function MobileLancarHonorariosForm({
         <div>
           {recorrente ? (
             <>
-              <span className="block text-[10px] uppercase tracking-wide text-tx-2">Valor mensal</span>
+              <span className="block text-[13px] uppercase tracking-wide text-tx-2">Valor mensal</span>
               <span className="text-base font-bold tabular-nums text-acao">
                 {formatCurrency(parseFloat(amountMensal || "0") || 0)}
               </span>
             </>
           ) : (
             <>
-              <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+              <span className="block text-[13px] uppercase tracking-wide text-tx-2">Líquido</span>
               <span className="text-base font-bold tabular-nums text-acao">{formatCurrency(liquido)}</span>
             </>
           )}

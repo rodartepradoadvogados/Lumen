@@ -268,13 +268,13 @@ export default async function MobileCaseDetail({
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m/processos"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Processos
       </Link>
 
       {anexosFalhos > 0 && (
-        <div className=" border border-urgente bg-urgente-bg rounded-md px-3 py-2.5 text-xs text-urgente">
+        <div className=" border border-urgente bg-urgente-bg rounded-md px-3 py-2.5 text-[13px] text-urgente">
           {anexosFalhos === 1
             ? "1 anexo enviado no cadastro não pôde ser processado."
             : `${anexosFalhos} anexos enviados no cadastro não puderam ser processados.`}{" "}
@@ -292,7 +292,7 @@ export default async function MobileCaseDetail({
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
         </div>
         <h1 className="text-lg font-bold text-tx leading-tight">{c.title}</h1>
-        <p className="flex flex-wrap items-center text-xs text-tx-2 mt-1">
+        <p className="flex flex-wrap items-center text-[13px] text-tx-2 mt-1">
           {c.processNumber && (
             <>
               <CopyButton
@@ -325,7 +325,7 @@ export default async function MobileCaseDetail({
           <Link
             key={t.key}
             href={`/m/processos/${c.id}?tab=${t.key}`}
-            className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+            className={`shrink-0 text-[13px] font-semibold px-3 py-1.5 rounded-full transition-colors ${
               tab === t.key
                 ? "bg-acao text-acao-tx"
                 : "bg-sf text-tx-2 border border-regua"
@@ -344,7 +344,7 @@ export default async function MobileCaseDetail({
               preenchidos (antes desta fase esses cinco campos não chegavam ao modal no mobile,
               então editar Esfera/Matéria/as duas bases de cálculo não fazia efeito por aqui). */}
           <div className="flex items-center justify-between -mt-1 -mr-1">
-            <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Dados do Processo</h4>
+            <h4 className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">Dados do Processo</h4>
             <EditCaseModal
               caseData={{
                 id: c.id,
@@ -432,7 +432,7 @@ export default async function MobileCaseDetail({
               href={sanitizeExternalUrl(c.tribunalLink)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:underline"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold text-acao hover:underline"
             >
               <ExternalLink size={12} /> Acessar sistema do {natureza === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
             </a>
@@ -446,7 +446,7 @@ export default async function MobileCaseDetail({
             <Field label="Veio de" value={`${instanciaLabel(c.instance)} (${c.tribunalOrigemSigla} — ${c.tribunalOrigemNome ?? ""})`} />
           )}
           <div className="pt-1">
-            <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">Descrição</p>
+            <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-1">Descrição</p>
             <p className="text-sm text-tx-2 whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
           </div>
         </Card>
@@ -454,11 +454,11 @@ export default async function MobileCaseDetail({
 
       {tab === "visao-geral" && (c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
         <Card className="p-4 space-y-2.5">
-          <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Classificação</h4>
+          <h4 className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">Classificação</h4>
           {c.materias.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {c.materias.map((m) => (
-                <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-marca-bg text-marca-tx">
+                <span key={m} className="text-[13px] font-semibold px-2.5 py-1 rounded-full bg-marca-bg text-marca-tx">
                   {m}
                 </span>
               ))}
@@ -472,7 +472,7 @@ export default async function MobileCaseDetail({
 
       {tab === "visao-geral" && caseLinks.length > 0 && (
         <Card className="p-4 space-y-2">
-          <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Processos vinculados</h4>
+          <h4 className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">Processos vinculados</h4>
           <div className="space-y-1.5">
             {caseLinks.map((l) => (
               <div key={l.linkId} className="flex items-center justify-between gap-2">
@@ -503,8 +503,8 @@ export default async function MobileCaseDetail({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <Badge color={taskTypeColors[t.type] ?? "slate"}>{taskTypeLabels[t.type] ?? t.type}</Badge>
-                      <span className="text-xs font-semibold text-tx-2">{formatCalendarDate(t.dueDate)}</span>
-                      {t.dueTime && <span className="text-xs text-tx-2">{t.dueTime}</span>}
+                      <span className="text-[13px] font-semibold text-tx-2">{formatCalendarDate(t.dueDate)}</span>
+                      {t.dueTime && <span className="text-[13px] text-tx-2">{t.dueTime}</span>}
                     </div>
                     <p className="text-sm font-medium text-tx">{t.title}</p>
                     <MobileTaskResponsibleSelect taskId={t.id} responsibleId={t.responsibleId} users={users} />
@@ -529,13 +529,13 @@ export default async function MobileCaseDetail({
                 const authorName = authorDisplayName(cm.author, viewer.officeId);
                 return (
                 <div key={cm.id} className="flex gap-2.5">
-                  <div className="h-8 w-8 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-[11px] font-bold shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-[13px] font-bold shrink-0">
                     {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm">
                       <span className="font-semibold text-tx">{authorName}</span>{" "}
-                      <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
+                      <span className="text-[13px] text-tx-2">{formatDate(cm.createdAt)}</span>
                     </p>
                     <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                   </div>

@@ -41,7 +41,7 @@ export default function MobileLicitacoesSection({ assessoriaId, licitacoes }: { 
     <Card>
       <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2">
         <h2 className="font-bold text-tx text-sm">Licitações</h2>
-        <Link href={`/m/assessoria/${assessoriaId}/licitacoes/nova`} className="flex items-center gap-1 text-xs font-semibold text-acao px-2.5 py-1 shrink-0">
+        <Link href={`/m/assessoria/${assessoriaId}/licitacoes/nova`} className="flex items-center gap-1 text-[13px] font-semibold text-acao px-2.5 py-1 shrink-0">
           <Plus size={12} /> Nova licitação
         </Link>
       </div>
@@ -56,7 +56,7 @@ export default function MobileLicitacoesSection({ assessoriaId, licitacoes }: { 
                 key={c.value}
                 type="button"
                 onClick={() => setStatusFilter(c.value)}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border shrink-0 whitespace-nowrap ${
+                className={`text-[13px] font-semibold px-2.5 py-1 rounded-full border shrink-0 whitespace-nowrap ${
                   statusFilter === c.value ? "bg-acao text-acao-tx border-acao" : "border-regua text-tx-2"
                 }`}
               >
@@ -81,14 +81,14 @@ export default function MobileLicitacoesSection({ assessoriaId, licitacoes }: { 
                     <p className="text-sm font-semibold text-tx truncate">{l.nome || l.objeto}</p>
                     <Badge color={st.color}>{st.label}</Badge>
                   </div>
-                  <p className="text-xs text-tx-2 mt-0.5 truncate">{l.orgao}</p>
-                  <p className="text-[11px] text-tx-2 mt-0.5">
+                  <p className="text-[13px] text-tx-2 mt-0.5 truncate">{l.orgao}</p>
+                  <p className="text-[13px] text-tx-2 mt-0.5">
                     {l.modalidade || "—"} · prazo {l.prazoFinal ? formatDate(l.prazoFinal) : "—"} · {l.valorEstimado ? formatCurrency(l.valorEstimado) : "—"}
                   </p>
                 </Link>
               );
             })}
-            {exibidas.length === 0 && <p className="text-center text-xs text-tx-3 py-3">Nenhuma licitação com esse filtro.</p>}
+            {exibidas.length === 0 && <p className="text-center text-[13px] text-tx-3 py-3">Nenhuma licitação com esse filtro.</p>}
           </div>
         </>
       )}

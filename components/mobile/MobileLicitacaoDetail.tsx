@@ -90,7 +90,7 @@ export default function MobileLicitacaoDetail({
         <h1 className="text-lg font-bold text-tx leading-tight">{licitacao.nome || licitacao.objeto}</h1>
         <Link
           href={`/m/assessoria/${assessoriaId}/licitacoes/${licitacao.id}/editar`}
-          className="flex items-center gap-1 text-xs font-semibold text-tx-2 shrink-0 px-2 py-1"
+          className="flex items-center gap-1 text-[13px] font-semibold text-tx-2 shrink-0 px-2 py-1"
         >
           <Pencil size={13} /> Editar
         </Link>
@@ -121,7 +121,7 @@ export default function MobileLicitacaoDetail({
             value={licitacao.status}
             onChange={(e) => handleStatusChange(e.target.value)}
             disabled={pending}
-            className="text-xs font-semibold border border-regua-forte bg-sf-superficie text-tx px-2 py-1"
+            className="text-[13px] font-semibold border border-regua-forte bg-sf-superficie text-tx px-2 py-1"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -133,7 +133,7 @@ export default function MobileLicitacaoDetail({
       <Card className="p-4 mt-3">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-bold text-tx text-sm">Tarefas &amp; Prazos</h2>
-          <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-acao">+ Nova</button>
+          <button onClick={() => setTaskFormOpen((v) => !v)} className="text-[13px] font-semibold text-acao">+ Nova</button>
         </div>
         {taskFormOpen && (
           <form action={handleNewTask} className="mb-2 p-2.5 bg-sf-apoio space-y-2">
@@ -145,12 +145,12 @@ export default function MobileLicitacaoDetail({
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            {error && <p className="text-xs text-urgente">{error}</p>}
+            {error && <p className="text-[13px] text-urgente">{error}</p>}
             <div className="flex gap-2">
-              <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
+              <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-1.5 disabled:opacity-50">
                 Adicionar
               </button>
-              <button type="button" onClick={() => setTaskFormOpen(false)} className="text-xs font-semibold text-tx-2">Cancelar</button>
+              <button type="button" onClick={() => setTaskFormOpen(false)} className="text-[13px] font-semibold text-tx-2">Cancelar</button>
             </div>
           </form>
         )}
@@ -169,7 +169,7 @@ export default function MobileLicitacaoDetail({
                   className={`w-full flex items-center justify-between gap-2 text-sm py-2.5 px-1.5 -mx-1.5 text-left ${active ? "bg-acao-bg" : ""}`}
                 >
                   <span className={t.status === "CONCLUIDO" ? "line-through text-tx-3" : "text-tx"}>{t.title}</span>
-                  <span className="flex items-center gap-1.5 shrink-0 text-tx-2 text-[11px] tabular-nums whitespace-nowrap">
+                  <span className="flex items-center gap-1.5 shrink-0 text-tx-2 text-[13px] tabular-nums whitespace-nowrap">
                     {formatCalendarDate(t.dueDate)}
                     {t.responsible ? ` · ${t.responsible.name.split(" ")[0]}` : ""}
                     {count > 0 && <span className="inline-flex items-center gap-0.5 font-semibold"><Paperclip size={10} /> {count}</span>}
@@ -195,7 +195,7 @@ export default function MobileLicitacaoDetail({
                 key={c.key}
                 type="button"
                 onClick={() => setDocFilter(c.key)}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border shrink-0 whitespace-nowrap ${
+                className={`text-[13px] font-semibold px-2.5 py-1 rounded-full border shrink-0 whitespace-nowrap ${
                   docFilter === c.key ? "bg-acao text-acao-tx border-acao" : "border-regua text-tx-2"
                 }`}
               >
@@ -216,7 +216,7 @@ export default function MobileLicitacaoDetail({
                   <Icon size={15} className="shrink-0 text-tx-2" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-tx truncate">{a.name}</p>
-                    <p className="text-[11px] text-tx-2 mt-0.5">{getDocumentTypeLabel(a.docType)} · {formatDate(a.createdAt)}</p>
+                    <p className="text-[13px] text-tx-2 mt-0.5">{getDocumentTypeLabel(a.docType)} · {formatDate(a.createdAt)}</p>
                   </div>
                   {licitacao.tasks.length > 0 && (
                     <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2 shrink-0">
@@ -245,13 +245,13 @@ export default function MobileLicitacaoDetail({
             const authorName = authorDisplayName(cm.author, viewerOfficeId);
             return (
               <div key={cm.id} className="flex gap-2.5">
-                <div className="h-7 w-7 rounded-full bg-grafite-700 text-acao-tx flex items-center justify-center text-[10px] font-bold shrink-0">
+                <div className="h-7 w-7 rounded-full bg-grafite-700 text-acao-tx flex items-center justify-center text-[13px] font-bold shrink-0">
                   {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm">
                     <span className="font-semibold text-tx">{authorName}</span>{" "}
-                    <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
+                    <span className="text-[13px] text-tx-2">{formatDate(cm.createdAt)}</span>
                   </p>
                   <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                 </div>

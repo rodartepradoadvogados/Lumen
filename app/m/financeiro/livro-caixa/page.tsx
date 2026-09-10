@@ -43,7 +43,7 @@ export default async function MobileLivroCaixa() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
@@ -65,14 +65,14 @@ export default async function MobileLivroCaixa() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-tx truncate">{e.description}</p>
-                    <p className="text-xs text-tx-2 mt-0.5">{formatDate(e.date)}</p>
+                    <p className="text-[13px] text-tx-2 mt-0.5">{formatDate(e.date)}</p>
                   </div>
                   <p className={`text-sm font-semibold tabular-nums shrink-0 ${e.type === "entrada" ? "text-concluido" : "text-urgente"}`}>
                     {e.type === "entrada" ? "+" : ""}
                     {formatCurrency(e.value)}
                   </p>
                 </div>
-                <p className="text-xs text-tx-2 mt-1 text-right">
+                <p className="text-[13px] text-tx-2 mt-1 text-right">
                   Saldo acumulado: <span className="font-semibold tabular-nums text-tx">{formatCurrency(e.balance)}</span>
                 </p>
               </div>
@@ -82,7 +82,7 @@ export default async function MobileLivroCaixa() {
       </Card>
 
       {withBalance.length > mostRecentFirst.length && (
-        <p className="text-xs text-tx-2 text-center">
+        <p className="text-[13px] text-tx-2 text-center">
           Mostrando as {mostRecentFirst.length} mais recentes de {withBalance.length}
         </p>
       )}

@@ -31,7 +31,7 @@ type StagedAttachment = { key: string; file: File; name: string; docType: string
 
 const inputClass =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
-const labelClass = "text-xs font-medium text-tx-2";
+const labelClass = "text-[13px] font-medium text-tx-2";
 
 function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -264,10 +264,10 @@ export default function MobileNewAttendanceForm({
         </div>
       </div>
 
-      {error && <p className="text-xs font-semibold text-urgente">{error}</p>}
+      {error && <p className="text-[13px] font-semibold text-urgente">{error}</p>}
 
       {loading && progressText && (
-        <p className="text-xs font-semibold text-acao">{progressText}</p>
+        <p className="text-[13px] font-semibold text-acao">{progressText}</p>
       )}
 
       <button
@@ -284,7 +284,7 @@ export default function MobileNewAttendanceForm({
       </ButtonSecondary>
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-xs text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
+        <div className="flex items-start gap-2 text-[13px] text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -340,14 +340,14 @@ export default function MobileNewAttendanceForm({
       </div>
 
       <div className="border-t border-regua pt-3">
-        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Honorário pretendido</p>
+        <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">Honorário pretendido</p>
         <div className="flex gap-1.5 mb-2">
           {(["DINHEIRO", "PERCENTUAL", "AMBOS"] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setFeeMode(m)}
-              className={`text-xs font-semibold px-2.5 py-1.5 border transition-colors ${
+              className={`text-[13px] font-semibold px-2.5 py-1.5 border transition-colors ${
                 feeMode === m
                   ? "bg-acao text-acao-tx border-acao"
                   : "bg-sf text-tx-2 border-regua"
@@ -393,15 +393,15 @@ export default function MobileNewAttendanceForm({
       </div>
 
       <div className="border-t border-regua pt-3">
-        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Pendências</p>
+        <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">Pendências</p>
         <PendenciasEditor rows={pendenciaRows} onChange={setPendenciaRows} users={users} compact />
       </div>
 
       <div className="border-t border-regua pt-3">
-        <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
+        <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
-          <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5">
+          <p className="text-[13px] text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5">
             Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o atendimento,
             você ainda pode anexar documentos pelo computador.
           </p>
@@ -426,7 +426,7 @@ export default function MobileNewAttendanceForm({
               }`}
             >
               <UploadCloud size={18} className="text-tx-2" />
-              <p className="text-xs text-tx-2 text-center">
+              <p className="text-[13px] text-tx-2 text-center">
                 Toque para escolher um ou mais arquivos
               </p>
               <input
@@ -448,14 +448,14 @@ export default function MobileNewAttendanceForm({
                     key={att.key}
                     className="flex items-center gap-2 p-2.5 bg-sf-apoio border border-regua"
                   >
-                    <span className="flex-1 min-w-0 text-xs font-medium text-tx truncate" title={att.name}>
+                    <span className="flex-1 min-w-0 text-[13px] font-medium text-tx truncate" title={att.name}>
                       {att.name}
                     </span>
                     <DocumentTypeSelect
                       value={att.docType}
                       onChange={(v) => setStagedAttachments((prev) => prev.map((a) => (a.key === att.key ? { ...a, docType: v } : a)))}
                       excludeKeys={["PARECER"]}
-                      className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"
+                      className="text-[13px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[140px] shrink-0"
                       allowCreate
                     />
                     <button
@@ -470,7 +470,7 @@ export default function MobileNewAttendanceForm({
               </div>
             )}
 
-            <p className="text-[11px] text-tx-2 mt-1.5">
+            <p className="text-[13px] text-tx-2 mt-1.5">
               Os arquivos só sobem para a pasta do atendimento no Drive depois que ele é criado.
             </p>
           </>

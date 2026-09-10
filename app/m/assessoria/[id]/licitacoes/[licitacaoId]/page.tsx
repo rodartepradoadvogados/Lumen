@@ -26,7 +26,7 @@ export default async function LicitacaoMobilePage({ params }: { params: { id: st
 
   return (
     <div className="p-4 space-y-1 animate-fade-in">
-      <Link href={`/m/assessoria/${assessoria.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+      <Link href={`/m/assessoria/${assessoria.id}`} className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
         <ArrowLeft size={13} /> Licitações
       </Link>
       <div className="pt-2">

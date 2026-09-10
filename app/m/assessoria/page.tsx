@@ -22,7 +22,7 @@ export default async function MobileAssessoria() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+      <Link href="/m" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
@@ -49,11 +49,11 @@ export default async function MobileAssessoria() {
                     <p className="text-sm font-medium text-tx truncate">{a.client.name}</p>
                     <Badge color={statusColors[a.status] || "slate"}>{statusLabels[a.status] || a.status}</Badge>
                   </div>
-                  <p className="text-xs text-tx-2 mt-0.5">
+                  <p className="text-[13px] text-tx-2 mt-0.5">
                     {a._count.documents} documento(s) · {a._count.licitacoes} licitação(ões)
                   </p>
                 </div>
-                <span className="text-xs font-semibold text-tx-2 whitespace-nowrap shrink-0">
+                <span className="text-[13px] font-semibold text-tx-2 whitespace-nowrap shrink-0">
                   {formatCurrency(a.monthlyFee)}/mês
                 </span>
               </Link>

@@ -20,7 +20,7 @@ export default async function MobilePerfilPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2">
+      <Link href="/m" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 

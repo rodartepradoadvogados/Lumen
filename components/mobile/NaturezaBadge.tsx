@@ -15,7 +15,7 @@ const TONE: Record<CaseNatureza, string> = {
 export default function NaturezaBadge({ natureza, className = "" }: { natureza: CaseNatureza; className?: string }) {
   return (
     <span
-      className={`inline-flex w-fit items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${TONE[natureza]} ${className}`}
+      className={`inline-flex w-fit items-center px-1.5 py-0.5 rounded text-[13px] font-bold uppercase tracking-wide ${TONE[natureza]} ${className}`}
     >
       {NATUREZA_LABELS[natureza]}
     </span>

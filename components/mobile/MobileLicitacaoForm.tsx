@@ -55,36 +55,36 @@ export default function MobileLicitacaoForm({
     <form action={handleSubmit} className="flex flex-col" style={{ minHeight: "calc(100dvh - 3.5rem)" }}>
       <div className="flex-1 p-4 space-y-3 pb-24">
         <div>
-          <label className="text-xs font-semibold text-tx-2">Nome da licitação</label>
+          <label className="text-[13px] font-semibold text-tx-2">Nome da licitação</label>
           <input name="nome" required defaultValue={licitacao?.nome || ""} placeholder="Ex: Pregão 014/2026 — Locação de Veículos" className="mobile-lic-input" />
-          <p className="text-[11px] text-tx-3 mt-1">Aparece na lista e vira o nome da pasta no Drive.</p>
+          <p className="text-[13px] text-tx-3 mt-1">Aparece na lista e vira o nome da pasta no Drive.</p>
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Objeto</label>
+          <label className="text-[13px] font-semibold text-tx-2">Objeto</label>
           <textarea name="objeto" required rows={3} defaultValue={licitacao?.objeto || ""} placeholder="Texto completo do edital" className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Órgão</label>
+          <label className="text-[13px] font-semibold text-tx-2">Órgão</label>
           <input name="orgao" required defaultValue={licitacao?.orgao || ""} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Modalidade</label>
+          <label className="text-[13px] font-semibold text-tx-2">Modalidade</label>
           <input name="modalidade" defaultValue={licitacao?.modalidade || ""} placeholder="Ex: Pregão Eletrônico 014/2026" className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Abertura</label>
+          <label className="text-[13px] font-semibold text-tx-2">Abertura</label>
           <input name="dataAbertura" type="date" defaultValue={dateInputValue(licitacao?.dataAbertura)} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Prazo final</label>
+          <label className="text-[13px] font-semibold text-tx-2">Prazo final</label>
           <input name="prazoFinal" type="date" defaultValue={dateInputValue(licitacao?.prazoFinal)} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Valor estimado (R$)</label>
+          <label className="text-[13px] font-semibold text-tx-2">Valor estimado (R$)</label>
           <MoneyInput name="valorEstimado" defaultValue={licitacao?.valorEstimado != null ? String(licitacao.valorEstimado) : undefined} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-tx-2">Link do edital (Drive)</label>
+          <label className="text-[13px] font-semibold text-tx-2">Link do edital (Drive)</label>
           <input name="editalUrl" type="url" defaultValue={licitacao?.editalUrl || ""} placeholder="https://..." className="mobile-lic-input" />
         </div>
         {error && <p className="text-sm text-urgente">{error}</p>}

@@ -121,7 +121,7 @@ export default function NotificationPreferences() {
 
   if (!supported) {
     return (
-      <p className="px-4 py-3 text-xs text-tx-2">
+      <p className="px-4 py-3 text-[13px] text-tx-2">
         Este navegador/aparelho não suporta notificações push. No iPhone, o app precisa estar instalado na tela de início (Compartilhar → Adicionar à Tela de Início) e o iOS precisa estar atualizado.
       </p>
     );
@@ -134,14 +134,14 @@ export default function NotificationPreferences() {
           {subscribed ? <Bell size={16} className="text-marca-tx" /> : <BellOff size={16} className="text-tx-2" />}
           <div>
             <p className="text-sm font-medium text-tx">Notificações neste aparelho</p>
-            <p className="text-xs text-tx-2">{subscribed ? "Ativadas" : "Desativadas"}</p>
+            <p className="text-[13px] text-tx-2">{subscribed ? "Ativadas" : "Desativadas"}</p>
           </div>
         </div>
         <button
           type="button"
           disabled={busy}
           onClick={subscribed ? handleDisable : handleEnable}
-          className={`text-xs font-semibold px-3 py-1.5 transition-colors disabled:opacity-50 ${
+          className={`text-[13px] font-semibold px-3 py-1.5 transition-colors disabled:opacity-50 ${
             subscribed
               ? "bg-sf-apoio text-tx-2"
               : "bg-acao hover:bg-acao-hover text-acao-tx"
@@ -151,7 +151,7 @@ export default function NotificationPreferences() {
         </button>
       </div>
 
-      {error && <p className="px-4 pb-2 text-xs font-semibold text-urgente">{error}</p>}
+      {error && <p className="px-4 pb-2 text-[13px] font-semibold text-urgente">{error}</p>}
 
       {subscribed && prefs && (
         <div className="divide-y divide-regua border-t border-regua">
