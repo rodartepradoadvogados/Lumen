@@ -54,7 +54,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           "Voltar ao blog" fica branco, não --acao: --acao no Manhã é azul escuro e sumiria
           contra este fundo que não troca de tema. */}
       <header className="bg-grafite-800 px-6 py-8 text-center">
-        <Link href="/blog" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-white/80">
+        <Link href="/blog" className="inline-flex items-center gap-1.5 py-2 text-xs font-semibold text-white hover:text-white/80">
           <ArrowLeft size={14} /> Voltar ao blog
         </Link>
       </header>

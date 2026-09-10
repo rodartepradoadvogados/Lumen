@@ -35,7 +35,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P0-5 · Site · contraste do CTA | pendente (sem mockup — mecânico) |
 | P1-7 · PWA · label sem htmlFor | **concluído (PR #152, merge manual)** |
 | P1-8 · PWA · erro sem aria-live | **concluído (PR #154)** |
-| P1-9 · Site · alvo de toque nav/rodapé | pendente (sem mockup — mecânico) |
+| P1-9 · Site · alvo de toque nav/rodapé | **concluído (PR #155)** |
 | P1-10 · Site · heading h1→h3 | pendente (sem mockup — mecânico) |
 | P2-3 · Site · blog sem paginação | pendente (sem mockup — mecânico) |
 | P2-4 · Site · imagens sem lazy | pendente (sem mockup — mecânico) |
@@ -613,3 +613,45 @@ projeto ("vamos seguir com o plano, conforme andamento... P1-8").
 
 - Nenhuma. Próximo item da ordem de execução: **P1-9** (Site · alvo de toque do nav/rodapé abaixo
   do mínimo) — mecânico, sem mockup necessário.
+
+## Rodada 13 — P1-9 implementado
+
+**Data:** 2026-09-10 · **Sessão:** mesma sessão das Rodadas 0-12, retomada a pedido do dono do
+projeto ("faça o P1-9").
+
+### O que foi feito
+
+- **P1-9 implementado** em `app/page.tsx` e `app/blog/[slug]/page.tsx`, nos três locais citados
+  pelo roteiro:
+  - Nav do cabeçalho (Produto/Preço/Blog/Entrar) — a constante compartilhada `navLink` ganhou
+    `inline-block py-2` (antes só `text-sm font-semibold ...`, sem padding — altura de toque era
+    só a linha de texto, ~20px). Os 4 links (incluindo "Entrar", fora do `<nav>` por razão já
+    documentada no próprio arquivo) usam essa constante, então um único ponto de mudança cobre
+    todos.
+  - Links do rodapé — nova constante `footerLink` (`inline-block py-2 text-tx-2 ...`), extraída da
+    string repetida 7 vezes (Recursos, Preço, Entrar, WhatsApp, e-mail, Política de privacidade,
+    DPO), substituindo o `className` inline duplicado em cada `<li><a>`/`<li><Link>`.
+  - `app/blog/[slug]/page.tsx:57` ("Voltar ao blog") — `py-2` acrescentado ao `inline-flex`
+    existente (já era flex, só faltava o padding).
+  - `inline-block`/`inline-flex` (não `block`) porque os links continuam lado a lado (nav) ou em
+    lista vertical já espaçada por `space-y-2.5` (rodapé) — mesmo padrão já usado no hambúrguer
+    mobile (`components/site/MobileNav.tsx`, criado no P1-1), que usa `block py-4` por estar numa
+    lista vertical de largura total, mas o princípio de padding garantindo área de clique
+    confiável em `<a>` inline é o mesmo.
+  - `py-2` (8px cada lado) escolhido em vez de `py-3`/44px cheio porque é a correção sugerida
+    literalmente pelo roteiro ("`py-2` (ou equivalente) para alcançar ao menos 24px") — com
+    `text-sm`/`text-xs` (20px/16px de linha), o resultado fica em 36px/32px, acima do piso mínimo
+    AA de 24px sem inflar demais a barra e o rodapé, que têm pouco espaço vertical de sobra.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados no working tree — `docs/gauntlet/*`, `lib/roboBridge.ts` — ficaram de
+  fora do `git add`, sem alteração): `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 2
+  arquivos alterados limpo, `next build` **exit 0** (o gate do `BancadaMenu.tsx` não versionado,
+  corrigido na Rodada 12, continua desbloqueado nesta máquina).
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/155**, branch
+  `fix/p1-9-alvo-toque-nav-rodape` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P1-10** (Site · hierarquia de heading pula de h1
+  para h3) — mecânico, sem mockup necessário.
