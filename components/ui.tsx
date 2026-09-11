@@ -53,7 +53,10 @@ export function Card({ children, className, accent }: { children: ReactNode; cla
     // "01-tokens-e-tema.md"): em vez de borda de 1px nas quatro arestas, filete de 2px só no
     // topo, em --regua-forte (ou na cor de `accent`, ver acima). Sem sombra em cartão parado.
     // Raio (ajuste de tema, agosto/2026): rounded-lg (10px, tier de "cartões" da nova escala —
-    // ver tailwind.config.ts).
+    // ver tailwind.config.ts) FORA do Portal Noturno. Dentro de `.portal-shell` (app/(app)/*),
+    // um seletor descendente em app/globals.css (".portal-shell .rounded-lg { ... }") sobrescreve
+    // para 2px por especificidade — não precisa trocar a classe aqui nem em nenhum outro
+    // componente que já usa `rounded-*`, ver "Portal Noturno" em DESIGN.md.
     <div className={clsx("bg-sf border-t-2 rounded-lg", accent ? ACCENT_BORDER[accent] : "border-regua-forte", className)}>
       {children}
     </div>
