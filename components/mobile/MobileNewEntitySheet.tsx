@@ -12,8 +12,9 @@ import type { OfficeModules } from "@/lib/officeModules";
 // é o único ponto de entrada para lançar qualquer coisa nova.
 type Item = { href: string; label: string; icon: LucideIcon };
 
+const ATENDIMENTO_ITEM: Item = { href: "/m/atendimento/novo", label: "Atendimento", icon: Phone };
+
 const CADASTRO_ITEMS = (modules: OfficeModules): Item[] => [
-  ...(modules.atendimento ? [{ href: "/m/atendimento/novo", label: "Atendimento", icon: Phone }] : []),
   { href: "/m/processos/novo?type=JUDICIAL", label: "Processo", icon: Scale },
   { href: "/m/processos/novo?type=EXTRAJUDICIAL", label: "Caso", icon: Briefcase },
   ...(modules.assessoria ? [{ href: "/m/assessoria/novo", label: "Assessoria", icon: Building2 }] : []),
@@ -52,6 +53,19 @@ export default function MobileNewEntitySheet({
         </div>
 
         <div className="overflow-y-auto scrollbar-thin p-4 space-y-5">
+          {/* P2-2 do roteiro de adequação: "Atendimento" é o item que a própria especificação
+              trata como prioritário (é a tela que "justifica o PWA", ver P0-4) — destacado acima
+              do grid secundário em vez de disputar peso visual com as outras 8 opções. */}
+          {modules.atendimento && (
+            <Link
+              href={ATENDIMENTO_ITEM.href}
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3.5 bg-acao hover:bg-acao-hover text-acao-tx font-bold"
+            >
+              <Phone size={20} strokeWidth={1.75} />
+              {ATENDIMENTO_ITEM.label}
+            </Link>
+          )}
           <EntityGroup label="Cadastro" items={CADASTRO_ITEMS(modules)} onClose={onClose} />
           <EntityGroup label="Compromisso" items={COMPROMISSO_ITEMS} onClose={onClose} />
         </div>

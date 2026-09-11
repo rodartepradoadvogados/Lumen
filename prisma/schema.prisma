@@ -262,6 +262,7 @@ model Plan {
   sortOrder         Int      @default(0)
   active            Boolean  @default(true)
   isCustom          Boolean  @default(false)
+  recommended       Boolean  @default(false) // no máximo 1 plano true por vez — imposto em updatePlan/setRecommendedPlan (lib/actions/painelMestre.ts), não no schema
   maxOabs           Int?
   maxProcessos      Int?
   moduloFinanceiro  Boolean  @default(false)

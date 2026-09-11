@@ -63,6 +63,7 @@ export default function MobileNewAttendanceForm({
   const [feePercentual, setFeePercentual] = useState("");
   const [feePercentualBase, setFeePercentualBase] = useState("VALOR_CAUSA");
   const [pendenciaRows, setPendenciaRows] = useState<PendenciaRow[]>([]);
+  const [showPendencias, setShowPendencias] = useState(false);
 
   // P0-4 do roteiro de adequação (.impeccable/plano-adequacao/roteiro-de-adequacao.md):
   // design_handoff_lumen_redesign/08-pwa.md chama esta tela de "a que justifica o PWA" — só
@@ -399,7 +400,20 @@ export default function MobileNewAttendanceForm({
 
       <div className="border-t border-regua pt-3">
         <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">Pendências</p>
-        <PendenciasEditor rows={pendenciaRows} onChange={setPendenciaRows} users={users} compact />
+        {/* P2-2 do roteiro de adequação: as 14 caixas de checklist (Solicitar + Enviar ao lead)
+            não podem aparecer expandidas por padrão, mesmo dentro do painel "Mais detalhes" — só
+            abrem atrás deste toggle explícito. */}
+        {showPendencias ? (
+          <PendenciasEditor rows={pendenciaRows} onChange={setPendenciaRows} users={users} compact />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowPendencias(true)}
+            className="flex items-center gap-1.5 text-[13px] font-semibold text-acao"
+          >
+            <Plus size={15} /> Adicionar pendência
+          </button>
+        )}
       </div>
 
       <div className="border-t border-regua pt-3">

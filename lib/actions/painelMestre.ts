@@ -272,6 +272,24 @@ export async function updatePlan(
   return {};
 }
 
+// P2-1 do roteiro de adequação (.impeccable/plano-adequacao/roteiro-de-adequacao.md): qual plano
+// leva o destaque "Recomendado" na capa pública não pode ficar fixo no código — vira este
+// controle em Painel Mestre → Preços. No máximo 1 plano recomendado por vez: a troca é uma
+// transação que zera o campo em todos os planos antes de marcar o escolhido, nunca um simples
+// update isolado (que deixaria dois planos "recomendados" se chamado em sequência rápida).
+// planId null = "nenhum plano recomendado" (limpa o destaque na capa).
+export async function setRecommendedPlan(planId: string | null): Promise<{ error?: string }> {
+  const auth = await requirePlatformOwner();
+  if ("error" in auth) return auth;
+  await prisma.$transaction([
+    prisma.plan.updateMany({ where: { recommended: true }, data: { recommended: false } }),
+    ...(planId ? [prisma.plan.update({ where: { id: planId }, data: { recommended: true } })] : []),
+  ]);
+  revalidatePath("/painel-mestre/precos");
+  revalidatePath("/");
+  return {};
+}
+
 export async function updateOfficeBilling(
   officeId: string,
   data: { billingEmail: string; monthlyFee: number; billingDueDay: number; paymentGraceDays: number; cnpj: string }

@@ -29,8 +29,8 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P1-1 · Site · nav mobile | **concluído (PR #149)** |
 | P1-2 · PWA · alvos de toque | **concluído (PR #150)** |
 | P1-3 · PWA · piso de 13px | **concluído (PR #151)** |
-| P2-1 · Site · plano recomendado | **validado — pronto para implementação** (com requisito adicional: controle em Painel Mestre → Preços, ver roteiro) |
-| P2-2 · PWA · menu "+" / checklist | **validado — pronto para implementação** |
+| P2-1 · Site · plano recomendado | **concluído (PR #157)** |
+| P2-2 · PWA · menu "+" / checklist | **concluído (PR #157)** |
 | P3-1 · Site · token vinho | pendente (resolve junto com P0-1) |
 | P0-5 · Site · contraste do CTA | pendente (sem mockup — mecânico) |
 | P1-7 · PWA · label sem htmlFor | **concluído (PR #152, merge manual)** |
@@ -693,3 +693,75 @@ projeto ("prossiga com o P1-10").
 - Nenhuma. Todos os **10 itens P1** do roteiro estão concluídos (P1-1 a P1-10). Próximo item da
   ordem de execução: **P2-1** (Site · plano recomendado — já validado, requer o requisito
   adicional de configuração em Painel Mestre → Preços registrado na validação do dono do projeto).
+
+## Rodada 15 — P2-1 e P2-2 implementados, no mesmo PR
+
+**Data:** 2026-09-10 · **Sessão:** mesma sessão das Rodadas 0-14, a pedido do dono do projeto
+("faça, em sequência e sem parar, no mesmo PR, P2-1 e P2-2").
+
+### O que foi feito
+
+- **P2-1 implementado**, incluindo o requisito adicional já registrado na validação do dono do
+  projeto (controle em Painel Mestre → Preços, sem valor fixo no código):
+  - **Schema:** `Plan.recommended Boolean @default(false)` (`prisma/schema.prisma`). Comentário no
+    campo já deixa explícito que a invariante "no máximo 1 `true`" é imposta em código, não em
+    constraint de banco.
+  - **Ação nova** `setRecommendedPlan(planId: string | null)` (`lib/actions/painelMestre.ts`):
+    transação que zera `recommended` em todos os planos antes de marcar o escolhido — nunca um
+    `update` isolado, que deixaria dois planos "recomendados" se chamada duas vezes em sequência
+    rápida. `planId: null` limpa o destaque (nenhum plano recomendado).
+  - **UI em Painel Mestre → Preços** (`components/painelMestre/PlanCatalogEditor.tsx`): rádio
+    "Recomendado" por linha de plano (grupo `name="recommended-plan"`, mutuamente exclusivo por
+    natureza do próprio `<input type="radio">`), com um link "Remover destaque…" abaixo da lista
+    para voltar a nenhum recomendado. Chama a ação imediatamente ao clicar (mesmo padrão de save
+    imediato já usado em `ModulePricesEditor`, não empacotado no botão "Salvar" de módulos/limites
+    porque é uma decisão de outra natureza — global, não por linha).
+  - **Capa pública** (`app/page.tsx`, seção Preço): o cartão do plano com `recommended` true ganha
+    `border-acao-light` (em vez de `border-regua-forte`) e um selo "Recomendado" (`bg-acao-light
+    text-acao-tx`) — nenhum token de cor novo introduzido, `--acao-light` já existia reservado no
+    DESIGN.md exatamente para isso. Optou-se por um selo em fluxo normal (não sobreposto com
+    posição absoluta sobre a borda, como o mockup de referência) porque a grade de preço quebra em
+    2 linhas em telas médias (`md:grid-cols-3` com 6 cartões) — um selo com `position:absolute` e
+    `top` negativo, se o plano recomendado caísse na segunda linha, sobreporia visualmente o
+    cartão da linha de cima. A alternativa em fluxo normal entrega o mesmo critério de aceite
+    (tratamento visual distinto + rótulo) sem esse risco de layout.
+- **P2-2 implementado**, os dois achados do mesmo item:
+  - **Menu "+"** (`components/mobile/MobileNewEntitySheet.tsx`): "Atendimento" saiu do grid de 4
+    colunas do grupo "Cadastro" e virou uma faixa cheia acima dos dois grupos secundários — `bg-
+    acao`/`text-acao-tx`/`font-bold`, mesmo tratamento do mockup validado (`mockups.html`, item
+    P2-2). Só aparece quando `modules.atendimento` (mesma condição de antes, só moveu de lugar).
+  - **Checklist de pendências** (`components/mobile/MobileNewAttendanceForm.tsx`): as 14 caixas
+    (7 "Solicitar ao lead" + 7 "Enviar ao lead", `PendenciasEditor` em modo `compact`) não
+    apareciam mais expandidas por padrão nem quando o usuário já tinha aberto "Mais detalhes"
+    (P0-4, Rodada 6) — collapse próprio com toggle "+ Adicionar pendência" (`showPendencias`,
+    novo estado, `false` por padrão), independente do "Mais detalhes" que já as envolve. A
+    especificação do achado pedia exatamente este toggle nomeado ("adicionar pendência"), não
+    apenas reaproveitar o "Mais detalhes" que por si só já as escondia na tela inicial — a UX
+    dentro do painel expandido também precisava do próprio recolhimento.
+  - `PendenciasEditor.tsx` (componente compartilhado com o desktop, `NewAttendanceModal.tsx` e
+    `AttendancePendenciasPanel.tsx`) não foi tocado — o toggle vive só no componente mobile que
+    o chama, sem afetar as outras duas telas que o reaproveitam sem esse problema de carga
+    cognitiva (2 colunas lado a lado no desktop, não uma pilha de 14 num só grupo).
+- **`npx prisma generate` falhou** ao copiar o binário do motor de consulta
+  (`query_engine-windows.dll.node`, `EPERM`) — outro processo Node nesta máquina (um `next dev`
+  já rodando na porta 3000, confirmado por `netstat`) segurava o arquivo. Não interrompido (não é
+  processo desta sessão, risco de atrapalhar outro trabalho em andamento). Verificado que os
+  tipos TypeScript (`node_modules/.prisma/client/index.d.ts`) já tinham sido regravados com o
+  campo `recommended` **antes** da falha no binário — só o motor nativo (inalterado entre
+  gerações do mesmo schema, indiferente ao conteúdo do schema) não foi recopiado, sem efeito no
+  `tsc`/`next build`, que rodaram limpos normalmente.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados no working tree — `docs/gauntlet/*`, `lib/roboBridge.ts` — ficaram de
+  fora do `git add`, sem alteração): `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 6
+  arquivos alterados limpo (1 correção no meio do caminho: `react/no-unescaped-entities` nas
+  aspas de "Recomendado" no link de limpar destaque, trocadas por `&ldquo;`/`&rdquo;`), `next
+  build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`,
+  inclusive para a mudança de `prisma/schema.prisma` — sem exceção por área sensível), PR único
+  com os dois itens conforme pedido **https://github.com/rodartepradoadvogados/Lumen/pull/157**,
+  branch `feat/p2-1-p2-2-recomendado-e-checklist` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2-3** (Site · consulta do blog sem
+  paginação/limite) — mecânico, sem mockup necessário.

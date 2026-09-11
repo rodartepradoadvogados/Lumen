@@ -306,7 +306,12 @@ export default async function HomePage() {
                   return plan.moduloAtendimento;
                 });
                 return (
-                  <div key={plan.id} className="p-6 border-2 border-regua-forte bg-sf">
+                  <div key={plan.id} className={`p-6 border-2 bg-sf ${plan.recommended ? "border-acao-light" : "border-regua-forte"}`}>
+                    {plan.recommended && (
+                      <span className="inline-block text-[9.5px] font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao-light px-2 py-0.5">
+                        Recomendado
+                      </span>
+                    )}
                     <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
                     <div className="text-[13px] text-tx-3 mt-1">
                       {plan.maxOabs != null && `Até ${plan.maxOabs} OAB${plan.maxOabs > 1 ? "s" : ""}`}
