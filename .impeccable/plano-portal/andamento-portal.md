@@ -219,3 +219,29 @@ de `grilling` (ver seção "Origem" acima).
 
 - Nenhuma. Próximo item da ordem de execução: **P4** (Publicações) —
   `app/(app)/publicacoes/page.tsx`.
+
+## Rodada 4 — P4 implementado (Publicações)
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão das Rodadas 1-3, sequência direta.
+
+### O que foi feito
+
+- **P4 implementado**, escopo menor que o roteiro original previa (a descoberta da Rodada 3 já
+  resolve raio globalmente — esta tela não precisou de nenhum `rounded-*`):
+  - `components/PublicationsTriage.tsx`: rótulo de fonte/data em `font-display`, nos 3 lugares
+    onde aparece (linha da lista agrupada, cabeçalho do teor expandido, item individual dentro
+    de um grupo com mais de uma publicação). Filete lateral por fonte
+    (`sourceBorderColor`/DJE·PJE·ESAJ·PROJUDI·MANUAL·JUSBRASIL_EMAIL) não mudou — já usava os
+    tokens certos.
+  - `app/(app)/publicacoes/page.tsx`: chips de filtro, `FilterLink` e a linha "DJEN {hora} ·
+    Datajud {hora}" também em `font-display`.
+- Verificação técnica local isolada (mesma técnica): `tsc --noEmit` limpo, `eslint` limpo,
+  `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude**, PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/170**, branch
+  `feat/portal-p4-publicacoes` removida (local + remoto).
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P5** (processo judicial aberto, o último item
+  do roteiro) — `app/(app)/processos/[id]/page.tsx`.
