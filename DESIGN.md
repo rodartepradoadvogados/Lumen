@@ -314,8 +314,9 @@ site público: um desvio real, não resíduo a convergir num sweep futuro.
 
 Aprovado em `.impeccable/plano-portal/andamento-portal.md` (Rodada 0, 2026-09-11), depois de
 entrevista de `grilling` com o dono do projeto. Aplica-se **só** ao portal logado desktop
-(`app/(app)/*`, escopo CSS `.portal-shell` em `app/globals.css`) — o site público, o PWA `/m` e o
-Painel Mestre continuam exatamente como documentado no resto deste arquivo.
+(`app/(app)/*`, escopo CSS `.portal-shell` em `app/globals.css`) — o site público e o Painel
+Mestre continuam exatamente como documentado no resto deste arquivo. O PWA `/m` ganhou sua
+própria variante do mesmo sistema, ver "PWA Noturno" abaixo.
 
 - **Tema padrão é escuro** (não claro): mecanismo próprio (`lib/portalTheme.ts`, chave
   `rp-portal-theme`), independente do tema Manhã/Noite do site (`lib/theme.ts`,
@@ -348,6 +349,40 @@ Painel Mestre continuam exatamente como documentado no resto deste arquivo.
   `.impeccable/plano-portal/roteiro-portal.md`) herdam cor/fonte/tema automaticamente (a casca é
   compartilhada), mas **não** o raio 2px (que é por componente) — esperado, não regressão,
   enquanto as rodadas seguintes não chegam neles.
+
+### PWA Noturno — escopo `app/m/*`
+
+Aprovado em `.impeccable/plano-portal/andamento-portal.md` ("PWA — próxima rodada", 2026-09-11),
+depois de nova entrevista de `grilling`. Aplica-se **só** ao PWA mobile (`app/m/*`, escopo CSS
+`.mobile-shell` em `app/globals.css`) — mesmo sistema do Portal Noturno acima, reaproveitado tal
+qual (nenhum valor de cor novo), com duas diferenças deliberadas:
+
+- **Tema padrão continua claro (Manhã)**, diferente do portal — o PWA é usado por qualquer
+  pessoa em qualquer situação de luz (rua, tribunal, ao lado de um cliente), não só pela equipe
+  interna o dia todo. Noite (`.mobile-dark`) fica disponível com a mesma paleta aproximada do
+  Dracula do portal, só não é o padrão de ninguém. Mecanismo próprio (`rp-mobile-theme`, já
+  existia — só o alvo da classe mudou de `.dark` em `<html>`, compartilhado com o site público,
+  para `.mobile-dark` só em `#mobile-shell`, do mesmo jeito que o portal já não depende de
+  `.dark`).
+- **Raio quase reto (2px) só quando `.mobile-dark` está ativo** — na Manhã o PWA continua na
+  escala de três paradas de sempre (4/6/10px). Mesmo seletor descendente do portal
+  (`.mobile-shell.mobile-dark .rounded-lg` e irmãos), `rounded-full` de fora pela mesma exceção.
+- **Glow reservado** (mesmo `--concluido-glow`) — primeiro uso no PWA: indicador "ao vivo" na
+  Central de Alertas do Painel (`app/m/page.tsx`), quando há alerta pendente. Visível nos dois
+  temas (a Manhã do PWA também define `--concluido-glow`, valor da Manhã do portal — variável
+  que não existe em `:root`/`.dark` fora do escopo do Portal/PWA Noturno).
+- **Ícone vira emoji só quando a coisa que ele representa está pendente de verdade** (pedido do
+  dono do projeto ao validar o protótipo — ele gostou especificamente do sino colorido com
+  contagem) — sino do cabeçalho (`app/m/layout.tsx`) e calendário da aba Agenda na barra inferior
+  (`components/mobile/MobileBottomNav.tsx`), os dois únicos lugares desta rodada onde um ícone já
+  carregava um contador de pendência. Sem pendência, ícone de linha (lucide-react) de sempre —
+  não é uma troca geral de sistema de ícone, só um reforço de estado nos dois pontos que já
+  eram "isto precisa de atenção agora". Tipografia (Inter) e demais tokens de marca não mudam.
+- Módulos de `app/m/*` fora do escopo desta rodada (Financeiro, Publicações, Assessoria etc. —
+  ver `.impeccable/plano-portal/andamento-portal.md`) herdam cor/tema automaticamente quando
+  alguém troca para Noite (a casca é compartilhada), mas não o raio 2px nem o emoji condicional
+  (ambos por componente) — esperado, não regressão, mesma lógica já documentada acima para o
+  portal.
 
 ## Do's and Don'ts
 

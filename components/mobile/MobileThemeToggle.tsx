@@ -18,9 +18,11 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
   dark: Moon,
 };
 
-// Alterna a classe `dark` no <html>; o script inline em app/m/layout.tsx já aplica a classe
-// certa antes deste componente montar (evita flash) — aqui só sincronizamos o estado visual
-// do botão.
+// Alterna a classe `mobile-dark` no nó #mobile-shell (não mais `dark` em <html> — ver
+// app/globals.css/".mobile-shell" e app/m/layout.tsx, mudança desta rodada para dar ao PWA sua
+// própria paleta de Noite, independente da Noite do site público); o script inline em
+// app/m/layout.tsx já aplica a classe certa antes deste componente montar (evita flash) — aqui
+// só sincronizamos o estado visual do botão.
 export default function MobileThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
@@ -39,7 +41,7 @@ export default function MobileThemeToggle() {
   function cycle() {
     const next = THEME_ORDER[(THEME_ORDER.indexOf(mode) + 1) % THEME_ORDER.length];
     setMode(next);
-    document.documentElement.classList.toggle("dark", resolveIsDark(next));
+    document.getElementById("mobile-shell")?.classList.toggle("mobile-dark", resolveIsDark(next));
     try {
       localStorage.setItem(MOBILE_THEME_KEY, next);
     } catch {

@@ -19,29 +19,24 @@ import { getOfficeModules } from "@/lib/officeModules";
 
 export const dynamic = "force-dynamic";
 
-// Aplica a classe `dark` no <html> de forma síncrona, antes do resto da árvore renderizar,
-// para evitar o "flash" de tema errado (padrão comum em apps Next.js com next-themes/dark mode
-// manual). Escopo: só o app mobile, então fica só neste layout — mesmos 2 estados do site
-// (Manhã/Noite, ver lib/theme.ts), mas com chave de localStorage própria ("rp-mobile-theme",
-// não "rp-site-theme") de propósito: o dono do escritório pode querer, por exemplo, o site
-// sempre em Noite mas o app mobile em Manhã, sem um afetar o outro — só o NÚMERO de estados
-// que agora é igual (até a remodelação do portal em 2026-08, o app mobile tinha um terceiro
-// estado próprio, "Tarde"/auto, ver histórico de components/mobile/MobileThemeToggle.tsx).
-//
-// Usa toggle (não só add) de propósito: o layout raiz do site (app/layout.tsx) roda seu
-// próprio script de tema antes deste e pode já ter deixado as classes no <html>. Se este
-// script só adicionasse a classe quando escuro, uma visita direta a uma rota /m com o tema
-// mobile em "light" herdaria (incorretamente) o que o script do site deixou. Com toggle, este
-// script sempre decide o estado final para as rotas /m. Sem preferência salva, o padrão é
-// "light" (Manhã), igual ao site. Mesmo padrão de migração do site (ver THEME_INIT_SCRIPT em
-// lib/theme.ts): uma preferência salva como "auto" (do extinto modo Tarde) migra para "dark",
-// não "light" — quem já tinha optado por um tema mais escuro não perde essa preferência.
+// Aplica a classe `mobile-dark` no nó #mobile-shell (não mais `dark` em <html>) de forma
+// síncrona, antes do resto da árvore renderizar, para evitar o "flash" de tema errado. Mudança
+// desta rodada (Portal Noturno estendido ao PWA, ver .impeccable/plano-portal/andamento-portal.md
+// e ".mobile-shell" em app/globals.css): a Noite do PWA agora usa a paleta aproximada do Dracula
+// (mesmos valores do portal), diferente da Noite do site público — por isso não pode mais
+// compartilhar a classe global `.dark` de <html> (mudaria o tema escuro do site também). Chave de
+// localStorage continua "rp-mobile-theme" (independente de "rp-site-theme", mesmo motivo de
+// sempre — ver components/mobile/MobileThemeToggle.tsx), e o padrão continua "light" (Manhã):
+// diferente do portal, o PWA não trocou o padrão, só ganhou a opção de Noite com a paleta nova.
+// Como #mobile-shell é um nó só nosso (não herda nada do script de tema do site), basta ADICIONAR
+// a classe quando preciso — sem risco do script do site interferir aqui. "auto" (extinto modo
+// Tarde) continua migrando para escuro, mesma regra de sempre.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
     var stored = localStorage.getItem("rp-mobile-theme");
-    var dark = stored === "dark" || stored === "auto";
-    document.documentElement.classList.toggle("dark", dark);
+    var el = document.getElementById("mobile-shell");
+    if (el && (stored === "dark" || stored === "auto")) el.classList.add("mobile-dark");
   } catch (e) {}
 })();
 `;
@@ -83,7 +78,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
   return (
     <UndoToastProvider>
-    <div className="min-h-screen bg-sf-fundo transition-colors">
+    <div id="mobile-shell" className="mobile-shell min-h-screen bg-sf-fundo transition-colors">
       {/* eslint-disable-next-line react/no-danger -- THEME_INIT_SCRIPT é string 100% estática
           (definida logo acima neste arquivo), nenhum dado de usuário entra aqui. */}
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
@@ -121,7 +116,13 @@ export default async function MobileLayout({ children }: { children: React.React
               aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
               className="relative h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
             >
-              <Bell size={16} />
+              {/* Emoji só quando há pendência de verdade (pedido do dono do projeto ao validar
+                  o protótipo) — sem pendência, continua o ícone de linha neutro de sempre. */}
+              {totalAlerts > 0 ? (
+                <span aria-hidden="true" className="text-[19px] leading-none">🔔</span>
+              ) : (
+                <Bell size={16} />
+              )}
               {totalAlerts > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-white text-[13px] font-bold flex items-center justify-center border border-grafite-800">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
