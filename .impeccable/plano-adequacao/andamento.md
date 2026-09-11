@@ -41,7 +41,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P2-4 · Site · imagens sem lazy | **concluído (PR #159)** |
 | P2-5 · Site · force-dynamic sem cache | **concluído (PR #160)** |
 | P2-6 · Site · cookie banner sem ARIA | **concluído (PR #162)** |
-| P2-7 · PWA · publicações sem paginação | pendente (sem mockup — mecânico) |
+| P2-7 · PWA · publicações sem paginação | **concluído (PR #163)** |
 | P2-8 · PWA · `/m` sem max-width | pendente (sem mockup — mecânico) |
 | P3-2 · Site · escala tipográfica própria | pendente (sem mockup — mecânico) |
 | P3-3 · Site · superfície escura não documentada | pendente (sem mockup — mecânico) |
@@ -903,3 +903,29 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P2-7** (PWA · lista de publicações sem
   paginação/virtualização) — mecânico, sem mockup necessário.
+
+## Rodada 21 — P2-7 implementado
+
+- **P2-7 implementado**: `app/m/publicacoes/page.tsx` renderizava todo grupo de publicação
+  pendente de uma vez (`groups.map`, sem janelamento), com até 3000 linhas vindas do banco
+  (`take: 3000`, rede de segurança documentada no próprio código, não um corte de exibição) —
+  achado do `$impeccable audit`. Nenhuma lib de virtualização (`react-window`/`react-virtual`)
+  instalada, e a ficha aceitava paginação simples como alternativa.
+- **Correção**: novo `components/mobile/MobilePublicationsList.tsx` (client component) —
+  recebe os grupos já buscados no servidor e renderiza só os primeiros 50 (`PAGE_SIZE`), com um
+  botão "Carregar mais (N restantes)" que revela mais 50 por vez sem nova ida ao servidor (os
+  dados já vieram numa carga só do `page.tsx`; isto só limita quantos nós de DOM existem de uma
+  vez). Abaixo de 50 grupos pendentes — a esmagadora maioria dos escritórios hoje — o
+  comportamento é idêntico ao anterior (sem botão, tudo visível). O mapeamento de cor de borda
+  por fonte (`SOURCE_BORDER_COLORS`) foi movido junto pro novo arquivo, único ponto que ainda o
+  usa — não duplicado, `app/m/publicacoes/page.tsx` não guarda mais essa lógica.
+- Verificação técnica local: `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 2 arquivos
+  limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/163**, branch
+  `fix/p2-7-publicacoes-paginacao` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2-8** (PWA · casca do `/m` sem `max-width`) —
+  mecânico, sem mockup necessário.

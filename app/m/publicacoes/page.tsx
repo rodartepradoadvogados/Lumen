@@ -3,34 +3,11 @@ import { decodificarEntidadesHtml } from "@/lib/htmlEntities";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
-import MobilePublicationCard from "@/components/mobile/MobilePublicationCard";
+import MobilePublicationsList from "@/components/mobile/MobilePublicationsList";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 
 export const dynamic = "force-dynamic";
-
-// Borda à esquerda por fonte (source do item principal do grupo) — mesmo mapeamento usado no
-// desktop (ver components/PublicationsList.tsx) pra manter consistência visual entre as telas.
-// Chaves batem com Publication.source de verdade (DJE/PJE/ESAJ/PROJUDI/MANUAL/JUSBRASIL_EMAIL,
-// ver prisma/schema.prisma) — a versão anterior usava "DJEN"/"DATAJUD", que não existem, então
-// a borda nunca aparecia; achado testando ao vivo, corrigido junto com o desktop.
-// DJE = --acao, ESAJ = --aviso, PROJUDI = --tx-2, MANUAL = --vinho (via alias --atencao, é o
-// único lançamento feito por pessoa), JUSBRASIL_EMAIL = --concluido — todos tokens semânticos
-// já existentes. PJE tem token próprio (--fonte-pje, DESIGN-SYSTEM.md §9), separado do azul de
-// ação para não se confundir com o filete do DJE — ver `fonte.pje` em tailwind.config.ts.
-const SOURCE_BORDER_COLORS: Record<string, string> = {
-  DJE: "border-l-acao",
-  PJE: "border-l-fonte-pje",
-  ESAJ: "border-l-aviso",
-  PROJUDI: "border-l-tx-2",
-  MANUAL: "border-l-atencao",
-  JUSBRASIL_EMAIL: "border-l-concluido",
-};
-const DEFAULT_SOURCE_BORDER_COLOR = "border-l-regua-forte";
-
-function sourceBorderColor(source: string): string {
-  return SOURCE_BORDER_COLORS[source] ?? DEFAULT_SOURCE_BORDER_COLOR;
-}
 
 export default async function MobilePublicacoes() {
   const viewer = await getCurrentUser();
@@ -92,13 +69,7 @@ export default async function MobilePublicacoes() {
         {groups.length === 0 ? (
           <EmptyState title="Tudo lido!" subtitle="Nenhuma publicação ou andamento pendente" />
         ) : (
-          <div className="divide-y divide-regua">
-            {groups.map((g) => (
-              <div key={g.key} className={`border-l-4 ${sourceBorderColor(g.primary.source)} bg-sf`}>
-                <MobilePublicationCard group={g} users={users} />
-              </div>
-            ))}
-          </div>
+          <MobilePublicationsList groups={groups} users={users} />
         )}
       </Card>
     </div>
