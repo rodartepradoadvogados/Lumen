@@ -19,19 +19,28 @@ export const metadata = {
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
-export default async function BlogPage() {
+const PAGE_SIZE = 20;
+
+export default async function BlogPage({ searchParams }: { searchParams: { page?: string } }) {
   // Escritório dono da plataforma (Rodarte Prado) — ver getPlatformOffice em
   // lib/officeModules.ts. Antes resolvia pelo Office mais antigo, divergindo do critério
   // (isInternal) que app/api/blog/draft/route.ts já usava para gravar as matérias do robô — se
   // os dois Office não coincidissem, tudo publicado ficava invisível aqui (achado A34 da revisão
   // gauntlet).
   const office = await getPlatformOffice();
-  const posts = office
+  const page = Math.max(1, Number(searchParams.page) || 1);
+  // Busca uma a mais que o tamanho da página só para saber se existe próxima página, sem
+  // precisar de um count() à parte (achado P2-3 do plano de adequação: antes buscava tudo).
+  const rows = office
     ? await prisma.blogPost.findMany({
         where: { officeId: office.id, status: "PUBLICADO" },
         orderBy: { publishedAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE + 1,
       })
     : [];
+  const hasNext = rows.length > PAGE_SIZE;
+  const posts = rows.slice(0, PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-sf-fundo">
@@ -87,6 +96,21 @@ export default async function BlogPage() {
               </Link>
             ))}
           </div>
+        )}
+
+        {(page > 1 || hasNext) && (
+          <nav className="flex justify-center gap-3 pt-4">
+            {page > 1 && (
+              <Link href={`/blog?page=${page - 1}`} className="text-sm font-semibold text-acao">
+                ← Página anterior
+              </Link>
+            )}
+            {hasNext && (
+              <Link href={`/blog?page=${page + 1}`} className="text-sm font-semibold text-acao">
+                Próxima página →
+              </Link>
+            )}
+          </nav>
         )}
       </main>
 
