@@ -146,3 +146,39 @@ de `grilling` (ver seção "Origem" acima).
 
 - Nenhuma. Próximo item da ordem de execução: **P2** (rail + cabeçalho com o alternador
   Noite/Manhã de verdade) — `components/NavRail.tsx`, `app/(app)/layout.tsx` (topbar).
+
+## Rodada 2 — P2 implementado (casca: rail + alternador Noite/Manhã real)
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão da Rodada 1, sequência direta ("passo a passo").
+
+### O que foi feito
+
+- **P2 implementado**:
+  - `components/PortalThemeToggle.tsx` (novo): irmão de `ThemeToggle.tsx` (site) e
+    `MobileThemeToggle.tsx` (app mobile) — alterna `.portal-light` em `#portal-shell`, lê/
+    persiste `rp-portal-theme`, padrão `"dark"`.
+  - `components/TeamMonitorPanel.tsx`: bloco "Tema" do menu do avatar trocou `ThemeToggle` por
+    `PortalThemeToggle` — o toggle do site não tinha efeito visual dentro do portal, ficaria
+    confuso manter os dois.
+  - `components/NavRail.tsx`: raio dos itens do rail (`rounded-md` → `rounded-[2px]`, exceção
+    documentada em `DESIGN.md`, aplicada por componente); rótulo pequeno do rail passa a
+    `font-display` (Barlow Condensed).
+  - **Escopo do cabeçalho revisado durante a implementação:** `components/TopBar.tsx` já usa
+    `bg-sf`/`border-regua` (tokens que retematizam sozinhos) — não precisou de edição própria,
+    já renderiza certo dentro de `.portal-shell` automaticamente. `GuiasBar`/`GlobalSearch`/
+    `TopBarActions` (compartilhados por todo o produto) ficaram **fora** deste PR de propósito —
+    "casca" do roteiro tratava do alternador de tema (a peça nova de verdade) e do rail; tocar
+    nesses três componentes tem alcance maior que o P2 pretendia e fica para uma rodada própria
+    se o dono do projeto pedir.
+- Verificação técnica local isolada (mesma técnica das rodadas anteriores — `git stash push -u
+  --keep-index`, restaurado depois): `tsc --noEmit` limpo, `eslint` nos arquivos alterados
+  limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/168**, branch
+  `feat/portal-p2-casca` removida (local + remoto) — mesma sequência de PR via `gh api` REST
+  direto das rodadas anteriores (padrão já estabelecido, usado por consistência).
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P3** (Painel/dashboard) —
+  `app/(app)/painel/page.tsx`.
