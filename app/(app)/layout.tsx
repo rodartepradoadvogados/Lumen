@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
@@ -18,9 +19,25 @@ import { getOfficeModules } from "@/lib/officeModules";
 import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { countUnreadPublicationGroups } from "@/lib/publicationGrouping";
+import { PORTAL_THEME_INIT_SCRIPT } from "@/lib/portalTheme";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
+
+// Portal Noturno (DESIGN.md, exceção documentada) — Barlow/Barlow Condensed carregadas aqui,
+// escopadas só ao layout aninhado do portal (Next 14 App Router suporta next/font em qualquer
+// layout, não só no raiz). `--font-sans` do site (Inter, app/layout.tsx) continua intocado fora
+// deste escopo; dentro de `.portal-shell` (ver app/globals.css), --font-sans é redefinido para
+// apontar pra Barlow, e todo componente que já usa `font-sans`/herda a fonte do corpo troca
+// sozinho, sem precisar editar cada um. Barlow Condensed fica disponível como token
+// `--font-display` (tailwind.config.ts: `font-display`) para número/rótulo/aba nas telas do
+// portal.
+const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-barlow" });
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-barlow-condensed",
+});
 
 // Manifesto do PWA de desktop (ver app/manifest-desktop.webmanifest/route.ts) — só para estas
 // rotas. As rotas /m continuam com o manifest.ts padrão (app/layout.tsx), inalterado.
@@ -71,35 +88,46 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const unreadPublications = countUnreadPublicationGroups(unreadPublicationsRaw.filter((p) => !isBlockedForViewer(p.processNumberRaw, blockedSet)));
 
   return (
-    <UndoToastProvider>
-      {/* AnotacoesProvider (painel global "Anotações", faixa retrátil na borda direita) precisa
-          envolver tanto o AppShell (que renderiza o próprio painel) quanto o ClaudeAssistantWidget
-          (que lê o contexto só para se deslocar quando o painel está aberto — ver
-          components/anotacoes/AnotacoesContext.tsx). */}
-      <AnotacoesProvider>
-        <ServiceWorkerRegister />
-        {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
-            server-side de sempre e repassa como children/props. Guarda também as abas internas
-            (duplo clique num item da Sidebar) — ver components/AppShell.tsx. */}
-        <AppShell
-          sidebarProps={{
-            hasFinanceAccess,
-            unreadPublications,
-            totalAlerts,
-            todayAgendaCount,
-            modules,
-          }}
-          topBar={<TopBar hasFinanceAccess={hasFinanceAccess} modules={modules} />}
-          supportBanner={<SupportAccessBanner />}
-          inactivityNotice={<InactivityNotice />}
-          badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
-          actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
-          claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
-          anotacoesPanel={<AnotacoesPanel />}
-        >
-          {children}
-        </AppShell>
-      </AnotacoesProvider>
-    </UndoToastProvider>
+    // Portal Noturno — casca de tokens (cor, fonte) independente do site/PWA, ver
+    // lib/portalTheme.ts e a seção "Portal Noturno" de DESIGN.md. `suppressHydrationWarning`
+    // porque PORTAL_THEME_INIT_SCRIPT muda a classe deste nó (adiciona "portal-light") antes da
+    // hidratação, quando o usuário já escolheu Manhã — mesma técnica de anti-flash do tema do
+    // site (app/layout.tsx), aqui aplicada a um nó comum (não <html>/<body>), que precisa do
+    // aviso suprimido explicitamente para o React não tentar desfazer a classe injetada.
+    <div id="portal-shell" className={`portal-shell ${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>
+      {/* eslint-disable-next-line react/no-danger -- PORTAL_THEME_INIT_SCRIPT é string 100%
+          estática (lib/portalTheme.ts), nenhum dado de usuário entra aqui. */}
+      <script dangerouslySetInnerHTML={{ __html: PORTAL_THEME_INIT_SCRIPT }} />
+      <UndoToastProvider>
+        {/* AnotacoesProvider (painel global "Anotações", faixa retrátil na borda direita) precisa
+            envolver tanto o AppShell (que renderiza o próprio painel) quanto o ClaudeAssistantWidget
+            (que lê o contexto só para se deslocar quando o painel está aberto — ver
+            components/anotacoes/AnotacoesContext.tsx). */}
+        <AnotacoesProvider>
+          <ServiceWorkerRegister />
+          {/* AppShell (client) é quem de fato monta sidebar/topbar/faixas — aqui só resolve os dados
+              server-side de sempre e repassa como children/props. Guarda também as abas internas
+              (duplo clique num item da Sidebar) — ver components/AppShell.tsx. */}
+          <AppShell
+            sidebarProps={{
+              hasFinanceAccess,
+              unreadPublications,
+              totalAlerts,
+              todayAgendaCount,
+              modules,
+            }}
+            topBar={<TopBar hasFinanceAccess={hasFinanceAccess} modules={modules} />}
+            supportBanner={<SupportAccessBanner />}
+            inactivityNotice={<InactivityNotice />}
+            badgeSync={<AppBadgeSync initialCount={totalAlerts} />}
+            actingBanner={user.actingAsOffice ? <ActingOfficeBanner officeName={user.actingAsOffice.name} /> : null}
+            claudeWidget={<ClaudeAssistantWidget userName={user.name} />}
+            anotacoesPanel={<AnotacoesPanel />}
+          >
+            {children}
+          </AppShell>
+        </AnotacoesProvider>
+      </UndoToastProvider>
+    </div>
   );
 }
