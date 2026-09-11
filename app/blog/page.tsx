@@ -59,7 +59,11 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
         <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-white [font-family:var(--font-blog-serif)]">
           LÚMEN
         </h1>
-        <p className="text-[11px] tracking-[0.3em] text-marca font-medium mt-1">BLOG JURÍDICO</p>
+        {/* P0-5 do roteiro de adequação: text-marca sobre bg-grafite-800 media 2,15:1 ao vivo,
+            reprova WCAG AA. text-rail-marca (--rail-marca, #c9707f) é a variante clara do bordô
+            criada exatamente para bordô-como-texto sobre superfície fixa escura (mesmo raciocínio
+            do comentário logo acima sobre branco/ouro fixos: não retematiza). */}
+        <p className="text-[11px] tracking-[0.3em] text-rail-marca font-medium mt-1">BLOG JURÍDICO</p>
         <p className="text-sm text-white/70 mt-3 max-w-xl mx-auto">
           Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial, tributário, trabalhista, previdenciário e mais.
         </p>

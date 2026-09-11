@@ -529,7 +529,7 @@ export default async function MobileCaseDetail({
                 const authorName = authorDisplayName(cm.author, viewer.officeId);
                 return (
                 <div key={cm.id} className="flex gap-2.5">
-                  <div className="h-8 w-8 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-[13px] font-bold shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-grafite-700 text-rail-marca flex items-center justify-center text-[13px] font-bold shrink-0">
                     {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </div>
                   <div className="min-w-0">

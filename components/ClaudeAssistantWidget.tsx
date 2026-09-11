@@ -90,7 +90,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
         style={{ right: rightOffsetPx }}
         // Grafite fixo nos dois temas + acento ouro, de propósito: mesmo par de cores da marca
         // (LumenMark), não um botão de ação comum — ver DESIGN-SYSTEM.md §15.
-        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-marca shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
+        className="fixed bottom-5 z-40 h-14 w-14 rounded-full bg-grafite-800 text-rail-marca shadow-pop flex items-center justify-center hover:bg-grafite-700 transition-[right,background-color] duration-200"
       >
         {open ? <X size={22} /> : <Sparkles size={22} />}
       </button>
@@ -103,7 +103,8 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
           {/* Grafite fixo nos dois temas — mesmo tratamento do botão flutuante acima. */}
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
             <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-marca" />
+              {/* P0-5: text-marca sobre bg-grafite-800 reprova WCAG AA (2,15:1). */}
+              <Sparkles size={18} className="text-rail-marca" />
               <span className="font-medium text-sm">Assistente Lúmen</span>
             </div>
             <button

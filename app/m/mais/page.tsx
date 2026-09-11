@@ -51,7 +51,7 @@ export default async function MobileMais() {
 
       {viewer && (
         <div className="flex items-center gap-3 px-1">
-          <div className="h-12 w-12 rounded-full bg-grafite-700 text-marca flex items-center justify-center text-sm font-bold shrink-0">
+          <div className="h-12 w-12 rounded-full bg-grafite-700 text-rail-marca flex items-center justify-center text-sm font-bold shrink-0">
             {initials}
           </div>
           <div>

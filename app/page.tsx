@@ -388,7 +388,11 @@ export default async function HomePage() {
             <h2 className="font-extrabold text-[clamp(32px,5vw,52px)] tracking-[-.02em] max-w-[18ch]">
               Leve a triagem, a agenda e o financeiro do escritório para um só lugar.
             </h2>
-            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-black text-marca font-extrabold text-sm mt-8">
+            {/* P0-5 do roteiro de adequação: text-marca (vermelho) sobre bg-grafite-800 media
+                2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
+                --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
+                e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}
+            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-black text-acao-tx font-extrabold text-sm mt-8">
               Começar agora
             </Link>
           </div>

@@ -14,8 +14,11 @@ export default function LumenTopStrip({ memberName }: { memberName: string }) {
       </Link>
       <div className="flex items-center gap-2 shrink-0">
         <span className="hidden sm:inline text-sm text-white">{memberName}</span>
-        {/* Hardcoded por ora — o PlatformRole de verdade por pessoa é assunto da Equipe Lúmen (Fase 2). */}
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-marca-bg text-marca">
+        {/* Hardcoded por ora — o PlatformRole de verdade por pessoa é assunto da Equipe Lúmen (Fase 2).
+            P0-5: bg-marca-bg/text-marca sobre este header (grafite-800 fixo) reprovava WCAG AA —
+            trocado pelo par bg-rail-marca-bg/text-rail-marca que o NavRail já usa para exatamente
+            este caso (bordô como badge/texto sobre superfície fixa escura). */}
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-rail-marca-bg text-rail-marca">
           Sócio
         </span>
       </div>
