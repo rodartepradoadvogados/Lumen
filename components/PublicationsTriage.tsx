@@ -409,7 +409,10 @@ function FilaCard({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2 truncate">
+        {/* Portal Noturno (DESIGN.md): rótulo de fonte em font-display (Barlow Condensed) — o
+            mesmo papel que a fonte condensada cumpre em rótulo/aba no CowData (referência
+            aprovada). Filete lateral por fonte (sourceBorderColor) não muda. */}
+        <span className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2 truncate">
           {pub.source}
           {hasMultiple && (
             <span className="inline-flex items-center gap-0.5 ml-1.5 text-bordo">
@@ -418,7 +421,7 @@ function FilaCard({
           )}
           {!group.allRead && <span className="ml-1.5 text-marca-tx">· não triada</span>}
         </span>
-        <span className="text-[11px] text-tx-3 shrink-0 tabular-nums">{formatDate(pub.publishedAt)}</span>
+        <span className="font-display text-[11px] text-tx-3 shrink-0 tabular-nums">{formatDate(pub.publishedAt)}</span>
       </div>
       <p className="text-sm text-tx mt-1 line-clamp-2">{pub.content}</p>
       {pub.case ? (
@@ -459,7 +462,7 @@ function Teor({
     // cartões do produto (mesmo token que a FilaCard da fila já usa).
     <div className="flex-1 flex flex-col min-h-0 bg-sf">
       <div className="px-6 pt-5 pb-4 border-b border-regua shrink-0">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2">
+        <p className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2">
           {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {formatDate(pub.publishedAt)}
           {assignedToName && <> · responsável: {assignedToName}</>}
         </p>
@@ -492,7 +495,7 @@ function Teor({
           {group.items.map((item) => (
             <div key={item.id} className={group.items.length > 1 ? "border-t-2 border-regua-forte pt-4 first:border-t-0 first:pt-0" : ""}>
               {group.items.length > 1 && (
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2 mb-1.5">
+                <p className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2 mb-1.5">
                   {item.source} · {formatDate(item.publishedAt)}
                 </p>
               )}
