@@ -313,7 +313,7 @@ export default async function HomePage() {
             foto real disponível, a faixa usa o único número já publicável (93 tribunais, mesmo
             dado da seção 3) como elemento gráfico em vez de deixar um retângulo vazio. Quando
             houver fotografia, esta seção volta a ser a imagem prevista no documento. */}
-        <section className="border-t-2 border-regua-forte bg-grafite-900">
+        <section className="border-t-2 border-regua-forte bg-grafite-800">
           <div className="max-w-[1120px] mx-auto px-6 py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
             <div className="text-[clamp(56px,9vw,108px)] font-extrabold leading-none tracking-[-.02em] text-white tabular-nums">
               93
@@ -402,7 +402,7 @@ export default async function HomePage() {
                 2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
                 --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
                 e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}
-            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-black text-acao-tx font-extrabold text-sm mt-8">
+            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm mt-8">
               Começar agora
             </Link>
           </div>

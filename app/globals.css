@@ -261,6 +261,27 @@ input[type="radio"] {
   border-left-color: var(--concluido);
 } /* Anexos */
 
+/* Campo de formulário compartilhado do app mobile (components/mobile/*Form*.tsx,
+   app/m/financeiro/despesas|receitas). Único ponto de verdade — antes duplicado em 8 arquivos
+   (cada um com sua própria <style jsx global>), com raio de 0.3125rem (5px) fora da escala de
+   3 paradas do tema (sm 4px / DEFAULT-md 6px / lg 10px, ver tailwind.config.ts). Usa
+   `rounded-md` (6px, o token documentado pra input) em vez do valor cravado. */
+.mobile-input {
+  width: 100%;
+  margin-top: 0.25rem;
+  border: 1px solid var(--regua-forte);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background-color: var(--sf-superficie);
+  color: var(--tx);
+}
+.mobile-input:focus {
+  outline: none;
+  border-color: var(--acao);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;
