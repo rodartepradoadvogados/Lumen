@@ -134,9 +134,14 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
       {open && (
         <div className="mt-2">
           {hasMultiple ? (
-            <div className="space-y-2 mb-2">
+            // Achatado (achado do $impeccable audit, cartão-dentro-de-cartão): antes cada item
+            // vinha numa caixa com borda nas 4 arestas, dentro do filete de fonte do grupo
+            // (MobilePublicationsList.tsx), dentro do <Card> da página — 3 níveis de moldura.
+            // Um único contêiner por grupo (o filete do grupo já cumpre esse papel); os itens
+            // dentro dele se separam por divisor, não por caixa própria.
+            <div className="divide-y divide-regua mb-2">
               {group.items.map((item) => (
-                <div key={item.id} className=" border border-regua p-2.5">
+                <div key={item.id} className="py-2.5 first:pt-0">
                   <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge color="navy">{item.source}</Badge>
