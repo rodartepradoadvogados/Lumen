@@ -400,7 +400,11 @@ export default async function CaseDetailPage({
         </div>
       )}
 
-      <div className="flex gap-1 border-b border-regua mb-6 overflow-x-auto">
+      {/* Portal Noturno (DESIGN.md): barra de abas estilo editor — régua vertical fina entre
+          abas (divide-x, mesmo motivo visual das abas do VS Code que inspiraram esta rodada) e
+          rótulo em font-display (Barlow Condensed). O sublinhado bordô na aba ativa e o filete
+          horizontal de baixo (border-b) já existiam antes desta rodada, sem mudança. */}
+      <div className="flex border-b border-regua divide-x divide-regua mb-6 overflow-x-auto">
         {TABS.filter(
           (t) =>
             (t.key !== "financeiro" || hasFinanceAccess) &&
@@ -411,10 +415,10 @@ export default async function CaseDetailPage({
           <Link
             key={t.key}
             href={`/processos/${c.id}?tab=${t.key}`}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+            className={`font-display px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
               tab === t.key
-                ? "border-acao text-tx"
-                : "border-transparent text-tx-2 hover:text-tx"
+                ? "border-acao text-tx bg-sf-apoio"
+                : "border-transparent text-tx-2 hover:text-tx hover:bg-sf-apoio/60"
             }`}
           >
             {t.label}
@@ -431,7 +435,7 @@ export default async function CaseDetailPage({
           <div className="space-y-5">
             <Card className="p-5 space-y-3">
               <div className="flex items-center justify-between -mt-1 -mr-1">
-                <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Dados do processo</h4>
+                <h4 className="font-display text-xs font-semibold text-tx-2 uppercase tracking-wide">Dados do processo</h4>
                 <EditCaseModal
                   caseData={{
                     id: c.id,
@@ -506,12 +510,12 @@ export default async function CaseDetailPage({
               )}
             </Card>
             <Card className="p-5">
-              <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Descrição</h4>
+              <h4 className="font-display text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Descrição</h4>
               <p className="text-sm text-tx whitespace-pre-wrap">{c.description || "Sem descrição."}</p>
             </Card>
             {(c.materias.length > 0 || c.assuntos.length > 0 || c.distributedAt) && (
               <Card className="p-5 space-y-2">
-                <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Classificação</h4>
+                <h4 className="font-display text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Classificação</h4>
                 {c.materias.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {c.materias.map((m) => (
@@ -530,7 +534,7 @@ export default async function CaseDetailPage({
 
           <div className="space-y-5">
             <Card className="p-5 space-y-3">
-              <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Partes e vínculos</h4>
+              <h4 className="font-display text-xs font-semibold text-tx-2 uppercase tracking-wide">Partes e vínculos</h4>
               {caseClients.length === 0 ? (
                 <Field label="Cliente" value={undefined} />
               ) : (
@@ -556,7 +560,7 @@ export default async function CaseDetailPage({
             </Card>
             {caseLinks.length > 0 && (
               <Card className="p-5 space-y-2">
-                <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Processos vinculados</h4>
+                <h4 className="font-display text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">Processos vinculados</h4>
                 <div className="space-y-1.5">
                   {caseLinks.map((l) => (
                     <div key={l.linkId} className="flex items-center justify-between gap-2">
@@ -578,7 +582,7 @@ export default async function CaseDetailPage({
           </div>
 
           <Card className="p-5 lg:sticky lg:top-4">
-            <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Linha do tempo</h4>
+            <h4 className="font-display text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Linha do tempo</h4>
             <CaseTimeline events={timelineEvents} />
           </Card>
         </div>
