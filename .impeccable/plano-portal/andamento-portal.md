@@ -245,3 +245,44 @@ de `grilling` (ver seção "Origem" acima).
 
 - Nenhuma. Próximo item da ordem de execução: **P5** (processo judicial aberto, o último item
   do roteiro) — `app/(app)/processos/[id]/page.tsx`.
+
+## Rodada 5 — P5 implementado — roteiro P1-P5 completo
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão das Rodadas 1-4, sequência direta ("passo a
+passo") — fecha o escopo aprovado na Rodada 0.
+
+### O que foi feito
+
+- **P5 implementado**, último item do roteiro:
+  - `app/(app)/processos/[id]/page.tsx`: barra de abas (9 rótulos reais — Visão Geral/
+    Atividades/Comentários/Financeiro/Publicações/Anexos/Protocolos/Vigilância/Anotações
+    pessoais, lógica de `searchParams.tab` inalterada) ganha régua vertical fina entre abas
+    (`divide-x divide-regua`) — o sublinhado bordô na ativa e o filete horizontal de baixo já
+    existiam antes desta rodada, sem mudança, só reforçados com fundo sutil (`bg-sf-apoio`) na
+    ativa/hover.
+  - Rótulos de aba e os 6 kickers das 3 colunas de Visão Geral (Dados do processo/Descrição/
+    Classificação/Partes e vínculos/Processos vinculados/Linha do tempo) em `font-display`.
+  - Raio não precisou de ajuste — coberto pelo seletor descendente global desde a Rodada 3.
+- Verificação técnica local isolada (mesma técnica): `tsc --noEmit` limpo, `eslint` limpo,
+  `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude**, PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/171**, branch
+  `feat/portal-p5-processo` removida (local + remoto).
+
+### Estado final do roteiro
+
+| Item | Status |
+|---|---|
+| P1 · Fundação | **concluído (PR #167)** |
+| P2 · Casca (rail + alternador) | **concluído (PR #168)** |
+| P3 · Painel | **concluído (PR #169)** |
+| P4 · Publicações | **concluído (PR #170)** |
+| P5 · Processo aberto | **concluído (PR #171)** |
+
+**Roteiro P1-P5 completo.** Escopo aprovado na Rodada 0 (casca + Painel + Publicações + um
+processo judicial aberto) inteiramente implementado, cada item com PR próprio, gate técnico
+local limpo e merge automático (`CLAUDE.md`). `painel-mestre` e o PWA `/m` seguem fora de
+escopo, deliberadamente adiados (ver Rodada 0). O plano do site público (`plano-redesign/`,
+descartado durante o `grilling` desta rodada) fica disponível para retomar como rodada própria,
+se o dono do projeto quiser — agora informado pelo que foi aprendido aqui (ex.: tipografia
+Barlow/Barlow Condensed, se deve ou não se estender ao site).
