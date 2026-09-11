@@ -17,13 +17,14 @@ import MobileNav from "@/components/site/MobileNav";
 // sem carrossel (HomepageHeroCarousel saiu), sem card de login embutido (login virou uma
 // página de verdade, ver app/login/page.tsx), sem gradiente/textura/canto arredondado.
 //
-// Cor: modelo B (Modernist puro, vermelho #ec3013) — o modelo A (ouro) do texto original do
-// documento 09 foi superado pela decisão registrada em design_handoff_lumen_redesign/
-// 01-tokens-e-tema.md (19/08/2026) e pelos tokens de fato aplicados em app/globals.css e
-// tailwind.config.ts. O "fecho em pôster" (única seção onde a cor corre como campo) usa
-// --marca/vermelho, exatamente como o próprio documento 09 antecipa ("no Modernist puro esse
-// campo seria vermelho"). A marca (LumenMark) mantém sua paleta própria e fixa (ouro+grafite,
-// manual da marca v2) — não segue o modelo A/B da UI.
+// Cor: modelo B (Modernist puro) — o modelo A (ouro) do texto original do documento 09 foi
+// superado pela decisão registrada em design_handoff_lumen_redesign/01-tokens-e-tema.md
+// (19/08/2026) e pelos tokens de fato aplicados em app/globals.css e tailwind.config.ts: bordô
+// (--marca, #8a2f42), não o vermelho-alaranjado (#ec3013) do rascunho original do documento 09 —
+// ajuste feito na mesma decisão de 19/08, por render de contraste melhor sobre branco (~8:1
+// contra o vermelho antigo, ver comentário de --marca em app/globals.css). O "fecho em pôster"
+// (única seção onde a cor corre como campo) usa --marca. A marca (LumenMark) mantém sua paleta
+// própria e fixa (ouro+grafite, manual da marca v2) — não segue o modelo A/B da UI.
 //
 // Campos em aberto (dados reais a preencher depois, não inventados aqui — documento 09: "só
 // números que o escritório possa comprovar" / revisão OAB do preço): 3 dos 4 números da seção
@@ -420,15 +421,16 @@ export default async function HomePage() {
               <p className="text-[13px] text-tx-2 max-w-[32ch]">Software de gestão jurídica para escritórios de advocacia.</p>
             </div>
             <div>
-              <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h4>
+              <h3 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h3>
               <ul className="space-y-2.5 text-sm">
                 <li><a href="#recursos" className={footerLink}>Recursos</a></li>
                 <li><a href="#preco" className={footerLink}>Preço</a></li>
+                <li><Link href="/blog" className={footerLink}>Blog</Link></li>
                 <li><Link href="/login" className={footerLink}>Entrar</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h4>
+              <h3 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h3>
               <ul className="space-y-2.5 text-sm">
                 <li className="text-tx-2">Goiânia — GO</li>
                 <li><a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer" className={footerLink}>(62) 98128-3481</a></li>
@@ -436,7 +438,7 @@ export default async function HomePage() {
               </ul>
             </div>
             <div>
-              <h4 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h4>
+              <h3 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h3>
               <ul className="space-y-2.5 text-sm">
                 <li><Link href="/privacidade" className={footerLink}>Política de privacidade</Link></li>
                 {/* DPO reaproveita o contato real já existente no rodapé em vez de um dado fictício —

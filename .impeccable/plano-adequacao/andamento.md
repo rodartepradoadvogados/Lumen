@@ -1033,3 +1033,69 @@ P3-5").
   input no lado desktop (achada durante o P3-4 desta rodada, não coberta pela ficha) fica
   registrada acima como candidata a um item novo numa futura rodada de crítica, não como
   pendência deste roteiro.
+
+## Rodada 24 — Backlog: itens 1, 2, 3, 4, 5, 7 e 8 resolvidos ou confirmados (item 6 fora de escopo, não pedido)
+
+**Data:** 2026-09-11 · **Sessão:** nova sessão, a pedido do dono do projeto ("resolva o que está
+relacionado aos itens 1, 2, 3, 4, 5, 7 e 8 [do Backlog]; se não der, deixe registrado"). O item 6
+(fricção de login/`/escolher`) não foi pedido nesta rodada e continua registrado como candidato a
+uma crítica dedicada futura, sem mudança.
+
+A seção "Backlog" de `roteiro-de-adequacao.md` não leva campo de status (mesma regra dos itens
+numerados: o texto ali não é reescrito por rodada de trabalho) — o resultado de cada item fica
+registrado só aqui, item por item:
+
+- **Item 1 (contraste `text-tx-3`) → NÃO resolvido, deixado registrado de propósito.**
+  `--tx-3` é token global (`app/globals.css`), usado em centenas de pontos do produto inteiro
+  (desktop, PWA, painel-mestre), não só nas legendas/rodapé do site que o achado cita. Subir o
+  contraste desse token é uma decisão de política de acessibilidade que afeta o produto inteiro,
+  exatamente o tipo de decisão que o próprio roteiro condicionou a "quando/se um padrão formal de
+  acessibilidade for definido" — e `PRODUCT.md` (`## Accessibility & Inclusion`) ainda registra
+  isso como não definido. Diferente dos itens WCAG já corrigidos neste roteiro (P0-5, P1-7 a
+  P1-10, P2-6), que eram bugs pontuais e mecânicos, este é redesenhar um token de base sem decisão
+  do dono do produto — não é uma chamada que cabe fazer sozinho. Fica como estava, registrado.
+- **Item 2 (`skipped-heading` h2→h4) → resolvido.** Os três `<h4>` do rodapé de `app/page.tsx`
+  (Produto/Contato/Legal) — deixados de fora de propósito do escopo do P1-10 (Rodada 14) —
+  viraram `<h3>`. Sem CSS ligado a `h3`/`h4` no projeto (confirmado na própria Rodada 14), então
+  sem mudança visual. Hierarquia final do rodapé: `h2` (Fecho em pôster, última seção de
+  conteúdo) → `h3`/`h3`/`h3` (as três colunas), sem pulo.
+- **Item 3 (rodapé "Produto" sem link Blog) → resolvido.** `app/page.tsx`: adicionado
+  `<li><Link href="/blog">Blog</Link></li>` na coluna "Produto" do rodapé, entre "Preço" e
+  "Entrar" — mesma ordem do nav do cabeçalho (Produto/Preço/Blog/Entrar).
+- **Item 4 (comentário desatualizado citando "vermelho #ec3013") → resolvido.** Comentário de
+  topo de `app/page.tsx` corrigido: a cor de fato aplicada é bordô (`--marca`, `#8a2f42`, ver
+  `app/globals.css`), não o vermelho-alaranjado do rascunho original do documento 09 — o
+  comentário agora nomeia o valor certo e por que ele mudou (contraste melhor sobre branco,
+  mesma decisão de 19/08/2026 já citada).
+- **Item 5 (`dark-glow #ffba00` falso positivo) → confirmado, nenhuma ação necessária.**
+  `grep -r ffba00` no repositório inteiro (`.ts`/`.tsx`/`.css`) não retorna nada — o achado
+  continua sem correspondência real, exatamente como já registrado. Nada para corrigir.
+- **Item 7 (cartão-dentro-de-cartão em `MobilePublicationCard.tsx`) → resolvido.** A própria nota
+  do roteiro já previa isso "quando o P3-5 for resolvido" (Rodada 23, sessão anterior) — achatado
+  agora. Antes: `<Card>` da página → grupo com filete de fonte (`border-l-2`,
+  `MobilePublicationsList.tsx`) → caixa com borda nas 4 arestas por item
+  (`border border-regua p-2.5`), 3 níveis de moldura para o mesmo grupo de publicações. Depois: a
+  caixa por item virou `divide-y divide-regua` (mesmo idioma já usado em
+  `MobilePublicationsList.tsx` para separar grupos) — um único contêiner com borda por grupo (o
+  filete de fonte, que já cumpria esse papel), itens dentro dele separados por divisor fino, não
+  por caixa própria.
+- **Item 8 (`13px` sinalizado como fora de escala) → confirmado, nenhuma ação necessária.**
+  Continua sendo o piso do `/m` (`08-pwa.md`), não uma regra do site — achado informativo do
+  detector, sem bug real por trás. Nada para corrigir.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados/não versionados no working tree — `docs/gauntlet/*`,
+  `lib/roboBridge.ts`, `DESIGN.md`, `PRODUCT.md`, `components/BancadaMenu.tsx`,
+  `components/NavModeToggle.tsx`, `dist/` etc. — ficaram de fora do `git add`, sem alteração):
+  `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 2 arquivos alterados limpo, `next build`
+  **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/166**, branch
+  `fix/backlog-headings-blog-comentario-cartao` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Item 1 do Backlog (contraste `text-tx-3`) segue pendente de propósito — aguarda uma decisão do
+  dono do produto sobre padrão formal de acessibilidade (`PRODUCT.md`), não é um mecânico que
+  falta fazer.
+- Item 6 do Backlog (fricção de login/`/escolher`) não foi pedido nesta rodada, segue como estava
+  — candidato a uma crítica dedicada futura.
