@@ -55,6 +55,16 @@ import MobileNav from "@/components/site/MobileNav";
 // middleware neste stack), só a causa concreta de custo (ida ao banco). updateModulePrice/
 // updatePlan/setRecommendedPlan (lib/actions/painelMestre.ts) já chamavam revalidatePath("/")
 // — antes um no-op nesta rota sempre dinâmica, agora invalida de fato o unstable_cache abaixo.
+//
+// P3-2 do roteiro de adequação: escala tipográfica PRÓPRIA do site público (marketing + blog),
+// exceção DELIBERADA à escala do DESIGN.md (24/16/14/12px — pensada pra tela de trabalho do
+// produto), documentada aqui em vez de corrigida — mesmo espírito da exceção de fonte do blog
+// (app/blog/layout.tsx: Lora só ali, resto do produto segue Archivo). Landing e blog são
+// vitrine/leitura, não tela de trabalho, e já tiveram sua hierarquia validada visualmente nas
+// rodadas anteriores deste mesmo roteiro (P0-1, P0-2, P1-1, P2-1, P0-5 etc.) — os valores
+// próprios (9.5/11/13/15/26/30px, mais o hero em clamp()) não são resquício a convergir num
+// sweep futuro para 24/16/14/12, são a hierarquia de página de marketing que já está no ar.
+// Mesma exceção vale para app/blog/page.tsx e app/blog/[slug]/page.tsx.
 export const dynamic = "force-dynamic";
 
 const getHomepagePricingData = unstable_cache(

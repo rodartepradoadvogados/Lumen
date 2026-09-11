@@ -31,7 +31,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P1-3 · PWA · piso de 13px | **concluído (PR #151)** |
 | P2-1 · Site · plano recomendado | **concluído (PR #157)** |
 | P2-2 · PWA · menu "+" / checklist | **concluído (PR #157)** |
-| P3-1 · Site · token vinho | pendente (resolve junto com P0-1) |
+| P3-1 · Site · token vinho | **concluído (resolvido junto com P0-1, PR #144)** |
 | P0-5 · Site · contraste do CTA | **concluído (PR #161)** |
 | P1-7 · PWA · label sem htmlFor | **concluído (PR #152, merge manual)** |
 | P1-8 · PWA · erro sem aria-live | **concluído (PR #154)** |
@@ -42,8 +42,8 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P2-5 · Site · force-dynamic sem cache | **concluído (PR #160)** |
 | P2-6 · Site · cookie banner sem ARIA | **concluído (PR #162)** |
 | P2-7 · PWA · publicações sem paginação | **concluído (PR #163)** |
-| P2-8 · PWA · `/m` sem max-width | pendente (sem mockup — mecânico) |
-| P3-2 · Site · escala tipográfica própria | pendente (sem mockup — mecânico) |
+| P2-8 · PWA · `/m` sem max-width | **concluído (PR #164)** |
+| P3-2 · Site · escala tipográfica própria | **concluído (PR #164, exceção documentada)** |
 | P3-3 · Site · superfície escura não documentada | pendente (sem mockup — mecânico) |
 | P3-4 · PWA · `.mobile-input` duplicado | pendente (sem mockup — mecânico) |
 | P3-5 · PWA · filete de fonte 4px vs 2px | pendente (sem mockup — mecânico) |
@@ -929,3 +929,51 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P2-8** (PWA · casca do `/m` sem `max-width`) —
   mecânico, sem mockup necessário.
+
+## Rodada 22 — P2-8 e P3-2 implementados, no mesmo PR; P3-1 corrigido na tabela-resumo (já estava concluído desde a Rodada 2)
+
+**Data:** 2026-09-11 · **Sessão:** nova sessão, a pedido do dono do projeto ("faça P2-8, P3-1,
+P3-2").
+
+### O que foi feito
+
+- **Tabela-resumo corrigida antes de tudo:** `P3-1` estava marcado `pendente` na tabela, mas o
+  texto da Rodada 2 já registrava que P0-1 tinha resolvido P3-1 junto (token `--vinho` removido
+  de `app/page.tsx`) — confirmado ao vivo (`grep` por `vinho`/`atencao` em `app/page.tsx` não
+  retorna nada). Divergência entre tabela e texto de rodada: por regra deste arquivo, o texto da
+  rodada mais recente vence — tabela corrigida para `concluído (resolvido junto com P0-1, PR
+  #144)`. Nenhum código mudou por causa disso, só o resumo.
+- **P2-8 implementado.** `app/m/layout.tsx`: `<main className="pb-20 min-h-screen">` virou
+  `<main className="pb-20 min-h-screen max-w-md mx-auto">`, exatamente a correção da ficha —
+  cabeçalho (`sticky`) e barra inferior (`fixed`, `MobileBottomNav.tsx`) continuam full-bleed de
+  propósito (a própria ficha permite isso: "deixar só cabeçalho/nav fixos com largura total, se
+  isso for intencional"), só o conteúdo (listas, formulários, resumo) ganha teto de largura —
+  um administrador acessando `/m` num tablet/desktop deixa de ver formulário/lista esticado
+  full-bleed.
+- **P3-2 implementado como exceção documentada, não como sweep de conversão.** A ficha oferece
+  duas saídas: encaixar os valores na escala 24/16/14/12px do DESIGN.md "onde fizer sentido", ou
+  documentar formalmente a exceção (mesmo padrão já usado pra exceção Lora do blog,
+  `app/blog/layout.tsx`). Escolhida a segunda: os 21 valores arbitrários encontrados
+  (`text-[9.5px]`/`11px`/`13px`/`15px`/`26px`/`30px`, mais o hero em `clamp()`) em `app/page.tsx`
+  (17), `app/blog/page.tsx` (3) e `app/blog/[slug]/page.tsx` (2) não são resquício acidental —
+  são a hierarquia visual da landing/blog que já foi validada visualmente rodada a rodada neste
+  mesmo roteiro (P0-1, P0-2, P1-1, P2-1, P0-5). Convergê-los pra 24/16/14/12 teria alterado essa
+  hierarquia já aprovada sem pedido nem revalidação do dono do projeto — risco maior que o
+  problema descrito na ficha (que é falta de documentação da exceção, não um bug visual). Comentário
+  novo em `app/page.tsx` (antes de `export const dynamic`) documenta a exceção nos mesmos termos
+  da exceção Lora; `app/blog/page.tsx` e `app/blog/[slug]/page.tsx` ganharam um comentário-ponteiro
+  curto de volta pra esse texto, em vez de duplicar a explicação inteira três vezes.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados/não versionados no working tree — `docs/gauntlet/*`,
+  `lib/roboBridge.ts`, `DESIGN.md`, `PRODUCT.md`, `components/BancadaMenu.tsx`,
+  `components/NavModeToggle.tsx`, `dist/` etc. — ficaram de fora do `git add`, sem alteração):
+  `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 4 arquivos alterados limpo, `next
+  build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/164**, branch
+  `fix/p2-8-p3-2-max-width-tipografia` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P3-3** (Site · superfície escura não documentada
+  e `black` cru) — mecânico, sem mockup necessário.

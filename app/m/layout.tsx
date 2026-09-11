@@ -148,7 +148,7 @@ export default async function MobileLayout({ children }: { children: React.React
         </header>
       </div>
 
-      <main className="pb-20 min-h-screen">{children}</main>
+      <main className="pb-20 min-h-screen max-w-md mx-auto">{children}</main>
 
       <MobileBottomNav todayAgendaCount={todayAgendaCount} modules={modules} />
       <InstallPrompt />
