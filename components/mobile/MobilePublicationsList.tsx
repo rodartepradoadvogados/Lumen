@@ -66,7 +66,7 @@ export default function MobilePublicationsList({
     <>
       <div className="divide-y divide-regua">
         {visible.map((g) => (
-          <div key={g.key} className={`border-l-4 ${sourceBorderColor(g.primary.source)} bg-sf`}>
+          <div key={g.key} className={`border-l-2 ${sourceBorderColor(g.primary.source)} bg-sf`}>
             <MobilePublicationCard group={g} users={users} />
           </div>
         ))}

@@ -137,9 +137,9 @@ export default function MobileLicitacaoDetail({
         </div>
         {taskFormOpen && (
           <form action={handleNewTask} className="mb-2 p-2.5 bg-sf-apoio space-y-2">
-            <input name="title" required placeholder="Título da tarefa" className="lic-mobile-input" />
-            <input name="dueDate" type="date" required className="lic-mobile-input" />
-            <select name="responsibleId" defaultValue="" className="lic-mobile-input">
+            <input name="title" required placeholder="Título da tarefa" className="mobile-input" />
+            <input name="dueDate" type="date" required className="mobile-input" />
+            <select name="responsibleId" defaultValue="" className="mobile-input">
               <option value="">Sem responsável</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>
@@ -261,8 +261,6 @@ export default function MobileLicitacaoDetail({
         </div>
         <CommentBox licitacaoId={licitacao.id} users={users} />
       </Card>
-
-      <style>{`.lic-mobile-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.5rem 0.7rem; font-size:0.85rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
     </>
   );
 }

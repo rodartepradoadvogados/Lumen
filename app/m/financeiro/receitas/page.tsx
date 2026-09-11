@@ -68,13 +68,13 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
           <label className="text-[13px] font-medium text-tx-2 block mb-1">
             De {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
           </label>
-          <input type="date" name="from" defaultValue={from} className="mob-fin-input" />
+          <input type="date" name="from" defaultValue={from} className="mobile-input" />
         </div>
         <div className="flex-1 min-w-0">
           <label className="text-[13px] font-medium text-tx-2 block mb-1">
             Até {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
           </label>
-          <input type="date" name="to" defaultValue={to} className="mob-fin-input" />
+          <input type="date" name="to" defaultValue={to} className="mobile-input" />
         </div>
         <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-2 shrink-0 transition-colors">
           Filtrar
@@ -151,10 +151,6 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
           </div>
         )}
       </Card>
-      <style>{`
-        .mob-fin-input { width: 100%; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.6rem; font-size: 0.8rem; background-color: var(--sf-superficie); color: var(--tx); }
-        .mob-fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </div>
   );
 }

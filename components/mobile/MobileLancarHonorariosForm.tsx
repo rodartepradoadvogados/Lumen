@@ -747,24 +747,6 @@ export default function MobileLancarHonorariosForm({
           <Send size={14} /> {loading ? "Salvando..." : "Salvar lançamento"}
         </button>
       </div>
-
-      <style jsx global>{`
-        .mobile-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          border: 1px solid var(--regua-forte);
-          border-radius: 0.3125rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          background-color: var(--sf-superficie);
-          color: var(--tx);
-        }
-        .mobile-input:focus {
-          outline: none;
-          border-color: var(--acao);
-          box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
-        }
-      `}</style>
     </form>
   );
 }

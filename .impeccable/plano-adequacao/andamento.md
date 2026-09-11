@@ -44,9 +44,9 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P2-7 · PWA · publicações sem paginação | **concluído (PR #163)** |
 | P2-8 · PWA · `/m` sem max-width | **concluído (PR #164)** |
 | P3-2 · Site · escala tipográfica própria | **concluído (PR #164, exceção documentada)** |
-| P3-3 · Site · superfície escura não documentada | pendente (sem mockup — mecânico) |
-| P3-4 · PWA · `.mobile-input` duplicado | pendente (sem mockup — mecânico) |
-| P3-5 · PWA · filete de fonte 4px vs 2px | pendente (sem mockup — mecânico) |
+| P3-3 · Site · superfície escura não documentada | **concluído (PR #165)** |
+| P3-4 · PWA · `.mobile-input` duplicado | **concluído (PR #165)** |
+| P3-5 · PWA · filete de fonte 4px vs 2px | **concluído (PR #165)** |
 
 **Todos os 7 itens 🎨 da crítica de UX estão validados em 2026-09-10.** Os 16 itens novos vindos
 do `$impeccable audit` (2026-09-10) são todos mecânicos/técnicos — nenhum exige validação visual,
@@ -977,3 +977,59 @@ P3-2").
 
 - Nenhuma. Próximo item da ordem de execução: **P3-3** (Site · superfície escura não documentada
   e `black` cru) — mecânico, sem mockup necessário.
+
+## Rodada 23 — P3-3, P3-4 e P3-5 implementados, no mesmo PR — roteiro P0-P3 completo
+
+**Data:** 2026-09-11 · **Sessão:** nova sessão, a pedido do dono do projeto ("faça P3-3, P3-4 e
+P3-5").
+
+### O que foi feito
+
+- **P3-3 implementado** em `app/page.tsx`: `bg-grafite-900` (seção 5, faixa "93 tribunais") virou
+  `bg-grafite-800` — a única superfície escura fixa realmente documentada no DESIGN.md (Ardósia
+  Noturna). `hover:bg-black` (CTA "Começar agora" do fecho em pôster) virou `hover:bg-grafite-900`
+  — não é o valor cravado `#000` fora de qualquer token, é o próximo degrau já existente na escala
+  `grafite` do `tailwind.config.ts` (300/500/700/800/900), reaproveitado só pro estado de hover
+  sobre o `bg-grafite-800` do botão (a própria ficha permitia "ou outro valor de token" para esse
+  caso específico).
+- **P3-4 implementado**, com escopo um pouco maior que a citação literal da ficha: o bloco
+  `.mobile-input` (raio `0.3125rem`/5px, entre os tokens `sm` 4px e `md` 6px do DESIGN.md) estava
+  duplicado como `<style jsx global>`/`<style>` inline em **8 arquivos** — os 5 que a ficha cita
+  com o nome exato (`MobileLancarHonorariosForm.tsx`, `MobileNewPayableForm.tsx`,
+  `MobileNewReceivableForm.tsx`, `MobileNewTaskForm.tsx`, `MobileSettleForm.tsx`) mais 3 que já
+  tinham divergido de nome desde a auditoria (`app/m/financeiro/despesas/page.tsx` e
+  `receitas/page.tsx` usavam `.mob-fin-input`; `MobileLicitacaoDetail.tsx` usava
+  `.lic-mobile-input`) — mesmo bug (raio fora da escala), 3 nomes de classe diferentes, ainda mais
+  divergência do que a ficha registrou. Extraído para uma única regra `.mobile-input`/
+  `.mobile-input:focus` em `app/globals.css` (raio `0.375rem` = `rounded-md`, 6px, o token
+  documentado pra input), removidas as 8 declarações locais, e os 3 nomes de classe divergentes
+  renomeados para `mobile-input` nos elementos que os usavam — agora há 1 definição, não 8, e
+  todos os 8 arquivos convergem pro mesmo visual (padding/tamanho de fonte levemente maiores nos
+  3 que eram mais compactos; o de licitação ganhou o estado `:focus` que não tinha antes, de
+  graça). Não tocado: a duplicação equivalente do lado **desktop** (`.fin-input`/`.cfg-input`/
+  `.fp-input`/`.pr-input`/`.doc-input`/`.lic-input` em `app/(app)/*` e outros `components/*`,
+  raio `0.3125rem` idêntico) — fora do escopo desta ficha, que cita só os 8 arquivos do PWA;
+  registrado aqui como problema real, não perdido, caso vire item próprio de uma futura rodada de
+  crítica.
+- **P3-5 implementado**: a ficha citava `app/m/publicacoes/page.tsx:97`, mas esse trecho migrou
+  pra `components/mobile/MobilePublicationsList.tsx` na Rodada 21 (P2-7, extração da lista pra
+  componente próprio com paginação) — `border-l-4` (4px) nessa linha virou `border-l-2` (2px),
+  batendo com o filete de 2px que `08-pwa.md` especifica pro caso de indicar fonte à esquerda.
+- Verificação técnica local do `CLAUDE.md` rodada com a mudança isolada por commit (arquivos
+  alheios já modificados/não versionados no working tree — `docs/gauntlet/*`,
+  `lib/roboBridge.ts`, `DESIGN.md`, `PRODUCT.md`, `components/BancadaMenu.tsx`,
+  `components/NavModeToggle.tsx`, `dist/` etc. — ficaram de fora do `git add`, sem alteração):
+  `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 10 arquivos `.tsx` alterados limpo (o
+  décimo primeiro arquivo, `app/globals.css`, não é alvo de ESLint), `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/165**, branch
+  `fix/p3-3-p3-4-p3-5-cores-mobile-input-filete` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. **Todos os itens P0-P3 do roteiro (`roteiro-de-adequacao.md`) estão concluídos** — só
+  resta o "Backlog" (achados menores sem severidade atribuída, ver seção própria do roteiro),
+  "oportunisticamente" por definição, sem próximo item fixo na ordem de execução. A duplicação de
+  input no lado desktop (achada durante o P3-4 desta rodada, não coberta pela ficha) fica
+  registrada acima como candidata a um item novo numa futura rodada de crítica, não como
+  pendência deste roteiro.
