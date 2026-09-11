@@ -75,7 +75,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
       <div className="flex items-center gap-4">
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="relative h-20 w-20 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xl font-bold shrink-0 cursor-pointer overflow-hidden group"
+          className="relative h-20 w-20 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-xl font-bold shrink-0 cursor-pointer overflow-hidden group"
         >
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

@@ -122,7 +122,7 @@ export default function TeamMonitorPanel({
   return (
     <div className="relative" ref={ref}>
       <button onClick={handleOpen} className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
+        <div className="h-8 w-8 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photoUrl} alt="" className="h-full w-full object-cover" />
@@ -144,7 +144,7 @@ export default function TeamMonitorPanel({
               (vinho, separado por régua). O bloco "Modo de visualização" saiu — Régua/Bancada
               não existem mais, ver components/AppShell.tsx e documento 02 do handoff. */}
           <div className="flex items-center gap-2.5 px-3 py-3 border-b border-regua">
-            <div className="h-9 w-9 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
+            <div className="h-9 w-9 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
               {photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={photoUrl} alt="" className="h-full w-full object-cover" />

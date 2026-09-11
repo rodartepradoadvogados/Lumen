@@ -48,7 +48,7 @@ export function UndoToastProvider({ children }: { children: React.ReactNode }) {
             <span className="text-sm">{toast.message}</span>
             <button
               onClick={handleUndo}
-              className="flex items-center gap-1 text-sm font-semibold text-marca hover:opacity-80 shrink-0"
+              className="flex items-center gap-1 text-sm font-semibold text-rail-marca hover:opacity-80 shrink-0"
             >
               <Undo2 size={14} /> Desfazer
             </button>

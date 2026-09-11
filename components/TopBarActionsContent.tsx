@@ -63,7 +63,7 @@ export default function TopBarActionsContent({
           />
         ) : (
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-xs font-semibold">
+            <div className="h-8 w-8 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-xs font-semibold">
               {initials}
             </div>
             <div className="hidden md:block leading-tight">

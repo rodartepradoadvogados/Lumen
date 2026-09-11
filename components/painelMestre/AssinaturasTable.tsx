@@ -299,10 +299,13 @@ export default function AssinaturasTable({ offices, asaasConfigured }: { offices
                       )}
                     </td>
                     <td className="px-3 py-3 align-top text-right">
+                      {/* P0-5: text-marca sobre o grafite-800 do LumenPanel (achado geral do
+                          $impeccable audit) media ~2,16:1, mesma falha WCAG AA do CTA da home —
+                          text-rail-marca é a variante clara do bordô, fixa nos dois temas. */}
                       <button
                         type="button"
                         onClick={() => (isEditing ? setEditingId(null) : openEdit(o))}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-marca hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-rail-marca hover:underline"
                       >
                         {isEditing ? <X size={13} /> : <Pencil size={13} />}
                         {isEditing ? "Cancelar" : "Editar"}

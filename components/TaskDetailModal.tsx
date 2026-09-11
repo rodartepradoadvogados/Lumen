@@ -245,7 +245,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                 <div className="space-y-3 max-h-56 overflow-y-auto scrollbar-thin">
                   {task.comments.map((cm) => (
                     <div key={cm.id} className="flex gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-grafite-800 text-marca flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-[10px] font-bold shrink-0">
                         {cm.authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                       </div>
                       <div className="min-w-0">

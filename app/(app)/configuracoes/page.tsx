@@ -283,14 +283,16 @@ export default async function ConfiguracoesPage({
                       : "text-white/70 font-medium border-transparent hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <Icon size={16} className={active ? "text-marca" : "text-white/45"} />
+                  {/* P0-5: text-marca sobre bg-grafite-800 (aside acima) mede ~2,16:1, reprova
+                      WCAG AA — text-rail-marca é a variante clara do bordô fixa nos dois temas. */}
+                  <Icon size={16} className={active ? "text-rail-marca" : "text-white/45"} />
                   {s.label}
                 </Link>
               );
             })}
           </nav>
           <div className="px-4 py-4 border-t border-white/10 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-white/10 text-marca flex items-center justify-center text-xs font-bold shrink-0">
+            <div className="h-8 w-8 rounded-full bg-white/10 text-rail-marca flex items-center justify-center text-xs font-bold shrink-0">
               {viewerInitials}
             </div>
             <div className="min-w-0">

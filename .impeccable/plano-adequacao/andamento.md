@@ -32,7 +32,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P2-1 · Site · plano recomendado | **concluído (PR #157)** |
 | P2-2 · PWA · menu "+" / checklist | **concluído (PR #157)** |
 | P3-1 · Site · token vinho | pendente (resolve junto com P0-1) |
-| P0-5 · Site · contraste do CTA | pendente (sem mockup — mecânico) |
+| P0-5 · Site · contraste do CTA | **concluído (PR #161)** |
 | P1-7 · PWA · label sem htmlFor | **concluído (PR #152, merge manual)** |
 | P1-8 · PWA · erro sem aria-live | **concluído (PR #154)** |
 | P1-9 · Site · alvo de toque nav/rodapé | **concluído (PR #155)** |
@@ -842,3 +842,46 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P0-5** (Site · CTA de fechamento reprova
   contraste WCAG AA) — mecânico, sem mockup necessário.
+
+## Rodada 19 — P0-5 implementado (escopo maior que a ficha: achado sistêmico, não 2 linhas)
+
+- **Escopo revisado antes de aplicar**: a ficha nomeia só 2 linhas (`app/page.tsx`,
+  `app/blog/page.tsx`), mas o próprio critério de aceite da ficha ("nenhum outro uso de
+  `text-marca` sobre fundo `grafite-800`/`bg-marca` escuro") obrigava a varrer o resto do
+  código. Medido: `text-marca` (bordô `#8a2f42`) sobre `bg-grafite-800`/`bg-grafite-700`
+  (`#16191d`/próximo) dá **~2,16:1** ao vivo — a mesma falha WCAG AA (precisa 4,5:1) nas duas
+  linhas da ficha, achada em **20 pontos a mais**, em 17 arquivos, a maioria círculos de
+  iniciais de avatar e ícones de navegação sobre chrome fixo escuro. Inclusive dentro do
+  Painel da Empresa (`components/painelMestre/LumenUi.tsx`), cujo próprio comentário afirma
+  que os tokens semânticos "já foram escolhidos pra funcionar sobre grafite escuro" — o que
+  vale para `--aviso`/`--urgente`/`--concluido`, mas não para `--marca` na prática (mesmo
+  ~2,16:1 medido ali).
+- **Correção**: `text-marca` → `text-rail-marca` (variante clara do bordô, `--rail-marca`
+  `#c9707f`, fixa nos dois temas — DESIGN.md já a documenta pra exatamente este caso: bordô
+  como texto sobre superfície fixa escura) em todos os 20 pontos, exceto o CTA da home
+  (`app/page.tsx`), que foi pra `text-acao-tx` (creme) por já estar ao lado do botão primário
+  do hero com o mesmo tom, e a linha do Painel da Empresa que empilhava `bg-marca-bg` (badge
+  "Sócio", `LumenTopStrip.tsx`) — trocada pro par `bg-rail-marca-bg`/`text-rail-marca` que o
+  `NavRail.tsx` já usa pro mesmo caso, em vez de inventar um par novo.
+- Arquivos: `app/page.tsx`, `app/blog/page.tsx`, `app/(app)/configuracoes/page.tsx`,
+  `app/m/configuracoes/page.tsx`, `app/m/layout.tsx`, `app/m/mais/page.tsx`,
+  `app/m/processos/[id]/page.tsx`, `components/BulkSettleBar.tsx`,
+  `components/ClaudeAssistantWidget.tsx`, `components/EditProfileForm.tsx`,
+  `components/TaskDetailModal.tsx`, `components/TeamMonitorPanel.tsx`,
+  `components/TopBarActionsContent.tsx`, `components/UndoToastProvider.tsx`,
+  `components/mobile/MobileThemeToggle.tsx`, `components/painelMestre/AssinaturasTable.tsx`,
+  `components/painelMestre/LumenTopStrip.tsx`.
+- Fora do escopo, confirmado por inspeção: `components/NoticesPanel.tsx:143` (`text-marca` sobre
+  card `bg-sf` claro, não escuro) e todo par `bg-marca-bg`/`text-marca-tx` (o badge "gold"
+  padrão, já correto — `--marca-bg` é um tingimento claro, não a superfície escura sólida que a
+  ficha aponta).
+- Verificação técnica local: `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 17
+  arquivos alterados limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/161**, branch
+  `fix/p0-5-contraste-marca-sobre-escuro` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2-6** (Site · banner de cookies sem
+  ARIA/região viva) — mecânico, sem mockup necessário.

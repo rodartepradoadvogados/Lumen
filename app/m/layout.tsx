@@ -119,7 +119,7 @@ export default async function MobileLayout({ children }: { children: React.React
             <Link
               href="/m/alertas"
               aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
-              className="relative h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
+              className="relative h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
             >
               <Bell size={16} />
               {totalAlerts > 0 && (
@@ -136,7 +136,7 @@ export default async function MobileLayout({ children }: { children: React.React
             <Link
               href="/m/mais"
               aria-label="Menu"
-              className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-marca hover:bg-white/10 transition-colors"
+              className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
             >
               <Menu size={18} />
             </Link>
