@@ -9,6 +9,10 @@ import LumenMark from "@/components/LumenMark";
 // request (searchParams só é conhecido em tempo de requisição), então não há cache de borda a
 // ganhar aqui de qualquer forma. Ver app/blog/[slug]/page.tsx (ISR de verdade) e app/page.tsx
 // (cache da consulta ao banco) para os outros dois pontos do mesmo achado do $impeccable audit.
+//
+// P3-2: os tamanhos de fonte arbitrários aqui (11px) fazem parte da exceção de escala
+// tipográfica do site público documentada em app/page.tsx — ver o comentário lá antes de
+// convergir esses valores pra escala 24/16/14/12 do DESIGN.md.
 
 export const metadata = {
   title: "Blog Jurídico | Lúmen",

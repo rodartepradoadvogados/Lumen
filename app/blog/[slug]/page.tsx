@@ -13,6 +13,10 @@ import { ArrowLeft } from "lucide-react";
 // existe hoje neste fluxo.
 export const revalidate = 300;
 
+// P3-2: os tamanhos de fonte arbitrários aqui (11/15px) fazem parte da exceção de escala
+// tipográfica do site público documentada em app/page.tsx — ver o comentário lá antes de
+// convergir esses valores pra escala 24/16/14/12 do DESIGN.md.
+
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 
 // NOTA (multi-tenant): esta é uma página PÚBLICA (sem usuário logado). O Blog Jurídico é
