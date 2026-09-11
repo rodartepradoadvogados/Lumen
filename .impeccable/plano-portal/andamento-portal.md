@@ -286,3 +286,35 @@ escopo, deliberadamente adiados (ver Rodada 0). O plano do site público (`plano
 descartado durante o `grilling` desta rodada) fica disponível para retomar como rodada própria,
 se o dono do projeto quiser — agora informado pelo que foi aprendido aqui (ex.: tipografia
 Barlow/Barlow Condensed, se deve ou não se estender ao site).
+
+## Rodada 6 — tipografia revertida para Inter
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão das Rodadas 1-5, depois de ver o roteiro
+completo no ar. Feedback direto do dono do projeto: "Vamos regressar à Tipografia anterior,
+INTER. Essa não ficou boa."
+
+### O que foi feito
+
+- Barlow/Barlow Condensed removidas — `.portal-shell` deixa de redefinir `--font-sans` (volta a
+  herdar Inter do layout raiz); `--font-display` passa a apontar pra `--font-sans` em vez de
+  Barlow Condensed. `app/(app)/layout.tsx` não carrega mais as duas fontes via
+  `next/font/google`.
+- **Nenhum componente precisou de edição** — `font-display` continua na classe de
+  `NavRail`/`PendingListModal`/`PublicationsTriage`/`processos/[id]/page.tsx`, só o que a
+  variável resolve mudou. Mesma vantagem de desenho em token que já tinha valido a pena na
+  Rodada 3 (raio).
+- `DESIGN.md` corrigido: tipografia agora documenta Inter; aproveitado pra corrigir também a
+  descrição do raio, que ainda dizia "aplicado por componente" (texto desatualizado desde a
+  descoberta da Rodada 3 — o mecanismo real é o seletor descendente).
+- Verificação técnica local isolada (mesma técnica): `tsc --noEmit` limpo, `eslint` limpo,
+  `next build` **exit 0** (bundle levemente menor, sem as duas fontes Barlow).
+- Gate fechou limpo → **mergeado automaticamente pelo Claude**, PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/172**, branch
+  `fix/portal-tipografia-inter` removida (local + remoto).
+- **Decisão mantida:** tema escuro por padrão, paleta aproximada do Dracula, raio quase reto
+  (2px) e glow reservado — nenhuma dessas foi questionada, só a tipografia.
+
+### Pendente
+
+- Nenhuma. Plano do portal encerrado nesta rodada — próximo passo é o PWA mobile (`/m`),
+  pedido explícito do dono do projeto na mesma mensagem, tratado como plano próprio.
