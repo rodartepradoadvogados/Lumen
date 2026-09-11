@@ -24,7 +24,16 @@ export default function CookieConsent() {
   if (!visible) return null;
 
   return (
-    <div className="fixed left-4 right-4 bottom-4 md:left-auto md:right-6 md:bottom-6 md:max-w-sm z-50 bg-grafite-800 text-neutro-100 p-5 shadow-modal">
+    // P2-6 do roteiro de adequação: aparece via mudança de estado client-side sem role/aria-live
+    // — leitor de tela não era avisado que um elemento interativo novo apareceu na tela (WCAG
+    // 4.1.3, Status Messages). role="region" + aria-label dão o "o que é"; aria-live="polite"
+    // dá o "algo novo apareceu", sem interromper o que a tecnologia assistiva já estava lendo.
+    <div
+      role="region"
+      aria-label="Aviso de cookies"
+      aria-live="polite"
+      className="fixed left-4 right-4 bottom-4 md:left-auto md:right-6 md:bottom-6 md:max-w-sm z-50 bg-grafite-800 text-neutro-100 p-5 shadow-modal"
+    >
       <p className="text-xs leading-relaxed text-neutro-300">
         Usamos cookies essenciais para o site funcionar e, com sua permissão, cookies de análise. Veja a{" "}
         <Link href="/privacidade" className="text-white underline underline-offset-2">
