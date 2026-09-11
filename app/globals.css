@@ -624,3 +624,45 @@ input[type="radio"] {
   color: var(--tx);
   color-scheme: light;
 }
+
+/* Portal Noturno — raio quase reto (2px), escopado por SELETOR DESCENDENTE em vez de token: o
+   raio do Tailwind (tailwind.config.ts) compila para px fixo, não var(--...), então não dá pra
+   sobrescrever redefinindo uma custom property em `.portal-shell` (funciona para cor/fonte, ver
+   acima, mas não para isto). `.portal-shell .rounded-lg` (duas classes) tem mais especificidade
+   que `.rounded-lg` (uma classe) sozinho, então vence sem precisar tocar a className de nenhum
+   componente — Card, PendingListModal, NavRail, StatCard, qualquer coisa que já use `rounded-*`
+   dentro do portal já renderiza em 2px, mesmo os componentes compartilhados por módulos ainda não
+   redesenhados nas próximas rodadas (mesmo efeito colateral esperado do fundo/fonte, já
+   documentado em DESIGN.md). `rounded-full` fica de fora de propósito — pílula/avatar continuam
+   circulares, mesma regra do CowData ("pílulas 999px, círculos 50%"). */
+.portal-shell .rounded-sm,
+.portal-shell .rounded,
+.portal-shell .rounded-md,
+.portal-shell .rounded-lg,
+.portal-shell .rounded-xl,
+.portal-shell .rounded-2xl,
+.portal-shell .rounded-3xl {
+  border-radius: 2px;
+}
+
+/* Único glow do sistema (--concluido-glow, ver .portal-shell acima) — reservado a um indicador
+   "isto está acontecendo agora" por tela, não decoração espalhada. Primeiro uso: publicações não
+   lidas no Painel (app/(app)/painel/page.tsx). */
+.portal-shell .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--concluido);
+  box-shadow: var(--concluido-glow);
+  display: inline-block;
+  animation: portal-live-pulse 2s ease-in-out infinite;
+}
+@keyframes portal-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-shell .live-dot {
+    animation: none;
+  }
+}

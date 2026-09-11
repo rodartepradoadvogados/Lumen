@@ -232,9 +232,17 @@ export default async function DashboardPage() {
             <CardHeader
               title={`Publicações não lidas — ${unreadGroups.length}`}
               action={
-                <Link href="/publicacoes" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
-                  Triar <ArrowRight size={13} strokeWidth={1.5} />
-                </Link>
+                <div className="flex items-center gap-3">
+                  {/* Indicador "ao vivo" (Portal Noturno, DESIGN.md) — único glow do sistema,
+                      reservado a este ponto: publicações chegam sozinhas (DJEN/Datajud), então é
+                      o lugar certo pra dramatizar "isto está acontecendo agora", não decoração. */}
+                  {unreadGroups.length > 0 && (
+                    <span className="live-dot" aria-hidden="true" title="Publicações chegam automaticamente" />
+                  )}
+                  <Link href="/publicacoes" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
+                    Triar <ArrowRight size={13} strokeWidth={1.5} />
+                  </Link>
+                </div>
               }
             />
             <div className="divide-y divide-regua">
@@ -259,7 +267,7 @@ export default async function DashboardPage() {
             label="Minhas atrasadas"
             value={String(myOverdueTasks.length)}
             accentClassName="border-t-urgente"
-            valueClassName="text-[34px] leading-none font-extrabold text-urgente"
+            valueClassName="font-display text-[34px] leading-none font-extrabold text-urgente"
             title="Minhas Atrasadas"
             icon={<Clock size={15} strokeWidth={1.5} />}
             iconClassName="bg-urgente-bg text-urgente"
@@ -376,7 +384,7 @@ export default async function DashboardPage() {
               <span className="h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0 bg-sf-apoio text-tx-2">
                 <Filter size={15} strokeWidth={1.5} />
               </span>
-              <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
+              <p className="font-display text-[11px] font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
             </div>
             <div className="mt-2.5 space-y-1.5">
               {funilHoje.length === 0 && <p className="text-sm text-tx-2">Nenhum follow-up para hoje.</p>}

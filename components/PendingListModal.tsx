@@ -16,7 +16,9 @@ export default function PendingListModal({
   label,
   value,
   accentClassName = "border-t-regua-forte",
-  valueClassName = "text-[26px] leading-none font-extrabold text-tx",
+  // Portal Noturno (DESIGN.md): font-display (Barlow Condensed) — usado só aqui, PendingListModal
+  // não é reaproveitado por nenhuma outra tela hoje.
+  valueClassName = "font-display text-[26px] leading-none font-extrabold text-tx",
   title,
   icon,
   iconClassName,
