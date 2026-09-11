@@ -179,7 +179,10 @@ function RailButton({
       onClick={onClick}
       data-tip={label}
       className={clsx(
-        "relative w-full flex flex-col items-center gap-0.5 py-2.5 rounded-md transition-colors",
+        // Portal Noturno (DESIGN.md): raio quase reto (2px), não o rounded-md (6px) do resto do
+        // produto — exceção documentada, aplicada por componente (ver comentário em
+        // tailwind.config.ts sobre por que não dá pra escopar por token aqui).
+        "relative w-full flex flex-col items-center gap-0.5 py-2.5 rounded-[2px] transition-colors",
         active
           ? // Item ativo — pílula (proposta "Editorial fino"/"Pílula bordô" de 2026-08, ver
             // docs/DESIGN-SYSTEM.md): fundo bordô suave + ícone/rótulo na cor de marca, no lugar
@@ -196,7 +199,9 @@ function RailButton({
           </span>
         )}
       </span>
-      <span className="hidden lg:block text-[8px] leading-none">{label}</span>
+      {/* Barlow Condensed (Portal Noturno, DESIGN.md) — rótulo pequeno de navegação é
+          exatamente o papel que a fonte condensada cumpre no CowData (número/rótulo/aba). */}
+      <span className="hidden lg:block font-display font-semibold text-[9px] leading-none tracking-wide">{label}</span>
     </Link>
   );
 }

@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { ChevronDown, User, LogOut, X, MessageSquare } from "lucide-react";
 import { fetchTeamSummaries, fetchUserHistory } from "@/lib/actions/timesheet";
 import { fetchNotices, type SerializedNotice } from "@/lib/actions/notices";
-import ThemeToggle from "@/components/ThemeToggle";
+import PortalThemeToggle from "@/components/PortalThemeToggle";
 import NoticesPanel from "@/components/NoticesPanel";
 import type { TeamSummary, DayHistory } from "@/lib/timesheet";
 
@@ -159,9 +159,14 @@ export default function TeamMonitorPanel({
           </div>
 
           <div className="border-b border-regua">
+            {/* Portal Noturno (DESIGN.md): tema PRÓPRIO do portal, chave rp-portal-theme,
+                padrão Noite — independente do tema do site público (components/ThemeToggle.tsx),
+                que não tem efeito visual aqui dentro. Este menu só aparece dentro do portal
+                (components/TopBarActionsContent.tsx), então mostrar o toggle do site seria
+                confuso: dois controles, só um com efeito. */}
             <MenuBlockLabel>Tema</MenuBlockLabel>
             <div className="px-2.5 pb-2.5">
-              <ThemeToggle variant="segmented" />
+              <PortalThemeToggle variant="segmented" />
             </div>
           </div>
 
