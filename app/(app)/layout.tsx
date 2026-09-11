@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
 import { redirect } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import ClaudeAssistantWidget from "@/components/ClaudeAssistantWidget";
@@ -23,21 +22,6 @@ import { PORTAL_THEME_INIT_SCRIPT } from "@/lib/portalTheme";
 
 // TopBar consulta o banco em toda renderização (alertas, usuário logado) — nunca pré-renderizar estaticamente.
 export const dynamic = "force-dynamic";
-
-// Portal Noturno (DESIGN.md, exceção documentada) — Barlow/Barlow Condensed carregadas aqui,
-// escopadas só ao layout aninhado do portal (Next 14 App Router suporta next/font em qualquer
-// layout, não só no raiz). `--font-sans` do site (Inter, app/layout.tsx) continua intocado fora
-// deste escopo; dentro de `.portal-shell` (ver app/globals.css), --font-sans é redefinido para
-// apontar pra Barlow, e todo componente que já usa `font-sans`/herda a fonte do corpo troca
-// sozinho, sem precisar editar cada um. Barlow Condensed fica disponível como token
-// `--font-display` (tailwind.config.ts: `font-display`) para número/rótulo/aba nas telas do
-// portal.
-const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-barlow" });
-const barlowCondensed = Barlow_Condensed({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-barlow-condensed",
-});
 
 // Manifesto do PWA de desktop (ver app/manifest-desktop.webmanifest/route.ts) — só para estas
 // rotas. As rotas /m continuam com o manifest.ts padrão (app/layout.tsx), inalterado.
@@ -94,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // hidratação, quando o usuário já escolheu Manhã — mesma técnica de anti-flash do tema do
     // site (app/layout.tsx), aqui aplicada a um nó comum (não <html>/<body>), que precisa do
     // aviso suprimido explicitamente para o React não tentar desfazer a classe injetada.
-    <div id="portal-shell" className={`portal-shell ${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>
+    <div id="portal-shell" className="portal-shell" suppressHydrationWarning>
       {/* eslint-disable-next-line react/no-danger -- PORTAL_THEME_INIT_SCRIPT é string 100%
           estática (lib/portalTheme.ts), nenhum dado de usuário entra aqui. */}
       <script dangerouslySetInnerHTML={{ __html: PORTAL_THEME_INIT_SCRIPT }} />

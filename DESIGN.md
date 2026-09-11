@@ -325,16 +325,22 @@ Painel Mestre continuam exatamente como documentado no resto deste arquivo.
   preto puro), referência trazida pelo próprio dono do projeto. Bordô Editorial, régua-em-vez-de-
   sombra e a tríade urgente/aviso/concluído **não mudam** — só a superfície neutra (fundo/
   cartão/régua/texto) e a atmosfera geral.
-- **Tipografia:** Barlow no corpo (substitui Inter só neste escopo, via `--font-sans`
-  redefinido dentro de `.portal-shell`) + Barlow Condensed em número de destaque/rótulo/aba
-  (token `font-display`, `tailwind.config.ts`) — aproximação real da tipografia do outro produto
-  do dono do projeto, CowData (`CowData-Milk/frontend/app/layout.tsx`, confirmado no código-fonte
-  e num print da interface, não inferido de memória).
-- **Raio quase reto (2px)** em vez da escala de três paradas (4/6/10px) — aplicado **por
-  componente**, diretamente nos arquivos tocados em `app/(app)/*` (não é uma variável de tema:
-  `tailwind.config.ts` compila `rounded-*` para px fixo, não para `var(--...)`, então não há como
-  escopar por classe-pai sem editar componente a componente). A regra "Don't dar raio maior que
-  10px" abaixo permanece a regra do resto do produto; a exceção aqui é "menor que 4px", não maior.
+- **Tipografia: Inter** (a mesma do resto do produto — `--font-sans` não é mais redefinido dentro
+  de `.portal-shell`). Chegou a usar Barlow no corpo + Barlow Condensed em número/rótulo/aba
+  (aproximação da tipografia do CowData, outro produto do dono do projeto) entre P1 e P5 — revertido
+  em 2026-09-11 por decisão do dono do projeto ("não ficou boa"). O token `font-display`
+  (`tailwind.config.ts`) continua existindo e sendo usado nos mesmos lugares (número de destaque/
+  rótulo/aba), só que `--font-display` agora resolve para a mesma Inter — não foi preciso remover
+  a classe de nenhum componente, só o que a variável aponta (`app/globals.css`).
+- **Raio quase reto (2px)** em vez da escala de três paradas (4/6/10px) — escopado por **seletor
+  descendente** em `app/globals.css` (`.portal-shell .rounded-lg { border-radius: 2px }` e
+  irmãos `sm`/`md`/`xl`/`2xl`/`3xl`), não por variável de tema (`tailwind.config.ts` compila
+  `rounded-*` para px fixo, não `var(--...)`) nem por edição componente a componente: a
+  especificidade de duas classes já vence uma classe só, então cobre automaticamente qualquer
+  `rounded-*` usado dentro do portal, mesmo em componentes ainda não tocados por uma rodada
+  específica. `rounded-full` fica de fora (pílula/avatar continuam circulares). A regra "Don't dar
+  raio maior que 10px" abaixo permanece a regra do resto do produto; a exceção aqui é "menor que
+  4px", não maior.
 - **Glow reservado** (`--concluido-glow`, sombra difusa verde) a um único uso por tela — hoje só o
   indicador "ao vivo" de publicações não lidas no Painel. Não espalhar, mesma disciplina do
   `--ouro-acento`.
