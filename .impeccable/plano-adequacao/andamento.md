@@ -38,7 +38,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P1-9 · Site · alvo de toque nav/rodapé | **concluído (PR #155)** |
 | P1-10 · Site · heading h1→h3 | **concluído (PR #156)** |
 | P2-3 · Site · blog sem paginação | **concluído (PR #158)** |
-| P2-4 · Site · imagens sem lazy | pendente (sem mockup — mecânico) |
+| P2-4 · Site · imagens sem lazy | **concluído (PR #159)** |
 | P2-5 · Site · force-dynamic sem cache | pendente (sem mockup — mecânico) |
 | P2-6 · Site · cookie banner sem ARIA | pendente (sem mockup — mecânico) |
 | P2-7 · PWA · publicações sem paginação | pendente (sem mockup — mecânico) |
@@ -786,3 +786,22 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P2-4** (Site · imagens do blog sem
   lazy-loading) — mecânico, sem mockup necessário.
+
+## Rodada 17 — P2-4 implementado
+
+- **P2-4 implementado**: `<img>` do blog (`app/blog/page.tsx`, cartões da listagem; `app/blog/
+  [slug]/page.tsx`, imagem de capa da matéria) sem `loading`/`decoding` — achado do `$impeccable
+  audit`. Adicionado `loading="lazy" decoding="async"` nos dois pontos, correção mínima que a
+  ficha já indicava (bypass de `next/image` mantido como estava, `eslint-disable-next-line
+  @next/next/no-img-element` inalterado — trocar para `next/image` exigiria configurar domínio
+  remoto, fora do escopo mecânico deste item).
+- Verificação técnica local: `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 2 arquivos
+  limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/159**, branch
+  `fix/p2-4-blog-lazy-loading` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2-5** (Site · rotas públicas `force-dynamic`
+  sem cache) — mecânico, sem mockup necessário.

@@ -76,7 +76,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
               >
                 {post.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.imageUrl} alt="" className="h-40 w-full object-cover" />
+                  <img src={post.imageUrl} alt="" loading="lazy" decoding="async" className="h-40 w-full object-cover" />
                 )}
                 <div className="p-5 flex-1 flex flex-col gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
