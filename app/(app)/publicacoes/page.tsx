@@ -172,7 +172,7 @@ export default async function PublicacoesPage({
         <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
           <h1 className="text-[26px] font-extrabold text-tx">Publicações</h1>
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[13px] text-tx-2">
+            <span className="font-display text-[13px] text-tx-2">
               DJEN {formatHora(ultimoRunDjen?.startedAt)} · Datajud {formatHora(ultimoRunDatajud?.startedAt)}
             </span>
             <SyncPublicationsButton />
@@ -185,7 +185,7 @@ export default async function PublicacoesPage({
             <Link
               key={chip.key}
               href={qs({ aba: chip.key === "nao-triadas" ? undefined : chip.key })}
-              className={`text-sm font-semibold px-3.5 py-1.5 transition-colors ${
+              className={`font-display text-sm font-semibold px-3.5 py-1.5 transition-colors ${
                 activeChip === chip.key ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 hover:bg-regua"
               }`}
             >
@@ -249,7 +249,7 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
   return (
     <Link
       href={href}
-      className={`text-xs font-semibold px-2.5 py-1.5 transition-colors ${
+      className={`font-display text-xs font-semibold px-2.5 py-1.5 transition-colors ${
         active ? "bg-acao text-acao-tx" : "bg-sf text-tx-2 border border-regua hover:bg-sf-apoio"
       }`}
     >
