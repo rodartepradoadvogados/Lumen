@@ -182,3 +182,40 @@ de `grilling` (ver seção "Origem" acima).
 
 - Nenhuma. Próximo item da ordem de execução: **P3** (Painel/dashboard) —
   `app/(app)/painel/page.tsx`.
+
+## Rodada 3 — P3 implementado (Painel) + descoberta que simplifica P4/P5
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão das Rodadas 1-2, sequência direta.
+
+### O que foi feito
+
+- **Descoberta técnica que muda o mecanismo de raio registrado no roteiro:** em vez de editar
+  `rounded-*` componente a componente (a única opção que P1 tinha identificado), um seletor
+  descendente em `app/globals.css` — `.portal-shell .rounded-lg { border-radius: 2px }` (e
+  irmãos `sm`/`md`/`xl`/`2xl`/`3xl`) — cobre automaticamente QUALQUER uso de `rounded-*` dentro
+  do portal, por especificidade de CSS (duas classes vencem uma). `rounded-full` fica de fora
+  (pílula/avatar continuam circulares). **Isso simplifica P4 e P5:** não será mais necessário
+  caçar e editar cada `rounded-*` das telas de Publicações/Processo — já herdam o raio certo
+  sozinhas a partir deste merge, mesmo efeito de herança automática que cor/fonte já tinham
+  desde P1.
+- **P3 implementado**:
+  - `components/PendingListModal.tsx`: valor padrão em `font-display` (Barlow Condensed) — o
+    componente só é usado por `app/(app)/painel/page.tsx`, zero efeito em outra tela.
+  - `app/(app)/painel/page.tsx`: indicador "ao vivo" (`.live-dot`, único glow do sistema) ao
+    lado de "Triar" no card de publicações não lidas, só quando há alguma pendente; rótulo do
+    Funil também em `font-display`.
+  - `components/ui.tsx`: só comentário atualizado (nenhuma classe mudou — o mecanismo de raio
+    agora é o seletor descendente acima).
+- Verificação técnica local isolada (mesma técnica das rodadas anteriores): `tsc --noEmit`
+  limpo, `eslint` limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude**, PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/169**, branch
+  `feat/portal-p3-painel` removida (local + remoto).
+- **Efeito colateral já ativo:** qualquer card/botão com `rounded-*` em qualquer módulo de
+  `app/(app)/*` já renderiza em 2px a partir deste merge — mais um passo de coerência visual
+  automática, mesma régua já documentada em DESIGN.md.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P4** (Publicações) —
+  `app/(app)/publicacoes/page.tsx`.
