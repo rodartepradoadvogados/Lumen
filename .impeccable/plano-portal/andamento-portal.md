@@ -102,3 +102,47 @@ de `grilling` (ver seção "Origem" acima).
 - Retomar o plano do site (`plano-redesign/`) como rodada própria depois desta, incorporando o
   que for aprendido aqui (ex.: se a tipografia Barlow/Barlow Condensed for aprovada pro portal,
   decidir separadamente se o site também adota ou fica em Inter).
+
+## Rodada 1 — P1 implementado (fundação: fontes, tokens, tema próprio)
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão da Rodada 0, a pedido do dono do projeto
+("comece a implementação... passo a passo").
+
+### O que foi feito
+
+- **P1 implementado** conforme `roteiro-portal.md`:
+  - `lib/portalTheme.ts` (novo): mecanismo de tema do portal, chave `rp-portal-theme`, padrão
+    `"dark"`, independente de `lib/theme.ts` (site) e do app mobile — mesmo padrão dos dois já
+    serem independentes entre si.
+  - `app/(app)/layout.tsx`: Barlow/Barlow Condensed carregadas via `next/font/google`, escopadas
+    a este layout aninhado (Inter do site intocado); `<AppShell>` envolvido num wrapper
+    `#portal-shell` (`suppressHydrationWarning`, mesma técnica de anti-flash do tema do site,
+    adaptada pra um nó que não é `<html>`/`<body>`) com o script `PORTAL_THEME_INIT_SCRIPT`.
+  - `app/globals.css`: novo bloco `.portal-shell`/`.portal-shell.portal-light`, auto-contido
+    (redeclara os tokens que variam por tema; os que não variam em tema nenhum do produto —
+    bordô, vinho, ouro-acento — continuam herdando de `:root`). `--font-sans` redefinido dentro
+    do escopo pra Barlow — todo componente que já herda a fonte do corpo troca sozinho, zero
+    edição arquivo a arquivo.
+  - `tailwind.config.ts`: token novo `font-display` (Barlow Condensed), só resolve dentro de
+    `.portal-shell`.
+  - `DESIGN.md`: nova seção "Portal Noturno — escopo `app/(app)/*`", documentando o desvio como
+    exceção legítima (mesmo padrão da fonte do blog e da escala do site) — feito no mesmo PR da
+    implementação, não depois.
+- Verificação técnica local isolada (`git stash push -u --keep-index` de tudo mais que já estava
+  em andamento no working tree — `docs/gauntlet/*`, `lib/roboBridge.ts`, `components/
+  BancadaMenu.tsx` etc., restaurado intacto depois via `git stash pop`): `rm -rf .next && tsc
+  --noEmit -p .` limpo, `eslint` nos arquivos alterados limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`,
+  inclusive para `DESIGN.md`), PR **https://github.com/rodartepradoadvogados/Lumen/pull/167**,
+  branch `feat/portal-p1-fundacao` removida (local + remoto). `main` sincronizado via
+  fast-forward (não `reset --hard` — bloqueado pelo classifier de permissão da sessão por ser
+  comando destrutivo; `git merge --ff-only` serviu igual, sem risco).
+- **Efeito colateral já ativo em produção a partir deste merge:** os 12 módulos de `app/(app)/*`
+  ainda não redesenhados (P2-P5) já herdam a paleta escura/fonte Barlow/tema padrão Noite —
+  documentado em `DESIGN.md` e no roteiro como esperado, não regressão. Só não ganham o raio
+  quase reto ainda (é por componente).
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2** (rail + cabeçalho com o alternador
+  Noite/Manhã de verdade) — `components/NavRail.tsx`, `app/(app)/layout.tsx` (topbar).
