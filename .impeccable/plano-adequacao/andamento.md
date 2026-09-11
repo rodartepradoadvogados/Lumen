@@ -40,7 +40,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P2-3 · Site · blog sem paginação | **concluído (PR #158)** |
 | P2-4 · Site · imagens sem lazy | **concluído (PR #159)** |
 | P2-5 · Site · force-dynamic sem cache | **concluído (PR #160)** |
-| P2-6 · Site · cookie banner sem ARIA | pendente (sem mockup — mecânico) |
+| P2-6 · Site · cookie banner sem ARIA | **concluído (PR #162)** |
 | P2-7 · PWA · publicações sem paginação | pendente (sem mockup — mecânico) |
 | P2-8 · PWA · `/m` sem max-width | pendente (sem mockup — mecânico) |
 | P3-2 · Site · escala tipográfica própria | pendente (sem mockup — mecânico) |
@@ -885,3 +885,21 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P2-6** (Site · banner de cookies sem
   ARIA/região viva) — mecânico, sem mockup necessário.
+
+## Rodada 20 — P2-6 implementado
+
+- **P2-6 implementado** (`components/site/CookieConsent.tsx`): o banner aparece via mudança de
+  estado client-side (`useState`/`useEffect`) sem `role`/`aria-live` — leitor de tela não era
+  avisado que um elemento interativo novo apareceu na tela (WCAG 4.1.3, Status Messages). Achado
+  do `$impeccable audit`. Adicionado `role="region" aria-label="Aviso de cookies"
+  aria-live="polite"` no contêiner.
+- Verificação técnica local: `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` no arquivo
+  limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/162**, branch
+  `fix/p2-6-cookie-banner-aria` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2-7** (PWA · lista de publicações sem
+  paginação/virtualização) — mecânico, sem mockup necessário.
