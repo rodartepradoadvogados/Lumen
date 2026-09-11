@@ -31,6 +31,11 @@ const config: Config = {
         // não é removida. Some daqui quando a última referência sair.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         serif: ["var(--font-sans)", "system-ui", "sans-serif"],
+        // Portal Noturno (DESIGN.md, exceção documentada) — Barlow Condensed, só disponível
+        // dentro de `.portal-shell` (app/globals.css), que é quem define `--font-display` de
+        // verdade. Fora desse escopo a variável não existe e o fallback (Inter/system-ui) entra
+        // sozinho — `font-display` nunca deveria ser usado fora de app/(app)/*.
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
       },
       colors: {
         background: "var(--background)",

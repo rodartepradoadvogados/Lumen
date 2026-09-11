@@ -508,3 +508,119 @@ input[type="radio"] {
     border-bottom-color: var(--grafite-800);
   }
 }
+
+/* ============================================================================
+   PORTAL NOTURNO — escopo `.portal-shell` (app/(app)/*, ver app/(app)/layout.tsx).
+   Exceção documentada em DESIGN.md, seção "Portal Noturno — escopo app/(app)/*": tema PRÓPRIO,
+   independente do Manhã/Noite do site (:root/.dark acima, lib/theme.ts) e do PWA
+   (rp-mobile-theme) — mesmo motivo que os dois já são independentes entre si. Padrão é ESCURO
+   (ao contrário do site, que é claro por padrão); Manhã continua disponível via `.portal-light`
+   (lib/portalTheme.ts, chave rp-portal-theme). Decisão registrada em
+   .impeccable/plano-portal/andamento-portal.md (Rodada 0).
+
+   Paleta aproximada do Dracula Theme Official (fundo cinza-arroxeado, não preto puro) e
+   tipografia aproximada do outro produto do dono do projeto, CowData (Barlow no corpo, Barlow
+   Condensed em número/rótulo/aba — confirmado em CowData-Milk/frontend/app/layout.tsx, não
+   inferido). Bordô, régua-em-vez-de-sombra e a tríade urgente/aviso/concluído são os MESMOS
+   valores de marca do resto do Lúmen — só a atmosfera (fundo/linha/fonte) muda aqui, não o
+   vocabulário de cor que já carrega significado ("A Regra da Cor Única", DESIGN.md).
+
+   Auto-contido de propósito: redeclara todo token que também existe em :root/.dark, em vez de
+   confiar na herança deles — o portal tem seu próprio estado de tema (classe `.portal-light`
+   neste nó), que não tem relação nenhuma com a classe `.dark` de <html> (pode haver qualquer
+   combinação das duas, o mecanismo de um não sabe do outro). Tokens que NÃO retematizam em
+   lugar nenhum do produto (--grafite-800, --vinho, --acao/--marca/--acao-hover/--acao-light,
+   --ouro-acento) não são redeclarados aqui: herdam de :root normalmente, porque já têm o mesmo
+   valor em qualquer tema. */
+.portal-shell {
+  --sf-fundo: #1c1a22;
+  --sf-superficie: #242230;
+  --sf-apoio: #2c2939;
+  --regua: #3a3648;
+  --regua-forte: #4a4560;
+
+  --tx: #f1eef7;
+  --tx-2: #a8a3bd;
+  --tx-3: #726d87;
+
+  --acao-bg: rgba(138, 47, 66, 0.2);
+  --marca-tx: #c9707f;
+  --marca-bg: rgba(138, 47, 66, 0.24);
+
+  --rail-tx: #8b949e;
+  --menu-tx: #8b949e;
+  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+
+  --urgente: #e2685a;
+  --urgente-bg: rgba(226, 104, 90, 0.16);
+  --aviso: #d0a02a;
+  --aviso-bg: rgba(208, 160, 42, 0.16);
+  --concluido: #4fb28c;
+  --concluido-bg: rgba(79, 178, 140, 0.16);
+  /* Único glow do sistema por enquanto (P3, indicador "ao vivo" das publicações não lidas no
+     Painel) — reservado, não espalhar (mesma disciplina do --ouro-acento em :root). */
+  --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
+
+  --halo-marca: rgba(138, 47, 66, 0.16);
+  --grain-opacity: 0.05;
+
+  --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
+  --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --sombra-arrasto: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  --background: var(--sf-fundo);
+  --foreground: var(--tx);
+
+  /* Barlow no corpo (sobrescreve --font-sans só dentro deste escopo — nenhum componente precisa
+     trocar a classe `font-sans`, herda sozinho por cascata). Barlow Condensed fica disponível
+     como `font-display` (tailwind.config.ts) para número/rótulo/aba nas telas do portal. */
+  --font-sans: var(--font-barlow), Inter, system-ui, sans-serif;
+  --font-display: var(--font-barlow-condensed), Inter, system-ui, sans-serif;
+  font-family: var(--font-sans);
+
+  background: var(--sf-fundo);
+  color: var(--tx);
+  color-scheme: dark;
+}
+
+.portal-shell.portal-light {
+  --sf-fundo: #f3f2f2;
+  --sf-superficie: #ffffff;
+  --sf-apoio: #eae9e9;
+  --regua: #d7d3d3;
+  --regua-forte: #bab6b6;
+
+  --tx: #201e1d;
+  --tx-2: #605d5d;
+  --tx-3: #9b9797;
+
+  --acao-bg: rgba(138, 47, 66, 0.08);
+  --marca-tx: var(--marca);
+  --marca-bg: rgba(138, 47, 66, 0.15);
+
+  --rail-tx: #9aa3ad;
+  --menu-tx: #aeb6be;
+  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+
+  --urgente: #b3261e;
+  --urgente-bg: rgba(179, 38, 30, 0.1);
+  --aviso: #9a6700;
+  --aviso-bg: rgba(154, 103, 0, 0.12);
+  --concluido: #1c6b52;
+  --concluido-bg: rgba(28, 107, 82, 0.1);
+  --concluido-glow: 0 0 8px rgba(28, 107, 82, 0.4);
+
+  --halo-marca: rgba(138, 47, 66, 0.08);
+  --grain-opacity: 0.035;
+
+  --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
+  --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
+  --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
+
+  --background: var(--sf-fundo);
+  --foreground: var(--tx);
+
+  background: var(--sf-fundo);
+  color: var(--tx);
+  color-scheme: light;
+}
