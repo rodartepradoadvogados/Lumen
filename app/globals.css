@@ -571,12 +571,13 @@ input[type="radio"] {
   --background: var(--sf-fundo);
   --foreground: var(--tx);
 
-  /* Barlow no corpo (sobrescreve --font-sans só dentro deste escopo — nenhum componente precisa
-     trocar a classe `font-sans`, herda sozinho por cascata). Barlow Condensed fica disponível
-     como `font-display` (tailwind.config.ts) para número/rótulo/aba nas telas do portal. */
-  --font-sans: var(--font-barlow), Inter, system-ui, sans-serif;
-  --font-display: var(--font-barlow-condensed), Inter, system-ui, sans-serif;
-  font-family: var(--font-sans);
+  /* Tipografia revertida para Inter (2026-09-11) — Barlow/Barlow Condensed (P1-P5) não ficaram
+     bons, decisão do dono do projeto. `--font-sans` deixa de ser redefinido aqui (herda Inter
+     do layout raiz, app/layout.tsx, normalmente). `--font-display` (tailwind.config.ts,
+     `font-display`) passa a resolver para a mesma Inter — a classe continua nos componentes que
+     já a usam (NavRail, PendingListModal, PublicationsTriage, processos/[id]/page.tsx etc.),
+     sem precisar editar cada um: só muda o que a variável aponta. */
+  --font-display: var(--font-sans);
 
   background: var(--sf-fundo);
   color: var(--tx);
