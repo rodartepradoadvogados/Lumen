@@ -167,6 +167,9 @@ export default async function MobileHome() {
         <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1">
           <span className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-tx-2">
             <Bell size={12} strokeWidth={1.5} /> Central de Alertas
+            {/* Mesmo glow reservado do portal (app/globals.css, ".live-dot") — indicador "isto
+                está acontecendo agora", só quando há alerta pendente de verdade. */}
+            {totalAlerts > 0 && <span className="live-dot" aria-hidden="true" />}
           </span>
           {totalAlerts > 0 && (
             <span className="flex items-center gap-1 text-[13px] font-semibold text-urgente">

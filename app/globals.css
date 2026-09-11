@@ -667,3 +667,98 @@ input[type="radio"] {
     animation: none;
   }
 }
+
+/* ============================================================================
+   PWA NOTURNO — escopo `.mobile-shell` (app/m/*, ver app/m/layout.tsx).
+   Mesmo sistema do Portal Noturno acima (.portal-shell), reaproveitado tal qual — nenhum valor
+   novo, só estendido a uma segunda área logada. Decisão registrada em
+   .impeccable/plano-portal/andamento-portal.md ("PWA (/m) — próxima rodada").
+
+   Diferença deliberada do portal: aqui o PADRÃO continua Manhã (claro) — o PWA é usado por
+   qualquer pessoa em qualquer situação de luz (rua, tribunal, cliente do lado), não só pela
+   equipe interna 8h/dia como o portal. Por isso este bloco só define a variante ESCURA
+   (`.mobile-dark`) — sem ela, `.mobile-shell` sozinho herda normalmente de `:root`, exatamente
+   como o PWA já se comporta hoje. Chave de localStorage própria, "rp-mobile-theme" (já existia,
+   ver lib/theme.ts/MobileThemeToggle.tsx) — só o mecanismo de aplicação mudou: antes alternava a
+   classe global `.dark` em <html> (compartilhada com o site público), agora alterna
+   `.mobile-dark` só neste nó, do mesmo jeito que o portal já não depende de `.dark`. */
+.mobile-shell {
+  /* Único token que o PWA precisa declarar mesmo na Manhã (padrão): nenhuma outra variável do
+     :root muda aqui, mas --concluido-glow não existe em :root/.dark (só dentro de .portal-shell
+     até agora) — sem isto, o .live-dot abaixo renderizaria sem glow nenhum na Manhã. Mesmo valor
+     da variante clara do portal (.portal-shell.portal-light). */
+  --concluido-glow: 0 0 8px rgba(28, 107, 82, 0.4);
+}
+
+.mobile-shell.mobile-dark {
+  --sf-fundo: #1c1a22;
+  --sf-superficie: #242230;
+  --sf-apoio: #2c2939;
+  --regua: #3a3648;
+  --regua-forte: #4a4560;
+
+  --tx: #f1eef7;
+  --tx-2: #a8a3bd;
+  --tx-3: #726d87;
+
+  --acao-bg: rgba(138, 47, 66, 0.2);
+  --marca-tx: #c9707f;
+  --marca-bg: rgba(138, 47, 66, 0.24);
+
+  --rail-tx: #8b949e;
+  --menu-tx: #8b949e;
+  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+
+  --urgente: #e2685a;
+  --urgente-bg: rgba(226, 104, 90, 0.16);
+  --aviso: #d0a02a;
+  --aviso-bg: rgba(208, 160, 42, 0.16);
+  --concluido: #4fb28c;
+  --concluido-bg: rgba(79, 178, 140, 0.16);
+  --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
+
+  --halo-marca: rgba(138, 47, 66, 0.16);
+  --grain-opacity: 0.05;
+
+  --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
+  --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --sombra-arrasto: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  --background: var(--sf-fundo);
+  --foreground: var(--tx);
+
+  background: var(--sf-fundo);
+  color: var(--tx);
+  color-scheme: dark;
+}
+
+/* Raio quase reto (2px) só quando `.mobile-dark` está ativo — mesmo mecanismo de seletor
+   descendente do portal (tailwind compila rounded-* para px fixo, não var(--...), então não dá
+   pra sobrescrever via custom property). `rounded-full` fica de fora (pílula/avatar continuam
+   circulares), mesma exceção do portal. */
+.mobile-shell.mobile-dark .rounded-sm,
+.mobile-shell.mobile-dark .rounded,
+.mobile-shell.mobile-dark .rounded-md,
+.mobile-shell.mobile-dark .rounded-lg,
+.mobile-shell.mobile-dark .rounded-xl,
+.mobile-shell.mobile-dark .rounded-2xl,
+.mobile-shell.mobile-dark .rounded-3xl {
+  border-radius: 2px;
+}
+
+/* Mesmo glow reservado do portal (--concluido-glow acima) — primeiro uso aqui: Central de
+   Alertas do Painel mobile (app/m/page.tsx), quando há alerta pendente. */
+.mobile-shell .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--concluido);
+  box-shadow: var(--concluido-glow);
+  display: inline-block;
+  animation: portal-live-pulse 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell .live-dot {
+    animation: none;
+  }
+}
