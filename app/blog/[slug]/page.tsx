@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         <article className="bg-sf border-t-2 border-regua-forte overflow-hidden">
           {post.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.imageUrl} alt="" className="w-full max-h-80 object-cover" />
+            <img src={post.imageUrl} alt="" loading="lazy" decoding="async" className="w-full max-h-80 object-cover" />
           )}
           <div className="p-6 sm:p-8 space-y-4">
             <div className="flex items-center gap-1.5 flex-wrap">
