@@ -37,7 +37,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P1-8 · PWA · erro sem aria-live | **concluído (PR #154)** |
 | P1-9 · Site · alvo de toque nav/rodapé | **concluído (PR #155)** |
 | P1-10 · Site · heading h1→h3 | **concluído (PR #156)** |
-| P2-3 · Site · blog sem paginação | pendente (sem mockup — mecânico) |
+| P2-3 · Site · blog sem paginação | **concluído (PR #158)** |
 | P2-4 · Site · imagens sem lazy | pendente (sem mockup — mecânico) |
 | P2-5 · Site · force-dynamic sem cache | pendente (sem mockup — mecânico) |
 | P2-6 · Site · cookie banner sem ARIA | pendente (sem mockup — mecânico) |
@@ -765,3 +765,24 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P2-3** (Site · consulta do blog sem
   paginação/limite) — mecânico, sem mockup necessário.
+
+## Rodada 16 — P2-3 implementado
+
+- **P2-3 implementado** (`app/blog/page.tsx`): `prisma.blogPost.findMany` buscava todo post
+  `PUBLICADO` do escritório numa página só, sem `take`/`skip` — achado do `$impeccable audit`
+  (custo sem teto conforme o robô de conteúdo jurídico continua publicando). Trocado por
+  paginação por página (`?page=N`, `PAGE_SIZE = 20`), com `skip`/`take` no Prisma. Em vez de um
+  `count()` à parte só para saber se existe próxima página, busca `PAGE_SIZE + 1` linhas e usa a
+  extra como sinal de `hasNext` (uma consulta a menos por carga). Links "← Página anterior" /
+  "Próxima página →" abaixo da grade, exibidos só quando fazem sentido (`page > 1` /
+  `hasNext`) — sem JS de cliente, mesma renderização 100% server component que já existia.
+- Verificação técnica local: `rm -rf .next && tsc --noEmit -p .` limpo, `eslint
+  app/blog/page.tsx` limpo, `next build` **exit 0**.
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/158**, branch
+  `fix/p2-3-blog-paginacao` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P2-4** (Site · imagens do blog sem
+  lazy-loading) — mecânico, sem mockup necessário.
