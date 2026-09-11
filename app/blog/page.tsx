@@ -4,7 +4,11 @@ import { getPlatformOffice } from "@/lib/officeModules";
 import { Badge } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 
-export const dynamic = "force-dynamic";
+// P2-5 do roteiro de adequação: force-dynamic era redundante e removido — a paginação por
+// searchParams (P2-3, ?page=N) já obriga o Next a renderizar esta rota dinamicamente por
+// request (searchParams só é conhecido em tempo de requisição), então não há cache de borda a
+// ganhar aqui de qualquer forma. Ver app/blog/[slug]/page.tsx (ISR de verdade) e app/page.tsx
+// (cache da consulta ao banco) para os outros dois pontos do mesmo achado do $impeccable audit.
 
 export const metadata = {
   title: "Blog Jurídico | Lúmen",

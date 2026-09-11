@@ -5,7 +5,13 @@ import { getPlatformOffice } from "@/lib/officeModules";
 import { Badge } from "@/components/ui";
 import { ArrowLeft } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+// P2-5 do roteiro de adequação: sem sessão/cookie nenhum nesta página (ao contrário de
+// app/page.tsx) — matéria de blog muda no máximo algumas vezes por dia, então ISR simples
+// resolve de verdade o "cache de borda" que a ficha pede, sem nenhum dos entraves de
+// app/page.tsx. revalidatePath/revalidateTag não é necessário aqui: o robô de conteúdo jurídico
+// só publica matéria nova (slug novo, cache-miss natural); edição de matéria já publicada não
+// existe hoje neste fluxo.
+export const revalidate = 300;
 
 const TYPE_LABELS: Record<string, string> = { NOTICIA: "Notícia curta", ANALISE: "Análise aprofundada" };
 

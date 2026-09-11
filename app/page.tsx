@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember } from "@/lib/platformMember";
 import { prisma } from "@/lib/prisma";
@@ -37,7 +38,36 @@ import MobileNav from "@/components/site/MobileNav";
 // dono). Plano cujo módulo incluso ainda não tem preço configurado mostra a mesma moldura
 // tracejada "Substituir" de antes; vira número real sozinho assim que o operador preencher o
 // preço do módulo, sem precisar mexer neste arquivo.
+//
+// P2-5 do roteiro de adequação (.impeccable/plano-adequacao/roteiro-de-adequacao.md): força
+// dynamic-render (getCurrentUser() já obriga isso sozinho, por causa do cookies() que ela chama
+// por baixo — todo visitante, logado ou não, precisa dessa checagem ao vivo pra decidir se vê a
+// home ou é redirecionado pro painel). O "$impeccable audit" apontava certo o sintoma (ida ao
+// banco ao vivo pra buscar plano/preço, conteúdo que muda no máximo algumas vezes por dia) mas
+// as duas correções sugeridas na ficha não servem NESTE stack: não há Partial Prerendering
+// estável no Next 14.2 pra separar a parte estática da dinâmica numa mesma rota, e mover a
+// checagem de sessão pro middleware.ts exigiria rodar Prisma ali — o middleware roda em Edge
+// Runtime (Next 14 não tem Node.js middleware) e @prisma/client sem driver adapter não funciona
+// em Edge. Fix aplicado: a leitura de Plan/ModulePrice (a parte "conteúdo" do problema) foi pra
+// dentro de um unstable_cache (getHomepagePricingData, abaixo) — tira o round-trip ao banco em
+// toda visita, sem tocar a checagem de sessão (que continua 100% dinâmica, por request). Não
+// resolve o "cache de borda" da resposta HTTP inteira citado na ficha (impossível sem PPR/
+// middleware neste stack), só a causa concreta de custo (ida ao banco). updateModulePrice/
+// updatePlan/setRecommendedPlan (lib/actions/painelMestre.ts) já chamavam revalidatePath("/")
+// — antes um no-op nesta rota sempre dinâmica, agora invalida de fato o unstable_cache abaixo.
 export const dynamic = "force-dynamic";
+
+const getHomepagePricingData = unstable_cache(
+  async () => {
+    const [plansRaw, modulePrices] = await Promise.all([
+      prisma.plan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+      prisma.modulePrice.findMany(),
+    ]);
+    return { plansRaw, modulePrices };
+  },
+  ["homepage-pricing"],
+  { revalidate: 300 },
+);
 
 export const metadata = {
   title: "Lúmen — Software de gestão para escritórios de advocacia",
@@ -184,10 +214,7 @@ export default async function HomePage() {
     redirect(hasPlatformAccess ? "/escolher" : "/painel");
   }
 
-  const [plansRaw, modulePrices] = await Promise.all([
-    prisma.plan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
-    prisma.modulePrice.findMany(),
-  ]);
+  const { plansRaw, modulePrices } = await getHomepagePricingData();
   const plans = plansRaw.filter((p) => !p.isCustom);
   const sobMedida = plansRaw.find((p) => p.isCustom);
 

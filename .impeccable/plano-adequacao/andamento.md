@@ -39,7 +39,7 @@ para caber no contexto) antes de tocar em qualquer item do roteiro.
 | P1-10 · Site · heading h1→h3 | **concluído (PR #156)** |
 | P2-3 · Site · blog sem paginação | **concluído (PR #158)** |
 | P2-4 · Site · imagens sem lazy | **concluído (PR #159)** |
-| P2-5 · Site · force-dynamic sem cache | pendente (sem mockup — mecânico) |
+| P2-5 · Site · force-dynamic sem cache | **concluído (PR #160)** |
 | P2-6 · Site · cookie banner sem ARIA | pendente (sem mockup — mecânico) |
 | P2-7 · PWA · publicações sem paginação | pendente (sem mockup — mecânico) |
 | P2-8 · PWA · `/m` sem max-width | pendente (sem mockup — mecânico) |
@@ -805,3 +805,40 @@ projeto ("prossiga com o P1-10").
 
 - Nenhuma. Próximo item da ordem de execução: **P2-5** (Site · rotas públicas `force-dynamic`
   sem cache) — mecânico, sem mockup necessário.
+
+## Rodada 18 — P2-5 implementado (decisão registrada: as duas correções da ficha não cabem neste stack)
+
+- **Achado revisitado antes de aplicar a correção sugerida**: a ficha do P2-5 propõe duas saídas
+  — (a) separar a checagem de sessão (dinâmica) do conteúdo de marketing (ISR) na mesma rota, ou
+  (b) mover a checagem de sessão pro `middleware.ts`. Nenhuma das duas serve `app/page.tsx` neste
+  stack: (a) exige Partial Prerendering, não estável no Next 14.2.35 aqui instalado; (b) exigiria
+  rodar Prisma dentro do middleware, que roda em Edge Runtime no Next 14 (sem suporte a Node.js
+  middleware) — `@prisma/client` sem driver adapter não funciona em Edge. **Decisão tomada sem
+  perguntar de novo, documentada no próprio código** (comentário em `app/page.tsx` antes do
+  `export const dynamic`): resolver a causa concreta de custo citada no achado (ida ao banco ao
+  vivo a cada visita) em vez da forma exata sugerida.
+- **`app/page.tsx`**: `prisma.plan.findMany` + `prisma.modulePrice.findMany` (conteúdo de preço,
+  muda no máximo algumas vezes por dia) movidos para dentro de um `unstable_cache`
+  (`getHomepagePricingData`, `revalidate: 300`). A checagem de sessão (`getCurrentUser` +
+  redirect) continua 100% dinâmica, por request — só o "conteúdo" saiu do caminho quente.
+  `updateModulePrice`/`updatePlan`/`setRecommendedPlan` (`lib/actions/painelMestre.ts`) já
+  chamavam `revalidatePath("/")` desde a Rodada 15 — antes um no-op nesta rota sempre dinâmica,
+  agora invalida de fato o cache acima, sem precisar tocar nessas três funções.
+- **`app/blog/[slug]/page.tsx`**: sem sessão/cookie nenhum aqui — `force-dynamic` → `export const
+  revalidate = 300` (ISR de verdade, ganho de cache de borda real, sem nenhum dos entraves de
+  `app/page.tsx`).
+- **`app/blog/page.tsx`**: `force-dynamic` removido por ser redundante — a paginação por
+  `searchParams` (P2-3, Rodada anterior) já obriga renderização dinâmica por request, então não
+  havia cache de borda a ganhar aqui de qualquer jeito.
+- Verificação técnica local: `rm -rf .next && tsc --noEmit -p .` limpo, `eslint` nos 3 arquivos
+  limpo, `next build` **exit 0** (as 3 rotas seguem listadas como `ƒ` Dynamic no relatório do
+  build, esperado — nenhuma das três virou rota estática, o ganho é no cache das leituras de
+  banco/ISR do conteúdo, não na renderização em si).
+- Gate fechou limpo → **mergeado automaticamente pelo Claude** (autorização do `CLAUDE.md`), PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/160**, branch
+  `fix/p2-5-cache-rotas-publicas` removida (local + remoto) após o merge.
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: **P0-5** (Site · CTA de fechamento reprova
+  contraste WCAG AA) — mecânico, sem mockup necessário.
