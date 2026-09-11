@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
-import { updateModulePrice, updatePlan } from "@/lib/actions/painelMestre";
+import { setRecommendedPlan, updateModulePrice, updatePlan } from "@/lib/actions/painelMestre";
 import NullableMoneyInput from "@/components/painelMestre/NullableMoneyInput";
 
 type ModulePriceRow = { moduleKey: string; label: string; price: number | null };
@@ -54,6 +54,7 @@ export function ModulePricesEditor({ modulePrices }: { modulePrices: ModulePrice
 type PlanRow = {
   id: string;
   name: string;
+  recommended: boolean;
   maxOabs: number | null;
   maxProcessos: number | null;
   moduloFinanceiro: boolean;
@@ -74,9 +75,19 @@ export function PlansEditor({ plans }: { plans: PlanRow[] }) {
   const [pending, startTransition] = useTransition();
   const [rows, setRows] = useState<Record<string, PlanRow>>(Object.fromEntries(plans.map((p) => [p.id, p])));
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [recommendedId, setRecommendedId] = useState<string | null>(plans.find((p) => p.recommended)?.id ?? null);
+  const [recommendedPending, startRecommendedTransition] = useTransition();
 
   function update(id: string, patch: Partial<PlanRow>) {
     setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+  }
+
+  function chooseRecommended(id: string | null) {
+    startRecommendedTransition(async () => {
+      await setRecommendedPlan(id);
+      setRecommendedId(id);
+      router.refresh();
+    });
   }
 
   function save(id: string) {
@@ -104,7 +115,18 @@ export function PlansEditor({ plans }: { plans: PlanRow[] }) {
           <div key={p.id} className="px-5 py-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-white">{p.name}</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="recommended-plan"
+                    checked={recommendedId === p.id}
+                    disabled={recommendedPending}
+                    onChange={() => chooseRecommended(p.id)}
+                    className="h-3.5 w-3.5 accent-marca"
+                  />
+                  Recomendado
+                </label>
                 <button
                   type="button"
                   disabled={pending}
@@ -156,6 +178,18 @@ export function PlansEditor({ plans }: { plans: PlanRow[] }) {
           </div>
         );
       })}
+      {recommendedId && (
+        <div className="px-5 py-3">
+          <button
+            type="button"
+            disabled={recommendedPending}
+            onClick={() => chooseRecommended(null)}
+            className="text-xs font-semibold text-white/50 hover:text-white/80 hover:underline disabled:opacity-50"
+          >
+            Remover destaque &ldquo;Recomendado&rdquo; de todos os planos
+          </button>
+        </div>
+      )}
     </div>
   );
 }
