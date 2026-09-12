@@ -424,6 +424,40 @@ componentes, sem herdar nada do site/portal/PWA.
   tema/raio automaticamente quando o conteúdo já usa `LumenPanel`/tokens — mesma lógica de
   herança automática já documentada acima para o portal e o PWA.
 
+### Home pública — escopo `app/page.tsx`
+
+Aprovado em `.impeccable/plano-site-publico/andamento-site-publico.md`, depois de `grilling` com
+o dono do projeto — retomando a proposta "pulso" (`.impeccable/plano-redesign/`, descartada por
+timing durante o grilling do portal, não por direção errada). **Diferente** do Portal/PWA/Painel
+da Empresa: a home pública **não adota** a paleta Dracula nem tema escuro opcional — é a vitrine
+pública do produto, audiência de visitante/cliente potencial, não de usuário logado. Bordô
+Editorial, Inter e a escala tipográfica própria do site (P3-2, já documentada acima) continuam
+exatamente como estão.
+
+- **Só o raio quase reto (2px) é reaproveitado**, aplicado a botões, cartões de plano e ao novo
+  painel "ledger vivo" do hero — decisão explícita do dono do projeto ("use a mesma ideia, mas
+  pensando no marketing, sem precisar ser igual"). A home já era 100% quadrada (0px, "sem
+  gradiente/textura/canto arredondado" no comentário original do arquivo) — 2px é a intenção
+  declarada de alinhamento com o resto do produto, não um retrofit visual grande.
+- **Textura granulada (`GrainOverlay.tsx`, mesma peça já usada no Painel do produto) e halo bordô
+  radial** (mesmo motivo do Painel) no hero, na faixa de número e no fecho — feedback direto do
+  dono do projeto ao validar o protótipo ("muito geométrico... as partes sem imagem precisam ser
+  preenchidas de alguma forma"), sem depender de fotografia real (ainda não disponível,
+  `PRODUCT.md`).
+- **Hero assimétrico com "ledger vivo"**: painel de demonstração ao vivo da fila de Publicações
+  (mesmos rótulos/ações reais — "Gerar Prazo"/"Marcar Audiência"/"Delegar") no lugar de uma
+  imagem estática — o próprio mecanismo que `PRODUCT.md` → Positioning cita como diferencial real.
+- **Painel de número único**: consolida o antigo grid de 4 estatísticas (3 em branco) e a faixa
+  separada do "93 tribunais" (única real hoje) numa peça só — nunca inventar número que o
+  escritório não possa comprovar (regra já vigente, só a apresentação mudou).
+- **Peso desigual nos 5 recursos**: Publicações e Sigilo (os 2 mecanismos citados em
+  `PRODUCT.md` → Positioning) ganham tratamento "pilar" (padding maior, título maior, fundo com
+  filete bordô); Painel/Peticionamento/Financeiro ficam no tratamento padrão — hierarquia real,
+  não decoração.
+- Diagramas de recurso (`FeatureDiagram`, dentro de `app/page.tsx`) ganharam densidade (badges,
+  preenchimento, texto simulado) em vez de contorno fino vazio — mesmo motivo do item acima,
+  continuam 100% token (nenhum hex cravado).
+
 ## Do's and Don'ts
 
 ### Do:

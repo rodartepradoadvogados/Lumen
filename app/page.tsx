@@ -9,6 +9,7 @@ import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
 import CookieConsent from "@/components/site/CookieConsent";
 import MobileNav from "@/components/site/MobileNav";
+import GrainOverlay from "@/components/GrainOverlay";
 
 // Homepage PÚBLICA do produto de software "Lúmen" (documento 09 do redesenho: "o site passa a
 // vender o Lúmen como SaaS de gestão jurídica para outros escritórios, não é mais a homepage do
@@ -97,6 +98,11 @@ const FEATURES = [
     p2: "Cada publicação vem com um toque para gerar prazo, marcar audiência ou delegar — o texto de origem fica sempre acessível, sem sair da tela.",
     figure: "Lista de Publicações: card com filete por fonte (DJEN/DATAJUD/PJe), badge “Não lida”, ações “Gerar Prazo” e “Delegar”",
     diagram: "publicacoes" as const,
+    // "Pilar" (junto com Sigilo abaixo) — os dois mecanismos que PRODUCT.md → Positioning cita
+    // como diferencial real (captura de publicação por fonte oficial, privacidade auditável),
+    // não só mais um item da lista. Tratamento maior, fundo com filete bordô — retomado da
+    // proposta "pulso" (.impeccable/plano-site-publico/andamento-site-publico.md).
+    pilar: true,
   },
   {
     kicker: "Painel",
@@ -105,6 +111,7 @@ const FEATURES = [
     p2: "Cada advogado vê a própria fila; quem administra o escritório vê o todo, sem precisar abrir uma planilha à parte.",
     figure: "Painel: cartões “Hoje”, “Atrasados”, agenda da semana, prazo de segurança marcado em cor distinta",
     diagram: "painel" as const,
+    pilar: false,
   },
   {
     kicker: "Peticionamento",
@@ -113,6 +120,7 @@ const FEATURES = [
     p2: "O histórico de peças de cada processo fica junto com ele, pesquisável, sem depender de pasta de rede.",
     figure: "Editor de petição com timbrado do escritório, campos de processo/parte preenchidos, botão “Baixar .docx”",
     diagram: "peticionamento" as const,
+    pilar: false,
   },
   {
     kicker: "Financeiro",
@@ -121,6 +129,7 @@ const FEATURES = [
     p2: "Contas a pagar e a receber conversam com a agenda: vencimento vira lembrete, não vira surpresa no fim do mês.",
     figure: "DRE por categoria, gráfico de fluxo de caixa, tabela de Contas a Receber com status Pendente/Parcial/Pago",
     diagram: "financeiro" as const,
+    pilar: false,
   },
   {
     kicker: "Sigilo",
@@ -129,91 +138,136 @@ const FEATURES = [
     p2: "Suporte técnico só entra na conta de um escritório com sessão de tempo limitado e visível para o administrador — nunca em silêncio.",
     figure: "Campo de CPF mascarado com botão “Revelar” e caixa de motivo, trilha de auditoria listando revelações",
     diagram: "sigilo" as const,
+    pilar: true,
   },
 ];
 
 // Diagrama de marca por feature (réguas + bordô), substituindo a legenda "Captura de tela — …"
 // até haver fotografia real do produto (P0-2). Um `<g>` fixo por chave de FEATURES.diagram —
 // não um ícone genérico repetido, cada um lê como a própria tela que descreve.
+// Rodada de reforma visual (retomada da proposta "pulso" descartada durante o grilling do
+// portal, ver .impeccable/plano-site-publico/andamento-site-publico.md): diagramas ganharam
+// densidade de verdade (preenchimento, selos, texto simulado) em vez de contorno fino vazio —
+// feedback direto do dono do projeto ao validar o protótipo ("muito geométrico... precisam ser
+// preenchidas"). Cores continuam 100% token (fill-marca-tx/fill-aviso/etc.), nenhum hex cravado.
 function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }) {
-  const row = (y: number, accent: string) => (
-    <g key={y}>
-      <rect x="8" y={y} width="84" height="20" rx="3" className="fill-sf stroke-regua-forte" strokeWidth="2" />
-      <rect x="8" y={y} width="4" height="20" className={accent} />
-    </g>
-  );
   switch (kind) {
     case "publicacoes":
       return (
         <>
-          {row(14, "fill-marca-tx")}
-          {row(40, "fill-fonte-pje")}
-          {row(66, "fill-aviso")}
-          <circle cx="86" cy="20" r="3" className="fill-marca-tx" />
+          {[
+            { y: 4, fillCls: "fill-marca-tx", bgCls: "fill-marca-bg", strokeCls: "stroke-marca-tx", w: 34 },
+            { y: 26, fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso", w: 40 },
+            { y: 48, fillCls: "fill-fonte-pje", bgCls: "fill-sf-apoio", strokeCls: "stroke-fonte-pje", w: 38 },
+          ].map((r) => (
+            <g key={r.y}>
+              <rect x="2" y={r.y} width="96" height="18" className={`${r.bgCls} ${r.strokeCls}`} strokeWidth="1.5" />
+              <rect x="2" y={r.y} width="3" height="18" className={r.fillCls} />
+              <circle cx="10" cy={r.y + 5} r="1.8" className={r.fillCls} />
+              <rect x="14" y={r.y + 3.5} width={r.w} height="3" className="fill-tx" />
+              <rect x="14" y={r.y + 9} width="46" height="2" className="fill-tx-3" />
+              <rect x="76" y={r.y + 4.5} width="18" height="7" className={r.fillCls} />
+            </g>
+          ))}
         </>
       );
     case "painel":
       return (
         <>
-          <rect x="8" y="14" width="38" height="34" rx="3" className="fill-sf stroke-regua-forte" strokeWidth="2" />
-          <rect x="8" y="14" width="38" height="8" className="fill-marca-bg" />
-          <rect x="54" y="14" width="38" height="34" rx="3" className="fill-sf stroke-urgente" strokeWidth="2" />
-          <rect x="54" y="14" width="38" height="8" className="fill-urgente" fillOpacity="0.25" />
-          {Array.from({ length: 7 }, (_, i) => (
-            <rect key={i} x={8 + i * 12.3} y="60" width="9" height="26" rx="2" className={i === 3 ? "fill-marca-tx" : "fill-regua"} />
+          {[
+            { x: 2, n: "4", label: "ATRASADOS", fillCls: "fill-urgente", bgCls: "fill-urgente-bg", strokeCls: "stroke-urgente" },
+            { x: 35, n: "9", label: "HOJE", fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso" },
+            { x: 68, n: "21", label: "SEMANA", fillCls: "fill-tx-2", bgCls: "fill-sf-apoio", strokeCls: "stroke-tx-2" },
+          ].map((c) => (
+            <g key={c.x}>
+              <rect x={c.x} y="4" width="30" height="30" className={`${c.bgCls} ${c.strokeCls}`} strokeWidth="1.5" />
+              <text x={c.x + 5} y="18" fontFamily="sans-serif" fontWeight="700" fontSize="11" className={c.fillCls}>{c.n}</text>
+              <rect x={c.x + 5} y="24" width="20" height="2" className={c.fillCls} fillOpacity="0.6" />
+              <text x={c.x + 5} y="10" fontFamily="sans-serif" fontSize="3.6" letterSpacing="0.2" className="fill-tx-3">{c.label}</text>
+            </g>
           ))}
+          <rect x="2" y="38" width="96" height="28" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
+          {[16, 30, 44, 58, 72, 86].map((x) => (
+            <line key={x} x1={x} y1="38" x2={x} y2="66" className="stroke-regua" strokeWidth="1" />
+          ))}
+          <rect x="18" y="48" width="10" height="6" className="fill-marca-tx" fillOpacity="0.7" />
+          <rect x="46" y="54" width="10" height="6" className="fill-aviso" fillOpacity="0.55" />
+          <rect x="74" y="44" width="10" height="6" className="fill-concluido" fillOpacity="0.55" />
         </>
       );
     case "peticionamento":
       return (
         <>
-          <rect x="20" y="8" width="60" height="78" rx="2" className="fill-sf stroke-regua-forte" strokeWidth="2" />
-          <rect x="20" y="8" width="60" height="10" className="fill-marca-tx" fillOpacity="0.35" />
-          <rect x="28" y="30" width="44" height="4" className="fill-regua-forte" />
-          <rect x="28" y="40" width="44" height="4" className="fill-regua-forte" />
-          <rect x="28" y="50" width="30" height="4" className="fill-regua-forte" />
-          <rect x="46" y="70" width="26" height="10" rx="2" className="fill-marca-tx" />
+          <rect x="18" y="2" width="64" height="66" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
+          <rect x="24" y="7" width="10" height="10" className="fill-marca-tx" />
+          <rect x="37" y="9" width="30" height="2.4" className="fill-tx" />
+          <rect x="37" y="14" width="20" height="2" className="fill-tx-3" />
+          <line x1="24" y1="23" x2="76" y2="23" className="stroke-regua" strokeWidth="1" />
+          <rect x="24" y="28" width="52" height="2.2" className="fill-regua-forte" />
+          <rect x="24" y="34" width="52" height="2.2" className="fill-regua-forte" />
+          <rect x="24" y="40" width="34" height="2.2" className="fill-regua-forte" />
+          <rect x="24" y="46" width="40" height="2.2" className="fill-regua" />
+          <rect x="24" y="51" width="52" height="2.2" className="fill-regua" />
+          <rect x="24" y="56" width="26" height="2.2" className="fill-regua" />
+          <rect x="52" y="60" width="24" height="6" className="fill-marca-tx" />
+          <text x="55" y="64.3" fontFamily="sans-serif" fontSize="4" className="fill-acao-tx">.docx</text>
         </>
       );
     case "financeiro":
       return (
         <>
-          {[20, 36, 52, 68].map((h, i) => (
-            <rect key={h} x={8 + i * 22} y={88 - h} width="14" height={h} rx="2" className="fill-marca-tx" fillOpacity={i === 3 ? 1 : 0.4} />
+          <defs>
+            <linearGradient id="feature-financeiro-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--concluido)" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="var(--concluido)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <line x1="4" y1="10" x2="4" y2="42" className="stroke-regua" strokeWidth="1" />
+          <line x1="4" y1="42" x2="96" y2="42" className="stroke-regua" strokeWidth="1" />
+          <polygon points="4,50 20,42 36,46 52,30 68,34 84,18 96,22 96,42 4,42" fill="url(#feature-financeiro-fill)" />
+          <polyline points="4,50 20,42 36,46 52,30 68,34 84,18 96,22" className="stroke-concluido" strokeWidth="2" fill="none" />
+          <circle cx="96" cy="22" r="2.2" className="fill-concluido" />
+          {[
+            { y: 50, fillCls: "fill-concluido", bgCls: "fill-concluido-bg", w: 40 },
+            { y: 60, fillCls: "fill-aviso", bgCls: "fill-aviso-bg", w: 34 },
+          ].map((r) => (
+            <g key={r.y}>
+              <rect x="4" y={r.y} width="92" height="7" className="fill-sf-apoio stroke-regua" strokeWidth="0.7" />
+              <circle cx="8" cy={r.y + 3.5} r="1.6" className={r.fillCls} />
+              <rect x="12" y={r.y + 2.3} width={r.w} height="2.2" className="fill-tx" />
+              <rect x="80" y={r.y + 2} width="12" height="3" className={r.bgCls} />
+            </g>
           ))}
-          <polyline points="8,68 30,52 52,58 74,20" className="stroke-tx-2" strokeWidth="2" fill="none" />
         </>
       );
     case "sigilo":
       return (
         <>
-          <rect x="8" y="14" width="84" height="20" rx="3" className="fill-sf stroke-regua-forte" strokeWidth="2" />
-          {Array.from({ length: 6 }, (_, i) => (
-            <circle key={i} cx={20 + i * 8} cy="24" r="2.5" className="fill-tx-3" />
+          <rect x="4" y="4" width="92" height="20" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
+          <rect x="10" y="9" width="6" height="6" className="fill-none stroke-tx-2" strokeWidth="1.2" />
+          <text x="20" y="17" fontFamily="monospace" fontSize="8" className="fill-tx-2">•••.•••.•••-••</text>
+          <rect x="70" y="8" width="20" height="10" className="fill-marca-tx" />
+          <text x="73" y="15" fontFamily="sans-serif" fontSize="5.5" className="fill-acao-tx">Revelar</text>
+          <text x="4" y="32" fontFamily="sans-serif" fontSize="4.2" letterSpacing="0.4" className="fill-tx-3">TRILHA DE AUDITORIA</text>
+          {[
+            { y: 40, fillCls: "fill-concluido", w: 48 },
+            { y: 48, fillCls: "fill-aviso", w: 40 },
+            { y: 56, fillCls: "fill-tx-2", w: 52 },
+          ].map((r) => (
+            <g key={r.y}>
+              <circle cx="6" cy={r.y} r="1.3" className={r.fillCls} />
+              <rect x="10" y={r.y - 1.2} width={r.w} height="2.2" className="fill-tx" />
+              <rect x="78" y={r.y - 1.2} width="14" height="2.2" className="fill-regua-forte" />
+            </g>
           ))}
-          <rect x="72" y="18" width="14" height="12" rx="2" className="fill-marca-tx" />
-          <rect x="8" y="46" width="60" height="4" className="fill-regua" />
-          <rect x="8" y="56" width="44" height="4" className="fill-regua" />
-          <rect x="8" y="66" width="52" height="4" className="fill-regua" />
         </>
       );
   }
 }
 
-// "93 tribunais integrados" é dado real (contagem de lib/tribunaisCatalog.ts); os outros 3 ficam
-// em branco de propósito — sem número que o escritório não possa comprovar (documento 09) — até
-// alguém preencher com o valor certo. Sem moldura de aviso: a fase de mockup acabou, agora é
-// conteúdo publicável faltando só o dado, não uma tela de desenvolvimento.
-const STATS = [
-  { value: null, label: "processos monitorados" },
-  { value: "93", label: "tribunais integrados" },
-  { value: null, label: "publicações triadas por dia" },
-  { value: null, label: "tempo médio de triagem" },
-];
-
 const navLink = "inline-block py-2 text-sm font-semibold text-tx hover:underline underline-offset-4";
-const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm";
-const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg";
+const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm rounded-[2px]";
+const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg rounded-[2px]";
 const footerLink = "inline-block py-2 text-tx-2 hover:text-tx hover:underline underline-offset-2";
 
 export default async function HomePage() {
@@ -257,65 +311,78 @@ export default async function HomePage() {
       </header>
 
       <main>
-        {/* 2. Hero regrado */}
-        <section className="max-w-[1120px] mx-auto px-6 pt-24 pb-20">
-          <p className="text-[11px] font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
-            Software de gestão para escritórios de advocacia
-          </p>
-          <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[15ch]">
-            O escritório inteiro, num só lugar — sem perder um prazo.
-          </h1>
-          <p className="mt-5 text-lg text-tx-2 max-w-[40ch]">
-            Publicações triadas, agenda com prazo fatal e financeiro que fecha sozinho.
-          </p>
-          <div className="flex flex-wrap gap-3 mt-8">
-            <Link href="/cadastro" className={btnPrimary}>Começar agora</Link>
-            <a href="#recursos" className={btnSecondary}>Ver como funciona</a>
-          </div>
-        </section>
+        {/* 2. Hero assimétrico — retomado da proposta "pulso" (.impeccable/plano-site-publico/
+            andamento-site-publico.md), descartada por timing durante o grilling do portal, não
+            por direção errada. Halo bordô + grão (GrainOverlay, mesma peça já usada no Painel do
+            produto) preenchem o campo vazio à esquerda — feedback direto do dono do projeto no
+            protótipo ("muito geométrico... precisam ser preenchidas"), sem depender de
+            fotografia real (ainda não disponível, PRODUCT.md). */}
+        <section className="relative overflow-hidden">
+          <div
+            className="absolute -top-16 -left-24 h-[360px] w-[520px] pointer-events-none"
+            style={{ background: "radial-gradient(ellipse at top left, var(--halo-marca), transparent 70%)" }}
+          />
+          <GrainOverlay />
+          <div className="relative max-w-[1120px] mx-auto px-6 pt-24 pb-20 grid md:grid-cols-[1fr_0.86fr] gap-12 items-center">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
+                Software de gestão para escritórios de advocacia
+              </p>
+              <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[15ch]">
+                O escritório inteiro, num só lugar — sem perder um prazo.
+              </h1>
+              <p className="mt-5 text-lg text-tx-2 max-w-[40ch]">
+                Publicações triadas, agenda com prazo fatal e financeiro que fecha sozinho.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-8">
+                <Link href="/cadastro" className={btnPrimary}>Começar agora</Link>
+                <a href="#recursos" className={btnSecondary}>Ver como funciona</a>
+              </div>
+            </div>
 
-        {/* 3. Linha de números */}
-        <section className="border-t-2 border-regua-forte">
-          <div className="max-w-[1120px] mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-6">
-              {STATS.map(({ value, label }) => (
-                <div key={label} className="py-6 px-5">
-                  <div className="text-4xl font-extrabold tabular-nums mt-2">{value ?? "—"}</div>
-                  <div className="mt-1.5 text-[13px] font-semibold text-tx-2">{label}</div>
+            {/* "Ledger vivo" — demonstração do próprio mecanismo citado em PRODUCT.md →
+                Positioning (captura por fonte oficial), não uma imagem estática de tela. Rótulos
+                e ações idênticos aos reais (PublicationsTriage.tsx: "Gerar Prazo"/"Delegar"). */}
+            <div className="border-2 border-regua-forte bg-sf rounded-[2px]">
+              <div className="px-4 py-3 border-b border-regua flex items-center justify-between">
+                <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-2">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-concluido mr-1.5 animate-pulse motion-reduce:animate-none" />
+                  Fila de publicações — ao vivo
+                </span>
+              </div>
+              {[
+                { src: "DJEN", accent: "marca-tx", tt: "Intimação — 0012340-55.2025.8.09.0051", ss: "Contestação, prazo de 15 dias", action: "Gerar Prazo" },
+                { src: "DATAJUD", accent: "aviso", tt: "Andamento — 0089213-11.2024.8.09.0006", ss: "Audiência de instrução designada", action: "Marcar Audiência" },
+                { src: "DJEN", accent: "marca-tx", tt: "Publicação — 0045678-22.2025.8.09.0132", ss: "Sentença de parcial procedência", action: "Delegar" },
+              ].map((row, i) => (
+                <div key={i} className={`flex gap-3 px-4 py-3 border-l-[3px] ${row.accent === "aviso" ? "border-aviso" : "border-marca-tx"} ${i > 0 ? "border-t border-regua" : ""}`}>
+                  <span className={`text-[9.5px] font-extrabold tracking-[.04em] w-14 shrink-0 ${row.accent === "aviso" ? "text-aviso" : "text-marca-tx"}`}>{row.src}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12.5px] font-semibold text-tx">{row.tt}</p>
+                    <p className="text-[11px] text-tx-3 mt-0.5">{row.ss}</p>
+                  </div>
+                  <span className="text-[10.5px] font-bold text-marca-tx shrink-0 self-center whitespace-nowrap">{row.action} →</span>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* 4. Linhas de recurso */}
-        <section id="recursos" className="border-t-2 border-regua-forte">
-          <div className="max-w-[1120px] mx-auto px-6">
-            <h2 className="sr-only">Recursos</h2>
-            {FEATURES.map((f, i) => (
-              <div key={f.title} className={`grid md:grid-cols-2 gap-10 items-center py-16 ${i > 0 ? "border-t border-regua" : ""}`}>
-                <div className={i % 2 === 1 ? "md:order-2" : ""}>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-marca-tx mb-3">{f.kicker}</p>
-                  <h3 className="text-[26px] font-extrabold tracking-[-.01em] mb-4">{f.title}</h3>
-                  <p className="text-[15px] text-tx-2 max-w-[46ch]">{f.p1}</p>
-                  <p className="text-[15px] text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
-                </div>
-                <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf flex items-center p-10 ${i % 2 === 1 ? "md:order-1" : ""}`}>
-                  <svg viewBox="0 0 100 100" role="img" aria-label={f.figure} className="w-full h-full">
-                    <FeatureDiagram kind={f.diagram} />
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 5. Faixa de alcance — documento 09 previa uma fotografia do escritório aqui; sem uma
-            foto real disponível, a faixa usa o único número já publicável (93 tribunais, mesmo
-            dado da seção 3) como elemento gráfico em vez de deixar um retângulo vazio. Quando
-            houver fotografia, esta seção volta a ser a imagem prevista no documento. */}
-        <section className="border-t-2 border-regua-forte bg-grafite-800">
-          <div className="max-w-[1120px] mx-auto px-6 py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
+        {/* 3. Painel de número — consolida o antigo grid de 4 estatísticas (3 em branco, sem
+            número que o escritório não possa comprovar) e a faixa separada abaixo num único
+            painel, mesma correção proposta em "pulso": duas seções fracas virando uma de verdade.
+            "93" é o único dado real hoje (contagem de lib/tribunaisCatalog.ts). */}
+        <section className="relative border-t-2 border-regua-forte bg-grafite-800 overflow-hidden">
+          <div
+            className="absolute inset-0 pointer-events-none opacity-50"
+            style={{
+              backgroundImage: "radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1.4px)",
+              backgroundSize: "18px 18px",
+              maskImage: "linear-gradient(to right, transparent, black 35%, black 70%, transparent)",
+            }}
+          />
+          <GrainOverlay />
+          <div className="relative max-w-[1120px] mx-auto px-6 py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
             <div className="text-[clamp(56px,9vw,108px)] font-extrabold leading-none tracking-[-.02em] text-white tabular-nums">
               93
             </div>
@@ -325,7 +392,36 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 6. Preço — lido ao vivo do catálogo (Plan/ModulePrice, Painel Mestre → Preços), sem
+        {/* 4. Linhas de recurso */}
+        <section id="recursos" className="border-t-2 border-regua-forte">
+          <div className="max-w-[1120px] mx-auto px-6">
+            <h2 className="sr-only">Recursos</h2>
+            {/* Peso desigual (retomado de "pulso"): Publicações e Sigilo — os 2 mecanismos que
+                PRODUCT.md → Positioning cita como diferencial real — ganham tratamento "pilar"
+                (padding maior, título maior, fundo com filete bordô); os outros 3 ficam no
+                padrão. Não é decoração: é hierarquia real refletindo o que já é dito no produto. */}
+            {FEATURES.map((f, i) => (
+              <div
+                key={f.title}
+                className={`grid md:grid-cols-2 gap-10 items-center ${f.pilar ? "py-20 -mx-6 px-6 bg-acao-bg" : "py-16"} ${i > 0 ? "border-t border-regua" : ""}`}
+              >
+                <div className={i % 2 === 1 ? "md:order-2" : ""}>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-marca-tx mb-3">{f.kicker}</p>
+                  <h3 className={`font-extrabold tracking-[-.01em] mb-4 ${f.pilar ? "text-[32px]" : "text-[26px]"}`}>{f.title}</h3>
+                  <p className="text-[15px] text-tx-2 max-w-[46ch]">{f.p1}</p>
+                  <p className="text-[15px] text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
+                </div>
+                <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf rounded-[2px] flex items-center p-10 ${i % 2 === 1 ? "md:order-1" : ""}`}>
+                  <svg viewBox="0 0 100 70" role="img" aria-label={f.figure} className="w-full h-full">
+                    <FeatureDiagram kind={f.diagram} />
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 5. Preço — lido ao vivo do catálogo (Plan/ModulePrice, Painel Mestre → Preços), sem
             array hardcoded. Plano com módulo incluso ainda sem preço configurado mostra "Sob
             consulta" (mesma copy do plano sob medida abaixo) em vez de expor a etiqueta interna
             "Substituir"; vira preço real sozinho assim que o operador preencher o preço do
@@ -344,7 +440,7 @@ export default async function HomePage() {
                   return plan.moduloAtendimento;
                 });
                 return (
-                  <div key={plan.id} className={`p-6 border-2 bg-sf ${plan.recommended ? "border-acao-light" : "border-regua-forte"}`}>
+                  <div key={plan.id} className={`p-6 border-2 bg-sf rounded-[2px] ${plan.recommended ? "border-acao-light" : "border-regua-forte"}`}>
                     {plan.recommended && (
                       <span className="inline-block text-[9.5px] font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao-light px-2 py-0.5">
                         Recomendado
@@ -381,7 +477,7 @@ export default async function HomePage() {
                 );
               })}
               {sobMedida && (
-                <div className="p-6 border-2 border-regua-forte bg-sf">
+                <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px]">
                   <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
                   <div className="text-[13px] text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
                   <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
@@ -393,9 +489,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 7. Fecho em pôster */}
-        <section className="bg-marca text-acao-tx py-24">
-          <div className="max-w-[1120px] mx-auto px-6">
+        {/* 6. Fecho em pôster */}
+        <section className="relative bg-marca text-acao-tx py-24 overflow-hidden">
+          <div
+            className="absolute -bottom-16 -right-24 h-[300px] w-[420px] pointer-events-none"
+            style={{ background: "radial-gradient(ellipse at bottom right, rgba(255,255,255,0.12), transparent 70%)" }}
+          />
+          <GrainOverlay />
+          <div className="relative max-w-[1120px] mx-auto px-6">
             <h2 className="font-extrabold text-[clamp(32px,5vw,52px)] tracking-[-.02em] max-w-[18ch]">
               Leve a triagem, a agenda e o financeiro do escritório para um só lugar.
             </h2>
@@ -403,14 +504,14 @@ export default async function HomePage() {
                 2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
                 --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
                 e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}
-            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm mt-8">
+            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm rounded-[2px] mt-8">
               Começar agora
             </Link>
           </div>
         </section>
       </main>
 
-      {/* 8. Rodapé */}
+      {/* 7. Rodapé */}
       <footer className="border-t-2 border-regua-forte py-14">
         <div className="max-w-[1120px] mx-auto px-6">
           <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8">
