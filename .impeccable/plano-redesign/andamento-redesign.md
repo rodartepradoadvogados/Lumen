@@ -83,3 +83,23 @@ referências do setor, citando AdvBox, Astrea e Projuris.
   não abrir dois roteiros de execução paralelos para a mesma mudança de código.
 - Frase de apoio ao CTA ("Cadastro em poucos minutos...") precisa de confirmação do dono do projeto
   antes de virar copy publicável, mesma régua dos números de marketing.
+
+## Nota de encerramento — descartado, depois retomado em outro plano
+
+**Data:** 2026-09-11/12. Este plano ("pulso") ficou **descartado** durante a sessão de `grilling`
+do Portal Noturno (2026-09-11, "não representa mais a direção pretendida") — nunca chegou a ser
+implementado. Foi **retomado como ponto de partida** em 2026-09-12, numa sessão nova de `grilling`
+própria para o site público (não uma continuação direta deste arquivo) — ver
+`.impeccable/plano-site-publico/andamento-site-publico.md`, que implementou de fato o hero
+assimétrico e o "ledger vivo" descritos aqui, com ajustes (raio 2px em vez de raio 0, densidade
+maior nos diagramas, sem a frase de apoio ao CTA acima — nunca confirmada).
+
+**O que NÃO foi retomado**: o roteiro de dinamismo (D1–D8,
+`.impeccable/plano-dinamismo/roteiro-dinamismo.md`) que este plano dizia "incorporar por inteiro"
+como camada de movimento — nunca chegou a ser validado (ver nota de encerramento própria naquele
+arquivo) e a implementação de 2026-09-12 não cobriu nenhum item de interação/movimento (contagem
+animada, realce de seção ao rolar, rolagem suave, microinterações). Se o dono do projeto quiser
+essa camada, é trabalho ainda em aberto, não concluído.
+
+**Este arquivo fica congelado a partir daqui** — não é mais atualizado; o andamento de verdade do
+site público vive em `plano-site-publico/`.

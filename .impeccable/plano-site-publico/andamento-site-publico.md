@@ -80,3 +80,11 @@ projeto ("implemente").
 - Verificação visual real (abrir a home no navegador, testar responsivo e `prefers-reduced-motion`)
   ainda não feita nesta sessão — recomendado antes de considerar a rodada encerrada, mesma
   disciplina que pegou o bug da Manhã do PWA (PR #174) só depois do teste real.
+- **Fora de escopo, deliberadamente não perguntado nesta rodada**: o roteiro de dinamismo (D1–D8,
+  `.impeccable/plano-dinamismo/roteiro-dinamismo.md` — contagem animada nos números, realce de
+  seção ativa ao rolar, rolagem suave nas âncoras `#recursos`/`#preco`, microinteração no CTA
+  final) nunca foi validado e **não foi implementado aqui** — esta rodada tratou só da camada
+  visual/layout retomada de `plano-redesign/` ("pulso"). O "ledger vivo" do hero tem um ponto
+  pulsando (`animate-pulse`), que cobre parcialmente o espírito de D1, mas não foi desenhado a
+  partir daquele roteiro. Ver nota de encerramento em `plano-dinamismo/andamento-dinamismo.md` —
+  se o dono do projeto quiser essa camada de interação, é rodada própria, ainda em aberto.

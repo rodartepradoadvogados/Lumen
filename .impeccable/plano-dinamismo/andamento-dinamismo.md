@@ -74,3 +74,21 @@ em artefato e registrar em `.impeccable` antes de qualquer implementação.
   registrada aqui).
 - Quando a validação chegar (aprovação total, parcial, ou ajuste por item), registrar a decisão
   nesta seção antes de iniciar a Rodada 1 de implementação.
+
+## Nota de encerramento — nunca validado, nunca implementado
+
+**Data:** 2026-09-12. Este roteiro (D1–D8) **nunca foi validado** pelo dono do projeto — a
+Rodada 0 acima ficou "aguardando validação" e nenhuma rodada seguinte chegou a acontecer. O
+plano que devia incorporá-lo por inteiro (`plano-redesign/`, "pulso") foi descartado antes de
+qualquer implementação (ver nota de encerramento em `plano-redesign/andamento-redesign.md`) e,
+quando a home pública foi finalmente redesenhada em `plano-site-publico/` (2026-09-12), a sessão
+de `grilling` daquela rodada tratou só da camada visual/layout — **nenhum item D1–D8 foi
+perguntado, validado ou implementado** nessa passagem (sem contagem animada nos números, sem
+realce de seção ao rolar no cabeçalho, sem rolagem suave nas âncoras, sem microinteração no
+CTA final — o "ledger vivo" do hero novo tem um ponto pulsando, que cobre parcialmente o
+espírito de D1, mas não foi desenhado a partir deste roteiro).
+
+**Este roteiro continua em aberto**, não descartado — se o dono do projeto quiser a camada de
+interação/movimento na home pública, é trabalho ainda por fazer, a retomar como rodada própria
+(precisaria de validação visual antes de qualquer implementação, mesma regra de sempre). Este
+arquivo fica congelado a partir daqui.

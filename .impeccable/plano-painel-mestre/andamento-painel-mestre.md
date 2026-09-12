@@ -139,3 +139,10 @@ projeto ("implemente").
 - Fora de escopo desde a Rodada 2 (nunca pedido): `painel-mestre/produto`, `/cofre`, `/confianca`,
   `/equipe`, `/novo` — herdam tema/raio automaticamente (mesmo efeito colateral já documentado no
   portal/PWA), sem trabalho dedicado nesta rodada.
+
+### Nota — verificação visual confirmada
+
+**Data:** 2026-09-12. O dono do projeto testou de verdade no navegador e confirmou: "Aprovado.
+Deu certo." — o item de verificação visual pendente acima está resolvido. **Painel da Empresa
+encerrado nesta rodada.** Próximo passo pedido na mesma mensagem: site público, tratado como
+plano próprio — ver `.impeccable/plano-site-publico/andamento-site-publico.md`.
