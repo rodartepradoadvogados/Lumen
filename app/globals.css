@@ -681,13 +681,59 @@ input[type="radio"] {
    como o PWA já se comporta hoje. Chave de localStorage própria, "rp-mobile-theme" (já existia,
    ver lib/theme.ts/MobileThemeToggle.tsx) — só o mecanismo de aplicação mudou: antes alternava a
    classe global `.dark` em <html> (compartilhada com o site público), agora alterna
-   `.mobile-dark` só neste nó, do mesmo jeito que o portal já não depende de `.dark`. */
+   `.mobile-dark` só neste nó, do mesmo jeito que o portal já não depende de `.dark`.
+
+   CORREÇÃO (mesmo dia): a Manhã abaixo precisa ser AUTO-CONTIDA, redeclarando os mesmos valores
+   de `:root`, em vez de só herdar — o site público tem seu PRÓPRIO alternador de tema
+   (rp-site-theme, lib/theme.ts), independente do PWA, que também troca a classe `.dark` em
+   <html>. Sem redeclarar aqui, um usuário com o tema do SITE em Noite via o `/m` inteiro herdar
+   o escuro do `.dark` global (a paleta antiga, nem a Dracula) mesmo com o alternador do PWA em
+   Manhã — a Manhã do PWA "desaparecia". Mesma lição que o portal já tinha aplicado desde o
+   início (comentário "auto-contido de propósito" acima); só não copiei o cuidado pra este lado
+   quando escrevi a Manhã como bloco vazio. */
 .mobile-shell {
-  /* Único token que o PWA precisa declarar mesmo na Manhã (padrão): nenhuma outra variável do
-     :root muda aqui, mas --concluido-glow não existe em :root/.dark (só dentro de .portal-shell
-     até agora) — sem isto, o .live-dot abaixo renderizaria sem glow nenhum na Manhã. Mesmo valor
-     da variante clara do portal (.portal-shell.portal-light). */
+  --sf-fundo: #f3f2f2;
+  --sf-superficie: #ffffff;
+  --sf-apoio: #eae9e9;
+  --regua: #d7d3d3;
+  --regua-forte: #bab6b6;
+
+  --tx: #201e1d;
+  --tx-2: #605d5d;
+  --tx-3: #9b9797;
+
+  --acao-bg: rgba(138, 47, 66, 0.08);
+  --marca-tx: var(--marca);
+  --marca-bg: rgba(138, 47, 66, 0.15);
+
+  --rail-tx: #9aa3ad;
+  --menu-tx: #aeb6be;
+  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+
+  --urgente: #b3261e;
+  --urgente-bg: rgba(179, 38, 30, 0.1);
+  --aviso: #9a6700;
+  --aviso-bg: rgba(154, 103, 0, 0.12);
+  --concluido: #1c6b52;
+  --concluido-bg: rgba(28, 107, 82, 0.1);
+  /* Único token que o PWA precisa declarar mesmo na Manhã que --root/.dark não têm: não existia
+     fora do escopo do Portal Noturno até esta rodada — sem isto, o .live-dot abaixo renderizaria
+     sem glow nenhum na Manhã. */
   --concluido-glow: 0 0 8px rgba(28, 107, 82, 0.4);
+
+  --halo-marca: rgba(138, 47, 66, 0.08);
+  --grain-opacity: 0.035;
+
+  --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
+  --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
+  --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
+
+  --background: var(--sf-fundo);
+  --foreground: var(--tx);
+
+  background: var(--sf-fundo);
+  color: var(--tx);
+  color-scheme: light;
 }
 
 .mobile-shell.mobile-dark {
