@@ -813,3 +813,76 @@ input[type="radio"] {
     animation: none;
   }
 }
+
+/* ============================================================================
+   PAINEL DA EMPRESA — escopo `.painel-mestre-shell` (app/painel-mestre/*, ver
+   app/painel-mestre/layout.tsx). Área de administração da PLATAFORMA (só Jairo/Rodrigo/equipe
+   Lúmen, nunca escritório-cliente) — antes desta rodada não tinha token de tema nenhum: a casca
+   inteira era `.dark` fixo + `bg-grafite-900`/`text-white` cravados direto nos componentes
+   (LumenPanel/LumenUi.tsx, LumenNavRail.tsx e cada `page.tsx`), sem passar pelos tokens
+   semânticos (`--tx`, `--sf-superficie`...) que o resto do produto usa. Aprovado em
+   .impeccable/plano-painel-mestre/andamento-painel-mestre.md, depois de `grilling` com o dono do
+   projeto.
+
+   Rail (`LumenNavRail.tsx`) e cabeçalho (`LumenTopStrip.tsx`) CONTINUAM grafite fixo nos dois
+   temas, sem tocar em token nenhum — mesma regra do Rail do site e do cabeçalho do PWA
+   ("grafite nos dois temas", DESIGN.md §3). Só a área de CONTEÚDO (`.painel-mestre-shell`,
+   LumenPanel e o corpo de cada tela) retemea entre os dois estados abaixo. */
+.painel-mestre-shell {
+  --sf-fundo: #1c1a22;
+  --sf-superficie: #242230;
+  --sf-apoio: #2c2939;
+  --regua: #3a3648;
+  --regua-forte: #4a4560;
+
+  --tx: #f1eef7;
+  --tx-2: #a8a3bd;
+  --tx-3: #726d87;
+
+  --marca-tx: #c9707f;
+  --marca-bg: rgba(138, 47, 66, 0.24);
+
+  --urgente: #e2685a;
+  --urgente-bg: rgba(226, 104, 90, 0.16);
+  --aviso: #d0a02a;
+  --aviso-bg: rgba(208, 160, 42, 0.16);
+  --concluido: #4fb28c;
+  --concluido-bg: rgba(79, 178, 140, 0.16);
+  --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
+
+  background: var(--sf-fundo);
+  color: var(--tx);
+  color-scheme: dark;
+}
+
+/* Manhã do Painel da Empresa — pedido explícito do dono do projeto ao validar o protótipo:
+   "tudo um pouco mais escuro, como se fosse um misto entre o claro e o escuro, sem perder a
+   harmonia das cores" — NÃO é o Manhã quase-branco do resto do produto (:root), é uma versão
+   claramente mais fechada/cinza-arroxeada, deliberadamente distinta. Mesma família de matiz da
+   Noite acima (grafite-arroxeado), só invertida em luminância — não um cinza neutro genérico. */
+.painel-mestre-shell.painel-mestre-light {
+  --sf-fundo: #b3aebc;
+  --sf-superficie: #c9c5d1;
+  --sf-apoio: #9d97ab;
+  --regua: #857e94;
+  --regua-forte: #6f687f;
+
+  --tx: #201d29;
+  --tx-2: #4a4558;
+  --tx-3: #6b6579;
+
+  --marca-tx: #6b2330;
+  --marca-bg: rgba(138, 47, 66, 0.16);
+
+  --urgente: #8a221c;
+  --urgente-bg: rgba(138, 34, 28, 0.14);
+  --aviso: #7a5600;
+  --aviso-bg: rgba(122, 86, 0, 0.14);
+  --concluido: #185f49;
+  --concluido-bg: rgba(24, 95, 73, 0.14);
+  --concluido-glow: 0 0 8px rgba(24, 95, 73, 0.4);
+
+  background: var(--sf-fundo);
+  color: var(--tx);
+  color-scheme: light;
+}

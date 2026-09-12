@@ -33,12 +33,12 @@ export default async function CockpitPage() {
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Cockpit</h1>
-        <p className="text-sm text-white/55 mt-1">Visão executiva da plataforma Lúmen</p>
+        <h1 className="text-2xl font-bold text-tx">Cockpit</h1>
+        <p className="text-sm text-tx-2 mt-1">Visão executiva da plataforma Lúmen</p>
       </div>
 
       <LumenPanel>
-        <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-white/10">
+        <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-regua">
           <LumenStat label="MRR ativo" value={formatCurrency(mrr)} />
           <LumenStat label="Com acesso" value={String(ativos.length)} tone="ok" />
           <LumenStat label="Pendências" value={String(pendentes.length)} tone="warn" />
@@ -58,7 +58,7 @@ export default async function CockpitPage() {
         />
         <div className="p-5 pt-3 flex items-center justify-between gap-3 flex-wrap">
           {!isBtgConfigured() && (
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-tx-2">
               Faltam as credenciais do app registrado no portal do BTG (BTG_CLIENT_ID/BTG_CLIENT_SECRET) — ver README_BTG.md.
             </p>
           )}
@@ -81,12 +81,12 @@ export default async function CockpitPage() {
 
       <LumenPanel>
         <LumenPanelHeader title="Escritórios" subtitle={`${offices.length} escritório(s) cadastrado(s)`} />
-        <div className="divide-y divide-white/10">
+        <div className="divide-y divide-regua">
           {preview.map((o) => (
             <OfficeListRow key={o.id} office={o} />
           ))}
         </div>
-        <div className="px-5 py-3 border-t border-white/10">
+        <div className="px-5 py-3 border-t border-regua">
           {/* Link de navegação — não é marca, é ação (DESIGN-SYSTEM.md §4: "Ver tudo →" é o
               exemplo textual do botão terciário/link, que usa --acao). */}
           <Link

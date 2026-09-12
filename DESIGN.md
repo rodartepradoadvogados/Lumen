@@ -384,6 +384,46 @@ qual (nenhum valor de cor novo), com duas diferenças deliberadas:
   (ambos por componente) — esperado, não regressão, mesma lógica já documentada acima para o
   portal.
 
+### Painel da Empresa — escopo `app/painel-mestre/*`
+
+Aprovado em `.impeccable/plano-painel-mestre/andamento-painel-mestre.md`, depois de `grilling`
+com o dono do projeto. Aplica-se **só** à área de administração da plataforma (`app/painel-mestre/*`,
+escopo CSS `.painel-mestre-shell` em `app/globals.css`) — audiência restrita a Jairo/Rodrigo/
+equipe Lúmen, nunca escritório-cliente. Antes desta rodada esta área não tinha token de tema
+nenhum: casca inteira `.dark` fixo + `bg-grafite-900`/`text-white` cravados direto nos
+componentes, sem herdar nada do site/portal/PWA.
+
+- **Rail (`LumenNavRail.tsx`) e cabeçalho (`LumenTopStrip.tsx`) continuam grafite fixo nos dois
+  temas** — mesma regra do Rail do site e do cabeçalho do PWA ("grafite nos dois temas"). Só o
+  conteúdo dentro de `<main>` (`LumenPanel` e o corpo de cada tela) retemea.
+- **Tema padrão é escuro** (mesma paleta aproximada do Dracula do Portal/PWA Noturno — nenhuma
+  cor nova, reaproveitada tal qual, pelas 3 áreas internas ficarem consistentes). Mecanismo
+  próprio (`lib/painelMestreTheme.ts`, chave `rp-painel-mestre-theme`), independente dos outros
+  três.
+- **Claro é deliberadamente "fechado", não o Manhã quase-branco do resto do produto** — pedido
+  explícito do dono do projeto ao validar o protótipo: "tudo um pouco mais escuro, como se fosse
+  um misto entre o claro e o escuro, sem perder a harmonia das cores". Mesma família de matiz
+  cinza-arroxeada da Noite, luminância invertida (`.painel-mestre-shell.painel-mestre-light`).
+- **Raio quase reto (2px)** em `LumenPanel` e nos controles de formulário novos/migrados — direto
+  via `rounded-sm` nos componentes (não por seletor descendente como no Portal/PWA): esta área
+  nunca teve raio nenhum antes (cantos sempre retos), então não havia nada pra sobrescrever.
+- **Ícone-vira-emoji-quando-pendente do PWA não se aplica aqui** — nenhum ícone desta área carrega
+  contador de pendência hoje; se algum vier a carregar, decidir separadamente.
+- **Escritórios → Assinaturas**: a antiga página `/painel-mestre/assinaturas` (visão consolidada
+  "todos os escritórios, cobrança está saudável?") foi substituída por um selo de saúde por linha
+  na lista de Escritórios (`OfficeListRow.tsx`, reaproveitando `lib/billingHealth.ts`) — a
+  configuração por escritório (ciclo/forma de pagamento/Pix) virou aba "Cobrança & Assinatura"
+  dentro do detalhe de cada escritório (`app/painel-mestre/[officeId]/page.tsx`), status/
+  histórico de fatura virou aba "Faturas". Decisão do dono do projeto: uma sub-aba, não uma
+  página própria com mais funcionalidade.
+- **Financeiro Lúmen ganhou só polimento visual** (cards mais fortes + indicador de tendência de
+  margem) — decisão explícita de NÃO replicar a granularidade do financeiro de escritório-cliente
+  (DRE/Fluxo de Caixa/Livro Caixa como páginas próprias): a plataforma não tem contas a pagar/
+  receber de cliente pra gerenciar, só MRR e despesa fixa.
+- Telas fora do escopo desta rodada (`produto`, `cofre`, `confianca`, `equipe`, `novo`) herdam
+  tema/raio automaticamente quando o conteúdo já usa `LumenPanel`/tokens — mesma lógica de
+  herança automática já documentada acima para o portal e o PWA.
+
 ## Do's and Don'ts
 
 ### Do:

@@ -1,4 +1,5 @@
 import { requirePlatformAccess } from "@/lib/platformMember";
+import { PAINEL_MESTRE_THEME_INIT_SCRIPT } from "@/lib/painelMestreTheme";
 import LumenNavRail from "@/components/painelMestre/LumenNavRail";
 import LumenTopStrip from "@/components/painelMestre/LumenTopStrip";
 import InactivityNotice from "@/components/InactivityNotice";
@@ -13,7 +14,14 @@ export default async function PainelMestreLayout({ children }: { children: React
   const access = await requirePlatformAccess();
 
   return (
-    <div className="dark min-h-screen bg-grafite-900 text-white flex">
+    // "painel-mestre-shell" substitui o `dark`/`bg-grafite-900`/`text-white` cravados que existiam
+    // aqui antes desta rodada — mesma técnica auto-contida de `.portal-shell`/`.mobile-shell` (ver
+    // app/globals.css e DESIGN.md, seção "Painel da Empresa"). Rail e TopStrip continuam grafite
+    // fixo (não usam os tokens que retemam aqui), só o conteúdo dentro de `<main>` muda de tema.
+    <div id="painel-mestre-shell" className="painel-mestre-shell min-h-screen flex">
+      {/* eslint-disable-next-line react/no-danger -- PAINEL_MESTRE_THEME_INIT_SCRIPT é string
+          100% estática (lib/painelMestreTheme.ts), nenhum dado de usuário entra aqui. */}
+      <script dangerouslySetInnerHTML={{ __html: PAINEL_MESTRE_THEME_INIT_SCRIPT }} />
       <LumenNavRail />
       <div className="flex-1 flex flex-col min-w-0">
         <LumenTopStrip memberName={access.name} />
