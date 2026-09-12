@@ -571,7 +571,7 @@ export default function MobileLancarHonorariosForm({
                 />
               </div>
             </div>
-            <p className="text-[13px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+            <p className="text-[13px] text-tx-2 bg-sf-apoio px-3 py-1.5">
               Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado.
             </p>
           </div>
@@ -636,7 +636,7 @@ export default function MobileLancarHonorariosForm({
 
             {cobrancaHasPercentual &&
               (baseValue ? (
-                <p className="text-[13px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+                <p className="text-[13px] text-tx-2 bg-sf-apoio px-3 py-1.5">
                   {percentualNum || 0}% de {formatCurrency(baseValue)}
                   {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago</>} ={" "}
                   <span className="font-semibold tabular-nums text-tx">{formatCurrency(percentualApurado)}</span> líquido

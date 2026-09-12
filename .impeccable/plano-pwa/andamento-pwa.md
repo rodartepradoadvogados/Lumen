@@ -88,5 +88,97 @@ projeto ("comece").
 
 ### Pendente desta rodada
 
-- Verificação técnica local (`tsc`/`eslint`/`next build`) e merge ainda não executados nesta
-  entrada — ver próxima rodada/commit para o resultado do gate e o número do PR.
+- Nenhuma. Verificação técnica local limpa, **mergeado automaticamente pelo Claude**
+  (autorização do `CLAUDE.md`), PR **https://github.com/rodartepradoadvogados/Lumen/pull/173**,
+  branch `feat/pwa-p1-fundacao` removida (local + remoto).
+
+## Rodada 1b — correção: Manhã do PWA não era auto-contida
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão da Rodada 1. Feedback direto do dono do projeto
+depois de testar de verdade: "só tem o tema noite."
+
+### O que foi feito
+
+- **Causa raiz encontrada**: `.mobile-shell` (Manhã, padrão) só declarava `--concluido-glow` e
+  confiava em herdar o resto de `:root`/`.dark` normalmente — mas o **site público tem seu
+  próprio alternador de tema** (`rp-site-theme`, `lib/theme.ts`), independente do PWA, que também
+  troca a classe `.dark` em `<html>`. Com o tema do site em Noite, `/m` inteiro herdava a paleta
+  escura antiga do site (nem a Dracula aproximada) mesmo com o alternador do PWA em Manhã — a
+  Manhã "desaparecia". Mesmo cuidado que `.portal-shell` já tinha ("auto-contido de propósito",
+  comentário original do Portal Noturno) — não copiei essa lição pro lado da Manhã do PWA na
+  Rodada 1.
+- **Corrigido**: `.mobile-shell` passa a redeclarar os mesmos valores de `:root` (mesma técnica
+  de `.portal-shell`/`.portal-shell.portal-light`) — agora nem a Manhã nem a Noite do PWA
+  dependem da classe `.dark` do `<html>`, tema do site e do PWA ficam de fato independentes nos
+  dois sentidos.
+- Verificação técnica local limpa, **mergeado automaticamente pelo Claude**, PR
+  **https://github.com/rodartepradoadvogados/Lumen/pull/174**, branch
+  `fix/pwa-manha-autocontida` removida (local + remoto).
+
+### Pendente desta rodada
+
+- Nenhuma. Próximo item da ordem de execução: estender o mesmo tratamento (raio/glow/emoji
+  condicional) para as telas de Financeiro e Publicações do PWA — próximas de maior uso depois do
+  Painel, pedido direto do dono do projeto para começar imediatamente após a correção.
+
+## Rodada 2 — Financeiro e Publicações: nenhuma edição precisou
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão, sequência direta pedida pelo dono do projeto.
+
+### O que foi feito
+
+- Investigadas as duas telas (`app/m/financeiro/page.tsx`, `app/m/publicacoes/page.tsx`) e o
+  componente que a segunda usa (`components/mobile/MobilePublicationCard.tsx`, verificado sem
+  nenhum hex cru/`bg-white`/`text-black` fora de token).
+- **Nenhuma edição precisou** — mesmo achado do processo aberto na Rodada 1: as duas telas usam
+  só `Card`/tokens semânticos (`text-concluido`/`aviso`/`urgente`, `border-t-*`), sem nenhum ícone
+  próprio com contador de pendência (Financeiro usa tarja colorida por linha, não ícone+badge;
+  Publicações mostra a contagem só em texto, "N não lida(s)", sem ícone ao lado) — a regra de
+  emoji condicional (sino/calendário) não tem onde se aplicar aqui, e raio/paleta já herdam
+  sozinhos de `.mobile-shell` desde a Rodada 1.
+- Nenhum PR aberto nesta rodada — não havia nada de produto para mudar.
+
+### Pendente desta rodada
+
+- Nenhuma edição pendente. Em aberto, para o dono do projeto decidir: continuar o rollout pras
+  ~32 rotas restantes do PWA (mesmo achado esperado — raio/paleta grátis, só emoji condicional se
+  aparecer um ícone+contador novo), ou tratar isso como concluído e voltar para os itens maiores
+  adiados (`painel-mestre`, site público).
+
+## Rodada 3 — rollout completo verificado; 2 achados corrigidos
+
+**Data:** 2026-09-11 · **Sessão:** mesma sessão, a pedido do dono do projeto ("continue o rollout
+para verificar e, em seguida painel mestre e site público").
+
+### O que foi feito
+
+- Auditoria completa das ~34 rotas restantes de `app/m/**` e de `components/mobile/**` (via
+  subagente, pra não sujar o contexto principal com grep bruto) — procurando cor hardcoded
+  incompatível com `.mobile-dark`, ícone com badge de pendência sem o tratamento de emoji
+  condicional, e qualquer outro estilo dependente implicitamente do tema claro.
+- **2 achados reais, os dois da mesma classe de bug do PR #174** (variável que não retemea
+  porque herdava do tema do SITE em vez do PWA):
+  1. `--fonte-pje` (filete lateral da publicação por fonte, `border-l-fonte-pje` em
+     `MobilePublicationsList.tsx`) não estava redefinido em `.mobile-shell`/`.mobile-dark` —
+     corrigido, mesmos valores do site (`#2f6fb0` claro / `#93c0f0` escuro).
+  2. 3 ocorrências idênticas de `bg-white/60 dark:bg-white/5` (nota decorativa em formulário —
+     `MobileLancarHonorariosForm.tsx` ×2, `MobileSettleForm.tsx` ×1) usando a variante `dark:` do
+     Tailwind, que responde à classe `.dark` do SITE (`tailwind.config.ts` → `darkMode: "class"`),
+     não à `.mobile-dark` do PWA — ficaria sempre um branco lavado sobre o fundo Dracula. Trocado
+     por `bg-sf-apoio` (token que já retemea sozinho), mesma convenção do resto do formulário.
+- **Nada mais para corrigir**: nenhum hex cru em todo `app/m/**`/`components/mobile/**`; nenhum
+  outro ícone com contador de pendência fora do sino/calendário já tratados; cores por
+  usuário/pessoa (avatar) e `style` inline de layout (safe-area, `calc(100dvh...)`) confirmados
+  como não relacionados a tema. Raio 2px e paleta continuam automáticos em todo o resto — nenhuma
+  tela precisou de edição própria (mesmo achado do processo aberto/Financeiro/Publicações).
+- **Gap conhecido, sem ação nesta rodada**: `--ouro-acento` também difere entre `:root`/`.dark` e
+  não está redefinido em `.mobile-shell` — mas nenhum componente mobile usa esse token hoje.
+  Registrado aqui para quando (se) algum componente mobile passar a usá-lo.
+- Verificação técnica local isolada, mergeada — ver PR abaixo.
+
+### Pendente desta rodada
+
+- Nenhuma. **Rollout do PWA Noturno concluído** — casca, Painel, processo aberto e os 2 achados
+  da auditoria cobrem 100% do `app/m/*` hoje (o resto herda automaticamente, sem gap conhecido
+  restante). Próximo passo: Painel Mestre e site público, cada um como sessão própria de
+  `grilling` antes de propor qualquer coisa visual — nenhum dos dois tem escopo definido ainda.

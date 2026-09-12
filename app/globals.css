@@ -720,6 +720,10 @@ input[type="radio"] {
      fora do escopo do Portal Noturno até esta rodada — sem isto, o .live-dot abaixo renderizaria
      sem glow nenhum na Manhã. */
   --concluido-glow: 0 0 8px rgba(28, 107, 82, 0.4);
+  /* Filete lateral da publicação por fonte (border-l-fonte-pje, MobilePublicationsList.tsx) —
+     achado da auditoria do rollout: sem isto, herdava do tema do SITE PÚBLICO em vez do PWA,
+     mesma classe de bug do PR #174, só que sobrou esta variável de fora daquela correção. */
+  --fonte-pje: #2f6fb0;
 
   --halo-marca: rgba(138, 47, 66, 0.08);
   --grain-opacity: 0.035;
@@ -762,6 +766,7 @@ input[type="radio"] {
   --concluido: #4fb28c;
   --concluido-bg: rgba(79, 178, 140, 0.16);
   --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
+  --fonte-pje: #93c0f0;
 
   --halo-marca: rgba(138, 47, 66, 0.16);
   --grain-opacity: 0.05;

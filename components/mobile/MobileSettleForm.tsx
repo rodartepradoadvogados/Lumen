@@ -91,7 +91,7 @@ export default function MobileSettleForm({
         </button>
       </div>
       {alreadyPaid > 0 && (
-        <p className="text-[13px] text-tx-2 bg-white/60 dark:bg-white/5 px-2.5 py-1.5">
+        <p className="text-[13px] text-tx-2 bg-sf-apoio px-2.5 py-1.5">
           Já pago: <span className="font-semibold text-tx tabular-nums">{formatCurrency(alreadyPaid)}</span> · Saldo em aberto:{" "}
           <span className="font-semibold text-tx tabular-nums">{formatCurrency(saldoAtual)}</span>
         </p>
