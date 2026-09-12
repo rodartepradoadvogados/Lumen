@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, CreditCard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X } from "lucide-react";
+import { LayoutDashboard, Building2, Wallet, Users, Activity, ShieldCheck, Scale, Tag, Menu, X } from "lucide-react";
 import LumenMark from "@/components/LumenMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon; comingSoon?: boolean };
@@ -13,12 +13,16 @@ type NavGroup = { label: string; items: NavItem[] };
 // Financeiro Lúmen e Equipe Lúmen (Administração) ganharam página na Fase 2; os três itens de
 // Operação ganharam a deles na Fase 3 (Produto e robôs, Cofre de acesso, Confiança e LGPD).
 // Nenhum item deste rail tem mais comingSoon: true.
+//
+// "Assinaturas" saiu do rail nesta rodada (reforma do Painel da Empresa, ver
+// .impeccable/plano-painel-mestre/andamento-painel-mestre.md) — a página própria virou aba
+// "Cobrança & Assinatura" dentro de cada escritório (app/painel-mestre/[officeId]/page.tsx); o
+// selo de saúde que justificava uma tela à parte agora aparece na própria lista de Escritórios.
 const GROUPS: NavGroup[] = [
   {
     label: "Negócio",
     items: [
       { label: "Cockpit", href: "/painel-mestre", icon: LayoutDashboard },
-      { label: "Assinaturas", href: "/painel-mestre/assinaturas", icon: CreditCard },
       { label: "Escritórios", href: "/painel-mestre/escritorios", icon: Building2 },
       { label: "Preços", href: "/painel-mestre/precos", icon: Tag },
     ],

@@ -298,14 +298,14 @@ export async function updateOfficeBilling(
   if ("error" in auth) return auth;
   await prisma.office.update({ where: { id: officeId }, data });
   // Office.monthlyFee é a fonte de verdade (prisma/schema.prisma:2576-2582) enquanto a leitura
-  // não migra para Subscription — mas a tela Assinaturas e a autorização de Pix Automático já
-  // leem subscription.monthlyFee (ver AssinaturasTable.tsx e lib/asaas.ts), então sem propagar
-  // aqui as duas telas do dono ficam mostrando preços diferentes após um reajuste. updateMany (e
+  // não migra para Subscription — mas a aba "Cobrança & Assinatura" (OfficeCobrancaTab.tsx) e a
+  // autorização de Pix Automático já leem subscription.monthlyFee (ver lib/asaas.ts), então sem
+  // propagar aqui as duas seções ficam mostrando preços diferentes após um reajuste. updateMany (e
   // não upsert) de propósito: só atualiza se já existir Subscription, nunca cria uma com os
   // demais campos obrigatórios ausentes.
   await prisma.subscription.updateMany({ where: { officeId }, data: { monthlyFee: data.monthlyFee } });
   revalidatePath("/painel-mestre");
-  revalidatePath("/painel-mestre/assinaturas");
+  revalidatePath("/painel-mestre/escritorios");
   revalidatePath(`/painel-mestre/${officeId}`);
   return {};
 }
@@ -448,9 +448,9 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
 
   // Registra que a cobrança CHEGOU ao escritório. Antes, só o cron (lib/actions/billing.ts)
   // gravava em remindersSent, então este e-mail — que é justamente o PRIMEIRO a sair, com o
-  // boleto/QR Code — não deixava rastro nenhum: a coluna "Entrega da cobrança" em
-  // /painel-mestre/assinaturas dizia "nenhum e-mail enviado ainda" no mesmo dia em que a
-  // fatura foi gerada e enviada, até o cron rodar (3 dias antes do vencimento).
+  // boleto/QR Code — não deixava rastro nenhum: a aba "Faturas" (OfficeFaturasTab.tsx) dizia
+  // "nenhum e-mail enviado ainda" no mesmo dia em que a fatura foi gerada e enviada, até o cron
+  // rodar (3 dias antes do vencimento).
   //
   // Só grava se o e-mail REALMENTE saiu (emailResult.sent) — a tela existe pra distinguir
   // "gerado" de "enviado", e marcar entrega numa falha de envio destruiria essa distinção.
@@ -466,7 +466,7 @@ export async function generateAndSendInvoice(officeId: string): Promise<{ error?
   }
 
   revalidatePath("/painel-mestre");
-  revalidatePath("/painel-mestre/assinaturas");
+  revalidatePath(`/painel-mestre/${officeId}`);
   if (!emailResult.sent) return { error: `Fatura registrada, mas o e-mail não saiu: ${emailResult.reason}`, btgWarning, asaasWarning };
   return { btgWarning, asaasWarning };
 }
@@ -490,6 +490,7 @@ export async function setOfficeAccess(officeId: string, blocked: boolean): Promi
   if (office?.isInternal) return { error: "O escritório interno nunca pode ser bloqueado." };
   await prisma.office.update({ where: { id: officeId }, data: { status: blocked ? "SUSPENSA" : "ATIVA" } });
   revalidatePath("/painel-mestre");
+  revalidatePath(`/painel-mestre/${officeId}`);
   return {};
 }
 

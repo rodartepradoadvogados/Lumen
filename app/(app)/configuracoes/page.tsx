@@ -99,7 +99,8 @@ const SECOES = [
   { key: "blog", label: "Blog Jurídico", requires: "admin" },
   // Fase 3 (Asaas) — autoatendimento: qualquer admin do próprio escritório vê a PRÓPRIA
   // cobrança (ciclo, forma de pagamento, Pix/QR pendente, histórico de faturas). Nada aqui
-  // exige ser platform owner — quem configura isso é o Painel Mestre (/painel-mestre/assinaturas).
+  // exige ser platform owner — quem configura isso é o Painel Mestre (aba "Cobrança &
+  // Assinatura" de /painel-mestre/[officeId]).
   { key: "cobranca", label: "Cobrança", requires: "admin" },
 ] as const;
 

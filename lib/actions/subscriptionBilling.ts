@@ -59,7 +59,8 @@ export async function updateSubscriptionBilling(
     create: { officeId, monthlyFee: office.monthlyFee ?? 0, ...data },
   });
 
-  revalidatePath("/painel-mestre/assinaturas");
+  revalidatePath(`/painel-mestre/${officeId}`);
+  revalidatePath("/painel-mestre/escritorios");
   return {};
 }
 
@@ -88,7 +89,7 @@ export async function triggerPixAutomaticoAuthorization(
       { id: subscription.id, officeId: subscription.officeId, monthlyFee: subscription.monthlyFee, billingCycle: subscription.billingCycle, discountPercent: subscription.discountPercent },
       { id: office.id, name: office.name, billingEmail: office.billingEmail, cnpj: office.cnpj }
     );
-    revalidatePath("/painel-mestre/assinaturas");
+    revalidatePath(`/painel-mestre/${officeId}`);
     return { qrCode: result.qrCode ?? undefined, qrCodeImage: result.qrCodeImage ?? undefined };
   } catch (e) {
     console.error(`[asaas] falha ao gerar autorização Pix Automático para o escritório ${officeId}:`, e);
@@ -135,7 +136,7 @@ export async function previewPixQrCode(
       { id: office.id, name: office.name, billingEmail: office.billingEmail, cnpj: office.cnpj },
       { value: calcularValorCobranca(subscription), dueDate, description: `Teste de cobrança Lúmen — ${office.name}` }
     );
-    revalidatePath("/painel-mestre/assinaturas");
+    revalidatePath(`/painel-mestre/${officeId}`);
     return { qrCodePayload: charge.qrCodePayload ?? undefined, qrCodeImage: charge.qrCodeImage ?? undefined };
   } catch (e) {
     console.error(`[asaas] falha ao gerar QR Code de teste para o escritório ${officeId}:`, e);

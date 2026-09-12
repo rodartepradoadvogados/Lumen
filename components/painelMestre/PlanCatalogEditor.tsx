@@ -26,15 +26,15 @@ export function ModulePricesEditor({ modulePrices }: { modulePrices: ModulePrice
   }
 
   return (
-    <div className="divide-y divide-white/10">
+    <div className="divide-y divide-regua">
       {modulePrices.map((m) => (
         <div key={m.moduleKey} className="flex items-center gap-3 px-5 py-3.5">
-          <span className="flex-1 text-sm text-white/85">{m.label}</span>
+          <span className="flex-1 text-sm text-tx-2">{m.label}</span>
           <NullableMoneyInput
             value={values[m.moduleKey]}
             onChange={(v) => setValues((prev) => ({ ...prev, [m.moduleKey]: v }))}
             placeholder="sem preço"
-            className="w-32 border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs text-right"
+            className="w-32 border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs text-right"
           />
           <button
             type="button"
@@ -70,6 +70,10 @@ const MODULE_FIELDS: { key: keyof Pick<PlanRow, "moduloFinanceiro" | "moduloWhat
   { key: "moduloAtendimento", label: "Atendimento" },
 ];
 
+// Grade lado a lado (um cartão por plano) em vez da lista empilhada de antes — achado da rodada
+// de reforma (dono do projeto: "página de preços confusa, com layout fraco"): comparar os 4
+// planos exigia rolar e alinhar de cabeça; lado a lado, os módulos/limites de cada plano ficam
+// na mesma linha visual dos outros três, sem perder nenhum campo editável de antes.
 export function PlansEditor({ plans }: { plans: PlanRow[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -108,83 +112,87 @@ export function PlansEditor({ plans }: { plans: PlanRow[] }) {
   }
 
   return (
-    <div className="divide-y divide-white/10">
-      {plans.map((p) => {
-        const row = rows[p.id];
-        return (
-          <div key={p.id} className="px-5 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-white">{p.name}</span>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1.5 text-xs text-white/70 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="recommended-plan"
-                    checked={recommendedId === p.id}
-                    disabled={recommendedPending}
-                    onChange={() => chooseRecommended(p.id)}
-                    className="h-3.5 w-3.5 accent-marca"
-                  />
-                  Recomendado
-                </label>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => save(p.id)}
-                  className="text-xs font-semibold text-marca-tx hover:underline disabled:opacity-50"
-                >
-                  Salvar
-                </button>
-                {savedId === p.id && !pending && <Check size={14} className="text-concluido" />}
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 divide-x-0 lg:divide-x divide-regua">
+        {plans.map((p) => {
+          const row = rows[p.id];
+          return (
+            <div key={p.id} className="px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-tx">{p.name}</span>
+                {savedId === p.id && !pending && <Check size={14} className="text-concluido shrink-0" />}
               </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              {MODULE_FIELDS.map((f) => (
-                <label key={f.key} className="flex items-center gap-2 border border-white/15 px-3 py-2 text-sm text-white/85 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={row[f.key]}
-                    onChange={(e) => update(p.id, { [f.key]: e.target.checked } as Partial<PlanRow>)}
-                    className="h-4 w-4 accent-marca"
-                  />
-                  {f.label}
-                </label>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[11px] text-white/50">Limite de OABs</label>
+
+              <label className="flex items-center gap-1.5 text-xs text-tx-2 cursor-pointer mb-3">
                 <input
-                  type="number"
-                  min={0}
-                  value={row.maxOabs ?? ""}
-                  onChange={(e) => update(p.id, { maxOabs: e.target.value === "" ? null : Number(e.target.value) })}
-                  placeholder="sem limite"
-                  className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
+                  type="radio"
+                  name="recommended-plan"
+                  checked={recommendedId === p.id}
+                  disabled={recommendedPending}
+                  onChange={() => chooseRecommended(p.id)}
+                  className="h-3.5 w-3.5 accent-marca"
                 />
+                Recomendado
+              </label>
+
+              <div className="flex flex-col gap-2 mb-3">
+                {MODULE_FIELDS.map((f) => (
+                  <label key={f.key} className="flex items-center gap-2 border border-regua-forte rounded-sm px-3 py-2 text-sm text-tx-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={row[f.key]}
+                      onChange={(e) => update(p.id, { [f.key]: e.target.checked } as Partial<PlanRow>)}
+                      className="h-4 w-4 accent-marca"
+                    />
+                    {f.label}
+                  </label>
+                ))}
               </div>
-              <div>
-                <label className="text-[11px] text-white/50">Limite de processos</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={row.maxProcessos ?? ""}
-                  onChange={(e) => update(p.id, { maxProcessos: e.target.value === "" ? null : Number(e.target.value) })}
-                  placeholder="sem limite"
-                  className="mt-1 w-full border border-white/15 bg-grafite-700 text-white px-2.5 py-1.5 text-xs"
-                />
+
+              <div className="flex flex-col gap-2 mb-3">
+                <div>
+                  <label className="text-[11px] text-tx-3">Limite de OABs</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.maxOabs ?? ""}
+                    onChange={(e) => update(p.id, { maxOabs: e.target.value === "" ? null : Number(e.target.value) })}
+                    placeholder="sem limite"
+                    className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-tx-3">Limite de processos</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.maxProcessos ?? ""}
+                    onChange={(e) => update(p.id, { maxProcessos: e.target.value === "" ? null : Number(e.target.value) })}
+                    placeholder="sem limite"
+                    className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs"
+                  />
+                </div>
               </div>
+
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => save(p.id)}
+                className="text-xs font-semibold text-marca-tx hover:underline disabled:opacity-50"
+              >
+                Salvar
+              </button>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
       {recommendedId && (
-        <div className="px-5 py-3">
+        <div className="px-5 py-3 border-t border-regua">
           <button
             type="button"
             disabled={recommendedPending}
             onClick={() => chooseRecommended(null)}
-            className="text-xs font-semibold text-white/50 hover:text-white/80 hover:underline disabled:opacity-50"
+            className="text-xs font-semibold text-tx-3 hover:text-tx-2 hover:underline disabled:opacity-50"
           >
             Remover destaque &ldquo;Recomendado&rdquo; de todos os planos
           </button>

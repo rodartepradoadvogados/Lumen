@@ -40,11 +40,17 @@ export default async function FinanceiroLumenPage({
   await requirePlatformAccess();
 
   const mesFoco = searchParams.mes && /^\d{4}-\d{2}$/.test(searchParams.mes) ? searchParams.mes : competenciaAtual();
+  const mesAnterior = shiftCompetencia(mesFoco, -1);
 
-  const [offices, accounts, expenses] = await Promise.all([
+  const [offices, accounts, expenses, expensesMesAnterior] = await Promise.all([
     listTenantOffices(),
     prisma.platformAccount.findMany({ where: { kind: "DESPESA" }, orderBy: { name: "asc" } }),
     prisma.platformExpense.findMany({ where: { competencia: mesFoco }, include: { account: true }, orderBy: { createdAt: "desc" } }),
+    // Só a soma do mês anterior, pra dar sentido de tendência ao MRR/margem (pedido da reforma:
+    // "cards mais fortes, talvez um gráfico de tendência" — decisão do dono do projeto foi só
+    // polimento visual, sem sub-relatório novo tipo DRE/Fluxo de Caixa, então a comparação fica
+    // aqui mesmo, sem virar página própria).
+    prisma.platformExpense.aggregate({ where: { competencia: mesAnterior }, _sum: { amount: true } }),
   ]);
 
   // Mesma fórmula de MRR usada no Cockpit (app/painel-mestre/page.tsx) — escritórios-cliente
@@ -57,7 +63,15 @@ export default async function FinanceiroLumenPage({
   const despesasDoMes = expenses.reduce((sum, e) => sum + e.amount, 0);
   const margem = mrr - despesasDoMes;
 
-  const prevHref = `/painel-mestre/financeiro?mes=${shiftCompetencia(mesFoco, -1)}`;
+  // MRR não tem histórico por mês (Office.monthlyFee é o valor ATUAL, não um snapshot) — a
+  // tendência de margem usa o MRR de hoje contra a despesa de cada mês, então ela reflete a
+  // variação de DESPESA, não uma mudança real de receita passada. "Margem estimada" já avisa que
+  // é aproximação; a variação segue a mesma lógica.
+  const despesasMesAnterior = expensesMesAnterior._sum.amount ?? 0;
+  const margemMesAnterior = mrr - despesasMesAnterior;
+  const margemVariacao = margemMesAnterior !== 0 ? ((margem - margemMesAnterior) / Math.abs(margemMesAnterior)) * 100 : null;
+
+  const prevHref = `/painel-mestre/financeiro?mes=${mesAnterior}`;
   const nextHref = `/painel-mestre/financeiro?mes=${shiftCompetencia(mesFoco, 1)}`;
 
   const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name, group: a.group }));
@@ -65,25 +79,35 @@ export default async function FinanceiroLumenPage({
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Financeiro Lúmen</h1>
-        <p className="text-sm text-white/55 mt-1">Receita (MRR) e despesas da própria empresa Lúmen</p>
+        <h1 className="text-2xl font-bold text-tx">Financeiro Lúmen</h1>
+        <p className="text-sm text-tx-2 mt-1">Receita (MRR) e despesas da própria empresa Lúmen</p>
       </div>
 
       <LumenPanel>
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-regua">
           <LumenStat label="MRR" value={formatCurrency(mrr)} />
           <LumenStat label="Despesas do mês" value={formatCurrency(despesasDoMes)} />
-          <LumenStat label="Margem estimada" value={formatCurrency(margem)} tone={margem >= 0 ? "ok" : "risk"} />
+          <div className="p-4">
+            <p className="text-[10px] font-semibold text-tx-3 uppercase tracking-wide mb-1">Margem estimada</p>
+            <p className={`font-mono text-2xl font-semibold tabular-nums ${margem >= 0 ? "text-concluido" : "text-urgente"}`}>
+              {formatCurrency(margem)}
+            </p>
+            {margemVariacao !== null && (
+              <p className={`text-[11px] font-semibold mt-1 ${margemVariacao >= 0 ? "text-concluido" : "text-urgente"}`}>
+                {margemVariacao >= 0 ? "↑" : "↓"} {Math.abs(margemVariacao).toFixed(0)}% vs. {labelCompetencia(mesAnterior)}
+              </p>
+            )}
+          </div>
         </div>
       </LumenPanel>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <Link href={prevHref} className="p-1.5 hover:bg-white/5 text-white/70 rounded-md">
+          <Link href={prevHref} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-sm">
             <ChevronLeft size={18} />
           </Link>
-          <span className="text-sm font-semibold text-white px-2 min-w-[9rem] text-center">{labelCompetencia(mesFoco)}</span>
-          <Link href={nextHref} className="p-1.5 hover:bg-white/5 text-white/70 rounded-md">
+          <span className="text-sm font-semibold text-tx px-2 min-w-[9rem] text-center">{labelCompetencia(mesFoco)}</span>
+          <Link href={nextHref} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-sm">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -95,7 +119,7 @@ export default async function FinanceiroLumenPage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-[10px] font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                 <th className="px-5 py-2.5 font-semibold">Conta</th>
                 <th className="px-3 py-2.5 font-semibold">Descrição</th>
                 <th className="px-3 py-2.5 font-semibold">Fornecedor</th>
@@ -104,17 +128,17 @@ export default async function FinanceiroLumenPage({
                 <th className="px-3 py-2.5 font-semibold text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-regua">
               {expenses.map((e) => (
                 <tr key={e.id}>
                   <td className="px-5 py-3">
-                    <span className="text-white font-medium">{e.account.name}</span>
-                    {e.account.group && <span className="block text-[11px] text-white/40">{e.account.group}</span>}
+                    <span className="text-tx font-medium">{e.account.name}</span>
+                    {e.account.group && <span className="block text-[11px] text-tx-3">{e.account.group}</span>}
                   </td>
-                  <td className="px-3 py-3 text-white/80">{e.description}</td>
-                  <td className="px-3 py-3 text-white/70">{e.supplier || "—"}</td>
-                  <td className="px-3 py-3 font-mono tabular-nums text-white">{formatCurrency(e.amount)}</td>
-                  <td className="px-3 py-3 font-mono tabular-nums text-white/70">{e.paidAt ? formatDate(e.paidAt) : "—"}</td>
+                  <td className="px-3 py-3 text-tx-2">{e.description}</td>
+                  <td className="px-3 py-3 text-tx-2">{e.supplier || "—"}</td>
+                  <td className="px-3 py-3 font-mono tabular-nums text-tx">{formatCurrency(e.amount)}</td>
+                  <td className="px-3 py-3 font-mono tabular-nums text-tx-2">{e.paidAt ? formatDate(e.paidAt) : "—"}</td>
                   <td className="px-3 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <PlatformExpenseModal
@@ -138,7 +162,7 @@ export default async function FinanceiroLumenPage({
               ))}
               {expenses.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-white/40 text-sm">
+                  <td colSpan={6} className="px-5 py-8 text-center text-tx-3 text-sm">
                     Nenhuma despesa lançada em {labelCompetencia(mesFoco)}.
                   </td>
                 </tr>
