@@ -9,6 +9,7 @@ import PublicationsTriage, { type TriageGroup } from "@/components/PublicationsT
 import PublicationRespFilter from "@/components/PublicationRespFilter";
 import DistributePublicationsButton from "@/components/DistributePublicationsButton";
 import SyncPublicationsButton from "@/components/SyncPublicationsButton";
+import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import { findPublicationIdsByProcessNumber } from "@/lib/processNumberSearch";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess, countUnreadPublicationGroups } from "@/lib/publicationGrouping";
@@ -176,6 +177,7 @@ export default async function PublicacoesPage({
               DJEN {formatHora(ultimoRunDjen?.startedAt)} · Datajud {formatHora(ultimoRunDatajud?.startedAt)}
             </span>
             <SyncPublicationsButton />
+            {naoTriadasCount > 0 && <MarkAllPublicationsReadButton count={naoTriadasCount} />}
             {viewer.isAdmin && <DistributePublicationsButton />}
           </div>
         </div>

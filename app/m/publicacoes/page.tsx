@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { Card, EmptyState } from "@/components/ui";
 import MobilePublicationsList from "@/components/mobile/MobilePublicationsList";
+import MarkAllPublicationsReadButton from "@/components/MarkAllPublicationsReadButton";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
 
@@ -60,9 +61,12 @@ export default async function MobilePublicacoes() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-bold text-tx">Publicações</h1>
-        <p className="text-sm text-tx-2">{groups.length} não lida(s)</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-tx">Publicações</h1>
+          <p className="text-sm text-tx-2">{groups.length} não lida(s)</p>
+        </div>
+        {groups.length > 0 && <MarkAllPublicationsReadButton count={groups.length} />}
       </div>
 
       <Card>
