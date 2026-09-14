@@ -5,6 +5,7 @@ import { valorLiquido } from "@/lib/financeCalc";
 import { getOAuthClient } from "@/lib/googleDrive";
 import { getMicrosoftAccessToken } from "@/lib/microsoftGraph";
 import { escapeHtml } from "@/lib/htmlEscape";
+import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -663,7 +664,7 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
         // duas fontes por usuário, mesmo shape de lib/alerts.ts:182 e :203-207.
         prisma.mention.findMany({
           where: { officeId: user.officeId, userId: user.id, read: false },
-          include: { comment: { include: { author: true } } },
+          include: { comment: { include: { author: true, ...mentionCommentInclude } } },
         }),
         prisma.task.findMany({
           where: { officeId: user.officeId, responsibleId: user.id, delegatedById: { not: null }, delegationAcknowledgedAt: null },
@@ -688,9 +689,15 @@ export async function sendDailyDigestEmails(officeId?: string): Promise<{ sent: 
       ]);
 
       // Mesmo título/subtítulo que lib/alerts.ts monta para MENCAO/TAREFA_DELEGADA (getAlerts:
-      // linhas ~390 e ~417) — só a fonte mudou, não o conteúdo exibido.
+      // linhas ~390 e ~417) — só a fonte mudou, não o conteúdo exibido. describeMentionLocation
+      // (lib/mentions.ts) é o que garante que os dois lugares digam a MESMA coisa sobre onde a
+      // menção está — antes o e-mail (e a Central de Alertas) só diziam "Fulano mencionou você",
+      // sem processo/tarefa/licitação nenhum, obrigando a vasculhar o escritório inteiro atrás.
       const notifications: DigestListItem[] = [
-        ...mentions.map((m) => ({ title: `${m.comment.author.name} mencionou você`, subtitle: m.comment.content.slice(0, 60), meta: "Menção" })),
+        ...mentions.map((m) => {
+          const local = describeMentionLocation(m.comment);
+          return { title: `${m.comment.author.name} mencionou você — ${local.label}`, subtitle: `"${m.comment.content.slice(0, 100)}"`, meta: "Menção" };
+        }),
         ...delegatedTasks.map((t) => ({ title: `${t.delegatedBy?.name} atribuiu: ${t.title}`, subtitle: t.case?.title, meta: "Tarefa" })),
       ];
 
