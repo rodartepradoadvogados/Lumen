@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { pendenciaKindLabel } from "@/lib/pendencias";
+import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
 
 export type AlertItem = {
   id: string;
@@ -186,7 +187,7 @@ export async function getAlerts(
       viewerId
         ? prisma.mention.findMany({
             where: { officeId, userId: viewerId, read: false, ...(dismissedByKind.has("MENCAO") ? { commentId: { notIn: Array.from(dismissedByKind.get("MENCAO")!) } } : {}) },
-            include: { comment: { include: { author: true, case: true, task: true } } },
+            include: { comment: { include: { author: true, ...mentionCommentInclude } } },
           })
         : Promise.resolve([]),
       includeFinance
@@ -412,16 +413,18 @@ export async function getAlerts(
     });
   }
   for (const m of unreadMentions) {
+    const local = describeMentionLocation(m.comment);
     alerts.push({
       id: `mention-${m.id}`,
       kind: "MENCAO",
-      title: `${m.comment.author.name} mencionou você`,
-      subtitle: m.comment.content.slice(0, 60),
+      title: `${m.comment.author.name} mencionou você — ${local.label}`,
+      subtitle: `"${m.comment.content.slice(0, 100)}"`,
       date: m.createdAt,
-      href: m.comment.caseId ? `/processos/${m.comment.caseId}?tab=comentarios` : "/kanban",
+      href: local.href,
       severity: "baixa",
       entityKind: "COMMENT",
       entityId: m.comment.id,
+      processNumber: local.processNumber,
     });
   }
 

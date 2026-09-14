@@ -455,16 +455,25 @@ export async function addComment(data: { content: string; taskId?: string; caseI
   if (data.taskId && !(await isTaskInOffice(data.taskId, viewer.officeId))) return;
   if (data.caseId && !(await isCaseInOffice(data.caseId, viewer.officeId))) return;
   if (data.licitacaoId && !(await isLicitacaoInOffice(data.licitacaoId, viewer.officeId))) return;
-  // Comentário de tarefa (card estilo Trello, ver TaskDetailModal) não vem com caseId do
-  // chamador — busca o processo da própria tarefa pra também revalidar a aba Atividades dele
-  // (contador de comentários) e pro link de notificação apontar pro processo certo.
-  const taskCaseId = data.taskId
-    ? (await prisma.task.findUnique({ where: { id: data.taskId }, select: { caseId: true } }))?.caseId ?? null
+  // Comentário de tarefa (card estilo Trello, ver TaskDetailModal) não vem com caseId/
+  // licitacaoId/attendanceId do chamador — busca o dono real da tarefa (processo, licitação OU
+  // atendimento; uma tarefa só tem um dos três, ou nenhum, se for avulsa do Kanban pessoal) pra
+  // revalidar a aba certa e pro link de notificação apontar pro lugar certo. Antes só se buscava
+  // caseId: comentário numa tarefa de licitação ou de atendimento nunca revalidava a página dona
+  // e a notificação (push/e-mail/Central de Alertas) caía sempre no fallback genérico, sem dizer
+  // onde a menção estava — ver lib/mentions.ts.
+  const taskOwner = data.taskId
+    ? await prisma.task.findUnique({ where: { id: data.taskId }, select: { caseId: true, licitacaoId: true, attendanceId: true } })
     : null;
-  // Licitação não tem rota própria (vive em /assessoria/{id}?tab=licitacoes) — revalidar exige
-  // achar a Assessoria dona primeiro, mesmo padrão de lib/actions/attachments.ts.
-  const licitacaoAssessoriaId = data.licitacaoId
-    ? (await prisma.licitacao.findUnique({ where: { id: data.licitacaoId }, select: { assessoriaId: true } }))?.assessoriaId ?? null
+  const taskCaseId = taskOwner?.caseId ?? null;
+  const effectiveLicitacaoId = data.licitacaoId || taskOwner?.licitacaoId || null;
+  const effectiveAttendanceId = taskOwner?.attendanceId ?? null;
+  // Licitação não tem rota própria no site (vive em /assessoria/{id}?tab=licitacoes) — revalidar
+  // e notificar exigem achar a Assessoria dona primeiro, mesmo padrão de
+  // lib/actions/attachments.ts. Cobre tanto comentário direto na licitação quanto comentário
+  // numa tarefa dela.
+  const licitacaoAssessoriaId = effectiveLicitacaoId
+    ? (await prisma.licitacao.findUnique({ where: { id: effectiveLicitacaoId }, select: { assessoriaId: true } }))?.assessoriaId ?? null
     : null;
   const mentionNames = Array.from(data.content.matchAll(/@(\p{Lu}\p{L}*(?:[ \t]+\p{Lu}\p{L}*)*)/gu)).map((m) => m[1].trim());
   const comment = await prisma.comment.create({
@@ -481,12 +490,25 @@ export async function addComment(data: { content: string; taskId?: string; caseI
 
   if (mentionNames.length > 0) {
     const users = await prisma.user.findMany({ where: { officeId: viewer.officeId } });
+    // Mesma cadeia de resolução de lib/mentions.ts (processo → licitação → atendimento → tarefa
+    // avulsa), adaptada pras rotas do app: a licitação ganha link direto pro registro
+    // (/m/assessoria/{empresa}/licitacoes/{id}), mais preciso que a aba do site, porque o app já
+    // tem página própria por licitação (app/m/assessoria/[id]/licitacoes/[licitacaoId]) — o site
+    // só chega até a aba geral. Sem processo/licitação/atendimento, cai no fallback antigo (a
+    // tela inicial do app), mas isso agora só acontece de fato para tarefa avulsa do Kanban
+    // pessoal, que não tem página própria nem no site nem no app.
+    const effectiveCaseId = data.caseId || taskCaseId;
+    const url = effectiveCaseId
+      ? `/m/processos/${effectiveCaseId}`
+      : effectiveLicitacaoId && licitacaoAssessoriaId
+        ? `/m/assessoria/${licitacaoAssessoriaId}/licitacoes/${effectiveLicitacaoId}`
+        : effectiveAttendanceId
+          ? `/m/atendimento/${effectiveAttendanceId}`
+          : "/m";
     for (const name of mentionNames) {
       const user = users.find((u) => name.toLowerCase().includes(u.name.toLowerCase()) || u.name.toLowerCase().includes(name.toLowerCase()));
       if (user && user.id !== viewer.id) {
         await prisma.mention.create({ data: { commentId: comment.id, userId: user.id, officeId: viewer.officeId } });
-        const effectiveCaseId = data.caseId || taskCaseId;
-        const url = effectiveCaseId ? `/m/processos/${effectiveCaseId}` : "/m";
         await sendPushIfEnabled(user.id, viewer.officeId, "mencao", {
           title: "Você foi mencionado",
           body: `${comment.author.name}: ${data.content.slice(0, 120)}`,
@@ -500,5 +522,6 @@ export async function addComment(data: { content: string; taskId?: string; caseI
   if (data.caseId) revalidatePath(`/processos/${data.caseId}`);
   if (taskCaseId) revalidatePath(`/processos/${taskCaseId}`);
   if (licitacaoAssessoriaId) revalidatePath(`/assessoria/${licitacaoAssessoriaId}`);
+  if (effectiveAttendanceId) revalidatePath(`/atendimento/${effectiveAttendanceId}`);
   revalidatePath("/alertas");
 }
