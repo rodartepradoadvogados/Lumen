@@ -1262,6 +1262,14 @@ model Attachment {
   driveUrl  String
   docType   String   @default("OUTRO") // ver lib/documentTypes.ts
   createdAt DateTime @default(now())
+  // Data da última alteração do ARQUIVO NO DRIVE (não de um campo deste registro) — nulo até a
+  // primeira vez que alguém volta pra aba do Lúmen depois de abrir o documento (ver
+  // refreshAttachmentModifiedDate, lib/actions/attachments.ts, chamada pelo listener de "focus"
+  // da janela em components/AttachmentList.tsx). Pedido do dono do escritório: editar e salvar um
+  // documento (Google Docs sempre edita o MESMO arquivo, nunca cria outro — não há "substituir"
+  // pra fazer) precisa refletir na tela sem precisar reenviar nada, mudando só a data mostrada
+  // como "Enviado em". Sem isso, o campo ficava preso pra sempre na data de criação do registro.
+  updatedAt DateTime?
 
   // Provedor e id do arquivo usados no upload — "GOOGLE_DRIVE" | "ONEDRIVE" (default preserva o
   // comportamento de todo anexo já existente, sempre Google). Gravado explicitamente desde esta

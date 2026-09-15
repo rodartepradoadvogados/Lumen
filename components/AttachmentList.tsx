@@ -4,7 +4,13 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { X, ExternalLink, UploadCloud, Link as LinkIcon, Search, Pencil, LayoutGrid, List as ListIcon, Table2, FolderPlus } from "lucide-react";
-import { createAttachment, deleteAttachment, finalizeAttachmentUpload, updateAttachmentDocType } from "@/lib/actions/attachments";
+import {
+  createAttachment,
+  deleteAttachment,
+  finalizeAttachmentUpload,
+  refreshAttachmentModifiedDate,
+  updateAttachmentDocType,
+} from "@/lib/actions/attachments";
 import { createCaseSubfolder } from "@/lib/actions/driveFolders";
 import { getDocumentTypeIcon, getDocumentTypeLabel, getLinkSourceLabel, isRecursoQueEscalaInstancia } from "@/lib/documentTypes";
 import { formatoArquivo } from "@/lib/fileExtension";
@@ -27,6 +33,10 @@ type AttachmentData = {
   driveUrl: string;
   docType: string;
   createdAt: string;
+  // Nulo até a primeira vez que alguém volta pra aba do Lúmen depois de abrir este documento (ver
+  // handleOpenAttachment abaixo) — Google Docs sempre edita o MESMO arquivo, então "Enviado em"
+  // sozinho ficava preso na data de criação para sempre, mesmo com o documento já reescrito.
+  updatedAt: string | null;
   uploadedBy: { name: string } | null;
   // Só populado (e só relevante) quando `taskOptions` também é passado — ver comentário logo
   // abaixo. Demais chamadores (Processo/Atendimento) seguem sem precisar disso.
@@ -127,7 +137,7 @@ export default function AttachmentList({
   const sorted = useMemo(
     () =>
       sortByOption(filtered, sortBy, {
-        dateKey: (a) => a.createdAt,
+        dateKey: (a) => a.updatedAt ?? a.createdAt,
         name: (a) => a.name,
         typeLabel: (a) => getDocumentTypeLabel(a.docType),
       }),
@@ -256,6 +266,21 @@ export default function AttachmentList({
       if (caseId && isRecursoQueEscalaInstancia(docType)) setRecursoPrompt(docType);
       router.refresh();
     });
+  }
+
+  // Documento é editado no próprio Google Docs, numa aba separada — não há "salvar" que volte pra
+  // cá. Em vez de reconferir o Drive de todos os anexos a cada carregamento da página (custoso e
+  // desnecessário), só confere ESTE anexo quando a pessoa volta o foco pro Lúmen depois de tê-lo
+  // aberto — ver refreshAttachmentModifiedDate em lib/actions/attachments.ts.
+  function handleOpenAttachment(id: string) {
+    function onFocus() {
+      window.removeEventListener("focus", onFocus);
+      startTransition(async () => {
+        await refreshAttachmentModifiedDate(id);
+        router.refresh();
+      });
+    }
+    window.addEventListener("focus", onFocus);
   }
 
   async function handleCreateFolder(e: React.FormEvent) {
@@ -438,7 +463,13 @@ export default function AttachmentList({
                     />
                   </div>
                 ) : (
-                  <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-1.5">
+                  <a
+                    href={a.driveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleOpenAttachment(a.id)}
+                    className="flex flex-col items-center text-center gap-1.5"
+                  >
                     <div className="h-10 w-10 bg-sf text-tx-2 flex items-center justify-center">
                       <Icon size={18} />
                     </div>
@@ -506,7 +537,13 @@ export default function AttachmentList({
                     />
                   </div>
                 ) : (
-                  <a href={a.driveUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-2 min-w-0 hover:text-marca-tx">
+                  <a
+                    href={a.driveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleOpenAttachment(a.id)}
+                    className="flex-1 flex items-center gap-2 min-w-0 hover:text-marca-tx"
+                  >
                     <span className="text-xs font-medium text-tx truncate" title={a.name}>
                       {a.name}
                     </span>
@@ -520,7 +557,7 @@ export default function AttachmentList({
                     {taskTag(a)}
                   </span>
                 )}
-                <span className="shrink-0 text-[10px] text-tx-2">{formatDate(a.createdAt)}</span>
+                <span className="shrink-0 text-[10px] text-tx-2">{formatDate(a.updatedAt ?? a.createdAt)}</span>
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                   <button
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
@@ -572,6 +609,7 @@ export default function AttachmentList({
                       href={a.driveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => handleOpenAttachment(a.id)}
                       className="inline-flex items-center gap-1.5 font-medium text-marca-tx hover:underline"
                       title={a.driveUrl}
                     >
@@ -594,7 +632,7 @@ export default function AttachmentList({
                     )}
                   </td>
                   {taskOptions && taskOptions.length > 0 && <td className="py-2 pr-3 text-tx-2">{taskTag(a)}</td>}
-                  <td className="py-2 pr-3 text-tx-2 whitespace-nowrap">{formatDate(a.createdAt)}</td>
+                  <td className="py-2 pr-3 text-tx-2 whitespace-nowrap">{formatDate(a.updatedAt ?? a.createdAt)}</td>
                   <td className="py-2 pr-3 text-tx-2">{a.uploadedBy?.name || "—"}</td>
                   <td className="py-2">
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
