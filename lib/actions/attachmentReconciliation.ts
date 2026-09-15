@@ -31,6 +31,7 @@ import {
   getOrCreateAttendanceFolder,
   getOrCreateLicitacaoFolder,
   getOrCreateLicitacaoDemandaFolder,
+  getOrCreateParecerFolder,
   getOrCreateAssessoriaCompanyFolderCached,
   ASSESSORIA_DOC_TYPE_FOLDERS,
   DRIVE_FOLDER_MIME_TYPE,
@@ -55,7 +56,10 @@ export type ReconciliationScope =
   | { kind: "ATTENDANCE"; attendanceId: string }
   // taskId ausente = pasta GERAL da licitação; presente = pasta de UMA demanda específica.
   | { kind: "LICITACAO"; licitacaoId: string; taskId?: string | null }
-  | { kind: "ASSESSORIA"; assessoriaId: string };
+  | { kind: "ASSESSORIA"; assessoriaId: string }
+  // Uma "demanda" (Parecer) da Assessoria — pasta própria, sem subpasta por tipo (mesma
+  // estrutura flat de LICITACAO, ver getOrCreateParecerFolder/app/api/assessoria/documentos/upload/route.ts).
+  | { kind: "PARECER"; parecerId: string };
 
 export type DriveFileRef = { fileId: string; name: string; webViewLink: string };
 
@@ -277,8 +281,35 @@ async function resolverContexto(scope: ReconciliationScope, officeId: string): P
     };
   }
 
+  if (scope.kind === "PARECER") {
+    const p = await prisma.parecer.findFirst({
+      where: { id: scope.parecerId, officeId },
+      select: { id: true, name: true, assessoriaId: true, assessoria: { select: { client: { select: { name: true } } } } },
+    });
+    if (!p) return { error: "Demanda não encontrada." };
+    const rootFolderId = await getOrCreateParecerFolder(p.id, p.assessoria.client.name, p.name, officeId);
+    const docs = await prisma.assessoriaDocumento.findMany({
+      where: { parecerId: p.id, officeId },
+      select: { id: true, name: true, storageFileId: true, driveUrl: true, docType: true },
+    });
+    const conhecidos: RegistroConhecido[] = docs.map((d) => ({
+      recordKind: "ASSESSORIA_DOCUMENTO",
+      recordId: d.id,
+      name: d.name,
+      fileId: d.storageFileId || extractDriveFileId(d.driveUrl),
+      subpasta: null,
+    }));
+    return {
+      rootFolderId,
+      temSubpasta: false,
+      entidadeLabel: p.name,
+      conhecidos,
+      tipoPredominante: tipoMaisFrequente(docs.map((d) => d.docType)),
+    };
+  }
+
   // ASSESSORIA — documentos gerais da empresa (AssessoriaDocumento sem parecerId). Documentos
-  // dentro de um Parecer têm pasta e reconciliação própria, fora do escopo desta entrega.
+  // dentro de um Parecer usam o escopo PARECER acima, pasta própria e flat (sem subpasta por tipo).
   const a = await prisma.assessoria.findFirst({ where: { id: scope.assessoriaId, officeId }, select: { id: true, client: { select: { name: true } } } });
   if (!a) return { error: "Assessoria não encontrada." };
   const rootFolderId = await getOrCreateAssessoriaCompanyFolderCached(a.id, a.client.name, officeId);
@@ -484,7 +515,7 @@ export async function planoReconciliacaoEscritorio(): Promise<{ entidades: Entid
   if (bloqueio) return { error: bloqueio };
 
   const officeId = user.officeId;
-  const [cases, attendances, licitacoes, tasks, assessorias] = await Promise.all([
+  const [cases, attendances, licitacoes, tasks, assessorias, pareceres] = await Promise.all([
     prisma.case.findMany({
       where: { officeId, OR: [{ driveFolderId: { not: null } }, { attachments: { some: {} } }] },
       select: { id: true },
@@ -505,6 +536,10 @@ export async function planoReconciliacaoEscritorio(): Promise<{ entidades: Entid
       where: { officeId, OR: [{ driveFolderId: { not: null } }, { documents: { some: { parecerId: null } } }] },
       select: { id: true },
     }),
+    prisma.parecer.findMany({
+      where: { officeId, OR: [{ driveFolderId: { not: null } }, { documents: { some: {} } }] },
+      select: { id: true },
+    }),
   ]);
 
   const escopos: ReconciliationScope[] = [
@@ -513,6 +548,7 @@ export async function planoReconciliacaoEscritorio(): Promise<{ entidades: Entid
     ...licitacoes.map((l): ReconciliationScope => ({ kind: "LICITACAO", licitacaoId: l.id })),
     ...tasks.map((t): ReconciliationScope => ({ kind: "LICITACAO", licitacaoId: t.licitacaoId!, taskId: t.id })),
     ...assessorias.map((a): ReconciliationScope => ({ kind: "ASSESSORIA", assessoriaId: a.id })),
+    ...pareceres.map((p): ReconciliationScope => ({ kind: "PARECER", parecerId: p.id })),
   ];
 
   const resultados = await mapComConcorrencia(escopos, CONCORRENCIA_DRIVE, async (scope): Promise<EntidadePlano | null> => {
@@ -576,6 +612,14 @@ async function revalidarEscopo(scope: ReconciliationScope): Promise<void> {
     // em lib/actions/attachments.ts:revalidateLicitacaoPath).
     const l = await prisma.licitacao.findUnique({ where: { id: scope.licitacaoId }, select: { assessoriaId: true } });
     if (l) revalidatePath(`/assessoria/${l.assessoriaId}`);
+  } else if (scope.kind === "PARECER") {
+    // Parecer também não tem rota própria no site (vive na aba "Demandas, Processos e Casos" da
+    // Assessoria) — tem no app mobile, revalidado à parte.
+    const p = await prisma.parecer.findUnique({ where: { id: scope.parecerId }, select: { assessoriaId: true } });
+    if (p) {
+      revalidatePath(`/assessoria/${p.assessoriaId}`);
+      revalidatePath(`/m/assessoria/${p.assessoriaId}/pareceres/${scope.parecerId}`);
+    }
   } else {
     revalidatePath(`/assessoria/${scope.assessoriaId}`);
     revalidatePath(`/m/assessoria/${scope.assessoriaId}`);
@@ -672,6 +716,10 @@ export async function adicionarComoAnexo(scope: ReconciliationScope, arquivo: Dr
       taskId = t.id;
     }
     await prisma.attachment.create({ data: { ...dadosComuns, licitacaoId: l.id, taskId } });
+  } else if (scope.kind === "PARECER") {
+    const p = await prisma.parecer.findFirst({ where: { id: scope.parecerId, officeId: user.officeId }, select: { id: true, assessoriaId: true } });
+    if (!p) return { error: "Demanda não encontrada." };
+    await prisma.assessoriaDocumento.create({ data: { ...dadosComuns, assessoriaId: p.assessoriaId, parecerId: p.id, date: new Date() } });
   } else {
     const a = await prisma.assessoria.findFirst({ where: { id: scope.assessoriaId, officeId: user.officeId }, select: { id: true } });
     if (!a) return { error: "Assessoria não encontrada." };

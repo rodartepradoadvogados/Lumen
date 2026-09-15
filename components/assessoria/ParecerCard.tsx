@@ -11,6 +11,7 @@ import { updateParecer, deleteParecer, deleteDocumento, retryParecerDriveFolder 
 import SlideDrawer from "@/components/motion/SlideDrawer";
 import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
 import DriveFolderMissingNotice from "@/components/assessoria/DriveFolderMissingNotice";
+import ReconciliarAnexosDriveButton from "@/components/ReconciliarAnexosDriveButton";
 
 type ParecerDocumento = { id: string; name: string; docType: string; driveUrl: string; date: Date | string };
 
@@ -261,6 +262,12 @@ export default function ParecerCard({
 
             <div className="bg-sf-apoio border border-regua p-4">
               <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Documentos</h4>
+
+              {driveConnected && (
+                <div className="mb-2.5">
+                  <ReconciliarAnexosDriveButton scope={{ kind: "PARECER", parecerId: parecer.id }} compact />
+                </div>
+              )}
 
               {parecer.documents.length === 0 ? (
                 <p className="text-sm text-tx-3 mb-2">Nenhum documento dentro desta demanda ainda.</p>
