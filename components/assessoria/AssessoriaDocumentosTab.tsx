@@ -11,6 +11,7 @@ import { Plus, Search, UploadCloud, ExternalLink, FolderOpen, LayoutGrid, List a
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
 import { formatoArquivo } from "@/lib/fileExtension";
 import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
+import ReconciliarAnexosDriveButton from "@/components/ReconciliarAnexosDriveButton";
 
 type Assessoria = NonNullable<Awaited<ReturnType<typeof getAssessoriaDetail>>>;
 
@@ -291,6 +292,12 @@ export default function AssessoriaDocumentosTab({
           <Plus size={14} /> Colar link
         </button>
       </div>
+
+      {driveConnected && (
+        <div className="mb-4">
+          <ReconciliarAnexosDriveButton scope={{ kind: "ASSESSORIA", assessoriaId: assessoria.id }} />
+        </div>
+      )}
 
       {assessoria.documents.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">

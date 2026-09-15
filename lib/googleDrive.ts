@@ -1109,3 +1109,14 @@ export async function trashDriveFile(fileId: string, officeId: string): Promise<
   const { drive } = await getDriveClient(officeId);
   await drive.files.update({ fileId, requestBody: { trashed: true }, supportsAllDrives: true });
 }
+
+// Restaura um arquivo/pasta da Lixeira do Drive (trashed: false) — operação simétrica a
+// trashDriveFile acima. Usada pela reconciliação de anexos (lib/actions/attachmentReconciliation.ts)
+// quando o usuário escolhe "voltar ao documento anterior": o arquivo antigo foi mandado pra
+// Lixeira manualmente no Drive (fora do Lúmen) e precisa voltar a existir de verdade pro anexo
+// continuar apontando pra ele. Não confundir com getOrCreate*Folder's "auto-cura" — aquilo RECRIA
+// a pasta do zero quando o id salvo não existe mais; isto RESTAURA o arquivo original, mesmo id.
+export async function restoreDriveFile(fileId: string, officeId: string): Promise<void> {
+  const { drive } = await getDriveClient(officeId);
+  await drive.files.update({ fileId, requestBody: { trashed: false }, supportsAllDrives: true });
+}

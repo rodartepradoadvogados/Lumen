@@ -19,6 +19,8 @@ import { formatDate } from "@/components/ui";
 import type { TribunalCatalogEntry } from "@/lib/tribunaisCatalog";
 import RecursoEscalaPrompt from "@/components/processo/RecursoEscalaPrompt";
 import { type SortOption, SORT_OPTIONS, sortByOption, useViewModePreference } from "@/lib/attachmentControls";
+import ReconciliarAnexosDriveButton from "@/components/ReconciliarAnexosDriveButton";
+import type { ReconciliationScope } from "@/lib/actions/attachmentReconciliation";
 
 // Mesma convenção de chave de outras preferências client-side do site (ver THEME_KEY em
 // lib/theme.ts) — guarda só o modo de visualização escolhido, não afeta nada no banco. Chave
@@ -92,6 +94,18 @@ export default function AttachmentList({
   // Só pergunta "atribuir a qual demanda" quando o chamador não já fixou uma (taskId prop) — ver
   // comentário de `taskOptions` acima.
   const showTaskPicker = Boolean(taskOptions && taskOptions.length > 0 && !taskId);
+
+  // Escopo da reconciliação com o Drive (ver ReconciliarAnexosDriveButton.tsx) — só existe quando
+  // esta lista corresponde a UMA pasta física específica. A view "Todos"/"Geral" da aba Licitações
+  // (showTaskPicker true) mistura documentos de várias pastas (geral + cada demanda) numa lista só,
+  // sem uma pasta única pra verificar — o botão fica de fora nesse caso.
+  const reconciliationScope: ReconciliationScope | null = caseId
+    ? { kind: "CASE", caseId }
+    : attendanceId
+      ? { kind: "ATTENDANCE", attendanceId }
+      : licitacaoId && !showTaskPicker
+        ? { kind: "LICITACAO", licitacaoId, taskId: taskId || null }
+        : null;
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -354,6 +368,12 @@ export default function AttachmentList({
           {folderError && (
             <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">{folderError}</p>
           )}
+        </div>
+      )}
+
+      {reconciliationScope && driveConnected && (
+        <div className="mb-3">
+          <ReconciliarAnexosDriveButton scope={reconciliationScope} />
         </div>
       )}
 
