@@ -110,9 +110,19 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
         <>
           <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
             {task.case && (
-              <Link href={`/processos/${task.case.id}`} className="text-xs font-semibold text-acao hover:underline block">
-                {task.case.processNumber || task.case.title}
-              </Link>
+              <div className="space-y-0.5">
+                <Link href={`/processos/${task.case.id}`} className="text-xs font-semibold text-acao hover:underline block">
+                  {task.case.processNumber || task.case.title}
+                </Link>
+                <p className="text-xs text-tx-2">{task.case.title}</p>
+                {(task.case.clientsLabel || task.case.partiesLabel) && (
+                  <p className="text-[11px] text-tx-3">
+                    {task.case.clientsLabel && <>Cliente: {task.case.clientsLabel}</>}
+                    {task.case.clientsLabel && task.case.partiesLabel && " · "}
+                    {task.case.partiesLabel && <>Parte contrária: {task.case.partiesLabel}</>}
+                  </p>
+                )}
+              </div>
             )}
             {/* Duas colunas a partir de md — campos do compromisso à esquerda, contexto
                 (reunião/descrição/estratégia) à direita, aproveitando a largura de 80%. */}
