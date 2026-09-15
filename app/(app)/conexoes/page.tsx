@@ -30,9 +30,14 @@ import JusbrasilEmailsManager from "@/components/JusbrasilEmailsManager";
 import MigrarPastaMaeButton from "@/components/MigrarPastaMaeButton";
 import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
+import ReconciliarAnexosDriveGlobalButton from "@/components/ReconciliarAnexosDriveGlobalButton";
 import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
 
 export const dynamic = "force-dynamic";
+// Teto maior que o padrão — o botão "Reconciliar anexos do Drive (todas as pastas)"
+// (planoReconciliacaoEscritorio, lib/actions/attachmentReconciliation.ts) varre toda pasta do
+// escritório com anexo já cadastrado, mesmo teto do cron diário equivalente (app/api/cron/drive-sync/route.ts).
+export const maxDuration = 300;
 
 // Documento 04 do handoff do redesenho Modernist: hoje cada integração (DJEN, Datajud, Asaas,
 // BTG, Drive/OneDrive/Dropbox, e-mail, WhatsApp) vive espalhada numa aba longa de
@@ -256,6 +261,7 @@ export default async function ConexoesPage({
           <MigrarPastaMaeButton />
           <MigrarPastasLegadasButton />
           <ReorganizeAttachmentsButton />
+          <ReconciliarAnexosDriveGlobalButton />
           <RenameCasesToConventionButton />
           <Link href="/configuracoes/relatorio-pastas" className="text-xs font-semibold text-acao hover:underline">
             Ver relatório de pastas →
