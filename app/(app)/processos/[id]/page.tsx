@@ -182,6 +182,7 @@ export default async function CaseDetailPage({
     driveUrl: att.driveUrl,
     docType: att.docType,
     createdAt: att.createdAt.toISOString(),
+    updatedAt: att.updatedAt?.toISOString() ?? null,
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 

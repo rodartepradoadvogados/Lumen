@@ -1066,7 +1066,7 @@ export async function allRootFolderNames(officeId: string): Promise<string[]> {
 
 // ============ MIGRAÇÃO DE PASTAS LEGADAS (ver lib/actions/driveFolderMigration.ts) ============
 
-export type DriveFileInfo = { id: string; name: string; parents: string[]; trashed: boolean };
+export type DriveFileInfo = { id: string; name: string; parents: string[]; trashed: boolean; modifiedTime: string | null };
 
 // Lê nome + pais (parents) atuais de um arquivo/pasta no Drive pelo id — diferente de todas as
 // funções acima, que só CRIAM/buscam um filho pontual por nome, esta lê o estado bruto de um id
@@ -1084,8 +1084,14 @@ export type DriveFileInfo = { id: string; name: string; parents: string[]; trash
 export async function getDriveFileInfo(fileId: string, officeId: string): Promise<DriveFileInfo | null> {
   const { drive } = await getDriveClient(officeId);
   try {
-    const file = await drive.files.get({ fileId, fields: "id, name, parents, trashed", supportsAllDrives: true });
-    return { id: fileId, name: file.data.name ?? "", parents: file.data.parents ?? [], trashed: Boolean(file.data.trashed) };
+    const file = await drive.files.get({ fileId, fields: "id, name, parents, trashed, modifiedTime", supportsAllDrives: true });
+    return {
+      id: fileId,
+      name: file.data.name ?? "",
+      parents: file.data.parents ?? [],
+      trashed: Boolean(file.data.trashed),
+      modifiedTime: file.data.modifiedTime ?? null,
+    };
   } catch (e: unknown) {
     const status = (e as { code?: number; response?: { status?: number } })?.code ?? (e as { response?: { status?: number } })?.response?.status;
     if (status === 404) return null;

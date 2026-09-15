@@ -15,7 +15,7 @@ import {
   deleteDriveFile,
   type StorageProvider,
 } from "@/lib/storageProvider";
-import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile, translateDriveError } from "@/lib/googleDrive";
+import { extractDriveFileId, deleteDriveFile as deleteGoogleDriveFile, translateDriveError, getDriveFileInfo } from "@/lib/googleDrive";
 import { isValidBlobUrl } from "@/lib/blobUrl";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import { autoResolvePendenciasForAttachment } from "@/lib/actions/attendancePendencias";
@@ -276,4 +276,39 @@ export async function updateAttachmentDocType(id: string, docType: string): Prom
   if (att.attendanceId) revalidatePath(`/atendimento/${att.attendanceId}`);
   if (att.licitacaoId) await revalidateLicitacaoPath(att.licitacaoId);
   return {};
+}
+
+// Pedido do dono do escritório: editar e salvar um documento (petição, parecer etc.) já editável
+// no navegador precisa refletir na tela sem "substituir" nada — é o MESMO arquivo do Google Docs
+// sendo editado, nunca uma cópia nova, então não há nada a reenviar. O único jeito de o Lúmen
+// saber que algo mudou é perguntar ao Drive: sem isso "Enviado em" (Attachment.createdAt) ficava
+// preso pra sempre na data de criação do registro, mesmo depois de dezenas de edições reais.
+//
+// Chamada pelo listener de "focus" da janela em components/AttachmentList.tsx — o momento natural
+// em que o usuário PODE ter terminado de editar é quando ele volta pra aba do Lúmen depois de ter
+// aberto o documento numa aba nova. Consultar o Drive uma vez por clique (não em toda renderização
+// da lista) evita o custo de checar N anexos a cada carregamento da página.
+export async function refreshAttachmentModifiedDate(id: string): Promise<{ updatedAt?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return {};
+  const att = await prisma.attachment.findFirst({ where: { id, officeId: user.officeId } });
+  // Só Google Drive tem a checagem de modifiedTime implementada (getDriveFileInfo,
+  // lib/googleDrive.ts) — mesma fronteira de escopo já aceita no resto do produto pras
+  // ferramentas de migração (OneDrive/Dropbox ficam pro dono decidir "faremos em breve"). Sem
+  // isso dar certo, devolve vazio — o cliente mantém a data que já tinha (createdAt).
+  if (!att || (att.storageProvider && att.storageProvider !== "GOOGLE_DRIVE")) return {};
+
+  const fileId = att.storageFileId || extractDriveFileId(att.driveUrl);
+  if (!fileId) return {};
+
+  const info = await getDriveFileInfo(fileId, user.officeId).catch(() => null);
+  if (!info || !info.modifiedTime) return {};
+
+  const modifiedTime = new Date(info.modifiedTime);
+  // Nunca grava uma data ANTERIOR à já registrada (relógio do Drive/nova checagem chegando fora
+  // de ordem) — só avança.
+  if (att.updatedAt && modifiedTime <= att.updatedAt) return { updatedAt: att.updatedAt.toISOString() };
+
+  await prisma.attachment.update({ where: { id }, data: { updatedAt: modifiedTime } });
+  return { updatedAt: modifiedTime.toISOString() };
 }

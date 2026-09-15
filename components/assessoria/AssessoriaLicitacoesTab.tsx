@@ -38,6 +38,7 @@ function toAttachmentData(a: {
   driveUrl: string;
   docType: string;
   createdAt: string | Date;
+  updatedAt?: string | Date | null;
   uploadedBy: { name: string } | null;
   taskId?: string | null;
 }) {
@@ -47,6 +48,7 @@ function toAttachmentData(a: {
     driveUrl: a.driveUrl,
     docType: a.docType,
     createdAt: new Date(a.createdAt).toISOString(),
+    updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : null,
     uploadedBy: a.uploadedBy ? { name: a.uploadedBy.name } : null,
     taskId: a.taskId ?? null,
   };
