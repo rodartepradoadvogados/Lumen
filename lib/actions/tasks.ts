@@ -9,6 +9,7 @@ import { enqueueNotification } from "@/lib/notificationOutbox";
 import { isCaseInOffice, isAttendanceInOffice, isUserInOffice, isKanbanColumnInOffice, isTaskInOffice, isLicitacaoInOffice } from "@/lib/officeScope";
 import { resolvePublicationGroupForOffice } from "@/lib/publicationResolution";
 import { sanitizeRichTextHtml } from "@/lib/richText";
+import { effectiveCaseClients, effectiveCaseParties, joinCaseNames } from "@/lib/caseParties";
 
 async function assertTaskRelationsInOffice(
   data: { caseId?: string; attendanceId?: string; responsibleId?: string; columnId?: string },
@@ -330,7 +331,13 @@ export type TaskDetail = {
   responsibleId: string | null;
   completedAt: string | null;
   completedBy: { id: string; name: string } | null;
-  case: { id: string; title: string; processNumber: string | null } | null;
+  case: {
+    id: string;
+    title: string;
+    processNumber: string | null;
+    clientsLabel: string | null;
+    partiesLabel: string | null;
+  } | null;
   comments: { id: string; content: string; createdAt: string; authorName: string }[];
 };
 
@@ -346,7 +353,26 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
     prisma.task.findFirst({
       where: { id, officeId: viewer.officeId },
       include: {
-        case: { select: { id: true, title: true, processNumber: true } },
+        // Campos extras (além de id/title/processNumber) só para montar clientsLabel/partiesLabel
+        // abaixo (ver effectiveCaseClients/effectiveCaseParties, lib/caseParties.ts) — sem isso o
+        // card do compromisso (TaskDetailModal.tsx) mostrava só o número do processo, obrigando a
+        // pessoa a abrir o processo à parte pra saber de quem se trata.
+        case: {
+          select: {
+            id: true,
+            title: true,
+            processNumber: true,
+            clientId: true,
+            client: { select: { id: true, name: true } },
+            clientRole: true,
+            clients: { include: { client: { select: { id: true, name: true } } } },
+            opposingPartyName: true,
+            opposingPartyRole: true,
+            opposingPartyDocument: true,
+            opposingPartyAddress: true,
+            parties: true,
+          },
+        },
         completedBy: { select: { id: true, name: true } },
         comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
       },
@@ -371,7 +397,15 @@ export async function getTaskDetail(id: string): Promise<{ task: TaskDetail | nu
       responsibleId: task.responsibleId,
       completedAt: task.completedAt ? task.completedAt.toISOString() : null,
       completedBy: task.completedBy,
-      case: task.case,
+      case: task.case
+        ? {
+            id: task.case.id,
+            title: task.case.title,
+            processNumber: task.case.processNumber,
+            clientsLabel: joinCaseNames(effectiveCaseClients(task.case).map((x) => x.name)) || null,
+            partiesLabel: joinCaseNames(effectiveCaseParties(task.case).map((x) => x.name)) || null,
+          }
+        : null,
       comments: task.comments.map((cm) => ({
         id: cm.id,
         content: cm.content,
