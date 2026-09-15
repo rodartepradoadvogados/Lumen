@@ -554,10 +554,15 @@ export async function copyAndFillTemplate(
   templateFileId: string,
   newName: string,
   replacements: Record<string, string>,
-  officeId: string
+  officeId: string,
+  // Pasta de destino explícita (achado G40 da auditoria: Peticionar sempre caía na pasta
+  // genérica "gerados", sem vínculo nenhum com o processo/atendimento/licitação escolhido no
+  // wizard de vínculo — ver lib/actions/peticionar.ts). Omitido preserva o comportamento de
+  // sempre (Modelos de Documento, que não pergunta vínculo, continua caindo em "gerados").
+  destinationFolderId?: string
 ): Promise<{ id: string; webViewLink: string; pdfUrl: string; matchedCount: number }> {
   const { drive, docs } = await getDriveClient(officeId);
-  const folderId = await getOrCreateFolderId("gerados", officeId);
+  const folderId = destinationFolderId ?? (await getOrCreateFolderId("gerados", officeId));
 
   const copied = await drive.files.copy({
     fileId: templateFileId,
