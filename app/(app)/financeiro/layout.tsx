@@ -15,7 +15,7 @@ export default async function FinanceiroLayout({ children }: { children: React.R
 
   if (!user.isAdmin && !user.financeAccess) {
     return (
-      <div className="tela">
+      <div className="tela-leitura">
         <div className="bg-sf border-t-2 border-regua-forte p-10 text-center">
           <ShieldAlert size={32} className="mx-auto text-tx-3 mb-3" />
           <EmptyState title="Acesso restrito" subtitle="Você não tem acesso ao módulo Financeiro. Fale com um administrador." />

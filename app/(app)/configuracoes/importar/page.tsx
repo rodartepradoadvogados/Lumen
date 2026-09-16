@@ -19,7 +19,7 @@ export default async function ImportarPage() {
   const viewer = await getCurrentUser();
   const hasFinanceAccess = Boolean(viewer?.isAdmin || viewer?.financeAccess);
   return (
-    <div className="tela">
+    <div className="tela-leitura">
       <Link href="/configuracoes" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Configurações
       </Link>

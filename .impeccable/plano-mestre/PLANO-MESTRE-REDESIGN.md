@@ -446,7 +446,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4g | Os 13 filetes laterais | `extract`, `polish` | ✅ | #198 | 2026-09-16 | 9 eram recado avulso e viraram régua no topo, num componente `Aviso` só; 3 ficam **declarados no código**, porque ali o filete codifica severidade, estado ou seleção da linha. **Detector: 1.078 → 3** |
 | F4h | Reorganizar anexos do Drive | `clarify` | ✅ | #199 | 2026-09-16 | **Não removido**: reorganizar MOVE arquivo fora de lugar, reconciliar não move nada. Tela agrupada por registro, com número, tribunal e cliente |
 | F4i | **Fim do vermelho** | `colorize` | ✅ | #200 | 2026-09-16 | Uma família quente só (bordô), diferenciada por TRATAMENTO. **210 cores cruas do Tailwind** migradas para token, com lint que impede a volta |
-| F4 | Portal — Comunicação e Financeiro | idem | ⬜ | — | — | próximo: `/publicacoes` e `/assessoria/[id]` |
+| F4j | **A largura volta** | `adapt`, `layout` | ✅ | #201 | 2026-09-16 | **Correção de regressão minha:** F4b matou o deslize capando tudo em 1440px centralizado, e num monitor largo isso desperdiçava metade da tela. O quadro passa a OCUPAR a largura — igualmente estável, porque a regra é constante. Densidade vira assunto de coluna |
+| F4 | Portal — Comunicação e Financeiro | idem | ⬜ | — | — | próximo: `/assessoria/[id]` |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
 | F4 | Portal — Comunicação | idem | ⬜ | — | — | — |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
@@ -493,6 +494,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | 2026-09-16 | Dono | **Nenhum vermelho vivo no produto.** Tudo na família do bordô, e mais suave em área grande | Conferência do F4 em produção |
 | 2026-09-16 | Dono | Peticionar preenchido; "+ Novo" em bordô translúcido, para se distinguirem | Conferência do F4 |
 | 2026-09-16 | Claude | Ação e risco compartilham o matiz e se distinguem por TRATAMENTO: só a ação é preenchida; risco é texto e filete. Ação destrutiva é bordô profundo, mais a palavra | F4i, `colorize` |
+| 2026-09-16 | Dono | O quadro não pode ser capado e centralizado: num monitor largo isso é espaço vazio inútil | Conferência do F4 em produção |
+| 2026-09-16 | Claude | Estabilidade de layout vem de REGRA CONSTANTE, não de largura pequena. O quadro ocupa a largura em toda tela densa; medida de leitura é da coluna, nunca da página | F4j, `adapt` + `layout` |
 
 ---
 

@@ -1453,33 +1453,43 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 *::-webkit-scrollbar-corner { background: transparent; }
 
 /* ============================================================================
-   TELA — o quadro da pagina. Uma largura so, para sempre.
+   TELA — o quadro da pagina.
 
-   O diagnostico mediu DEZ larguras diferentes no portal — 700, 720, 800, 900, 1000, 1100,
-   1200, 1320, 1400, 1600 — mais uma tela sem teto nenhum. Com rail de largura fixa, isso faz
-   o conteudo DESLIZAR LATERALMENTE a cada navegacao. Somado ao fade de pagina e a cascata das
-   listas, produzia instabilidade permanente.
+   O diagnostico mediu DEZ larguras diferentes no portal (700 a 1600, mais uma tela sem teto).
+   Com rail de largura fixa, isso fazia o conteudo DESLIZAR LATERALMENTE a cada navegacao — a
+   causa real do incomodo do dono com "animacoes": o layout nunca ficava parado.
 
-   E a releitura da queixa do dono sobre "animacoes": o incomodo nao era excesso de animacao,
-   era o layout nunca ficar parado. Por isso a largura mora aqui, numa classe unica, e nao em
-   34 arquivos de rota onde volta a divergir no primeiro descuido.
+   A primeira correcao (F4b) capou TUDO em 1440px centralizado. Matou o deslize e criou outro
+   problema, que o dono viu em producao num monitor largo: "tanto espaco vazio inutil". Numa tela
+   de lista+detalhe como /publicacoes, cap de 1440 centralizado desperdicava metade do monitor.
 
-   Medida de leitura mais estreita (formulario, artigo) e do CONTEUDO dentro do quadro, nunca
-   do quadro: o quadro nao se mexe entre telas.
+   A correcao de verdade nao e uma largura menor — e uma REGRA CONSTANTE. O quadro ocupa a
+   largura disponivel, sempre, com a mesma calha. Nao ha nada para deslizar porque nao ha variacao
+   entre telas. A densidade passa a ser governada na COLUNA, nao na pagina:
+
+     .tela           telas densas e operacionais — ocupa a largura (padrao)
+     .tela-leitura   formulario e texto corrido — coluna de medida, centrada no quadro
+     .medida-curta   coluna estreita DENTRO de um quadro cheio
+     .medida-media   idem, um degrau mais larga
    ========================================================================== */
 .tela {
   width: 100%;
-  max-width: 1440px;
-  margin-inline: auto;
   padding: 24px;
 }
-/* Telas que ocupam a altura toda (Agenda, Kanban) — mesmo quadro, com a coluna cheia. */
+/* Telas que ocupam a altura toda (Agenda, Kanban, triagem de Publicacoes). */
 .tela-alta {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-/* Coluna de leitura dentro do quadro. O quadro continua com 1440px; so o conteudo estreita. */
+/* Formulario e texto corrido: aqui a linha longa atrapalha a leitura, entao a medida vale mais
+   que a largura. Sao poucas telas, e elas nao tem lista nem tabela densa. */
+.tela-leitura {
+  width: 100%;
+  max-width: 900px;
+  margin-inline: auto;
+  padding: 24px;
+}
 .medida-curta { max-width: 720px; }
 .medida-media { max-width: 1000px; }
 

@@ -289,7 +289,9 @@ export default function PublicationsTriage({
 
   return (
     <div className="flex flex-1 min-h-0 w-full">
-      <div ref={listRef} className="w-[560px] shrink-0 border-r-2 border-regua-forte overflow-y-auto scrollbar-thin">
+      {/* A fila tem piso e teto em vez de largura fixa: 560px fixos ficavam largos num monitor
+          largo e apertados num notebook. O teor, que é o que se lê, fica com toda a sobra. */}
+      <div ref={listRef} className="w-[clamp(320px,30%,520px)] shrink-0 border-r-2 border-regua-forte overflow-y-auto scrollbar-thin">
         {visible.length === 0 ? (
           <p className="p-6 text-sm text-tx-2">Nada por aqui.</p>
         ) : (
@@ -498,7 +500,7 @@ function Teor({
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5">
-        <div className="max-w-[80ch] space-y-4">
+        <div className="max-w-[78ch] space-y-4">
           {group.items.map((item) => (
             <div key={item.id} className={group.items.length > 1 ? "border-t-2 border-regua-forte pt-4 first:border-t-0 first:pt-0" : ""}>
               {group.items.length > 1 && (

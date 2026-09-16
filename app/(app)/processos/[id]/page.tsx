@@ -507,8 +507,12 @@ export default async function CaseDetailPage({
           Linha do tempo) — requisito confirmado pelo cliente na proposta de remodelação do
           portal, não colapsa em menos de 3 no desktop (só empilha em telas estreitas, onde
           320px fixo de painel simplesmente não cabe ao lado dos outros dois). */}
+      {/* Peso por CONTEÚDO, não por simetria: "Dados do processo" é a coluna mais longa, "Partes e
+          vínculos" costuma ter duas ou três linhas, e a linha do tempo é a que mais cresce — ela
+          estava espremida em 320px fixos enquanto a do meio sobrava vazia. `minmax` dá piso a cada
+          uma e deixa a sobra ir para quem usa. */}
       {tab === "visao-geral" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_320px] gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(340px,1.15fr)_minmax(260px,0.8fr)_minmax(380px,1.05fr)] gap-5 items-start">
           <div className="space-y-5">
             <Card className="p-5 space-y-3">
               <div className="flex items-center justify-between -mt-1 -mr-1">

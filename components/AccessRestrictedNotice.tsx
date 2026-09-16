@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui";
 // não para "sem acesso").
 export default function AccessRestrictedNotice({ moduleName }: { moduleName?: string }) {
   return (
-    <div className="tela">
+    <div className="tela-leitura">
       <div className="bg-sf border-t-2 border-regua-forte p-10 text-center">
         <ShieldAlert size={32} className="mx-auto text-tx-3 mb-3" />
         <EmptyState
