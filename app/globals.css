@@ -1519,3 +1519,42 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 @media (prefers-reduced-motion: reduce) {
   .guia-ficha { transition: none; }
 }
+
+/* ============================================================================
+   ARTIGO — tipografia de texto corrido do blog (modo Read).
+
+   `app/blog/[slug]/page.tsx` usava a classe `prose-like`, que NUNCA EXISTIU: zero ocorrencias em
+   app/globals.css e em tailwind.config.ts. O artigo inteiro renderizava sem a formatacao que
+   alguem pretendeu — todo o conteudo virava paragrafo, sem titulo, lista, citacao ou negrito, e o
+   espacamento entre paragrafos (16px) era MENOR que a entrelinha (~26px), entao eles nem se
+   separavam.
+
+   A medida fica em 68 caracteres, nao em 85: linha longa demais faz o olho perder a proxima.
+   ========================================================================== */
+.artigo {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.72;
+  color: var(--tinta);
+}
+.artigo > * + * { margin-top: 1.1em; }
+.artigo > * + h2 { margin-top: 2em; }
+.artigo > * + h3 { margin-top: 1.6em; }
+.artigo h2 {
+  font-size: 1.375rem;
+  line-height: 1.25;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.artigo h3 { font-size: 1.125rem; line-height: 1.35; font-weight: 650; }
+.artigo strong { font-weight: 650; }
+.artigo ul, .artigo ol { padding-left: 1.4em; }
+.artigo li + li { margin-top: 0.45em; }
+.artigo blockquote {
+  border-left: 2px solid var(--acao);
+  padding-left: 1.1em;
+  color: var(--tinta-2);
+  font-style: italic;
+}
+.artigo a { color: var(--acao); text-decoration: underline; text-underline-offset: 0.18em; }

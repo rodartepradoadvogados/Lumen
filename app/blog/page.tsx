@@ -68,6 +68,21 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
             criada exatamente para bordô-como-texto sobre superfície fixa escura (mesmo raciocínio
             do comentário logo acima sobre branco/ouro fixos: não retematiza). */}
         <p className="text-etiqueta tracking-[0.3em] text-rail-marca font-medium mt-1">BLOG JURÍDICO</p>
+        {/* Caminho para o produto — ver o comentário em app/blog/[slug]/page.tsx. */}
+        <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
+          <Link
+            href="/"
+            className="inline-flex items-center h-9 px-4 border border-gaveta-linha text-rail-tx hover:text-rotulo text-etiqueta font-semibold uppercase tracking-[.07em] rounded-sm"
+          >
+            Ir para o site
+          </Link>
+          <Link
+            href="/cadastro"
+            className="inline-flex items-center h-9 px-4 bg-acao hover:bg-acao-hover text-acao-tx text-etiqueta font-semibold uppercase tracking-[.07em] rounded-sm"
+          >
+            Conhecer o Lúmen
+          </Link>
+        </div>
         <p className="text-sm text-white/70 mt-3 max-w-xl mx-auto">
           Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial, tributário, trabalhista, previdenciário e mais.
         </p>

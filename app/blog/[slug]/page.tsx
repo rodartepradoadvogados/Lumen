@@ -63,10 +63,24 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       {/* Masthead grafite-800 fixo — chrome do site público, mesmo raciocínio de app/blog/page.tsx.
           "Voltar ao blog" fica branco, não --acao: --acao no Manhã é azul escuro e sumiria
           contra este fundo que não troca de tema. */}
-      <header className="bg-grafite-800 px-6 py-8 text-center">
-        <Link href="/blog" className="inline-flex items-center gap-1.5 py-2 text-xs font-semibold text-white hover:text-white/80">
-          <ArrowLeft size={14} /> Voltar ao blog
-        </Link>
+      {/* O blog era beco sem saída: ZERO links para "/" e ZERO para /cadastro nos dois arquivos
+          (auditoria de 2026-09-16). Todo tráfego orgânico chegava e não tinha para onde ir, e a
+          marca do cabeçalho nem link era. */}
+      <header className="bg-grafite-800 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center gap-4 flex-wrap">
+          <Link href="/" className="font-extrabold text-destaque tracking-[.16em] text-rail-marca">
+            LÚMEN
+          </Link>
+          <Link href="/blog" className="inline-flex items-center gap-1.5 text-etiqueta font-semibold uppercase tracking-[.07em] text-rail-tx hover:text-rotulo">
+            <ArrowLeft size={13} /> Todas as matérias
+          </Link>
+          <Link
+            href="/cadastro"
+            className="ml-auto inline-flex items-center h-9 px-4 bg-acao hover:bg-acao-hover text-acao-tx text-etiqueta font-semibold uppercase tracking-[.07em] rounded-sm"
+          >
+            Conhecer o Lúmen
+          </Link>
+        </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -88,11 +102,11 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
               </p>
             )}
-            <p className="text-base text-tx italic border-l-2 border-vinho-500/60 pl-3 text-justify hyphens-auto [font-family:var(--font-blog-serif)]">
+            <p className="text-base text-tx italic border-l-2 border-vinho-500/60 pl-3  [font-family:var(--font-blog-serif)]">
               {post.summary}
             </p>
 
-            <div className="prose-like text-tx text-corpo leading-relaxed space-y-4 text-justify hyphens-auto [font-family:var(--font-blog-serif)]">
+            <div className="artigo [font-family:var(--font-blog-serif)]">
               {post.content
                 .split(/\n+/)
                 .filter(Boolean)

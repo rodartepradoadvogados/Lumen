@@ -30,6 +30,10 @@ export default async function LoginPage() {
           <span className="font-extrabold text-xl tracking-[.16em] text-tx">LÚMEN</span>
         </Link>
         <div className="bg-sf border-t-2 border-regua-forte p-6">
+          {/* A página não tinha `<h1>` nenhum (auditoria de 2026-09-16): navegação por títulos
+              pulava a tela inteira, e o leitor de tela não anunciava onde estava. */}
+          <h1 className="text-guia font-bold text-tx mb-1">Entrar no Lúmen</h1>
+          <p className="text-corpo text-tx-2 mb-5">Use o e-mail do seu escritório.</p>
           <Suspense fallback={null}>
             <LoginForm />
           </Suspense>

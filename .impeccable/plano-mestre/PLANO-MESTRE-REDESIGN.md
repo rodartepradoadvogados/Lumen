@@ -11,13 +11,13 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F4 concluída no essencial** · as 4 telas de uso diário estão feitas. Decisão em aberto: seguir para F5 (site) ou terminar os módulos restantes do Portal |
-| **Próximo passo concreto** | **Recomendado: F5, o site público.** É onde está o achado mais grave do diagnóstico inteiro — os dois diferenciais do produto não estão na landing, e uma linha de copy contradiz o posicionamento. Alternativa: fechar os módulos restantes do Portal (Assessoria, Comunicação, Financeiro, Gestão), que são de uso menos frequente |
+| **Fase atual** | **F5 — Site público e blog** (F4 concluída no essencial) |
+| **Próximo passo concreto** | **`bolder` na landing** — os dois diferenciais no primeiro viewport, com captura real do produto. É o achado mais grave do diagnóstico inteiro e o único P1 do `audit` que ainda não caiu |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 12 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
-| **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual na paleta Ardósia, pelo dono** — a primeira rodada de conferência derrubou a paleta anterior e achou dois defeitos meus; (b) `audit` como passagem própria → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
+| **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual pelo dono** — cada rodada de conferência dele achou defeito que o gate técnico não pegou; (b) `audit` do Portal, PWA e Painel Mestre (o do site já foi feito) → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
 
 ---
 
@@ -421,7 +421,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F1 | Diagnóstico Portal | `critique` | ✅ | #186 | 2026-09-16 | Rail = mapa do banco; 6 ícones → 5 destinos; nada entre 15px e 24px |
 | F1 | Diagnóstico PWA + Painel Mestre | `critique` | ✅ | #186 | 2026-09-16 | Piso de 13px vaza por componente compartilhado; `text-white` invisível no claro |
 | F1 | Consolidação e cobertura | — | ✅ | #186 | 2026-09-16 | `diagnostico/README.md` + seção 7 do inventário: **99 rotas cobertas** |
-| F1 | **`audit` como passagem própria** | `audit` | ⬜ | — | — | **NÃO foi rodado.** As críticas cobriram contraste, tema, responsivo e um achado de desempenho, mas de forma incidental — não houve passagem dedicada de a11y/performance/theming/responsivo. Rodar junto com F8, quando houver navegador e banco |
+| F5 | **`audit` do site público** | `audit` | ✅ | #203 | 2026-09-16 | **Primeira passagem própria de `audit` do projeto.** Nota 12/20. Achado central: oito campos de formulário sem `<label>` em toda a superfície pública |
+| F1 | `audit` das outras 4 superfícies | `audit` | ⬜ | — | — | **NÃO foi rodado.** As críticas cobriram contraste, tema, responsivo e um achado de desempenho, mas de forma incidental — não houve passagem dedicada de a11y/performance/theming/responsivo. Rodar junto com F8, quando houver navegador e banco |
 | F2 | Brief do Portal | `shape` | ✅ | #187 | 2026-09-16 | Contrato de direção em `.impeccable/surfaces/app-app.md`, seis blocos + seed |
 | F2 | Rodada de direção | `new-work`, `concept-seed` | ✅ | #187 | 2026-09-16 | Seed `2cac85b3`, designado 4 de 7 → **“Guias”**. 2 competitivos, 4 declinados, 6 elevações nomeadas |
 | F2 | Mockup clicável | — | ✅ | #187 | 2026-09-16 | 5 telas do Portal + 4 do app, dois temas, contraste medido. Pedido do dono ampliou o escopo (o plano previa 2 telas) |
@@ -451,7 +452,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
 | F4 | Portal — Gestão | idem | ⬜ | — | — | configurações, relatórios, produtividade |
 | F4 | Portal — impressão e telas órfãs | `layout`, `adapt` | ⬜ | — | — | `/peticionar`, `/reuniao/[id]` |
-| F5 | Site público | `bolder`, `animate`, `delight`, `clarify` | ⬜ | — | — | D1-D8 para validar |
+| F5a | Site — os P1 do `audit` | `harden`, `adapt`, `clarify`, `typeset`, `layout` | ✅ | #203 | 2026-09-16 | 9 rótulos de formulário, `h1` no login, alternador de tema público, caminho do blog para o produto, `.artigo` no lugar da classe inexistente, grade de preço |
+| F5 | Site — os dois diferenciais | `bolder`, `animate`, `delight` | ⬜ | — | — | o achado mais grave do diagnóstico |
 | F5 | Blog | `layout`, `typeset`, `clarify` | ⬜ | — | — | modo Read |
 | F6 | PWA | `adapt`, `layout`, `harden`, `onboard` | ⬜ | — | — | — |
 | F7 | Painel Mestre | `layout`, `distill`, `clarify` | ⬜ | — | — | — |

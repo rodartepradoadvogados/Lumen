@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { calcularPrecoDoPlano, MODULOS } from "@/lib/officePricing";
 import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
+import ThemeToggle from "@/components/ThemeToggle";
 import CookieConsent from "@/components/site/CookieConsent";
 import MobileNav from "@/components/site/MobileNav";
 import GrainOverlay from "@/components/GrainOverlay";
@@ -304,6 +305,12 @@ export default async function HomePage() {
               rolar até o rodapé. */}
           <div className="flex items-center gap-4 sm:gap-6">
             <Link className={navLink} href="/login">Entrar</Link>
+            {/* Alternador de tema — a auditoria de 2026-09-16 achou que o tema escuro alcança TODA
+                página pública (o script de tema em app/layout.tsx aplica a classe a partir do
+                armazenamento, em qualquer rota) e que NENHUMA delas tinha alternador. Quem escolhia
+                "Noite" dentro do produto e fazia logout ficava preso, sem porta de volta a não ser
+                limpar o armazenamento do navegador. O tema sempre funcionou; faltava a porta. */}
+            <ThemeToggle />
             <Link href="/cadastro" className={btnPrimary}>Começar</Link>
             <MobileNav />
           </div>
@@ -429,7 +436,12 @@ export default async function HomePage() {
         <section id="preco" className="border-t-2 border-regua-forte py-20">
           <div className="max-w-[1120px] mx-auto px-6">
             <h2 className="text-autuacao font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
-            <div className="grid md:grid-cols-3 lg:grid-cols-5">
+            {/* Auditoria de 2026-09-16: a grade não tinha `gap`, então cartões `border-2` adjacentes
+                encostavam e produziam filete duplo de 4px — e o cartão recomendado, de borda em cor
+                diferente, colava a dele na do vizinho. Com 5 planos mais "sob medida", o sexto
+                órfãva numa segunda linha. `auto-fit` com piso resolve o reflow sozinho, em vez de
+                depender de contar planos num breakpoint. */}
+              <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
               {plans.map((plan) => {
                 const calc = calcularPrecoDoPlano(plan, modulePrices);
                 const semPreco = calc.modulosSemPreco.length > 0;
@@ -440,14 +452,21 @@ export default async function HomePage() {
                   return plan.moduloAtendimento;
                 });
                 return (
-                  <div key={plan.id} className={`p-6 border-2 bg-sf rounded-[2px] ${plan.recommended ? "border-acao-light" : "border-regua-forte"}`}>
+                  <div
+                    key={plan.id}
+                    className={`relative p-6 border-2 bg-sf rounded-[2px] ${plan.recommended ? "border-acao" : "border-regua-forte"}`}
+                  >
+                    {/* FORA DO FLUXO. Antes o selo era renderizado dentro dele e empurrava ~24px de
+                        conteúdo para baixo, de modo que preço, módulos e botão deixavam de alinhar
+                        com os vizinhos justamente no cartão que se quer destacar. */}
                     {plan.recommended && (
-                      <span className="inline-block text-etiqueta font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao-light px-2 py-0.5">
+                      <span className="absolute -top-3 left-6 inline-block text-etiqueta font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao px-2 py-0.5 rounded-sm">
                         Recomendado
                       </span>
                     )}
-                    <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
-                    <div className="text-corpo text-tx-3 mt-1">
+                    <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2">{plan.name}</div>
+                    {/* Os limites definem QUAL plano o visitante compra — tinta secundária. */}
+                    <div className="text-corpo text-tx-2 mt-1">
                       {plan.maxOabs != null && `Até ${plan.maxOabs} OAB${plan.maxOabs > 1 ? "s" : ""}`}
                       {plan.maxOabs != null && plan.maxProcessos != null && " · "}
                       {plan.maxProcessos != null && `até ${plan.maxProcessos} processos`}
