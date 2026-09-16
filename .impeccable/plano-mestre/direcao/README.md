@@ -111,8 +111,11 @@ releitura da queixa sobre animações registrada no diagnóstico.
    designada, declarando as suposições — foi o que se fez, e a mão inteira (designada, pick, dois
    alternates, quatro rebaixados e a saída padrão) foi entregue **dentro** do artefato, para que a
    decisão aconteça lá.
-2. **O mockup cobre mais do que o plano pedia.** O plano previa duas telas do Portal; foram entregues
-   cinco do Portal e quatro do app, a pedido do dono.
+2. **O mockup cobre muito mais do que o plano pedia.** O plano previa duas telas do Portal; foram
+   entregues **cinco do Portal, quatro do app e três das demais superfícies** (landing, artigo do blog
+   e Painel Mestre), a pedido do dono. As três últimas entraram numa segunda rodada, depois de uma
+   crítica ao próprio artefato: o contrato de direção promete alcance entre superfícies, e um
+   documento que só mostra Portal e app não prova essa promessa.
 3. **Sem comp gerado por imagem.** `buildPath` é `code`; a rodada é code-led por contrato, e a ambição
    vive no bloco FIRST VIEWPORT e na interação-assinatura nomeada, auditáveis em comportamento.
 
@@ -131,3 +134,7 @@ Registrados porque o método importa mais que o resultado:
    propõe um piso de 12px. Todos normalizados; hoje só existem as seis paradas da rampa no arquivo.
 4. **Os tokens do tema escuro passavam sobre as duas superfícies principais mas não sobre a mais
    clara.** Recalculados contra o pior caso (`#333128`), para que nenhum dependa de onde caiu na tela.
+5. **A proposta não demonstrava o alcance que o próprio contrato promete.** Corrigido com três telas
+   novas: a landing, onde o achado mais grave do diagnóstico do site — os dois diferenciais não estarem
+   na página — aparece corrigido; o artigo do blog, com as quatro correções de navegação e hierarquia; e
+   o Painel Mestre, mostrando a mesma gramática numa ferramenta deliberadamente distinta.
