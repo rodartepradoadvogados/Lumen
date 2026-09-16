@@ -51,13 +51,13 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
               onClick={() => handleDelete(a.id)}
               disabled={pending}
               data-tip="Excluir"
-              className="p-1 rounded text-tx-3 hover:text-atencao hover:bg-atencao/10 transition-colors disabled:opacity-40"
+              className="p-1 rounded text-tx-3 hover:text-atencao hover:bg-grave-bg transition-colors disabled:opacity-40"
             >
               <Trash2 size={13} />
             </button>
           </div>
           <div
-            className="anotacao-content text-sm text-tx/85 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1"
+            className="anotacao-content text-sm text-tx-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_p]:my-1"
             // a.content é HTML de anotação já sanitizado por sanitizeAnotacaoHtml
             // (lib/anotacoes.ts) no único ponto de escrita, antes de chegar ao banco.
             // eslint-disable-next-line react/no-danger

@@ -17,7 +17,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   return (
     <div className="p-6 flex items-center justify-center min-h-[50vh]">
       <div className="max-w-md text-center space-y-4">
-        <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
+        <div className="mx-auto h-12 w-12 rounded-full bg-grave-bg flex items-center justify-center">
           <AlertTriangle size={22} className="text-atencao" />
         </div>
         <h1 className=" text-xl font-bold text-tx">Algo deu errado</h1>

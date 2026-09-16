@@ -85,7 +85,7 @@ export default function OrgaoAdministrativoPicker({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="flex-1 border border-regua bg-sf px-3 py-2 text-left text-sm text-tx hover:border-marca-tx/40"
+            className="flex-1 border border-regua bg-sf px-3 py-2 text-left text-sm text-tx hover:border-marca-tx"
           >
             {sigla ? (
               <span>

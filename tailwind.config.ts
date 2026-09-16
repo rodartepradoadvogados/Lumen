@@ -193,7 +193,7 @@ const config: Config = {
         // sem mudar de matiz: a diferença é profundidade (razão de 1,6 entre as duas no claro)
         // somada à palavra, que é o que de fato carrega o sentido. Regra do `colorize`:
         // informação transmitida por cor também precisa de texto, forma ou posição.
-        grave: { DEFAULT: "var(--grave)", tx: "var(--grave-tx)" },
+        grave: { DEFAULT: "var(--grave)", tx: "var(--grave-tx)", bg: "var(--grave-bg)" },
         marca: { DEFAULT: "var(--marca)", tx: "var(--marca-tx)", bg: "var(--marca-bg)" },
         // `atencao` é apelido histórico de --vinho, que agora é o bordô profundo da ação
         // destrutiva. Não é mais vermelho em lugar nenhum do produto.
@@ -209,7 +209,19 @@ const config: Config = {
         menu: { tx: "var(--menu-tx)" },
         // Azul distinto do azul-tinta de ação, para o filete de fonte PJE não se confundir
         // com o do DJE (DESIGN-SYSTEM.md §9).
-        fonte: { pje: "var(--fonte-pje)" },
+        fonte: { pje: { DEFAULT: "var(--fonte-pje)", bg: "var(--fonte-pje-bg)" } },
+
+        /* Filete suave por risco. Existe porque `border-urgente/20` & cia. NÃO GERAM REGRA: o
+           Tailwind só aplica modificador de opacidade a cor que traga <alpha-value>, e as cores
+           desta casa são `var(--x)`. Medido no navegador, a borda saía no cinza `gray-200` padrão,
+           fixo nos dois temas — eram 184 classes assim. Use `border-linha-urgente` e irmãos. */
+        linha: {
+          urgente: "var(--linha-urgente)",
+          aviso: "var(--linha-aviso)",
+          concluido: "var(--linha-concluido)",
+          fonte: "var(--linha-fonte)",
+          grave: "var(--linha-grave)",
+        },
         urgente: { DEFAULT: "var(--urgente)", bg: "var(--urgente-bg)" },
         aviso: { DEFAULT: "var(--aviso)", bg: "var(--aviso-bg)" },
         concluido: { DEFAULT: "var(--concluido)", bg: "var(--concluido-bg)" },

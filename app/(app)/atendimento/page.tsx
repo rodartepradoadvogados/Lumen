@@ -117,7 +117,7 @@ export default async function AtendimentoPage({
           name="q"
           defaultValue={searchParams.q}
           placeholder="Buscar por nome do cliente ou assunto"
-          className="flex-1 border border-regua-forte bg-sf text-tx placeholder:text-tx-3 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao-bg"
+          className="flex-1 border border-regua-forte bg-sf text-tx placeholder:text-tx-3 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx"
         />
         <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 transition-colors">
           Buscar

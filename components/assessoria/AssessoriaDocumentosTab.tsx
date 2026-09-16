@@ -384,7 +384,7 @@ export default function AssessoriaDocumentosTab({
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors mb-4 ${
-            dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
+            dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx hover:bg-sf-apoio"
           }`}
         >
           <UploadCloud size={20} className="text-tx-2" />
@@ -454,7 +454,7 @@ export default function AssessoriaDocumentosTab({
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-sf-apoio border border-regua p-3 hover:border-marca-tx/40 transition-colors flex flex-col items-center text-center gap-1.5"
+                className="bg-sf-apoio border border-regua p-3 hover:border-marca-tx transition-colors flex flex-col items-center text-center gap-1.5"
               >
                 <div className="h-10 w-10 bg-sf text-tx-2 flex items-center justify-center">
                   <Icon size={18} />

@@ -110,7 +110,7 @@ export default function EntityPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between gap-2 border border-regua px-3 py-2 text-sm text-left bg-sf hover:border-fonte-pje dark:hover:border-fonte-pje/60 transition-colors"
+        className="w-full flex items-center justify-between gap-2 border border-regua px-3 py-2 text-sm text-left bg-sf hover:border-fonte-pje dark:hover:border-linha-fonte transition-colors"
       >
         <span className={selectedLabel ? "text-tx truncate" : "text-tx-3 truncate"}>{selectedLabel || emptyLabel}</span>
         <ChevronDown size={14} className="shrink-0 text-tx-3" />
@@ -124,8 +124,8 @@ export default function EntityPicker({
           que este seletor sempre abre DE DENTRO de um deles. */}
       {open && (
         <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-          <div className="w-full max-w-sm bg-sf border-2 border-fonte-pje dark:border-fonte-pje/30 shadow-pop overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-sf-apoio dark:bg-fonte-pje/10 border-b border-fonte-pje dark:border-fonte-pje/20">
+          <div className="w-full max-w-sm bg-sf border-2 border-fonte-pje dark:border-linha-fonte shadow-pop overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-sf-apoio dark:bg-fonte-pje-bg border-b border-fonte-pje dark:border-linha-fonte">
               <h3 className=" font-bold text-sm text-tx">{windowTitle}</h3>
               <button
                 type="button"
@@ -133,21 +133,21 @@ export default function EntityPicker({
                   setOpen(false);
                   setAdding(false);
                 }}
-                className="text-fonte-pje/60 dark:text-fonte-pje/70 hover:text-fonte-pje dark:hover:text-fonte-pje"
+                className="text-fonte-pje hover:text-fonte-pje dark:hover:text-fonte-pje"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="shrink-0 p-2 border-b border-fonte-pje dark:border-fonte-pje/20">
+            <div className="shrink-0 p-2 border-b border-fonte-pje dark:border-linha-fonte">
               <div className="relative">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fonte-pje dark:text-fonte-pje" />
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fonte-pje" />
                 <input
                   ref={searchRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full pl-8 pr-2 py-1.5 text-sm border border-fonte-pje dark:border-fonte-pje/30 focus:outline-none focus:ring-2 focus:ring-fonte-pje bg-sf text-tx placeholder:text-tx-3"
+                  className="w-full pl-8 pr-2 py-1.5 text-sm border border-fonte-pje dark:border-linha-fonte focus:outline-none focus:ring-2 focus:ring-fonte-pje bg-sf text-tx placeholder:text-tx-3"
                 />
               </div>
             </div>
@@ -156,7 +156,7 @@ export default function EntityPicker({
               <button
                 type="button"
                 onClick={() => pick("")}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-tx-2 hover:bg-sf-apoio dark:hover:bg-fonte-pje/10 transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-tx-2 hover:bg-sf-apoio dark:hover:bg-fonte-pje-bg transition-colors"
               >
                 {emptyLabel}
               </button>
@@ -168,21 +168,21 @@ export default function EntityPicker({
                   key={o.id}
                   type="button"
                   onClick={() => pick(o.id)}
-                  className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-tx hover:bg-sf-apoio dark:hover:bg-fonte-pje/10 transition-colors"
+                  className="flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-tx hover:bg-sf-apoio dark:hover:bg-fonte-pje-bg transition-colors"
                 >
                   <span className="truncate">{o.name}</span>
-                  {selected === o.id && <Check size={13} className="text-fonte-pje dark:text-fonte-pje shrink-0" />}
+                  {selected === o.id && <Check size={13} className="text-fonte-pje shrink-0" />}
                 </button>
               ))}
             </div>
 
             {onQuickAdd && (
-              <div className="shrink-0 border-t border-fonte-pje dark:border-fonte-pje/20 bg-sf-apoio/60 dark:bg-fonte-pje/10 p-2">
+              <div className="shrink-0 border-t border-fonte-pje dark:border-linha-fonte bg-sf-apoio dark:bg-fonte-pje-bg p-2">
                 {!adding ? (
                   <button
                     type="button"
                     onClick={() => setAdding(true)}
-                    className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-fonte-pje dark:text-fonte-pje hover:bg-sf-apoio dark:hover:bg-fonte-pje/15 transition-colors"
+                    className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-fonte-pje hover:bg-sf-apoio dark:hover:bg-fonte-pje-bg transition-colors"
                   >
                     <Plus size={13} /> {addLabel ?? "Cadastrar novo"}
                   </button>
@@ -199,7 +199,7 @@ export default function EntityPicker({
                       }}
                       autoFocus
                       placeholder={addLabel ?? "Nome"}
-                      className="flex-1 text-sm border border-fonte-pje dark:border-fonte-pje/30 px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-fonte-pje bg-sf text-tx"
+                      className="flex-1 text-sm border border-fonte-pje dark:border-linha-fonte px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-fonte-pje bg-sf text-tx"
                     />
                     <button
                       type="button"
@@ -209,7 +209,7 @@ export default function EntityPicker({
                     >
                       {pending ? "..." : "OK"}
                     </button>
-                    <button type="button" onClick={() => setAdding(false)} className="px-2 text-fonte-pje/60 dark:text-fonte-pje/70 hover:text-fonte-pje dark:hover:text-fonte-pje">
+                    <button type="button" onClick={() => setAdding(false)} className="px-2 text-fonte-pje hover:text-fonte-pje dark:hover:text-fonte-pje">
                       <X size={16} />
                     </button>
                   </div>

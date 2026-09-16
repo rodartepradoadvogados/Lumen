@@ -140,7 +140,7 @@ export default async function AcessosPage() {
               </thead>
               <tbody className="divide-y divide-regua">
                 {log.map((entry) => (
-                  <tr key={entry.id} className="text-tx/85">
+                  <tr key={entry.id} className="text-tx-2">
                     <td className="px-5 py-2.5 whitespace-nowrap">{entry.createdAt.toLocaleString("pt-BR")}</td>
                     <td className="px-5 py-2.5">{entry.memberName}</td>
                     <td className="px-5 py-2.5">

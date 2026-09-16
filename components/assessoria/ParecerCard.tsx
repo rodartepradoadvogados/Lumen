@@ -313,7 +313,7 @@ export default function ParecerCard({
                   }}
                   onClick={() => fileInputRef.current?.click()}
                   className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed p-3 cursor-pointer transition-colors ${
-                    dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf"
+                    dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx hover:bg-sf"
                   }`}
                 >
                   <UploadCloud size={16} className="text-tx-2" />

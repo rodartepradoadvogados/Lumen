@@ -214,7 +214,7 @@ export default function TeamMonitorPanel({
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-atencao hover:bg-atencao/10"
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium text-atencao hover:bg-grave-bg"
               >
                 <LogOut size={15} /> Sair
               </button>

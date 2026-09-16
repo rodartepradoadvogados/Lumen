@@ -125,9 +125,9 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
             {generated ? (
               <div className="p-5 space-y-3">
                 {generated.noFieldsMatched && (
-                  <div className="flex items-start gap-2 bg-aviso-bg dark:bg-aviso/10 border border-aviso dark:border-aviso/30 px-3 py-2.5">
-                    <AlertTriangle size={16} className="text-aviso dark:text-aviso shrink-0 mt-0.5" />
-                    <p className="text-xs text-aviso dark:text-aviso">
+                  <div className="flex items-start gap-2 bg-aviso-bg border border-aviso dark:border-linha-aviso px-3 py-2.5">
+                    <AlertTriangle size={16} className="text-aviso shrink-0 mt-0.5" />
+                    <p className="text-xs text-aviso">
                       Nenhum campo foi preenchido — o modelo não tem os placeholders <code className="bg-sf px-1 rounded">{"{{CLIENTE}}"}</code>,
                       etc. no texto. O documento saiu igual ao modelo original. Veja em Configurações → Modelos de Documento como escrever
                       um modelo que preenche os dados.
@@ -156,7 +156,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
 
                 {(generated.caseId || generated.attendanceId) &&
                   (attached ? (
-                    <p className="flex items-center gap-2 text-sm text-concluido dark:text-concluido bg-concluido-bg dark:bg-concluido/10 border border-concluido dark:border-concluido/30 px-3 py-2.5">
+                    <p className="flex items-center gap-2 text-sm text-concluido dark:text-concluido bg-concluido-bg border border-concluido dark:border-linha-concluido px-3 py-2.5">
                       <CheckCircle2 size={16} /> Inserido nos anexos.
                     </p>
                   ) : (
@@ -170,7 +170,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   ))}
 
                 {error && (
-                  <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg dark:bg-urgente/10 border border-urgente dark:border-urgente/30 px-2.5 py-1.5">
+                  <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg border border-urgente dark:border-linha-urgente px-2.5 py-1.5">
                     {error}
                   </p>
                 )}
@@ -302,7 +302,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 )}
 
                 {error && (
-                  <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg dark:bg-urgente/10 border border-urgente dark:border-urgente/30 px-2.5 py-1.5">
+                  <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg border border-urgente dark:border-linha-urgente px-2.5 py-1.5">
                     {error}
                   </p>
                 )}

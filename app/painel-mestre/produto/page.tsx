@@ -59,7 +59,7 @@ export default async function ProdutoPage() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-tx">Produto e robôs</h1>
-        <p className="text-sm text-tx/55 mt-1">
+        <p className="text-sm text-tx-3 mt-1">
           Saúde dos robôs de captura (DJEN e Datajud) — somente leitura
         </p>
       </div>

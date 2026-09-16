@@ -9,14 +9,14 @@ import { AlertTriangle } from "lucide-react";
 // texto genérico só quando a checagem de OneDrive/Dropbox não devolve mensagem própria.
 export default function StorageDisconnectedNotice({ message }: { message?: string }) {
   return (
-    <div className="border border-aviso/25 bg-aviso-bg rounded-md px-3 py-2 flex items-center gap-2 flex-wrap">
+    <div className="border border-linha-aviso bg-aviso-bg rounded-md px-3 py-2 flex items-center gap-2 flex-wrap">
       <AlertTriangle size={13} className="shrink-0 text-aviso" />
       <span className="text-xs font-medium text-aviso flex-1 min-w-0">
         {message || "Conecte o armazenamento em nuvem do escritório para anexar documentos."}
       </span>
       <Link
         href="/conexoes"
-        className="text-xs font-semibold text-aviso underline decoration-aviso/50 hover:decoration-aviso shrink-0"
+        className="text-xs font-semibold text-aviso underline decoration-aviso hover:decoration-aviso shrink-0"
       >
         Ir para Conexões
       </Link>

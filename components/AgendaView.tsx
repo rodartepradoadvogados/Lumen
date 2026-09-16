@@ -62,7 +62,7 @@ type FinanceEntryData = {
 // (Payable/Receivable não têm Task.type) e duplicaria a legenda sem necessidade. vinho (a pagar)
 // e concluido (a receber) são os dois únicos tons semânticos que typeMeta ainda não usa.
 const financeMeta: Record<"PAGAR" | "RECEBER", { dot: string; chip: string; filete: string; label: string }> = {
-  PAGAR: { dot: "bg-atencao", chip: "bg-atencao/10 dark:bg-atencao/15 text-atencao", filete: "border-atencao", label: "Conta a Pagar" },
+  PAGAR: { dot: "bg-atencao", chip: "bg-grave-bg text-atencao", filete: "border-atencao", label: "Conta a Pagar" },
   RECEBER: { dot: "bg-concluido", chip: "bg-concluido-bg text-concluido rounded-sm", filete: "border-concluido", label: "Conta a Receber" },
 };
 
@@ -390,13 +390,13 @@ function MonthView({
           {MONTHS[month]} {year}
         </h3>
         <div className="flex items-center gap-1">
-          <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
+          <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-md">
             <ChevronLeft size={18} />
           </Link>
           <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-marca-tx rounded-sm px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
+          <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-md">
             <ChevronRight size={18} />
           </Link>
         </div>
@@ -429,7 +429,7 @@ function MonthView({
               onClick={() => setSelected(key)}
               className={clsx(
                 "rounded-md p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
-                inMonth ? "bg-sf" : "bg-sf-apoio/50 text-tx-3",
+                inMonth ? "bg-sf" : "bg-sf-apoio text-tx-3",
                 isSelected && "bg-acao-bg ring-1 ring-inset ring-marca-tx"
               )}
             >
@@ -484,13 +484,13 @@ function WeekView({
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
-          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
+          <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-md">
             <ChevronLeft size={18} />
           </Link>
           <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-marca-tx rounded-sm px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
-          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
+          <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx-2 rounded-md">
             <ChevronRight size={18} />
           </Link>
         </div>

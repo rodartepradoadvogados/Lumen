@@ -110,7 +110,7 @@ export default function MigrarPastaMaeButton() {
       </p>
 
       {erro && (
-        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-urgente/20 px-3 py-2 rounded-md">
+        <p className="text-xs font-medium text-urgente bg-urgente-bg border border-linha-urgente px-3 py-2 rounded-md">
           {erro}
         </p>
       )}
@@ -124,7 +124,7 @@ export default function MigrarPastaMaeButton() {
           </p>
 
           {exibido.truncado && (
-            <p className="flex items-center gap-2 text-xs font-semibold text-urgente bg-urgente-bg border border-urgente/25 px-3 py-2 rounded-md">
+            <p className="flex items-center gap-2 text-xs font-semibold text-urgente bg-urgente-bg border border-linha-urgente px-3 py-2 rounded-md">
               <AlertTriangle size={14} className="shrink-0" /> A varredura parou antes de terminar (Drive muito grande). Rode a
               conferência de novo depois de tratar o que já apareceu — itens ainda não vistos não estão neste relatório.
             </p>

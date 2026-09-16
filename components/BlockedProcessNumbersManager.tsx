@@ -62,7 +62,7 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
               )}
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-sm text-tx/85">
+              <p className="text-sm text-tx-2">
                 Tem certeza que quer voltar a receber publicações e andamentos processuais do processo{" "}
                 <strong>{toUnblock.displayNumber}</strong>?
               </p>

@@ -100,7 +100,7 @@ export default function ApplyWorkflowModal({
                 Passos com cargo definido tentam usar o membro correspondente; caso contrário, usam este responsável.
               </p>
               {error && (
-                <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg dark:bg-urgente/10 border border-urgente dark:border-urgente/30 px-2.5 py-1.5">
+                <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg border border-urgente dark:border-linha-urgente px-2.5 py-1.5">
                   {error}
                 </p>
               )}

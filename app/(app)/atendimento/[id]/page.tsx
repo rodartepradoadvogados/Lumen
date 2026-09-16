@@ -158,7 +158,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               </Card>
               <Card className="p-5">
                 <h4 className="text-xs font-semibold text-tx-3 uppercase tracking-wide mb-2">Descrição detalhada</h4>
-                <p className="text-sm text-tx/80 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
+                <p className="text-sm text-tx-2 whitespace-pre-wrap">{a.description || "Sem descrição."}</p>
               </Card>
             </div>
 
@@ -210,7 +210,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                             }
                           >
                             <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                            <p className={out ? "mt-1 text-etiqueta text-acao-tx/70 text-right" : "mt-1 text-etiqueta text-tx-3"}>
+                            <p className={out ? "mt-1 text-etiqueta text-acao-tx text-right" : "mt-1 text-etiqueta text-tx-3"}>
                               {formatDate(m.createdAt)}{" "}
                               {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                               {out && m.status === "FAILED" ? " · falhou" : ""}

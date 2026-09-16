@@ -91,7 +91,7 @@ export default function CaseStatusSelect({
                 setConfirmArquivar(false);
                 applyStatus("ARQUIVADO");
               }}
-              className="text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 "
+              className="text-xs font-semibold text-atencao hover:bg-grave-bg px-3 py-1.5 "
             >
               Arquivar mesmo assim
             </button>

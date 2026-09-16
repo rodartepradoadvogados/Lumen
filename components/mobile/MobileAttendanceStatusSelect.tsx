@@ -11,9 +11,9 @@ const options = ["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"];
 // §2): NOVO é aviso (pendência de triagem), EM_TRIAGEM é acao (em andamento), CONVERTIDO é
 // concluido (êxito).
 const colors: Record<string, string> = {
-  NOVO: "bg-aviso-bg text-aviso border-aviso/25",
-  EM_TRIAGEM: "bg-acao-bg text-marca-tx border-marca-tx/25",
-  CONVERTIDO: "bg-concluido-bg text-concluido border-concluido/25",
+  NOVO: "bg-aviso-bg text-aviso border-linha-aviso",
+  EM_TRIAGEM: "bg-acao-bg text-marca-tx border-marca-tx",
+  CONVERTIDO: "bg-concluido-bg text-concluido border-linha-concluido",
   ARQUIVADO: "bg-sf-apoio text-tx-2 border-regua",
   RASCUNHO: "bg-sf-apoio text-tx-2 border-regua",
 };

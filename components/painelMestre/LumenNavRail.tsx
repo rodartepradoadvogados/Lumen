@@ -64,7 +64,7 @@ export default function LumenNavRail() {
         <Menu size={18} />
       </button>
 
-      {open && <div className="md:hidden fixed inset-0 z-40 bg-gaveta-fundo/60" onClick={() => setOpen(false)} />}
+      {open && <div className="md:hidden fixed inset-0 z-40 bg-gaveta-fundo" onClick={() => setOpen(false)} />}
 
       <nav
         className={`w-56 shrink-0 bg-gaveta border-r border-gaveta-linha flex flex-col h-full fixed md:static top-0 left-0 z-50 overflow-y-auto scrollbar-thin transition-transform duration-200 md:translate-x-0 ${
@@ -83,7 +83,7 @@ export default function LumenNavRail() {
             <LumenMark size={28} />
             <span className="text-lg font-semibold text-gaveta-tinta">LÚMEN</span>
           </div>
-          <p className="text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta/40 mt-1.5">
+          <p className="text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta-2 mt-1.5">
             Painel da Empresa
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function LumenNavRail() {
         <div className="flex-1 py-4 space-y-6">
           {GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="px-4 text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta/35 mb-1.5">
+              <p className="px-4 text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta-2 mb-1.5">
                 {group.label}
               </p>
               <div className="space-y-0.5 px-2">
@@ -111,7 +111,7 @@ export default function LumenNavRail() {
                       <Icon size={16} />
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.comingSoon && (
-                        <span className="text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta/30">
+                        <span className="text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta-2">
                           em breve
                         </span>
                       )}

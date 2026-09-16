@@ -63,8 +63,8 @@ export default function DismissibleAlertRow({
           className={clsx(
             "shrink-0 self-center mr-3 flex items-center gap-1 text-etiqueta font-semibold px-2.5 py-1 transition-colors",
             status === "idle" &&
-              "text-tx-2 hover:text-concluido dark:hover:text-concluido hover:bg-concluido/10",
-            status !== "idle" && "text-concluido dark:text-concluido bg-concluido/10 dark:bg-concluido/15"
+              "text-tx-2 hover:text-concluido dark:hover:text-concluido hover:bg-concluido-bg",
+            status !== "idle" && "text-concluido dark:text-concluido bg-concluido-bg"
           )}
         >
           <Check size={12} /> Lido

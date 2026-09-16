@@ -35,7 +35,7 @@ export default function RecurringFeeCard({ fee }: { fee: { id: string; descripti
           router.refresh();
           setLoading(false);
         }}
-        className="text-etiqueta font-semibold text-tx-2 hover:text-atencao px-2 py-1 hover:bg-atencao/10 shrink-0 disabled:opacity-50"
+        className="text-etiqueta font-semibold text-tx-2 hover:text-atencao px-2 py-1 hover:bg-grave-bg shrink-0 disabled:opacity-50"
       >
         <span className="inline-flex items-center gap-1">
           <X size={12} /> Encerrar

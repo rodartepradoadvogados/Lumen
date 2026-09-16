@@ -110,9 +110,9 @@ export default function AttendancePendenciasPanel({
                 className={clsx(
                   "flex items-start justify-between gap-3 border rounded-md px-3 py-2",
                   urgencia === "vencida"
-                    ? "border-urgente/40 bg-urgente-bg animate-attention-pulse"
+                    ? "border-linha-urgente bg-urgente-bg animate-attention-pulse"
                     : urgencia === "vencendo"
-                      ? "border-aviso/40 bg-aviso-bg"
+                      ? "border-linha-aviso bg-aviso-bg"
                       : "border-regua bg-sf-apoio"
                 )}
               >
@@ -134,7 +134,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleComplete(p.id)}
                     disabled={pending}
                     title="Concluir"
-                    className="p-1.5 text-tx-3 hover:text-concluido dark:hover:text-concluido hover:bg-concluido/10 rounded-md"
+                    className="p-1.5 text-tx-3 hover:text-concluido dark:hover:text-concluido hover:bg-concluido-bg rounded-md"
                   >
                     <Check size={14} />
                   </button>
@@ -142,7 +142,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleDelete(p.id)}
                     disabled={pending}
                     title="Excluir"
-                    className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 rounded-md"
+                    className="p-1.5 text-tx-3 hover:text-atencao hover:bg-grave-bg rounded-md"
                   >
                     <X size={14} />
                   </button>

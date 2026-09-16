@@ -18,14 +18,14 @@ export default async function ConfiancaPage() {
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-tx">Confiança e LGPD</h1>
-        <p className="text-sm text-tx/55 mt-1">
+        <p className="text-sm text-tx-3 mt-1">
           O que já está implementado tecnicamente hoje — descrição factual, não é parecer jurídico
         </p>
       </div>
 
       <LumenPanel>
         <LumenPanelHeader title="Isolamento por escritório" />
-        <div className="p-5 text-sm text-tx/75 space-y-2">
+        <div className="p-5 text-sm text-tx-2 space-y-2">
           <p>
             Cada um dos <strong className="text-tx font-mono tabular-nums">{officeCount}</strong> escritório(s)
             cadastrado(s) só enxerga os próprios dados. Todo modelo de negócio do sistema (processos, atendimentos,
@@ -38,7 +38,7 @@ export default async function ConfiancaPage() {
 
       <LumenPanel>
         <LumenPanelHeader title="Acesso de suporte sob controle do cliente" />
-        <div className="p-5 text-sm text-tx/75 space-y-2">
+        <div className="p-5 text-sm text-tx-2 space-y-2">
           <p>
             Toda entrada do suporte da Lúmen em dado de um escritório passa por pedido, motivo (de uma lista
             fechada, nunca texto livre) e prazo curto — e fica registrada em log de auditoria, sem exceção. Cada
@@ -56,7 +56,7 @@ export default async function ConfiancaPage() {
 
       <LumenPanel>
         <LumenPanelHeader title="Próximo passo: Vidro Fosco" />
-        <div className="p-5 text-sm text-tx/75 space-y-2">
+        <div className="p-5 text-sm text-tx-2 space-y-2">
           <p>
             O modelo de dados para um controle de sigilo mais fino — por papel e por pessoa da equipe Lúmen — já
             existe (<code className="text-xs bg-sf-apoio rounded px-1 py-0.5">PlatformRole.maxVisibility</code>),

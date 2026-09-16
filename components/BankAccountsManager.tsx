@@ -154,7 +154,7 @@ function BankAccountRow({ account }: { account: BankAccount }) {
         </button>
       </div>
       {error && (
-        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-etiqueta bg-urgente-bg text-urgente border border-urgente/20 px-2.5 py-1.5 shadow-pop rounded-lg flex items-start gap-1.5">
+        <span className="absolute right-5 top-full mt-1 z-10 w-72 text-etiqueta bg-urgente-bg text-urgente border border-linha-urgente px-2.5 py-1.5 shadow-pop rounded-lg flex items-start gap-1.5">
           {error}
           <button onClick={() => setError(null)} className="ml-auto shrink-0">
             <X size={12} />

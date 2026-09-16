@@ -181,7 +181,7 @@ export default function RenameCasesToConventionButton() {
                             onClick={() => toggleDiscarded(s.id)}
                             data-tip="Não sugerir de novo nas próximas conferências"
                             className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 transition-colors ${
-                              isDiscarded ? "bg-atencao/10 text-atencao font-semibold" : "text-tx-3 hover:text-atencao hover:bg-atencao/10"
+                              isDiscarded ? "bg-grave-bg text-atencao font-semibold" : "text-tx-3 hover:text-atencao hover:bg-grave-bg"
                             }`}
                           >
                             <EyeOff size={13} /> {isDiscarded ? "Descartada" : "Descartar"}

@@ -233,7 +233,7 @@ export default function DelegateTaskForm({
   if (success) {
     return (
       <div className="p-8 flex flex-col items-center text-center gap-3">
-        <span className="h-12 w-12 rounded-full bg-concluido/15 text-concluido dark:text-concluido flex items-center justify-center">
+        <span className="h-12 w-12 rounded-full bg-concluido-bg text-concluido dark:text-concluido flex items-center justify-center">
           <Check size={22} />
         </span>
         <h3 className=" font-bold text-tx text-lg">Delegado com sucesso!</h3>
@@ -460,14 +460,14 @@ export default function DelegateTaskForm({
           </div>
 
           {state.dueDate && (
-            <div className=" border border-aviso/30 bg-aviso/10 px-3 py-2 flex items-start gap-2">
-              <Hourglass size={14} className="text-aviso dark:text-aviso mt-0.5 shrink-0" />
+            <div className=" border border-linha-aviso bg-aviso-bg px-3 py-2 flex items-start gap-2">
+              <Hourglass size={14} className="text-aviso mt-0.5 shrink-0" />
               <div>
-                <p className="text-etiqueta font-semibold text-aviso dark:text-aviso uppercase tracking-wide">
+                <p className="text-etiqueta font-semibold text-aviso uppercase tracking-wide">
                   Prazo de segurança (automático)
                 </p>
-                <p className="text-sm text-aviso dark:text-aviso mt-0.5">{formatSafetyPreview(state.dueDate, state.dueTime)}</p>
-                <p className="text-etiqueta text-aviso/70 dark:text-aviso/70 mt-0.5">
+                <p className="text-sm text-aviso mt-0.5">{formatSafetyPreview(state.dueDate, state.dueTime)}</p>
+                <p className="text-etiqueta text-aviso mt-0.5">
                   Sempre 24h antes do prazo fatal — vai aparecer na Agenda nos dois dias, em cores diferentes.
                 </p>
               </div>
@@ -488,7 +488,7 @@ export default function DelegateTaskForm({
             </select>
           </div>
           {(state.type === "EVENTO" || state.type === "AUDIENCIA") && (
-            <div className=" border border-marca-tx/25 bg-marca-bg p-3 space-y-3">
+            <div className=" border border-marca-tx bg-marca-bg p-3 space-y-3">
               <p className="text-xs font-semibold text-marca-tx uppercase tracking-wide">
                 {state.type === "AUDIENCIA" ? "Local da audiência (opcional)" : "Reunião (opcional)"}
               </p>
