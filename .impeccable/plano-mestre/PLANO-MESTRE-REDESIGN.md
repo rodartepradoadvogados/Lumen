@@ -11,11 +11,11 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F4 — Portal / SaaS** · casca concluída, telas em andamento |
-| **Próximo passo concreto** | `/publicacoes` e `/assessoria/[id]` — as duas telas densas que faltam no Portal. Depois F5 (site público e blog), que é onde os dois diferenciais do produto ainda não aparecem |
+| **Fase atual** | **F4 concluída no essencial** · as 4 telas de uso diário estão feitas. Decisão em aberto: seguir para F5 (site) ou terminar os módulos restantes do Portal |
+| **Próximo passo concreto** | **Recomendado: F5, o site público.** É onde está o achado mais grave do diagnóstico inteiro — os dois diferenciais do produto não estão na landing, e uma linha de copy contradiz o posicionamento. Alternativa: fechar os módulos restantes do Portal (Assessoria, Comunicação, Financeiro, Gestão), que são de uso menos frequente |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
-| **Comandos executados** | 10 dos 24 fluxos (com `distill` em F4) (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
-| **Superfícies redesenhadas** | Portal com casca, `/painel`, `/processos/[id]` e `/alertas` feitos. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
+| **Comandos executados** | 12 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
+| **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
 | **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual na paleta Ardósia, pelo dono** — a primeira rodada de conferência derrubou a paleta anterior e achou dois defeitos meus; (b) `audit` como passagem própria → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
 
@@ -435,7 +435,6 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F3b | Segunda rodada de paleta | `colorize` | ✅ | #191 | 2026-09-16 | 3 propostas × 2 telas × 2 temas. Escolhida a **Ardósia** (cinza-pedra frio). Bordô volta como ação; **nenhuma faixa é vermelha** |
 | F3b | O rail passa a retematizar | `colorize` | ✅ | #191 | 2026-09-16 | Tokens `--gaveta*` próprios. A escala `grafite` do Tailwind era **hex cravado** — repontar só a variável CSS não fazia nada |
 | F3b | Fim do `text-white` cravado | `harden` | ✅ | #191 | 2026-09-16 | 98 linhas em 11 arquivos do Painel Mestre + aside de Configurações + campos com fundo sempre escuro |
-| F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |
 | F4a | Casca — o rail vira mapa | `layout`, `clarify` | ✅ | #192 | 2026-09-16 | 6 ícones → 5 destinos, estado invisível, 2 ícones acesos, hub órfão, 250ms de atraso. **Contagem deixa de ser vermelha; Agenda = hoje + atrasados** (pedidos do dono) |
 | F4b | Casca — o layout para de se mexer | `layout` | ✅ | #193 | 2026-09-16 | 10 larguras → **1**, numa classe só. Fade de página e cascata de lista removidos. Barra de abas com altura estável. O mesmo atraso de 250ms que restava na barra de abas |
 | F4c | Portal — `/painel` | `distill`, `clarify` | ✅ | #194 | 2026-09-16 | **A tarja de risco do escritório.** Saudação, halo e grão fora; "Minhas atrasadas" vira "do escritório"; medidores em régua; "O dia" para de somar vencido com futuro |
@@ -447,11 +446,10 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4h | Reorganizar anexos do Drive | `clarify` | ✅ | #199 | 2026-09-16 | **Não removido**: reorganizar MOVE arquivo fora de lugar, reconciliar não move nada. Tela agrupada por registro, com número, tribunal e cliente |
 | F4i | **Fim do vermelho** | `colorize` | ✅ | #200 | 2026-09-16 | Uma família quente só (bordô), diferenciada por TRATAMENTO. **210 cores cruas do Tailwind** migradas para token, com lint que impede a volta |
 | F4j | **A largura volta** | `adapt`, `layout` | ✅ | #201 | 2026-09-16 | **Correção de regressão minha:** F4b matou o deslize capando tudo em 1440px centralizado, e num monitor largo isso desperdiçava metade da tela. O quadro passa a OCUPAR a largura — igualmente estável, porque a regra é constante. Densidade vira assunto de coluna |
-| F4 | Portal — Comunicação e Financeiro | idem | ⬜ | — | — | próximo: `/assessoria/[id]` |
-| F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
-| F4 | Portal — Comunicação | idem | ⬜ | — | — | — |
+| F4 | Portal — Jurídico: `/assessoria/[id]` | `distill`, `layout` | ⬜ | — | — | identidade e métrica no mesmo tamanho: h1 e 4 KPIs todos em 24px bold |
+| F4 | Portal — Comunicação | idem | ⬜ | — | — | atendimento, funil, contatos |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
-| F4 | Portal — Gestão | idem | ⬜ | — | — | — |
+| F4 | Portal — Gestão | idem | ⬜ | — | — | configurações, relatórios, produtividade |
 | F4 | Portal — impressão e telas órfãs | `layout`, `adapt` | ⬜ | — | — | `/peticionar`, `/reuniao/[id]` |
 | F5 | Site público | `bolder`, `animate`, `delight`, `clarify` | ⬜ | — | — | D1-D8 para validar |
 | F5 | Blog | `layout`, `typeset`, `clarify` | ⬜ | — | — | modo Read |
