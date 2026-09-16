@@ -51,7 +51,7 @@ export default function SupportAccessBannerClient({
   return (
     // `bg-atencao` (vinho) opaco e legível nos dois temas — mesmo raciocínio em
     // components/ActingOfficeBanner.tsx.
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-atencao text-white text-xs sm:text-sm font-semibold px-4 py-2 shrink-0 text-center">
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-atencao text-rotulo text-xs sm:text-sm font-semibold px-4 py-2 shrink-0 text-center">
       <ShieldAlert size={15} className="shrink-0" />
       <span>
         Suporte da Lúmen ativo: <strong>{memberName}</strong> entrou às {startedLabel} — motivo: {reasonLabel}.

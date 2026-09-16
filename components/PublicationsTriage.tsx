@@ -688,7 +688,7 @@ function LinkModal({
                 type="button"
                 disabled={blocking}
                 onClick={confirmBlock}
-                className="px-4 py-2 text-sm font-semibold bg-atencao hover:opacity-90 text-white disabled:opacity-50"
+                className="px-4 py-2 text-sm font-semibold bg-atencao hover:opacity-90 text-rotulo disabled:opacity-50"
               >
                 {blocking ? "Bloqueando..." : "Sim"}
               </button>

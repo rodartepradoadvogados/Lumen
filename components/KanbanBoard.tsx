@@ -147,7 +147,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
             data-tip={done ? completedTip || "Reabrir" : "Concluir"}
             className={clsx(
               "h-5 w-5 rounded-full border flex items-center justify-center transition-colors",
-              done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido",
+              done ? "bg-concluido border-concluido text-rotulo" : "border-regua-forte text-transparent hover:border-concluido",
               justCompleted && "animate-check-pop"
             )}
           >

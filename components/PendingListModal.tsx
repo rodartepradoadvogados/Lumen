@@ -19,6 +19,7 @@ export default function PendingListModal({
   // Portal Noturno (DESIGN.md): font-display (Barlow Condensed) — usado só aqui, PendingListModal
   // não é reaproveitado por nenhuma outra tela hoje.
   valueClassName = "font-display text-autuacao leading-none font-extrabold text-tx",
+  nota,
   title,
   icon,
   iconClassName,
@@ -32,6 +33,9 @@ export default function PendingListModal({
   // cor de urgência, para os dois valores em reais — DESIGN-SYSTEM, documento 03, tabela da
   // coluna estreita).
   valueClassName?: string;
+  // Segunda linha, abaixo do valor: serve para o recorte pessoal continuar visível sem tomar
+  // o lugar do número do escritório (ver o cartão de atrasadas em app/(app)/painel/page.tsx).
+  nota?: string;
   title: string;
   // Selo squircle do ícone (acabamento "premium", agosto/2026, sétima rodada) — opcional: sem
   // ícone, o card renderiza como antes (só rótulo + valor). Recebe o <Icon /> já montado (não o
@@ -57,6 +61,7 @@ export default function PendingListModal({
             <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">{label}</p>
           </div>
           <p className={clsx("mt-2.5 tabular-nums", valueClassName)}>{value}</p>
+            {nota && <p className="text-etiqueta text-tx-3 mt-1">{nota}</p>}
         </div>
       </button>
       {open && (

@@ -26,7 +26,7 @@ export default function MobileTaskToggle({ taskId, done }: { taskId: string; don
       aria-label={done ? "Reabrir tarefa" : "Concluir tarefa"}
       className={`h-6 w-6 shrink-0 rounded-full border flex items-center justify-center transition-colors ${
         done
-          ? "bg-concluido border-concluido text-white"
+          ? "bg-concluido border-concluido text-rotulo"
           : "border-regua-forte text-transparent hover:border-concluido"
       } ${pending ? "opacity-50" : ""} ${justCompleted ? "animate-check-pop" : ""}`}
     >

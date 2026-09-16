@@ -282,7 +282,7 @@ export default function DeleteEntityButton({
                 <button
                   onClick={handleConfirmLinked}
                   disabled={pending}
-                  className="text-xs font-semibold text-white bg-atencao hover:opacity-90 px-3.5 py-2 disabled:opacity-50"
+                  className="text-xs font-semibold text-rotulo bg-atencao hover:opacity-90 px-3.5 py-2 disabled:opacity-50"
                 >
                   Excluir
                 </button>

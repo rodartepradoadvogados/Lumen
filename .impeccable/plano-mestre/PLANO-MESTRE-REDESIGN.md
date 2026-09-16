@@ -12,7 +12,7 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F4 — Portal / SaaS** · casca concluída, telas em andamento |
-| **Próximo passo concreto** | `/painel` — a tarja de risco do escritório, que corrige o defeito nº 1 do diagnóstico (a home mede a pessoa errada). Depois `/publicacoes`, `/processos/[id]` e os 13 filetes laterais |
+| **Próximo passo concreto** | `/processos/[id]` — a primeira guia deixa de ser 25 campos de mesmo peso e passa a ser *o que está pendente*; as 9 guias em faixa própria. Depois `/publicacoes` e os 13 filetes laterais |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 10 dos 24 fluxos (com `distill` em F4) (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | 0 de 5 na composição — mas as 5 já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -438,7 +438,9 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |
 | F4a | Casca — o rail vira mapa | `layout`, `clarify` | ✅ | #192 | 2026-09-16 | 6 ícones → 5 destinos, estado invisível, 2 ícones acesos, hub órfão, 250ms de atraso. **Contagem deixa de ser vermelha; Agenda = hoje + atrasados** (pedidos do dono) |
 | F4b | Casca — o layout para de se mexer | `layout` | ✅ | #193 | 2026-09-16 | 10 larguras → **1**, numa classe só. Fade de página e cascata de lista removidos. Barra de abas com altura estável. O mesmo atraso de 250ms que restava na barra de abas |
-| F4 | Portal — Painel e Agenda | `layout`, `distill`, `clarify`, `polish` | ⬜ | — | — | próximo: a tarja de risco |
+| F4c | Portal — `/painel` | `distill`, `clarify` | ✅ | #194 | 2026-09-16 | **A tarja de risco do escritório.** Saudação, halo e grão fora; "Minhas atrasadas" vira "do escritório"; medidores em régua; "O dia" para de somar vencido com futuro |
+| F4c | Rótulo sobre fundo de risco | `harden` | ✅ | #194 | 2026-09-16 | **19 arquivos** com rótulo claro cravado sobre cor de risco — invisíveis no tema escuro. Regra de lint impede a volta |
+| F4 | Portal — Jurídico | idem | ⬜ | — | — | próximo: `/processos/[id]` |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
 | F4 | Portal — Comunicação | idem | ⬜ | — | — | — |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
