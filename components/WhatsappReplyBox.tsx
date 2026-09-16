@@ -53,7 +53,7 @@ export default function WhatsappReplyBox({ attendanceId }: { attendanceId: strin
           {isPending ? "Enviando…" : "Enviar"}
         </button>
       </div>
-      {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs font-medium text-urgente">{error}</p>}
     </div>
   );
 }

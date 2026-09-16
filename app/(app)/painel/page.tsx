@@ -206,12 +206,12 @@ export default async function DashboardPage() {
           Antes este espaço era uma saudação com o nome do usuário, gastando o maior tipo da
           página, o único gradiente e a única textura do produto. O contrato de direção "Guias"
           é explícito: o tipo é matéria, o número É o bloco, e existe um por tela. */}
-      <div className="bg-urgente text-rotulo px-5 py-4 flex items-baseline gap-4 flex-wrap">
-        <span className="font-display text-tarja leading-none font-bold tabular-nums">{emRiscoAgora}</span>
-        <span className="text-destaque font-semibold leading-tight">
+      <div className="bg-campo-risco border-t-2 border-acao px-5 py-4 flex items-baseline gap-4 flex-wrap">
+        <span className="font-display text-tarja leading-none font-bold tabular-nums text-acao">{emRiscoAgora}</span>
+        <span className="text-destaque font-semibold leading-tight text-tx">
           em risco agora,<br />no escritório inteiro
         </span>
-        <span className="ml-auto text-etiqueta font-semibold uppercase tracking-[.09em] opacity-90 self-center">
+        <span className="ml-auto text-etiqueta font-semibold uppercase tracking-[.09em] text-tx-2 self-center">
           {composicao || "nada vencido"}
         </span>
       </div>

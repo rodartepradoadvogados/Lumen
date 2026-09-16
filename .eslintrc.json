@@ -33,6 +33,10 @@
         "message": "Rótulo claro cravado sobre fundo de risco ou de faixa. Essas cores são ESCURAS no tema claro e CLARAS no tema escuro — texto branco fixo some. Use text-rotulo, que troca com o tema. (text-acao-tx continua certo sobre bg-acao, que é bordô nos dois temas.)"
       },
       {
+        "selector": "Literal[value=/\\b(text|bg|border|ring|divide)-(red|rose|green|emerald|amber|orange|blue|indigo|purple|violet|slate|gray|zinc|neutral|stone)-[0-9]/]",
+        "message": "Cor crua da paleta do Tailwind. Ela NÃO retematiza — fica igual no tema claro e no escuro — e fura o sistema de tokens inteiro. Use os papéis: urgente, aviso, concluido, acao, grave, faixa-*, tx, sf, regua. Havia 210 destas no produto em 2026-09-16, e eram as cores mais berrantes da tela."
+      },
+      {
         "selector": "TemplateElement[value.raw=/text-\\[[0-9.]/]",
         "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
       }

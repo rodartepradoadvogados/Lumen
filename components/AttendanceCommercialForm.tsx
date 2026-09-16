@@ -99,7 +99,7 @@ export default function AttendanceCommercialForm({
           </span>
         </div>
         {firstResponseAt ? (
-          <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+          <div className="flex items-center gap-1.5 text-xs text-concluido dark:text-concluido">
             <CheckCircle2 size={13} /> Respondido em {formatDate(firstResponseAt)}{" "}
             {new Date(firstResponseAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
           </div>

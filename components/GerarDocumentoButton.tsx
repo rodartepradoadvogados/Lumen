@@ -125,9 +125,9 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
             {generated ? (
               <div className="p-5 space-y-3">
                 {generated.noFieldsMatched && (
-                  <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-400/30 px-3 py-2.5">
-                    <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                  <div className="flex items-start gap-2 bg-aviso-bg dark:bg-aviso/10 border border-aviso dark:border-aviso/30 px-3 py-2.5">
+                    <AlertTriangle size={16} className="text-aviso dark:text-aviso shrink-0 mt-0.5" />
+                    <p className="text-xs text-aviso dark:text-aviso">
                       Nenhum campo foi preenchido — o modelo não tem os placeholders <code className="bg-sf px-1 rounded">{"{{CLIENTE}}"}</code>,
                       etc. no texto. O documento saiu igual ao modelo original. Veja em Configurações → Modelos de Documento como escrever
                       um modelo que preenche os dados.
@@ -156,7 +156,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
 
                 {(generated.caseId || generated.attendanceId) &&
                   (attached ? (
-                    <p className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/10 border border-emerald-200 dark:border-emerald-400/30 px-3 py-2.5">
+                    <p className="flex items-center gap-2 text-sm text-concluido dark:text-concluido bg-concluido-bg dark:bg-concluido/10 border border-concluido dark:border-concluido/30 px-3 py-2.5">
                       <CheckCircle2 size={16} /> Inserido nos anexos.
                     </p>
                   ) : (
@@ -170,7 +170,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   ))}
 
                 {error && (
-                  <p className="text-etiqueta text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
+                  <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg dark:bg-urgente/10 border border-urgente dark:border-urgente/30 px-2.5 py-1.5">
                     {error}
                   </p>
                 )}
@@ -302,7 +302,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 )}
 
                 {error && (
-                  <p className="text-etiqueta text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
+                  <p className="text-etiqueta text-urgente dark:text-urgente bg-urgente-bg dark:bg-urgente/10 border border-urgente dark:border-urgente/30 px-2.5 py-1.5">
                     {error}
                   </p>
                 )}

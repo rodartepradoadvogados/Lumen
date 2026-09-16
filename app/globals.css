@@ -45,7 +45,7 @@
   --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #b3261e;
+  --risco-vencido: #8a2f42;
   --risco-hoje: #8a5c00;
   --risco-em-dia: #1c6b52;
 
@@ -76,17 +76,17 @@
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(28, 107, 82, .14);
   --concluido-glow: 0 0 10px rgba(28, 107, 82, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #fbeced;
   --marca: #8a2f42;
   --marca-tx: #8a2f42;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-bg: #fbeced;
   --rail-marca: #8a2f42;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -108,6 +108,11 @@
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #fbeced;
+  --campo-risco: #f5e5e6;
+  --campo-risco-linha: #ddb1b5;
+  --grave: #670224;
+  --grave-tx: #fdf7f8;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: light;
@@ -146,7 +151,7 @@
   --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #e3625a;
+  --risco-vencido: #c98b92;
   --risco-hoje: #bd7e00;
   --risco-em-dia: #299d78;
 
@@ -177,17 +182,17 @@
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(41, 157, 120, .14);
   --concluido-glow: 0 0 10px rgba(41, 157, 120, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #371c20;
   --marca: #8a2f42;
-  --marca-tx: #cd6e82;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-tx: #c98b92;
+  --marca-bg: #371c20;
   --rail-marca: #c6586f;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -209,6 +214,11 @@
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #371c20;
+  --campo-risco: #401e24;
+  --campo-risco-linha: #734249;
+  --grave: #b56f79;
+  --grave-tx: #14161a;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: dark;
@@ -597,7 +607,7 @@ input[type="radio"] {
   --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #e3625a;
+  --risco-vencido: #c98b92;
   --risco-hoje: #bd7e00;
   --risco-em-dia: #299d78;
 
@@ -628,17 +638,17 @@ input[type="radio"] {
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(41, 157, 120, .14);
   --concluido-glow: 0 0 10px rgba(41, 157, 120, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #371c20;
   --marca: #8a2f42;
-  --marca-tx: #cd6e82;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-tx: #c98b92;
+  --marca-bg: #371c20;
   --rail-marca: #c6586f;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -660,6 +670,11 @@ input[type="radio"] {
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #371c20;
+  --campo-risco: #401e24;
+  --campo-risco-linha: #734249;
+  --grave: #b56f79;
+  --grave-tx: #14161a;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: dark;
@@ -699,7 +714,7 @@ input[type="radio"] {
   --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #b3261e;
+  --risco-vencido: #8a2f42;
   --risco-hoje: #8a5c00;
   --risco-em-dia: #1c6b52;
 
@@ -730,17 +745,17 @@ input[type="radio"] {
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(28, 107, 82, .14);
   --concluido-glow: 0 0 10px rgba(28, 107, 82, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #fbeced;
   --marca: #8a2f42;
   --marca-tx: #8a2f42;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-bg: #fbeced;
   --rail-marca: #8a2f42;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -762,6 +777,11 @@ input[type="radio"] {
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #fbeced;
+  --campo-risco: #f5e5e6;
+  --campo-risco-linha: #ddb1b5;
+  --grave: #670224;
+  --grave-tx: #fdf7f8;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: light;
@@ -846,7 +866,7 @@ input[type="radio"] {
   --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #b3261e;
+  --risco-vencido: #8a2f42;
   --risco-hoje: #8a5c00;
   --risco-em-dia: #1c6b52;
 
@@ -877,17 +897,17 @@ input[type="radio"] {
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(28, 107, 82, .14);
   --concluido-glow: 0 0 10px rgba(28, 107, 82, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #fbeced;
   --marca: #8a2f42;
   --marca-tx: #8a2f42;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-bg: #fbeced;
   --rail-marca: #8a2f42;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -909,6 +929,11 @@ input[type="radio"] {
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #fbeced;
+  --campo-risco: #f5e5e6;
+  --campo-risco-linha: #ddb1b5;
+  --grave: #670224;
+  --grave-tx: #fdf7f8;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: light;
@@ -947,7 +972,7 @@ input[type="radio"] {
   --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #e3625a;
+  --risco-vencido: #c98b92;
   --risco-hoje: #bd7e00;
   --risco-em-dia: #299d78;
 
@@ -978,17 +1003,17 @@ input[type="radio"] {
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(41, 157, 120, .14);
   --concluido-glow: 0 0 10px rgba(41, 157, 120, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #371c20;
   --marca: #8a2f42;
-  --marca-tx: #cd6e82;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-tx: #c98b92;
+  --marca-bg: #371c20;
   --rail-marca: #c6586f;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -1010,6 +1035,11 @@ input[type="radio"] {
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #371c20;
+  --campo-risco: #401e24;
+  --campo-risco-linha: #734249;
+  --grave: #b56f79;
+  --grave-tx: #14161a;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: dark;
@@ -1079,7 +1109,7 @@ input[type="radio"] {
   --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #e3625a;
+  --risco-vencido: #c98b92;
   --risco-hoje: #bd7e00;
   --risco-em-dia: #299d78;
 
@@ -1110,17 +1140,17 @@ input[type="radio"] {
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(41, 157, 120, .14);
   --concluido-glow: 0 0 10px rgba(41, 157, 120, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #371c20;
   --marca: #8a2f42;
-  --marca-tx: #cd6e82;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-tx: #c98b92;
+  --marca-bg: #371c20;
   --rail-marca: #c6586f;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -1142,6 +1172,11 @@ input[type="radio"] {
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #371c20;
+  --campo-risco: #401e24;
+  --campo-risco-linha: #734249;
+  --grave: #b56f79;
+  --grave-tx: #14161a;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: dark;
@@ -1185,7 +1220,7 @@ input[type="radio"] {
   --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
-  --risco-vencido: #b3261e;
+  --risco-vencido: #8a2f42;
   --risco-hoje: #8a5c00;
   --risco-em-dia: #1c6b52;
 
@@ -1216,17 +1251,17 @@ input[type="radio"] {
   --concluido: var(--risco-em-dia);
   --concluido-bg: rgba(28, 107, 82, .14);
   --concluido-glow: 0 0 10px rgba(28, 107, 82, .55);
-  --vinho: var(--risco-vencido);
+  --vinho: var(--grave);
   /* O bordo volta a ser a acao, CHEIO nos dois temas, com rotulo claro — decisao do dono:
      "a cor bordo era proposital". A variante clara e so para bordo-como-TEXTO no escuro. */
   --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
+  --acao-hover: #9c3f51;
   --acao-light: #8a2f42;
   --acao-tx: #fdf7f8;
-  --acao-bg: rgba(138, 47, 66, .14);
+  --acao-bg: #fbeced;
   --marca: #8a2f42;
   --marca-tx: #8a2f42;
-  --marca-bg: rgba(138, 47, 66, .14);
+  --marca-bg: #fbeced;
   --rail-marca: #8a2f42;
   --rail-marca-bg: rgba(138, 47, 66, .2);
   --rail-tx: var(--gaveta-tinta-2);
@@ -1248,6 +1283,11 @@ input[type="radio"] {
      que vive nele sumiria no tema claro. So mudou de temperatura, para o frio do Ardosia. */
   --grafite-800: #181b1f;
 
+  --acao-suave: #fbeced;
+  --campo-risco: #f5e5e6;
+  --campo-risco-linha: #ddb1b5;
+  --grave: #670224;
+  --grave-tx: #fdf7f8;
   --background: var(--papel);
   --foreground: var(--tinta);
   color-scheme: light;

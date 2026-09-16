@@ -14,12 +14,12 @@ import { ANOTACAO_LINK_LABELS, anotacaoLinkNeedsEntity, todayIsoDate, type Anota
 // azul-tinta de ação e um tom neutro próprio para continuar distintos dos demais.
 const LINK_CHIPS: { value: AnotacaoLinkType; activeClass: string }[] = [
   { value: "PROCESSO_JUDICIAL", activeClass: "bg-acao border-acao text-acao-tx" },
-  { value: "PROCESSO_ADMINISTRATIVO", activeClass: "bg-purple-600 border-purple-600 text-white" },
+  { value: "PROCESSO_ADMINISTRATIVO", activeClass: "bg-faixa-ameixa border-faixa-ameixa text-rotulo" },
   { value: "CASO", activeClass: "bg-tx border-tx text-sf" },
-  { value: "ASSESSORIA", activeClass: "bg-blue-600 border-blue-600 text-white" },
-  { value: "ATENDIMENTO", activeClass: "bg-emerald-600 border-emerald-600 text-white" },
-  { value: "FINANCEIRO", activeClass: "bg-amber-600 border-amber-600 text-white" },
-  { value: "OUTROS", activeClass: "bg-slate-600 border-slate-600 text-white" },
+  { value: "ASSESSORIA", activeClass: "bg-fonte-pje border-fonte-pje text-white" },
+  { value: "ATENDIMENTO", activeClass: "bg-concluido border-concluido text-rotulo" },
+  { value: "FINANCEIRO", activeClass: "bg-aviso border-aviso text-rotulo" },
+  { value: "OUTROS", activeClass: "bg-tx-2 border-tx-2 text-sf" },
 ];
 
 type EntityOption = { id: string; name: string };

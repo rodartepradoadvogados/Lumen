@@ -27,7 +27,7 @@ export default function RedefinirSenhaForm({ token }: { token: string }) {
   if (success) {
     return (
       <div className="text-center">
-        <p className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 px-3 py-2">
+        <p className="text-sm text-concluido dark:text-concluido bg-concluido-bg dark:bg-concluido/15 border border-concluido dark:border-concluido/20 px-3 py-2">
           Senha redefinida com sucesso.
         </p>
         <a href="/" className="inline-block mt-4 text-sm font-semibold text-tx underline">

@@ -20,10 +20,15 @@ export default function NewEntityMenu() {
     <div className="relative" ref={ref}>
       {/* "Novo" é bordô mais claro que o Peticionar (components/PeticionarButton.tsx, a ação
           mais forte da tela) — pedido explícito para diferenciar as duas sem virar contorno
-          neutro (ajuste de tema, agosto/2026: --acao-light em vez do outline anterior). */}
+          neutro (ajuste de tema, agosto/2026: --acao-light em vez do outline anterior). Revisto
+            em 2026-09-16 — ver o comentário abaixo. */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="hidden sm:flex items-center gap-1.5 h-8 rounded-md bg-acao-light hover:bg-acao text-acao-tx text-sm font-medium px-3.5 transition-colors"
+        // "+ Novo" e "Peticionar" são vizinhos e eram bordô cheio os dois, indistinguíveis. Agora
+        // o Peticionar fica preenchido e este fica em bordô TRANSLÚCIDO — campo claro de bordô com
+        // texto e contorno em bordô (pedido do dono, 2026-09-16). A diferença passa a ser de
+        // TRATAMENTO, não de matiz: só a ação mais forte da barra é preenchida.
+        className="hidden sm:flex items-center gap-1.5 h-8 rounded-md bg-acao-suave border border-acao/40 hover:bg-acao hover:text-acao-tx text-acao text-sm font-medium px-3.5 transition-colors"
       >
         <Plus size={16} /> Novo
       </button>

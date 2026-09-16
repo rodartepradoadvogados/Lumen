@@ -39,7 +39,7 @@ export default function CopyButton({
         "flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
       }
     >
-      {copied ? <Check size={12} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={12} />}
+      {copied ? <Check size={12} className="text-concluido dark:text-concluido" /> : <Copy size={12} />}
       {showLabel && <span>{copied ? "Copiado!" : label}</span>}
     </button>
   );

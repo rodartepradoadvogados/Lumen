@@ -344,7 +344,7 @@ export default function EditReceivableModal({
                   </div>
                   <div>
                     <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Acréscimo</span>
-                    <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">+{formatCurrency(surchargeNum)}</span>
+                    <span className="text-sm font-semibold tabular-nums text-concluido dark:text-concluido">+{formatCurrency(surchargeNum)}</span>
                   </div>
                   <div>
                     <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Líquido</span>

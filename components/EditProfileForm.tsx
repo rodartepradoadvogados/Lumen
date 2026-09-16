@@ -181,7 +181,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
       </div>
 
       {error && <p className="text-etiqueta text-urgente bg-urgente-bg border border-urgente/20 rounded-md px-2.5 py-1.5">{error}</p>}
-      {success && <p className="text-etiqueta text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-md px-2.5 py-1.5">Perfil atualizado com sucesso.</p>}
+      {success && <p className="text-etiqueta text-concluido dark:text-concluido bg-concluido-bg dark:bg-concluido/15 border border-concluido dark:border-concluido/20 rounded-md px-2.5 py-1.5">Perfil atualizado com sucesso.</p>}
 
       <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50">
         {pending ? "Salvando..." : "Salvar alterações"}

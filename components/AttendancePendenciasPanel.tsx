@@ -134,7 +134,7 @@ export default function AttendancePendenciasPanel({
                     onClick={() => handleComplete(p.id)}
                     disabled={pending}
                     title="Concluir"
-                    className="p-1.5 text-tx-3 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md"
+                    className="p-1.5 text-tx-3 hover:text-concluido dark:hover:text-concluido hover:bg-concluido/10 rounded-md"
                   >
                     <Check size={14} />
                   </button>

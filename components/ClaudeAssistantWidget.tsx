@@ -124,7 +124,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
                     "max-w-[85%] px-3 py-2 text-sm whitespace-pre-wrap break-words",
                     m.role === "user" && "bg-acao text-acao-tx",
                     m.role === "assistant" && "bg-sf border border-regua text-tx shadow-card",
-                    m.role === "error" && "bg-red-50 border border-red-200 text-red-700",
+                    m.role === "error" && "bg-urgente-bg border border-urgente text-urgente",
                   )}
                 >
                   {m.text}

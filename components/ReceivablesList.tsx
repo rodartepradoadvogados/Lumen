@@ -136,7 +136,7 @@ export default function ReceivablesList({
                     checked={selected.has(r.id)}
                     onChange={() => toggle(r.id)}
                     data-tip="Selecionar para baixa em bloco"
-                    className="h-4 w-4 rounded border-regua-forte text-emerald-600 focus:ring-emerald-500"
+                    className="h-4 w-4 rounded border-regua-forte text-concluido focus:ring-concluido"
                   />
                 ) : (
                   <span className="inline-block w-4" />

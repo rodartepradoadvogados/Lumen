@@ -8,10 +8,10 @@ import { attendanceStatusLabels } from "@/lib/atendimentoStatus";
 const options = ["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"];
 
 const colors: Record<string, string> = {
-  NOVO: "bg-amber-100 text-amber-700 border-amber-200",
-  EM_TRIAGEM: "bg-blue-100 text-blue-700 border-blue-200",
-  CONVERTIDO: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  ARQUIVADO: "bg-slate-100 text-slate-600 border-slate-200",
+  NOVO: "bg-aviso-bg text-aviso border-aviso",
+  EM_TRIAGEM: "bg-sf-apoio text-fonte-pje border-fonte-pje",
+  CONVERTIDO: "bg-concluido-bg text-concluido border-concluido",
+  ARQUIVADO: "bg-sf-apoio text-tx-2 border-regua",
 };
 
 export default function AttendanceStatusSelect({ attendanceId, status }: { attendanceId: string; status: string }) {
