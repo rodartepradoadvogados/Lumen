@@ -723,7 +723,7 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
         data-tip={done ? completedLabel(t) || undefined : undefined}
         className={clsx(
           "mt-0.5 h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors",
-          done ? "bg-concluido border-concluido text-white" : "border-regua-forte text-transparent hover:border-concluido",
+          done ? "bg-concluido border-concluido text-rotulo" : "border-regua-forte text-transparent hover:border-concluido",
           justCompleted && "animate-check-pop"
         )}
       >

@@ -552,7 +552,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                 disabled={pending}
                 onClick={popup.onConfirmar}
                 className={`w-full text-sm font-semibold py-2 rounded-md transition-colors disabled:opacity-50 ${
-                  popup.perigoso ? "bg-vinho hover:opacity-90 text-white" : "bg-acao hover:bg-acao-hover text-acao-tx"
+                  popup.perigoso ? "bg-vinho hover:opacity-90 text-rotulo" : "bg-acao hover:bg-acao-hover text-acao-tx"
                 }`}
               >
                 {popup.confirmarLabel}

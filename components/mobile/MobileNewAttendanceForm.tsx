@@ -259,7 +259,7 @@ export default function MobileNewAttendanceForm({
               onClick={toggleDictation}
               aria-label={listening ? "Parar ditado" : "Ditar assunto por voz"}
               className={`shrink-0 w-11 flex items-center justify-center border transition-colors ${
-                listening ? "bg-urgente text-white border-urgente animate-pulse" : "border-regua text-tx-2 hover:bg-sf-apoio"
+                listening ? "bg-urgente text-rotulo border-urgente animate-pulse" : "border-regua text-tx-2 hover:bg-sf-apoio"
               }`}
             >
               <Mic size={17} />

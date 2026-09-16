@@ -13,7 +13,7 @@ export default function ActingOfficeBanner({ officeName }: { officeName: string 
     // Faixa de aviso persistente (vinho — ação/estado sensível, não cor de dado) — `bg-atencao`
     // troca de tom sozinho entre Manhã e Noite. A linha do Vidro Fosco não introduz cor nova
     // nenhuma — só opacidade sobre o mesmo texto branco.
-    <div className="flex flex-col items-center gap-0.5 bg-atencao text-white text-sm font-semibold px-4 py-2 shrink-0">
+    <div className="flex flex-col items-center gap-0.5 bg-atencao text-rotulo text-sm font-semibold px-4 py-2 shrink-0">
       <div className="flex items-center justify-center gap-2.5 flex-wrap">
         <Building2 size={15} />
         Você está atuando como <strong>{officeName}</strong>

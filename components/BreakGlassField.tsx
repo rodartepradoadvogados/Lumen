@@ -102,7 +102,7 @@ export default function BreakGlassField({
           type="button"
           disabled={pending || reason.trim().length < REASON_MIN_LENGTH}
           onClick={confirmar}
-          className="text-xs font-semibold text-white bg-atencao hover:opacity-90 disabled:opacity-40 px-3.5 py-2"
+          className="text-xs font-semibold text-rotulo bg-atencao hover:opacity-90 disabled:opacity-40 px-3.5 py-2"
         >
           {pending ? "Revelando…" : "Revelar dado real"}
         </button>

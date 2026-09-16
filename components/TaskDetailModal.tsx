@@ -288,7 +288,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
               onClick={handleToggleDone}
               disabled={saving}
               data-tip={task.status === "CONCLUIDO" && task.completedBy && task.completedAt ? completedLabel(task.completedBy.name, task.completedAt) : undefined}
-              className="flex items-center gap-1.5 bg-concluido hover:opacity-90 text-white text-sm font-semibold px-3.5 py-2.5 disabled:opacity-50 transition-opacity"
+              className="flex items-center gap-1.5 bg-concluido hover:opacity-90 text-rotulo text-sm font-semibold px-3.5 py-2.5 disabled:opacity-50 transition-opacity"
             >
               <Check size={14} /> {task.status === "CONCLUIDO" ? "Reabrir" : "Marcar como concluída"}
             </button>

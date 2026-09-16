@@ -29,6 +29,10 @@
         "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
       },
       {
+        "selector": "Literal[value=/bg-(urgente|aviso|concluido|vinho|atencao|risco-|faixa-)[^\"]*text-(white|acao-tx)\\b/]",
+        "message": "Rótulo claro cravado sobre fundo de risco ou de faixa. Essas cores são ESCURAS no tema claro e CLARAS no tema escuro — texto branco fixo some. Use text-rotulo, que troca com o tema. (text-acao-tx continua certo sobre bg-acao, que é bordô nos dois temas.)"
+      },
+      {
         "selector": "TemplateElement[value.raw=/text-\\[[0-9.]/]",
         "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
       }

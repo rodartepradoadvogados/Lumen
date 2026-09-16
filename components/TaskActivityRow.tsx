@@ -71,7 +71,7 @@ export default function TaskActivityRow({
         }}
         className={clsx(
           "h-5 w-5 shrink-0 rounded-full border flex items-center justify-center disabled:opacity-50",
-          done ? "bg-concluido border-concluido text-white" : "border-regua-forte hover:border-concluido",
+          done ? "bg-concluido border-concluido text-rotulo" : "border-regua-forte hover:border-concluido",
           justCompleted && "animate-check-pop"
         )}
       >

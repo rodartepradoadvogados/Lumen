@@ -20,7 +20,7 @@ import PendingListModal from "@/components/PendingListModal";
 import SettleButton from "@/components/SettleButton";
 import OverdueTaskRow from "@/components/OverdueTaskRow";
 import DayQueueRow, { type DayQueueItem } from "@/components/DayQueueRow";
-import GrainOverlay from "@/components/GrainOverlay";
+import Regua from "@/components/Regua";
 
 export const dynamic = "force-dynamic";
 
@@ -34,12 +34,6 @@ function endOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
   return x;
-}
-
-function greeting(hour: number) {
-  if (hour < 12) return "Bom dia";
-  if (hour < 18) return "Boa tarde";
-  return "Boa noite";
 }
 
 export default async function DashboardPage() {
@@ -125,7 +119,12 @@ export default async function DashboardPage() {
   const totalReceivableSoon = receivablesSoon.reduce((s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((a, x) => a + x.amount, 0)), 0);
   const totalPayableSoon = payablesSoon.reduce((s, p) => s + saldoEmAberto(p.amount, p.discount, p.surcharge, p.payments.reduce((a, x) => a + x.amount, 0)), 0);
 
-  const myOverdueTasks = overdueTasksList.filter((t) => t.responsibleId === viewer.id);
+  // A home mede o ESCRITÓRIO, não o usuário logado. Este era o defeito nº 1 do diagnóstico: o
+  // cartão "Minhas atrasadas" filtrava por `responsibleId === viewer.id` enquanto
+  // `overdueTasksList` — que já traz o escritório inteiro — era buscado e descartado. O usuário
+  // prioritário declarado é o sócio dono, e a pergunta que ele faz ao abrir o sistema é "o que
+  // corre risco AGORA?". Quantas são as MINHAS continua visível, como segunda linha.
+  const minhasAtrasadas = overdueTasksList.filter((t) => t.responsibleId === viewer.id).length;
 
   // "O dia": as mesmas queries de upcomingTasks/overdueTasksList, reordenadas por severidade em
   // vez de só dueDate asc (documento 03) — prazo vencido primeiro, depois outros tipos vencidos,
@@ -167,9 +166,28 @@ export default async function DashboardPage() {
     caseLabel: t.case ? t.case.processNumber || t.case.title : null,
   }));
 
-  const prazosCount = dayQueueSource.filter((t) => t.type === "PRAZO").length;
-  const audienciasCount = dayQueueSource.filter((t) => t.type === "AUDIENCIA").length;
-  const dayQueueVisible = dayQueueItems.slice(0, 6);
+  // "O dia" somava prazo vencido e prazo futuro no MESMO número, então a tela não dizia quantos
+  // estavam vencidos — outro achado do diagnóstico. Agora as duas contagens são separadas.
+  const prazosVencidos = overdueTasksList.filter((t) => t.type === "PRAZO").length;
+  const prazosSemana = upcomingTasks.filter((t) => t.type === "PRAZO").length;
+  const audienciasSemana = upcomingTasks.filter((t) => t.type === "AUDIENCIA").length;
+  const compromissosHoje = upcomingTasks.filter((t) => t.dueDate <= fimHoje).length;
+
+  // A TARJA: o número que a tela diz antes de qualquer navegação.
+  //
+  // Conta ITENS de risco, e só de dois tipos: compromisso vencido ou de hoje, e conta vencida.
+  // Publicação não triada NÃO entra — ela já tem contador próprio no rail, e somá-la aqui seria
+  // repetir exatamente o erro que o dono mandou corrigir no badge da Agenda (o mesmo item
+  // contado duas vezes, em dois lugares).
+  const contasVencidas = [...receivablesSoon, ...payablesSoon].filter((c) => c.dueDate < hoje).length;
+  const emRiscoAgora = overdueTasksList.length + compromissosHoje + contasVencidas;
+  const composicao = [
+    overdueTasksList.length > 0 ? `${overdueTasksList.length} vencido${overdueTasksList.length === 1 ? "" : "s"}` : null,
+    compromissosHoje > 0 ? `${compromissosHoje} para hoje` : null,
+    contasVencidas > 0 ? `${contasVencidas} conta${contasVencidas === 1 ? "" : "s"} vencida${contasVencidas === 1 ? "" : "s"}` : null,
+  ].filter(Boolean).join(" · ");
+
+  const dayQueueVisible = dayQueueItems.slice(0, 8);
   const dayQueueRestCount = dayQueueItems.length - dayQueueVisible.length;
 
   // Publicações não lidas: mesmo agrupamento por processo+dia da tela de Publicações (uma
@@ -183,32 +201,34 @@ export default async function DashboardPage() {
   const unreadPreview = unreadGroups.slice(0, 3);
 
   return (
-    <div className="relative">
-      <GrainOverlay />
-      <div className="relative z-10 tela">
-      {/* Halo sutil do bordô atrás da saudação — mesmo tratamento da Início mobile (gradiente de
-          fundo, não sombra: DESIGN-SYSTEM.md §13). */}
-      <div className="relative mb-6">
-        <div
-          className="absolute -top-8 -left-8 h-40 w-[340px] pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at top left, var(--halo-marca), transparent 70%)" }}
-        />
-        <div className="relative flex items-start justify-between gap-4 flex-wrap">
-          <h1 className="text-autuacao font-extrabold text-tx leading-tight">
-            {greeting(now.getHours())}, {viewer.name.split(" ")[0]}
-          </h1>
-          <p className="text-corpo text-tx-2 capitalize mt-1">
-            {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
-          </p>
-        </div>
+    <div className="tela">
+      {/* A TARJA — a primeira coisa que a tela diz, e ela fala do ESCRITÓRIO.
+          Antes este espaço era uma saudação com o nome do usuário, gastando o maior tipo da
+          página, o único gradiente e a única textura do produto. O contrato de direção "Guias"
+          é explícito: o tipo é matéria, o número É o bloco, e existe um por tela. */}
+      <div className="bg-urgente text-rotulo px-5 py-4 flex items-baseline gap-4 flex-wrap">
+        <span className="font-display text-tarja leading-none font-bold tabular-nums">{emRiscoAgora}</span>
+        <span className="text-destaque font-semibold leading-tight">
+          em risco agora,<br />no escritório inteiro
+        </span>
+        <span className="ml-auto text-etiqueta font-semibold uppercase tracking-[.09em] opacity-90 self-center">
+          {composicao || "nada vencido"}
+        </span>
       </div>
+      <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-[.09em] mt-2 mb-5 capitalize">
+        {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
         {/* Coluna larga */}
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader
-              title={`O dia — ${prazosCount} prazo${prazosCount === 1 ? "" : "s"}, ${audienciasCount} audiência${audienciasCount === 1 ? "" : "s"}`}
+              title={
+                prazosVencidos > 0
+                  ? `Por severidade — ${prazosVencidos} prazo${prazosVencidos === 1 ? "" : "s"} vencido${prazosVencidos === 1 ? "" : "s"}`
+                  : `Por severidade — nenhum prazo vencido`
+              }
               action={
                 <Link href="/agenda" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
                   Ver agenda <ArrowRight size={13} strokeWidth={1.5} />
@@ -263,18 +283,60 @@ export default async function DashboardPage() {
 
         {/* Coluna estreita */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+          {/* A semana em régua graduada, não em rosca de pizza: a graduação diz quanto falta e o
+              número diz quanto é (contrato de direção "Guias"). A cor é sempre seção ou risco. */}
+          <Card>
+            <CardHeader title="A semana" />
+            <div className="px-5 py-4 grid gap-4">
+              <Regua
+                valor={String(prazosSemana)}
+                rotulo={`prazo${prazosSemana === 1 ? "" : "s"} até ${soon.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`}
+                nota={prazosVencidos > 0 ? `${prazosVencidos} vencido${prazosVencidos === 1 ? "" : "s"}` : undefined}
+                preenchido={prazosSemana / Math.max(1, prazosSemana + prazosVencidos)}
+                cor="var(--faixa-anil)"
+                href="/agenda"
+              />
+              <Regua
+                valor={String(audienciasSemana)}
+                rotulo={`audiência${audienciasSemana === 1 ? "" : "s"} na semana`}
+                preenchido={audienciasSemana / Math.max(1, upcomingTasks.length)}
+                cor="var(--faixa-ameixa)"
+                href="/agenda"
+              />
+              <Regua
+                valor={String(unreadGroups.length)}
+                rotulo="publicações na fila"
+                nota="triagem"
+                preenchido={unreadGroups.length > 0 ? Math.min(1, unreadGroups.length / 50) : 0}
+                cor="var(--faixa-oliva)"
+                href="/publicacoes"
+              />
+              {hasFinanceAccess && (
+                <Regua
+                  valor={formatCurrency(totalReceivableSoon)}
+                  rotulo="a receber em 7 dias"
+                  nota={contasVencidas > 0 ? `${contasVencidas} vencida${contasVencidas === 1 ? "" : "s"}` : "em dia"}
+                  preenchido={totalReceivableSoon > 0 ? totalReceivableSoon / Math.max(totalReceivableSoon, totalPayableSoon) : 0}
+                  cor={contasVencidas > 0 ? "var(--risco-vencido)" : "var(--risco-em-dia)"}
+                  href="/financeiro"
+                />
+              )}
+            </div>
+          </Card>
+
           <PendingListModal
-            label="Minhas atrasadas"
-            value={String(myOverdueTasks.length)}
+            label="Atrasadas do escritório"
+            value={String(overdueTasksList.length)}
+            nota={minhasAtrasadas > 0 ? `${minhasAtrasadas} ${minhasAtrasadas === 1 ? "é sua" : "são suas"}` : "nenhuma é sua"}
             accentClassName="border-t-urgente"
             valueClassName="font-display text-autuacao leading-none font-extrabold text-urgente"
-            title="Minhas Atrasadas"
+            title="Atrasadas do escritório"
             icon={<Clock size={15} strokeWidth={1.5} />}
             iconClassName="bg-urgente-bg text-urgente"
           >
             <div className="divide-y divide-regua">
-              {myOverdueTasks.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
-              {myOverdueTasks.map((t) => (
+              {overdueTasksList.length === 0 && <EmptyState title="Nenhum prazo atrasado no escritório" />}
+              {overdueTasksList.map((t) => (
                 <OverdueTaskRow
                   key={t.id}
                   task={{
@@ -399,7 +461,6 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );
