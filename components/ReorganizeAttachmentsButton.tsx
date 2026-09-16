@@ -61,6 +61,19 @@ export default function ReorganizeAttachmentsButton() {
 
   const itens: ReorgPlanItem[] = useMemo(() => (plano && !("error" in plano) ? plano.itens : []), [plano]);
 
+  // Agrupa por registro, preservando a ordem em que o plano veio. A chave já é única por
+  // processo/atendimento/licitação/demanda/empresa.
+  type Grupo = { contexto: ReorgPlanItem["contexto"]; itens: ReorgPlanItem[] };
+  const grupos: Grupo[] = useMemo(() => {
+    const mapa = new Map<string, Grupo>();
+    for (const item of itens) {
+      const atual = mapa.get(item.contexto.chave);
+      if (atual) atual.itens.push(item);
+      else mapa.set(item.contexto.chave, { contexto: item.contexto, itens: [item] });
+    }
+    return Array.from(mapa.values());
+  }, [itens]);
+
   return (
     <>
       <button
@@ -97,41 +110,71 @@ export default function ReorganizeAttachmentsButton() {
                   {itens.length === 0 ? (
                     <p className="text-sm text-tx-2">Nenhum anexo ou documento de Assessoria fora do lugar — tudo certo.</p>
                   ) : (
-                    <div className="border border-regua overflow-x-auto scrollbar-thin">
-                      <table className="w-full text-xs">
-                        <thead className="bg-sf-apoio">
-                          <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2">
-                            {!resultado && <th className="px-3 py-2 font-semibold w-10"></th>}
-                            <th className="px-3 py-2 font-semibold w-[10%]">Tipo</th>
-                            <th className="px-3 py-2 font-semibold w-[30%]">Arquivo</th>
-                            <th className="px-3 py-2 font-semibold">Destino</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-regua">
-                          {itens.map((item) => {
-                            const key = itemKey(item);
-                            return (
-                              <tr key={key}>
-                                {!resultado && (
-                                  <td className="px-3 py-2.5 align-top">
+                    <div className="space-y-4">
+                      {/* Uma SEÇÃO por registro, com cabeçalho que identifica do jeito que um
+                          advogado identifica: tipo, título, número, tribunal/órgão e cliente.
+                          Antes era uma tabela plana com uma coluna "Destino" que trazia só o
+                          título — numa lista com dezenas de linhas, todo texto ficava parecido e
+                          não dava para saber de que processo se tratava. */}
+                      {grupos.map(({ contexto, itens: doGrupo }) => (
+                        <div key={contexto.chave} className="border border-regua">
+                          <div className="bg-sf-apoio border-t-2 border-faixa-ardosia px-3 py-2.5">
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <span className="text-etiqueta font-semibold uppercase tracking-[.08em] text-tx-2 border border-regua-forte px-1.5 py-0.5">
+                                {contexto.tipo}
+                              </span>
+                              <span className="text-corpo font-semibold text-tx">{contexto.titulo}</span>
+                              <span className="ml-auto text-etiqueta font-semibold text-tx-2 tabular-nums">
+                                {doGrupo.length} {doGrupo.length === 1 ? "documento" : "documentos"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mt-1.5 text-etiqueta text-tx-2">
+                              {contexto.numero && (
+                                <span className="tabular-nums">
+                                  <span className="text-tx-3">nº</span> {contexto.numero}
+                                </span>
+                              )}
+                              {contexto.tribunal && (
+                                <span>
+                                  <span className="text-tx-3">órgão</span> {contexto.tribunal}
+                                </span>
+                              )}
+                              {contexto.cliente && (
+                                <span>
+                                  <span className="text-tx-3">cliente</span> {contexto.cliente}
+                                </span>
+                              )}
+                              <span className="ml-auto">
+                                <span className="text-tx-3">vai para</span> {contexto.pasta}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="divide-y divide-regua">
+                            {doGrupo.map((item) => {
+                              const key = itemKey(item);
+                              return (
+                                <label
+                                  key={key}
+                                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-sf-apoio"
+                                >
+                                  {!resultado && (
                                     <input
                                       type="checkbox"
                                       checked={selecionados.has(key)}
                                       onChange={() => toggle(key)}
-                                      className="h-4 w-4 accent-marca"
+                                      className="h-4 w-4 accent-marca shrink-0"
                                     />
-                                  </td>
-                                )}
-                                <td className="px-3 py-2.5 align-top text-tx-2">
-                                  {item.kind === "ATTACHMENT" ? "Anexo" : "Doc. Assessoria"}
-                                </td>
-                                <td className="px-3 py-2.5 align-top font-medium text-tx">{item.name}</td>
-                                <td className="px-3 py-2.5 align-top text-tx-2">{item.destino}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                  )}
+                                  <span className="text-corpo text-tx min-w-0 truncate">{item.name}</span>
+                                  <span className="ml-auto text-etiqueta text-tx-3 shrink-0">
+                                    {item.kind === "ATTACHMENT" ? "Anexo" : "Doc. Assessoria"}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 

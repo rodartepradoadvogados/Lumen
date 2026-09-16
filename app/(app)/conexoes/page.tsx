@@ -263,8 +263,33 @@ export default async function ConexoesPage({
         <div className="flex flex-col gap-2 items-start">
           <MigrarPastaMaeButton />
           <MigrarPastasLegadasButton />
-          <ReorganizeAttachmentsButton />
-          <ReconciliarAnexosDriveGlobalButton />
+          {/* Os dois parecem a mesma coisa e NÃO são — a confusão foi apontada pelo dono em
+              2026-09-16. Uma frase abaixo de cada um diz o que cada botão resolve, porque o
+              nome sozinho não distingue:
+
+              REORGANIZAR olha o registro do Lúmen e conserta arquivo que está na PASTA ERRADA,
+              movendo-o. É o caso de anexo antigo, anterior à estrutura de subpastas por tipo de
+              documento, e de qualquer coisa que ficou para trás numa migração de pastas.
+
+              RECONCILIAR olha o que está FISICAMENTE na pasta e compara com o que o Lúmen sabe:
+              arquivo novo que ninguém cadastrou, arquivo que sumiu, e substituição (nome parecido
+              ≥60%). Não move nada — pergunta o que fazer.
+
+              Nenhum dos dois faz o trabalho do outro: reconciliar não conserta arquivo fora de
+              lugar, e reorganizar não enxerga arquivo que apareceu ou sumiu. */}
+          <div className="flex flex-col gap-1 items-start">
+            <ReorganizeAttachmentsButton />
+            <p className="text-etiqueta text-tx-2 max-w-md">
+              Move arquivo que está na pasta errada, segundo o que o Lúmen tem cadastrado.
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 items-start">
+            <ReconciliarAnexosDriveGlobalButton />
+            <p className="text-etiqueta text-tx-2 max-w-md">
+              Compara o que está de fato na pasta com o que o Lúmen sabe: arquivo novo, arquivo que
+              sumiu, documento substituído. Não move nada — pergunta o que fazer.
+            </p>
+          </div>
           <RenameCasesToConventionButton />
           <Link href="/configuracoes/relatorio-pastas" className="text-xs font-semibold text-acao hover:underline">
             Ver relatório de pastas →

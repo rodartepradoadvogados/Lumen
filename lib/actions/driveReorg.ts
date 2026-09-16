@@ -18,13 +18,32 @@ import { getDocumentTypeLabel } from "@/lib/documentTypes";
 
 export type ReorgResult = { moved: number; skipped: number; errors: string[] };
 
+// A QUEM o documento pertence. Era uma frase só — "Título → Categoria" — e o dono apontou o
+// efeito em 2026-09-16: numa lista com dezenas de linhas, todo texto fica parecido e não dá para
+// saber de que processo se trata. Agora é estrutura, e a tela agrupa por ela, com um cabeçalho
+// que identifica o registro do jeito que um advogado identifica: nome, número, tribunal, cliente.
+export type ReorgContexto = {
+  // Chave de agrupamento — uma seção da tela por valor distinto.
+  chave: string;
+  // "Processo judicial", "Caso", "Atendimento", "Licitação", "Demanda (parecer)", "Assessoria"
+  tipo: string;
+  titulo: string;
+  numero?: string;
+  tribunal?: string;
+  cliente?: string;
+  // Empresa da Assessoria, quando o registro pertence a uma.
+  empresa?: string;
+  // Caminho de pasta DENTRO do registro (ex.: "Petições"). O que era o resto da frase.
+  pasta: string;
+};
+
 export type ReorgPlanItem = {
   kind: "ATTACHMENT" | "ASSESSORIA_DOCUMENTO";
   id: string;
   name: string;
   fileId: string;
   targetFolderId: string;
-  destino: string; // rótulo legível — "Título do processo/atendimento/empresa → Categoria"
+  contexto: ReorgContexto;
 };
 
 export type ReorgPlan = { itens: ReorgPlanItem[]; naoMovivel: number } | { error: string };
@@ -62,6 +81,15 @@ async function mapComConcorrencia<T, R>(items: T[], limite: number, fn: (item: T
 }
 const CONCORRENCIA_DRIVE = 6;
 
+// A língua do advogado, não a do banco. Mesmo vocabulário de NATUREZA_LABELS em lib/natureza.ts.
+const NATUREZA_CONTEXTO: Record<string, string> = {
+  JUDICIAL: "Processo judicial",
+  ADMINISTRATIVO: "Processo administrativo",
+  EXTRAJUDICIAL: "Caso",
+  ATENDIMENTO: "Atendimento",
+  CONSULTIVO: "Caso consultivo",
+};
+
 async function resolverDestinoAttachment(
   att: {
     id: string;
@@ -70,14 +98,29 @@ async function resolverDestinoAttachment(
     driveUrl: string;
     storageFileId: string | null;
     taskId: string | null;
-    case: { id: string; title: string } | null;
-    attendance: { id: string; subject: string } | null;
-    licitacao: { id: string; nome: string | null; objeto: string; assessoria: { client: { name: string } } } | null;
+    case: {
+      id: string;
+      title: string;
+      type: string;
+      processNumber: string | null;
+      court: string | null;
+      tribunalSigla: string | null;
+      client: { name: string } | null;
+    } | null;
+    attendance: { id: string; subject: string; clientName: string } | null;
+    licitacao: {
+      id: string;
+      nome: string | null;
+      objeto: string;
+      modalidade: string | null;
+      orgao: string;
+      assessoria: { client: { name: string } };
+    } | null;
     task: { id: string; title: string } | null;
   },
   officeId: string,
   cache: FolderCache
-): Promise<{ fileId: string; targetFolderId: string; destino: string } | null> {
+): Promise<{ fileId: string; targetFolderId: string; contexto: ReorgContexto } | null> {
   // Correção de 05/09/2026 (docs/auditoria-pastas-drive-2026-09.md, achado P0): Attachment de
   // Licitação usa storageFileId — extractDriveFileId (regex de URL do Google) nunca funcionou
   // para quem já enviou pelo Drive novo (URLs não têm mais o id no formato antigo) nem para
@@ -88,13 +131,35 @@ async function resolverDestinoAttachment(
     const containerFolderId = await cachedFolder(cache, `case:${att.case.id}`, () => getOrCreateCaseFolder(att.case!.id, att.case!.title, officeId));
     const categoryLabel = getDocumentTypeLabel(att.docType);
     const targetFolderId = await cachedFolder(cache, `case:${att.case.id}:cat:${categoryLabel}`, () => getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId));
-    return { fileId, targetFolderId, destino: `${att.case.title} → ${categoryLabel}` };
+    return {
+      fileId,
+      targetFolderId,
+      contexto: {
+        chave: `case:${att.case.id}`,
+        tipo: NATUREZA_CONTEXTO[att.case.type] ?? "Processo",
+        titulo: att.case.title,
+        numero: att.case.processNumber ?? undefined,
+        tribunal: att.case.tribunalSigla || att.case.court || undefined,
+        cliente: att.case.client?.name ?? undefined,
+        pasta: categoryLabel,
+      },
+    };
   }
   if (att.attendance) {
     const containerFolderId = await cachedFolder(cache, `attendance:${att.attendance.id}`, () => getOrCreateAttendanceFolder(att.attendance!.id, att.attendance!.subject, officeId));
     const categoryLabel = getDocumentTypeLabel(att.docType);
     const targetFolderId = await cachedFolder(cache, `attendance:${att.attendance.id}:cat:${categoryLabel}`, () => getOrCreateCategoryFolder(containerFolderId, categoryLabel, officeId));
-    return { fileId, targetFolderId, destino: `${att.attendance.subject} → ${categoryLabel}` };
+    return {
+      fileId,
+      targetFolderId,
+      contexto: {
+        chave: `attendance:${att.attendance.id}`,
+        tipo: "Atendimento",
+        titulo: att.attendance.subject,
+        cliente: att.attendance.clientName,
+        pasta: categoryLabel,
+      },
+    };
   }
   if (att.licitacao) {
     const companyName = att.licitacao.assessoria.client.name;
@@ -103,10 +168,36 @@ async function resolverDestinoAttachment(
       const targetFolderId = await cachedFolder(cache, `licitacao:${att.licitacao.id}:task:${att.task.id}`, () =>
         getOrCreateLicitacaoDemandaFolder(att.task!.id, att.licitacao!.id, companyName, licitacaoNome, att.task!.title, officeId)
       );
-      return { fileId, targetFolderId, destino: `${companyName} → Licitações → ${licitacaoNome} → ${att.task.title}` };
+      return {
+        fileId,
+        targetFolderId,
+        contexto: {
+          chave: `licitacao:${att.licitacao.id}:task:${att.task.id}`,
+          tipo: "Demanda de licitação",
+          titulo: att.task.title,
+          numero: att.licitacao.modalidade ?? undefined,
+          tribunal: att.licitacao.orgao,
+          empresa: companyName,
+          cliente: companyName,
+          pasta: `Licitações → ${licitacaoNome}`,
+        },
+      };
     }
     const targetFolderId = await cachedFolder(cache, `licitacao:${att.licitacao.id}`, () => getOrCreateLicitacaoFolder(att.licitacao!.id, companyName, licitacaoNome, officeId));
-    return { fileId, targetFolderId, destino: `${companyName} → Licitações → ${licitacaoNome}` };
+    return {
+      fileId,
+      targetFolderId,
+      contexto: {
+        chave: `licitacao:${att.licitacao.id}`,
+        tipo: "Licitação",
+        titulo: licitacaoNome,
+        numero: att.licitacao.modalidade ?? undefined,
+        tribunal: att.licitacao.orgao,
+        empresa: companyName,
+        cliente: companyName,
+        pasta: "Licitações",
+      },
+    };
   }
   return null;
 }
@@ -124,13 +215,24 @@ async function resolverDestinoAssessoriaDocumento(
   },
   officeId: string,
   cache: FolderCache
-): Promise<{ fileId: string; targetFolderId: string; destino: string } | null> {
+): Promise<{ fileId: string; targetFolderId: string; contexto: ReorgContexto } | null> {
   const fileId = doc.storageFileId || extractDriveFileId(doc.driveUrl);
   if (!fileId) return null;
   const companyName = doc.assessoria.client.name;
   if (doc.parecer) {
     const targetFolderId = await cachedFolder(cache, `parecer:${doc.parecerId}`, () => getOrCreateParecerFolder(doc.parecerId!, companyName, doc.parecer!.name, officeId));
-    return { fileId, targetFolderId, destino: `${companyName} → Pareceres → ${doc.parecer.name}` };
+    return {
+      fileId,
+      targetFolderId,
+      contexto: {
+        chave: `parecer:${doc.parecerId}`,
+        tipo: "Demanda (parecer)",
+        titulo: doc.parecer.name,
+        empresa: companyName,
+        cliente: companyName,
+        pasta: "Pareceres",
+      },
+    };
   }
   const companyFolderId = await cachedFolder(cache, `assessoria:${companyName}`, () => getOrCreateAssessoriaCompanyFolder(companyName, officeId));
   // OUTRO/ACAO_VINCULADA não têm subpasta própria por desenho (ver lib/googleDrive.ts,
@@ -139,7 +241,18 @@ async function resolverDestinoAssessoriaDocumento(
   const targetFolderId = subName
     ? await cachedFolder(cache, `assessoria:${companyName}:cat:${subName}`, () => getOrCreateCategoryFolder(companyFolderId, subName, officeId))
     : companyFolderId;
-  return { fileId, targetFolderId, destino: subName ? `${companyName} → ${subName}` : companyName };
+  return {
+    fileId,
+    targetFolderId,
+    contexto: {
+      chave: `assessoria:${companyName}`,
+      tipo: "Assessoria jurídica",
+      titulo: companyName,
+      empresa: companyName,
+      cliente: companyName,
+      pasta: subName ?? "Raiz da empresa",
+    },
+  };
 }
 
 // Monta o plano do que a reorganização mudaria — SEM mover nada. Cada item que já está na pasta
@@ -160,9 +273,9 @@ export async function planoReorganizacao(): Promise<ReorgPlan> {
     prisma.attachment.findMany({
       where: { officeId, OR: [{ caseId: { not: null } }, { attendanceId: { not: null } }, { licitacaoId: { not: null } }] },
       include: {
-        case: { select: { id: true, title: true } },
-        attendance: { select: { id: true, subject: true } },
-        licitacao: { select: { id: true, nome: true, objeto: true, assessoria: { select: { client: { select: { name: true } } } } } },
+        case: { select: { id: true, title: true, type: true, processNumber: true, court: true, tribunalSigla: true, client: { select: { name: true } } } },
+        attendance: { select: { id: true, subject: true, clientName: true } },
+        licitacao: { select: { id: true, nome: true, objeto: true, modalidade: true, orgao: true, assessoria: { select: { client: { select: { name: true } } } } } },
         task: { select: { id: true, title: true } },
       },
     }),
@@ -189,7 +302,7 @@ export async function planoReorganizacao(): Promise<ReorgPlan> {
         const info = await getDriveFileInfo(resolved.fileId, officeId);
         if (!info || info.parents.includes(resolved.targetFolderId)) return { item: null, naoMovivel: false }; // já correto, ou some do Drive (nada a mover)
       }
-      return { item: { kind: "ATTACHMENT", id: att.id, name: att.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, destino: resolved.destino }, naoMovivel: false };
+      return { item: { kind: "ATTACHMENT", id: att.id, name: att.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, contexto: resolved.contexto }, naoMovivel: false };
     }),
     mapComConcorrencia(documentos, CONCORRENCIA_DRIVE, async (doc): Promise<Resolvido> => {
       const resolved = await resolverDestinoAssessoriaDocumento(doc, officeId, cache);
@@ -198,7 +311,7 @@ export async function planoReorganizacao(): Promise<ReorgPlan> {
         const info = await getDriveFileInfo(resolved.fileId, officeId);
         if (!info || info.parents.includes(resolved.targetFolderId)) return { item: null, naoMovivel: false };
       }
-      return { item: { kind: "ASSESSORIA_DOCUMENTO", id: doc.id, name: doc.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, destino: resolved.destino }, naoMovivel: false };
+      return { item: { kind: "ASSESSORIA_DOCUMENTO", id: doc.id, name: doc.name, fileId: resolved.fileId, targetFolderId: resolved.targetFolderId, contexto: resolved.contexto }, naoMovivel: false };
     }),
   ]);
 
