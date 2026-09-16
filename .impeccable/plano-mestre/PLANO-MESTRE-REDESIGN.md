@@ -12,7 +12,7 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F5 — Site público e blog** (F4 concluída no essencial) |
-| **Próximo passo concreto** | **`bolder` na landing** — os dois diferenciais no primeiro viewport, com captura real do produto. É o achado mais grave do diagnóstico inteiro e o único P1 do `audit` que ainda não caiu |
+| **Próximo passo concreto** | `animate` no site — hoje existe **um** pixel animado na página inteira, e a queixa do dono sobre o site ser estático está integralmente não atendida. Depois `/cadastro` (a tela do dinheiro e a menos cuidada do repositório) e as quatro telas de sessão, que têm quatro linguagens de cartão |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 12 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -453,7 +453,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4 | Portal — Gestão | idem | ⬜ | — | — | configurações, relatórios, produtividade |
 | F4 | Portal — impressão e telas órfãs | `layout`, `adapt` | ⬜ | — | — | `/peticionar`, `/reuniao/[id]` |
 | F5a | Site — os P1 do `audit` | `harden`, `adapt`, `clarify`, `typeset`, `layout` | ✅ | #203 | 2026-09-16 | 9 rótulos de formulário, `h1` no login, alternador de tema público, caminho do blog para o produto, `.artigo` no lugar da classe inexistente, grade de preço |
-| F5 | Site — os dois diferenciais | `bolder`, `animate`, `delight` | ⬜ | — | — | o achado mais grave do diagnóstico |
+| F5b | Site — os dois diferenciais | `bolder` | ✅ | #204 | 2026-09-16 | A custódia no Drive ocupa a manchete e é **demonstrada**, não descrita; Assessoria vira o único pilar dos recursos; a copy que contradizia o posicionamento saiu |
+| F5 | Site — movimento e telas de sessão | `animate`, `delight`, `clarify` | ⬜ | — | — | um pixel animado na página inteira; `/cadastro` sem marca; 4 linguagens de cartão no funil |
 | F5 | Blog | `layout`, `typeset`, `clarify` | ⬜ | — | — | modo Read |
 | F6 | PWA | `adapt`, `layout`, `harden`, `onboard` | ⬜ | — | — | — |
 | F7 | Painel Mestre | `layout`, `distill`, `clarify` | ⬜ | — | — | — |
