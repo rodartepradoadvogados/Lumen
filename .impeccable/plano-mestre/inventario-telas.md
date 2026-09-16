@@ -227,3 +227,47 @@ Nav inferior: Publ. · Agenda · **+** (FAB) · Processo · R$ — e "Mais" como
 4. **12 modais `size="cheio"`** (80% da tela) que o usuário lê como tela própria, e **4 gavetas de
    980px** na Assessoria.
 5. **Telas de impressão** têm requisito visual isolado, sem `@media print` global.
+
+---
+
+## 7. Cobertura do diagnóstico F1 — 2026-09-16
+
+A coluna **Status** das seções 1-5 mede **redesenho** (⬜ → ✅ → ✅✅) e permanece ⬜: nada foi
+redesenhado ainda. Esta seção mede coisa diferente — **cobertura do diagnóstico**. As duas não se
+confundem.
+
+O `critique` não rodou 99 vezes: rodou **por arquétipo**, como o plano mestre determina. Cada rota
+está coberta pelo arquétipo dela, e os arquétipos de maior densidade foram citados nominalmente nos
+relatórios.
+
+| Arquétipo | Telas nominais analisadas | Rotas cobertas | Relatório |
+|---|---|---|---|
+| Landing de persuasão | `/` (leitura integral, 560 linhas) | 1 | `02` |
+| Telas de sessão / funil | `/login` · `/cadastro` · `/redefinir-senha` · `/escolher` | 4 | `02` |
+| Documento público | `/privacidade` | 1 | `02` |
+| Janela solo autenticada | `/peticionar` · `/reuniao/[id]` | 2 | `02` |
+| Índice editorial + artigo | `/blog` · `/blog/[slug]` | 2 | `02` |
+| Hub/home de risco | `/painel` | 1 | `01` |
+| Fila de trabalho | `/publicacoes` · `/alertas` | 2 (+ `/comunicados`, `/protocolos`) | `01` |
+| Ficha com abas | `/processos/[id]` · `/assessoria/[id]` | 2 (+ `/atendimento/[id]`, `/contatos/*/[id]`) | `01` |
+| Lista com filtro | `/processos` · `/agenda` · `/contatos/*` | ~12 | `01` |
+| Hub financeiro + sub-telas | `/financeiro` + `receitas`/`despesas`/`dre`/`fluxo-de-caixa`/`livro-caixa` | 6 | `01` |
+| Formulário/configuração | `/configuracoes` · `/perfil` · `/conexoes` · `/importar` | ~8 | `01` |
+| Relatório | `/relatorios` · `/relatorios/personalizado` · `/produtividade` | 3 | `01` |
+| Folha de impressão | 4 rotas `*/imprimir` | 4 | `01` |
+| Modal-tela (`size="cheio"`) | 12 modais + 4 gavetas de 980px | — | `01` |
+| Casca do Portal | `NavRail` · `TopBar` · `PageSectionTabs` · `GuiasBar` | — | `01` |
+| Home/atalhos mobile | `/m` · `/m/menu` · `/m/perfil` | 3 | `03` |
+| Ficha com abas mobile | `/m/processos/[id]` (8 abas, nominal) | 1 | `03` |
+| Listas e formulários mobile | `/m/**` restantes | ~33 | `03` |
+| Casca do PWA | `.mobile-shell` · `MobileBottomNav` · FAB · `MobileNewEntitySheet` | — | `03` |
+| Painel Mestre — gabarito | `[officeId]` (nominal, tela-modelo) | 1 | `03` |
+| Painel Mestre — demais | `produto` · `cofre` · `confianca` · `equipe` + 5 | 9 | `03` |
+| Casca do Painel Mestre | `LumenNavRail` · `LumenTopStrip` · `LumenUi` · `LumenStat` | — | `03` |
+
+**Cobertura mecânica (detector), separada e exaustiva:** rodou sobre **263 arquivos** em todas as 5
+superfícies, sem amostragem — `00-mecanico.md`. É o que garante que nenhuma rota escapou: o que a
+crítica por arquétipo não olhou tela a tela, o detector mediu arquivo a arquivo.
+
+✅ **As 99 rotas navegáveis estão cobertas.**
+⚠️ **Nenhuma foi inspecionada renderizada** — ver a pendência de F8 no `README.md` do diagnóstico.
