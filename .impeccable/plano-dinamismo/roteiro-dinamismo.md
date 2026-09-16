@@ -191,3 +191,35 @@ rápido pelo menor risco primeiro:
 
 Nenhum item entra em execução antes da validação visual do dono do projeto no artefato publicado
 (ver `andamento-dinamismo.md`) — mesma regra do `plano-adequacao`.
+
+---
+
+## Reconciliação — `/impeccable animate`, 2026-09-16
+
+Este roteiro foi escrito em 2026-09-11, em modo de planejamento, e nunca foi validado pelo dono.
+A regra do próprio documento ("lista fixa, não reordenar/reescrever item já numerado") é respeitada
+aqui: nada acima foi alterado. O que mudou é o **estado** de cada item depois da passada de
+`animate`, e o motivo.
+
+| Item | Estado | Por quê |
+|---|---|---|
+| **D1** · ticker "ao vivo" no hero | **MORTO** | O painel em que ele viveria foi removido no PR #204: rotulava "Fila de publicações — ao vivo" sobre três objetos cravados no código, que nunca mudavam. Um ticker em laço infinito por cima disso seria a mesma afirmação de vivacidade, agora com movimento para sustentá-la. O primeiro viewport agora demonstra a estrutura de pastas que o produto cria de fato, e é ela que ganhou movimento — ver Movimento 7 |
+| **D2** · realce da seção ativa ao rolar | **PENDENTE — validação do dono** | Continua válido. Exige ouvinte de rolagem num componente cliente novo numa página que hoje é 100% servidor, para orientar entre duas âncoras. Ganho real, custo real: é decisão do dono, não minha |
+| **D3** · contagem do "93" ao entrar na tela | **RECUSADO** | A justificativa escrita era "saber que um número é real e não texto estático". Um count-up não torna número nenhum mais real — é o tique de marketing mais reconhecível da categoria, e a régua do produto é a oposta: prova, não performance. O "93" é verificável em `lib/tribunaisCatalog.ts`; o que o torna real é isso |
+| **D4** · cada diagrama demonstra o próprio mecanismo | **PENDENTE — validação do dono** | O item mais forte do roteiro e o mais caro: 5 animações sob medida + observador de viewport. `reference/animate.md` proíbe reinterpretar cada seção rolada como revelação escalonada — D4 escapa dessa proibição **só** se cada diagrama explicar mesmo o seu mecanismo, e não houver um sexto que apenas apareça. Precisa ser visto antes de ser feito |
+| **D5** · resposta dos cartões de preço ao hover | **PENDENTE — validação do dono** | Cuidado: "cartão que levanta no hover" é um dos tiques de UI gerada por IA. Se entrar, entra como mudança de régua/cor, nunca como elevação |
+| **D6** · microinteração na seta do CTA final | **PENDENTE — validação do dono** | O botão do fecho já ganhou o recibo de toque desta passada; a seta é uma camada a mais |
+| **D7** · rolagem suave nas âncoras | **✅ FEITO** | Implementado escopado ao site (`html:has(.site-publico)`), para o produto não herdar — no modo Operate a rolagem instantânea é a certa. Caminho de movimento reduzido pelo bloco global |
+| **D8** · cabeçalho reage ao scroll | **PENDENTE — validação do dono** | Mesmo custo do D2 (componente cliente novo) para um sinal mais fraco. Se D2 for aprovado, este vem junto e de graça; sozinho, não se paga |
+
+**O que esta passada entregou além do roteiro** — três movimentos que não são proposta visual, e sim
+o piso de artesanato que `animate.md` cobra em qualquer superfície (retorno de ação, estado e
+continuidade), registrados no catálogo de `app/globals.css`:
+
+- **Movimento 7 · arquivar** — a sequência focal única do site. A árvore de pastas do hero se arquiva
+  sozinha, uma vez, no carregamento. **Esta é a única decisão visual desta passada**, e sai em uma
+  linha (`.arquiva-linha`) se o dono não quiser.
+- **Movimento 8 · avisar** — entrada do aviso de cookies, que até aqui materializava sem explicação.
+- **Movimento 9 · abrir menu** — a folha do hambúrguer desce do cabeçalho de onde foi puxada.
+- **Retorno de interação** — nenhum dos cinco estilos de botão/link do site tinha *uma* transição:
+  todo hover era um salto e nenhum clique deixava recibo. Agora têm, a 100ms.

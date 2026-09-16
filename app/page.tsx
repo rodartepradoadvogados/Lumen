@@ -285,10 +285,17 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
   }
 }
 
-const navLink = "inline-block py-2 text-sm font-semibold text-tx hover:underline underline-offset-4";
-const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm rounded-[2px]";
-const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg rounded-[2px]";
-const footerLink = "inline-block py-2 text-tx-2 hover:text-tx hover:underline underline-offset-2";
+// Os quatro estilos de interação do site. Antes do `animate` de 2026-09-16 nenhum deles tinha
+// uma única transição: o hover trocava de cor num salto e o clique não deixava recibo.
+// `navLink` não muda de cor no hover — muda de sublinhado; então o que transiciona aqui é a
+// COR DO SUBLINHADO (transparente → atual), que faz o traço crescer em vez de piscar, sem
+// mexer no layout (o `underline` já está sempre ligado). Os dois botões ganham, além da cor,
+// o recibo do toque: 1px para baixo enquanto o dedo está em cima — o mesmo eixo vertical da
+// guia do produto, que é a assinatura de movimento da casa.
+const navLink = "inline-block py-2 text-sm font-semibold text-tx underline decoration-transparent hover:decoration-current focus-visible:decoration-current underline-offset-4 transition-[text-decoration-color] duration-100 ease-out";
+const btnPrimary = "inline-flex items-center justify-start h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-sm rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px";
+const btnSecondary = "inline-flex items-center justify-start h-10 px-5 border-2 border-regua-forte text-tx font-extrabold text-sm hover:bg-acao-bg rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px";
+const footerLink = "inline-block py-2 text-tx-2 hover:text-tx hover:underline underline-offset-2 transition-colors duration-100 ease-out";
 
 export default async function HomePage() {
   // Usuário com sessão válida nunca vê a homepage de marketing — vai direto pro Painel (ou pro
@@ -304,7 +311,7 @@ export default async function HomePage() {
   const sobMedida = plansRaw.find((p) => p.isCustom);
 
   return (
-    <div className="bg-sf-fundo text-tx">
+    <div className="site-publico bg-sf-fundo text-tx">
       {/* 1. Barra */}
       <header className="sticky top-0 z-30 bg-sf border-b-2 border-regua-forte">
         <div className="max-w-[1120px] mx-auto px-6 h-[76px] flex items-center justify-between gap-6">
@@ -392,18 +399,28 @@ export default async function HomePage() {
                 </span>
                 <span className="text-etiqueta text-tx-3 ml-auto">conta do cliente, não a nossa</span>
               </div>
+              {/* O ÚNICO momento autoral de movimento da página (Movimento 7 · arquivar, em
+                  globals.css). Cada linha é revelada da esquerda para a direita a partir da régua
+                  vertical de que ela pende, deslizando 6px para dentro — a folha entrando na
+                  gaveta. As réguas (`border-l`) NÃO animam de propósito: o trilho já está lá
+                  quando a primeira folha chega.
+                  Os atrasos são explícitos, não calculados por índice, porque a ordem aqui é a
+                  ordem da hierarquia (raiz → processo → suas quatro subpastas → os dois processos
+                  seguintes), e não a ordem de um laço. Último atraso: 385ms; sequência inteira em
+                  765ms. CSS puro, uma vez por carregamento, acima da dobra: sem observador de
+                  rolagem, sem JS, e nada fica escondido se o script falhar. */}
               <div className="px-4 py-4 font-mono text-corpo">
-                <p className="font-semibold text-tx">Lúmen — Processos</p>
+                <p className="arquiva-linha font-semibold text-tx">Lúmen — Processos</p>
                 <div className="mt-2 pl-3 border-l border-regua space-y-2">
-                  <p className="font-semibold text-tx">Arantes, Wagner Barros — 0812445-19.2025</p>
+                  <p className="arquiva-linha font-semibold text-tx" style={{ animationDelay: "55ms" }}>Arantes, Wagner Barros — 0812445-19.2025</p>
                   <div className="pl-3 border-l border-regua space-y-1.5 text-tx-2">
-                    <p className="flex gap-3"><span className="flex-1">Petições</span><span className="text-tx-3">4</span></p>
-                    <p className="flex gap-3"><span className="flex-1">Contratos</span><span className="text-tx-3">2</span></p>
-                    <p className="flex gap-3"><span className="flex-1">Documentos do cliente</span><span className="text-tx-3">7</span></p>
-                    <p className="flex gap-3"><span className="flex-1">Procuração</span><span className="text-tx-3">1</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "110ms" }}><span className="flex-1">Petições</span><span className="text-tx-3">4</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "165ms" }}><span className="flex-1">Contratos</span><span className="text-tx-3">2</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "220ms" }}><span className="flex-1">Documentos do cliente</span><span className="text-tx-3">7</span></p>
+                    <p className="arquiva-linha flex gap-3" style={{ animationDelay: "275ms" }}><span className="flex-1">Procuração</span><span className="text-tx-3">1</span></p>
                   </div>
-                  <p className="font-semibold text-tx pt-1">Meireles &amp; Cia — 0755102-44.2025</p>
-                  <p className="font-semibold text-tx">Alves Transportes — 0660154-06.2026</p>
+                  <p className="arquiva-linha font-semibold text-tx pt-1" style={{ animationDelay: "330ms" }}>Meireles &amp; Cia — 0755102-44.2025</p>
+                  <p className="arquiva-linha font-semibold text-tx" style={{ animationDelay: "385ms" }}>Alves Transportes — 0660154-06.2026</p>
                 </div>
               </div>
               <div className="px-4 py-3 border-t border-regua">
@@ -564,7 +581,7 @@ export default async function HomePage() {
                 2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
                 --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
                 e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}
-            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm rounded-[2px] mt-8">
+            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm rounded-[2px] mt-8 transition-[background-color,transform] duration-100 ease-out active:translate-y-px">
               Começar agora
             </Link>
           </div>
