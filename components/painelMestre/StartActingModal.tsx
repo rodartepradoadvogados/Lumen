@@ -59,7 +59,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
       >
         <Building2 size={13} /> Entrar como este escritório
       </button>
-      <p className="text-etiqueta text-white/45 mt-1.5">
+      <p className="text-etiqueta text-tx-3 mt-1.5">
         Pra ajudar a configurar Drive, DJEN ou e-mail junto com o dono. Sessão de {SESSION_MINUTES} minutos, registrada e
         visível ao escritório — sai a qualquer momento pelo aviso no topo, dos dois lados.
       </p>
@@ -70,13 +70,13 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
             className="bg-grafite-800 shadow-pop w-full max-w-md animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-              <h3 className="font-bold text-lg text-white">Entrar como escritório</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-regua">
+              <h3 className="font-bold text-lg text-tx">Entrar como escritório</h3>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={pending}
-                className="text-white/40 hover:text-white disabled:opacity-50"
+                className="text-tx-3 hover:text-tx disabled:opacity-50"
               >
                 <X size={18} />
               </button>
@@ -98,11 +98,11 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
               )}
 
               <div>
-                <label className="text-xs font-semibold text-white block mb-1">Motivo</label>
+                <label className="text-xs font-semibold text-tx block mb-1">Motivo</label>
                 <select
                   value={reasonCode}
                   onChange={(e) => setReasonCode(e.target.value as AccessReasonCode)}
-                  className="w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm"
+                  className="w-full campo px-3 py-2 text-sm"
                 >
                   {Object.entries(ACCESS_REASONS).map(([code, label]) => (
                     <option key={code} value={code}>
@@ -113,26 +113,26 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white block mb-1">Assunto do chamado</label>
+                <label className="text-xs font-semibold text-tx block mb-1">Assunto do chamado</label>
                 <input
                   value={ticketSubject}
                   onChange={(e) => setTicketSubject(e.target.value)}
                   placeholder="Ex.: cliente relatou erro ao anexar documento"
-                  className="w-full border border-white/15 bg-grafite-700 text-white placeholder:text-white/30 px-3 py-2 text-sm"
+                  className="w-full campo placeholder:text-tx-3 px-3 py-2 text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white block mb-1">Observação (opcional)</label>
+                <label className="text-xs font-semibold text-tx block mb-1">Observação (opcional)</label>
                 <textarea
                   value={reasonNote}
                   onChange={(e) => setReasonNote(e.target.value)}
                   rows={2}
-                  className="w-full border border-white/15 bg-grafite-700 text-white px-3 py-2 text-sm"
+                  className="w-full campo px-3 py-2 text-sm"
                 />
               </div>
 
-              <p className="text-etiqueta text-white/60 bg-white/5 px-3 py-2">
+              <p className="text-etiqueta text-tx-2 bg-sf-apoio px-3 py-2">
                 O acesso dura {SESSION_MINUTES} minutos, fica registrado com motivo e chamado, e é visível ao escritório em
                 tempo real — com botão para encerrar a qualquer momento do lado deles.
               </p>

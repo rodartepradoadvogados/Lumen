@@ -28,8 +28,8 @@ export default async function EquipeLumenPage() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-white">Equipe Lúmen</h1>
-          <p className="text-sm text-white/55 mt-1">
+          <h1 className="text-2xl font-bold text-tx">Equipe Lúmen</h1>
+          <p className="text-sm text-tx/55 mt-1">
             Quadro e papéis da empresa — dono ou membro ativo já entra direto no Painel Mestre ao logar (achado A12 da
             revisão gauntlet); a ladder de visibilidade por papel (canManageBilling/canManageMembers/canApproveAccess) segue
             preparada, ainda não consumida em nenhuma tela
@@ -43,14 +43,14 @@ export default async function EquipeLumenPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                 <th className="px-5 py-2.5 font-semibold">Nome</th>
                 <th className="px-3 py-2.5 font-semibold">E-mail</th>
                 <th className="px-3 py-2.5 font-semibold">Papel</th>
                 <th className="px-3 py-2.5 font-semibold text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-regua">
               {members.map((m) => (
                 <PlatformMemberRow
                   key={m.id}
@@ -66,7 +66,7 @@ export default async function EquipeLumenPage() {
               ))}
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-white/40 text-sm">
+                  <td colSpan={4} className="px-5 py-8 text-center text-tx-3 text-sm">
                     Nenhum membro cadastrado ainda.
                   </td>
                 </tr>

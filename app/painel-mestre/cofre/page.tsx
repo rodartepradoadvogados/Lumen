@@ -88,8 +88,8 @@ export default async function CofrePage() {
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Cofre de acesso</h1>
-        <p className="text-sm text-white/55 mt-1">
+        <h1 className="text-2xl font-bold text-tx">Cofre de acesso</h1>
+        <p className="text-sm text-tx/55 mt-1">
           Visão consolidada do acesso de suporte a todos os escritórios — somente leitura
         </p>
       </div>
@@ -97,12 +97,12 @@ export default async function CofrePage() {
       <LumenPanel>
         <LumenPanelHeader title="Sessões ativas agora" subtitle={`${activeSessions.length} sessão(ões) em andamento`} />
         {activeSessions.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-white/45">Nenhuma sessão ativa agora.</p>
+          <p className="px-5 py-6 text-sm text-tx-3">Nenhuma sessão ativa agora.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+                <tr className="text-left text-etiqueta font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                   <th className="px-5 py-2.5 font-semibold">Escritório</th>
                   <th className="px-3 py-2.5 font-semibold">Membro</th>
                   <th className="px-3 py-2.5 font-semibold">Motivo</th>
@@ -110,16 +110,16 @@ export default async function CofrePage() {
                   <th className="px-3 py-2.5 font-semibold">Expira</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-regua">
                 {activeSessions.map((s) => (
                   <tr key={s.id}>
-                    <td className="px-5 py-3 text-white">{s.request.office.name}</td>
-                    <td className="px-3 py-3 text-white/80">{s.member.user?.name ?? s.member.name ?? "—"}</td>
-                    <td className="px-3 py-3 text-white/70">{reasonLabel(s.request.reasonCode)}</td>
-                    <td className="px-3 py-3 font-mono tabular-nums text-white/70">
+                    <td className="px-5 py-3 text-tx">{s.request.office.name}</td>
+                    <td className="px-3 py-3 text-tx-2">{s.member.user?.name ?? s.member.name ?? "—"}</td>
+                    <td className="px-3 py-3 text-tx-2">{reasonLabel(s.request.reasonCode)}</td>
+                    <td className="px-3 py-3 font-mono tabular-nums text-tx-2">
                       {s.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     </td>
-                    <td className="px-3 py-3 font-mono tabular-nums text-white/70">{expiraEm(s.expiresAt)}</td>
+                    <td className="px-3 py-3 font-mono tabular-nums text-tx-2">{expiraEm(s.expiresAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -133,7 +133,7 @@ export default async function CofrePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                 <th className="px-5 py-2.5 font-semibold">Escritório</th>
                 <th className="px-3 py-2.5 font-semibold">Solicitante</th>
                 <th className="px-3 py-2.5 font-semibold">Motivo</th>
@@ -142,29 +142,29 @@ export default async function CofrePage() {
                 <th className="px-3 py-2.5 font-semibold">Pedido em</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-regua">
               {recentRequests.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-5 py-3 text-white">{r.office.name}</td>
-                  <td className="px-3 py-3 text-white/80">{r.requester.user?.name ?? r.requester.name ?? "—"}</td>
-                  <td className="px-3 py-3 text-white/70">{reasonLabel(r.reasonCode)}</td>
+                  <td className="px-5 py-3 text-tx">{r.office.name}</td>
+                  <td className="px-3 py-3 text-tx-2">{r.requester.user?.name ?? r.requester.name ?? "—"}</td>
+                  <td className="px-3 py-3 text-tx-2">{reasonLabel(r.reasonCode)}</td>
                   <td className="px-3 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2">
                       <LumenStatusDot tone={REQUEST_STATUS_TONE[r.status] ?? "slate"} />{" "}
                       {REQUEST_STATUS_LABEL[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-white/60 text-xs">
+                  <td className="px-3 py-3 text-tx-2 text-xs">
                     {r.approver ? r.approver.user?.name ?? r.approver.name ?? "—" : "—"}
                   </td>
-                  <td className="px-3 py-3 font-mono tabular-nums text-white/60 text-xs">
+                  <td className="px-3 py-3 font-mono tabular-nums text-tx-2 text-xs">
                     {r.requestedAt.toLocaleString("pt-BR")}
                   </td>
                 </tr>
               ))}
               {recentRequests.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-white/40 text-sm">
+                  <td colSpan={6} className="px-5 py-8 text-center text-tx-3 text-sm">
                     Nenhum pedido registrado ainda.
                   </td>
                 </tr>
@@ -179,23 +179,23 @@ export default async function CofrePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                 <th className="px-5 py-2.5 font-semibold">Quando</th>
                 <th className="px-3 py-2.5 font-semibold">Escritório</th>
                 <th className="px-3 py-2.5 font-semibold">Membro</th>
                 <th className="px-3 py-2.5 font-semibold">Ação</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-regua">
               {recentAudit.map((log) => (
                 <tr key={log.id}>
-                  <td className="px-5 py-3 font-mono tabular-nums text-white/70 text-xs whitespace-nowrap">
+                  <td className="px-5 py-3 font-mono tabular-nums text-tx-2 text-xs whitespace-nowrap">
                     {log.createdAt.toLocaleString("pt-BR")}
                   </td>
-                  <td className="px-3 py-3 text-white">{log.office.name}</td>
-                  <td className="px-3 py-3 text-white/80">{log.member?.user?.name ?? log.member?.name ?? "—"}</td>
+                  <td className="px-3 py-3 text-tx">{log.office.name}</td>
+                  <td className="px-3 py-3 text-tx-2">{log.member?.user?.name ?? log.member?.name ?? "—"}</td>
                   <td className="px-3 py-3">
-                    <span className="text-white/80">{ACTION_LABEL[log.action] ?? log.action}</span>
+                    <span className="text-tx-2">{ACTION_LABEL[log.action] ?? log.action}</span>
                     {log.outOfBand && (
                       <span className="ml-2 inline-flex items-center text-etiqueta font-semibold uppercase tracking-wide text-atencao border border-atencao/30 bg-atencao/10 rounded px-1.5 py-0.5">
                         Fora do processo normal
@@ -206,7 +206,7 @@ export default async function CofrePage() {
               ))}
               {recentAudit.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-white/40 text-sm">
+                  <td colSpan={4} className="px-5 py-8 text-center text-tx-3 text-sm">
                     Nenhuma entrada de auditoria registrada ainda.
                   </td>
                 </tr>

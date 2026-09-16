@@ -59,7 +59,7 @@ export default function PainelMestreThemeToggle() {
       type="button"
       onClick={cycle}
       aria-label={`Tema atual: ${PAINEL_MESTRE_THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
-      className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+      className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-tx-2 hover:text-tx hover:bg-sf-apoio transition-colors"
     >
       <Icon size={16} />
     </button>

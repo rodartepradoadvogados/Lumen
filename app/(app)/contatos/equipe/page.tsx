@@ -26,7 +26,7 @@ export default async function EquipePage() {
       email: String(formData.get("email")),
       role: String(formData.get("role")),
       oab: String(formData.get("oab") || ""),
-      color: String(formData.get("color") || "#3f5a66"),
+      color: String(formData.get("color") || "#2f5d73"),
     });
     if (result?.error) {
       console.error(result.error);
@@ -64,7 +64,7 @@ export default async function EquipePage() {
               <option value="Contador">Contador</option>
             </select>
             <input name="oab" placeholder="OAB (opcional)" className={fieldCls} />
-            <input name="color" type="color" defaultValue="#3f5a66" className={`${fieldCls} h-9 p-1`} />
+            <input name="color" type="color" defaultValue="#2f5d73" className={`${fieldCls} h-9 p-1`} />
             <button type="submit" className="sm:col-span-2 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-3 transition-colors">
               Adicionar membro
             </button>

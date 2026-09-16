@@ -83,23 +83,23 @@ export default function NavRail({
     <>
       <button
         onClick={onOpenMobile}
-        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center bg-grafite-800 text-white shadow-menu"
+        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center bg-gaveta text-gaveta-tinta shadow-menu"
         aria-label="Abrir menu"
       >
         <Menu size={18} />
       </button>
 
-      {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-grafite-900/50" onClick={onCloseMobile} />}
+      {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-gaveta-fundo/60" onClick={onCloseMobile} />}
 
       {/* Grafite nos dois temas, fundo fixo (não usa --sf-*, que troca com o tema: o rail é
           sempre escuro, Manhã e Noite) — documento 02 do handoff. */}
       <aside
         className={clsx(
-          "w-16 md:w-14 lg:w-[76px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-grafite-800 transition-transform duration-200 md:translate-x-0",
+          "w-16 md:w-14 lg:w-[76px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-gaveta transition-transform duration-200 md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <button onClick={onCloseMobile} className="md:hidden absolute top-3 right-2 text-white/60 hover:text-white" aria-label="Fechar menu">
+        <button onClick={onCloseMobile} className="md:hidden absolute top-3 right-2 text-gaveta-tinta-2 hover:text-gaveta-tinta" aria-label="Fechar menu">
           <X size={16} />
         </button>
 
@@ -152,7 +152,7 @@ export default function NavRail({
           />
         </div>
 
-        <div className="pb-3 text-etiqueta text-white/30 text-center px-1">v0.1</div>
+        <div className="pb-3 text-etiqueta text-gaveta-tinta/30 text-center px-1">v0.1</div>
       </aside>
     </>
   );
@@ -188,13 +188,13 @@ function RailButton({
             // docs/DESIGN-SYSTEM.md): fundo bordô suave + ícone/rótulo na cor de marca, no lugar
             // do antigo fundo #2d2b2b + filete de 4px à esquerda.
             "bg-rail-marca-bg text-rail-marca font-semibold"
-          : "text-rail-tx hover:bg-white/5 hover:text-white"
+          : "text-rail-tx hover:bg-gaveta-fundo hover:text-gaveta-tinta"
       )}
     >
       <span className="relative">
         <Icon size={19} strokeWidth={1.5} />
         {badge > 0 && (
-          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-white text-etiqueta font-bold flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-gaveta-tinta text-etiqueta font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}

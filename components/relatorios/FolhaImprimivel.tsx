@@ -8,15 +8,15 @@ export function FolhaImprimivelStyle() {
   return (
     <style>{`
       @page { size: A4; margin: 16mm 14mm 18mm; }
-      .folha { background:#fff; color:#23211c; font-size:12px; line-height:1.5; }
+      .folha { background:#fff; color:#14161a; font-size:12px; line-height:1.5; }
       .folha table { border-collapse:collapse; width:100%; }
       .folha th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:650;
-                  color:#45413c; border-bottom:1px solid #b9b1a0; padding:0 6px 4px 0; }
-      .folha td { padding:4px 6px 4px 0; border-bottom:1px solid #d5cec0; vertical-align:top; overflow-wrap:anywhere; word-break:break-word; }
+                  color:#3d4045; border-bottom:1px solid #cbd1da; padding:0 6px 4px 0; }
+      .folha td { padding:4px 6px 4px 0; border-bottom:1px solid #dfe3e8; vertical-align:top; overflow-wrap:anywhere; word-break:break-word; }
       .folha tr { break-inside: avoid; }
-      .cab-timbre { border-bottom:2px solid #8c4327; }
+      .cab-timbre { border-bottom:2px solid #8a2f42; }
       @media print { .nao-imprimir { display:none !important; } }
-      @media screen { .folha { max-width:820px; margin:0 auto; padding:28px; box-shadow:0 8px 30px rgba(35,33,28,.14); } }
+      @media screen { .folha { max-width:820px; margin:0 auto; padding:28px; box-shadow:0 8px 30px rgba(20,22,26,.16); } }
       @media print {
         html, body, main { height:auto !important; max-height:none !important; overflow:visible !important; }
         body { background:#fff !important; }
@@ -42,10 +42,10 @@ export function FolhaCabecalho({
     <div className="cab-timbre" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, paddingBottom: 10, marginBottom: 16 }}>
       <div>
         <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>{officeName ?? "—"}</div>
-        {officeCnpj && <div style={{ fontSize: 9.5, color: "#45413c" }}>CNPJ {officeCnpj}</div>}
+        {officeCnpj && <div style={{ fontSize: 9.5, color: "#3d4045" }}>CNPJ {officeCnpj}</div>}
       </div>
-      <div style={{ textAlign: "right", fontSize: 9.5, color: "#45413c" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#23211c" }}>{titulo}</div>
+      <div style={{ textAlign: "right", fontSize: 9.5, color: "#3d4045" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#14161a" }}>{titulo}</div>
         <div>{subtitulo}</div>
         <div>
           emitido em {new Date().toLocaleDateString("pt-BR")} por {emitidoPor}

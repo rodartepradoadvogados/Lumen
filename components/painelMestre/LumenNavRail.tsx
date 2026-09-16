@@ -58,32 +58,32 @@ export default function LumenNavRail() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center bg-grafite-800 text-white border border-white/10"
+        className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 flex items-center justify-center bg-gaveta text-gaveta-tinta border border-gaveta-linha"
         aria-label="Abrir menu do Painel da Empresa"
       >
         <Menu size={18} />
       </button>
 
-      {open && <div className="md:hidden fixed inset-0 z-40 bg-grafite-900/60" onClick={() => setOpen(false)} />}
+      {open && <div className="md:hidden fixed inset-0 z-40 bg-gaveta-fundo/60" onClick={() => setOpen(false)} />}
 
       <nav
-        className={`w-56 shrink-0 bg-grafite-800 border-r border-white/10 flex flex-col h-full fixed md:static top-0 left-0 z-50 overflow-y-auto scrollbar-thin transition-transform duration-200 md:translate-x-0 ${
+        className={`w-56 shrink-0 bg-gaveta border-r border-gaveta-linha flex flex-col h-full fixed md:static top-0 left-0 z-50 overflow-y-auto scrollbar-thin transition-transform duration-200 md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="px-4 py-5 border-b border-white/10 relative">
+        <div className="px-4 py-5 border-b border-gaveta-linha relative">
           <button
             onClick={() => setOpen(false)}
-            className="md:hidden absolute top-4 right-4 text-white/60 hover:text-white"
+            className="md:hidden absolute top-4 right-4 text-gaveta-tinta-2 hover:text-gaveta-tinta"
             aria-label="Fechar menu"
           >
             <X size={18} />
           </button>
           <div className="flex items-center gap-2">
             <LumenMark size={28} />
-            <span className="text-lg font-semibold text-white">LÚMEN</span>
+            <span className="text-lg font-semibold text-gaveta-tinta">LÚMEN</span>
           </div>
-          <p className="text-etiqueta font-semibold uppercase tracking-wide text-white/40 mt-1.5">
+          <p className="text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta/40 mt-1.5">
             Painel da Empresa
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function LumenNavRail() {
         <div className="flex-1 py-4 space-y-6">
           {GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="px-4 text-etiqueta font-semibold uppercase tracking-wide text-white/35 mb-1.5">
+              <p className="px-4 text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta/35 mb-1.5">
                 {group.label}
               </p>
               <div className="space-y-0.5 px-2">
@@ -104,14 +104,14 @@ export default function LumenNavRail() {
                       href={item.href}
                       className={`flex items-center gap-2.5 px-3 py-2 text-sm border-l-2 transition-colors ${
                         active
-                          ? "border-marca bg-white/5 text-white font-semibold"
-                          : "border-transparent text-white/60 hover:bg-white/5 hover:text-white"
+                          ? "border-marca bg-gaveta-fundo text-gaveta-tinta font-semibold"
+                          : "border-transparent text-gaveta-tinta-2 hover:bg-gaveta-fundo hover:text-gaveta-tinta"
                       }`}
                     >
                       <Icon size={16} />
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.comingSoon && (
-                        <span className="text-etiqueta font-semibold uppercase tracking-wide text-white/30">
+                        <span className="text-etiqueta font-semibold uppercase tracking-wide text-gaveta-tinta/30">
                           em breve
                         </span>
                       )}

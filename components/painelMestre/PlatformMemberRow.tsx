@@ -47,17 +47,17 @@ export default function PlatformMemberRow({
     <Fragment>
       <tr>
         <td className="px-5 py-3">
-          <span className="inline-flex items-center gap-1.5 text-white font-medium">
+          <span className="inline-flex items-center gap-1.5 text-tx font-medium">
             <LumenStatusDot tone={member.active ? "ok" : "slate"} /> {member.name}
           </span>
         </td>
-        <td className="px-3 py-3 text-white/70">{member.email}</td>
+        <td className="px-3 py-3 text-tx-2">{member.email}</td>
         <td className="px-3 py-3">
           <select
             value={member.roleId}
             disabled={pending}
             onChange={(e) => handleRoleChange(e.target.value)}
-            className="bg-white/5 border border-white/15 text-white text-xs px-2 py-1.5 disabled:opacity-50"
+            className="campo text-xs px-2 py-1.5 disabled:opacity-50"
           >
             {roles.map((r) => (
               <option key={r.id} value={r.id} className="text-grafite-900">
@@ -71,7 +71,7 @@ export default function PlatformMemberRow({
             onClick={handleToggleActive}
             disabled={pending}
             data-tip={member.active ? "Desativar" : "Reativar"}
-            className="p-1.5 text-white/40 hover:text-marca-tx hover:bg-white/10 transition-colors disabled:opacity-40 rounded-md"
+            className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-sf-apoio transition-colors disabled:opacity-40 rounded-md"
           >
             <Power size={14} />
           </button>

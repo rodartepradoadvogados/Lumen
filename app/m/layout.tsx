@@ -97,16 +97,16 @@ export default async function MobileLayout({ children }: { children: React.React
             `dark:`, pra não mudar de cor junto com o resto da tela. Nome+foto do perfil saiu
             daqui — agora é só logo/nome do escritório + Alertas/Tema, pra bater com a proposta
             de Início nova; Perfil segue acessível por Menu (Mais). */}
-        <header className="min-h-[52px] shrink-0 bg-grafite-800 border-b border-white/10 text-white flex items-center justify-between gap-2 px-4 py-2">
+        <header className="min-h-[52px] shrink-0 bg-gaveta border-b border-gaveta-linha text-gaveta-tinta flex items-center justify-between gap-2 px-4 py-2">
           <Link href="/m" className="flex items-center gap-2 min-w-0">
             <LumenMark size={24} />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold tracking-wide text-white">LÚMEN</span>
+                <span className="text-sm font-bold tracking-wide text-gaveta-tinta">LÚMEN</span>
                 <span className="h-1.5 w-1.5 rounded-full bg-concluido shrink-0" aria-hidden="true" />
               </div>
               {office?.name && (
-                <p className="text-corpo text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
+                <p className="text-corpo text-gaveta-tinta/55 truncate max-w-[160px] leading-tight">{office.name}</p>
               )}
             </div>
           </Link>
@@ -114,7 +114,7 @@ export default async function MobileLayout({ children }: { children: React.React
             <Link
               href="/m/alertas"
               aria-label={`Central de Alertas${totalAlerts > 0 ? `, ${totalAlerts} pendente(s)` : ""}`}
-              className="relative h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
+              className="relative h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-gaveta-tinta-2 hover:text-rail-marca hover:bg-gaveta-fundo transition-colors"
             >
               {/* Emoji só quando há pendência de verdade (pedido do dono do projeto ao validar
                   o protótipo) — sem pendência, continua o ícone de linha neutro de sempre. */}
@@ -124,7 +124,7 @@ export default async function MobileLayout({ children }: { children: React.React
                 <Bell size={16} />
               )}
               {totalAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-white text-corpo font-bold flex items-center justify-center border border-grafite-800">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-gaveta-tinta text-corpo font-bold flex items-center justify-center border border-gaveta">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}
@@ -137,7 +137,7 @@ export default async function MobileLayout({ children }: { children: React.React
             <Link
               href="/m/mais"
               aria-label="Menu"
-              className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/80 hover:text-rail-marca hover:bg-white/10 transition-colors"
+              className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-gaveta-tinta-2 hover:text-rail-marca hover:bg-gaveta-fundo transition-colors"
             >
               <Menu size={18} />
             </Link>

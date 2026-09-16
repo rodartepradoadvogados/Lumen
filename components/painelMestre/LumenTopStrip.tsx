@@ -7,15 +7,15 @@ import PainelMestreThemeToggle from "@/components/painelMestre/PainelMestreTheme
 // tem, de propósito — ver spec).
 export default function LumenTopStrip({ memberName }: { memberName: string }) {
   return (
-    <header className="h-14 shrink-0 bg-grafite-800 border-b border-white/10 flex items-center justify-between gap-3 pl-16 pr-4 md:px-5">
+    <header className="h-14 shrink-0 bg-gaveta border-b border-gaveta-linha flex items-center justify-between gap-3 pl-16 pr-4 md:px-5">
       <Link
         href="/painel"
-        className="text-xs font-semibold text-white/60 hover:text-white truncate"
+        className="text-xs font-semibold text-gaveta-tinta-2 hover:text-gaveta-tinta truncate"
       >
         ← Voltar ao escritório
       </Link>
       <div className="flex items-center gap-2 shrink-0">
-        <span className="hidden sm:inline text-sm text-white">{memberName}</span>
+        <span className="hidden sm:inline text-sm text-gaveta-tinta">{memberName}</span>
         {/* Hardcoded por ora — o PlatformRole de verdade por pessoa é assunto da Equipe Lúmen (Fase 2).
             P0-5: bg-marca-bg/text-marca sobre este header (grafite-800 fixo) reprovava WCAG AA —
             trocado pelo par bg-rail-marca-bg/text-rail-marca que o NavRail já usa para exatamente

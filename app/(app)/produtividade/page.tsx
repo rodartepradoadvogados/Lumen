@@ -257,7 +257,7 @@ export default async function ProdutividadePage({
               <details key={row.user.id} className="group">
                 <summary className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-sf-apoio list-none">
                   <span
-                    className="h-7 w-7 rounded-full flex items-center justify-center text-white text-etiqueta font-bold shrink-0"
+                    className="h-7 w-7 rounded-full flex items-center justify-center text-rotulo text-etiqueta font-bold shrink-0"
                     style={{ backgroundColor: row.user.color }}
                   >
                     {initials(row.user.name)}

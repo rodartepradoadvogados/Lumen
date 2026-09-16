@@ -7,7 +7,7 @@
 // Área de plataforma, não do escritório: desde esta rodada (".painel-mestre-shell", ver
 // app/globals.css e DESIGN.md "Painel da Empresa") o CONTEÚDO retema entre Escuro/Claro como o
 // resto do produto — só o Rail e o TopStrip continuam grafite fixo nos dois temas (mesma regra do
-// Rail do site e do cabeçalho do PWA). Antes desta rodada o texto usava branco fixo (`text-white`)
+// Rail do site e do cabeçalho do PWA). Antes desta rodada o texto usava branco fixo (`text-tx`)
 // porque não havia tema opcional; agora usa `--tx`/`--tx-2`, que retemam sozinhos.
 export function LumenPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`bg-sf-superficie border border-regua rounded-sm ${className}`}>{children}</div>;
