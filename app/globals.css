@@ -516,6 +516,108 @@ input[type="radio"] {
   .arquiva-linha { animation-delay: 0ms !important; }
 }
 
+/* ============================================================================
+   Movimento 10 · OS DIAGRAMAS DEMONSTRAM O PRÓPRIO MECANISMO — site público.
+   ----------------------------------------------------------------------------
+   Item D4 do roteiro de dinamismo, aprovado pelo dono em 2026-09-16. É o item mais
+   caro do roteiro e o que corre mais risco de virar decoração, então a regra que o
+   governa está escrita aqui e vale para qualquer diagrama que venha depois:
+
+     cada animação encena o mecanismo que AQUELA linha de recurso descreve em
+     palavras. Nenhuma existe por a seção ter entrado na tela.
+
+   É essa regra que separa isto da "revelação escalonada de cada seção rolada",
+   que `reference/animate.md` proíbe — se um sexto diagrama entrasse só aparecendo,
+   a exceção cairia e o conjunto inteiro viraria o tique que a referência descreve.
+
+   Quatro materiais, escolhidos por significado, não por variedade:
+
+     chegaNaFila   a publicação CAI na fila do escritório, sozinha, sem ninguém
+                   abrir site de tribunal — três, uma após a outra.
+     pousaNoDia    o compromisso POUSA na coluna do seu dia (Painel), e o ponto
+                   final pousa no fim da curva (Financeiro).
+     preencheCampo algo é ESCRITO da esquerda para a direita: os campos que o
+                   produto preenche sozinho na petição, e as linhas que a trilha
+                   de auditoria registra no Sigilo.
+     acendeSelo    o botão "Revelar" pede ação — acende uma vez e assenta.
+
+   O que NÃO anima na petição, de propósito: as linhas do corpo do texto. A copy
+   daquela linha diz, com todas as letras, que "o texto jurídico continua sendo
+   escrito pelo advogado". Animar o corpo se escrevendo sozinho ilustraria o
+   contrário do que a página afirma. Anima só o timbrado, os campos do processo e
+   da parte, e o botão .docx — que é exatamente o que o produto preenche.
+
+   Disparo: `[data-visivel="true"]`, posto uma única vez por components/site/
+   FeatureFigure.tsx quando o diagrama entra na faixa de leitura. Sem o atributo,
+   nada anima e o diagrama fica no estado final — nenhum conteúdo depende de JS
+   para existir.
+
+   Unidades: as animações de transporte movem 2 a 3 unidades do `viewBox` (de 70 de
+   altura), não pixels de tela — dentro do SVG, `px` em `transform` é unidade de
+   usuário. Três unidades ≈ 16px na largura de coluna do site. */
+@keyframes chegaNaFila {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pousaNoDia {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes preencheCampo {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@keyframes tracaLinha {
+  from { stroke-dashoffset: 112; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes surgeArea {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes acendeSelo {
+  0%   { opacity: 0.3; }
+  55%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Estado de repouso — e a regra mais importante deste bloco. O que esconde as peças é
+   `[data-observando="true"]`, que só existe depois que o JS de FeatureFigure.tsx rodou
+   no navegador. O HTML que sai do servidor não tem esse atributo, então um diagrama
+   que nunca hidrate (bundle que não chegou, script bloqueado) aparece INTEIRO, em vez
+   de ficar invisível para sempre. Esconder por padrão e revelar por JS é exatamente
+   como se perde conteúdo — e `reference/animate.md` cobra o contrário com todas as
+   letras: o conteúdo fica visível no estado padrão. */
+.diagrama[data-observando="true"] .chega,
+.diagrama[data-observando="true"] .pousa,
+.diagrama[data-observando="true"] .preenche,
+.diagrama[data-observando="true"] .traca,
+.diagrama[data-observando="true"] .area { opacity: 0; }
+.diagrama[data-visivel="true"] .chega    { animation: chegaNaFila   340ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.diagrama[data-visivel="true"] .pousa    { animation: pousaNoDia    300ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.diagrama[data-visivel="true"] .preenche { animation: preencheCampo 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.diagrama[data-visivel="true"] .traca    { stroke-dasharray: 112; animation: tracaLinha 900ms cubic-bezier(0.2, 0.7, 0.3, 1) both; opacity: 1; }
+.diagrama[data-visivel="true"] .area     { animation: surgeArea 700ms 300ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.diagrama[data-visivel="true"] .acende   { animation: acendeSelo 620ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Sem JS, sem observador ou com movimento desligado: tudo visível, imediatamente. A
+   primeira regra cobre o caso em que o atributo nunca chega; a segunda zera os
+   atrasos, que o bloco global de `prefers-reduced-motion` não zera (mesma armadilha
+   do Movimento 7). */
+@media (prefers-reduced-motion: reduce) {
+  .diagrama .chega,
+  .diagrama .pousa,
+  .diagrama .preenche,
+  .diagrama .traca,
+  .diagrama .area,
+  .diagrama .acende,
+  .diagrama[data-observando="true"] .chega,
+  .diagrama[data-observando="true"] .pousa,
+  .diagrama[data-observando="true"] .preenche,
+  .diagrama[data-observando="true"] .traca,
+  .diagrama[data-observando="true"] .area { opacity: 1; animation-delay: 0ms !important; }
+}
+
 /* Movimento 8 · AVISAR — algo novo apareceu na tela por conta própria, sem o
    visitante ter pedido: o aviso de cookies (CookieConsent). Ele já se anuncia para
    leitor de tela com `aria-live="polite"`; esta é a mesma frase dita a quem
