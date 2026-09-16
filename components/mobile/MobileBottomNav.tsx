@@ -73,7 +73,9 @@ export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { age
                 )}
               </span>
               {badge && badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-tx text-sf-superficie text-corpo font-bold flex items-center justify-center">
+                <span // Pastilha neutra (contagem não é risco) — 12px dentro de 20px. Antes eram 15px dentro
+                  // de 18px, que não cabe, e a cor do texto vinha de uma classe inexistente.
+                  className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-tx text-sf text-etiqueta font-bold flex items-center justify-center tabular-nums">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
               )}
