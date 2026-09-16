@@ -477,7 +477,7 @@ function Teor({
         </p>
         <h2 className="text-2xl font-extrabold text-tx mt-1">
           {pub.case ? (
-            <TabLink href={`/processos/${pub.case.id}`} label={pub.case.title} className="hover:text-acao transition-colors">
+            <TabLink href={`/processos/${pub.case.id}`} label={pub.case.title} className="hover:text-marca-tx transition-colors">
               {pub.case.title}
             </TabLink>
           ) : pub.client ? (
@@ -662,7 +662,7 @@ function LinkModal({
         ))}
 
         <div className="pt-2 border-t border-regua mt-2 space-y-1.5">
-          <Link href={newCaseHref} className="flex items-center gap-2 text-xs font-semibold text-acao hover:text-acao-hover px-1 py-1.5">
+          <Link href={newCaseHref} className="flex items-center gap-2 text-xs font-semibold text-marca-tx hover:text-tx px-1 py-1.5">
             <FilePlus2 size={13} /> Cadastrar novo processo
           </Link>
           {group.primary.processNumberRaw && (

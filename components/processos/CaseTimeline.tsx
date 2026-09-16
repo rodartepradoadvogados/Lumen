@@ -8,12 +8,12 @@ import type { CaseTimelineEvent } from "@/lib/caseTimeline";
 const STYLE: Record<CaseTimelineEvent["kind"], { icon: typeof FilePlus; bg: string; text: string }> = {
   criado: { icon: FilePlus, bg: "bg-marca-bg", text: "text-marca-tx" },
   distribuido: { icon: Clock, bg: "bg-sf-apoio", text: "text-tx-2" },
-  escalada: { icon: ArrowUp, bg: "bg-acao-bg", text: "text-acao" },
+  escalada: { icon: ArrowUp, bg: "bg-acao-bg", text: "text-marca-tx" },
   retorno: { icon: ArrowDown, bg: "bg-sf-apoio", text: "text-tx-2" },
   tarefa: { icon: CircleCheck, bg: "bg-concluido-bg", text: "text-concluido" },
   comentario: { icon: MessageSquare, bg: "bg-sf-apoio", text: "text-tx-2" },
   publicacao: { icon: Bell, bg: "bg-urgente-bg", text: "text-urgente" },
-  protocolo: { icon: FileText, bg: "bg-acao-bg", text: "text-acao" },
+  protocolo: { icon: FileText, bg: "bg-acao-bg", text: "text-marca-tx" },
 };
 
 const ANDAMENTO_STYLE = { icon: Gavel, bg: "bg-sf-apoio", text: "text-tx-2" };

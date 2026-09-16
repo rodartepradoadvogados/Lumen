@@ -71,7 +71,7 @@ export default function MobileCommentForm({
           onChange={handleChange}
           placeholder="Escreva um comentário... use @ para mencionar alguém"
           rows={3}
-          className="w-full border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
+          className="w-full border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx"
           onKeyDown={(e) => {
             if (e.key === "Escape") setMentionQuery(null);
           }}

@@ -329,7 +329,7 @@ function NaturezaTab({ label, count, href, active }: { label: string; count: num
     <Link
       href={href}
       className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-        active ? "border-acao text-tx font-semibold" : "border-transparent text-tx-3 hover:text-tx-2"
+        active ? "border-marca-tx text-tx font-semibold" : "border-transparent text-tx-3 hover:text-tx-2"
       }`}
     >
       {label} <span className="text-xs text-tx-3 tabular-nums">({count})</span>

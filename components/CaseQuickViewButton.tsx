@@ -52,7 +52,7 @@ export default function CaseQuickViewButton({
           type="button"
           onClick={handleOpen}
           data-tip="Ficha rápida"
-          className="p-1.5 text-tx-3 hover:text-acao hover:bg-acao-bg transition-colors rounded-md"
+          className="p-1.5 text-tx-3 hover:text-marca-tx hover:bg-acao-bg transition-colors rounded-md"
         >
           <Eye size={15} />
         </button>
@@ -97,7 +97,7 @@ export default function CaseQuickViewButton({
                 <div className="pt-2 mt-1 border-t border-regua">
                   <Link
                     href={`/processos/${caseId}`}
-                    className="flex items-center justify-center gap-1.5 text-sm font-semibold text-acao hover:underline py-1"
+                    className="flex items-center justify-center gap-1.5 text-sm font-semibold text-marca-tx hover:underline py-1"
                   >
                     Abrir processo completo <ArrowRight size={14} />
                   </Link>

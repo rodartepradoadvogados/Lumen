@@ -433,7 +433,7 @@ export default async function MobileCaseDetail({
               href={sanitizeExternalUrl(c.tribunalLink)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-corpo font-semibold text-acao hover:underline"
+              className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx hover:underline"
             >
               <ExternalLink size={12} /> Acessar sistema do {natureza === "ADMINISTRATIVO" ? "órgão" : "tribunal"}
             </a>

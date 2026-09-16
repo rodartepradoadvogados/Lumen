@@ -464,7 +464,7 @@ export default function AttachmentList({
             return (
               <div
                 key={a.id}
-                className="group relative bg-sf-apoio border border-regua p-3 hover:border-acao/40 transition-colors"
+                className="group relative bg-sf-apoio border border-regua p-3 hover:border-marca-tx/40 transition-colors"
               >
                 {editingId === a.id ? (
                   <div className="flex flex-col items-center text-center gap-1.5">
@@ -702,7 +702,7 @@ export default function AttachmentList({
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
-            dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
+            dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
           }`}
         >
           <UploadCloud size={20} className="text-tx-2" />

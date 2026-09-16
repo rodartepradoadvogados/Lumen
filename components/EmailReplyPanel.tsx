@@ -52,7 +52,7 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
             onChange={(e) => setEmail(e.target.value)}
             placeholder="e-mail do cliente"
             disabled={isPending}
-            className="flex-1 border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+            className="flex-1 border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx disabled:opacity-60"
           />
           <button
             type="button"
@@ -80,7 +80,7 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
         onChange={(e) => setSubject(e.target.value)}
         placeholder="Assunto"
         disabled={isPending}
-        className="w-full border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+        className="w-full border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx disabled:opacity-60"
       />
       <div className="flex items-end gap-2">
         <textarea
@@ -95,7 +95,7 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
           rows={3}
           placeholder="Escreva uma resposta por e-mail…"
           disabled={isPending}
-          className="flex-1 resize-none border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+          className="flex-1 resize-none border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx disabled:opacity-60"
         />
         <button
           type="button"

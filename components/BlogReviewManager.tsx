@@ -250,7 +250,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
           <ul className="space-y-0.5">
             {sourceLinks.map((url, i) => (
               <li key={i}>
-                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-acao hover:underline break-all">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-marca-tx hover:underline break-all">
                   {url}
                 </a>
               </li>

@@ -110,7 +110,7 @@ export default function MobileLicitacaoDetail({
         <div className="flex justify-between gap-3 text-sm border-b border-regua pb-2">
           <span className="text-tx-2 shrink-0">Edital</span>
           {licitacao.editalUrl ? (
-            <a href={licitacao.editalUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-acao">↗ Abrir no Drive</a>
+            <a href={licitacao.editalUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-marca-tx">↗ Abrir no Drive</a>
           ) : (
             <span className="text-tx-3">Não anexado</span>
           )}
@@ -133,7 +133,7 @@ export default function MobileLicitacaoDetail({
       <Card className="p-4 mt-3">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-bold text-tx text-sm">Tarefas &amp; Prazos</h2>
-          <button onClick={() => setTaskFormOpen((v) => !v)} className="text-corpo font-semibold text-acao">+ Nova</button>
+          <button onClick={() => setTaskFormOpen((v) => !v)} className="text-corpo font-semibold text-marca-tx">+ Nova</button>
         </div>
         {taskFormOpen && (
           <form action={handleNewTask} className="mb-2 p-2.5 bg-sf-apoio space-y-2">

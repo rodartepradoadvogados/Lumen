@@ -74,7 +74,7 @@ export default function NewPlatformMemberModal({
             <button
               onClick={() => { setTab("vincular"); setError(null); }}
               className={`flex-1 text-xs font-semibold uppercase tracking-wide py-3 border-b-2 transition-colors ${
-                tab === "vincular" ? "border-marca text-tx" : "border-transparent text-tx-3 hover:text-tx-2"
+                tab === "vincular" ? "border-marca-tx text-tx" : "border-transparent text-tx-3 hover:text-tx-2"
               }`}
             >
               Vincular usuário existente
@@ -82,7 +82,7 @@ export default function NewPlatformMemberModal({
             <button
               onClick={() => { setTab("cadastrar"); setError(null); }}
               className={`flex-1 text-xs font-semibold uppercase tracking-wide py-3 border-b-2 transition-colors ${
-                tab === "cadastrar" ? "border-marca text-tx" : "border-transparent text-tx-3 hover:text-tx-2"
+                tab === "cadastrar" ? "border-marca-tx text-tx" : "border-transparent text-tx-3 hover:text-tx-2"
               }`}
             >
               Pessoa exclusiva da Lúmen

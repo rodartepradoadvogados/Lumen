@@ -40,7 +40,7 @@ export function ButtonSecondary({ className, ...props }: ButtonHTMLAttributes<HT
 // compilador do Tailwind só gera CSS para classe que aparece LITERAL no código-fonte.
 export type CardAccent = "vinho" | "azul" | "verde" | "aviso" | "ouro";
 const ACCENT_BORDER: Record<CardAccent, string> = {
-  vinho: "border-acao",
+  vinho: "border-marca-tx",
   azul: "border-fonte-pje",
   verde: "border-concluido",
   aviso: "border-aviso",
@@ -88,7 +88,7 @@ const badgeColors: Record<string, string> = {
   // de atendimento, fonte legada de publicação etc.), onde "slate" ficaria fraco demais.
   navy: "bg-sf-apoio text-tx",
   // Ação — Evento, prioridade Média.
-  blue: "bg-acao-bg text-acao",
+  blue: "bg-acao-bg text-marca-tx",
   // Marca — só a Audiência foge à regra "ouro nunca fora da marca" (§7, nota da exceção).
   gold: "bg-marca-bg text-marca-tx",
   // Aviso — Perícia, prioridade Alta, status Pendente/Parcial (dado que precisa de atenção, mas

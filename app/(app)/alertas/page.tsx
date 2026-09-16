@@ -29,7 +29,7 @@ const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
 // Ver DESIGN-SYSTEM.md §8.
 const severityStyle: Record<string, string> = {
   alta: "border-l-[3px] border-urgente",
-  media: "border-l-[3px] border-marca",
+  media: "border-l-[3px] border-marca-tx",
   baixa: "border-l-[3px] border-tx-3",
 };
 

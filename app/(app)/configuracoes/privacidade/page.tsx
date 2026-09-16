@@ -50,7 +50,7 @@ export default async function PrivacidadePage() {
           <Card>
             <CardHeader title="Acesso do suporte da plataforma" subtitle="A Lúmen só entra nos seus dados com motivo, chamado e prazo curto" />
             <div className="p-5">
-              <Link href="/configuracoes/acessos" className="text-sm font-semibold text-acao hover:text-acao-hover">
+              <Link href="/configuracoes/acessos" className="text-sm font-semibold text-marca-tx hover:text-tx">
                 Ver política, sessão ativa e histórico de acessos →
               </Link>
             </div>

@@ -56,7 +56,7 @@ export default function PrivacidadePage() {
               </p>
               <p>
                 Nesta conta do WhatsApp Business, o escritório responsável é o <b>Rodarte Prado Advogados</b>, com
-                contato em <a className="text-acao hover:text-acao-hover font-semibold" href="mailto:rodartepradoadvogados@gmail.com">rodartepradoadvogados@gmail.com</a>.
+                contato em <a className="text-marca-tx hover:text-tx font-semibold" href="mailto:rodartepradoadvogados@gmail.com">rodartepradoadvogados@gmail.com</a>.
               </p>
             </section>
 

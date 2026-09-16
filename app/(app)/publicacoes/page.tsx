@@ -209,7 +209,7 @@ export default async function PublicacoesPage({
               name="q"
               defaultValue={searchParams.q}
               placeholder="Buscar por processo, conteúdo ou fonte"
-              className="w-full border border-regua bg-sf text-tx pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-acao/40"
+              className="w-full border border-regua bg-sf text-tx pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-marca-tx"
             />
           </div>
           <FilterLink label="Publicações" href={qs({ kind: searchParams.kind === "PUBLICACAO" ? undefined : "PUBLICACAO" })} active={searchParams.kind === "PUBLICACAO"} />

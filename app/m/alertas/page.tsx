@@ -31,7 +31,7 @@ const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
 // diferencia as 12 chaves de `kindMeta`; nenhuma delas ganha cor própria, só a severidade.
 const severityStyle: Record<string, string> = {
   alta: "border-l-[3px] border-urgente",
-  media: "border-l-[3px] border-marca",
+  media: "border-l-[3px] border-marca-tx",
   baixa: "border-l-[3px] border-tx-3",
 };
 

@@ -139,7 +139,7 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
             name="q"
             defaultValue={q}
             placeholder="Buscar por nome, número ou cliente"
-            className="w-full border border-regua bg-sf text-tx pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
+            className="w-full border border-regua bg-sf text-tx pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx"
           />
         </div>
         <button type="submit" className="bg-acao text-acao-tx text-sm font-semibold px-4 py-2">

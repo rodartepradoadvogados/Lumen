@@ -71,7 +71,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
   return (
     <div className="space-y-4">
       <div className=" bg-sf-apoio border border-regua px-4 py-3 flex items-start gap-2.5">
-        <Radar size={15} className="shrink-0 mt-0.5 text-acao" />
+        <Radar size={15} className="shrink-0 mt-0.5 text-marca-tx" />
         <p className="text-xs text-tx-2">
           O robô de vigilância varre diariamente PNCP, DOU e diários de tribunais de contas atrás destes termos (nome de
           parte, número do processo, palavra-chave...). Ao encontrar uma correspondência, gera um alerta direto neste processo.
@@ -84,7 +84,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
           value={novoTermo}
           onChange={(e) => setNovoTermo(e.target.value)}
           placeholder="Ex.: nome da parte, nº do processo, palavra-chave..."
-          className="flex-1 border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40"
+          className="flex-1 border border-regua bg-sf text-tx px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx"
         />
         <button
           type="submit"

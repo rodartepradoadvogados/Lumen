@@ -38,7 +38,7 @@ export default function BulkSettleBar({
         <div className="bg-grafite-800 text-white shadow-pop px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold">{count} selecionada(s)</span>
-            {/* P0-5: text-marca sobre bg-grafite-800 (contêiner acima) reprova WCAG AA. */}
+            {/* P0-5: text-marca-tx sobre bg-grafite-800 (contêiner acima) reprova WCAG AA. */}
             <span className="text-sm text-rail-marca font-bold">Total: {formatCurrency(total)}</span>
           </div>
           <div className="flex items-center gap-2">

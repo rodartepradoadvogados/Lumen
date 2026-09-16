@@ -75,7 +75,7 @@ export default function MobilePublicationsList({
         <button
           type="button"
           onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-          className="w-full py-3 text-sm font-semibold text-acao hover:bg-sf-apoio transition-colors"
+          className="w-full py-3 text-sm font-semibold text-marca-tx hover:bg-sf-apoio transition-colors"
         >
           Carregar mais ({remaining} restante{remaining === 1 ? "" : "s"})
         </button>

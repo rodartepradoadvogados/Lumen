@@ -283,11 +283,11 @@ export default async function ConfiguracoesPage({
                   href={`/configuracoes?secao=${s.key}`}
                   className={`flex items-center gap-2.5 px-3 py-2.5 text-sm border-l-2 transition-colors ${
                     active
-                      ? "bg-marca-bg text-gaveta-tinta font-semibold border-marca"
+                      ? "bg-marca-bg text-gaveta-tinta font-semibold border-marca-tx"
                       : "text-gaveta-tinta-2 font-medium border-transparent hover:bg-gaveta-fundo hover:text-gaveta-tinta"
                   }`}
                 >
-                  {/* P0-5: text-marca sobre bg-gaveta (aside acima) mede ~2,16:1, reprova
+                  {/* P0-5: text-marca-tx sobre bg-gaveta (aside acima) mede ~2,16:1, reprova
                       WCAG AA — text-rail-marca é a variante clara do bordô fixa nos dois temas. */}
                   <Icon size={16} className={active ? "text-rail-marca" : "text-gaveta-tinta-2"} />
                   {s.label}

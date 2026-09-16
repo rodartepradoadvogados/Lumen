@@ -152,11 +152,11 @@ async function DayView({
         <div className="text-center min-w-0 flex-1">
           <p className="font-bold text-tx text-sm capitalize truncate">{label}</p>
           {!isToday && (
-            <Link href="/m/agenda" className="text-corpo font-semibold text-acao">
+            <Link href="/m/agenda" className="text-corpo font-semibold text-marca-tx">
               Voltar para hoje
             </Link>
           )}
-          {isToday && <p className="text-corpo font-semibold text-acao">Hoje</p>}
+          {isToday && <p className="text-corpo font-semibold text-marca-tx">Hoje</p>}
         </div>
         <Link
           href={`/m/agenda?d=${toISODate(next)}`}
@@ -244,7 +244,7 @@ function MobileAgendaFinanceRow({
           <Badge color={statusColor}>{isApurar ? "A apurar" : f.effectiveStatus}</Badge>
         </div>
         <p className="text-sm font-medium text-tx">{f.description}</p>
-        {f.caseTitle && <p className="text-corpo text-acao mt-0.5 truncate">{f.caseTitle}</p>}
+        {f.caseTitle && <p className="text-corpo text-marca-tx mt-0.5 truncate">{f.caseTitle}</p>}
       </div>
       <p className="text-sm font-semibold text-tx tabular-nums shrink-0">{f.amount === null ? "—" : formatCurrency(f.amount)}</p>
     </Link>

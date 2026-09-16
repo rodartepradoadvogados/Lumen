@@ -107,7 +107,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                       <a
                         href={`tel:${sanitizePhoneForWhatsApp(composePhoneWithDdi(r.phoneDdi, r.phone))}`}
                         aria-label={`Ligar para ${r.name}`}
-                        className="p-2 text-tx-2 hover:text-acao hover:bg-sf-apoio rounded-md"
+                        className="p-2 text-tx-2 hover:text-marca-tx hover:bg-sf-apoio rounded-md"
                       >
                         <Phone size={16} />
                       </a>
@@ -126,7 +126,7 @@ export default async function MobileContatos({ searchParams }: { searchParams: {
                     <a
                       href={`mailto:${r.email}`}
                       aria-label={`E-mail para ${r.name}`}
-                      className="p-2 text-tx-2 hover:text-acao hover:bg-sf-apoio rounded-md"
+                      className="p-2 text-tx-2 hover:text-marca-tx hover:bg-sf-apoio rounded-md"
                     >
                       <Mail size={16} />
                     </a>

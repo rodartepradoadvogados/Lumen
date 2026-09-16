@@ -114,7 +114,7 @@ export default function RenameCasesToConventionButton() {
               <ul className="mt-1.5 space-y-0.5">
                 {result.withoutClient.map((c) => (
                   <li key={c.id}>
-                    <Link href={`/processos/${c.id}`} className="text-acao hover:underline">
+                    <Link href={`/processos/${c.id}`} className="text-marca-tx hover:underline">
                       {c.title}
                     </Link>
                     {c.processNumber && <span className="text-tx-2"> · {c.processNumber}</span>}
@@ -202,7 +202,7 @@ export default function RenameCasesToConventionButton() {
                 <ul className="space-y-0.5">
                   {withoutClient.map((c) => (
                     <li key={c.id}>
-                      <Link href={`/processos/${c.id}`} className="text-acao hover:underline">
+                      <Link href={`/processos/${c.id}`} className="text-marca-tx hover:underline">
                         {c.title}
                       </Link>
                       {c.processNumber && <span className="text-tx-2"> · {c.processNumber}</span>}

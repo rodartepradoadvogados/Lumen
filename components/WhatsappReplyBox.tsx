@@ -41,7 +41,7 @@ export default function WhatsappReplyBox({ attendanceId }: { attendanceId: strin
           rows={2}
           placeholder="Escreva uma resposta pelo WhatsApp…"
           disabled={isPending}
-          className="flex-1 resize-none border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40 disabled:opacity-60"
+          className="flex-1 resize-none border border-regua px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx disabled:opacity-60"
         />
         <button
           type="button"

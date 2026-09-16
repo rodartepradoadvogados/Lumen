@@ -204,7 +204,7 @@ export default function PeticionarWizard({
                 <button
                   key={o.type}
                   type="button"
-                  className="h-11 rounded-md border border-regua-forte text-sm font-semibold text-tx hover:bg-sf-apoio hover:border-acao"
+                  className="h-11 rounded-md border border-regua-forte text-sm font-semibold text-tx hover:bg-sf-apoio hover:border-marca-tx"
                   onClick={() => pickType(o.type)}
                 >
                   {o.label}
@@ -231,7 +231,7 @@ export default function PeticionarWizard({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={`Buscar ${TYPE_OPTIONS.find((o) => o.type === chosenType)?.label.toLowerCase()}...`}
-                className="w-full h-10 pl-9 pr-3 rounded-md border border-regua-forte bg-sf text-sm text-tx focus:outline-none focus:border-acao"
+                className="w-full h-10 pl-9 pr-3 rounded-md border border-regua-forte bg-sf text-sm text-tx focus:outline-none focus:border-marca-tx"
               />
             </div>
             <div className="flex flex-col divide-y divide-regua max-h-64 overflow-y-auto -mx-1">
@@ -270,7 +270,7 @@ export default function PeticionarWizard({
               type="button"
               disabled={pending}
               onClick={() => finalize({ assessoriaId: assessoria.id })}
-              className="text-left px-3 py-2.5 rounded-md border border-regua-forte hover:bg-sf-apoio hover:border-acao disabled:opacity-50"
+              className="text-left px-3 py-2.5 rounded-md border border-regua-forte hover:bg-sf-apoio hover:border-marca-tx disabled:opacity-50"
             >
               <p className="text-sm font-medium text-tx">Documento geral de {assessoria.label}</p>
             </button>

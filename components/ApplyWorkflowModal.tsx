@@ -67,7 +67,7 @@ export default function ApplyWorkflowModal({
                   <select
                     name="templateId"
                     required
-                    className="w-full mt-1 border border-regua bg-sf px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
+                    className="w-full mt-1 border border-regua bg-sf px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx"
                     defaultValue=""
                   >
                     <option value="" disabled>
@@ -84,7 +84,7 @@ export default function ApplyWorkflowModal({
                   <label className="text-xs font-medium text-tx-2">Responsável padrão</label>
                   <select
                     name="responsibleId"
-                    className="w-full mt-1 border border-regua bg-sf px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
+                    className="w-full mt-1 border border-regua bg-sf px-3 py-2 text-sm text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx"
                     defaultValue=""
                   >
                     <option value="">Não definido</option>

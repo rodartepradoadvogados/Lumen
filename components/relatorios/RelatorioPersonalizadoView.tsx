@@ -401,7 +401,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">Volume por assessoria</span>
               <Barras linhas={resultado.porAssessoria} vazio="Nenhum item vinculado a assessoria no período." />
               {resultado.semVinculoAssessoria > 0 && (
-                <p className="text-etiqueta text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2">
+                <p className="text-etiqueta text-tx-2 bg-marca-bg border-l-[3px] border-marca-tx px-3 py-2">
                   <strong className="text-tx">{resultado.semVinculoAssessoria} item(ns)</strong> do período ficaram de fora deste
                   corte por não terem assessoria vinculada — aparecem no detalhamento abaixo.
                 </p>
@@ -441,12 +441,12 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                               href={d.driveUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-acao hover:underline font-medium inline-flex items-center gap-1"
+                              className="text-marca-tx hover:underline font-medium inline-flex items-center gap-1"
                             >
                               {d.nome} <ExternalLink size={11} className="shrink-0 opacity-70" />
                             </a>
                           ) : d.href ? (
-                            <a href={hrefBase + d.href} className="text-acao hover:underline font-medium">
+                            <a href={hrefBase + d.href} className="text-marca-tx hover:underline font-medium">
                               {d.nome}
                             </a>
                           ) : (
@@ -460,7 +460,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                               <span className="text-etiqueta font-semibold px-1.5 py-px rounded-full bg-marca-bg text-marca-tx">{d.assessoriaNome}</span>
                             )}
                             {d.origemLabel && (
-                              <span className="text-etiqueta font-semibold px-1.5 py-px rounded-full bg-acao-bg text-acao">{d.origemLabel}</span>
+                              <span className="text-etiqueta font-semibold px-1.5 py-px rounded-full bg-acao-bg text-marca-tx">{d.origemLabel}</span>
                             )}
                           </span>
                         </td>

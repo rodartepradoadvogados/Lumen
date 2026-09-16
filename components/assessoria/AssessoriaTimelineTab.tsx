@@ -68,7 +68,7 @@ export default function AssessoriaTimelineTab({ assessoria }: { assessoria: Asse
         ) : (
           <p className="text-sm text-tx-3">Nenhuma anotação ainda.</p>
         )}
-        <Link href={`/assessoria/${assessoria.id}?tab=geral`} className="inline-block mt-2 text-xs font-semibold text-acao hover:text-acao-hover">
+        <Link href={`/assessoria/${assessoria.id}?tab=geral`} className="inline-block mt-2 text-xs font-semibold text-marca-tx hover:text-tx">
           Editar em Visão Geral →
         </Link>
       </div>

@@ -153,7 +153,7 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
                 key={a}
                 type="button"
                 onClick={() => setAba(a)}
-                className={`px-3 py-2 text-xs font-semibold ${aba === a ? "border-b-2 border-acao text-tx -mb-[2px]" : "text-tx-3"}`}
+                className={`px-3 py-2 text-xs font-semibold ${aba === a ? "border-b-2 border-marca-tx text-tx -mb-[2px]" : "text-tx-3"}`}
               >
                 {a === "corpo" ? "Corpo" : a === "assunto" ? "Assunto" : "Rodapé e LGPD"}
               </button>

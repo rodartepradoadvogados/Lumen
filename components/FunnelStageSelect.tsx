@@ -11,7 +11,7 @@ import { stageOptions, stageLabels } from "@/lib/funil";
 const colors: Record<string, string> = {
   NOVO: "bg-aviso-bg text-aviso border-aviso",
   QUALIFICACAO: "bg-sf-apoio text-fonte-pje border-fonte-pje",
-  PROPOSTA: "bg-marca-bg text-marca-tx border-marca/30",
+  PROPOSTA: "bg-marca-bg text-marca-tx border-marca-tx/30",
   FECHADO: "bg-concluido-bg text-concluido border-concluido",
   PERDIDO: "bg-urgente-bg text-urgente border-urgente",
 };

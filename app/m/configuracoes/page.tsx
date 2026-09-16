@@ -142,7 +142,7 @@ export default async function MobileConfiguracoes({
       </div>
 
       <div className="flex items-center gap-3 px-1">
-        {/* P0-5: text-marca sobre bg-grafite-700 reprova WCAG AA — text-rail-marca fixa a
+        {/* P0-5: text-marca-tx sobre bg-grafite-700 reprova WCAG AA — text-rail-marca fixa a
             variante clara do bordô nos dois temas. */}
         <div className="h-12 w-12 rounded-full bg-grafite-700 text-rail-marca flex items-center justify-center text-sm font-bold shrink-0">
           {initials}

@@ -183,7 +183,7 @@ export default function AssessoriaHonorariosTab({
                             </div>
                           </div>
                         ) : (
-                          <button onClick={() => startPayHonorario(h.id, Math.max(0, h.receivable.amount - (h.receivable.paidAmount || 0)))} className="text-xs font-semibold text-acao hover:text-acao-hover">
+                          <button onClick={() => startPayHonorario(h.id, Math.max(0, h.receivable.amount - (h.receivable.paidAmount || 0)))} className="text-xs font-semibold text-marca-tx hover:text-tx">
                             Marcar como pago
                           </button>
                         )

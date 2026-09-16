@@ -190,7 +190,7 @@ export default async function MobileHome() {
                 key={a.id}
                 alert={a}
                 className={`flex items-start justify-between gap-3 px-4 py-3 w-full text-left border-l-[3px] ${
-                  a.severity === "alta" ? "border-urgente" : a.severity === "media" ? "border-marca" : "border-tx-3"
+                  a.severity === "alta" ? "border-urgente" : a.severity === "media" ? "border-marca-tx" : "border-tx-3"
                 }`}
               >
                 <span className="min-w-0">
@@ -201,7 +201,7 @@ export default async function MobileHome() {
               </AlertRow>
             ))}
             {totalAlerts > alertsPreview.length && (
-              <Link href="/m/alertas" className="block px-4 py-2.5 text-corpo font-semibold text-acao hover:underline">
+              <Link href="/m/alertas" className="block px-4 py-2.5 text-corpo font-semibold text-marca-tx hover:underline">
                 Ver todos os {totalAlerts} alertas →
               </Link>
             )}

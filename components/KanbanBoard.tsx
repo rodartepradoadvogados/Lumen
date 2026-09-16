@@ -72,7 +72,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
               // Coluna: fundo de apoio + régua; o card branco é a única coisa clara dentro dela —
               // é isso que comunica que ele é o que se pega (DESIGN-SYSTEM.md §12).
               "w-80 shrink-0 bg-sf-apoio border flex flex-col max-h-full",
-              dragOverCol === col.id ? "border-acao bg-acao-bg" : "border-regua"
+              dragOverCol === col.id ? "border-marca-tx bg-acao-bg" : "border-regua"
             )}
           >
             <div className="px-4 py-3 flex items-center justify-between border-b border-regua sticky top-0">

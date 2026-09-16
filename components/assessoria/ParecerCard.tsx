@@ -244,7 +244,7 @@ export default function ParecerCard({
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-acao px-1.5 py-1"
+              className="flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-marca-tx px-1.5 py-1"
             >
               <Pencil size={13} /> Editar
             </button>
@@ -313,7 +313,7 @@ export default function ParecerCard({
                   }}
                   onClick={() => fileInputRef.current?.click()}
                   className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed p-3 cursor-pointer transition-colors ${
-                    dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf"
+                    dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf"
                   }`}
                 >
                   <UploadCloud size={16} className="text-tx-2" />

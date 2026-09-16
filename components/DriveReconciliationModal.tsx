@@ -26,7 +26,7 @@ import {
 // do resto do produto (bg-sf-apoio, borda em regua/acao conforme o papel do card).
 function CardArquivo({ nome, legenda, badge, destaque }: { nome: string; legenda: string; badge?: React.ReactNode; destaque?: boolean }) {
   return (
-    <div className={`flex-1 min-w-0 border rounded-lg p-3 bg-sf-apoio ${destaque ? "border-acao/50" : "border-regua"}`}>
+    <div className={`flex-1 min-w-0 border rounded-lg p-3 bg-sf-apoio ${destaque ? "border-marca-tx/50" : "border-regua"}`}>
       <div className="flex items-start gap-2">
         <FileText size={18} className="shrink-0 text-tx-2 mt-0.5" />
         <div className="min-w-0">
@@ -255,7 +255,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
       <div className="flex-1 min-h-0 flex flex-col">
         {carregando && (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">
-            <RefreshCw size={28} className="text-acao animate-spin" />
+            <RefreshCw size={28} className="text-marca-tx animate-spin" />
             <p className="text-sm text-tx-2">Vasculhando {scope === "GLOBAL" ? "as pastas do escritório" : "a pasta"} no Drive…</p>
           </div>
         )}
@@ -332,7 +332,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                                         <span className="shrink-0 text-etiqueta font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2">{p.subpasta}</span>
                                       )}
                                       {extra}
-                                      <span className="shrink-0 text-etiqueta font-semibold text-acao">Resolver</span>
+                                      <span className="shrink-0 text-etiqueta font-semibold text-marca-tx">Resolver</span>
                                     </button>
                                   );
                                 })}
@@ -413,7 +413,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="border border-regua rounded-lg p-3 space-y-2">
                     <p className="flex items-center gap-1.5 text-sm font-semibold text-tx">
-                      <FilePlus size={16} className="text-acao" /> Adicionar como novo documento
+                      <FilePlus size={16} className="text-marca-tx" /> Adicionar como novo documento
                     </p>
                     <DocumentTypeSelect
                       value={tipoEscolhido}
@@ -431,10 +431,10 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                   </div>
                   <button
                     onClick={() => setDetalhe({ estagio: "escolher-existente", entIdx: detalhe.entIdx, pendIdx: detalhe.pendIdx })}
-                    className="text-left border border-regua rounded-lg p-3 hover:border-acao/50 hover:bg-sf-apoio transition-colors h-fit"
+                    className="text-left border border-regua rounded-lg p-3 hover:border-marca-tx/50 hover:bg-sf-apoio transition-colors h-fit"
                   >
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-tx">
-                      <RefreshCw size={15} className="text-acao" /> Substituir um documento existente
+                      <RefreshCw size={15} className="text-marca-tx" /> Substituir um documento existente
                     </span>
                     <span className="text-xs text-tx-2 block mt-1">Escolher, de uma lista, qual anexo já cadastrado este arquivo deve substituir.</span>
                   </button>
@@ -483,10 +483,10 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                   </button>
                   <button
                     onClick={() => setDetalhe({ estagio: "apontar-outro", entIdx: detalhe.entIdx, pendIdx: detalhe.pendIdx })}
-                    className="text-left border border-regua rounded-lg p-3 hover:border-acao/50 hover:bg-sf-apoio transition-colors"
+                    className="text-left border border-regua rounded-lg p-3 hover:border-marca-tx/50 hover:bg-sf-apoio transition-colors"
                   >
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-tx">
-                      <Link2 size={15} className="text-acao" /> Apontar para outro arquivo
+                      <Link2 size={15} className="text-marca-tx" /> Apontar para outro arquivo
                     </span>
                     <span className="text-xs text-tx-2 block mt-1">Escolher, entre os arquivos novos desta pasta, qual este anexo passa a representar.</span>
                   </button>
@@ -543,7 +543,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                 <button
                   disabled={pending}
                   onClick={popup.onExtra}
-                  className="w-full border border-acao/50 text-acao text-sm font-semibold py-2 rounded-md hover:bg-acao-bg disabled:opacity-50"
+                  className="w-full border border-marca-tx/50 text-marca-tx text-sm font-semibold py-2 rounded-md hover:bg-acao-bg disabled:opacity-50"
                 >
                   {popup.extraLabel}
                 </button>

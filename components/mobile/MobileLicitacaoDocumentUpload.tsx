@@ -85,7 +85,7 @@ export default function MobileLicitacaoDocumentUpload({
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-full flex items-center justify-center gap-1.5 text-corpo font-semibold text-acao border border-dashed border-regua hover:border-acao/40 py-2.5 transition-colors mt-2"
+        className="w-full flex items-center justify-center gap-1.5 text-corpo font-semibold text-marca-tx border border-dashed border-regua hover:border-marca-tx/40 py-2.5 transition-colors mt-2"
       >
         <Paperclip size={13} /> Anexar documento
         <input

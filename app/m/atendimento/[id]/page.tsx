@@ -92,7 +92,7 @@ export default async function MobileAttendanceDetail({ params }: { params: { id:
         {a.convertedCase && (
           <div className="flex justify-between gap-3 text-sm pb-0">
             <span className="text-tx-2 shrink-0">Convertido em</span>
-            <Link href={`/m/processos/${a.convertedCase.id}`} className="font-medium text-acao text-right">
+            <Link href={`/m/processos/${a.convertedCase.id}`} className="font-medium text-marca-tx text-right">
               {a.convertedCase.title}
             </Link>
           </div>

@@ -142,7 +142,7 @@ export default async function AssessoriaDetailPage({
             href={`/assessoria/${assessoria.id}?tab=${t.key}`}
             className={`text-sm font-semibold px-3.5 py-2.5 border-b-2 -mb-0.5 transition-colors ${
               tab === t.key
-                ? "border-acao text-tx"
+                ? "border-marca-tx text-tx"
                 : "border-transparent text-tx-2 hover:text-tx"
             }`}
           >

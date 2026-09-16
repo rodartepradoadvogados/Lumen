@@ -125,7 +125,7 @@ export default function SelecaoItensRelatorioModal({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-tx-3 hover:text-acao shrink-0"
+                            className="text-tx-3 hover:text-marca-tx shrink-0"
                             aria-label="Abrir arquivo"
                           >
                             <ExternalLink size={12} />

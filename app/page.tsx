@@ -511,7 +511,7 @@ export default async function HomePage() {
                     // um `box-shadow` sequer nas telas), e "cartão que levanta no hover" é um dos
                     // tiques mais reconhecíveis de interface gerada por máquina. O cartão
                     // recomendado já nasce com a régua em `--acao`, então ele responde pelo fundo.
-                    className={`relative p-6 border-2 bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out ${plan.recommended ? "border-acao hover:bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-acao-bg"}`}
+                    className={`relative p-6 border-2 bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out ${plan.recommended ? "border-marca-tx hover:bg-acao-bg" : "border-regua-forte hover:border-marca-tx hover:bg-acao-bg"}`}
                   >
                     {/* FORA DO FLUXO. Antes o selo era renderizado dentro dele e empurrava ~24px de
                         conteúdo para baixo, de modo que preço, módulos e botão deixavam de alinhar
@@ -553,7 +553,7 @@ export default async function HomePage() {
                 );
               })}
               {sobMedida && (
-                <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out hover:border-acao hover:bg-acao-bg">
+                <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out hover:border-marca-tx hover:bg-acao-bg">
                   <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
                   <div className="text-corpo text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
                   <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
@@ -576,7 +576,7 @@ export default async function HomePage() {
             <h2 className="font-extrabold text-[clamp(32px,5vw,52px)] tracking-[-.02em] max-w-[18ch]">
               Leve a triagem, a agenda e o financeiro do escritório para um só lugar.
             </h2>
-            {/* P0-5 do roteiro de adequação: text-marca (vermelho) sobre bg-grafite-800 media
+            {/* P0-5 do roteiro de adequação: text-marca-tx (vermelho) sobre bg-grafite-800 media
                 2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
                 --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
                 e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}

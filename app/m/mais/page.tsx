@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // ação como segundo destaque categórico, "money" usa o verde de concluído pro atalho Financeiro,
 // e "neutral" é o padrão pra tudo o mais.
 const TILE_COLORS = {
-  accent: "bg-acao-bg text-acao",
+  accent: "bg-acao-bg text-marca-tx",
   money: "bg-concluido-bg text-concluido",
   neutral: "bg-sf-apoio text-tx-2",
 } as const;

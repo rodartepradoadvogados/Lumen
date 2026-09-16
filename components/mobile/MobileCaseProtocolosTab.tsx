@@ -100,7 +100,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                         href={`https://drive.google.com/drive/folders/${lote.driveFolderId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-corpo font-semibold text-acao hover:underline"
+                        className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx hover:underline"
                       >
                         <FolderOpen size={12} /> Pasta do lote
                       </a>
@@ -110,7 +110,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                         href={lote.comprovante.driveUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-corpo font-semibold text-acao hover:underline"
+                        className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx hover:underline"
                       >
                         <ExternalLink size={12} /> Comprovante
                       </a>

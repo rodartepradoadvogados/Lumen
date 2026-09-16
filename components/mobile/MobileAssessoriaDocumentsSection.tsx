@@ -90,7 +90,7 @@ export default function MobileAssessoriaDocumentsSection({
           <div className="border-b border-regua">
             <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-2">
               <p className="text-corpo font-semibold uppercase tracking-wide text-tx-2">Demandas</p>
-              <Link href={`/m/assessoria/${assessoriaId}/pareceres/nova`} className="flex items-center gap-1 text-corpo font-semibold text-acao shrink-0">
+              <Link href={`/m/assessoria/${assessoriaId}/pareceres/nova`} className="flex items-center gap-1 text-corpo font-semibold text-marca-tx shrink-0">
                 <Plus size={11} /> Nova
               </Link>
             </div>

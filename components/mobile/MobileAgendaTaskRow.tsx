@@ -65,7 +65,7 @@ export default function MobileAgendaTaskRow({ t }: { t: MobileAgendaTask }) {
           )}
         </div>
         <p className={`text-sm font-medium ${done ? "line-through text-tx-2" : "text-tx"}`}>{t.title}</p>
-        {t.caseTitle && <p className="text-corpo text-acao mt-0.5 truncate">{t.caseTitle}</p>}
+        {t.caseTitle && <p className="text-corpo text-marca-tx mt-0.5 truncate">{t.caseTitle}</p>}
         {t.responsibleName && <p className="text-corpo text-tx-2 mt-0.5">{t.responsibleName}</p>}
         {done && t.completedByName && t.completedAt && (
           <p className="text-corpo text-tx-3 mt-0.5">

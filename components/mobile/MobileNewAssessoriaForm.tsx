@@ -6,7 +6,7 @@ import { createAssessoriaMobile } from "@/lib/actions/assessoria";
 import MoneyInput from "@/components/MoneyInput";
 
 const inputClass =
-  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx";
 const labelClass = "text-corpo font-medium text-tx-2";
 
 type ClientOption = { id: string; name: string };

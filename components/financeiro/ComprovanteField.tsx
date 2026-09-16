@@ -40,7 +40,7 @@ export default function ComprovanteField({
           if (dropped) onFileChange(dropped);
         }}
         className={`mt-1 flex items-center gap-2 flex-wrap border border-dashed p-2 transition-colors ${
-          dragOver ? "border-marca bg-marca-bg" : "border-regua-forte"
+          dragOver ? "border-marca-tx bg-marca-bg" : "border-regua-forte"
         }`}
       >
         {existingUrl && !file && (

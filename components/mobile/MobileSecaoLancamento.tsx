@@ -14,7 +14,7 @@ export type SecaoTone = "palha" | "azul" | "ouro" | "verde" | "rosa";
 // --marca: ouro só pode carregar texto no tom que virou texto, DESIGN-SYSTEM.md §0.2). Mesmo
 // mapa de components/financeiro/SecaoLancamento.tsx.
 const labelToneClassName: Record<SecaoTone, string> = {
-  azul: "text-acao",
+  azul: "text-marca-tx",
   palha: "text-tx-2",
   ouro: "text-marca-tx",
   rosa: "text-atencao",

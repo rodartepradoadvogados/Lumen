@@ -11,8 +11,8 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F5 CONCLUÍDA** — site público e blog. Próxima: o P0 de contraste abaixo, depois F4 (módulos restantes do Portal) |
-| **Próximo passo concreto** | **P0-CONTRASTE** (abaixo): `text-acao` como TEXTO sobre superfície que retematiza mede **1,88:1** no tema escuro — reprova WCAG AA por larga margem, em **128 ocorrências**. Depois F4: os módulos restantes do Portal |
+| **Fase atual** | **F5 concluída · P0-CONTRASTE fechado (PR #209)**. Próxima: P0-OPACIDADE, depois F4 (módulos restantes do Portal) |
+| **Próximo passo concreto** | **P0-OPACIDADE** (seção 10-B): 145 classes `/NN` sobre cor de token não geram regra nenhuma — bordas viram `gray-200` fixo. Os 34 anéis de foco já caíram no PR #209 (eram **azuis**). Depois F4: os módulos restantes do Portal |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -468,7 +468,7 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 
 ## 10-B. Achados abertos — medidos, não corrigidos
 
-### P0-CONTRASTE · `text-acao` como texto reprova WCAG AA no tema escuro
+### ~~P0-CONTRASTE~~ · RESOLVIDO no PR #209 · `text-acao` como texto reprovava WCAG AA no tema escuro
 
 `--acao` é o bordô FIXO da marca (`#8a2f42` nos dois temas). Como **fundo** de botão ele é correto,
 com `--acao-tx` por cima. Como **texto** sobre uma superfície que retematiza, ele mede:
@@ -482,8 +482,17 @@ com `--acao-tx` por cima. Como **texto** sobre uma superfície que retematiza, e
 | `--marca-tx` | papel escuro | 6,25:1 | ✓ |
 | `--acao` / `--marca-tx` | ficha clara `#ffffff` | 8,18:1 | ✓ |
 
-**Alcance medido: 128 ocorrências de `text-acao`** (excluindo `text-acao-tx`) em `app/**` e
-`components/**`. O PWA é o pior caso — é a superfície usada no fórum, sob luz direta.
+**Alcance final corrigido: 284 substituições em 113 arquivos** — 131 de texto, 29 de hover, 56 de
+borda, 34 de anel de foco, mais 18 `border-marca`, 1 `ring-marca` e 1 `fill-marca` numa segunda
+varredura. Fechado por regra de lint. Verificação: 40 pares (8 cascas × 5 superfícies) recalculados,
+**zero reprovando**, e as colunas do tema claro idênticas antes e depois — a troca não muda um pixel
+do claro, porque `--marca-tx` vale exatamente `#8a2f42` ali.
+
+**Não foram tocados, de propósito:** 24 `border-acao` que são a borda do próprio botão bordô (têm
+`bg-acao` na mesma linha), 2 `text-acao` em `<input type="checkbox">` — ali `text-*` pinta o
+PREENCHIMENTO do controle, o marcador por cima é branco, e o par é fixo e aprova nos dois temas —
+e as utilitárias `accent-*`, pelo mesmo motivo. As duas exceções de checkbox carregam
+`eslint-disable-next-line` com o motivo escrito ao lado.
 
 **De quem é o erro:** meu. A fundação F3 verificou `--acao` como **fundo**, com `--acao-tx` por
 cima, e nunca o verificou como **primeiro plano**. A troca é `text-acao` → `text-marca-tx`, e é
@@ -491,6 +500,47 @@ segura por construção no tema claro (`--marca-tx` vale `#8a2f42` ali, exatamen
 nenhum pixel do tema claro muda. O cuidado fica com as ocorrências sobre superfície FIXA (grafite),
 onde o certo é `rail-marca` — essas precisam ser separadas à mão, não por substituição cega.
 Corrigido só no blog (PR #208); o resto é a próxima passada.
+
+### P0-OPACIDADE · 145 classes com `/NN` sobre cor de token não geram regra nenhuma
+
+Descoberto ao fechar o P0-CONTRASTE, e é mais antigo e mais grave que ele.
+
+As cores do sistema são declaradas em `tailwind.config.ts` como texto simples — `"var(--marca-tx)"`.
+O Tailwind só sabe aplicar modificador de opacidade a uma cor que traga o marcador `<alpha-value>`.
+Sem ele, **a classe com `/NN` não gera regra alguma**, e o elemento cai no padrão do Tailwind.
+
+Medido no navegador, com o CSS de produção:
+
+| Escrito no código | O que o navegador aplica |
+|---|---|
+| `focus:ring-marca-tx/40` | `rgba(59, 130, 246, 0.5)` — **o azul padrão do Tailwind** |
+| `focus:ring-marca-tx` | `rgb(138, 47, 66)` — o bordô, correto |
+| `border-marca-tx/40` | `rgb(229, 231, 235)` — **cinza fixo**, que não retematiza |
+| `border-marca-tx` | `rgb(138, 47, 66)` — correto |
+
+Ou seja: **o anel de foco do produto inteiro era azul**, num produto que não tem azul em lugar
+nenhum, e toda borda com opacidade era o cinza `gray-200` do Tailwind, igual nos dois temas.
+
+Corrigido no PR #209: **os 34 anéis de foco**, por serem caminho de teclado e quebra de marca
+visível, e por a correção ser mecânica (`ring-x/NN` → `ring-x`).
+
+**Restam 145**, que precisam de um token sólido escolhido por família, não de substituição cega:
+
+| Família | Quantas | Substituto provável |
+|---|---|---|
+| `border-marca-tx/25\|30\|40\|50` | 24 | `border-marca-tx` |
+| `border-urgente/20\|25\|30` | 21 | `border-campo-risco-linha` (é exatamente "urgente suave", e retematiza) |
+| `text-tx/55\|75\|80\|85` | 19 | `text-tx-2` / `text-tx-3` — a rampa de tinta já existe |
+| `bg-urgente\|aviso\|concluido/10\|15` | 20 | `bg-*-bg`, que já são rgba(...,.14) |
+| `border-aviso/25\|30\|40` | 12 | a criar, ou `border-aviso` |
+| `border\|bg\|text-fonte-pje/NN` | 16 | idem |
+| resto | 33 | caso a caso |
+
+Alternativa estrutural, mais cara: dar aos 66 tokens um par em canais (`--marca-tx-rgb: 138 47 66`)
+e declarar no config como `rgb(var(--marca-tx-rgb) / <alpha-value>)`. Resolve a família inteira e
+permite opacidade de verdade, ao custo de duplicar 66 tokens em 8 cascas. **Decisão do dono.**
+
+---
 
 ### P1-EMAIL · a superfície que ninguém olhou neste redesenho
 

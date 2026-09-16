@@ -61,13 +61,13 @@ export default function AssessoriaOverviewTab({ assessoria }: { assessoria: Asse
           onChange={(e) => setNotes(e.target.value)}
           rows={5}
           placeholder="Anotações estratégicas para esta empresa..."
-          className="w-full text-sm text-tx bg-transparent border border-regua-forte p-2 focus:outline-none focus:border-acao resize-none"
+          className="w-full text-sm text-tx bg-transparent border border-regua-forte p-2 focus:outline-none focus:border-marca-tx resize-none"
         />
         {notes !== savedNotes && (
           <button
             onClick={saveNotes}
             disabled={pending}
-            className="mt-2 text-xs font-semibold text-acao hover:text-acao-hover disabled:opacity-50"
+            className="mt-2 text-xs font-semibold text-marca-tx hover:text-tx disabled:opacity-50"
           >
             {pending ? "Salvando..." : "Salvar planejamento"}
           </button>

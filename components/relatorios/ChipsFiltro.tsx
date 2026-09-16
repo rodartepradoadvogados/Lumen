@@ -42,7 +42,7 @@ export default function ChipsFiltro({
         <span
           className={clsx(
             "text-etiqueta font-bold px-1.5 py-px rounded-full border",
-            vazio ? "bg-marca-bg text-marca-tx border-marca" : "bg-acao-bg text-acao border-transparent"
+            vazio ? "bg-marca-bg text-marca-tx border-marca-tx" : "bg-acao-bg text-marca-tx border-transparent"
           )}
         >
           {vazio ? "todos" : `${selecionados.length} marcado${selecionados.length > 1 ? "s" : ""}`}

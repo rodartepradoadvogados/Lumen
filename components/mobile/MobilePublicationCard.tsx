@@ -112,7 +112,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
       </div>
 
       {pub.caseId && pub.caseTitle && (
-        <Link href={`/m/processos/${pub.caseId}`} className="text-corpo font-medium text-acao block mb-1">
+        <Link href={`/m/processos/${pub.caseId}`} className="text-corpo font-medium text-marca-tx block mb-1">
           {pub.caseTitle}
         </Link>
       )}

@@ -478,7 +478,7 @@ export default function NewAttendanceModal({
                             setClientQuery("");
                             setDirty(true);
                           }}
-                          className="text-xs font-semibold text-acao hover:underline shrink-0 ml-2"
+                          className="text-xs font-semibold text-marca-tx hover:underline shrink-0 ml-2"
                         >
                           trocar
                         </button>
@@ -713,7 +713,7 @@ export default function NewAttendanceModal({
                     }}
                     onClick={() => fileInputRef.current?.click()}
                     className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
-                      dragOver ? "border-acao bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-sf-apoio"
+                      dragOver ? "border-marca-tx bg-acao-bg" : "border-regua-forte hover:border-marca-tx hover:bg-sf-apoio"
                     }`}
                   >
                     <UploadCloud size={20} className="text-tx-3" />
@@ -771,7 +771,7 @@ export default function NewAttendanceModal({
               <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="min-w-0">
                   {loading && progressText ? (
-                    <p className="text-xs font-semibold text-acao truncate">{progressText}</p>
+                    <p className="text-xs font-semibold text-marca-tx truncate">{progressText}</p>
                   ) : (
                     <p className="text-xs text-tx-3">
                       {pendenciaRows.length > 0 && `${pendenciaRows.length} pendência(s) · `}
