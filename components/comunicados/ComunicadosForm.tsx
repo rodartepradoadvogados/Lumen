@@ -124,7 +124,7 @@ export default function ComunicadosForm({ initial }: { initial: ComunicadoPrefer
       </div>
 
       {/* Bloco 2 — Exceção: fura a fila */}
-      <div className="bg-sf-apoio border-l-4 border-atencao p-4 space-y-2">
+      <div className="bg-sf-apoio border-t-2 border-aviso p-4 space-y-2">
         <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-atencao">Exceção — fura a fila</p>
         <div className="space-y-1.5">
           {(Object.keys(BREAKTHROUGH_EVENTOS) as BreakthroughEvento[]).map((key) => {

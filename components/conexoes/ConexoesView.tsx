@@ -3,6 +3,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
 
+// FILETE LATERAL DELIBERADO — o detector acusa `side-tab` aqui e a acusação fica em pé de
+// propósito, sem ignore de arquivo (que silenciaria todo achado futuro deste arquivo, inclusive
+// os reais). Dos treze filetes laterais que o diagnóstico encontrou, nove eram recado avulso e
+// viraram régua no topo (ver components/Aviso.tsx). Estes ficam porque aqui o filete NÃO decora
+// uma caixa: ele codifica a SELEÇÃO da LINHA inteira, que é exatamente o papel que o contrato de
+// direção "Guias" reserva para ele.
+
 // Rota /conexoes (documento 04 do handoff do redesenho Modernist) — catálogo à esquerda (520px,
 // borda direita 2px), detalhe de anatomia fixa à direita. Item selecionado é estado de cliente
 // (não muda a URL): a página inteira já chega pronta do servidor (app/(app)/conexoes/page.tsx),
@@ -57,11 +64,17 @@ const ESTADO_TEXT: Record<ConexaoEstado, string> = {
   off: "text-tx-3",
 };
 
-const ESTADO_BORDER: Record<ConexaoEstado, string> = {
-  ok: "border-concluido",
-  erro: "border-atencao",
-  aviso: "border-aviso",
-  off: "border-tx-3",
+// O filete LATERAL da linha de lista codifica SELEÇÃO (border-l-acao quando ativa), não estado —
+// por isso não há mapa de estado para ele. Seleção é "lugar", e o contrato de direção reserva o
+// filete lateral exatamente para lugar e para severidade de fila.
+
+// Filete de TOPO — para a caixa de recado. Filete lateral grosso numa caixa é o antipadrão que a
+// regra da casa já proibia; aqui ele virou régua no topo, como em todo cartão do sistema.
+const ESTADO_TOPO: Record<ConexaoEstado, string> = {
+  ok: "border-t-concluido",
+  erro: "border-t-urgente",
+  aviso: "border-t-aviso",
+  off: "border-t-regua-forte",
 };
 
 function EstadoDot({ estado }: { estado: ConexaoEstado }) {
@@ -194,7 +207,7 @@ function IntegrationDetail({ item, runs }: { item: ConexaoItem; runs: Integratio
 
       {item.acoes && <div className="flex flex-wrap gap-2">{item.acoes}</div>}
 
-      <div className={clsx("flex items-start gap-2 bg-sf-apoio border-l-4 px-3 py-2.5", ESTADO_BORDER[item.estado])}>
+      <div className={clsx("flex items-start gap-2 bg-sf-apoio border-t-2 px-3 py-2.5", ESTADO_TOPO[item.estado])}>
         <EstadoDot estado={item.estado} />
         <p className="text-sm text-tx">
           <span className={clsx("font-semibold", ESTADO_TEXT[item.estado])}>{item.estadoTexto}</span>

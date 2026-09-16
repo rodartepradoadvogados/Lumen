@@ -120,7 +120,7 @@ export default async function ImprimirRelatorioPage({ searchParams }: { searchPa
             {/* ---------- TOTAIS ---------- */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
               {resultado.blocos.map((b) => (
-                <div key={b.chave} style={{ borderLeft: "3px solid #14161a", padding: "4px 12px", minWidth: 120 }}>
+                <div key={b.chave} style={{ borderTop: "2px solid #14161a", padding: "8px 12px 4px", minWidth: 120 }}>
                   <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.1 }}>{b.valor}</div>
                   <div style={{ fontSize: 9.5, color: "#3d4045" }}>{b.rotulo}</div>
                   <div style={{ fontSize: 8.5, color: "#8b939c" }}>período anterior: {b.anterior}</div>

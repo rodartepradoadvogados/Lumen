@@ -32,6 +32,7 @@ import MigrarPastasLegadasButton from "@/components/MigrarPastasLegadasButton";
 import ReorganizeAttachmentsButton from "@/components/ReorganizeAttachmentsButton";
 import ReconciliarAnexosDriveGlobalButton from "@/components/ReconciliarAnexosDriveGlobalButton";
 import RenameCasesToConventionButton from "@/components/RenameCasesToConventionButton";
+import Aviso, { tomTexto } from "@/components/Aviso";
 
 export const dynamic = "force-dynamic";
 // Teto maior que o padrão — o botão "Reconciliar anexos do Drive (todas as pastas)"
@@ -85,8 +86,10 @@ export const maxDuration = 300;
 const EMAIL_PROVIDER_LABEL: Record<string, string> = { GOOGLE: "Google (Gmail)", MICROSOFT: "Microsoft (Outlook)" };
 
 function StatusLine({ state, children }: { state: "ok" | "erro"; children: React.ReactNode }) {
-  const tone: Record<typeof state, string> = { ok: "border-concluido text-concluido", erro: "border-atencao text-atencao" };
-  return <p className={`flex items-center gap-2 border-l-4 ${tone[state]} bg-sf-apoio px-3 py-2 text-xs font-medium mb-3`}>{children}</p>;
+  const tom = ({ ok: "ok", erro: "perigo" } as const)[state];
+  return (
+    <Aviso tom={tom} className={`flex items-center gap-2 font-medium ${tomTexto(tom)} mb-3`}>{children}</Aviso>
+  );
 }
 
 function formatRelative(date: Date): string {

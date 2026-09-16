@@ -43,7 +43,7 @@ export default function BreakGlassField({
 
   if (revelado !== undefined) {
     return (
-      <span className="inline-flex items-center gap-1.5 border-l-4 border-atencao pl-2 tabular-nums">
+      <span className="inline-flex items-center gap-1.5 border-t-2 border-urgente pt-1 tabular-nums">
         <Unlock size={11} className="text-atencao shrink-0" aria-hidden />
         <span>{revelado}</span>
         <span className="text-etiqueta font-bold uppercase tracking-[0.1em] text-atencao">break-glass</span>
@@ -82,7 +82,7 @@ export default function BreakGlassField({
   }
 
   return (
-    <div className="mt-1.5 border-l-4 border-atencao bg-sf-apoio p-3 text-xs space-y-2 max-w-sm">
+    <div className="mt-1.5 border-t-2 border-urgente bg-sf-apoio p-3 text-xs space-y-2 max-w-sm">
       <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-atencao">Break-glass</p>
       <p className="text-tx-2">
         Revelar exige um motivo — fica registrado na trilha de auditoria do escritório e a revelação dura 15 minutos.
