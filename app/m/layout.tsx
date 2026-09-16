@@ -14,7 +14,7 @@ import LumenMark from "@/components/LumenMark";
 import SupportAccessBanner from "@/components/SupportAccessBanner";
 import OfficeSuspendedNotice from "@/components/OfficeSuspendedNotice";
 import { UndoToastProvider } from "@/components/UndoToastProvider";
-import { getAlertsCount, getTodayAgendaCount } from "@/lib/alerts";
+import { getAlertsCount, getAgendaBadgeCount } from "@/lib/alerts";
 import { getOfficeModules } from "@/lib/officeModules";
 
 export const dynamic = "force-dynamic";
@@ -65,11 +65,11 @@ export default async function MobileLayout({ children }: { children: React.React
   // documento 08, o sino é o único caminho até /m/alertas agora). A contagem específica de
   // Publicações (usada no card próprio dela) já é buscada por app/m/page.tsx e
   // app/m/publicacoes/page.tsx, não precisa duplicar aqui.
-  const [totalAlerts, todayAgendaCount, sessionSeconds, modules] = await Promise.all([
+  const [totalAlerts, agendaBadgeCount, sessionSeconds, modules] = await Promise.all([
     getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin),
     // Compromissos que vencem HOJE (mesmo critério do reforço "Hoje" do Painel) — alimenta a
     // bolinha da aba "Agenda" na barra inferior (documento 08).
-    getTodayAgendaCount(user.officeId),
+    getAgendaBadgeCount(user.officeId),
     getCurrentSessionElapsedSeconds(user.id),
     // Alimenta o menu do "+" central (MobileBottomNav -> MobileNewEntitySheet): Atendimento e
     // Assessoria só aparecem como opção de cadastro se o módulo estiver contratado.
@@ -124,7 +124,8 @@ export default async function MobileLayout({ children }: { children: React.React
                 <Bell size={16} />
               )}
               {totalAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-gaveta-tinta text-corpo font-bold flex items-center justify-center border border-gaveta">
+                <span // Contagem não é risco: pastilha neutra, invertida contra o topo (pedido do dono, 2026-09-16).
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gaveta-tinta text-gaveta text-etiqueta font-bold flex items-center justify-center border border-gaveta">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}
@@ -151,7 +152,7 @@ export default async function MobileLayout({ children }: { children: React.React
 
       <main className="pb-20 min-h-screen max-w-md mx-auto">{children}</main>
 
-      <MobileBottomNav todayAgendaCount={todayAgendaCount} modules={modules} />
+      <MobileBottomNav agendaBadgeCount={agendaBadgeCount} modules={modules} />
       <InstallPrompt />
     </div>
     </UndoToastProvider>

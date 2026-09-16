@@ -13,8 +13,7 @@ type AppShellProps = {
   sidebarProps: {
     hasFinanceAccess: boolean;
     unreadPublications: number;
-    totalAlerts: number;
-    todayAgendaCount: number;
+    agendaBadgeCount: number;
     modules: OfficeModules;
   };
   topBar: React.ReactNode;
@@ -134,9 +133,9 @@ function ShellChrome({
   // ele muda de verdade (navegação por link, botão voltar/avançar etc.).
   const [section, setSection] = useState<SectionKey | "painel" | null>(() => sectionForPathname(pathname));
   useEffect(() => {
-    // Passa a seção ainda ativa como preferência de desempate — ver comentário de
-    // sectionForPathname em lib/navSections.ts sobre a ambiguidade de /publicacoes.
-    setSection((prev) => sectionForPathname(pathname, prev));
+    // Derivado só do pathname. Antes passava a seção ativa como desempate, porque /publicacoes
+    // pertencia a duas seções — a duplicata saiu de Jurídico e a ambiguidade com ela.
+    setSection(sectionForPathname(pathname));
   }, [pathname]);
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -155,8 +154,7 @@ function ShellChrome({
             <NavRail
               hasFinanceAccess={sidebarProps.hasFinanceAccess}
               unreadPublications={sidebarProps.unreadPublications}
-              totalAlerts={sidebarProps.totalAlerts}
-              todayAgendaCount={sidebarProps.todayAgendaCount}
+              agendaBadgeCount={sidebarProps.agendaBadgeCount}
               modules={sidebarProps.modules}
               activeSection={section}
               onSelectSection={setSection}

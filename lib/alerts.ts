@@ -601,10 +601,21 @@ export async function getAlertsCount(
 // critério de tasksToday em getTodayItems logo abaixo (dueDate de hoje, sem concluído/cancelado),
 // mas sem trazer o registro inteiro: a Sidebar renderiza em toda navegação, então um count() é
 // bem mais barato que buscar case/responsible junto só para descartar depois.
-export async function getTodayAgendaCount(officeId: string): Promise<number> {
+// O número que aparece no ícone de Agenda (rail do portal e barra de baixo do app).
+//
+// Pedido explícito do dono em 2026-09-16: "esse número deve refletir apenas a quantidade de
+// compromissos do dia + atrasados". Antes eram duas coisas erradas somadas:
+//
+//   1. esta função contava SÓ o que vence hoje, deixando o atrasado invisível — que é
+//      exatamente o que mais precisa aparecer;
+//   2. o NavRail somava `getAlertsCount` por cima, que inclui publicação não lida — já contada
+//      no badge de Comunicação, ao lado. O mesmo item era contado duas vezes, em dois ícones.
+//
+// `dueDate <= fim de hoje` cobre os dois casos de uma vez: o que venceu e o que vence hoje.
+export async function getAgendaBadgeCount(officeId: string): Promise<number> {
   const now = new Date();
   return prisma.task.count({
-    where: { officeId, dueDate: { gte: startOfDay(now), lte: endOfDay(now) }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+    where: { officeId, dueDate: { lte: endOfDay(now) }, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
   });
 }
 

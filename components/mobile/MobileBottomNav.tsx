@@ -33,7 +33,7 @@ const items = [
   { href: "/m/financeiro", label: "R$", Icon: DollarSign, badge: null },
 ];
 
-export default function MobileBottomNav({ todayAgendaCount = 0, modules }: { todayAgendaCount?: number; modules: OfficeModules }) {
+export default function MobileBottomNav({ agendaBadgeCount = 0, modules }: { agendaBadgeCount?: number; modules: OfficeModules }) {
   const pathname = usePathname();
   const [newEntityOpen, setNewEntityOpen] = useState(false);
 
@@ -42,7 +42,7 @@ export default function MobileBottomNav({ todayAgendaCount = 0, modules }: { tod
     <nav className="fixed bottom-0 inset-x-0 h-[76px] bg-sf border-t-2 border-regua-forte flex items-center z-40">
       {items.map(({ href, label, Icon, badge, central }) => {
         const active = href !== null && (pathname === href || pathname.startsWith(`${href}/`));
-        const badgeCount = badge === "agenda" ? todayAgendaCount : 0;
+        const badgeCount = badge === "agenda" ? agendaBadgeCount : 0;
 
         if (central) {
           return (
@@ -73,7 +73,7 @@ export default function MobileBottomNav({ todayAgendaCount = 0, modules }: { tod
                 )}
               </span>
               {badge && badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-white text-corpo font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-tx text-sf-superficie text-corpo font-bold flex items-center justify-center">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
               )}

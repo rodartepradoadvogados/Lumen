@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { LayoutDashboard, Menu, Settings, X } from "lucide-react";
@@ -20,8 +20,7 @@ import type { OfficeModules } from "@/lib/officeModules";
 export default function NavRail({
   hasFinanceAccess = true,
   unreadPublications = 0,
-  totalAlerts = 0,
-  todayAgendaCount = 0,
+  agendaBadgeCount = 0,
   modules,
   activeSection,
   onSelectSection,
@@ -31,8 +30,7 @@ export default function NavRail({
 }: {
   hasFinanceAccess?: boolean;
   unreadPublications?: number;
-  totalAlerts?: number;
-  todayAgendaCount?: number;
+  agendaBadgeCount?: number;
   modules: OfficeModules;
   activeSection: SectionKey | "painel" | null;
   onSelectSection: (section: SectionKey | "painel") => void;
@@ -44,35 +42,30 @@ export default function NavRail({
   const pathname = usePathname();
   const { openTab, goToLiveView } = useTabs();
 
-  // Mesmo mecanismo de distinguir clique simples de duplo clique que a Sidebar antiga usava
-  // (ver components/AppShell.tsx/TabsProvider.tsx para o resto do fluxo de abas internas):
-  // todo clique é interceptado; se um 2º clique chegar dentro da janela, é duplo clique (abre
-  // aba nova); senão, decorrido o prazo, navega normalmente.
-  const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  useEffect(() => {
-    const timers = clickTimers.current;
-    return () => {
-      Object.values(timers).forEach(clearTimeout);
-    };
-  }, []);
+  // Clique simples navega; duplo clique abre guia interna (ver AppShell/TabsProvider para o
+  // resto do fluxo). Guarda o INSTANTE do último clique por destino, não um timer pendente: a
+  // navegação não espera mais nada para acontecer.
+  const ultimoClique = useRef<Record<string, number>>({});
 
   function handleClick(e: React.MouseEvent, href: string, label: string, section: SectionKey | "painel") {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
     onSelectSection(section);
 
-    const pending = clickTimers.current[href];
-    if (pending) {
-      clearTimeout(pending);
-      delete clickTimers.current[href];
+    // Navega NA HORA. Antes todo clique simples esperava 250ms só para descobrir se viraria um
+    // duplo — numa ferramenta de oito horas por dia, isso é atraso em cada navegação do dia
+    // inteiro. Agora o duplo clique continua abrindo guia, detectado DEPOIS do fato: o segundo
+    // clique dentro de 300ms no mesmo destino abre a guia, e a navegação já aconteceu.
+    const agora = Date.now();
+    const ultimo = ultimoClique.current[href];
+    if (typeof ultimo === "number" && agora - ultimo < 300) {
+      delete ultimoClique.current[href];
       openTab(href, label);
       return;
     }
-    clickTimers.current[href] = setTimeout(() => {
-      delete clickTimers.current[href];
-      goToLiveView();
-      router.push(href);
-    }, 250);
+    ultimoClique.current[href] = agora;
+    goToLiveView();
+    router.push(href);
   }
 
   const visibleSections = RAIL_SECTIONS.filter((s) => isSectionVisible(s, { hasFinanceAccess, modules }));
@@ -116,12 +109,13 @@ export default function NavRail({
             onClick={(e) => handleClick(e, "/painel", "Painel", "painel")}
           />
           {visibleSections.map((section) => {
-            // Seção Agenda reúne Calendário/Kanban/Alertas (lib/navSections.ts) — o badge do ícone
-            // soma os dois contadores que antes apareciam em itens separados da Sidebar antiga
-            // (compromissos de hoje + alertas pendentes), pra não perder nenhum dos dois sinais.
+            // O número da Agenda é compromisso de hoje MAIS atrasado, e nada além disso (pedido
+            // do dono, 2026-09-16 — ver getAgendaBadgeCount em lib/alerts.ts). Antes somava
+            // `getAlertsCount` por cima, que inclui publicação não lida: o MESMO item aparecia
+            // contado em dois ícones vizinhos, Agenda e Comunicação.
             const badge =
               section.key === "agenda"
-                ? todayAgendaCount + totalAlerts
+                ? agendaBadgeCount
                 : section.key === "comunicacao"
                   ? unreadPublications
                   : 0;
@@ -131,7 +125,9 @@ export default function NavRail({
                 href={section.items[0].href}
                 label={section.label}
                 icon={section.icon}
-                active={currentSection === section.key}
+                // Em /configuracoes quem acende é "Ajustes", no pé. Antes os DOIS acendiam:
+                // Ajustes declara a seção `gestao` e o ícone de Gestão acende com a mesma.
+                active={currentSection === section.key && !(section.key === "gestao" && onConfiguracoes)}
                 badge={badge}
                 onClick={(e) => handleClick(e, section.items[0].href, section.label, section.key)}
               />
@@ -152,7 +148,7 @@ export default function NavRail({
           />
         </div>
 
-        <div className="pb-3 text-etiqueta text-gaveta-tinta/30 text-center px-1">v0.1</div>
+        <div className="pb-3 text-etiqueta text-gaveta-tinta-2 text-center px-1">v0.1</div>
       </aside>
     </>
   );
@@ -194,7 +190,9 @@ function RailButton({
       <span className="relative">
         <Icon size={19} strokeWidth={1.5} />
         {badge > 0 && (
-          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-gaveta-tinta text-etiqueta font-bold flex items-center justify-center">
+          <span // Contagem não é risco: o vermelho fica reservado a prazo vencido (pedido do dono,
+          // 2026-09-16). O número vira uma pastilha neutra, invertida contra o rail.
+          className="absolute -top-1.5 -right-2 min-w-[17px] h-[17px] px-1 rounded-full bg-gaveta-tinta text-gaveta text-etiqueta font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}

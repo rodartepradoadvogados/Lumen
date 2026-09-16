@@ -9,8 +9,12 @@ import type { OfficeModules } from "@/lib/officeModules";
 // categorias com sub-abas que expandiam sozinhas na barra lateral, são 6 SEÇÕES (uma por ícone
 // do rail), cada uma com uma lista curta de itens.
 //
-// "Publicações" aparece em duas seções (Comunicação e Jurídico) — é a MESMA rota /publicacoes,
-// só dois pontos de entrada pra dois jeitos de pensar (fila de comunicação x visão processual).
+// ATÉ 2026-09-16 "Publicações" aparecia em DUAS seções (Comunicação e Jurídico), apontando para a
+// MESMA rota /publicacoes. O diagnóstico do redesign mediu o efeito: seis ícones entregavam cinco
+// destinos, clicar em "Jurídico" abria literalmente a mesma tela que "Comunicação", e a mesma URL
+// renderizava abas diferentes conforme a porta de entrada — estado invisível (`preferred`)
+// decidindo navegação visível. A entrada duplicada saiu de Jurídico; a rota continua alcançável
+// por Comunicação, pelo badge do rail e pelo Painel.
 //
 // subItems (herdado do modelo antigo) continua existindo só para os dois itens que não têm
 // nenhuma navegação própria dentro da página de destino (Relatórios e Configurações, ambos
@@ -75,7 +79,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // gestão de negócio; balança só tem uma leitura possível.
     icon: Scale,
     items: [
-      { href: "/publicacoes", label: "Publicações e andamentos" },
       { href: "/processos", label: "Processos e casos" },
       { href: "/assessoria", label: "Assessoria jurídica", moduleKey: "assessoria" },
     ],
@@ -87,6 +90,10 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // alinhado ao Financeiro do escritório (contas, fluxo de caixa) do que a um gasto pessoal.
     icon: Landmark,
     items: [
+      // O hub do Financeiro era órfão do rail: a única tela com os quatro agregados do escritório
+      // só era alcançável por um link pequeno e cinza acima do título das sub-páginas. Agora é o
+      // primeiro item da seção, e portanto o destino do ícone.
+      { href: "/financeiro", label: "Resumo" },
       { href: "/financeiro/despesas", label: "Despesas" },
       { href: "/financeiro/receitas", label: "Receitas" },
       { href: "/financeiro/fluxo-de-caixa", label: "Fluxo de caixa" },
@@ -158,25 +165,16 @@ export function visibleSectionItems(
 // "secao ... derivado do pathname"). "painel" é tratado à parte pelo NavRail (não é uma seção
 // deste array: é o único ícone que RECOLHE o painel em vez de abri-lo).
 //
-// `/publicacoes` aparece em duas seções (Comunicação e Jurídico, ver comentário acima) — por
-// pathname sozinho essa ambiguidade não tem resposta certa, então `preferred` (a seção já ativa
-// ANTES da navegação) desempata: se ela também é dona da rota nova, ela vence, em vez de sempre
-// cair na primeira do array. Sem isso, clicar em "Jurídico" (que só tem um item de entrada
-// exclusivo dele além de /publicacoes) navegava pra /publicacoes e a seção ativa "voltava"
-// sozinha pra Comunicação assim que o pathname mudava — só o 2º clique (já dentro de
-// /processos, sem ambiguidade) ficava certo.
-export function sectionForPathname(
-  pathname: string | null,
-  preferred?: SectionKey | "painel" | null
-): SectionKey | "painel" | null {
+// Com a entrada duplicada removida de Jurídico, nenhuma rota pertence a duas seções: o pathname
+// basta, e `preferred` deixou de existir. Enquanto ele existia, a MESMA URL podia renderizar abas
+// diferentes conforme a porta de entrada — estado invisível decidindo navegação visível.
+export function sectionForPathname(pathname: string | null): SectionKey | "painel" | null {
   if (!pathname) return null;
   if (pathname.startsWith("/painel")) return "painel";
-  const matches = RAIL_SECTIONS.filter((section) =>
+  const match = RAIL_SECTIONS.find((section) =>
     section.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
   );
-  if (matches.length === 0) return null;
-  if (preferred && matches.some((section) => section.key === preferred)) return preferred;
-  return matches[0].key;
+  return match ? match.key : null;
 }
 
 // Rótulo composto "Seção - Item" para as guias internas (components/TabTitleSync.tsx via
