@@ -6,7 +6,8 @@ import { Card, EmptyState, dueStatusClassName, dueStatusPulseClassName } from "@
 import AlertRow from "@/components/AlertRow";
 import DismissibleAlertRow from "@/components/DismissibleAlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
-import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, FolderSync, ClipboardList, AlarmClock, LucideIcon } from "lucide-react";
+import { metaDoAlerta } from "@/lib/alertKinds";
+import { AlertTriangle, Wallet, CalendarCheck2, Gavel, Stethoscope, ListTodo, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +16,6 @@ export const dynamic = "force-dynamic";
 // app mobile (largura cheia, cards empilhados, cabeçalhos como em app/m/publicacoes/page.tsx).
 // Antes desta página existir, menções/prazos vencidos/tarefas delegadas não apareciam em
 // lugar nenhum do app mobile — só a Central de Alertas do site (desktop) mostrava tudo isso.
-const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
-  PRAZO_VENCIDO: { label: "Prazo Vencido", icon: AlertTriangle },
-  CONTA_PAGAR_VENCIDA: { label: "Conta a Pagar Vencida", icon: Wallet },
-  CONTA_RECEBER_VENCIDA: { label: "Conta a Receber Vencida", icon: Wallet },
-  MENCAO: { label: "Menção", icon: AtSign },
-  PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
-  FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
-  TAREFA_DELEGADA: { label: "Tarefa Delegada", icon: UserPlus },
-  DRIVE_INCONSISTENCIA: { label: "Inconsistência no Drive", icon: FolderSync },
-  HONORARIO_APURAR_DECISAO: { label: "Honorário a Apurar — Decisão", icon: Gavel },
-  HONORARIO_APURAR_PARADO: { label: "Honorário a Apurar — Parado", icon: Gavel },
-  PENDENCIA_ATENDIMENTO_VENCIDA: { label: "Pendência do Atendimento", icon: ClipboardList },
-  RESPOSTA_PRAZO_ESTOURADO: { label: "Prazo de Resposta Estourado", icon: AlarmClock },
-};
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
   TAREFA: { label: "Tarefa", icon: ListTodo },
@@ -87,10 +74,9 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
           {alerts.length === 0 ? (
             <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
           ) : (
-            <div className="divide-y divide-regua stagger-in">
+            <div className="divide-y divide-regua">
               {alerts.map((a) => {
-                const meta = kindMeta[a.kind];
-                const Icon = meta.icon;
+                const { icon: Icon, label: metaLabel } = metaDoAlerta(a.kind);
                 return (
                   <DismissibleAlertRow
                     key={a.id}
@@ -103,7 +89,7 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                         <Icon size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
+                        <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide">{metaLabel}</p>
                         <p className="text-sm font-medium text-tx mt-0.5 break-words">{a.title}</p>
                         {a.subtitle && <p className="text-corpo text-tx-2 mt-0.5 break-words">{a.subtitle}</p>}
                         {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
@@ -123,9 +109,10 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
           {todayItems.length === 0 ? (
             <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
           ) : (
-            <div className="divide-y divide-regua stagger-in">
+            <div className="divide-y divide-regua">
               {todayItems.map((item) => {
-                const meta = todayMeta[item.kind];
+                // Guardado pelo mesmo motivo de metaDoAlerta: um tipo novo no banco não pode derrubar a tela.
+                const meta = todayMeta[item.kind] ?? { label: item.kind, icon: CalendarCheck2 };
                 const Icon = meta.icon;
                 return (
                   <Link

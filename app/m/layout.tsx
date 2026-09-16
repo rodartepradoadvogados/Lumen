@@ -124,8 +124,8 @@ export default async function MobileLayout({ children }: { children: React.React
                 <Bell size={16} />
               )}
               {totalAlerts > 0 && (
-                <span // Contagem não é risco: pastilha neutra, invertida contra o topo (pedido do dono, 2026-09-16).
-                className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-gaveta-tinta text-gaveta text-etiqueta font-bold flex items-center justify-center border border-gaveta tabular-nums">
+                <span // Bordô: contagem não é risco, e o vermelho fica só para prazo vencido (dono, 2026-09-16).
+                className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-acao text-acao-tx text-etiqueta font-bold flex items-center justify-center border border-gaveta tabular-nums">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}

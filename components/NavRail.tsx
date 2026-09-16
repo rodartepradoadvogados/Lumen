@@ -190,9 +190,10 @@ function RailButton({
       <span className="relative">
         <Icon size={19} strokeWidth={1.5} />
         {badge > 0 && (
-          <span // Contagem não é risco: o vermelho fica reservado a prazo vencido (pedido do dono,
-          // 2026-09-16). O número vira uma pastilha neutra, invertida contra o rail.
-          className="absolute -top-1.5 -right-2 min-w-[17px] h-[17px] px-1 rounded-full bg-gaveta-tinta text-gaveta text-etiqueta font-bold flex items-center justify-center">
+          <span // Bordô, não vermelho (pedido do dono, 2026-09-16): contagem não é risco, e o vermelho
+          // fica reservado a prazo vencido. O bordô é escuro nos dois temas, então o rótulo claro
+          // vale sempre.
+          className="absolute -top-1.5 -right-2 min-w-[17px] h-[17px] px-1 rounded-full bg-acao text-acao-tx text-etiqueta font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}

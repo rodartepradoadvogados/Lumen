@@ -8,25 +8,11 @@ import DeletionRequestsPanel from "@/components/DeletionRequestsPanel";
 import AlertRow from "@/components/AlertRow";
 import DismissibleAlertRow from "@/components/DismissibleAlertRow";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
-import { AlertTriangle, Wallet, AtSign, CalendarClock, CalendarCheck2, Gavel, Stethoscope, ListTodo, PhoneCall, UserPlus, FolderSync, ClipboardList, AlarmClock, LucideIcon } from "lucide-react";
+import { metaDoAlerta, ALERTAS_PESSOAIS } from "@/lib/alertKinds";
+import { AlertTriangle, Wallet, CalendarCheck2, Gavel, Stethoscope, ListTodo, LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
-  PRAZO_VENCIDO: { label: "Prazo Vencido", icon: AlertTriangle },
-  CONTA_PAGAR_VENCIDA: { label: "Conta a Pagar Vencida", icon: Wallet },
-  CONTA_RECEBER_VENCIDA: { label: "Conta a Receber Vencida", icon: Wallet },
-  MENCAO: { label: "Menção", icon: AtSign },
-  PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
-  FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
-  TAREFA_DELEGADA: { label: "Tarefa Delegada", icon: UserPlus },
-  DELEGACAO_SEM_CIENCIA: { label: "Delegação sem ciência", icon: UserPlus },
-  DRIVE_INCONSISTENCIA: { label: "Inconsistência no Drive", icon: FolderSync },
-  HONORARIO_APURAR_DECISAO: { label: "Honorário a Apurar — Decisão", icon: Gavel },
-  HONORARIO_APURAR_PARADO: { label: "Honorário a Apurar — Parado", icon: Gavel },
-  PENDENCIA_ATENDIMENTO_VENCIDA: { label: "Pendência do Atendimento", icon: ClipboardList },
-  RESPOSTA_PRAZO_ESTOURADO: { label: "Prazo de Resposta Estourado", icon: AlarmClock },
-};
 
 const todayMeta: Record<string, { label: string; icon: LucideIcon }> = {
   TAREFA: { label: "Tarefa", icon: ListTodo },
@@ -81,8 +67,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
 
   // O alerta é do ESCRITÓRIO ou é SEU? A distinção não estava visível em lugar nenhum, e é o que
   // explica por que dois usuários veem números diferentes na mesma tela.
-  const PESSOAIS = new Set(["MENCAO", "TAREFA_DELEGADA", "DELEGACAO_SEM_CIENCIA"]);
-  const pessoais = alerts.filter((a) => PESSOAIS.has(a.kind)).length;
+  const pessoais = alerts.filter((a) => ALERTAS_PESSOAIS.has(a.kind)).length;
   const doEscritorio = alerts.length - pessoais;
 
   return (
@@ -97,18 +82,18 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
           />
           <div className="px-5 py-4 grid gap-2.5">
             {composicao.map(([kind, n]) => {
-              const meta = kindMeta[kind];
+              const meta = metaDoAlerta(kind);
               return (
                 <div key={kind} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 items-baseline">
                   <span className="text-corpo text-tx">
                     {meta?.label ?? kind}
-                    {PESSOAIS.has(kind) && <span className="text-etiqueta text-tx-3 ml-2 uppercase tracking-[.09em]">só seu</span>}
+                    {ALERTAS_PESSOAIS.has(kind) && <span className="text-etiqueta text-tx-3 ml-2 uppercase tracking-[.09em]">só seu</span>}
                   </span>
                   <span className="text-corpo font-semibold text-tx tabular-nums">{n}</span>
                   <span className="col-span-2 h-1.5 bg-sf-apoio overflow-hidden">
                     <span
                       className="block h-full"
-                      style={{ width: `${(n / maiorTipo) * 100}%`, background: PESSOAIS.has(kind) ? "var(--faixa-anil)" : "var(--faixa-ardosia)" }}
+                      style={{ width: `${(n / maiorTipo) * 100}%`, background: ALERTAS_PESSOAIS.has(kind) ? "var(--faixa-anil)" : "var(--faixa-ardosia)" }}
                     />
                   </span>
                 </div>
@@ -158,8 +143,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
             ) : (
               <div className="divide-y divide-regua">
                 {alerts.map((a) => {
-                  const meta = kindMeta[a.kind];
-                  const Icon = meta.icon;
+                  const { icon: Icon, label: metaLabel } = metaDoAlerta(a.kind);
                   return (
                     <DismissibleAlertRow
                       key={a.id}
@@ -172,7 +156,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
                           <Icon size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={kindLabelClass}>{meta.label}</p>
+                          <p className={kindLabelClass}>{metaLabel}</p>
                           <p className="text-sm font-medium text-tx mt-0.5 break-words">{a.title}</p>
                           {a.subtitle && <p className="text-xs text-tx-3 mt-0.5 break-words">{a.subtitle}</p>}
                           {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
@@ -195,7 +179,8 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
           ) : (
             <div className="divide-y divide-regua">
               {todayItems.map((item) => {
-                const meta = todayMeta[item.kind];
+                // Guardado pelo mesmo motivo de metaDoAlerta: um tipo novo no banco não pode derrubar a tela.
+                const meta = todayMeta[item.kind] ?? { label: item.kind, icon: CalendarCheck2 };
                 const Icon = meta.icon;
                 return (
                   <Link
