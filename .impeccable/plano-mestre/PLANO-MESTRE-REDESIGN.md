@@ -12,7 +12,7 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F4 — Portal / SaaS** · casca concluída, telas em andamento |
-| **Próximo passo concreto** | `/processos/[id]` — a primeira guia deixa de ser 25 campos de mesmo peso e passa a ser *o que está pendente*; as 9 guias em faixa própria. Depois `/publicacoes` e os 13 filetes laterais |
+| **Próximo passo concreto** | Os 13 filetes laterais — decidir, tela a tela, quais são o sistema (severidade da fila, linha de triagem) e quais são recado avulso (Conexões, Comunicados, BreakGlassField). Depois `/publicacoes` e `/assessoria/[id]` |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 10 dos 24 fluxos (com `distill` em F4) (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | 0 de 5 na composição — mas as 5 já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -440,7 +440,10 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4b | Casca — o layout para de se mexer | `layout` | ✅ | #193 | 2026-09-16 | 10 larguras → **1**, numa classe só. Fade de página e cascata de lista removidos. Barra de abas com altura estável. O mesmo atraso de 250ms que restava na barra de abas |
 | F4c | Portal — `/painel` | `distill`, `clarify` | ✅ | #194 | 2026-09-16 | **A tarja de risco do escritório.** Saudação, halo e grão fora; "Minhas atrasadas" vira "do escritório"; medidores em régua; "O dia" para de somar vencido com futuro |
 | F4c | Rótulo sobre fundo de risco | `harden` | ✅ | #194 | 2026-09-16 | **19 arquivos** com rótulo claro cravado sobre cor de risco — invisíveis no tema escuro. Regra de lint impede a volta |
-| F4 | Portal — Jurídico | idem | ⬜ | — | — | próximo: `/processos/[id]` |
+| F4d | Alertas — número e reciprocidade | `clarify` | ✅ | #195 | 2026-09-16 | Classe de Tailwind inexistente escondia o número no app (23 usos, a maioria antiga); `/alertas` passa a mostrar de que é feito o número; alerta de delegação ganha o outro lado |
+| F4e | Central de Alertas quebrada | `harden` | ✅ | #196 | 2026-09-16 | Duas cópias do mapa de tipos + acesso sem guarda. Virou fonte única tipada: esquecer um tipo agora é erro de compilação. Pastilha volta a ser bordô (pedido do dono) |
+| F4f | Portal — `/processos/[id]` | `distill`, `layout` | ✅ | #197 | 2026-09-16 | Faixa "pendente neste processo" em todas as abas, sem consulta nova; guias numeradas com o chanfro do sistema; natureza vira identidade neutra; excluir separado por filete |
+| F4 | Portal — Comunicação e Financeiro | idem | ⬜ | — | — | próximo: os 13 filetes laterais |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
 | F4 | Portal — Comunicação | idem | ⬜ | — | — | — |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
