@@ -11,13 +11,13 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F1 — Diagnóstico completo** (F0 concluída) |
-| **Próximo passo concreto** | Rodar `document` em modo *refresh* para congelar o mundo visual atual como anti-referência, e em seguida `critique` + `audit` nas 5 superfícies |
-| **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — ainda não iniciada (F2) |
-| **Comandos executados** | 3 de 24 (`impeccable` roteador, `init`, e o launcher `context`) |
+| **Fase atual** | **F2 — A direção visual** (F0 e F1 concluídas) |
+| **Próximo passo concreto** | `shape` no Portal (superfície-âncora) → `new-work` nível *criar ou substituir o mundo* → mockup clicável de `/painel` e `/processos/[id]` nos dois temas → **aprovação escrita do dono** |
+| **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — F2 em andamento |
+| **Comandos executados** | 5 de 24 (`context`, `init`, `detect`, `critique`, `audit`) |
 | **Superfícies redesenhadas** | 0 de 5 |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
-| **Bloqueios abertos** | Nenhum |
+| **Bloqueios abertos** | Nenhum. **Duas pendências registradas:** (a) inspeção visual renderizada só na máquina do dono → F8; (b) 10 defeitos reais listados no diagnóstico podem virar PR curto antes de F2 — decisão do dono |
 
 ---
 
@@ -415,12 +415,12 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | Fase | Bloco | Comandos | Estado | PR | Data | Nota |
 |---|---|---|---|---|---|---|
 | F0 | Contexto e verdade de produto | `context`, `init` | ✅ | — | 2026-09-16 | `PRODUCT.md` e `config.json` criados |
-| F1 | Congelar mundo atual | `document` (refresh) | ⬜ | — | — | — |
-| F1 | Diagnóstico site público | `critique`, `audit` | ⬜ | — | — | linha de base 19/32 |
-| F1 | Diagnóstico blog | `critique`, `audit` | ⬜ | — | — | — |
-| F1 | Diagnóstico Portal | `critique`, `audit` | ⬜ | — | — | — |
-| F1 | Diagnóstico Painel Mestre | `critique`, `audit` | ⬜ | — | — | — |
-| F1 | Diagnóstico PWA | `critique`, `audit` | ⬜ | — | — | linha de base 23/40 |
+| F1 | Congelar mundo atual | `document` (refresh) | ⏭️ | — | 2026-09-16 | **Pulado com motivo:** os 4 relatórios de diagnóstico congelam o mundo atual com muito mais detalhe do que um refresh do DESIGN.md, e o DESIGN.md é reescrito do zero em F9. Para não deixar ficção no lugar, o DESIGN.md ganhou um aviso no topo apontando a rampa real medida |
+| F1 | Diagnóstico mecânico (5 superfícies) | `detect` | ✅ | #186 | 2026-09-16 | 1.078 achados · 263 arquivos · **93% é tipografia**; 73% mora em `components/**` |
+| F1 | Diagnóstico site público + blog | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Os 2 diferenciais do produto **não estão na landing**; blog é beco sem saída |
+| F1 | Diagnóstico Portal | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Rail = mapa do banco; 6 ícones → 5 destinos; nada entre 15px e 24px |
+| F1 | Diagnóstico PWA + Painel Mestre | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Piso de 13px vaza por componente compartilhado; `text-white` invisível no claro |
+| F1 | Consolidação e cobertura | — | ✅ | #186 | 2026-09-16 | `diagnostico/README.md` + seção 7 do inventário: **99 rotas cobertas** |
 | F2 | Brief do Portal | `shape` | ⬜ | — | — | — |
 | F2 | Direção visual + mockup + aprovação | `new-work` | ⬜ | — | — | **gate do dono** |
 | F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |

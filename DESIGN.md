@@ -88,6 +88,24 @@ components:
     typography: { fontWeight: 600, fontSize: "11px" }
 ---
 
+> ⚠️ **ESTE DOCUMENTO ESTÁ EM PROCESSO DE SUBSTITUIÇÃO — 2026-09-16.**
+>
+> O dono autorizou um **redesign completo** (cor de marca, tipografia e temas podem mudar). Enquanto
+> ele não for reescrito no fim do trabalho (fase F9 do plano mestre), leia o que está abaixo como
+> **registro do que existe hoje**, não como regra a seguir.
+>
+> **Correção de fato, medida em 2026-09-16 com `impeccable detect` sobre 263 arquivos:** a rampa
+> tipográfica descrita adiante (24 / 16 / 14 / 12) **não é a que o código usa**. O código usa
+> **11px (422 usos), 13px (376) e 10px (126)**, em 16 tamanhos distintos, com 1.003 ocorrências fora
+> da rampa. Nenhum dos três tamanhos mais usados existe na rampa documentada.
+>
+> Da mesma forma, o token `--tx-3` documentado abaixo **reprova WCAG AA** em todas as superfícies
+> (2,96:1 no PWA claro, 3,30:1 no Painel Mestre claro, ≈2,8:1 no site) e **já está autorizado a
+> mudar** (decisão D-07).
+>
+> Diagnóstico completo: `.impeccable/plano-mestre/diagnostico/`. Plano: `.impeccable/plano-mestre/PLANO-MESTRE-REDESIGN.md`.
+
+
 # Design System: Lúmen
 
 ## Overview
