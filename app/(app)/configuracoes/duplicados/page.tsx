@@ -17,7 +17,7 @@ export default async function DuplicadosPage() {
   const { error, grupos } = await listarClientesDuplicados();
 
   return (
-    <div className="tela space-y-6">
+    <div className="tela-leitura space-y-6">
       <Link href="/conexoes" className="inline-flex items-center gap-1.5 text-xs text-tx-2 hover:text-tx">
         <ArrowLeft size={13} /> Voltar para Conexões
       </Link>

@@ -123,7 +123,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ty
   }
 
   return (
-    <div className="tela">
+    <div className="tela-leitura">
       <PageHeader title="Novo Processo/Caso" subtitle="Cadastre um novo card — ele aparecerá na Agenda e no Kanban conforme tarefas forem criadas" />
       <Card className="p-6">
         <form action={submit} className="space-y-4">

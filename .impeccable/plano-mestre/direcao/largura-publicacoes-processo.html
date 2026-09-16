@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lúmen · Largura recuperada</title><style>:root{
+  --papel:#eaedf0; --ficha:#ffffff; --ficha-alt:#dfe3e8;
+  --gaveta:#d8dde3; --gaveta-fundo:#cdd4dc; --gaveta-tinta:#2c2f32; --gaveta-tinta-2:#51555c; --gaveta-linha:#bec7d2;
+  --linha:#cbd1da; --linha-forte:#a5b1bf;
+  --tinta:#14161a; --tinta-2:#3d4045; --tinta-3:#585c63;
+  --f-ardosia:#2f5d73; --f-anil:#3b4a86; --f-oliva:#4a6b33; --f-ocre:#835f13; --f-ameixa:#5f3468;
+  --acao:#8a2f42; --acao-hover:#9c3f51; --acao-tx:#fdf7f8; --acao-suave:#fbeced;
+  --risco:#8a2f42; --hoje:#8a5c00; --emdia:#1c6b52;
+  --campo-risco:#f5e5e6; --campo-risco-linha:#ddb1b5; --grave:#670224;
+  --rotulo:#fdf7f8;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --papel:#181b1f; --ficha:#212529; --ficha-alt:#131518;
+  --gaveta:#0f1113; --gaveta-fundo:#0a0b0d; --gaveta-tinta:#b1b3b8; --gaveta-tinta-2:#8b8f96; --gaveta-linha:#23272e;
+  --linha:#32383f; --linha-forte:#474f5a;
+  --tinta:#e9ebef; --tinta-2:#b8bbbf; --tinta-3:#93969d;
+  --f-ardosia:#4a93b5; --f-anil:#7988c4; --f-oliva:#699848; --f-ocre:#b4821a; --f-ameixa:#af76bb;
+  --acao-suave:#371c20; --risco:#c98b92; --hoje:#bd7e00; --emdia:#299d78;
+  --campo-risco:#401e24; --campo-risco-linha:#734249; --grave:#b56f79;
+  --rotulo:#14161a;
+}}
+:root[data-theme="dark"]{
+  --papel:#181b1f; --ficha:#212529; --ficha-alt:#131518;
+  --gaveta:#0f1113; --gaveta-fundo:#0a0b0d; --gaveta-tinta:#b1b3b8; --gaveta-tinta-2:#8b8f96; --gaveta-linha:#23272e;
+  --linha:#32383f; --linha-forte:#474f5a;
+  --tinta:#e9ebef; --tinta-2:#b8bbbf; --tinta-3:#93969d;
+  --f-ardosia:#4a93b5; --f-anil:#7988c4; --f-oliva:#699848; --f-ocre:#b4821a; --f-ameixa:#af76bb;
+  --acao-suave:#371c20; --risco:#c98b92; --hoje:#bd7e00; --emdia:#299d78;
+  --campo-risco:#401e24; --campo-risco-linha:#734249; --grave:#b56f79;
+  --rotulo:#14161a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--papel);color:var(--tinta);font:15px/1.55 var(--sans);padding-bottom:56px}
+:focus-visible{outline:2px solid var(--acao);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:30;background:var(--ficha);border-bottom:2px solid var(--linha-forte)}
+.hin{padding:13px 24px 0;display:grid;gap:11px}
+.marca{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.marca b{font:700 22px/1 var(--mono);letter-spacing:.16em}
+.marca span{font:600 12px/1 var(--mono);color:var(--tinta-2)}
+.abas{display:flex;gap:3px;align-items:flex-end}
+.aba{appearance:none;border:1px solid var(--linha-forte);border-bottom:none;background:transparent;color:var(--tinta-2);
+ font:650 12px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;padding:9px 15px 8px;cursor:pointer;
+ white-space:nowrap;position:relative;top:0;border-radius:2px 2px 0 0;
+ clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);transition:top .12s cubic-bezier(.2,.7,.3,1)}
+.aba[aria-selected="true"]{background:var(--acao);border-color:var(--acao);color:var(--acao-tx);top:-5px;padding-bottom:13px}
+main{padding:24px}
+h2{font:700 28px/1.15 inherit;letter-spacing:-.015em}
+h3{font:680 22px/1.2 inherit;letter-spacing:-.01em}
+p{max-width:74ch}
+.lede{font-size:18px;color:var(--tinta-2);margin-top:9px}
+.sec{margin-bottom:34px}
+.sech{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--linha-forte);padding-bottom:9px;margin-bottom:16px;flex-wrap:wrap}
+.et{font:650 12px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--tinta-2)}
+.nota{font:600 12px/1.6 var(--mono);color:var(--tinta-2)}
+.painel[hidden]{display:none}
+.quadro{border:1px solid var(--linha-forte);border-radius:2px;overflow:hidden;background:var(--papel)}
+.qh{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--linha-forte);background:var(--ficha)}
+.qh .u{font:600 12px/1 var(--mono);color:var(--tinta-2)}
+.qh .tg{margin-left:auto;font:650 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-2)}
+
+/* ---- a casca do portal, em escala real de monitor largo ---- */
+.app{display:grid;grid-template-columns:76px 1fr;min-height:620px;background:var(--papel);color:var(--tinta);font-size:15px}
+.rail{background:var(--gaveta);border-right:1px solid var(--linha-forte);padding:12px 0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rail .m{font:700 15px/1 var(--mono);letter-spacing:.1em;color:var(--gaveta-tinta);padding-bottom:10px}
+.ri{width:60px;padding:8px 2px;text-align:center;border-radius:2px;color:var(--gaveta-tinta-2);font:650 12px/1.35 var(--mono);display:grid;gap:3px;position:relative;cursor:pointer}
+.ri .g{font-size:15px;line-height:1}
+.ri.on{background:var(--acao-suave);color:var(--acao);font-weight:700}
+.ri .n{position:absolute;top:2px;right:8px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--acao);color:var(--acao-tx);font:700 12px/17px var(--mono);text-align:center}
+.rail .pe{margin-top:auto;font:600 12px/1 var(--mono);color:var(--gaveta-tinta-2)}
+.corpo{display:flex;flex-direction:column;min-width:0}
+.topo{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--ficha);border-bottom:1px solid var(--linha)}
+.topo .guia{font:600 12px/1 var(--mono);color:var(--tinta-2);border:1px solid var(--linha);padding:7px 11px;border-radius:2px 2px 0 0}
+.bt{appearance:none;border:1px solid var(--linha-forte);background:transparent;color:var(--tinta);
+ font:650 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 11px;border-radius:2px;cursor:pointer}
+.bt.pri{background:var(--acao);border-color:var(--acao);color:var(--acao-tx)}
+.bt.suave{background:var(--acao-suave);border-color:var(--acao);color:var(--acao)}
+.bt.grave{border-color:var(--grave);color:var(--grave)}
+.abas2{display:flex;gap:16px;padding:0 16px;background:var(--ficha);border-bottom:2px solid var(--linha-forte);height:40px;align-items:center}
+.abas2 a{font:600 15px/1 var(--sans);color:var(--tinta-2);padding:11px 0;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer}
+.abas2 a.on{color:var(--tinta);font-weight:650;border-bottom-color:var(--f-oliva)}
+.conteudo{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* ---- /publicacoes: lista + teor, ocupando a largura ---- */
+.pub-cab{padding:20px 24px 14px;background:var(--papel)}
+.pub-cab h1{font:700 28px/1.12 var(--sans);letter-spacing:-.015em}
+.pub-linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.filtro{display:flex;gap:3px;align-items:flex-end;margin-top:14px}
+.fchip{font:650 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 12px;border:1px solid var(--linha-forte);
+ background:var(--ficha);color:var(--tinta-2);border-radius:2px;cursor:pointer}
+.fchip.on{background:var(--f-oliva);border-color:var(--f-oliva);color:var(--rotulo)}
+.triagem{flex:1;display:flex;min-height:0;border-top:2px solid var(--f-oliva)}
+.fila{width:clamp(320px,30%,520px);flex:0 0 auto;border-right:2px solid var(--linha-forte);background:var(--ficha-alt);overflow:hidden}
+.fi{display:grid;gap:3px;padding:11px 14px;border-bottom:1px solid var(--linha);border-left:4px solid transparent;cursor:pointer}
+.fi.on{background:var(--ficha);border-left-color:var(--f-oliva)}
+.fi .d{display:flex;gap:8px;align-items:baseline;font:650 12px/1 var(--mono);color:var(--tinta-2)}
+.fi .d em{font-style:normal;color:var(--acao);letter-spacing:.06em}
+.fi .d span{margin-left:auto;color:var(--tinta-3)}
+.fi .t{font-size:15px;color:var(--tinta);line-height:1.4}
+.fi .tag{justify-self:start;font:650 12px/1 var(--mono);color:var(--tinta-2);background:var(--ficha-alt);border:1px solid var(--linha);padding:3px 6px;border-radius:2px}
+.fi.on .tag{background:var(--papel)}
+.teor{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--ficha)}
+.teor-cab{padding:18px 24px 14px;border-bottom:1px solid var(--linha)}
+.teor-cab .k{font:650 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-2)}
+.teor-cab h2{font-size:22px;margin-top:8px}
+.teor-cab .p{font:600 12px/1 var(--mono);color:var(--acao);margin-top:6px}
+.teor-corpo{flex:1;padding:20px 24px;overflow:hidden}
+.teor-corpo .med{max-width:78ch;display:grid;gap:14px;font-size:15px;line-height:1.65;color:var(--tinta-2)}
+.teor-corpo b{color:var(--tinta)}
+.teor-pe{border-top:2px solid var(--linha-forte);padding:12px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.teor-pe .at{margin-left:auto;font:600 12px/1 var(--mono);color:var(--tinta-3)}
+kbd{font:650 12px/1 var(--mono);border:1px solid var(--linha-forte);border-bottom-width:2px;border-radius:2px;padding:4px 6px;background:var(--ficha-alt)}
+
+/* ---- /processos/[id] ---- */
+.pr{padding:20px 24px;display:grid;gap:16px;min-width:0}
+.pr-volta{font:600 12px/1 var(--mono);color:var(--tinta-2)}
+.pr-cab{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.pr-cab h1{font:700 28px/1.12 var(--sans);letter-spacing:-.015em}
+.selo{display:inline-flex;font:650 12px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;padding:5px 8px;
+ border:1px solid var(--c,var(--linha-forte));color:var(--c,var(--tinta-2));border-radius:2px;margin-top:9px}
+.pr-num{font:600 12px/1 var(--mono);color:var(--tinta-2);margin-top:8px}
+.acoes{margin-left:auto;display:flex;gap:6px;align-items:center}
+.sep{width:1px;align-self:stretch;background:var(--linha-forte);margin:0 5px}
+.pend{border-top:2px solid var(--acao);background:var(--ficha)}
+.pend .in{padding:10px 16px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.pend b{font:700 18px/1 var(--mono);color:var(--acao)}
+.pend .h b{color:var(--hoje)}
+.pend .h span{color:var(--hoje)}
+.pend span{font-size:15px;color:var(--acao)}
+.guias{display:flex;flex-wrap:wrap;gap:3px;align-items:flex-end;border-bottom:2px solid var(--f-anil)}
+.guia-f{display:inline-flex;align-items:center;padding:9px 13px 8px;border:1px solid var(--linha-forte);border-bottom:none;
+ border-radius:2px 2px 0 0;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,0 100%);
+ font:650 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;background:var(--ficha);color:var(--tinta-2);
+ position:relative;top:0;cursor:pointer;transition:top .12s cubic-bezier(.2,.7,.3,1)}
+.guia-f .n{opacity:.7;margin-right:6px}
+.guia-f.on{background:var(--f-anil);border-color:var(--f-anil);color:var(--rotulo);top:-4px;padding-bottom:12px}
+.tres{display:grid;grid-template-columns:minmax(340px,1.15fr) minmax(260px,.8fr) minmax(380px,1.05fr);gap:20px;align-items:start}
+.card{background:var(--ficha);border:1px solid var(--linha);border-top:2px solid var(--linha-forte);border-radius:2px;padding:16px}
+.card .ct{font:650 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-2);margin-bottom:12px}
+.campo{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--linha);font-size:15px}
+.campo:last-child{border-bottom:none}
+.campo .r{color:var(--tinta-2)}
+.campo .v{text-align:right;color:var(--tinta);font-weight:500}
+.tl{display:grid;gap:11px;max-height:420px;overflow:hidden}
+.tl-i{display:grid;grid-template-columns:20px 1fr;gap:10px;font-size:15px}
+.tl-i .ic{font:600 12px/1.3 var(--mono);color:var(--tinta-3)}
+.tl-i b{display:block;font-weight:600;font-size:15px}
+.tl-i span{font:600 12px/1.5 var(--mono);color:var(--tinta-2)}
+.tl-i.risco .ic{color:var(--acao)}
+.antes-depois{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--linha-forte);border-radius:2px;overflow:hidden}
+.antes-depois>div{padding:15px 16px}
+.antes-depois .a{background:var(--ficha);border-right:1px solid var(--linha-forte)}
+.antes-depois .d{background:var(--ficha-alt)}
+.antes-depois .et{display:block;margin-bottom:8px}
+.antes-depois .a .et{color:var(--acao)}
+.antes-depois .d .et{color:var(--emdia)}
+.antes-depois p{font-size:15px;color:var(--tinta-2)}
+.antes-depois .g{font:700 22px/1.25 var(--sans);color:var(--tinta);margin-bottom:6px}
+@media (max-width:900px){.tres{grid-template-columns:1fr}.antes-depois{grid-template-columns:1fr}
+ .antes-depois .a{border-right:none;border-bottom:1px solid var(--linha-forte)}
+ .triagem{flex-direction:column}.fila{width:100%;border-right:none;border-bottom:2px solid var(--linha-forte)}}
+</style></head><body>
+<header><div class="hin">
+<div class="marca"><b>LÚMEN</b><span>o quadro volta a ocupar a largura · publicações e processo</span>
+<button class="bt" id="bt" style="margin-left:auto">Tema da página</button></div>
+<div class="abas" role="tablist">
+<button class="aba" role="tab" id="t-0" aria-controls="p-0" aria-selected="true">O que estava errado</button>
+<button class="aba" role="tab" id="t-1" aria-controls="p-1" aria-selected="false">Publicações</button>
+<button class="aba" role="tab" id="t-2" aria-controls="p-2" aria-selected="false">Processo</button>
+</div></div></header>
+<main>
+<section class="painel" id="p-0" role="tabpanel" aria-labelledby="t-0">
+<div class="sec"><h2>Consertei a instabilidade estreitando tudo. Era o conserto errado.</h2>
+<p class="lede">O diagnóstico achou dez larguras diferentes no portal, e com rail de largura fixa
+isso fazia o conteúdo deslizar lateralmente a cada navegação — a causa real do incômodo com
+"animações". Eu resolvi capando tudo em 1440px centralizado. Matou o deslize e criou o problema que
+o senhor viu num monitor largo: metade da tela vazia.</p></div>
+
+<div class="sec"><div class="sech"><h3>A correção de verdade não é uma largura menor — é uma regra constante</h3></div>
+<div class="antes-depois">
+  <div class="a"><span class="et">O que eu fiz</span>
+    <p class="g">Uma largura fixa, centralizada.</p>
+    <p>Estável, porque toda tela tinha o mesmo teto. Mas trata um monitor de 2000px como se fosse
+    um de 1440 com margem — e numa tela de lista + detalhe isso joga fora metade do espaço útil,
+    justamente onde o conteúdo é denso e a leitura acontece.</p></div>
+  <div class="d"><span class="et">O que passa a valer</span>
+    <p class="g">O quadro ocupa a largura, sempre.</p>
+    <p>Igualmente estável — não há nada para deslizar porque não há variação entre telas —, e o
+    monitor é usado. A densidade passa a ser governada na <b>coluna</b>, não na página: a fila de
+    triagem tem piso e teto, o teor tem medida de leitura, e as três colunas do processo ganham
+    peso por conteúdo em vez de simetria.</p></div>
+</div>
+<p class="nota" style="margin-top:14px">Quatro telas continuam com medida estreita, de propósito, porque
+são formulário e texto corrido e a linha longa atrapalha: Perfil, Importar, Novo processo e Nova assessoria.
+Nenhuma delas tem lista ou tabela densa.</p></div>
+
+<div class="sec"><div class="sech"><h3>O que muda em cada tela</h3></div>
+<div class="antes-depois">
+  <div class="a"><span class="et">Publicações · antes</span>
+    <p class="g">Painel duplo espremido no meio.</p>
+    <p>A fila tinha 560px fixos — larga demais num monitor largo, apertada num notebook — e o
+    conjunto ficava preso no quadro de 1440. O teor, que é o que se lê, sobrava.</p></div>
+  <div class="d"><span class="et">Publicações · agora</span>
+    <p class="g">Fila com piso e teto; o teor fica com a sobra.</p>
+    <p>A fila vale 30% da largura, nunca menos de 320px nem mais de 520px. O teor recebe todo o
+    resto, com medida de leitura de 78 caracteres dentro dele — a coluna estreita, o painel não.</p></div>
+</div>
+<div class="antes-depois" style="margin-top:16px">
+  <div class="a"><span class="et">Processo · antes</span>
+    <p class="g">Três colunas de peso igual e uma fixa em 320px.</p>
+    <p>"Partes e vínculos" tem duas ou três linhas e recebia o mesmo espaço de "Dados do processo",
+    que tem dez campos. A linha do tempo, que é a que mais cresce, ficava espremida em 320px fixos.</p></div>
+  <div class="d"><span class="et">Processo · agora</span>
+    <p class="g">Peso por conteúdo, com piso em cada coluna.</p>
+    <p>Dados 1,15 · Partes 0,8 · Linha do tempo 1,05 — cada uma com largura mínima própria, para a
+    sobra ir para quem usa. Em tela estreita as três empilham, como já faziam.</p></div>
+</div></div>
+</section>
+
+<section class="painel" id="p-1" role="tabpanel" aria-labelledby="t-1" hidden>
+<div class="sec"><h2>Publicações</h2><p class="lede">Lista e teor ocupando a largura do monitor.
+A fila tem piso e teto; o teor recebe a sobra e estreita só o texto.</p></div>
+<div class="quadro"><div class="qh"><span class="u">lumen.app/publicacoes</span><span class="tg">largura total</span></div>
+<div class="app"><nav class="rail"><span class="m">L</span><span class="ri"><span class="g">▣</span>Painel</span><span class="ri"><span class="g">▤</span>Agenda<span class="n">10</span></span><span class="ri on"><span class="g">▦</span>Comunicação<span class="n">5</span></span><span class="ri"><span class="g">⚖</span>Jurídico</span><span class="ri"><span class="g">▥</span>Financeiro</span><span class="ri"><span class="g">▧</span>Gestão</span><span class="pe">v0.1</span></nav><div class="corpo"><div class="topo"><span class="guia">Comunicação · Publicações</span><button class="bt" style="margin-left:auto">Buscar ⌘K</button><button class="bt pri">Peticionar</button><button class="bt suave">+ Novo</button></div>
+<div class="abas2"><a class="on">Publicações</a><a>Atendimentos</a><a>Funil comercial</a><a>Contatos</a></div>
+<div class="conteudo">
+  <div class="pub-cab">
+    <div class="pr-cab"><div><h1>Publicações</h1>
+      <div class="pr-num">DJEN 15:00 · Datajud 15:00 · duplicata entre fontes já agrupada</div></div>
+      <div class="acoes"><button class="bt">Marcar todas como lidas</button><button class="bt">Distribuir pendentes</button>
+      <button class="bt pri">Sincronizar</button></div></div>
+    <div class="filtro"><button class="fchip on">Não triadas · 5</button><button class="fchip">Minhas</button>
+      <button class="fchip">Sem processo · 369</button><button class="fchip">Arquivadas</button></div>
+  </div>
+  <div class="triagem">
+    <div class="fila"><div class="fi on"><span class="d">PROJUDI · <em>NÃO TRIADA</em><span>16/09/2026</span></span><span class="t">Sr(a). RODRIGO ARAÚJO DO PRADO, O Poder Judiciário do Estado de Goiás informa que está disponível uma intimação/citação referente ao…</span><span class="tag">sem processo vinculado</span></div><div class="fi"><span class="d">JUSBRASIL · <em>NÃO TRIADA</em><span>16/09/2026</span></span><span class="t">Título · 2412610 — Disponibilizado em 16/09/2026 · STJ · Termos encontrados RODRIGO ARAUJO DO PRADO GO032943</span><span class="tag">sem processo vinculado</span></div><div class="fi"><span class="d">PROJUDI · <em>NÃO TRIADA</em><span>15/09/2026</span></span><span class="t">Sr(a). RODRIGO ARAÚJO DO PRADO, O Poder Judiciário do Estado de Goiás informa que está disponível uma intimação/citação referente ao…</span><span class="tag">sem processo vinculado</span></div><div class="fi"><span class="d">DJEN · <em>NÃO TRIADA</em><span>15/09/2026</span></span><span class="t">AgInt nos EDcl no AREsp 2412610/GO (2023/0256282-2) · RELATOR: MINISTRO LUÍS CARLOS GAMBOGI</span><span class="tag">sem processo vinculado · TJGO</span></div><div class="fi"><span class="d">DJEN · <em>NÃO TRIADA</em><span>15/09/2026</span></span><span class="t">PODER JUDICIÁRIO · Tribunal de Justiça do Estado de Goiás · Gabinete do Des. Antônio Cézar Meneses · Agravo Interno na…</span><span class="tag">Leia Vicente Ribeiro × Leia Vicente Ribeiro (Autor)</span></div></div>
+    <div class="teor">
+      <div class="teor-cab"><div class="k">PROJUDI · ANDAMENTO · 16/09/2026</div>
+        <h2>Cliente compatível: Rodrigo Araújo do Prado</h2>
+        <div class="p">prazo sugerido (15 dias úteis) → 07/10/2026</div></div>
+      <div class="teor-corpo"><div class="med">
+        <p>Sr(a). RODRIGO ARAÚJO DO PRADO,</p>
+        <p>O Poder Judiciário do Estado de Goiás informa que está disponível uma intimação/citação referente ao processo nº <b>5726767.90</b> em sua caixa de entrada no Sistema PROJUDI.</p>
+        <p>Obs.: esta mensagem não possui valor legal.</p>
+        <p>Mensagem automática gerada às 16/09/2026 09:53:20. Por favor não responder.</p>
+      </div></div>
+      <div class="teor-pe"><button class="bt pri">Criar tarefa com prazo</button>
+        <button class="bt">Vincular a processo</button><button class="bt">Delegar</button><button class="bt">Arquivar</button>
+        <span class="at"><kbd>J</kbd> <kbd>K</kbd> navega · <kbd>Enter</kbd> cria tarefa · <kbd>A</kbd> arquiva · <kbd>L</kbd> marca como lida</span></div>
+    </div>
+  </div>
+</div></div></div></div></section>
+
+<section class="painel" id="p-2" role="tabpanel" aria-labelledby="t-2" hidden>
+<div class="sec"><h2>Processo</h2><p class="lede">Três colunas com peso por conteúdo, a faixa do que
+está pendente e as guias numeradas com o chanfro do sistema.</p></div>
+<div class="quadro"><div class="qh"><span class="u">lumen.app/processos/5377254-32.2025.8.09.0051</span><span class="tg">largura total</span></div>
+<div class="app"><nav class="rail"><span class="m">L</span><span class="ri"><span class="g">▣</span>Painel</span><span class="ri"><span class="g">▤</span>Agenda<span class="n">10</span></span><span class="ri"><span class="g">▦</span>Comunicação<span class="n">5</span></span><span class="ri on"><span class="g">⚖</span>Jurídico</span><span class="ri"><span class="g">▥</span>Financeiro</span><span class="ri"><span class="g">▧</span>Gestão</span><span class="pe">v0.1</span></nav><div class="corpo">
+<div class="topo"><span class="guia">Jurídico · Processos e casos</span>
+  <button class="bt" style="margin-left:auto">Buscar ⌘K</button>
+  <button class="bt pri">Peticionar</button><button class="bt suave">+ Novo</button></div>
+<div class="abas2"><a class="on">Processos e casos</a><a>Assessoria jurídica</a></div>
+<div class="pr">
+  <div class="pr-volta">← Processos e Casos</div>
+  <div class="pr-cab"><div>
+      <h1>Andrelina Mariano Alves da Silva × José Alves da Silva (Autor)</h1>
+      <span class="selo">Processo judicial</span>
+      <div class="pr-num">5377254-32.2025.8.09.0051 · TJGO · cliente Andrelina Mariano Alves da Silva</div></div>
+    <div class="acoes"><button class="bt">Modo reunião</button><button class="bt">Peticionar</button>
+      <button class="bt">Vincular assessoria</button><button class="bt">Ativo ▾</button>
+      <span class="sep"></span><button class="bt grave">Excluir</button></div></div>
+  <div class="pend"><div class="in"><span class="et">Pendente neste processo</span>
+    <span><b>2</b> <span>prazos vencidos</span></span>
+    <span class="h"><b>1</b> <span>para hoje</span></span>
+    <span><b>1</b> <span>honorário a apurar</span></span></div></div>
+  <div class="guias"><span class="guia-f on"><span class="n">1</span>O que está pendente</span><span class="guia-f"><span class="n">2</span>Atividades</span><span class="guia-f"><span class="n">3</span>Comentários</span><span class="guia-f"><span class="n">4</span>Financeiro</span><span class="guia-f"><span class="n">5</span>Publicações</span><span class="guia-f"><span class="n">6</span>Anexos</span><span class="guia-f"><span class="n">7</span>Protocolos</span><span class="guia-f"><span class="n">8</span>Anotações</span></div>
+  <div class="tres">
+    <div class="card"><div class="ct">Dados do processo</div>
+      <div class="campo"><span class="r">Advogado responsável</span><span class="v">Dra. Marina Ferraz</span></div><div class="campo"><span class="r">Vara/Comarca</span><span class="v">5ª Vara Cível · Goiânia</span></div><div class="campo"><span class="r">Valor da causa</span><span class="v">R$ 226.300,28</span></div><div class="campo"><span class="r">Proveito econômico</span><span class="v">—</span></div><div class="campo"><span class="r">Valor da condenação</span><span class="v">R$ 0,00</span></div><div class="campo"><span class="r">Tribunal</span><span class="v">TJGO — Tribunal de Justiça de Goiás</span></div><div class="campo"><span class="r">Sistema</span><span class="v">Projudi (principal) + PJD</span></div><div class="campo"><span class="r">Instância atual</span><span class="v">1º Grau</span></div><div class="campo"><span class="r">Data da distribuição</span><span class="v">15/05/2025</span></div><div class="campo"><span class="r">Criado no Lúmen</span><span class="v">09/07/2026</span></div></div>
+    <div class="card"><div class="ct">Partes e vínculos</div>
+      <div class="campo"><span class="r">Cliente</span><span class="v">Andrelina Mariano Alves da Silva<br><span style="color:var(--tinta-2);font-weight:400">(Interessado)</span></span></div>
+      <div class="campo"><span class="r">Parte adversa</span><span class="v">José Alves da Silva<br><span style="color:var(--tinta-2);font-weight:400">(Autor)</span></span></div>
+      <div class="campo"><span class="r">Também envolvidos</span><span class="v">Banco Bradesco S.A.<br><span style="color:var(--tinta-2);font-weight:400">(Réu)</span></span></div>
+      <div class="ct" style="margin-top:16px">Classificação</div>
+      <div class="campo"><span class="r">Matéria</span><span class="v">Cível · Bancário</span></div>
+      <div class="campo"><span class="r">Assessoria</span><span class="v">não vinculada</span></div></div>
+    <div class="card"><div class="ct">Linha do tempo</div><div class="tl">
+      <div class="tl-i risco"><span class="ic">▲</span><span><b>Publicação (DJEN)</b><span>02/09/2026 · 00:00</span></span></div><div class="tl-i risco"><span class="ic">▲</span><span><b>Publicação (DJEN)</b><span>02/09/2026 · 00:00</span></span></div><div class="tl-i "><span class="ic">·</span><span><b>Comentário de Jairo Rodarte</b><span>03/09/2026 · 17:09</span></span></div><div class="tl-i "><span class="ic">·</span><span><b>Processo cadastrado no Lúmen</b><span>09/07/2026 · 10:43</span></span></div><div class="tl-i "><span class="ic">·</span><span><b>Andamento (DATAJUD) · Confirmada</b><span>26/06/2026 · 18:02</span></span></div><div class="tl-i "><span class="ic">·</span><span><b>Andamento (DATAJUD) · Mero expediente</b><span>26/06/2026 · 16:44</span></span></div><div class="tl-i "><span class="ic">·</span><span><b>Andamento (DATAJUD) · Expedida/certificada</b><span>26/06/2026 · 16:44</span></span></div><div class="tl-i "><span class="ic">·</span><span><b>Andamento (DATAJUD) · Conclusão</b><span>23/06/2026 · 20:50</span></span></div>
+    </div></div>
+  </div>
+</div></div></div></div></section>
+</main>
+<footer style="padding:18px 24px;border-top:2px solid var(--linha-forte);margin-top:26px">
+<p class="nota">Lúmen · dados de exemplo · estrutura, proporção e cor são a proposta real.</p></footer>
+<script>
+(function(){
+ var r=document.documentElement,b=document.getElementById("bt");
+ b.addEventListener("click",function(){
+  var a=r.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+  r.setAttribute("data-theme",a==="dark"?"light":"dark");});
+ var abas=[].slice.call(document.querySelectorAll('[role="tab"]'));
+ function abrir(a){abas.forEach(function(o){var s=o===a;o.setAttribute("aria-selected",s?"true":"false");
+   o.tabIndex=s?0:-1;document.getElementById(o.getAttribute("aria-controls")).hidden=!s;});
+   scrollTo({top:0,behavior:"smooth"});}
+ abas.forEach(function(a,i){a.tabIndex=a.getAttribute("aria-selected")==="true"?0:-1;
+  a.addEventListener("click",function(){abrir(a)});
+  a.addEventListener("keydown",function(e){var d=e.key==="ArrowRight"?1:e.key==="ArrowLeft"?-1:0;
+   if(d){e.preventDefault();var n=abas[(i+d+abas.length)%abas.length];abrir(n);n.focus()}});});
+})();
+</script></body></html>

@@ -38,7 +38,7 @@ export default async function PerfilPage({
   ]);
 
   return (
-    <div className="tela space-y-6">
+    <div className="tela-leitura space-y-6">
       <PageHeader title="Meu Perfil" subtitle="Seus dados pessoais — só você enxerga e edita" />
       <Card>
         <CardHeader title="Dados pessoais" />
