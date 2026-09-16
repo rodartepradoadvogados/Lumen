@@ -173,6 +173,12 @@ const config: Config = {
         sf: {
           fundo: "var(--sf-fundo)",
           DEFAULT: "var(--sf-superficie)",
+          // Apelido com o nome da PRÓPRIA VARIÁVEL. Havia 23 usos de `bg-sf-superficie` e
+          // `text-sf-superficie` espalhados pelo produto — classes que o Tailwind não conhecia e
+          // que portanto não aplicavam cor nenhuma, silenciosamente. O sintoma que apareceu em
+          // produção: o número da Agenda sumia na barra de baixo do app, porque a pastilha tinha
+          // fundo escuro e o texto ficava com a cor herdada, também escura.
+          superficie: "var(--sf-superficie)",
           apoio: "var(--sf-apoio)",
         },
         regua: { DEFAULT: "var(--regua)", forte: "var(--regua-forte)" },

@@ -20,6 +20,7 @@ const kindMeta: Record<string, { label: string; icon: LucideIcon }> = {
   PARCELA_SEM_VENCIMENTO: { label: "Parcela Sem Vencimento", icon: CalendarClock },
   FOLLOWUP_ATRASADO: { label: "Follow-up Atrasado", icon: PhoneCall },
   TAREFA_DELEGADA: { label: "Tarefa Delegada", icon: UserPlus },
+  DELEGACAO_SEM_CIENCIA: { label: "Delegação sem ciência", icon: UserPlus },
   DRIVE_INCONSISTENCIA: { label: "Inconsistência no Drive", icon: FolderSync },
   HONORARIO_APURAR_DECISAO: { label: "Honorário a Apurar — Decisão", icon: Gavel },
   HONORARIO_APURAR_PARADO: { label: "Honorário a Apurar — Parado", icon: Gavel },
@@ -68,9 +69,54 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
       })
     : [];
 
+  // De que é feito o número. Um total de três dígitos sem composição é um número em que ninguém
+  // acredita — e a dúvida foi exatamente essa, do dono, em 2026-09-16. A tabela abaixo é a
+  // conferência: some as barras e dá o total do cabeçalho.
+  const porTipo = alerts.reduce<Record<string, number>>((acc, a) => {
+    acc[a.kind] = (acc[a.kind] ?? 0) + 1;
+    return acc;
+  }, {});
+  const composicao = Object.entries(porTipo).sort((a, b) => b[1] - a[1]);
+  const maiorTipo = composicao[0]?.[1] ?? 1;
+
+  // O alerta é do ESCRITÓRIO ou é SEU? A distinção não estava visível em lugar nenhum, e é o que
+  // explica por que dois usuários veem números diferentes na mesma tela.
+  const PESSOAIS = new Set(["MENCAO", "TAREFA_DELEGADA", "DELEGACAO_SEM_CIENCIA"]);
+  const pessoais = alerts.filter((a) => PESSOAIS.has(a.kind)).length;
+  const doEscritorio = alerts.length - pessoais;
+
   return (
     <div className="tela space-y-4">
       <PageHeader title="Central de Alertas" subtitle={tab === "pendentes" ? `${alerts.length} pendente(s)` : `${todayItems.length} item(ns) para hoje`} />
+
+      {tab === "pendentes" && alerts.length > 0 && (
+        <Card>
+          <CardHeader
+            title="De que é feito este número"
+            subtitle={`${doEscritorio} do escritório · ${pessoais} ${pessoais === 1 ? "só seu" : "só seus"}`}
+          />
+          <div className="px-5 py-4 grid gap-2.5">
+            {composicao.map(([kind, n]) => {
+              const meta = kindMeta[kind];
+              return (
+                <div key={kind} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 items-baseline">
+                  <span className="text-corpo text-tx">
+                    {meta?.label ?? kind}
+                    {PESSOAIS.has(kind) && <span className="text-etiqueta text-tx-3 ml-2 uppercase tracking-[.09em]">só seu</span>}
+                  </span>
+                  <span className="text-corpo font-semibold text-tx tabular-nums">{n}</span>
+                  <span className="col-span-2 h-1.5 bg-sf-apoio overflow-hidden">
+                    <span
+                      className="block h-full"
+                      style={{ width: `${(n / maiorTipo) * 100}%`, background: PESSOAIS.has(kind) ? "var(--faixa-anil)" : "var(--faixa-ardosia)" }}
+                    />
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       <div className="flex gap-2">
         <Link

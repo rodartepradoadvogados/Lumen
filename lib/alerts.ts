@@ -3,6 +3,10 @@ import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { pendenciaKindLabel } from "@/lib/pendencias";
 import { describeMentionLocation, mentionCommentInclude } from "@/lib/mentions";
 
+// Carência antes de cobrar ciência de uma delegação: um dia útil de folga, para o alerta ser
+// sinal e não ruído.
+const DELEGACAO_CARENCIA_HORAS = 24;
+
 export type AlertItem = {
   id: string;
   kind:
@@ -13,6 +17,12 @@ export type AlertItem = {
     | "PARCELA_SEM_VENCIMENTO"
     | "FOLLOWUP_ATRASADO"
     | "TAREFA_DELEGADA"
+    // O lado que faltava. TAREFA_DELEGADA é de mão única: só chega a quem RECEBEU. Quem delegou
+    // nunca ficava sabendo que a tarefa não foi confirmada — o alerta morria numa pessoa só, que
+    // foi exatamente a queixa do dono em 2026-09-16 ("alerta destinado a uma pessoa não comunica
+    // com alerta de outros"). Este fecha o circuito, com 24h de carência para não alertar sobre
+    // uma delegação feita há cinco minutos.
+    | "DELEGACAO_SEM_CIENCIA"
     | "DRIVE_INCONSISTENCIA"
     // Porta 1 (Fase 4 — apuração do êxito): processo com parcela A_APURAR que recebeu publicação/
     // andamento cujo conteúdo casa com termo de decisão (ver contemPalavraDecisao abaixo).
@@ -162,6 +172,7 @@ export async function getAlerts(
     undatedReceivables,
     overdueFollowups,
     delegatedTasks,
+    delegacoesSemCiencia,
     driveSyncIssues,
     apurarReceivables,
     overduePendencias,
@@ -205,6 +216,20 @@ export async function getAlerts(
             where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null },
             include: { case: true, delegatedBy: true },
             orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+      // O outro lado: o que EU deleguei e ninguém confirmou ainda.
+      viewerId
+        ? prisma.task.findMany({
+            where: {
+              officeId,
+              delegatedById: viewerId,
+              delegationAcknowledgedAt: null,
+              status: { notIn: ["CONCLUIDO", "CANCELADO"] },
+              createdAt: { lt: new Date(now.getTime() - DELEGACAO_CARENCIA_HORAS * 3600000) },
+            },
+            include: { case: true, responsible: true },
+            orderBy: { createdAt: "asc" },
           })
         : Promise.resolve([]),
       includeDriveSync
@@ -384,6 +409,21 @@ export async function getAlerts(
       dueStatus: "atrasado",
     });
   }
+  for (const t of delegacoesSemCiencia) {
+    alerts.push({
+      id: `task-delegacao-sem-ciencia-${t.id}`,
+      kind: "DELEGACAO_SEM_CIENCIA",
+      title: `${t.responsible?.name ?? "Ninguém"} ainda não confirmou: ${t.title}`,
+      subtitle: t.case?.title,
+      date: t.createdAt,
+      href: `/agenda`,
+      severity: "media",
+      entityKind: "TASK",
+      entityId: t.id,
+      processNumber: t.case?.processNumber ?? undefined,
+      dueStatus: "atrasado",
+    });
+  }
   for (const t of delegatedTasks) {
     alerts.push({
       id: `task-delegated-${t.id}`,
@@ -521,6 +561,7 @@ export async function getAlertsCount(
     undatedReceivables,
     overdueFollowups,
     delegatedTasks,
+    delegacoesSemCienciaCount,
     driveSyncIssues,
     apurarReceivables,
     overduePendenciasCount,
@@ -549,6 +590,17 @@ export async function getAlertsCount(
     }),
     viewerId
       ? prisma.task.count({ where: { officeId, responsibleId: viewerId, delegatedById: { not: null }, delegationAcknowledgedAt: null } })
+      : Promise.resolve(0),
+    viewerId
+      ? prisma.task.count({
+          where: {
+            officeId,
+            delegatedById: viewerId,
+            delegationAcknowledgedAt: null,
+            status: { notIn: ["CONCLUIDO", "CANCELADO"] },
+            createdAt: { lt: new Date(now.getTime() - DELEGACAO_CARENCIA_HORAS * 3600000) },
+          },
+        })
       : Promise.resolve(0),
     includeDriveSync ? prisma.driveSyncIssue.count({ where: { officeId, resolvedAt: null, id: { notIn: dismissedDriveIds } } }) : Promise.resolve(0),
     includeFinance
@@ -588,6 +640,7 @@ export async function getAlertsCount(
     undatedReceivables +
     overdueFollowups +
     delegatedTasks +
+    delegacoesSemCienciaCount +
     driveSyncIssues +
     casosComDecisaoNaoDispensados.size +
     parcelasParadas +

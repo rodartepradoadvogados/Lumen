@@ -125,7 +125,7 @@ export default async function MobileLayout({ children }: { children: React.React
               )}
               {totalAlerts > 0 && (
                 <span // Contagem não é risco: pastilha neutra, invertida contra o topo (pedido do dono, 2026-09-16).
-                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gaveta-tinta text-gaveta text-etiqueta font-bold flex items-center justify-center border border-gaveta">
+                className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-gaveta-tinta text-gaveta text-etiqueta font-bold flex items-center justify-center border border-gaveta tabular-nums">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}
