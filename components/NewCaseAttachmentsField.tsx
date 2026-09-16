@@ -90,7 +90,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
       <input type="hidden" name="stagedAttachments" value={JSON.stringify(payload)} />
 
       {!driveConnected && (
-        <p className="mt-1 text-etiqueta text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 px-2.5 py-1.5">
+        <p className="mt-1 text-etiqueta text-aviso dark:text-aviso bg-aviso-bg dark:bg-aviso/30 border border-aviso dark:border-aviso/40 px-2.5 py-1.5">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o caso, você
           ainda pode anexar documentos na aba Anexos.
         </p>
@@ -145,7 +145,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
               {it.uploading ? (
                 <Loader2 size={13} className="animate-spin text-tx-3 shrink-0" />
               ) : it.error ? (
-                <span className="text-etiqueta text-red-600 dark:text-red-400 shrink-0">{it.error}</span>
+                <span className="text-etiqueta text-urgente dark:text-urgente shrink-0">{it.error}</span>
               ) : (
                 <DocumentTypeSelect
                   value={it.docType}
@@ -157,7 +157,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
               <button
                 type="button"
                 onClick={() => removeItem(it.tempId)}
-                className="p-1 text-tx-3 hover:text-red-600 dark:hover:text-red-400 shrink-0"
+                className="p-1 text-tx-3 hover:text-urgente dark:hover:text-urgente shrink-0"
               >
                 <X size={13} />
               </button>

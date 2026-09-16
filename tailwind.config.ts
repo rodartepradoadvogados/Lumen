@@ -183,8 +183,20 @@ const config: Config = {
         },
         regua: { DEFAULT: "var(--regua)", forte: "var(--regua-forte)" },
         tx: { DEFAULT: "var(--tx)", 2: "var(--tx-2)", 3: "var(--tx-3)" },
-        acao: { DEFAULT: "var(--acao)", hover: "var(--acao-hover)", tx: "var(--acao-tx)", bg: "var(--acao-bg)", light: "var(--acao-light)" },
+        acao: { DEFAULT: "var(--acao)", hover: "var(--acao-hover)", tx: "var(--acao-tx)", bg: "var(--acao-bg)", light: "var(--acao-light)", suave: "var(--acao-suave)" },
+        // Campo suave de bordô — a tarja de risco do Painel. "Bordô, mas mais suave" (dono,
+        // 2026-09-16): um campo claro em vez de um bloco saturado. A prominência vem do NÚMERO
+        // em 40px e do filete, não da área de cor, que é exatamente o que o contrato de direção
+        // pede ("o tipo é matéria; o número É o bloco").
+        campo: { risco: "var(--campo-risco)", "risco-linha": "var(--campo-risco-linha)" },
+        // AÇÃO DESTRUTIVA — bordô PROFUNDO, não vermelho. Precisa se distinguir da ação primária
+        // sem mudar de matiz: a diferença é profundidade (razão de 1,6 entre as duas no claro)
+        // somada à palavra, que é o que de fato carrega o sentido. Regra do `colorize`:
+        // informação transmitida por cor também precisa de texto, forma ou posição.
+        grave: { DEFAULT: "var(--grave)", tx: "var(--grave-tx)" },
         marca: { DEFAULT: "var(--marca)", tx: "var(--marca-tx)", bg: "var(--marca-bg)" },
+        // `atencao` é apelido histórico de --vinho, que agora é o bordô profundo da ação
+        // destrutiva. Não é mais vermelho em lugar nenhum do produto.
         atencao: "var(--vinho)",
         // Texto sobre as superfícies que são grafite nos dois temas (rail, barra de menus da
         // Bancada, faixa de guias) — --tx-2 não serve ali, sumiria no tema Manhã.

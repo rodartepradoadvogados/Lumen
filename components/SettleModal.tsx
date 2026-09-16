@@ -151,7 +151,7 @@ export default function SettleModal({
           </div>
           <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} existingUrl={existingReceiptUrl} existingName={existingReceiptName} />
           {ficaParcial && (
-            <p className="text-etiqueta text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
+            <p className="text-etiqueta text-aviso dark:text-aviso bg-aviso/10 px-3 py-2">
               Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>, com saldo em aberto de {formatCurrency(saldoResultante)}{" "}
               após esta baixa.
             </p>
@@ -160,7 +160,7 @@ export default function SettleModal({
           <button
             type="submit"
             disabled={loading || valorNum <= 0}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 text-sm disabled:opacity-50"
+            className="w-full bg-concluido hover:bg-concluido text-rotulo font-semibold py-2 text-sm disabled:opacity-50"
           >
             {loading ? "Confirmando..." : "Confirmar Baixa"}
           </button>

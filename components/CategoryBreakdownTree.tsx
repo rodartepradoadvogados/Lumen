@@ -15,7 +15,7 @@ export function CategoryBreakdownSection({
   tone: "green" | "red";
   compact?: boolean;
 }) {
-  const toneClass = tone === "green" ? "text-emerald-600 dark:text-emerald-400" : "text-urgente";
+  const toneClass = tone === "green" ? "text-concluido dark:text-concluido" : "text-urgente";
   const pad = compact ? 10 : 16;
 
   return (

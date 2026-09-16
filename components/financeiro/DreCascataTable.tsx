@@ -24,7 +24,7 @@ export function DreCascataTable({
   totalReceitaBase: number;
   tone: "green" | "red";
 }) {
-  const toneClass = tone === "green" ? "text-emerald-600 dark:text-emerald-400" : "text-urgente";
+  const toneClass = tone === "green" ? "text-concluido dark:text-concluido" : "text-urgente";
   const anteriorPorId = new Map<string, number>();
   if (breakdownAnterior) flattenTotals(breakdownAnterior.groups, anteriorPorId);
   if (breakdownAnterior) anteriorPorId.set("uncategorized", breakdownAnterior.uncategorized.total);

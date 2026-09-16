@@ -43,8 +43,8 @@ export default function ChangePasswordForm() {
         <label className="text-xs font-medium text-tx-2">Confirmar nova senha</label>
         <input name="confirmPassword" type="password" required minLength={6} className="cfg-input w-full" />
       </div>
-      {error && <p className="text-etiqueta text-red-700 bg-red-50 border border-red-200 px-2.5 py-1.5">{error}</p>}
-      {success && <p className="text-etiqueta text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5">Senha alterada com sucesso.</p>}
+      {error && <p className="text-etiqueta text-urgente bg-urgente-bg border border-urgente px-2.5 py-1.5">{error}</p>}
+      {success && <p className="text-etiqueta text-concluido bg-concluido-bg border border-concluido px-2.5 py-1.5">Senha alterada com sucesso.</p>}
       <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50">
         {loading ? "Salvando..." : "Alterar senha"}
       </button>

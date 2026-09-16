@@ -41,10 +41,10 @@ export default function ImportForm({
       <SubmitButton label={label} />
       {(state.created > 0 || state.skipped > 0 || state.errors.length > 0) && (
         <div className="text-sm space-y-1 pt-2 border-t border-regua">
-          <p className="text-emerald-700 font-medium">{state.created} registro(s) importado(s) com sucesso</p>
+          <p className="text-concluido font-medium">{state.created} registro(s) importado(s) com sucesso</p>
           {state.skipped > 0 && <p className="text-tx-2">{state.skipped} linha(s) ignorada(s) (sem dado obrigatório)</p>}
           {state.errors.length > 0 && (
-            <div className="text-red-600">
+            <div className="text-urgente">
               <p className="font-medium">{state.errors.length} erro(s):</p>
               <ul className="list-disc list-inside max-h-32 overflow-y-auto scrollbar-thin">
                 {state.errors.slice(0, 20).map((e, i) => (

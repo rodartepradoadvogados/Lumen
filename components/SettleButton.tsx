@@ -70,7 +70,7 @@ export default function SettleButton({
         <>
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1 text-etiqueta font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 "
+            className="flex items-center gap-1 text-etiqueta font-semibold text-rotulo bg-concluido hover:bg-concluido px-2.5 py-1 "
           >
             <Check size={12} /> Dar Baixa
           </button>

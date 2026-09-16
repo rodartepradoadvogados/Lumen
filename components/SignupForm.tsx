@@ -70,7 +70,7 @@ export default function SignupForm() {
         onChange={(e) => setConfirmPassword(e.target.value)}
         className="border border-regua px-3 py-2 text-sm"
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-urgente">{error}</p>}
       <button
         type="submit"
         disabled={pending}

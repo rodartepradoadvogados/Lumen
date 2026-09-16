@@ -107,7 +107,7 @@ export default function EmailReplyPanel({ attendanceId, clientEmail }: { attenda
           {isPending ? "Enviando…" : "Enviar e-mail"}
         </button>
       </div>
-      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+      {error && <p className="text-xs font-medium text-urgente">{error}</p>}
     </div>
   );
 }

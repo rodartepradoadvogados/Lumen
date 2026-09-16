@@ -9,11 +9,11 @@ import AttendanceLostReasonModal from "@/components/AttendanceLostReasonModal";
 import { stageOptions, stageLabels } from "@/lib/funil";
 
 const colors: Record<string, string> = {
-  NOVO: "bg-amber-100 text-amber-700 border-amber-200",
-  QUALIFICACAO: "bg-blue-100 text-blue-700 border-blue-200",
+  NOVO: "bg-aviso-bg text-aviso border-aviso",
+  QUALIFICACAO: "bg-sf-apoio text-fonte-pje border-fonte-pje",
   PROPOSTA: "bg-marca-bg text-marca-tx border-marca/30",
-  FECHADO: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  PERDIDO: "bg-red-100 text-red-700 border-red-200",
+  FECHADO: "bg-concluido-bg text-concluido border-concluido",
+  PERDIDO: "bg-urgente-bg text-urgente border-urgente",
 };
 
 export default function FunnelStageSelect({
