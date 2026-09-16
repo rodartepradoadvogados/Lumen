@@ -25,6 +25,13 @@ import { CalendarClock, FilePlus2, UserPlus, Archive, Search, Layers, Ban, Check
 import type { PublicationGroup } from "@/lib/publicationGrouping";
 import { matchesPublicationChip, type PublicationChipKey } from "@/lib/publicationChips";
 
+// FILETE LATERAL DELIBERADO — o detector acusa `side-tab` aqui e a acusação fica em pé de
+// propósito, sem ignore de arquivo (que silenciaria todo achado futuro deste arquivo, inclusive
+// os reais). Dos treze filetes laterais que o diagnóstico encontrou, nove eram recado avulso e
+// viraram régua no topo (ver components/Aviso.tsx). Estes ficam porque aqui o filete NÃO decora
+// uma caixa: ele codifica o ESTADO da LINHA inteira, que é exatamente o papel que o contrato de
+// direção "Guias" reserva para ele.
+
 export type TriagePub = {
   id: string;
   kind: string;
@@ -402,7 +409,7 @@ function FilaCard({
       onClick={onSelect}
       disabled={Boolean(dismissing)}
       className={clsx(
-        "block w-full text-left px-4 py-3 border-l-4 rounded-lg transition-colors",
+        "block w-full text-left px-4 py-3 border-l-4 transition-colors",
         sourceBorderColor(pub.source),
         selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio/60",
         dismissing && [DISMISS_ANIMATION_CLASS[dismissing], "pointer-events-none"]

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Aviso, { tomTexto } from "@/components/Aviso";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getMyProfile } from "@/lib/actions/profile";
 import { prisma } from "@/lib/prisma";
@@ -12,8 +13,10 @@ export const dynamic = "force-dynamic";
 // importar o componente de lá — aquela tela é sobre integração do ESCRITÓRIO; esta é sobre conta
 // PESSOAL, então tokens de cor só, sem reaproveitar o componente inteiro).
 function StatusLine({ state, children }: { state: "ok" | "erro" | "off"; children: React.ReactNode }) {
-  const tone: Record<typeof state, string> = { ok: "border-concluido text-concluido", erro: "border-atencao text-atencao", off: "border-tx-3 text-tx-2" };
-  return <p className={`flex items-center gap-2 border-l-4 ${tone[state]} bg-sf-apoio px-3 py-2 text-xs font-medium`}>{children}</p>;
+  const tom = ({ ok: "ok", erro: "perigo", off: "neutro" } as const)[state];
+  return (
+    <Aviso tom={tom} className={`flex items-center gap-2 font-medium ${tomTexto(tom)}`}>{children}</Aviso>
+  );
 }
 
 export default async function PerfilPage({

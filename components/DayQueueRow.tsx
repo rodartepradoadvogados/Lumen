@@ -6,6 +6,13 @@ import clsx from "clsx";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT, type PrazoUrgencia } from "@/lib/dueStatus";
 
+// FILETE LATERAL DELIBERADO — o detector acusa `side-tab` aqui e a acusação fica em pé de
+// propósito, sem ignore de arquivo (que silenciaria todo achado futuro deste arquivo, inclusive
+// os reais). Dos treze filetes laterais que o diagnóstico encontrou, nove eram recado avulso e
+// viraram régua no topo (ver components/Aviso.tsx). Estes ficam porque aqui o filete NÃO decora
+// uma caixa: ele codifica a SEVERIDADE da LINHA inteira, que é exatamente o papel que o contrato de
+// direção "Guias" reserva para ele.
+
 // Linha da fila "O dia" do Painel (documento 03 do handoff do redesenho Modernist) — cada
 // compromisso (tarefa/evento/audiência/perícia/prazo) vencido ou dos próximos dias, com um botão
 // "Abrir" que abre o card do compromisso direto (mesmo TaskDetailModal usado em

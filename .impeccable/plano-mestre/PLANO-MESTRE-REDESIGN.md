@@ -12,10 +12,10 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F4 — Portal / SaaS** · casca concluída, telas em andamento |
-| **Próximo passo concreto** | Os 13 filetes laterais — decidir, tela a tela, quais são o sistema (severidade da fila, linha de triagem) e quais são recado avulso (Conexões, Comunicados, BreakGlassField). Depois `/publicacoes` e `/assessoria/[id]` |
+| **Próximo passo concreto** | `/publicacoes` e `/assessoria/[id]` — as duas telas densas que faltam no Portal. Depois F5 (site público e blog), que é onde os dois diferenciais do produto ainda não aparecem |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 10 dos 24 fluxos (com `distill` em F4) (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
-| **Superfícies redesenhadas** | 0 de 5 na composição — mas as 5 já estão no mundo novo de cor, tipo e raio (fundação F3) |
+| **Superfícies redesenhadas** | Portal com casca, `/painel`, `/processos/[id]` e `/alertas` feitos. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
 | **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual na paleta Ardósia, pelo dono** — a primeira rodada de conferência derrubou a paleta anterior e achou dois defeitos meus; (b) `audit` como passagem própria → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
 
@@ -443,7 +443,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4d | Alertas — número e reciprocidade | `clarify` | ✅ | #195 | 2026-09-16 | Classe de Tailwind inexistente escondia o número no app (23 usos, a maioria antiga); `/alertas` passa a mostrar de que é feito o número; alerta de delegação ganha o outro lado |
 | F4e | Central de Alertas quebrada | `harden` | ✅ | #196 | 2026-09-16 | Duas cópias do mapa de tipos + acesso sem guarda. Virou fonte única tipada: esquecer um tipo agora é erro de compilação. Pastilha volta a ser bordô (pedido do dono) |
 | F4f | Portal — `/processos/[id]` | `distill`, `layout` | ✅ | #197 | 2026-09-16 | Faixa "pendente neste processo" em todas as abas, sem consulta nova; guias numeradas com o chanfro do sistema; natureza vira identidade neutra; excluir separado por filete |
-| F4 | Portal — Comunicação e Financeiro | idem | ⬜ | — | — | próximo: os 13 filetes laterais |
+| F4g | Os 13 filetes laterais | `extract`, `polish` | ✅ | #198 | 2026-09-16 | 9 eram recado avulso e viraram régua no topo, num componente `Aviso` só; 3 ficam **declarados no código**, porque ali o filete codifica severidade, estado ou seleção da linha. **Detector: 1.078 → 3** |
+| F4 | Portal — Comunicação e Financeiro | idem | ⬜ | — | — | próximo: `/publicacoes` e `/assessoria/[id]` |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
 | F4 | Portal — Comunicação | idem | ⬜ | — | — | — |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |

@@ -30,7 +30,7 @@ export default function TestDjenButton() {
       {results && (
         <div className="mt-3 space-y-3">
           {results.map((r) => (
-            <div key={r.numeroOab} className={`border-l-4 ${r.ok ? "border-concluido" : "border-vinho"} bg-sf-apoio p-3`}>
+            <div key={r.numeroOab} className={`border-t-2 ${r.ok ? "border-concluido" : "border-urgente"} bg-sf-apoio p-3`}>
               <p className="text-xs font-semibold text-tx">
                 {r.label} — OAB {r.numeroOab}/{r.ufOab} {r.ok ? "✅" : "❌"} {r.status ? `(HTTP ${r.status})` : ""}
                 {r.cookieObtained !== undefined && ` · cookie de sessão: ${r.cookieObtained ? "obtido" : "não obtido"}`}

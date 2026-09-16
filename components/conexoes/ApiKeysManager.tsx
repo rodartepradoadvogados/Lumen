@@ -52,7 +52,7 @@ export default function ApiKeysManager({ initialKeys }: { initialKeys: ApiKeyRow
 
   return (
     <div>
-      <p className="text-xs text-tx-2 bg-sf-apoio border-l-4 border-tx-3 px-3 py-2 mb-4">
+      <p className="text-xs text-tx-2 bg-sf-apoio border-t-2 border-regua-forte px-3 py-2 mb-4">
         Nenhum endpoint do Lúmen valida essas chaves ainda — não existe hoje uma API pública do produto. Criar uma chave aqui
         gerencia a credencial, mas ela ainda não autentica nada sozinha.
       </p>

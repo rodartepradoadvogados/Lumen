@@ -182,7 +182,7 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
             />
           )}
           {aba === "rodape" && (
-            <div className="bg-sf-apoio border-l-4 border-regua-forte p-3 space-y-2">
+            <div className="bg-sf-apoio border-t-2 border-regua-forte p-3 space-y-2">
               <p className="text-xs text-tx-2">{RODAPE_OBRIGATORIO}</p>
               <p className="text-etiqueta text-tx-3">
                 Texto fixo — não é editável aqui, pra ninguém apagar por engano o aviso de LGPD e o link de cancelamento.
