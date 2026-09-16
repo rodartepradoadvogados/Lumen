@@ -118,6 +118,23 @@
   color-scheme: light;
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #dfa6ac;
+  --linha-aviso: #ceb38d;
+  --linha-concluido: #9bc2b1;
+  --linha-fonte: #a2bcc9;
+  --linha-grave: #e1a5ac;
+  --grave-bg: rgba(103, 2, 36, .14);
+  --fonte-pje-bg: rgba(47, 93, 115, .14);
 }
 
 .dark {
@@ -224,6 +241,23 @@
   color-scheme: dark;
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #624447;
+  --linha-aviso: #654617;
+  --linha-concluido: #255846;
+  --linha-fonte: #305263;
+  --linha-grave: #654246;
+  --grave-bg: rgba(181, 111, 121, .14);
+  --fonte-pje-bg: rgba(74, 147, 181, .14);
 }
 
 /* ----------------------------------------------------------------------------
@@ -862,6 +896,23 @@ html:has(.site-publico) {
   --font-display: var(--font-sans);
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #624447;
+  --linha-aviso: #654617;
+  --linha-concluido: #255846;
+  --linha-fonte: #305263;
+  --linha-grave: #654246;
+  --grave-bg: rgba(181, 111, 121, .14);
+  --fonte-pje-bg: rgba(74, 147, 181, .14);
 }
 
 .portal-shell.portal-light {
@@ -969,6 +1020,23 @@ html:has(.site-publico) {
   --font-display: var(--font-sans);
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #dfa6ac;
+  --linha-aviso: #ceb38d;
+  --linha-concluido: #9bc2b1;
+  --linha-fonte: #a2bcc9;
+  --linha-grave: #e1a5ac;
+  --grave-bg: rgba(103, 2, 36, .14);
+  --fonte-pje-bg: rgba(47, 93, 115, .14);
 }
 
 /* Único glow do sistema (--concluido-glow, ver .portal-shell acima) — reservado a um indicador
@@ -1120,6 +1188,23 @@ html:has(.site-publico) {
   color-scheme: light;
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #dfa6ac;
+  --linha-aviso: #ceb38d;
+  --linha-concluido: #9bc2b1;
+  --linha-fonte: #a2bcc9;
+  --linha-grave: #e1a5ac;
+  --grave-bg: rgba(103, 2, 36, .14);
+  --fonte-pje-bg: rgba(47, 93, 115, .14);
 }
 
 .mobile-shell.mobile-dark {
@@ -1226,6 +1311,23 @@ html:has(.site-publico) {
   color-scheme: dark;
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #624447;
+  --linha-aviso: #654617;
+  --linha-concluido: #255846;
+  --linha-fonte: #305263;
+  --linha-grave: #654246;
+  --grave-bg: rgba(181, 111, 121, .14);
+  --fonte-pje-bg: rgba(74, 147, 181, .14);
 }
 
 /* Mesmo glow reservado do portal (--concluido-glow acima) — primeiro uso aqui: Central de
@@ -1363,6 +1465,23 @@ html:has(.site-publico) {
   color-scheme: dark;
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #624447;
+  --linha-aviso: #654617;
+  --linha-concluido: #255846;
+  --linha-fonte: #305263;
+  --linha-grave: #654246;
+  --grave-bg: rgba(181, 111, 121, .14);
+  --fonte-pje-bg: rgba(74, 147, 181, .14);
 }
 
 /* Manhã do Painel da Empresa — pedido explícito do dono do projeto ao validar o protótipo:
@@ -1474,6 +1593,23 @@ html:has(.site-publico) {
   color-scheme: light;
   background: var(--papel);
   color: var(--tinta);
+
+  /* Filete suave por risco — família nova (2026-09-16, P0-OPACIDADE). O sistema tinha UM filete
+     suave (--campo-risco-linha, do campo de formulário) e nenhum para os outros riscos, então
+     quem precisava de um contorno tênue escrevia `border-urgente/20` — e essa classe NÃO EXISTE
+     no CSS gerado, porque o Tailwind só aplica opacidade a cor que traga <alpha-value>, e as
+     cores desta casa são `var(--x)`. Resultado medido no navegador: a borda saía no cinza
+     `gray-200` padrão do Tailwind, fixo nos dois temas. Eram 184 classes assim.
+     Derivados no mesmo método do --campo-risco-linha: matiz do risco, luminosidade da superfície,
+     croma a 55%. Ficam por volta de 1,9:1 contra a ficha DE PROPÓSITO — em todo uso conferido o
+     estado já é carregado pelo preenchimento (bg-*-bg) e pelo texto; o traço é só o contorno. */
+  --linha-urgente: #dfa6ac;
+  --linha-aviso: #ceb38d;
+  --linha-concluido: #9bc2b1;
+  --linha-fonte: #a2bcc9;
+  --linha-grave: #e1a5ac;
+  --grave-bg: rgba(103, 2, 36, .14);
+  --fonte-pje-bg: rgba(47, 93, 115, .14);
 }
 
 /* ============================================================================

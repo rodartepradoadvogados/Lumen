@@ -723,7 +723,7 @@ export default function MobileLancarHonorariosForm({
         </MobileSecaoLancamento>
       )}
 
-      <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-sf/95 backdrop-blur border-t border-regua flex items-center justify-between gap-3">
+      <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-sf backdrop-blur border-t border-regua flex items-center justify-between gap-3">
         <div>
           {recorrente ? (
             <>

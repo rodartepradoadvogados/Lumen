@@ -104,7 +104,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         {client.notes && (
           <div className="px-5 pb-5">
             <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">Observações</p>
-            <p className="text-sm text-tx/80 mt-0.5 whitespace-pre-wrap">{client.notes}</p>
+            <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{client.notes}</p>
           </div>
         )}
       </Card>
@@ -192,7 +192,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                       {p.case.title}
                     </Link>
                   )}
-                  <p className="text-sm text-tx/80 mt-1 line-clamp-2">{p.content}</p>
+                  <p className="text-sm text-tx-2 mt-1 line-clamp-2">{p.content}</p>
                 </div>
               </div>
             ))}

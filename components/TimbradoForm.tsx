@@ -118,7 +118,7 @@ export default function TimbradoForm({
         }}
         onClick={() => inputRef.current?.click()}
         className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 cursor-pointer transition-colors ${
-          arrastando ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
+          arrastando ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx hover:bg-sf-apoio"
         }`}
       >
         {enviando ? <Loader2 size={20} className="text-tx-2 animate-spin" /> : <UploadCloud size={20} className="text-tx-2" />}

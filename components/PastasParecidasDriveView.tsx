@@ -156,7 +156,7 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
                     <p className="text-xs font-semibold uppercase tracking-wide text-urgente">
                       {conflitos.length} conflito(s) de nome — não serão mexidos
                     </p>
-                    <ul className="text-xs text-urgente bg-urgente-bg border border-urgente/20 rounded-md divide-y divide-urgente/20">
+                    <ul className="text-xs text-urgente bg-urgente-bg border border-linha-urgente rounded-md divide-y divide-linha-urgente">
                       {conflitos.map((c, i) => (
                         <li key={i} className="px-3 py-1.5">
                           <span className="font-mono">{c.caminho}</span> — {c.motivo}

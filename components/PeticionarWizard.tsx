@@ -157,7 +157,7 @@ export default function PeticionarWizard({
     <ModalShell size="compacto" title={title} subtitle="Onde esta petição deve ficar salva?" onClose={onClose}>
       <div className="flex-1 min-h-0 overflow-y-auto p-5 flex flex-col gap-4">
         {error && (
-          <p className="text-sm text-urgente bg-urgente/10 border border-urgente/30 rounded-md px-3 py-2">{error}</p>
+          <p className="text-sm text-urgente bg-urgente-bg border border-linha-urgente rounded-md px-3 py-2">{error}</p>
         )}
 
         {loadingScreen && (

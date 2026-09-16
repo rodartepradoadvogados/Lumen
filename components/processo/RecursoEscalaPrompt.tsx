@@ -65,7 +65,7 @@ export default function RecursoEscalaPrompt({
   return (
     <div className="fixed inset-0 z-[60] bg-grafite-900/40 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-sf border-2 border-marca-tx/40 shadow-pop overflow-hidden"
+        className="w-full max-w-sm bg-sf border-2 border-marca-tx shadow-pop overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-regua">

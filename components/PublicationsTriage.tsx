@@ -413,7 +413,7 @@ function FilaCard({
       className={clsx(
         "block w-full text-left px-4 py-3 border-l-4 transition-colors",
         sourceBorderColor(pub.source),
-        selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio/60",
+        selected ? "bg-sf-apoio" : "bg-sf hover:bg-sf-apoio",
         dismissing && [DISMISS_ANIMATION_CLASS[dismissing], "pointer-events-none"]
       )}
     >

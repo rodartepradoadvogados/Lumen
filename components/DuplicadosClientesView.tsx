@@ -44,7 +44,7 @@ function GrupoCardHistorico({ grupo }: { grupo: GrupoClientesDuplicados }) {
       <div className="px-4 pb-3 flex flex-wrap gap-x-4 gap-y-1">
         {grupo.clientes.map((c) => (
           <span key={c.id} className="text-etiqueta text-tx-3">
-            {c.nome} <span className="text-tx-3/70">({c.assessoriaStatus === "ENCERRADA" ? "Assessoria encerrada" : "cadastrado " + dataBR(c.criadoEm)})</span>
+            {c.nome} <span className="text-tx-3">({c.assessoriaStatus === "ENCERRADA" ? "Assessoria encerrada" : "cadastrado " + dataBR(c.criadoEm)})</span>
           </span>
         ))}
       </div>
@@ -203,7 +203,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                     <p className="text-xs font-semibold uppercase tracking-wide text-urgente">
                       {simulacao.conflitosPastaDrive.length} conflito(s) na pasta do Drive — não serão mexidos
                     </p>
-                    <ul className="text-xs text-urgente bg-urgente-bg border border-urgente/20 rounded-md divide-y divide-urgente/20">
+                    <ul className="text-xs text-urgente bg-urgente-bg border border-linha-urgente rounded-md divide-y divide-linha-urgente">
                       {simulacao.conflitosPastaDrive.map((c, i) => (
                         <li key={i} className="px-3 py-1.5">
                           <span className="font-mono">{c.caminho}</span> — {c.motivo}

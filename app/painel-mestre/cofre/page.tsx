@@ -89,7 +89,7 @@ export default async function CofrePage() {
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-tx">Cofre de acesso</h1>
-        <p className="text-sm text-tx/55 mt-1">
+        <p className="text-sm text-tx-3 mt-1">
           Visão consolidada do acesso de suporte a todos os escritórios — somente leitura
         </p>
       </div>
@@ -197,7 +197,7 @@ export default async function CofrePage() {
                   <td className="px-3 py-3">
                     <span className="text-tx-2">{ACTION_LABEL[log.action] ?? log.action}</span>
                     {log.outOfBand && (
-                      <span className="ml-2 inline-flex items-center text-etiqueta font-semibold uppercase tracking-wide text-atencao border border-atencao/30 bg-atencao/10 rounded px-1.5 py-0.5">
+                      <span className="ml-2 inline-flex items-center text-etiqueta font-semibold uppercase tracking-wide text-atencao border border-linha-grave bg-grave-bg rounded px-1.5 py-0.5">
                         Fora do processo normal
                       </span>
                     )}

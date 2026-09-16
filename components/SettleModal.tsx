@@ -151,7 +151,7 @@ export default function SettleModal({
           </div>
           <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} existingUrl={existingReceiptUrl} existingName={existingReceiptName} />
           {ficaParcial && (
-            <p className="text-etiqueta text-aviso dark:text-aviso bg-aviso/10 px-3 py-2">
+            <p className="text-etiqueta text-aviso bg-aviso-bg px-3 py-2">
               Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>, com saldo em aberto de {formatCurrency(saldoResultante)}{" "}
               após esta baixa.
             </p>

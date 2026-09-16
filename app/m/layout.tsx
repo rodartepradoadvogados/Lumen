@@ -106,7 +106,7 @@ export default async function MobileLayout({ children }: { children: React.React
                 <span className="h-1.5 w-1.5 rounded-full bg-concluido shrink-0" aria-hidden="true" />
               </div>
               {office?.name && (
-                <p className="text-corpo text-gaveta-tinta/55 truncate max-w-[160px] leading-tight">{office.name}</p>
+                <p className="text-corpo text-gaveta-tinta-2 truncate max-w-[160px] leading-tight">{office.name}</p>
               )}
             </div>
           </Link>

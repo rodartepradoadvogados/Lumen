@@ -58,7 +58,7 @@ export default function SupportAccessPolicyPicker({ current }: { current: Policy
                 {isSelected && <CheckCircle2 size={14} className="text-sf shrink-0" />}
                 {opt.title}
               </p>
-              <p className={`text-xs mt-1 ${isSelected ? "text-sf/70" : "text-tx-2"}`}>{opt.description}</p>
+              <p className={`text-xs mt-1 ${isSelected ? "text-sf" : "text-tx-2"}`}>{opt.description}</p>
             </button>
           );
         })}

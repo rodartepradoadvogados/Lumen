@@ -288,7 +288,7 @@ export default function MobileNewAttendanceForm({
       </ButtonSecondary>
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-corpo text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-3 py-2">
+        <div className="flex items-start gap-2 text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-md px-3 py-2">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -420,7 +420,7 @@ export default function MobileNewAttendanceForm({
         <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
-          <p className="text-corpo text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5">
+          <p className="text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-md px-2.5 py-1.5">
             Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o atendimento,
             você ainda pode anexar documentos pelo computador.
           </p>
@@ -441,7 +441,7 @@ export default function MobileNewAttendanceForm({
               className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
                 dragOver
                   ? "border-marca-tx bg-acao-bg"
-                  : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
+                  : "border-regua hover:border-marca-tx hover:bg-sf-apoio"
               }`}
             >
               <UploadCloud size={18} className="text-tx-2" />

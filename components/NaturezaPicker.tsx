@@ -23,7 +23,7 @@ export default function NaturezaPicker({ value, onChange }: Props) {
         onClick={() => onChange("JUDICIAL")}
         aria-pressed={value === "JUDICIAL"}
         className={`flex items-start gap-3 border-2 p-4 text-left transition-colors ${
-          value === "JUDICIAL" ? "border-marca-tx bg-acao-bg" : "border-regua bg-sf hover:border-marca-tx/40"
+          value === "JUDICIAL" ? "border-marca-tx bg-acao-bg" : "border-regua bg-sf hover:border-marca-tx"
         }`}
       >
         <span
@@ -44,7 +44,7 @@ export default function NaturezaPicker({ value, onChange }: Props) {
         onClick={() => onChange("ADMINISTRATIVO")}
         aria-pressed={value === "ADMINISTRATIVO"}
         className={`flex items-start gap-3 border-2 p-4 text-left transition-colors ${
-          value === "ADMINISTRATIVO" ? "border-marca-tx bg-acao-bg" : "border-regua bg-sf hover:border-marca-tx/40"
+          value === "ADMINISTRATIVO" ? "border-marca-tx bg-acao-bg" : "border-regua bg-sf hover:border-marca-tx"
         }`}
       >
         <span

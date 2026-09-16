@@ -82,7 +82,7 @@ export default function NavRail({
         <Menu size={18} />
       </button>
 
-      {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-gaveta-fundo/60" onClick={onCloseMobile} />}
+      {mobileOpen && <div className="md:hidden fixed inset-0 z-40 bg-gaveta-fundo" onClick={onCloseMobile} />}
 
       {/* Grafite nos dois temas, fundo fixo (não usa --sf-*, que troca com o tema: o rail é
           sempre escuro, Manhã e Noite) — documento 02 do handoff. */}

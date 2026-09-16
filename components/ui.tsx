@@ -101,7 +101,7 @@ const badgeColors: Record<string, string> = {
   // fonte MANUAL em publicações, DESIGN-SYSTEM.md §9). Sem token `-bg` pronto pra `--vinho`
   // (só existe para acao/marca/urgente/aviso/concluido em globals.css), por isso o modificador
   // de opacidade do Tailwind (suportado por color-mix desde a 3.4) em vez de um novo `bg-bordo-*`.
-  bordo: "bg-atencao/10 dark:bg-atencao/15 text-atencao",
+  bordo: "bg-grave-bg text-atencao",
   // Concluído — Pago, tarefa concluída.
   green: "bg-concluido-bg text-concluido",
   // Neutro "apagado" — só o status financeiro Cancelado (DESIGN-SYSTEM.md §10: fundo --sf-apoio,

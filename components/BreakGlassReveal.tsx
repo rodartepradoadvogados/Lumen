@@ -79,7 +79,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
   }
 
   return (
-    <div className="mt-2 border border-marca-tx/30 bg-marca-bg p-3 text-xs space-y-2 max-w-md">
+    <div className="mt-2 border border-marca-tx bg-marca-bg p-3 text-xs space-y-2 max-w-md">
       <div className="flex items-center justify-between">
         <p className="font-semibold text-tx flex items-center gap-1.5">
           <Eye size={13} /> Quebra-vidro — {label}

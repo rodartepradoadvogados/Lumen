@@ -90,7 +90,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
       <input type="hidden" name="stagedAttachments" value={JSON.stringify(payload)} />
 
       {!driveConnected && (
-        <p className="mt-1 text-etiqueta text-aviso dark:text-aviso bg-aviso-bg dark:bg-aviso/30 border border-aviso dark:border-aviso/40 px-2.5 py-1.5">
+        <p className="mt-1 text-etiqueta text-aviso bg-aviso-bg border border-aviso dark:border-linha-aviso px-2.5 py-1.5">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o caso, você
           ainda pode anexar documentos na aba Anexos.
         </p>
@@ -112,7 +112,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
           className={`mt-1 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
             dragOver
               ? "border-marca-tx bg-acao-bg"
-              : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
+              : "border-regua hover:border-marca-tx hover:bg-sf-apoio"
           }`}
         >
           <UploadCloud size={18} className="text-tx-3" />

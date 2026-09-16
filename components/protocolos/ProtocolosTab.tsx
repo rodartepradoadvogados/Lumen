@@ -360,7 +360,7 @@ function LoteCard({
           <button
             onClick={handleCancelar}
             disabled={pending}
-            className="flex items-center gap-1.5 text-xs font-semibold text-atencao hover:bg-atencao/10 px-3 py-1.5 ml-auto disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs font-semibold text-atencao hover:bg-grave-bg px-3 py-1.5 ml-auto disabled:opacity-50"
           >
             <Ban size={13} /> Cancelar
           </button>
@@ -745,7 +745,7 @@ function SelecaoModal({
         </div>
       </div>
 
-      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-regua bg-sf-apoio/60">
+      <div className="shrink-0 flex items-center justify-end gap-2 px-5 py-4 border-t border-regua bg-sf-apoio">
         <button onClick={onClose} className="text-sm font-semibold text-tx-2 hover:text-tx px-3 py-2">
           Cancelar
         </button>
@@ -858,7 +858,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-marca-tx/40 py-3 text-xs text-tx-2"
+                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-marca-tx py-3 text-xs text-tx-2"
               >
                 Anexar comprovante devolvido pelo tribunal/órgão
               </button>

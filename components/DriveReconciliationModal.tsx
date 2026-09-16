@@ -26,7 +26,7 @@ import {
 // do resto do produto (bg-sf-apoio, borda em regua/acao conforme o papel do card).
 function CardArquivo({ nome, legenda, badge, destaque }: { nome: string; legenda: string; badge?: React.ReactNode; destaque?: boolean }) {
   return (
-    <div className={`flex-1 min-w-0 border rounded-lg p-3 bg-sf-apoio ${destaque ? "border-marca-tx/50" : "border-regua"}`}>
+    <div className={`flex-1 min-w-0 border rounded-lg p-3 bg-sf-apoio ${destaque ? "border-marca-tx" : "border-regua"}`}>
       <div className="flex items-start gap-2">
         <FileText size={18} className="shrink-0 text-tx-2 mt-0.5" />
         <div className="min-w-0">
@@ -262,7 +262,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
 
         {!carregando && erro && (
           <div className="flex-1 flex items-center justify-center px-6">
-            <p className="text-sm font-medium text-urgente bg-urgente-bg border border-urgente/20 rounded-md px-4 py-3 max-w-md text-center">{erro}</p>
+            <p className="text-sm font-medium text-urgente bg-urgente-bg border border-linha-urgente rounded-md px-4 py-3 max-w-md text-center">{erro}</p>
           </div>
         )}
 
@@ -431,7 +431,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                   </div>
                   <button
                     onClick={() => setDetalhe({ estagio: "escolher-existente", entIdx: detalhe.entIdx, pendIdx: detalhe.pendIdx })}
-                    className="text-left border border-regua rounded-lg p-3 hover:border-marca-tx/50 hover:bg-sf-apoio transition-colors h-fit"
+                    className="text-left border border-regua rounded-lg p-3 hover:border-marca-tx hover:bg-sf-apoio transition-colors h-fit"
                   >
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-tx">
                       <RefreshCw size={15} className="text-marca-tx" /> Substituir um documento existente
@@ -474,7 +474,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                   <button
                     disabled={pending}
                     onClick={() => onDesvincular(pendenciaAtual)}
-                    className="text-left border border-regua rounded-lg p-3 hover:border-urgente/50 hover:bg-sf-apoio transition-colors disabled:opacity-50"
+                    className="text-left border border-regua rounded-lg p-3 hover:border-linha-urgente hover:bg-sf-apoio transition-colors disabled:opacity-50"
                   >
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-tx">
                       <Trash2 size={15} className="text-urgente" /> Desvincular este anexo
@@ -483,7 +483,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                   </button>
                   <button
                     onClick={() => setDetalhe({ estagio: "apontar-outro", entIdx: detalhe.entIdx, pendIdx: detalhe.pendIdx })}
-                    className="text-left border border-regua rounded-lg p-3 hover:border-marca-tx/50 hover:bg-sf-apoio transition-colors"
+                    className="text-left border border-regua rounded-lg p-3 hover:border-marca-tx hover:bg-sf-apoio transition-colors"
                   >
                     <span className="flex items-center gap-1.5 text-sm font-semibold text-tx">
                       <Link2 size={15} className="text-marca-tx" /> Apontar para outro arquivo
@@ -543,7 +543,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                 <button
                   disabled={pending}
                   onClick={popup.onExtra}
-                  className="w-full border border-marca-tx/50 text-marca-tx text-sm font-semibold py-2 rounded-md hover:bg-acao-bg disabled:opacity-50"
+                  className="w-full border border-marca-tx text-marca-tx text-sm font-semibold py-2 rounded-md hover:bg-acao-bg disabled:opacity-50"
                 >
                   {popup.extraLabel}
                 </button>

@@ -41,7 +41,7 @@ export default function NewOfficeForm() {
 
   return (
     <form action={handleSubmit} className="space-y-4">
-      {error && <p className="text-xs text-atencao bg-atencao/10 dark:bg-atencao/15 px-3 py-2">{error}</p>}
+      {error && <p className="text-xs text-atencao bg-grave-bg px-3 py-2">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>

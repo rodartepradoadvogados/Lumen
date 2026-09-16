@@ -165,7 +165,7 @@ export default function NoticesPanel({
                     )}
                   </span>
                 </div>
-                <p className="text-sm text-tx/80 mt-0.5 whitespace-pre-wrap break-words">{n.content}</p>
+                <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap break-words">{n.content}</p>
               </div>
             </div>
           );
@@ -181,7 +181,7 @@ export default function NoticesPanel({
               onChange={handleTextChange}
               rows={1}
               placeholder="Escreva um recado para o escritório... use @ para mencionar alguém"
-              className="w-full resize-none border border-regua-forte bg-sf text-tx placeholder:text-tx-3 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao-bg"
+              className="w-full resize-none border border-regua-forte bg-sf text-tx placeholder:text-tx-3 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) publish();
                 if (e.key === "Escape") setMentionQuery(null);

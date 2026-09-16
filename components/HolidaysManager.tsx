@@ -101,7 +101,7 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
         <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio rounded-md">
           <Pencil size={14} />
         </button>
-        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-atencao/10 disabled:opacity-40 rounded-md">
+        <button onClick={handleDelete} disabled={pending} data-tip="Excluir" className="p-1.5 text-tx-3 hover:text-atencao hover:bg-grave-bg disabled:opacity-40 rounded-md">
           <Trash2 size={14} />
         </button>
       </div>

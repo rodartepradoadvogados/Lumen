@@ -11,8 +11,8 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F5 concluída · P0-CONTRASTE fechado (PR #209)**. Próxima: P0-OPACIDADE, depois F4 (módulos restantes do Portal) |
-| **Próximo passo concreto** | **P0-OPACIDADE** (seção 10-B): 145 classes `/NN` sobre cor de token não geram regra nenhuma — bordas viram `gray-200` fixo. Os 34 anéis de foco já caíram no PR #209 (eram **azuis**). Depois F4: os módulos restantes do Portal |
+| **Fase atual** | **F5 concluída · P0-CONTRASTE (#209) e P0-OPACIDADE (#210) fechados**. Próxima: **F4** — módulos restantes do Portal |
+| **Próximo passo concreto** | **F4 — módulos restantes do Portal**: `/assessoria/[id]` (h1 e 4 KPIs todos em 24px bold), Comunicação, Financeiro, Gestão, folhas de impressão e as telas órfãs (`/peticionar` não tem *um* link interno) |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -501,7 +501,7 @@ nenhum pixel do tema claro muda. O cuidado fica com as ocorrências sobre superf
 onde o certo é `rail-marca` — essas precisam ser separadas à mão, não por substituição cega.
 Corrigido só no blog (PR #208); o resto é a próxima passada.
 
-### P0-OPACIDADE · 145 classes com `/NN` sobre cor de token não geram regra nenhuma
+### ~~P0-OPACIDADE~~ · RESOLVIDO no PR #210 · 184 classes com `/NN` não geravam regra nenhuma
 
 Descoberto ao fechar o P0-CONTRASTE, e é mais antigo e mais grave que ele.
 
@@ -521,24 +521,42 @@ Medido no navegador, com o CSS de produção:
 Ou seja: **o anel de foco do produto inteiro era azul**, num produto que não tem azul em lugar
 nenhum, e toda borda com opacidade era o cinza `gray-200` do Tailwind, igual nos dois temas.
 
-Corrigido no PR #209: **os 34 anéis de foco**, por serem caminho de teclado e quebra de marca
-visível, e por a correção ser mecânica (`ring-x/NN` → `ring-x`).
+**Contagem final, medida classe a classe contra o CSS de produção: 184 mortas** (a estimativa de
+145 perdia variantes `hover:` e `dark:`) e **90 que funcionam** — estas usam cor literal (`white`,
+`black`, `grafite-900`), onde o Tailwind CONSEGUE aplicar opacidade, e por isso não foram tocadas.
 
-**Restam 145**, que precisam de um token sólido escolhido por família, não de substituição cega:
+Os 34 anéis caíram no PR #209. As 184 caíram no PR #210, por família:
 
-| Família | Quantas | Substituto provável |
+| De | Para | Quantas |
 |---|---|---|
-| `border-marca-tx/25\|30\|40\|50` | 24 | `border-marca-tx` |
-| `border-urgente/20\|25\|30` | 21 | `border-campo-risco-linha` (é exatamente "urgente suave", e retematiza) |
-| `text-tx/55\|75\|80\|85` | 19 | `text-tx-2` / `text-tx-3` — a rampa de tinta já existe |
-| `bg-urgente\|aviso\|concluido/10\|15` | 20 | `bg-*-bg`, que já são rgba(...,.14) |
-| `border-aviso/25\|30\|40` | 12 | a criar, ou `border-aviso` |
-| `border\|bg\|text-fonte-pje/NN` | 16 | idem |
-| resto | 33 | caso a caso |
+| `bg-atencao/10,15,20` | `bg-grave-bg` *(token novo)* | 31 |
+| `border-marca-tx/25..50`, `border-acao/40` | `border-marca-tx` | 25 |
+| `border-urgente/20..50`, `divide-urgente/20` | `border-linha-urgente` *(novo)* | 25 |
+| `text-tx/55..85`, `text-tx-2/45`, `text-tx-3/NN` | `text-tx-2` / `text-tx-3` | 22 |
+| `border-aviso/25..40` | `border-linha-aviso` *(novo)* | 12 |
+| `bg-concluido/10..20` | `bg-concluido-bg` | 10 |
+| `border-fonte-pje/NN` | `border-linha-fonte` *(novo)* | 8 |
+| `bg-aviso/10..30` | `bg-aviso-bg` | 7 |
+| `bg-urgente/10,20` | `bg-urgente-bg` | 6 |
+| `border-concluido/20..30` | `border-linha-concluido` *(novo)* | 6 |
+| `bg-fonte-pje/10,15` | `bg-fonte-pje-bg` *(novo)* | 6 |
+| resto (superfícies, gaveta, acao-tx) | token sólido equivalente | 26 |
 
-Alternativa estrutural, mais cara: dar aos 66 tokens um par em canais (`--marca-tx-rgb: 138 47 66`)
-e declarar no config como `rgb(var(--marca-tx-rgb) / <alpha-value>)`. Resolve a família inteira e
-permite opacidade de verdade, ao custo de duplicar 66 tokens em 8 cascas. **Decisão do dono.**
+**Sete tokens novos, não sessenta e seis:** a alternativa estrutural (par em canais para permitir
+`<alpha-value>`) **não foi necessária**, porque na maioria dos casos o token certo já existia e a
+opacidade era contorno de quem não o conhecia — `text-tx/80` queria dizer `text-tx-2`;
+`bg-urgente/10` queria dizer `bg-urgente-bg`, que já é `rgba(...,.14)`. Só faltava a família de
+filete suave por risco, que agora existe: `--linha-urgente`, `--linha-aviso`, `--linha-concluido`,
+`--linha-fonte`, `--linha-grave`, mais `--grave-bg` e `--fonte-pje-bg`.
+
+Os cinco filetes foram derivados em OKLab pelo mesmo método do `--campo-risco-linha` que já existia
+(matiz do risco, luminosidade da superfície, croma a 55%) e ficam por volta de **1,9:1** contra a
+ficha **de propósito** — em todo uso conferido o estado já é carregado pelo preenchimento `bg-*-bg`
+e pelo texto; o traço é só o contorno. O `--campo-risco-linha` original mede 1,90:1.
+
+**Achado de brinde:** a conferência de anéis por contraste encontrou `focus:ring-acao-bg` em duas
+telas — anel de foco na cor da TINTA DE FUNDO, medindo 1,15:1 no claro e 1,01:1 no escuro. Foco
+invisível para quem navega por teclado. Corrigido junto.
 
 ---
 

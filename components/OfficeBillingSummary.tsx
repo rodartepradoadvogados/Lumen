@@ -105,7 +105,7 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
           <div className="divide-y divide-regua border border-regua ">
             {invoices.map((i) => (
               <div key={i.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                <span className="text-tx/85 tabular-nums">
+                <span className="text-tx-2 tabular-nums">
                   {i.competencia} — {formatCurrency(i.amount)}
                 </span>
                 <span className={i.status === "PAGO" ? "text-concluido" : "text-aviso"}>

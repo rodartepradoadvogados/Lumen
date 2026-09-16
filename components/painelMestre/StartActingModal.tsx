@@ -88,7 +88,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                   className={`text-xs px-3 py-2 rounded-md ${
                     aguardaAprovacao
                       ? "text-aviso bg-aviso-bg"
-                      : "text-atencao bg-atencao/10 dark:bg-atencao/15"
+                      : "text-atencao bg-grave-bg"
                   }`}
                 >
                   {aguardaAprovacao

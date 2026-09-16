@@ -83,7 +83,7 @@ export default function MobileSettleForm({
   }
 
   return (
-    <div className="w-full border border-concluido/25 bg-concluido-bg rounded-md p-3 space-y-2.5">
+    <div className="w-full border border-linha-concluido bg-concluido-bg rounded-md p-3 space-y-2.5">
       <div className="flex items-center justify-between">
         <p className="text-corpo font-semibold text-tx">Confirmar baixa</p>
         <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Cancelar">

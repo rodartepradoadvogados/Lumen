@@ -7,7 +7,7 @@ export default function OfficeSuspendedNotice({ officeName }: { officeName: stri
   return (
     <div className="min-h-screen flex items-center justify-center bg-sf-fundo p-6">
       <div className="max-w-md text-center space-y-4">
-        <div className="mx-auto h-12 w-12 rounded-full bg-atencao/10 flex items-center justify-center">
+        <div className="mx-auto h-12 w-12 rounded-full bg-grave-bg flex items-center justify-center">
           <Lock size={22} className="text-atencao" />
         </div>
         <h1 className=" text-xl font-bold text-tx">Acesso temporariamente suspenso</h1>
