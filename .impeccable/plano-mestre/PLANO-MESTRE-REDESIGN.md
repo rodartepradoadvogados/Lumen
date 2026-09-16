@@ -11,8 +11,8 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F5 — Site público e blog** (F4 concluída no essencial) |
-| **Próximo passo concreto** | `/cadastro` (a tela do dinheiro e a menos cuidada do repositório: 24 linhas, sem marca, fundo escuro invertendo as vizinhas) e as quatro telas de sessão, que hoje têm quatro linguagens de cartão diferentes. O roteiro de dinamismo está **encerrado**: 6 feitos, 2 mortos |
+| **Fase atual** | **F5 — Site público e blog** · site **concluído**; falta o blog (F4 concluída no essencial) |
+| **Próximo passo concreto** | **Blog** (`layout`, `typeset`, `clarify` — modo Read), que fecha a F5. Depois F4: os módulos restantes do Portal (`/assessoria/[id]`, Comunicação, Financeiro, Gestão, folhas de impressão e as telas órfãs) |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -456,7 +456,7 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F5b | Site — os dois diferenciais | `bolder` | ✅ | #204 | 2026-09-16 | A custódia no Drive ocupa a manchete e é **demonstrada**, não descrita; Assessoria vira o único pilar dos recursos; a copy que contradizia o posicionamento saiu |
 | F5c | Site — movimento | `animate` | ✅ | #205 | 2026-09-16 | Movimento 7 · arquivar (a sequência focal única: a árvore do Drive se arquiva sozinha), 8 · avisar, 9 · abrir menu; rolagem suave escopada ao site (D7 do roteiro de dinamismo); retorno de interação nos 5 estilos de botão/link, que não tinham **nenhuma** transição. D1 morto, D3 recusado, D2/D4/D5/D6/D8 pendentes de validação — ver `plano-dinamismo/roteiro-dinamismo.md` §Reconciliação |
 | F5d | Site — os 5 itens de movimento aprovados | `animate` | ✅ | #206 | 2026-09-16 | D2+D8 (cabeçalho cliente: seção ativa por régua, régua do rodapé reage à rolagem), D4 (Movimento 10 — os 5 diagramas demonstram o próprio mecanismo), D5 (cartão de preço responde pela régua, não levantando), D6 (seta do fecho) |
-| F5 | Site — telas de sessão | `delight`, `clarify` | ⬜ | — | — | `/cadastro` sem marca; 4 linguagens de cartão no funil |
+| F5e | Site — as quatro telas de sessão | `distill`, `clarify` | ✅ | #207 | 2026-09-16 | Casca única (`components/site/TelaSessao.tsx`) + guia de sessão. `/cadastro` perde o fundo grafite e ganha marca e saída; `/escolher` ganha o `h1` que não tinha; `/redefinir-senha` troca "Link inválido" por um erro que diz o que fazer; `/login` ganha o caminho do cadastro, que não existia |
 | F5 | Blog | `layout`, `typeset`, `clarify` | ⬜ | — | — | modo Read |
 | F6 | PWA | `adapt`, `layout`, `harden`, `onboard` | ⬜ | — | — | — |
 | F7 | Painel Mestre | `layout`, `distill`, `clarify` | ⬜ | — | — | — |

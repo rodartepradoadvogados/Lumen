@@ -1701,6 +1701,40 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
   .guia-ficha { transition: none; }
 }
 
+/* GUIA DE SESSÃO — a mesma gaveta, na porta. Usada pelas quatro telas de sessão
+   (`/login`, `/cadastro`, `/escolher`, `/redefinir-senha`) através de
+   components/site/TelaSessao.tsx.
+
+   O diagnóstico mediu que as quatro telas tinham QUATRO linguagens de cartão: fundo
+   grafite numa e papel nas outras três; `shadow-modal` sem borda numa, filete só no
+   topo noutra, borda de 2px na terceira e borda de 1px COM sombra na quarta; marca
+   em duas de quatro; saída em duas de quatro. Eram quatro produtos diferentes na
+   mesma porta.
+
+   A guia é a resposta porque ela CARREGA DADO: diz qual gaveta o visitante abriu.
+   Não é ornamento posto para as telas parecerem irmãs — é o título da página, e a
+   forma dele é o chanfro de 6px que já é a assinatura formal do sistema (ver
+   `.guia-ficha`, a aba do produto). Por isso não há um `<h1>` separado dentro do
+   cartão: ele seria a mesma frase dita duas vezes.
+
+   A margem negativa de 2px encaixa a base da guia na régua de cima do cartão; o
+   fundo próprio e o `z-index` cobrem aquele trecho da régua, que é o que faz a aba
+   ler como contínua com a ficha, e não como um retângulo pousado em cima dela. */
+.guia-sessao {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px 12px;
+  border: 2px solid var(--regua-forte);
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  background: var(--sf-superficie);
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
+  position: relative;
+  z-index: 1;
+  margin-bottom: -2px;
+  max-width: 100%;
+}
+
 /* ============================================================================
    ARTIGO — tipografia de texto corrido do blog (modo Read).
 
