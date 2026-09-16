@@ -11,8 +11,8 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F5 — Site público e blog** · site **concluído**; falta o blog (F4 concluída no essencial) |
-| **Próximo passo concreto** | **Blog** (`layout`, `typeset`, `clarify` — modo Read), que fecha a F5. Depois F4: os módulos restantes do Portal (`/assessoria/[id]`, Comunicação, Financeiro, Gestão, folhas de impressão e as telas órfãs) |
+| **Fase atual** | **F5 CONCLUÍDA** — site público e blog. Próxima: o P0 de contraste abaixo, depois F4 (módulos restantes do Portal) |
+| **Próximo passo concreto** | **P0-CONTRASTE** (abaixo): `text-acao` como TEXTO sobre superfície que retematiza mede **1,88:1** no tema escuro — reprova WCAG AA por larga margem, em **128 ocorrências**. Depois F4: os módulos restantes do Portal |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -457,12 +457,52 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F5c | Site — movimento | `animate` | ✅ | #205 | 2026-09-16 | Movimento 7 · arquivar (a sequência focal única: a árvore do Drive se arquiva sozinha), 8 · avisar, 9 · abrir menu; rolagem suave escopada ao site (D7 do roteiro de dinamismo); retorno de interação nos 5 estilos de botão/link, que não tinham **nenhuma** transição. D1 morto, D3 recusado, D2/D4/D5/D6/D8 pendentes de validação — ver `plano-dinamismo/roteiro-dinamismo.md` §Reconciliação |
 | F5d | Site — os 5 itens de movimento aprovados | `animate` | ✅ | #206 | 2026-09-16 | D2+D8 (cabeçalho cliente: seção ativa por régua, régua do rodapé reage à rolagem), D4 (Movimento 10 — os 5 diagramas demonstram o próprio mecanismo), D5 (cartão de preço responde pela régua, não levantando), D6 (seta do fecho) |
 | F5e | Site — as quatro telas de sessão | `distill`, `clarify` | ✅ | #207 | 2026-09-16 | Casca única (`components/site/TelaSessao.tsx`) + guia de sessão. `/cadastro` perde o fundo grafite e ganha marca e saída; `/escolher` ganha o `h1` que não tinha; `/redefinir-senha` troca "Link inválido" por um erro que diz o que fazer; `/login` ganha o caminho do cadastro, que não existia |
-| F5 | Blog | `layout`, `typeset`, `clarify` | ⬜ | — | — | modo Read |
+| F5f | Blog | `layout`, `typeset`, `clarify` | ✅ | #208 | 2026-09-16 | Renderizador de markdown simples (as regras de `.artigo h2/ul/blockquote/strong` eram letra morta: o corpo virava sempre `<p>`); a ÁREA do direito passa a aparecer; tempo de leitura real; fontes por domínio; "Continuar lendo"; um cabeçalho só; teste de mesa com 24 casos (`npm run testar`) |
 | F6 | PWA | `adapt`, `layout`, `harden`, `onboard` | ⬜ | — | — | — |
 | F7 | Painel Mestre | `layout`, `distill`, `clarify` | ⬜ | — | — | — |
 | F8 | Movimento e robustez | `animate`, `delight`, `overdrive`, `harden`, `optimize` | ⬜ | — | — | — |
 | F8 | Verificação final | `audit`, `critique`, `polish` | ⬜ | — | — | comparar com F1 |
 | F9 | Consolidação | `documenter`, `extract`, `hooks`, `doctor` | ⬜ | — | — | reescreve DESIGN.md |
+
+---
+
+## 10-B. Achados abertos — medidos, não corrigidos
+
+### P0-CONTRASTE · `text-acao` como texto reprova WCAG AA no tema escuro
+
+`--acao` é o bordô FIXO da marca (`#8a2f42` nos dois temas). Como **fundo** de botão ele é correto,
+com `--acao-tx` por cima. Como **texto** sobre uma superfície que retematiza, ele mede:
+
+| Primeiro plano | Fundo | Contraste | AA (4,5:1) |
+|---|---|---|---|
+| `--acao` `#8a2f42` | ficha escura `#212529` | **1,88:1** | ✗ |
+| `--acao` `#8a2f42` | papel escuro `#181b1f` | **2,11:1** | ✗ |
+| `--acao` `#8a2f42` | `--acao-bg` escuro `#371c20` | **1,90:1** | ✗ |
+| `--marca-tx` | ficha escura | 5,58:1 | ✓ |
+| `--marca-tx` | papel escuro | 6,25:1 | ✓ |
+| `--acao` / `--marca-tx` | ficha clara `#ffffff` | 8,18:1 | ✓ |
+
+**Alcance medido: 128 ocorrências de `text-acao`** (excluindo `text-acao-tx`) em `app/**` e
+`components/**`. O PWA é o pior caso — é a superfície usada no fórum, sob luz direta.
+
+**De quem é o erro:** meu. A fundação F3 verificou `--acao` como **fundo**, com `--acao-tx` por
+cima, e nunca o verificou como **primeiro plano**. A troca é `text-acao` → `text-marca-tx`, e é
+segura por construção no tema claro (`--marca-tx` vale `#8a2f42` ali, exatamente o mesmo valor):
+nenhum pixel do tema claro muda. O cuidado fica com as ocorrências sobre superfície FIXA (grafite),
+onde o certo é `rail-marca` — essas precisam ser separadas à mão, não por substituição cega.
+Corrigido só no blog (PR #208); o resto é a próxima passada.
+
+### P1-EMAIL · a superfície que ninguém olhou neste redesenho
+
+O detector nunca foi rodado em `lib/`. Rodado agora: **36 achados**, todos concentrados em
+`lib/email.ts`, `lib/emailTemplateRender.ts`, `lib/defaultOfficeData.ts` e `lib/pwaIcon.tsx` — 90
+cores literais, 54 tamanhos de fonte literais, 23 famílias tipográficas.
+
+Em e-mail, cor e fonte literais são **obrigatórias** (cliente de e-mail não lê variável CSS nem
+Tailwind), então o detector está tecnicamente errado nesses arquivos. A pergunta que ele levanta,
+porém, é legítima e não foi feita ainda: **os e-mails transacionais ainda estão na paleta velha?**
+É a voz do produto dentro da caixa de entrada do cliente, e nenhuma fase deste plano olhou para ela.
+Vai para F8.
 
 ---
 

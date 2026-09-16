@@ -1,0 +1,5 @@
+{
+  "//": "Só para os testes de mesa rodados por `npm run testar` via tsx. O tsconfig do projeto usa \"jsx\": \"preserve\", porque quem compila JSX é o Next (runtime automático). Fora do Next, tsx precisa saber disso — sem este arquivo, o JSX dos módulos vira React.createElement clássico e quebra com \"React is not defined\".",
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "jsx": "react-jsx", "module": "esnext", "moduleResolution": "bundler" }
+}
