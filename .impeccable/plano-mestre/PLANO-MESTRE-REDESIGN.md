@@ -12,7 +12,7 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F5 concluída · P0-CONTRASTE (#209) e P0-OPACIDADE (#210) fechados**. Próxima: **F4** — módulos restantes do Portal |
-| **Próximo passo concreto** | **F4 — módulos restantes do Portal**: `/assessoria/[id]` (h1 e 4 KPIs todos em 24px bold), Comunicação, Financeiro, Gestão, folhas de impressão e as telas órfãs (`/peticionar` não tem *um* link interno) |
+| **Próximo passo concreto** | **F4 — Comunicação, Financeiro e Gestão**, depois as 4 folhas de impressão. `/assessoria/[id]`, `/processos` e `/peticionar` saíram no PR #211 |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -447,11 +447,11 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F4h | Reorganizar anexos do Drive | `clarify` | ✅ | #199 | 2026-09-16 | **Não removido**: reorganizar MOVE arquivo fora de lugar, reconciliar não move nada. Tela agrupada por registro, com número, tribunal e cliente |
 | F4i | **Fim do vermelho** | `colorize` | ✅ | #200 | 2026-09-16 | Uma família quente só (bordô), diferenciada por TRATAMENTO. **210 cores cruas do Tailwind** migradas para token, com lint que impede a volta |
 | F4j | **A largura volta** | `adapt`, `layout` | ✅ | #201 | 2026-09-16 | **Correção de regressão minha:** F4b matou o deslize capando tudo em 1440px centralizado, e num monitor largo isso desperdiçava metade da tela. O quadro passa a OCUPAR a largura — igualmente estável, porque a regra é constante. Densidade vira assunto de coluna |
-| F4 | Portal — Jurídico: `/assessoria/[id]` | `distill`, `layout` | ⬜ | — | — | identidade e métrica no mesmo tamanho: h1 e 4 KPIs todos em 24px bold |
+| F4 | Portal — Jurídico: `/assessoria/[id]`, `/processos`, telas órfãs | `distill`, `layout`, `clarify` | ✅ | #211 | 2026-09-16 | Rampa de 4 paradas no lugar de 5 elementos iguais; uma faixa de peso desigual no lugar dos 4 KPIs iguais que o contrato recusa, e os 4 números viram navegação; a guia chanfrada chega a `/assessoria/[id]` e a `/processos`; `/peticionar` ganha saída e identidade |
 | F4 | Portal — Comunicação | idem | ⬜ | — | — | atendimento, funil, contatos |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
 | F4 | Portal — Gestão | idem | ⬜ | — | — | configurações, relatórios, produtividade |
-| F4 | Portal — impressão e telas órfãs | `layout`, `adapt` | ⬜ | — | — | `/peticionar`, `/reuniao/[id]` |
+| F4 | Portal — folhas de impressão | `layout`, `adapt` | ⬜ | — | — | `/reuniao/[id]` tem link em `/processos/[id]:377` e `window.close()` — não é órfã. Restam as 4 folhas de impressão |
 | F5a | Site — os P1 do `audit` | `harden`, `adapt`, `clarify`, `typeset`, `layout` | ✅ | #203 | 2026-09-16 | 9 rótulos de formulário, `h1` no login, alternador de tema público, caminho do blog para o produto, `.artigo` no lugar da classe inexistente, grade de preço |
 | F5b | Site — os dois diferenciais | `bolder` | ✅ | #204 | 2026-09-16 | A custódia no Drive ocupa a manchete e é **demonstrada**, não descrita; Assessoria vira o único pilar dos recursos; a copy que contradizia o posicionamento saiu |
 | F5c | Site — movimento | `animate` | ✅ | #205 | 2026-09-16 | Movimento 7 · arquivar (a sequência focal única: a árvore do Drive se arquiva sozinha), 8 · avisar, 9 · abrir menu; rolagem suave escopada ao site (D7 do roteiro de dinamismo); retorno de interação nos 5 estilos de botão/link, que não tinham **nenhuma** transição. D1 morto, D3 recusado, D2/D4/D5/D6/D8 pendentes de validação — ver `plano-dinamismo/roteiro-dinamismo.md` §Reconciliação |

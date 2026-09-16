@@ -10,7 +10,7 @@ export default function NotFound() {
         <div className="mx-auto h-12 w-12 rounded-full bg-sf-apoio flex items-center justify-center">
           <SearchX size={22} className="text-tx-3" />
         </div>
-        <h1 className=" text-xl font-bold text-tx">Página não encontrada</h1>
+        <h1 className="text-guia font-bold text-tx">Página não encontrada</h1>
         <p className="text-sm text-tx-2">
           O conteúdo que você procura não existe ou você não tem acesso a ele.
         </p>

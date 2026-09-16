@@ -20,7 +20,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <div className="mx-auto h-12 w-12 rounded-full bg-grave-bg flex items-center justify-center">
           <AlertTriangle size={22} className="text-atencao" />
         </div>
-        <h1 className=" text-xl font-bold text-tx">Algo deu errado</h1>
+        <h1 className="text-guia font-bold text-tx">Algo deu errado</h1>
         <p className="text-sm text-tx-2">
           Não foi possível carregar esta página. Tente novamente ou volte para o Painel.
         </p>

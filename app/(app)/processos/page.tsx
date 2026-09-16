@@ -158,7 +158,10 @@ export default async function ProcessosPage({
           dourada usado nas abas do processo (app/(app)/processos/[id]/page.tsx). Trocar de aba
           preserva os demais filtros (status/área/busca/responsável/ordenação) via qsFor; só sai da
           aba Administrativos limpa esfera/matéria, que só fazem sentido ali. */}
-      <div className="flex gap-1 border-b border-regua mb-4 overflow-x-auto">
+      {/* Escolher a natureza é escolher a GAVETA — é o gesto que a guia chanfrada nomeia, e é
+          aqui que ela cabe melhor do que em qualquer outro lugar do produto. Faixa anil porque é
+          a cor da seção Jurídico, a mesma de /processos/[id]. */}
+      <div className="flex flex-wrap items-end gap-[3px] border-b-2 border-faixa-anil mb-5 overflow-x-auto">
         <NaturezaTab
           label="Todos"
           count={countTodos}
@@ -321,18 +324,26 @@ function FilterLink({ label, href, active }: { label: string; href: string; acti
   );
 }
 
-// Aba de natureza — mesmo padrão visual de filete inferior de 2px em --acao usado nas abas
-// internas do processo (app/(app)/processos/[id]/page.tsx, ver DESIGN-SYSTEM.md §3), com a
-// contagem ao lado do rótulo.
+// Aba de natureza. O comentário anterior dizia seguir "o mesmo padrão visual de filete inferior de
+// 2px usado nas abas internas do processo" — e essa tela deixou de usar esse padrão no redesenho
+// F4: /processos/[id] usa a guia chanfrada desde então. A referência tinha ficado falsa, e o que
+// era consistência virou divergência sem ninguém decidir nada. Agora as duas são a mesma guia.
+//
+// A contagem fica DENTRO da guia, à direita do rótulo: é a etiqueta da gaveta dizendo quantas
+// fichas tem dentro.
 function NaturezaTab({ label, count, href, active }: { label: string; count: number; href: string; active: boolean }) {
   return (
     <Link
       href={href}
-      className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-        active ? "border-marca-tx text-tx font-semibold" : "border-transparent text-tx-3 hover:text-tx-2"
+      aria-current={active ? "page" : undefined}
+      className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
+        active
+          ? "bg-faixa-anil text-rotulo border-faixa-anil"
+          : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
       }`}
     >
-      {label} <span className="text-xs text-tx-3 tabular-nums">({count})</span>
+      {label}
+      <span className={`ml-1.5 tabular-nums ${active ? "opacity-70" : "text-tx-3"}`}>({count})</span>
     </Link>
   );
 }

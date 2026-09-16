@@ -85,7 +85,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
       <Card>
         <div className="flex items-start justify-between px-5 py-4 border-b border-regua">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-tx">{client.name}</h1>
+            <h1 className="text-autuacao font-bold text-tx leading-tight">{client.name}</h1>
             <Badge color={client.type === "PJ" ? "navy" : "slate"}>{client.type === "PJ" ? "Pessoa Jurídica" : "Pessoa Física"}</Badge>
           </div>
           <EditClientModal client={client} />
