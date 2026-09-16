@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lúmen · Guias</title>
+<style>
+/* ============================================================
+   LÚMEN — proposta de redesign · direção "Guias"
+   Paleta manila / gaveta. Todo token de texto verificado em WCAG AA.
+   ============================================================ */
+:root{
+  --g:#ddd7c8; --sf:#f0ece1; --deep:#c9c2b0; --sf-alt:#e7e2d5;
+  --tinta:#23211c; --tinta-2:#45413c; --tinta-3:#625d55;
+  --linha:#b9b1a0; --linha-forte:#9b9184;
+  --ardosia:#3f5a66; --oliva:#57613a; --ocre:#765a1a; --tijolo:#8c4327; --ameixa:#5b3a52;
+  --vencido:#a8221b; --hoje:#8b5009; --emdia:#2e694e;
+  --rotulo:#f7f4ec;
+  --grao:0.045;
+  --t-etiqueta:12px; --t-corpo:15px; --t-destaque:18px; --t-guia:22px; --t-autuacao:28px; --t-tarja:40px;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --r:2px;
+  --ease:cubic-bezier(.2,.7,.3,1);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --g:#22211d; --sf:#2c2b26; --deep:#191815; --sf-alt:#333128;
+    --tinta:#e8e3d6; --tinta-2:#bbb6aa; --tinta-3:#9d9a8f;
+    --linha:#403e37; --linha-forte:#5b574c;
+    --ardosia:#7fa6b8; --oliva:#9aa86a; --ocre:#d3a63f; --tijolo:#d58663; --ameixa:#b58eab;
+    --vencido:#eb786f; --hoje:#e0a13c; --emdia:#5fbc90;
+    --rotulo:#1b1a16;
+    --grao:0.07;
+  }
+}
+:root[data-theme="dark"]{
+  --g:#22211d; --sf:#2c2b26; --deep:#191815; --sf-alt:#333128;
+  --tinta:#e8e3d6; --tinta-2:#bbb6aa; --tinta-3:#9d9a8f;
+  --linha:#403e37; --linha-forte:#5b574c;
+  --ardosia:#7fa6b8; --oliva:#9aa86a; --ocre:#d3a63f; --tijolo:#d58663; --ameixa:#b58eab;
+  --vencido:#eb786f; --hoje:#e0a13c; --emdia:#5fbc90;
+  --rotulo:#1b1a16;
+  --grao:0.07;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--g); color:var(--tinta);
+  font-family:var(--sans); font-size:var(--t-corpo); line-height:1.5;
+  padding-bottom:64px;
+}
+:focus-visible{outline:2px solid var(--tijolo);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- utilitários do sistema ---------- */
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.etiqueta{font-size:var(--t-etiqueta);letter-spacing:.09em;text-transform:uppercase;font-weight:650;color:var(--tinta-2);font-family:var(--mono)}
+.ficha{
+  background:var(--sf); border:1px solid var(--linha); border-radius:var(--r); position:relative;
+}
+.ficha::before{
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:var(--r);
+  opacity:var(--grao);mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] .ficha::before{mix-blend-mode:screen}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .ficha::before{mix-blend-mode:screen}
+}
+.filete-topo{border-top:2px solid var(--linha-forte)}
+.regua{height:8px;position:relative;background:var(--deep);border-radius:1px;overflow:hidden}
+.regua i{position:absolute;inset:0 auto 0 0;background:currentColor;display:block}
+.regua::after{
+  content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.34) 0 1px,transparent 1px 10%);
+  pointer-events:none;
+}
+
+/* ---------- casca da apresentação ---------- */
+.topo{
+  position:sticky;top:0;z-index:40;background:var(--deep);
+  border-bottom:2px solid var(--linha-forte);
+}
+.topo-in{max-width:1280px;margin:0 auto;padding:12px 20px 0;display:flex;flex-direction:column;gap:10px}
+.marca{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.marca b{font-size:var(--t-guia);letter-spacing:.16em;font-weight:700;font-family:var(--mono)}
+.marca span{font-size:var(--t-etiqueta);color:var(--tinta-2);font-family:var(--mono);letter-spacing:.06em}
+.tema{
+  margin-left:auto;border:1px solid var(--linha-forte);background:transparent;color:var(--tinta);
+  font:650 var(--t-etiqueta)/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  padding:8px 12px;border-radius:var(--r);cursor:pointer;
+}
+.tema:hover{background:var(--sf)}
+
+/* GUIAS ESCALONADAS — a assinatura do sistema */
+.guias{display:flex;gap:3px;align-items:flex-end;overflow-x:auto;scrollbar-width:none}
+.guias::-webkit-scrollbar{display:none}
+.guia{
+  appearance:none;border:1px solid var(--linha-forte);border-bottom:none;background:var(--sf-alt);
+  color:var(--tinta-2);font:650 var(--t-etiqueta)/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+  padding:9px 14px 8px;cursor:pointer;white-space:nowrap;position:relative;top:0;
+  border-radius:var(--r) var(--r) 0 0;
+  clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);
+  transition:top .12s var(--ease),background .12s var(--ease),color .12s var(--ease);
+}
+.guia:hover{background:var(--sf);color:var(--tinta)}
+.guia[aria-selected="true"]{
+  background:var(--cor,var(--ardosia));color:var(--rotulo);border-color:var(--cor,var(--ardosia));
+  top:-5px;padding-bottom:13px;
+}
+.guia .n{display:inline-block;margin-right:7px;opacity:.72}
+
+main{max-width:1280px;margin:0 auto;padding:28px 20px 0}
+.painel[hidden]{display:none}
+h2{font-size:var(--t-autuacao);font-weight:700;letter-spacing:-.015em;line-height:1.15;text-wrap:balance}
+h3{font-size:var(--t-guia);font-weight:680;letter-spacing:-.01em;line-height:1.2;text-wrap:balance}
+h4{font-size:var(--t-destaque);font-weight:650;line-height:1.25}
+p{max-width:68ch}
+.lede{font-size:var(--t-destaque);color:var(--tinta-2);margin-top:10px}
+.sec{margin-bottom:44px}
+.sec-cab{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--linha-forte);padding-bottom:9px;margin-bottom:20px;flex-wrap:wrap}
+.sec-cab .etiqueta{margin-left:auto}
+.nota{font-size:var(--t-etiqueta);color:var(--tinta-3);font-family:var(--mono);line-height:1.6}
+
+/* ---------- cartões da rodada de direção ---------- */
+.mao{display:grid;gap:18px}
+.card{padding:22px 22px 20px;border-left:4px solid var(--cor,var(--ardosia))}
+.card .kicker{font:700 var(--t-etiqueta)/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--cor,var(--ardosia))}
+.card h3{margin:9px 0 4px}
+.card .tese{color:var(--tinta-2);margin-bottom:16px}
+.chips{display:flex;gap:0;margin:14px 0 16px;border:1px solid var(--linha);border-radius:var(--r);overflow:hidden}
+.chip{flex:1;min-width:0;height:58px;display:flex;align-items:flex-end;padding:4px 5px}
+.chip span{font:650 12px/1.25 var(--mono);letter-spacing:.02em;opacity:.92}
+.grade2{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.bloco .etiqueta{display:block;margin-bottom:5px}
+.bloco p,.bloco ul{font-size:15px;color:var(--tinta-2)}
+.bloco ul{list-style:none;display:grid;gap:5px}
+.bloco li{padding-left:15px;position:relative}
+.bloco li::before{content:"";position:absolute;left:0;top:.58em;width:7px;height:2px;background:var(--cor,var(--ardosia))}
+.risco{margin-top:16px;border-top:1px solid var(--linha);padding-top:12px;font-size:15px;color:var(--tinta-2)}
+.risco b{color:var(--vencido);font:700 var(--t-etiqueta)/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:4px}
+.veredito{font:700 var(--t-etiqueta)/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:var(--r);border:1px solid currentColor;white-space:nowrap}
+.v-comp{color:var(--ocre)} .v-dec{color:var(--tinta-3)}
+.demot{display:grid;gap:9px}
+.dem{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:11px 13px;border:1px dashed var(--linha-forte);border-radius:var(--r);background:transparent}
+.dem .t{font-size:15px;font-weight:600}
+.dem .k{font-size:12px;color:var(--tinta-2);margin-top:3px}
+.dem .k b{color:var(--tinta);font-weight:650}
+
+/* ---------- tabelas do sistema ---------- */
+table{border-collapse:collapse;width:100%;font-size:15px}
+th{text-align:left;font:650 var(--t-etiqueta)/1.3 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--tinta-2);padding:8px 10px;border-bottom:2px solid var(--linha-forte)}
+td{padding:9px 10px;border-bottom:1px solid var(--linha);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.amostra{display:inline-block;width:22px;height:22px;border-radius:var(--r);border:1px solid var(--linha-forte);vertical-align:-5px;margin-right:8px}
+.aa{font:650 12px/1 var(--mono);color:var(--emdia);white-space:nowrap}
+
+/* ---------- moldura de tela ---------- */
+.telas{display:grid;gap:26px}
+.moldura{border:1px solid var(--linha-forte);border-radius:var(--r);overflow:hidden;background:var(--g)}
+.moldura-cab{display:flex;align-items:center;gap:10px;padding:7px 11px;background:var(--deep);border-bottom:1px solid var(--linha-forte)}
+.moldura-cab .url{font:600 var(--t-etiqueta)/1 var(--mono);color:var(--tinta-2);letter-spacing:.03em}
+.moldura-cab .tag{margin-left:auto;font:650 12px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--tinta-2)}
+.zoom{overflow-x:auto;background:var(--g)}
+.app{width:1180px;display:grid;grid-template-columns:200px 1fr;min-height:640px;font-size:15px}
+
+/* rail do portal */
+.rail{background:var(--deep);border-right:1px solid var(--linha-forte);padding:14px 0 12px;display:flex;flex-direction:column}
+.rail-marca{padding:0 14px 14px;font:700 var(--t-destaque)/1 var(--mono);letter-spacing:.17em;border-bottom:1px solid var(--linha-forte);margin-bottom:10px}
+.rail a{display:flex;align-items:center;gap:9px;padding:8px 14px;color:var(--tinta-2);text-decoration:none;font-size:15px;border-left:3px solid transparent}
+.rail a .c{font:650 12px/1 var(--mono);margin-left:auto;color:var(--tinta-2)}
+.rail a:hover{background:var(--sf-alt);color:var(--tinta)}
+.rail a.on{border-left-color:var(--cor);color:var(--tinta);font-weight:650;background:var(--sf-alt)}
+.rail .pe{margin-top:auto;padding:11px 14px 0;border-top:1px solid var(--linha-forte);font:600 var(--t-etiqueta)/1.4 var(--mono);color:var(--tinta-2)}
+
+.corpo{padding:0 0 22px;display:flex;flex-direction:column;min-width:0}
+.faixa-guias{padding:11px 20px 0;background:var(--deep);border-bottom:2px solid var(--cor,var(--ardosia))}
+.conteudo{padding:20px;display:grid;gap:18px;min-width:0}
+
+/* tarja de risco */
+.tarja{background:var(--vencido);color:var(--rotulo);padding:16px 18px;border-radius:var(--r);display:flex;align-items:baseline;gap:14px}
+.tarja .n{font:700 var(--t-tarja)/1 var(--mono);letter-spacing:-.02em}
+.tarja .l{font:650 var(--t-destaque)/1.25 var(--sans)}
+.tarja .q{margin-left:auto;font:600 var(--t-etiqueta)/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;opacity:.9}
+.fila{display:grid}
+.linha{display:grid;grid-template-columns:5px 88px 1fr auto auto;gap:12px;align-items:center;padding:10px 14px 10px 0;border-bottom:1px solid var(--linha);background:var(--sf)}
+.linha:last-child{border-bottom:none}
+.linha .f{align-self:stretch;background:var(--c,var(--ardosia))}
+.linha .quando{font:650 var(--t-etiqueta)/1.3 var(--mono);letter-spacing:.02em}
+.linha .quem{min-width:0}
+.linha .quem b{display:block;font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linha .quem span{font-size:12px;color:var(--tinta-2)}
+.linha .dono{font:600 var(--t-etiqueta)/1 var(--mono);color:var(--tinta-2);white-space:nowrap}
+.ato{appearance:none;border:1px solid var(--c,var(--ardosia));background:var(--c,var(--ardosia));color:var(--rotulo);
+  font:650 var(--t-etiqueta)/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:7px 11px;border-radius:var(--r);cursor:pointer;white-space:nowrap}
+.ato.vazia{background:transparent;color:var(--c,var(--ardosia))}
+.ato:hover{filter:brightness(1.08)}
+.med{display:grid;gap:15px;padding:16px}
+.med .um{display:grid;gap:6px}
+.med .cab{display:flex;align-items:baseline;gap:8px}
+.med .cab b{font:700 var(--t-guia)/1 var(--mono)}
+.med .cab span{font-size:12px;color:var(--tinta-2)}
+.med .cab em{margin-left:auto;font:600 var(--t-etiqueta)/1 var(--mono);font-style:normal;color:var(--tinta-3)}
+.col2{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start;min-width:0}
+
+/* ---------- telas internas do portal ---------- */
+.cab-tela{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.cab-tela .tit{min-width:0}
+.cab-tela h1{font:700 var(--t-autuacao)/1.12 var(--sans);letter-spacing:-.015em}
+.cab-tela .sub{font:600 var(--t-etiqueta)/1.4 var(--mono);color:var(--tinta-2);margin-top:5px;letter-spacing:.03em}
+.acoes{margin-left:auto;display:flex;gap:7px;align-items:center}
+.bt{appearance:none;border:1px solid var(--linha-forte);background:transparent;color:var(--tinta);
+  font:650 var(--t-etiqueta)/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 12px;border-radius:var(--r);cursor:pointer}
+.bt:hover{background:var(--sf)}
+.bt.pri{background:var(--cor,var(--ardosia));border-color:var(--cor,var(--ardosia));color:var(--rotulo)}
+.bt.perigo{border-color:var(--vencido);color:var(--vencido)}
+.sep-perigo{width:1px;align-self:stretch;background:var(--linha-forte);margin:0 5px}
+.selo{font:650 var(--t-etiqueta)/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--c,var(--linha-forte));color:var(--c,var(--tinta-2));border-radius:var(--r)}
+.selo.cheio{background:var(--c);color:var(--rotulo);border-color:var(--c)}
+
+/* guias em duas fileiras, todas visiveis */
+.guias2{display:flex;flex-wrap:wrap;gap:3px;align-items:flex-end;padding-top:4px}
+.guias2 .guia{flex:0 0 auto}
+
+/* triagem */
+.triagem{display:grid;grid-template-columns:300px 1fr;min-height:430px;border:1px solid var(--linha);border-radius:var(--r);overflow:hidden}
+.tri-fila{background:var(--sf-alt);border-right:1px solid var(--linha);overflow:hidden}
+.tri-it{display:grid;gap:3px;padding:11px 13px;border-bottom:1px solid var(--linha);cursor:pointer;border-left:3px solid transparent}
+.tri-it.on{background:var(--sf);border-left-color:var(--cor)}
+.tri-it .d{font:650 var(--t-etiqueta)/1 var(--mono);color:var(--tinta-2)}
+.tri-it .t{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tri-it .m{font-size:12px;color:var(--tinta-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tri-teor{padding:18px;background:var(--sf);display:grid;gap:14px;align-content:start;position:relative}
+.teor{font-size:15px;line-height:1.62;color:var(--tinta-2);border-left:2px solid var(--linha-forte);padding-left:14px;max-width:62ch}
+.teor b{color:var(--tinta)}
+.atalhos{display:flex;gap:7px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--linha);padding-top:13px;margin-top:2px}
+kbd{font:650 12px/1 var(--mono);border:1px solid var(--linha-forte);border-bottom-width:2px;border-radius:var(--r);padding:5px 7px;background:var(--sf-alt)}
+
+/* tabelas financeiras */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--linha);border-radius:var(--r);overflow:hidden;background:var(--sf)}
+.kpi{padding:13px 15px;border-right:1px solid var(--linha);display:grid;gap:7px}
+.kpi:last-child{border-right:none}
+.kpi .v{font:700 var(--t-autuacao)/1 var(--mono);letter-spacing:-.02em}
+.kpi .v.neg{color:var(--vencido)}
+.kpi .v.pos{color:var(--emdia)}
+
+/* agenda semanal */
+.semana{display:grid;grid-template-columns:52px repeat(5,1fr);border:1px solid var(--linha);border-radius:var(--r);overflow:hidden;background:var(--sf);font-size:12px}
+.semana .hd{background:var(--sf-alt);padding:8px 9px;font:650 var(--t-etiqueta)/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--linha);border-right:1px solid var(--linha)}
+.semana .hd.hoje{background:var(--cor);color:var(--rotulo)}
+.semana .hr{padding:7px 8px;font:600 12px/1 var(--mono);color:var(--tinta-3);border-right:1px solid var(--linha);border-bottom:1px solid var(--linha);text-align:right}
+.semana .cel{border-right:1px solid var(--linha);border-bottom:1px solid var(--linha);padding:4px;min-height:46px;display:grid;gap:3px;align-content:start}
+.ev{border-left:3px solid var(--c,var(--ardosia));background:var(--sf-alt);padding:5px 7px;border-radius:0 var(--r) var(--r) 0;font-size:12px;line-height:1.3}
+.ev b{display:block;font-weight:650;font-size:12px}
+.ev span{font:600 12px/1.25 var(--mono);color:var(--tinta-2)}
+
+/* ---------- moldura de celular ---------- */
+.fones{display:flex;gap:22px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+.fone{flex:0 0 auto;width:390px}
+.fone-cab{display:flex;align-items:baseline;gap:9px;margin-bottom:9px;flex-wrap:wrap}
+.fone-cab .u{font:650 var(--t-etiqueta)/1 var(--mono);color:var(--tinta-2)}
+.fone-cab .d{font-size:12px;color:var(--tinta-3)}
+.tela-fone{
+  width:390px;height:780px;border:2px solid var(--linha-forte);border-radius:20px;overflow:hidden;
+  background:var(--g);display:flex;flex-direction:column;position:relative
+}
+.st{display:flex;align-items:center;padding:9px 16px 5px;font:650 12px/1 var(--mono);color:var(--tinta-2);background:var(--deep)}
+.st .r{margin-left:auto;letter-spacing:.04em}
+.m-topo{padding:6px 14px 10px;background:var(--deep);border-bottom:1px solid var(--linha-forte);display:flex;align-items:center;gap:10px}
+.m-topo b{font:700 var(--t-destaque)/1 var(--mono);letter-spacing:.16em}
+.m-topo .bt{margin-left:auto;padding:6px 9px}
+.m-corpo{flex:1;overflow:hidden;padding:13px;display:grid;gap:12px;align-content:start}
+.m-nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--deep);border-top:2px solid var(--linha-forte)}
+.m-nav a{padding:9px 2px 11px;text-align:center;text-decoration:none;color:var(--tinta-2);font:650 12px/1.35 var(--mono);border-top:3px solid transparent;display:grid;gap:3px}
+.m-nav a .g{font-size:15px;line-height:1}
+.m-nav a.on{color:var(--tinta);border-top-color:var(--cor)}
+.m-tarja{background:var(--vencido);color:var(--rotulo);border-radius:var(--r);padding:12px 13px;display:flex;align-items:baseline;gap:11px}
+.m-tarja .n{font:700 28px/1 var(--mono)}
+.m-tarja .l{font:650 15px/1.25 var(--sans)}
+.m-lin{display:grid;grid-template-columns:4px 1fr auto;gap:10px;align-items:center;background:var(--sf);border:1px solid var(--linha);border-radius:var(--r);padding:10px 11px 10px 0;overflow:hidden}
+.m-lin .f{align-self:stretch;background:var(--c,var(--ardosia));min-height:36px}
+.m-lin b{display:block;font-size:15px;font-weight:600;line-height:1.3}
+.m-lin span{font:600 12px/1.4 var(--mono);color:var(--tinta-2)}
+.m-atalhos{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.m-at{background:var(--sf);border:1px solid var(--linha);border-left:3px solid var(--c,var(--ardosia));border-radius:var(--r);padding:11px 12px;display:grid;gap:4px;text-decoration:none;color:var(--tinta)}
+.m-at b{font:700 var(--t-guia)/1 var(--mono)}
+.m-at span{font:650 var(--t-etiqueta)/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-2)}
+
+/* antes x depois */
+.ad{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--linha-forte);border-radius:var(--r);overflow:hidden}
+.ad>div{padding:15px 16px}
+.ad .antes{background:var(--sf);border-right:1px solid var(--linha-forte)}
+.ad .depois{background:var(--sf-alt)}
+.ad .etiqueta{display:block;margin-bottom:9px}
+.ad .antes .etiqueta{color:var(--vencido)}
+.ad .depois .etiqueta{color:var(--emdia)}
+.ad p{font-size:15px;color:var(--tinta-2)}
+.ad .grande{font:700 var(--t-guia)/1.25 var(--sans);color:var(--tinta);margin-bottom:6px}
+
+@media (max-width:900px){
+  .col2{grid-template-columns:1fr}
+  .ad{grid-template-columns:1fr}
+  .ad .antes{border-right:none;border-bottom:1px solid var(--linha-forte)}
+}
+@media (max-width:640px){
+  main{padding:20px 16px 0}
+  .topo-in{padding:11px 16px 0}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi:nth-child(2n){border-right:none}
+  .kpi:nth-child(-n+2){border-bottom:1px solid var(--linha)}
+  h2{font-size:22px}
+  .fone,.tela-fone{width:min(390px,calc(100vw - 32px))}
+}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-in">
+    <div class="marca">
+      <b>LÚMEN</b>
+      <span>proposta de redesign · direção “Guias” · seed 2cac85b3</span>
+      <button class="tema" id="bt-tema" type="button" aria-live="polite">Tema: manila</button>
+    </div>
+    <div class="guias" role="tablist" aria-label="Seções da proposta">
+      <button class="guia" role="tab" aria-selected="true"  aria-controls="p-direcao" id="t-direcao" style="--cor:var(--ardosia)"><span class="n">1</span>A direção</button>
+      <button class="guia" role="tab" aria-selected="false" aria-controls="p-sistema" id="t-sistema" style="--cor:var(--oliva)"><span class="n">2</span>O sistema</button>
+      <button class="guia" role="tab" aria-selected="false" aria-controls="p-portal"  id="t-portal"  style="--cor:var(--tijolo)"><span class="n">3</span>Portal · SaaS</button>
+      <button class="guia" role="tab" aria-selected="false" aria-controls="p-mobile"  id="t-mobile"  style="--cor:var(--ameixa)"><span class="n">4</span>App mobile</button>
+      <button class="guia" role="tab" aria-selected="false" aria-controls="p-antes"   id="t-antes"   style="--cor:var(--ocre)"><span class="n">5</span>Antes × depois</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ 1 · A DIREÇÃO ============ -->
+<section class="painel" id="p-direcao" role="tabpanel" aria-labelledby="t-direcao">
+
+  <div class="sec">
+    <h2>O Lúmen como o armário de arquivo do escritório, com as guias todas para cima.</h2>
+    <p class="lede">O diagnóstico mediu 1.078 achados em 263 arquivos e concluiu uma coisa só: o produto
+    tem as regras certas e nenhum sistema. Esta é a direção comprometida que resolve isso — apresentada
+    junto com a mão inteira que o sorteio distribuiu, para o senhor decidir com o que ela venceu à vista.</p>
+    <p class="nota" style="margin-top:14px">Nada aqui foi escrito no código de produção. O gate de aprovação (decisão D-08) é este documento.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>A direção comprometida</h3><span class="etiqueta">candidato 4 de 7 · designado pelo sorteio</span></div>
+    <div class="mao">
+
+      <article class="ficha card" style="--cor:var(--tijolo)">
+        <div class="kicker">Direção comprometida · Guias</div>
+        <h3>Arquivo de cartório com guias escalonadas</h3>
+        <p class="tese">Num arquivo físico você nunca perde a posição, porque cada guia ocupa uma faixa
+        horizontal própria e permanente — e todas ficam visíveis ao mesmo tempo. É a solução formal exata
+        do defeito que o diagnóstico encontrou: seis ícones que entregam cinco destinos, a mesma URL que
+        muda de aba conforme a porta de entrada, e oito abas que somam 720px numa tela de 416px.</p>
+
+        <div class="chips" aria-label="Paleta">
+          <div class="chip" style="background:#ddd7c8;color:#23211c"><span>manila<br>#ddd7c8</span></div>
+          <div class="chip" style="background:#f0ece1;color:#23211c"><span>ficha<br>#f0ece1</span></div>
+          <div class="chip" style="background:#3f5a66;color:#f7f4ec"><span>ardósia</span></div>
+          <div class="chip" style="background:#57613a;color:#f7f4ec"><span>oliva</span></div>
+          <div class="chip" style="background:#765a1a;color:#f7f4ec"><span>ocre</span></div>
+          <div class="chip" style="background:#8c4327;color:#f7f4ec"><span>tijolo</span></div>
+          <div class="chip" style="background:#5b3a52;color:#f7f4ec"><span>ameixa</span></div>
+          <div class="chip" style="background:#a8221b;color:#f7f4ec"><span>risco<br>#a8221b</span></div>
+        </div>
+
+        <div class="grade2">
+          <div class="bloco">
+            <span class="etiqueta">Mundo próprio</span>
+            <ul>
+              <li><b>Papel manila em massa, não creme.</b> O fundo já é “um pouco mais escuro”, como o senhor pediu — <code class="mono">#ddd7c8</code>, não branco.</li>
+              <li><b>Canto vivo de 2px</b> e a guia ativa com chanfro de 6px no canto externo. É a assinatura formal do sistema.</li>
+              <li><b>Filete de 2px no lugar de sombra.</b> Nenhuma sombra projetada no produto inteiro.</li>
+              <li><b>Grão de papel só na ficha</b>, nunca no fundo. Sem halo, sem gradiente.</li>
+              <li><b>Números em face monoespaçada tabular</b> — o mundo da etiqueta de autuação datilografada.</li>
+            </ul>
+          </div>
+          <div class="bloco">
+            <span class="etiqueta">Primeiro viewport do /painel</span>
+            <ul>
+              <li><b>Nenhuma saudação.</b> O nome do usuário vai para o pé do rail, a 12px.</li>
+              <li><b>A tarja</b> ocupa dois terços: um número em 40px e as linhas em ordem de severidade — <b>do escritório inteiro</b>, não de quem está logado.</li>
+              <li><b>Três medidores em régua graduada</b> no terço direito. Escalas, nunca donuts.</li>
+              <li><b>Largura única de 1440px</b> com rail fixo de 232px: nada desliza lateralmente entre telas.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bloco" style="margin-top:18px">
+          <span class="etiqueta">Elevações incorporadas — cada uma nomeada pela mão que a doou</span>
+          <ul>
+            <li><b>Ikeda (declinado):</b> nenhuma superfície decorativa. Se um elemento não carrega dado ou estado, ele não existe.</li>
+            <li><b>Yé-yé (declinado):</b> a cor da seção não é uma pílula de 20px — a guia, o filete da ficha e a régua do rail assumem a cor ao mesmo tempo. O senhor sabe onde está pela cor do ambiente.</li>
+            <li><b>Feed vertical (declinado):</b> um item por vez, resolvido por inteiro, com o próximo já carregado — aplicado à triagem no celular.</li>
+            <li><b>Alfabeto-tempestade (declinado):</b> o tipo como matéria. O número da tarja <b>é</b> o bloco, não um rótulo sobre um cartão. Um por tela, nunca dois.</li>
+            <li><b>Terminal de fósforo (competitivo):</b> teclado-primeiro como regra do sistema, e o estado se imprime na linha em vez de virar aviso flutuante.</li>
+            <li><b>Orizuru (competitivo):</b> todo estado tem nome e volta; nenhuma ação destrutiva fica ao lado de uma não-destrutiva com o mesmo peso.</li>
+          </ul>
+        </div>
+
+        <div class="risco">
+          <b>Risco honesto</b>
+          Manila é uma cor difícil. Se a saturação escorregar, vira bege genérico — exatamente o lugar
+          onde toda ferramenta de IA aterrissa quando o assunto é jurídico. A trava é esta: a tela nunca
+          fica monocromática, porque a faixa da seção e o vocabulário de risco estão sempre presentes.
+          Se uma tela ficar só bege, a direção falhou e deve ser recusada.
+        </div>
+      </article>
+
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>Minha própria primeira escolha, que o sorteio não designou</h3></div>
+    <article class="ficha card" style="--cor:var(--ameixa)">
+      <div class="kicker">Impeccable’s pick</div>
+      <h3>A capa dos autos e a etiqueta de autuação</h3>
+      <p class="tese">Cartolina de cor sólida por natureza da ação, tarja diagonal, etiqueta datilografada
+      colada no alto, furos de colchete, carimbos sobrepostos fora de esquadro. É o objeto que todo advogado
+      brasileiro com mais de quinze anos manuseou todos os dias — e carrega o diferencial de custódia
+      (“o acervo é seu”) melhor do que qualquer outro material.</p>
+      <div class="risco">
+        <b>Risco honesto</b>
+        É a leitura mais óbvia de “jurídico” depois que se abandona o azul corporativo — provavelmente
+        onde a maioria das tentativas nesta categoria aterrissa. E a cor-por-natureza-da-ação reintroduz
+        exatamente o problema que o produto já tem hoje: cor usada como categoria, em vez de risco.
+        Familiar e eficaz é um destino legítimo; a escolha é sua, não minha.
+      </div>
+    </article>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>As duas alternativas que seguraram um eixo</h3><span class="etiqueta">alternates completas</span></div>
+    <div class="grade2">
+      <article class="ficha card" style="--cor:var(--oliva)">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="kicker">Alternativa</div><span class="veredito v-comp">competitivo</span></div>
+        <h3>Terminal de fósforo verde</h3>
+        <p class="tese">Transcrição contínua em verde P1 sobre vidro escuro, cursor que respira, operação
+        inteiramente por teclado, e os estados do sistema se imprimindo na própria linha em vez de virarem
+        chrome.</p>
+        <div class="bloco"><span class="etiqueta">Onde ganha</span>
+        <p>Clareza de produto na operação: a fila de triagem do Lúmen já é quase isso — J/K/Enter/A/L — e é
+        o único lugar do produto desenhado para oito horas por dia.</p></div>
+        <div class="bloco" style="margin-top:12px"><span class="etiqueta">Onde perde</span>
+        <p>Identificação da audiência: é nostalgia de programador, não de advogado. E o campo fixo de 80
+        colunas não comporta uma tabela de DRE.</p></div>
+      </article>
+
+      <article class="ficha card" style="--cor:var(--tijolo)">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="kicker">Alternativa</div><span class="veredito v-comp">competitivo</span></div>
+        <h3>A sequência de dobras do orizuru</h3>
+        <p class="tese">Washi vermelhão, trinta e duas dobras numeradas em coluna de margem, e cada estado
+        do objeto nomeado e recuperável: plano, vincado, colapsado, travado, pronto.</p>
+        <div class="bloco"><span class="etiqueta">Onde ganha</span>
+        <p>A disciplina de estados nomeados e reversíveis é valiosíssima num sistema jurídico, onde nenhum
+        ato deveria ser destrutivo sem volta declarada.</p></div>
+        <div class="bloco" style="margin-top:12px"><span class="etiqueta">Onde perde</span>
+        <p>Identificação: o escritório brasileiro não se reconhece em origami. O mundo é belo e alheio.</p></div>
+      </article>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>As quatro que perderam os dois eixos</h3><span class="etiqueta">nenhuma foi descartada em silêncio</span></div>
+    <div class="demot">
+      <div class="dem"><span class="veredito v-dec">declinado</span><div>
+        <div class="t">Campo de dados Ikeda — barras em preto e branco puros</div>
+        <div class="k">O que a direção ficou: <b>nenhuma superfície decorativa.</b> Halo, gradiente e sombra saem do sistema inteiro.</div></div></div>
+      <div class="dem"><span class="veredito v-dec">declinado</span><div>
+        <div class="t">Capa de disco yé-yé — fundo chapado e saturado</div>
+        <div class="k">O que a direção ficou: <b>compromisso total de uma cor por contexto</b> — o ambiente muda de cor, não um badge.</div></div></div>
+      <div class="dem"><span class="veredito v-dec">declinado</span><div>
+        <div class="t">Feed vertical de vídeo — um item ocupa tudo, avanço por deslize</div>
+        <div class="k">O que a direção ficou: <b>um item por viewport na triagem do celular</b>, com o próximo já carregado.</div></div></div>
+      <div class="dem"><span class="veredito v-dec">declinado</span><div>
+        <div class="t">Tempestade de alfabeto — letras como matéria e clima</div>
+        <div class="k">O que a direção ficou: <b>o tipo como matéria</b> — o número da tarja é o bloco, não um rótulo sobre um cartão.</div></div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>A porta que fica sempre aberta</h3></div>
+    <article class="ficha" style="padding:16px 18px;border-left:4px solid var(--linha-forte)">
+      <span class="etiqueta">O padrão da categoria, executado a sério</span>
+      <p style="margin-top:8px;font-size:15px;color:var(--tinta-2)">Azul corporativo, barra lateral escura de
+      ícones de linha, quatro indicadores iguais em fileira, rosca de pizza — o caminho do AdvBox, do Astrea e
+      do Projuris. Se o senhor preferir, ele é executado com o mesmo rigor de acabamento, sem ironia e sem
+      contrabandear nada da direção acima. Basta dizer. Não o recomendo, e não o coloco na balança contra as
+      cartas acima; ele é a sua porta, não a minha.</p>
+    </article>
+  </div>
+
+</section>
+
+<!-- ============ 2 · O SISTEMA ============ -->
+<section class="painel" id="p-sistema" role="tabpanel" aria-labelledby="t-sistema" hidden>
+
+  <div class="sec">
+    <h2>O sistema, em números que podem ser conferidos.</h2>
+    <p class="lede">Cada valor abaixo foi calculado, não estimado. A coluna de contraste é a razão real
+    entre o texto e o fundo sobre o qual ele aparece — e o piso da casa é 4,5.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>A rampa tipográfica</h3><span class="etiqueta">seis paradas · piso absoluto de 12px</span></div>
+    <p style="margin-bottom:16px;color:var(--tinta-2)">Hoje o código usa dezesseis tamanhos, sendo os três
+    mais frequentes 11px (422 usos), 13px (376) e 10px (126) — e nenhum deles existe na rampa que o DESIGN.md
+    documenta. A rampa abaixo tem <strong>seis paradas e uma regra</strong>: nenhum tamanho fora dela, com
+    a proibição garantida por lint, não por combinado.</p>
+    <div class="tw"><table class="ficha" style="padding:0">
+      <thead><tr><th>Parada</th><th class="num">px</th><th>Papel no produto</th><th>Amostra</th></tr></thead>
+      <tbody>
+        <tr><td><b>Etiqueta</b></td><td class="num">12</td><td>Rótulo de guia, cabeçalho de tabela, unidade, carimbo. <b>Nada menor existe.</b></td><td><span class="mono" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:650">Prazo fatal</span></td></tr>
+        <tr><td><b>Corpo</b></td><td class="num">15</td><td>Texto de leitura, campo de formulário, item de lista.</td><td><span style="font-size:15px">Contestação · 5ª Vara Cível</span></td></tr>
+        <tr><td><b>Destaque</b></td><td class="num">18</td><td>Nome do processo na fila, valor secundário, primeira linha de cartão.</td><td><span style="font-size:18px;font-weight:600">Wagner Barros Arantes</span></td></tr>
+        <tr><td><b>Guia</b></td><td class="num">22</td><td><b>O degrau que hoje não existe.</b> Título de seção, aba ativa, indicador secundário.</td><td><span style="font-size:22px;font-weight:680;letter-spacing:-.01em">Publicações</span></td></tr>
+        <tr><td><b>Autuação</b></td><td class="num">28</td><td>Título de tela, indicador principal.</td><td><span style="font-size:28px;font-weight:700;letter-spacing:-.015em">Financeiro</span></td></tr>
+        <tr><td><b>Tarja</b></td><td class="num">40</td><td>Só o número que mede risco. <b>Um por tela, nunca dois.</b></td><td><span class="mono" style="font-size:40px;font-weight:700;color:var(--vencido)">7</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="nota" style="margin-top:12px">Razão entre paradas de 1,22 a 1,43. O Portal hoje salta de 15px direto
+    para 24px sem nada no meio — é por isso que “título de seção” e “corpo de texto” são a mesma coisa lá.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>A paleta, com o contraste medido</h3><span class="etiqueta">tema manila · fundo #ddd7c8</span></div>
+    <div class="tw"><table class="ficha">
+      <thead><tr><th>Papel</th><th>Valor</th><th class="num">sobre manila</th><th class="num">sobre a ficha</th><th>AA</th></tr></thead>
+      <tbody>
+        <tr><td>Tinta</td><td><span class="amostra" style="background:#23211c"></span><span class="mono">#23211c</span></td><td class="num">11,20</td><td class="num">13,62</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Tinta 2</td><td><span class="amostra" style="background:#45413c"></span><span class="mono">#45413c</span></td><td class="num">7,05</td><td class="num">8,58</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Tinta 3</td><td><span class="amostra" style="background:#625d55"></span><span class="mono">#625d55</span></td><td class="num">4,55</td><td class="num">5,53</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · ardósia</td><td><span class="amostra" style="background:#3f5a66"></span><span class="mono">#3f5a66</span></td><td class="num">5,10</td><td class="num">6,21</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · oliva</td><td><span class="amostra" style="background:#57613a"></span><span class="mono">#57613a</span></td><td class="num">4,61</td><td class="num">5,60</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · ocre</td><td><span class="amostra" style="background:#765a1a"></span><span class="mono">#765a1a</span></td><td class="num">4,50</td><td class="num">5,48</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · tijolo</td><td><span class="amostra" style="background:#8c4327"></span><span class="mono">#8c4327</span></td><td class="num">4,96</td><td class="num">6,04</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · ameixa</td><td><span class="amostra" style="background:#5b3a52"></span><span class="mono">#5b3a52</span></td><td class="num">6,74</td><td class="num">8,19</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Risco · vencido</td><td><span class="amostra" style="background:#a8221b"></span><span class="mono">#a8221b</span></td><td class="num">5,03</td><td class="num">6,11</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Risco · hoje</td><td><span class="amostra" style="background:#8b5009"></span><span class="mono">#8b5009</span></td><td class="num">4,50</td><td class="num">5,48</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Risco · em dia</td><td><span class="amostra" style="background:#2e694e"></span><span class="mono">#2e694e</span></td><td class="num">4,51</td><td class="num">5,48</td><td><span class="aa">passa</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="nota" style="margin-top:12px">Uma regra sai daqui e entra no sistema:
+    <strong>Tinta 3 nunca aparece sobre a gaveta</strong> — sobre o rail, sua razão cai para 3,68. Hoje o produto
+    viola exatamente isso: o rótulo de seção do rail é 9px em tinta terciária. No sistema novo, o rail só aceita
+    Tinta e Tinta 2.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>A mesma paleta no tema gaveta</h3><span class="etiqueta">tema escuro · fundo #22211d</span></div>
+    <p style="margin-bottom:16px;color:var(--tinta-2)">Os valores do escuro não foram “invertidos” — foram
+    recalculados contra a <strong>superfície mais clara do tema</strong> (a ficha destacada, #333128), que é o
+    pior caso. Assim nenhum token depende de onde caiu na tela.</p>
+    <div class="tw"><table class="ficha">
+      <thead><tr><th>Papel</th><th>Valor</th><th class="num">sobre a gaveta</th><th class="num">sobre a ficha</th><th class="num">pior caso</th><th>AA</th></tr></thead>
+      <tbody>
+        <tr><td>Tinta</td><td><span class="amostra" style="background:#e8e3d6"></span><span class="mono">#e8e3d6</span></td><td class="num">12,58</td><td class="num">11,07</td><td class="num">10,18</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Tinta 2</td><td><span class="amostra" style="background:#bbb6aa"></span><span class="mono">#bbb6aa</span></td><td class="num">7,97</td><td class="num">7,01</td><td class="num">6,45</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Tinta 3</td><td><span class="amostra" style="background:#9d9a8f"></span><span class="mono">#9d9a8f</span></td><td class="num">5,72</td><td class="num">5,03</td><td class="num">4,63</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · ardósia</td><td><span class="amostra" style="background:#7fa6b8"></span><span class="mono">#7fa6b8</span></td><td class="num">6,18</td><td class="num">5,44</td><td class="num">5,00</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · oliva</td><td><span class="amostra" style="background:#9aa86a"></span><span class="mono">#9aa86a</span></td><td class="num">6,28</td><td class="num">5,53</td><td class="num">5,08</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · ocre</td><td><span class="amostra" style="background:#d3a63f"></span><span class="mono">#d3a63f</span></td><td class="num">7,13</td><td class="num">6,28</td><td class="num">5,77</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · tijolo</td><td><span class="amostra" style="background:#d58663"></span><span class="mono">#d58663</span></td><td class="num">5,69</td><td class="num">5,01</td><td class="num">4,61</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Faixa · ameixa</td><td><span class="amostra" style="background:#b58eab"></span><span class="mono">#b58eab</span></td><td class="num">5,69</td><td class="num">5,01</td><td class="num">4,61</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Risco · vencido</td><td><span class="amostra" style="background:#eb786f"></span><span class="mono">#eb786f</span></td><td class="num">5,72</td><td class="num">5,03</td><td class="num">4,62</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Risco · hoje</td><td><span class="amostra" style="background:#e0a13c"></span><span class="mono">#e0a13c</span></td><td class="num">7,16</td><td class="num">6,30</td><td class="num">5,79</td><td><span class="aa">passa</span></td></tr>
+        <tr><td>Risco · em dia</td><td><span class="amostra" style="background:#5fbc90"></span><span class="mono">#5fbc90</span></td><td class="num">6,97</td><td class="num">6,13</td><td class="num">5,64</td><td><span class="aa">passa</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="nota" style="margin-top:12px">E quando uma faixa vira <em>fundo</em> — a guia ativa, o botão primário,
+    a tarja — o rótulo escuro <span class="mono">#1b1a16</span> marca entre 6,15 e 7,74 sobre todas elas. É o
+    ponto exato onde o Painel Mestre falha hoje: lá o texto branco está cravado no código e some no tema claro.
+    <strong>Neste documento eu cometi o mesmo erro no primeiro rascunho e corrigi antes de entregar</strong> — a
+    tarja usava branco fixo e marcava 2,85 no tema gaveta.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>As sete regras que fazem disso um sistema</h3></div>
+    <div class="grade2">
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">1 · Cor é risco ou é lugar. Nunca categoria.</span>
+      <p>Cinco faixas dizem <em>onde você está</em>. Três cores de risco dizem <em>o que está acontecendo</em>.
+      Nenhum dos doze tipos de alerta ganha cor própria. Isso já existe em duas telas do produto e nunca virou
+      regra — hoje o bordô tem onze usos e sete significados incompatíveis.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">2 · Um recurso, um significado.</span>
+      <p>O ponto pulsante só existe para “ao vivo de verdade”. O chanfro só existe na guia ativa. O preenchimento
+      sólido só existe na ação primária. Se um recurso aparecer duas vezes com sentidos diferentes, um dos dois
+      está errado.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">3 · Uma largura só.</span>
+      <p>1440px, rail de 232px, para sempre. Hoje são dez larguras diferentes, de 700 a 1600, mais uma tela sem
+      teto — e é por isso que o conteúdo desliza lateralmente a cada navegação.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">4 · Movimento só com causa física.</span>
+      <p>Um só movimento de navegação: a guia sobe 6px e puxa a ficha junto, em 120ms. Sem fade de página, sem
+      cascata de lista. O incômodo com “animações” não era excesso de animação — era o layout nunca ficar parado.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">5 · Nada decorativo.</span>
+      <p>Sem halo, sem gradiente, sem sombra projetada. O grão sobrevive só na ficha, a 4,5%. Se um elemento não
+      carrega dado ou estado, ele não existe na tela.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">6 · Teclado primeiro, em todo lugar.</span>
+      <p>Cada guia tem acesso direto por número. Cada fila anda com J e K e resolve com Enter. O estado se imprime
+      na própria linha, em vez de virar um aviso flutuante que some.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--oliva)"><div class="bloco"><span class="etiqueta">7 · Todo estado tem nome e tem volta.</span>
+      <p>Nenhuma ação destrutiva fica ao lado de uma não-destrutiva com o mesmo peso visual. Hoje, em
+      /processos/[id], o seletor de status e o botão de excluir são vizinhos imediatos e idênticos em peso.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--tijolo)"><div class="bloco"><span class="etiqueta">O conflito que ficou resolvido</span>
+      <p>O detector acusou 22 defeitos agudos, todos do mesmo par: filete lateral e filete de topo aplicados a
+      cantos arredondados. O DESIGN.md manda usar filete; o detector reprova a combinação. <strong>A direção
+      escolhe o filete e abandona o arredondamento</strong> — 2px de raio, canto praticamente vivo. Os 22
+      desaparecem por decisão, não por remendo.</p></div></article>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ 3 · PORTAL ============ -->
+<section class="painel" id="p-portal" role="tabpanel" aria-labelledby="t-portal" hidden>
+
+  <div class="sec">
+    <h2>Cinco telas do Portal, no sistema novo.</h2>
+    <p class="lede">As guias dentro de cada tela são clicáveis. Os dados são de exemplo, mas a estrutura,
+    a hierarquia e cada medida de contraste são a proposta real. Em telas estreitas, role a moldura para o lado.</p>
+  </div>
+
+  <!-- PAINEL -->
+  <div class="sec">
+    <div class="sec-cab"><h3>/painel — a home de risco</h3><span class="etiqueta">corrige o defeito nº 1 do diagnóstico</span></div>
+    <div class="moldura">
+      <div class="moldura-cab"><span class="url">lumen.app/painel</span><span class="tag">Portal · 1440px</span></div>
+      <div class="zoom"><div class="app" style="--cor:var(--ardosia)">
+        <nav class="rail">
+          <div class="rail-marca">LÚMEN</div>
+          <a href="#p-portal" class="on">Painel</a>
+          <a href="#p-portal">Agenda <span class="c">12</span></a>
+          <a href="#p-portal">Publicações <span class="c">47</span></a>
+          <a href="#p-portal">Jurídico <span class="c">318</span></a>
+          <a href="#p-portal">Financeiro</a>
+          <a href="#p-portal">Gestão</a>
+          <div class="pe">Dr. Rodrigo Prado<br>Rodarte Prado Advogados</div>
+        </nav>
+        <div class="corpo">
+          <div class="faixa-guias"><div class="guias">
+            <button class="guia" aria-selected="true" style="--cor:var(--ardosia)"><span class="n">1</span>Risco agora</button>
+            <button class="guia" aria-selected="false"><span class="n">2</span>A semana</button>
+            <button class="guia" aria-selected="false"><span class="n">3</span>Equipe</button>
+          </div></div>
+          <div class="conteudo">
+            <div class="col2">
+              <div style="display:grid;gap:0;min-width:0">
+                <div class="tarja">
+                  <span class="n">7</span>
+                  <span class="l">em risco agora,<br>no escritório inteiro</span>
+                  <span class="q">ordenado por severidade</span>
+                </div>
+                <div class="fila ficha" style="border-top:none;border-radius:0 0 var(--r) var(--r)">
+                  <div class="linha" style="--c:var(--vencido)"><span class="f"></span>
+                    <span class="quando" style="color:var(--vencido)">VENCEU<br>ANTEONTEM</span>
+                    <span class="quem"><b>Contestação — Wagner Barros Arantes</b><span>5ª Vara Cível · 0812445-19.2025.8.09.0051</span></span>
+                    <span class="dono">Dra. Marina</span>
+                    <button class="ato" style="--c:var(--vencido)">Protocolar</button></div>
+                  <div class="linha" style="--c:var(--vencido)"><span class="f"></span>
+                    <span class="quando" style="color:var(--vencido)">VENCEU<br>ONTEM</span>
+                    <span class="quem"><b>Réplica — Construtora Vale Sul</b><span>2ª Vara da Fazenda · 0755102-44.2025.8.09.0051</span></span>
+                    <span class="dono">Dr. Jairo</span>
+                    <button class="ato" style="--c:var(--vencido)">Protocolar</button></div>
+                  <div class="linha" style="--c:var(--hoje)"><span class="f"></span>
+                    <span class="quando" style="color:var(--hoje)">HOJE<br>14:30</span>
+                    <span class="quem"><b>Audiência de instrução — Meireles &amp; Cia</b><span>Fórum de Goiânia · sala 4</span></span>
+                    <span class="dono">Dr. Rodrigo</span>
+                    <button class="ato vazia" style="--c:var(--hoje)">Modo reunião</button></div>
+                  <div class="linha" style="--c:var(--hoje)"><span class="f"></span>
+                    <span class="quando" style="color:var(--hoje)">HOJE<br>ATÉ 18H</span>
+                    <span class="quem"><b>47 publicações não triadas</b><span>DJEN · entraram entre ontem 19h e hoje 06h</span></span>
+                    <span class="dono">sem dono</span>
+                    <button class="ato" style="--c:var(--hoje)">Triar</button></div>
+                  <div class="linha" style="--c:var(--tijolo)"><span class="f"></span>
+                    <span class="quando">AMANHÃ</span>
+                    <span class="quem"><b>Recurso inominado — Alves Transportes</b><span>Juizado Especial Cível · prazo fatal</span></span>
+                    <span class="dono">Dra. Marina</span>
+                    <button class="ato vazia" style="--c:var(--tijolo)">Abrir</button></div>
+                  <div class="linha" style="--c:var(--ocre)"><span class="f"></span>
+                    <span class="quando">EM 2 DIAS</span>
+                    <span class="quem"><b>Honorário de setembro — Vida Locadora</b><span>Assessoria mensal · R$ 4.800,00 · não faturado</span></span>
+                    <span class="dono">Financeiro</span>
+                    <button class="ato vazia" style="--c:var(--ocre)">Faturar</button></div>
+                  <div class="linha" style="--c:var(--ameixa)"><span class="f"></span>
+                    <span class="quando">SEM RESPOSTA<br>HÁ 9 DIAS</span>
+                    <span class="quem"><b>Atendimento — Sérgio Damasceno</b><span>Funil comercial · proposta enviada, sem retorno</span></span>
+                    <span class="dono">Dr. Jairo</span>
+                    <button class="ato vazia" style="--c:var(--ameixa)">Cobrar</button></div>
+                </div>
+              </div>
+
+              <div class="ficha med">
+                <span class="etiqueta">A semana, em régua</span>
+                <div class="um"><div class="cab"><b>12</b><span>prazos até sexta</span><em>3 fatais</em></div>
+                  <div class="regua" style="color:var(--tijolo)"><i style="width:44%"></i></div></div>
+                <div class="um"><div class="cab"><b>47</b><span>publicações na fila</span><em>de 312 no mês</em></div>
+                  <div class="regua" style="color:var(--hoje)"><i style="width:15%"></i></div></div>
+                <div class="um"><div class="cab"><b>R$ 38.400</b><span>a receber em 30 dias</span><em>2 vencidas</em></div>
+                  <div class="regua" style="color:var(--emdia)"><i style="width:72%"></i></div></div>
+                <div class="um" style="border-top:1px solid var(--linha);padding-top:13px">
+                  <div class="cab"><b>318</b><span>processos ativos</span><em>+4 no mês</em></div>
+                  <div class="regua" style="color:var(--ardosia)"><i style="width:88%"></i></div></div>
+                <p class="nota">Escala graduada, não rosca de pizza: a graduação diz quanto falta, e o número
+                diz quanto é. Uma rosca não faz nem uma coisa nem a outra.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+    <p class="nota" style="margin-top:11px">Hoje esta tela gasta o maior tipo da página, o único gradiente e a
+    única textura numa saudação — e o cartão “Minhas atrasadas” filtra pelo usuário logado, embora o dado do
+    escritório inteiro já seja buscado e descartado na linha de cima. Aqui, a primeira coisa que a tela diz é
+    o risco do escritório; o nome do usuário está no pé do rail, a 12px.</p>
+  </div>
+
+  <!-- PUBLICAÇÕES -->
+  <div class="sec">
+    <div class="sec-cab"><h3>/publicacoes — a fila de triagem</h3><span class="etiqueta">a tela que já estava certa · preservada e propagada</span></div>
+    <div class="moldura">
+      <div class="moldura-cab"><span class="url">lumen.app/publicacoes</span><span class="tag">Portal · 1440px</span></div>
+      <div class="zoom"><div class="app" style="--cor:var(--oliva)">
+        <nav class="rail">
+          <div class="rail-marca">LÚMEN</div>
+          <a href="#p-portal">Painel</a><a href="#p-portal">Agenda <span class="c">12</span></a>
+          <a href="#p-portal" class="on">Publicações <span class="c">47</span></a>
+          <a href="#p-portal">Jurídico <span class="c">318</span></a><a href="#p-portal">Financeiro</a><a href="#p-portal">Gestão</a>
+          <div class="pe">Dr. Rodrigo Prado<br>Rodarte Prado Advogados</div>
+        </nav>
+        <div class="corpo">
+          <div class="faixa-guias"><div class="guias">
+            <button class="guia" aria-selected="true" style="--cor:var(--oliva)"><span class="n">1</span>Não triadas · 47</button>
+            <button class="guia" aria-selected="false"><span class="n">2</span>Triadas hoje · 18</button>
+            <button class="guia" aria-selected="false"><span class="n">3</span>Sem processo · 6</button>
+            <button class="guia" aria-selected="false"><span class="n">4</span>Arquivadas · 241</button>
+          </div></div>
+          <div class="conteudo">
+            <div class="cab-tela"><div class="tit"><h1>Publicações</h1>
+              <div class="sub">DJEN + Datajud + e-mail · duplicatas já agrupadas · prazo em dias úteis já contado</div></div>
+              <div class="acoes"><button class="bt">Filtros</button><button class="bt pri" style="--cor:var(--oliva)">Triar em sequência</button></div></div>
+            <div class="triagem" style="--cor:var(--oliva)">
+              <div class="tri-fila">
+                <div class="tri-it on"><span class="d">15/09 · DJEN + E-MAIL</span><span class="t">Wagner Barros Arantes</span><span class="m">Intimação — prazo de 15 dias</span></div>
+                <div class="tri-it"><span class="d">15/09 · DJEN</span><span class="t">Construtora Vale Sul</span><span class="m">Despacho — cumpra-se</span></div>
+                <div class="tri-it"><span class="d">15/09 · DATAJUD</span><span class="t">Meireles &amp; Cia</span><span class="m">Audiência designada</span></div>
+                <div class="tri-it"><span class="d">15/09 · DJEN</span><span class="t">Alves Transportes</span><span class="m">Sentença publicada</span></div>
+                <div class="tri-it"><span class="d">14/09 · DJEN</span><span class="t">Vida Locadora Ltda</span><span class="m">Decisão interlocutória</span></div>
+                <div class="tri-it"><span class="d">14/09 · E-MAIL</span><span class="t">Sem processo vinculado</span><span class="m">Ofício — Prefeitura de Goiânia</span></div>
+              </div>
+              <div class="tri-teor">
+                <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+                  <span class="selo cheio" style="--c:var(--oliva)">1 de 47</span>
+                  <span class="selo" style="--c:var(--tinta-3)">chegou 2× · DJEN e e-mail · agrupado</span>
+                  <span class="selo" style="--c:var(--vencido)">prazo fatal 30/09 · 11 dias úteis</span>
+                </div>
+                <h4>Wagner Barros Arantes × Vida Locadora Ltda — contrato de trabalho</h4>
+                <p class="teor">Intime-se a parte reclamada para, no prazo de <b>15 (quinze) dias</b>, apresentar
+                contestação, sob pena de revelia, observado o disposto no art. 335 do CPC. O calendário de
+                feriados desta comarca já está embutido no cálculo: <b>o prazo fatal cai em 30/09, uma terça-feira</b>.</p>
+                <div class="atalhos">
+                  <span class="etiqueta" style="margin-right:4px">Operação por teclado</span>
+                  <kbd>J</kbd><kbd>K</kbd><span class="nota">andar na fila</span>
+                  <kbd>Enter</kbd><span class="nota">criar o prazo</span>
+                  <kbd>A</kbd><span class="nota">atribuir</span>
+                  <kbd>L</kbd><span class="nota">vincular processo</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="ato" style="--c:var(--oliva)">Criar prazo · 30/09</button>
+                  <button class="ato vazia" style="--c:var(--oliva)">Atribuir a…</button>
+                  <button class="ato vazia" style="--c:var(--tinta-3)">Sem providência</button>
+                </div>
+                <p class="nota" style="border-top:1px solid var(--linha);padding-top:11px">O estado se imprime aqui,
+                na linha — não num aviso flutuante que desaparece antes de ser lido.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- PROCESSO -->
+  <div class="sec">
+    <div class="sec-cab"><h3>/processos/[id] — a ficha, com as nove guias todas visíveis</h3><span class="etiqueta">sem rolagem lateral · sem barra que muda de tamanho</span></div>
+    <div class="moldura">
+      <div class="moldura-cab"><span class="url">lumen.app/processos/0812445-19.2025.8.09.0051</span><span class="tag">Portal · 1440px</span></div>
+      <div class="zoom"><div class="app" style="--cor:var(--tijolo)">
+        <nav class="rail">
+          <div class="rail-marca">LÚMEN</div>
+          <a href="#p-portal">Painel</a><a href="#p-portal">Agenda <span class="c">12</span></a>
+          <a href="#p-portal">Publicações <span class="c">47</span></a>
+          <a href="#p-portal" class="on">Jurídico <span class="c">318</span></a><a href="#p-portal">Financeiro</a><a href="#p-portal">Gestão</a>
+          <div class="pe">Dr. Rodrigo Prado<br>Rodarte Prado Advogados</div>
+        </nav>
+        <div class="corpo">
+          <div class="faixa-guias"><div class="guias guias2">
+            <button class="guia" aria-selected="true" style="--cor:var(--tijolo)"><span class="n">1</span>O que está pendente</button>
+            <button class="guia" aria-selected="false"><span class="n">2</span>Andamentos</button>
+            <button class="guia" aria-selected="false"><span class="n">3</span>Prazos</button>
+            <button class="guia" aria-selected="false"><span class="n">4</span>Anexos</button>
+            <button class="guia" aria-selected="false"><span class="n">5</span>Partes</button>
+            <button class="guia" aria-selected="false"><span class="n">6</span>Financeiro</button>
+            <button class="guia" aria-selected="false"><span class="n">7</span>Protocolos</button>
+            <button class="guia" aria-selected="false"><span class="n">8</span>Anotações</button>
+            <button class="guia" aria-selected="false"><span class="n">9</span>Histórico</button>
+          </div></div>
+          <div class="conteudo">
+            <div class="cab-tela">
+              <div class="tit">
+                <h1>Wagner Barros Arantes × Vida Locadora Ltda</h1>
+                <div class="sub">0812445-19.2025.8.09.0051 · 5ª Vara Cível de Goiânia · distribuído em 12/03/2025</div>
+                <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
+                  <span class="selo cheio" style="--c:var(--tijolo)">Judicial</span>
+                  <span class="selo" style="--c:var(--tinta-2)">Trabalhista</span>
+                  <span class="selo" style="--c:var(--ocre)">Assessoria · Vida Locadora</span>
+                  <span class="selo" style="--c:var(--vencido)">Contestação venceu anteontem</span>
+                </div>
+              </div>
+              <div class="acoes">
+                <button class="bt">Modo reunião</button>
+                <button class="bt">Peticionar</button>
+                <button class="bt pri" style="--cor:var(--tijolo)">Protocolar contestação</button>
+                <span class="sep-perigo" aria-hidden="true"></span>
+                <button class="bt perigo">Excluir</button>
+              </div>
+            </div>
+
+            <div class="col2">
+              <div class="ficha" style="padding:0;overflow:hidden">
+                <div style="padding:12px 15px;border-bottom:2px solid var(--tijolo)"><span class="etiqueta">O que está pendente neste processo</span></div>
+                <div class="fila">
+                  <div class="linha" style="--c:var(--vencido)"><span class="f"></span><span class="quando" style="color:var(--vencido)">VENCEU<br>ANTEONTEM</span>
+                    <span class="quem"><b>Contestação</b><span>prazo fatal era 14/09 · intimação de 29/08</span></span>
+                    <span class="dono">Dra. Marina</span><button class="ato" style="--c:var(--vencido)">Protocolar</button></div>
+                  <div class="linha" style="--c:var(--hoje)"><span class="f"></span><span class="quando" style="color:var(--hoje)">HOJE</span>
+                    <span class="quem"><b>Procuração sem assinatura do cliente</b><span>anexada em 12/03, nunca devolvida</span></span>
+                    <span class="dono">Secretaria</span><button class="ato" style="--c:var(--hoje)">Cobrar</button></div>
+                  <div class="linha" style="--c:var(--ocre)"><span class="f"></span><span class="quando">EM ABERTO</span>
+                    <span class="quem"><b>Honorário contratual não lançado</b><span>contrato prevê 20% sobre o proveito econômico</span></span>
+                    <span class="dono">Financeiro</span><button class="ato vazia" style="--c:var(--ocre)">Lançar</button></div>
+                </div>
+                <div style="padding:13px 15px;border-top:1px solid var(--linha)">
+                  <span class="etiqueta">Três últimos andamentos</span>
+                  <div style="display:grid;gap:9px;margin-top:10px">
+                    <div style="display:grid;grid-template-columns:78px 1fr;gap:12px;font-size:15px"><span class="mono" style="font-size:12px;color:var(--tinta-2)">15/09</span><span>Intimação para contestar — <span style="color:var(--tinta-2)">DJEN, agrupada com o e-mail do mesmo dia</span></span></div>
+                    <div style="display:grid;grid-template-columns:78px 1fr;gap:12px;font-size:15px"><span class="mono" style="font-size:12px;color:var(--tinta-2)">29/08</span><span>Citação positiva — <span style="color:var(--tinta-2)">AR juntado aos autos</span></span></div>
+                    <div style="display:grid;grid-template-columns:78px 1fr;gap:12px;font-size:15px"><span class="mono" style="font-size:12px;color:var(--tinta-2)">12/03</span><span>Distribuição por sorteio — <span style="color:var(--tinta-2)">5ª Vara Cível</span></span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:grid;gap:15px">
+                <div class="ficha med" style="gap:12px">
+                  <span class="etiqueta">Onde estão os documentos</span>
+                  <p style="font-size:15px;color:var(--tinta-2)">No Drive do <strong>seu</strong> escritório,
+                  em pasta por processo e por tipo de documento. Mesmo que o senhor cancele o Lúmen amanhã,
+                  o acervo continua organizado e continua seu.</p>
+                  <div style="display:grid;gap:7px;font-size:15px">
+                    <div style="display:flex;gap:9px"><span class="mono" style="color:var(--tinta-3);font-size:12px">04</span><span>Petições</span></div>
+                    <div style="display:flex;gap:9px"><span class="mono" style="color:var(--tinta-3);font-size:12px">02</span><span>Contratos</span></div>
+                    <div style="display:flex;gap:9px"><span class="mono" style="color:var(--tinta-3);font-size:12px">07</span><span>Documentos do cliente</span></div>
+                    <div style="display:flex;gap:9px"><span class="mono" style="color:var(--tinta-3);font-size:12px">01</span><span>Procuração <span style="color:var(--hoje)">· sem assinatura</span></span></div>
+                  </div>
+                  <button class="ato vazia" style="--c:var(--ardosia);justify-self:start">Reorganizar anexos do Drive</button>
+                </div>
+                <div class="ficha med" style="gap:10px">
+                  <span class="etiqueta">Financeiro deste processo</span>
+                  <div class="um"><div class="cab"><b>R$ 12.400</b><span>contratual</span><em>em aberto</em></div>
+                    <div class="regua" style="color:var(--ocre)"><i style="width:0%"></i></div></div>
+                  <div class="um"><div class="cab"><b>R$ 3.100</b><span>reembolsos</span><em>60% baixado</em></div>
+                    <div class="regua" style="color:var(--emdia)"><i style="width:60%"></i></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+    <p class="nota" style="margin-top:11px">Duas mudanças estruturais: a primeira guia deixou de ser “Dados” com
+    vinte e cinco campos de mesmo peso e passou a ser <strong>o que está pendente</strong>; e as nove guias
+    ficam todas visíveis em faixa própria, com número de acesso direto — nenhuma some quando o registro muda de
+    tipo. O botão de excluir está separado por um filete e é o único em vermelho: nenhuma ação destrutiva
+    divide peso visual com uma não-destrutiva.</p>
+  </div>
+
+  <!-- FINANCEIRO -->
+  <div class="sec">
+    <div class="sec-cab"><h3>/financeiro — o hub que hoje é órfão do rail</h3><span class="etiqueta">tabela densa no sistema novo</span></div>
+    <div class="moldura">
+      <div class="moldura-cab"><span class="url">lumen.app/financeiro</span><span class="tag">Portal · 1440px</span></div>
+      <div class="zoom"><div class="app" style="--cor:var(--ocre)">
+        <nav class="rail">
+          <div class="rail-marca">LÚMEN</div>
+          <a href="#p-portal">Painel</a><a href="#p-portal">Agenda <span class="c">12</span></a>
+          <a href="#p-portal">Publicações <span class="c">47</span></a><a href="#p-portal">Jurídico <span class="c">318</span></a>
+          <a href="#p-portal" class="on">Financeiro</a><a href="#p-portal">Gestão</a>
+          <div class="pe">Dr. Rodrigo Prado<br>Rodarte Prado Advogados</div>
+        </nav>
+        <div class="corpo">
+          <div class="faixa-guias"><div class="guias guias2">
+            <button class="guia" aria-selected="true" style="--cor:var(--ocre)"><span class="n">1</span>Resumo</button>
+            <button class="guia" aria-selected="false"><span class="n">2</span>Receitas</button>
+            <button class="guia" aria-selected="false"><span class="n">3</span>Despesas</button>
+            <button class="guia" aria-selected="false"><span class="n">4</span>DRE</button>
+            <button class="guia" aria-selected="false"><span class="n">5</span>Fluxo de caixa</button>
+            <button class="guia" aria-selected="false"><span class="n">6</span>Livro caixa</button>
+          </div></div>
+          <div class="conteudo">
+            <div class="cab-tela"><div class="tit"><h1>Financeiro</h1><div class="sub">Setembro de 2026 · competência · centro de custo: todos</div></div>
+              <div class="acoes"><button class="bt">Setembro ▾</button><button class="bt pri" style="--cor:var(--ocre)">Lançar</button></div></div>
+
+            <div class="kpis">
+              <div class="kpi"><span class="etiqueta">Recebido no mês</span><span class="v pos mono">R$ 71.240</span>
+                <div class="regua" style="color:var(--emdia)"><i style="width:64%"></i></div><span class="nota">64% do previsto</span></div>
+              <div class="kpi"><span class="etiqueta">A receber em 30 dias</span><span class="v mono">R$ 38.400</span>
+                <div class="regua" style="color:var(--ocre)"><i style="width:41%"></i></div><span class="nota">2 vencidas · R$ 6.900</span></div>
+              <div class="kpi"><span class="etiqueta">Pago no mês</span><span class="v mono">R$ 44.118</span>
+                <div class="regua" style="color:var(--tinta-3)"><i style="width:79%"></i></div><span class="nota">79% do orçado</span></div>
+              <div class="kpi"><span class="etiqueta">Resultado</span><span class="v pos mono">R$ 27.122</span>
+                <div class="regua" style="color:var(--emdia)"><i style="width:38%"></i></div><span class="nota">margem de 38%</span></div>
+            </div>
+
+            <div class="ficha" style="padding:0;overflow:hidden">
+              <div style="padding:12px 15px;border-bottom:2px solid var(--ocre);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+                <span class="etiqueta">A receber · 8 lançamentos</span>
+                <span class="nota" style="margin-left:auto">vencidas primeiro, como em toda fila do sistema</span></div>
+              <div class="tw"><table>
+                <thead><tr><th>Vencimento</th><th>Cliente</th><th>Origem</th><th class="num">Valor</th><th class="num">Baixado</th><th>Situação</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono" style="color:var(--vencido)">28/08</td><td>Meireles &amp; Cia</td><td>Honorário de êxito</td><td class="num">R$ 4.200,00</td><td class="num">—</td><td><span class="selo" style="--c:var(--vencido)">18 dias vencida</span></td></tr>
+                  <tr><td class="mono" style="color:var(--vencido)">05/09</td><td>Alves Transportes</td><td>Contratual · parcela 3/6</td><td class="num">R$ 2.700,00</td><td class="num">—</td><td><span class="selo" style="--c:var(--vencido)">10 dias vencida</span></td></tr>
+                  <tr><td class="mono" style="color:var(--hoje)">18/09</td><td>Vida Locadora Ltda</td><td>Assessoria mensal</td><td class="num">R$ 4.800,00</td><td class="num">—</td><td><span class="selo" style="--c:var(--hoje)">em 2 dias</span></td></tr>
+                  <tr><td class="mono">25/09</td><td>Construtora Vale Sul</td><td>Contratual · parcela 2/4</td><td class="num">R$ 9.500,00</td><td class="num">R$ 4.750,00</td><td><span class="selo" style="--c:var(--tinta-2)">baixa parcial</span></td></tr>
+                  <tr><td class="mono">30/09</td><td>Wagner B. Arantes</td><td>Sucumbência</td><td class="num">R$ 3.100,00</td><td class="num">—</td><td><span class="selo" style="--c:var(--tinta-3)">a vencer</span></td></tr>
+                  <tr><td class="mono">02/10</td><td>Prefeitura de Goiânia</td><td>Licitação · empenho 4471</td><td class="num">R$ 14.100,00</td><td class="num">—</td><td><span class="selo" style="--c:var(--tinta-3)">a vencer</span></td></tr>
+                </tbody>
+              </table></div>
+            </div>
+            <p class="nota">Honorário contratual, de êxito e de sucumbência entram separados, e a baixa parcial é
+            de verdade — as duas coisas já são assim no produto, e continuam. O que muda é que dá para lê-las:
+            números tabulares alinhados, 15px, e o vencido falando por cor de risco em vez de por cor de categoria.</p>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="sec">
+    <div class="sec-cab"><h3>/agenda — a semana como geometria, não como lista</h3></div>
+    <div class="moldura">
+      <div class="moldura-cab"><span class="url">lumen.app/agenda</span><span class="tag">Portal · 1440px</span></div>
+      <div class="zoom"><div class="app" style="--cor:var(--ameixa)">
+        <nav class="rail">
+          <div class="rail-marca">LÚMEN</div>
+          <a href="#p-portal">Painel</a><a href="#p-portal" class="on">Agenda <span class="c">12</span></a>
+          <a href="#p-portal">Publicações <span class="c">47</span></a><a href="#p-portal">Jurídico <span class="c">318</span></a>
+          <a href="#p-portal">Financeiro</a><a href="#p-portal">Gestão</a>
+          <div class="pe">Dr. Rodrigo Prado<br>Rodarte Prado Advogados</div>
+        </nav>
+        <div class="corpo">
+          <div class="faixa-guias"><div class="guias">
+            <button class="guia" aria-selected="true" style="--cor:var(--ameixa)"><span class="n">1</span>Semana</button>
+            <button class="guia" aria-selected="false"><span class="n">2</span>Mês</button>
+            <button class="guia" aria-selected="false"><span class="n">3</span>Kanban</button>
+            <button class="guia" aria-selected="false"><span class="n">4</span>Prazos fatais · 3</button>
+          </div></div>
+          <div class="conteudo">
+            <div class="cab-tela"><div class="tit"><h1>14 a 18 de setembro</h1><div class="sub">12 compromissos · 3 prazos fatais · escritório inteiro</div></div>
+              <div class="acoes"><button class="bt">Toda a equipe ▾</button><button class="bt pri" style="--cor:var(--ameixa)">Novo compromisso</button></div></div>
+            <div class="semana">
+              <div class="hd"></div>
+              <div class="hd">Seg 14</div><div class="hd">Ter 15</div><div class="hd hoje">Qua 16 · hoje</div><div class="hd">Qui 17</div><div class="hd">Sex 18</div>
+
+              <div class="hr">09h</div>
+              <div class="cel"><div class="ev" style="--c:var(--vencido)"><b>Contestação — Wagner Barros</b><span>prazo fatal · não cumprido</span></div></div>
+              <div class="cel"></div>
+              <div class="cel"><div class="ev" style="--c:var(--ardosia)"><b>Atendimento — Sérgio Damasceno</b><span>09:30 · Dr. Jairo</span></div></div>
+              <div class="cel"><div class="ev" style="--c:var(--oliva)"><b>Reunião de triagem</b><span>equipe inteira</span></div></div>
+              <div class="cel"></div>
+
+              <div class="hr">11h</div>
+              <div class="cel"></div>
+              <div class="cel"><div class="ev" style="--c:var(--ocre)"><b>Entrega — parecer Vida Locadora</b><span>Dra. Marina</span></div></div>
+              <div class="cel"></div><div class="cel"></div>
+              <div class="cel"><div class="ev" style="--c:var(--tijolo)"><b>Recurso — Alves Transportes</b><span>prazo fatal · amanhã</span></div></div>
+
+              <div class="hr">14h</div>
+              <div class="cel"><div class="ev" style="--c:var(--ardosia)"><b>Atendimento — Construtora Vale Sul</b><span>14:00 · presencial</span></div></div>
+              <div class="cel"></div>
+              <div class="cel"><div class="ev" style="--c:var(--hoje)"><b>Audiência de instrução</b><span>14:30 · Fórum, sala 4 · Dr. Rodrigo</span></div></div>
+              <div class="cel"><div class="ev" style="--c:var(--ameixa)"><b>Licitação — sessão de abertura</b><span>14:00 · Prefeitura</span></div></div>
+              <div class="cel"></div>
+
+              <div class="hr">16h</div>
+              <div class="cel"></div>
+              <div class="cel"><div class="ev" style="--c:var(--oliva)"><b>Protocolo — réplica Vale Sul</b><span>até 18h</span></div></div>
+              <div class="cel"><div class="ev" style="--c:var(--hoje)"><b>Triagem de 47 publicações</b><span>até 18h · sem dono</span></div></div>
+              <div class="cel"></div>
+              <div class="cel"><div class="ev" style="--c:var(--ocre)"><b>Faturamento de setembro</b><span>Financeiro</span></div></div>
+            </div>
+            <p class="nota">A cor diz de que seção é o compromisso; a cor de risco só aparece quando há risco de
+            verdade. Um prazo fatal não cumprido é vermelho na segunda-feira e continua vermelho — não vira
+            um item cinza no fim de uma lista.</p>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ 4 · MOBILE ============ -->
+<section class="painel" id="p-mobile" role="tabpanel" aria-labelledby="t-mobile" hidden>
+
+  <div class="sec">
+    <h2>Quatro telas do app, no mesmo sistema.</h2>
+    <p class="lede">O celular é usado no corredor do fórum, na rua e na frente do cliente — ou seja, sob luz
+    direta, que é o pior cenário possível para texto claro. Hoje o token de texto terciário do app marca
+    <strong>2,96 : 1</strong> sobre branco, em 41 lugares, quase todos a 13px. O fundo manila e a rampa nova
+    resolvem isso pela raiz: nenhum texto do app fica abaixo de 4,5 e nenhum fica abaixo de 12px.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>Home, triagem, processo e agenda</h3><span class="etiqueta">390 × 844 · role para o lado</span></div>
+    <div class="fones">
+
+      <!-- HOME -->
+      <div class="fone">
+        <div class="fone-cab"><span class="u">/m</span><span class="d">o risco antes de qualquer navegação</span></div>
+        <div class="tela-fone" style="--cor:var(--ardosia)">
+          <div class="st"><span>08:41</span><span class="r">▮▮▮ 5G ▮</span></div>
+          <div class="m-topo"><b>LÚMEN</b><button class="bt">Buscar</button></div>
+          <div class="m-corpo">
+            <div class="m-tarja"><span class="n">7</span><span class="l">em risco agora,<br>no escritório</span></div>
+            <div class="m-lin" style="--c:var(--vencido)"><span class="f"></span><span><b>Contestação — Wagner Barros</b><span>venceu anteontem · Dra. Marina</span></span><span class="mono" style="font-size:12px;color:var(--vencido)">→</span></div>
+            <div class="m-lin" style="--c:var(--hoje)"><span class="f"></span><span><b>Audiência de instrução</b><span>hoje 14:30 · Fórum, sala 4</span></span><span class="mono" style="font-size:12px;color:var(--hoje)">→</span></div>
+            <div class="m-lin" style="--c:var(--hoje)"><span class="f"></span><span><b>47 publicações não triadas</b><span>até as 18h · sem dono</span></span><span class="mono" style="font-size:12px;color:var(--hoje)">→</span></div>
+            <span class="etiqueta" style="margin-top:3px">Ir direto para</span>
+            <div class="m-atalhos">
+              <a class="m-at" href="#p-mobile" style="--c:var(--ardosia)"><b>318</b><span>Processos</span></a>
+              <a class="m-at" href="#p-mobile" style="--c:var(--oliva)"><b>47</b><span>Publicações</span></a>
+              <a class="m-at" href="#p-mobile" style="--c:var(--ameixa)"><b>12</b><span>Agenda</span></a>
+              <a class="m-at" href="#p-mobile" style="--c:var(--ocre)"><b>R$ 38,4k</b><span>A receber</span></a>
+            </div>
+          </div>
+          <nav class="m-nav">
+            <a href="#p-mobile" class="on"><span class="g">▣</span>Início</a>
+            <a href="#p-mobile"><span class="g">▤</span>Agenda</a>
+            <a href="#p-mobile"><span class="g">✚</span>Novo</a>
+            <a href="#p-mobile"><span class="g">▦</span>Jurídico</a>
+            <a href="#p-mobile"><span class="g">▥</span>Menu</a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- TRIAGEM -->
+      <div class="fone">
+        <div class="fone-cab"><span class="u">/m/publicacoes</span><span class="d">um item por tela · a elevação do feed vertical</span></div>
+        <div class="tela-fone" style="--cor:var(--oliva)">
+          <div class="st"><span>08:43</span><span class="r">▮▮▮ 5G ▮</span></div>
+          <div class="m-topo"><b>LÚMEN</b><span class="selo cheio" style="--c:var(--oliva);margin-left:auto">1 de 47</span></div>
+          <div class="m-corpo" style="align-content:start">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span class="selo" style="--c:var(--tinta-3);font-size:12px">DJEN + e-mail · agrupado</span>
+              <span class="selo" style="--c:var(--vencido);font-size:12px">fatal 30/09</span>
+            </div>
+            <h4 style="font-size:18px;line-height:1.3">Wagner Barros Arantes × Vida Locadora — contrato de trabalho</h4>
+            <p class="teor" style="font-size:15px">Intime-se a parte reclamada para, no prazo de <b>15 dias</b>,
+            apresentar contestação, sob pena de revelia. O calendário de feriados da comarca já entrou no
+            cálculo: <b>o fatal cai em 30/09</b>.</p>
+            <div style="display:grid;gap:8px;margin-top:auto">
+              <button class="ato" style="--c:var(--oliva);width:100%;padding:13px">Criar prazo · 30/09</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <button class="ato vazia" style="--c:var(--oliva);padding:13px">Atribuir</button>
+                <button class="ato vazia" style="--c:var(--tinta-3);padding:13px">Sem providência</button>
+              </div>
+              <p class="nota" style="text-align:center">deslize para a próxima · a de nº 2 já está carregada</p>
+            </div>
+          </div>
+          <nav class="m-nav">
+            <a href="#p-mobile"><span class="g">▣</span>Início</a>
+            <a href="#p-mobile"><span class="g">▤</span>Agenda</a>
+            <a href="#p-mobile"><span class="g">✚</span>Novo</a>
+            <a href="#p-mobile" class="on"><span class="g">▦</span>Jurídico</a>
+            <a href="#p-mobile"><span class="g">▥</span>Menu</a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- PROCESSO -->
+      <div class="fone">
+        <div class="fone-cab"><span class="u">/m/processos/[id]</span><span class="d">as 8 guias em duas fileiras, sem rolagem</span></div>
+        <div class="tela-fone" style="--cor:var(--tijolo)">
+          <div class="st"><span>08:46</span><span class="r">▮▮▮ 5G ▮</span></div>
+          <div class="m-topo"><button class="bt" style="padding:6px 9px">←</button><b style="font-size:15px;letter-spacing:.1em">PROCESSO</b></div>
+          <div style="padding:12px 13px 0;background:var(--deep)">
+            <div style="font:700 18px/1.25 var(--sans)">Wagner Barros Arantes</div>
+            <div class="mono" style="font-size:12px;color:var(--tinta-2);margin-top:4px">0812445-19.2025.8.09.0051</div>
+            <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap">
+              <span class="selo cheio" style="--c:var(--tijolo);font-size:12px">Judicial</span>
+              <span class="selo" style="--c:var(--vencido);font-size:12px">contestação vencida</span>
+            </div>
+            <div class="guias guias2" style="margin-top:11px;padding-bottom:0">
+              <button class="guia" aria-selected="true" style="--cor:var(--tijolo);font-size:12px;padding:7px 9px 6px"><span class="n">1</span>Pendente</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">2</span>Andam.</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">3</span>Prazos</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">4</span>Anexos</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">5</span>Partes</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">6</span>R$</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">7</span>Protoc.</button>
+              <button class="guia" aria-selected="false" style="font-size:12px;padding:7px 9px 6px"><span class="n">8</span>Notas</button>
+            </div>
+          </div>
+          <div class="m-corpo" style="border-top:2px solid var(--tijolo)">
+            <span class="etiqueta">O que está pendente</span>
+            <div class="m-lin" style="--c:var(--vencido)"><span class="f"></span><span><b>Contestação</b><span>fatal era 14/09 · Dra. Marina</span></span><span class="mono" style="font-size:12px;color:var(--vencido)">→</span></div>
+            <div class="m-lin" style="--c:var(--hoje)"><span class="f"></span><span><b>Procuração sem assinatura</b><span>anexada 12/03, nunca devolvida</span></span><span class="mono" style="font-size:12px;color:var(--hoje)">→</span></div>
+            <div class="m-lin" style="--c:var(--ocre)"><span class="f"></span><span><b>Honorário não lançado</b><span>20% sobre o proveito econômico</span></span><span class="mono" style="font-size:12px;color:var(--ocre)">→</span></div>
+            <button class="ato" style="--c:var(--tijolo);width:100%;padding:13px;margin-top:4px">Protocolar contestação</button>
+          </div>
+          <nav class="m-nav">
+            <a href="#p-mobile"><span class="g">▣</span>Início</a>
+            <a href="#p-mobile"><span class="g">▤</span>Agenda</a>
+            <a href="#p-mobile"><span class="g">✚</span>Novo</a>
+            <a href="#p-mobile" class="on"><span class="g">▦</span>Jurídico</a>
+            <a href="#p-mobile"><span class="g">▥</span>Menu</a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- AGENDA -->
+      <div class="fone">
+        <div class="fone-cab"><span class="u">/m/agenda</span><span class="d">alvos de toque de 44px, como já é hoje</span></div>
+        <div class="tela-fone" style="--cor:var(--ameixa)">
+          <div class="st"><span>08:48</span><span class="r">▮▮▮ 5G ▮</span></div>
+          <div class="m-topo"><b>LÚMEN</b><button class="bt" style="margin-left:auto">Equipe ▾</button></div>
+          <div style="display:flex;gap:4px;padding:10px 13px;background:var(--deep);border-bottom:1px solid var(--linha-forte)">
+            <button class="bt" style="width:44px;height:44px;padding:0;display:grid;gap:1px;place-content:center;line-height:1.1"><span style="font-size:12px">SEG</span><span class="mono" style="font-size:15px">14</span></button>
+            <button class="bt" style="width:44px;height:44px;padding:0;display:grid;gap:1px;place-content:center;line-height:1.1"><span style="font-size:12px">TER</span><span class="mono" style="font-size:15px">15</span></button>
+            <button class="bt pri" style="--cor:var(--ameixa);width:44px;height:44px;padding:0;display:grid;gap:1px;place-content:center;line-height:1.1"><span style="font-size:12px">QUA</span><span class="mono" style="font-size:15px">16</span></button>
+            <button class="bt" style="width:44px;height:44px;padding:0;display:grid;gap:1px;place-content:center;line-height:1.1"><span style="font-size:12px">QUI</span><span class="mono" style="font-size:15px">17</span></button>
+            <button class="bt" style="width:44px;height:44px;padding:0;display:grid;gap:1px;place-content:center;line-height:1.1"><span style="font-size:12px">SEX</span><span class="mono" style="font-size:15px">18</span></button>
+            <button class="bt" style="width:44px;height:44px;padding:0;display:grid;gap:1px;place-content:center;line-height:1.1;opacity:.55"><span style="font-size:12px">SÁB</span><span class="mono" style="font-size:15px">19</span></button>
+          </div>
+          <div class="m-corpo">
+            <span class="etiqueta">Quarta, 16 de setembro · 4 compromissos</span>
+            <div class="m-lin" style="--c:var(--ardosia)"><span class="f"></span><span><b>Atendimento — Sérgio Damasceno</b><span>09:30 · Dr. Jairo · presencial</span></span><span class="mono" style="font-size:12px;color:var(--tinta-3)">09:30</span></div>
+            <div class="m-lin" style="--c:var(--hoje)"><span class="f"></span><span><b>Audiência de instrução</b><span>Meireles &amp; Cia · Fórum, sala 4</span></span><span class="mono" style="font-size:12px;color:var(--hoje)">14:30</span></div>
+            <div class="m-lin" style="--c:var(--hoje)"><span class="f"></span><span><b>Triar 47 publicações</b><span>até as 18h · sem dono</span></span><span class="mono" style="font-size:12px;color:var(--hoje)">18:00</span></div>
+            <div class="m-lin" style="--c:var(--oliva)"><span class="f"></span><span><b>Protocolo — réplica Vale Sul</b><span>Dr. Jairo</span></span><span class="mono" style="font-size:12px;color:var(--tinta-3)">18:00</span></div>
+            <p class="nota">🔔 e 📅 só aparecem quando existe pendência de verdade — o hábito do app hoje, que fica.</p>
+          </div>
+          <nav class="m-nav">
+            <a href="#p-mobile"><span class="g">▣</span>Início</a>
+            <a href="#p-mobile" class="on"><span class="g">▤</span>Agenda</a>
+            <a href="#p-mobile"><span class="g">✚</span>Novo</a>
+            <a href="#p-mobile"><span class="g">▦</span>Jurídico</a>
+            <a href="#p-mobile"><span class="g">▥</span>Menu</a>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>Três correções que o app ganha de graça</h3></div>
+    <div class="grade2">
+      <article class="ficha card" style="--cor:var(--ameixa)"><div class="bloco"><span class="etiqueta">O piso deixa de ser combinado e passa a ser regra</span>
+      <p>Alguém aplicou 13px à mão em 391 lugares dentro do app — e o piso vaza toda vez que o app importa um
+      componente do Portal: o distintivo a 11px, o botão de copiar a 11px <em>no próprio número do processo</em>,
+      a lista de anotações a 10px. Com a rampa em token e a proibição no lint, o vazamento fica impossível.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--ameixa)"><div class="bloco"><span class="etiqueta">As 8 guias cabem</span>
+      <p>Hoje somam cerca de 720px numa tela com 416px úteis, com pílulas de 30px e sem indicação de que há mais
+      coisa fora da vista — e cada troca empilha uma entrada no histórico, de modo que sair exige apertar
+      “voltar” tantas vezes quantas abas foram visitadas. Em duas fileiras, todas cabem e nenhuma rola.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--ameixa)"><div class="bloco"><span class="etiqueta">Um defeito de tema que ainda está vivo</span>
+      <p>O token de ouro não existe dentro da casca do app, e já tem quem o use: o cartão de Assessoria na home.
+      Hoje a cor dele muda conforme o tema do <em>site público</em> — a mesma classe de defeito que quebrou a
+      Manhã do app em produção. No sistema novo cada casca declara todos os seus tokens, sem exceção.</p></div></article>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============ 5 · ANTES × DEPOIS ============ -->
+<section class="painel" id="p-antes" role="tabpanel" aria-labelledby="t-antes" hidden>
+
+  <div class="sec">
+    <h2>O que muda, lado a lado.</h2>
+    <p class="lede">Cada linha da coluna da esquerda é um achado do diagnóstico, com arquivo e linha. Nenhuma
+    é impressão minha.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>As cinco mudanças estruturais</h3></div>
+    <div style="display:grid;gap:18px">
+
+      <div class="ad"><div class="antes"><span class="etiqueta">Hoje</span>
+        <p class="grande">A home mede a pessoa errada.</p>
+        <p>O cartão “Minhas atrasadas” filtra por quem está logado. O dado do escritório inteiro já é buscado
+        quatro linhas acima e descartado. O sócio dono — o usuário prioritário declarado — vê só o próprio
+        atraso, e a pergunta “o que corre risco agora?” não tem resposta em lugar nenhum da tela. Enquanto isso,
+        o maior tipo da página, o único gradiente e a única textura estão numa saudação.</p></div>
+        <div class="depois"><span class="etiqueta">Na proposta</span>
+        <p class="grande">A tarja: um número e sete linhas, do escritório.</p>
+        <p>Antes de qualquer navegação, um número em 40px e as linhas em ordem de severidade, cada uma com a
+        ação que a resolve. A saudação não existe; o nome do usuário fica no pé do rail, a 12px. É o princípio
+        nº 1 do próprio produto — “risco primeiro” — cumprido na forma.</p></div></div>
+
+      <div class="ad"><div class="antes"><span class="etiqueta">Hoje</span>
+        <p class="grande">Seis ícones, cinco destinos.</p>
+        <p>“Comunicação” e “Jurídico” abrem literalmente a mesma URL. A mesma URL mostra abas diferentes conforme
+        a porta de entrada. Dois ícones acendem ao mesmo tempo em Ajustes. O hub do Financeiro não está no rail e
+        só se alcança por um link de 11px cinza com uma seta. E todo clique simples tem 250ms de atraso
+        deliberado, numa ferramenta de oito horas por dia.</p></div>
+        <div class="depois"><span class="etiqueta">Na proposta</span>
+        <p class="grande">Cada seção tem faixa, cor e número.</p>
+        <p>Cinco guias, cinco posições horizontais permanentes, cinco cores. O ambiente inteiro assume a cor da
+        seção — guia, filete da ficha e régua do rail ao mesmo tempo. Acesso direto por número. Nenhuma guia
+        aparece ou some conforme o registro, e nenhuma navegação tem atraso.</p></div></div>
+
+      <div class="ad"><div class="antes"><span class="etiqueta">Hoje</span>
+        <p class="grande">Dezesseis tamanhos e nenhum degrau no meio.</p>
+        <p>11px em 422 lugares, 13px em 376, 10px em 126 — e nada entre 15px e 24px em nenhuma tela da casca. O
+        rótulo da navegação primária é 9px; a saudação é 30px. Sem patamar intermediário, “título de seção” e
+        “corpo de texto” são a mesma coisa. A rampa que o DESIGN.md documenta não existe no código.</p></div>
+        <div class="depois"><span class="etiqueta">Na proposta</span>
+        <p class="grande">Seis paradas, piso de 12px, garantidas por lint.</p>
+        <p>12 · 15 · 18 · <strong>22</strong> · 28 · 40. A parada de 22px é o degrau que hoje falta e que faz a
+        hierarquia existir. O piso de 12px elimina os 156 usos de texto igual ou menor que 10px — que, para um
+        leitor que abre o sistema o dia inteiro, é desconforto estrutural, não questão de gosto.</p></div></div>
+
+      <div class="ad"><div class="antes"><span class="etiqueta">Hoje</span>
+        <p class="grande">O modo claro foi derivado, não desenhado.</p>
+        <p>O texto terciário reprova o contraste mínimo nas cinco superfícies: 2,96 no app, 3,30 no Painel Mestre,
+        cerca de 2,8 no site — onde carrega justamente os limites do plano, que decidem qual plano se compra. No
+        Painel Mestre, texto branco cravado em quatro rotas dá 1,35 sobre o fundo claro: não é contraste fraco,
+        é texto invisível. E no Portal o rail é preto fixo nos dois temas.</p></div>
+        <div class="depois"><span class="etiqueta">Na proposta</span>
+        <p class="grande">Onze tokens, dois temas, todos medidos.</p>
+        <p>Nenhum token de texto abaixo de 4,5 em nenhum dos dois temas, com a tabela de conferência publicada na
+        aba “O sistema”. O fundo manila é o “misto entre o claro e o escuro” que o senhor pediu, e cada casca
+        declara os seus próprios tokens — sem herdar nada de outra superfície.</p></div></div>
+
+      <div class="ad"><div class="antes"><span class="etiqueta">Hoje</span>
+        <p class="grande">O layout nunca fica parado.</p>
+        <p>Dez larguras de conteúdo diferentes, de 700 a 1600px, mais uma tela sem teto. Com rail de largura fixa,
+        o conteúdo desliza lateralmente a cada navegação — somado ao fade universal e à cascata das listas. É
+        provavelmente a origem real do incômodo com “animações”: não é excesso de animação, é instabilidade.</p></div>
+        <div class="depois"><span class="etiqueta">Na proposta</span>
+        <p class="grande">Uma largura, um movimento.</p>
+        <p>1440px com rail de 232px, sempre. Um único movimento de navegação: a guia sobe 6px e puxa a ficha
+        junto, em 120ms — movimento com causa física. Sem fade de página, sem cascata. E aí sobra orçamento de
+        movimento para o site público, onde o senhor pediu e hoje existe um único pixel animado.</p></div></div>
+
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>Dez defeitos que não são gosto</h3><span class="etiqueta">corrigíveis antes e independentemente do redesign</span></div>
+    <p style="margin-bottom:16px;color:var(--tinta-2)">Esta lista é separada de propósito. São defeitos de
+    funcionamento, encontrados durante o diagnóstico. Podem virar um PR curto imediatamente, sem esperar decisão
+    nenhuma sobre visual — <strong>é a única coisa neste documento que peço que o senhor decida agora ou depois,
+    e não junto.</strong></p>
+    <div class="tw"><table class="ficha">
+      <thead><tr><th class="num">#</th><th>Defeito</th><th>Onde</th><th>Gravidade</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>“Minhas atrasadas” filtra pelo usuário logado; o dado do escritório já é buscado e descartado</td><td class="mono" style="font-size:12px">painel/page.tsx:128</td><td><span class="selo" style="--c:var(--vencido)">alta</span></td></tr>
+        <tr><td class="num">2</td><td>Dois destinos do rail resolvem para a mesma URL</td><td class="mono" style="font-size:12px">navSections.ts:65 e :78</td><td><span class="selo" style="--c:var(--vencido)">alta</span></td></tr>
+        <tr><td class="num">3</td><td>Texto branco cravado deixa o tema claro do Painel Mestre invisível (1,35)</td><td class="mono" style="font-size:12px">4 rotas + 4 modais</td><td><span class="selo" style="--c:var(--vencido)">alta</span></td></tr>
+        <tr><td class="num">4</td><td>Token de ouro ausente da casca do app, com consumidor vivo — muda conforme o tema do site</td><td class="mono" style="font-size:12px">m/page.tsx:237</td><td><span class="selo" style="--c:var(--vencido)">alta</span></td></tr>
+        <tr><td class="num">5</td><td>Tema escuro vaza para o site público e nenhuma página pública tem alternador — quem sai no escuro não volta</td><td class="mono" style="font-size:12px">layout.tsx:44 + theme.ts:45</td><td><span class="selo" style="--c:var(--vencido)">alta</span></td></tr>
+        <tr><td class="num">6</td><td>Classe de campo aponta para uma variável que não existe: três telas financeiras sem fundo declarado</td><td class="mono" style="font-size:12px">receitas/page.tsx:219</td><td><span class="selo" style="--c:var(--hoje)">média</span></td></tr>
+        <tr><td class="num">7</td><td>Grade de preço sem espaçamento, e o selo “Recomendado” desalinha justamente o card em destaque</td><td class="mono" style="font-size:12px">page.tsx:432 e :444</td><td><span class="selo" style="--c:var(--hoje)">média</span></td></tr>
+        <tr><td class="num">8</td><td>O artigo do blog usa uma classe que não existe no repositório</td><td class="mono" style="font-size:12px">blog/[slug]/page.tsx:95</td><td><span class="selo" style="--c:var(--hoje)">média</span></td></tr>
+        <tr><td class="num">9</td><td>/peticionar não tem nenhum link interno — beco sem saída absoluto</td><td class="mono" style="font-size:12px">PeticionarWorkspace.tsx</td><td><span class="selo" style="--c:var(--hoje)">média</span></td></tr>
+        <tr><td class="num">10</td><td>A landing diz “sem depender de pasta de rede”, contradizendo a custódia no Drive do cliente</td><td class="mono" style="font-size:12px">page.tsx:120</td><td><span class="selo" style="--c:var(--hoje)">média</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>O que não se perde</h3><span class="etiqueta">regra: remover qualquer um destes exige motivo escrito</span></div>
+    <p style="margin-bottom:16px;color:var(--tinta-2)">O diagnóstico encontrou coisas muito boas dentro do
+    produto. Quase todas são <strong>locais</strong> — alguém acertou numa tela e o acerto nunca virou regra. A
+    proposta não as substitui: ela as generaliza.</p>
+    <div class="grade2">
+      <article class="ficha card" style="--cor:var(--emdia)"><div class="bloco"><span class="etiqueta">A fila de triagem, inteira</span>
+      <p>Fila → teor → ação, com a duplicata do DJEN e do e-mail já agrupada, o prazo em dias úteis já contado, e
+      os atalhos de teclado. É o único lugar do produto desenhado para oito horas por dia. <strong>O redesign
+      parte daqui e propaga para Alertas e Painel — não o contrário.</strong></p></div></article>
+
+      <article class="ficha card" style="--cor:var(--emdia)"><div class="bloco"><span class="etiqueta">Linguagem humana para datas</span>
+      <p>“Venceu ontem”, “hoje 14:30”. Vale por dez indicadores. Aparece em todas as telas desta proposta.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--emdia)"><div class="bloco"><span class="etiqueta">Cor é risco, nunca categoria</span>
+      <p>Nenhum dos doze tipos de alerta tem cor própria; só a severidade fala. Generalizar essa regra e apagar
+      todo uso de cor categórica resolve, sozinho, metade do problema de paleta.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--emdia)"><div class="bloco"><span class="etiqueta">A copy das funcionalidades do site</span>
+      <p>“O calendário de feriados de cada tribunal já embutido no cálculo do prazo fatal.” “Honorários
+      contratuais, de êxito e de sucumbência entram separados, com baixa parcial de verdade.” Isso não se
+      escreve sem conhecer a prática. É o ativo mais valioso da página, e nenhum concorrente copia sem mentir.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--emdia)"><div class="bloco"><span class="etiqueta">A disciplina de prova</span>
+      <p>Um número real, nenhum inventado, recusa explícita a depoimento e foto falsos. Isso fica como
+      <em>regra</em>, não como limitação a contornar quando o site for refeito.</p></div></article>
+
+      <article class="ficha card" style="--cor:var(--emdia)"><div class="bloco"><span class="etiqueta">O modo reunião e a tela /escolher</span>
+      <p>A única superfície do repositório onde alguém pensou “isto vai ser projetado na frente de um cliente”, e
+      a única tela do funil que trata uma decisão como decisão. As duas ficam.</p></div></article>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-cab"><h3>O que acontece depois que o senhor decidir</h3></div>
+    <div class="tw"><table class="ficha">
+      <thead><tr><th>Fase</th><th>O que é feito</th><th>Comandos</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">F0</td><td>Verdade de produto e contexto</td><td class="nota">context · init</td><td><span class="selo" style="--c:var(--emdia)">concluída</span></td></tr>
+        <tr><td class="mono">F1</td><td>Diagnóstico das 5 superfícies, 99 rotas</td><td class="nota">detect · critique · audit</td><td><span class="selo" style="--c:var(--emdia)">concluída</span></td></tr>
+        <tr><td class="mono">F2</td><td>A direção visual — <strong>este documento</strong></td><td class="nota">shape · new-work</td><td><span class="selo cheio" style="--c:var(--hoje)">aguardando o senhor</span></td></tr>
+        <tr><td class="mono">F3</td><td>Fundação: tokens, temas, tipografia, extração dos componentes</td><td class="nota">colorize · typeset · layout · extract</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+        <tr><td class="mono">F4</td><td>Portal, módulo por módulo — 42 rotas</td><td class="nota">layout · distill · clarify · polish</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+        <tr><td class="mono">F5</td><td>Site público e blog, com o movimento que falta</td><td class="nota">bolder · animate · delight · clarify</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+        <tr><td class="mono">F6</td><td>App mobile — 37 rotas</td><td class="nota">adapt · layout · harden · onboard</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+        <tr><td class="mono">F7</td><td>Painel Mestre — 10 rotas</td><td class="nota">layout · distill · clarify</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+        <tr><td class="mono">F8</td><td>Movimento, robustez e a inspeção visual <strong>na sua máquina</strong></td><td class="nota">animate · overdrive · harden · optimize · audit</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+        <tr><td class="mono">F9</td><td>Consolidação e reescrita do DESIGN.md a partir do que foi construído</td><td class="nota">documenter · extract · hooks · doctor</td><td><span class="selo" style="--c:var(--tinta-3)">a fazer</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="nota" style="margin-top:14px">Uma limitação honesta, registrada no plano: este ambiente não alcança
+    o banco de dados, então <strong>nenhuma tela foi vista renderizada com dado real</strong>. Todo o diagnóstico
+    é leitura de código mais detector estático — rigoroso no que afirma, mas cego para o que só aparece na tela.
+    A conferência visual precisa acontecer na sua máquina, e está agendada para F8.</p>
+  </div>
+
+</section>
+
+</main>
+
+<footer style="max-width:1280px;margin:32px auto 0;padding:20px;border-top:2px solid var(--linha-forte)">
+  <p class="nota">Lúmen · proposta de redesign · direção “Guias” · candidato 4 de 7 · seed 2cac85b3 · modo operate.
+  Dados de exemplo; estrutura, hierarquia e contrastes são a proposta real. Nenhuma linha de código de produção
+  foi alterada para produzir este documento.</p>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var raiz = document.documentElement;
+
+  /* ---- tema: manila (claro) / gaveta (escuro) ---- */
+  var bt = document.getElementById("bt-tema");
+  function rotulo(){
+    var atual = raiz.getAttribute("data-theme");
+    if(!atual){
+      atual = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    bt.textContent = atual === "dark" ? "Tema: gaveta" : "Tema: manila";
+  }
+  try{
+    var salvo = localStorage.getItem("lumen-proposta-tema");
+    if(salvo === "dark" || salvo === "light") raiz.setAttribute("data-theme", salvo);
+  }catch(e){}
+  rotulo();
+  bt.addEventListener("click", function(){
+    var atual = raiz.getAttribute("data-theme");
+    if(!atual){
+      atual = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    var novo = atual === "dark" ? "light" : "dark";
+    raiz.setAttribute("data-theme", novo);
+    try{ localStorage.setItem("lumen-proposta-tema", novo); }catch(e){}
+    rotulo();
+  });
+
+  /* ---- guias da apresentação ---- */
+  var abas = Array.prototype.slice.call(document.querySelectorAll('.topo [role="tab"]'));
+  function abrir(aba, foco){
+    abas.forEach(function(a){
+      var sel = a === aba;
+      a.setAttribute("aria-selected", sel ? "true" : "false");
+      a.tabIndex = sel ? 0 : -1;
+      var p = document.getElementById(a.getAttribute("aria-controls"));
+      if(p) p.hidden = !sel;
+    });
+    if(foco) aba.focus();
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  abas.forEach(function(aba, i){
+    aba.tabIndex = aba.getAttribute("aria-selected") === "true" ? 0 : -1;
+    aba.addEventListener("click", function(){ abrir(aba, false); });
+    aba.addEventListener("keydown", function(ev){
+      var d = ev.key === "ArrowRight" ? 1 : ev.key === "ArrowLeft" ? -1 : 0;
+      if(d){ ev.preventDefault(); abrir(abas[(i + d + abas.length) % abas.length], true); }
+      if(ev.key === "Home"){ ev.preventDefault(); abrir(abas[0], true); }
+      if(ev.key === "End"){ ev.preventDefault(); abrir(abas[abas.length-1], true); }
+    });
+  });
+  /* acesso direto por número — a mesma regra que a proposta pede para o produto */
+  document.addEventListener("keydown", function(ev){
+    if(ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    var alvo = ev.target;
+    if(alvo && (alvo.tagName === "INPUT" || alvo.tagName === "TEXTAREA" || alvo.isContentEditable)) return;
+    var n = parseInt(ev.key, 10);
+    if(n >= 1 && n <= abas.length) abrir(abas[n-1], true);
+  });
+
+  /* ---- guias DENTRO das telas de exemplo ---- */
+  document.querySelectorAll(".app .guias, .tela-fone .guias").forEach(function(grupo){
+    var itens = Array.prototype.slice.call(grupo.querySelectorAll(".guia"));
+    itens.forEach(function(g){
+      g.addEventListener("click", function(){
+        itens.forEach(function(o){
+          o.setAttribute("aria-selected", "false");
+          o.style.removeProperty("--cor");
+        });
+        g.setAttribute("aria-selected", "true");
+        var raizCor = grupo.closest("[style*='--cor']");
+        if(raizCor) g.style.setProperty("--cor", raizCor.style.getPropertyValue("--cor"));
+      });
+    });
+  });
+
+  /* ---- fila de triagem clicável ---- */
+  document.querySelectorAll(".tri-fila").forEach(function(fila){
+    var itens = Array.prototype.slice.call(fila.querySelectorAll(".tri-it"));
+    itens.forEach(function(it){
+      it.addEventListener("click", function(){
+        itens.forEach(function(o){ o.classList.remove("on"); });
+        it.classList.add("on");
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
