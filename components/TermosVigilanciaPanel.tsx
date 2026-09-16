@@ -105,7 +105,7 @@ export default function TermosVigilanciaPanel({ caseId, termos }: { caseId: stri
             <div key={t.id} className={`flex items-center justify-between gap-3 px-4 py-3 ${t.ativo ? "" : "opacity-45"}`}>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-tx truncate">{t.termo}</p>
-                <p className="text-[11px] text-tx-2">
+                <p className="text-etiqueta text-tx-2">
                   {TIPO_LABELS[t.tipo] || t.tipo}
                   {t.ultimoHitAt ? ` · último alerta em ${new Date(t.ultimoHitAt).toLocaleDateString("pt-BR")}` : ""}
                 </p>

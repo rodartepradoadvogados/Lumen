@@ -65,7 +65,7 @@ function flattenTotals(nodes: CategoryGroupNode[], map: Map<string, number>) {
 function SubLine({ pct, valorAnterior, atual }: { pct: number | null; valorAnterior?: number; atual: number }) {
   const variacao = valorAnterior === undefined ? null : variacaoPercentual(atual, valorAnterior);
   return (
-    <div className="flex items-center gap-2 text-[11px] text-tx-3 tabular-nums mt-0.5">
+    <div className="flex items-center gap-2 text-etiqueta text-tx-3 tabular-nums mt-0.5">
       <span>{pct === null ? "—" : `${pct.toFixed(1)}% da receita`}</span>
       {valorAnterior !== undefined && (
         <>

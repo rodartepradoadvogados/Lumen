@@ -366,7 +366,7 @@ export default function AttachmentList({
             </button>
           )}
           {folderError && (
-            <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">{folderError}</p>
+            <p className="text-etiqueta text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">{folderError}</p>
           )}
         </div>
       )}
@@ -478,7 +478,7 @@ export default function AttachmentList({
                       value={a.docType}
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
-                      className="w-full text-[10px] border border-regua bg-sf text-tx rounded px-1 py-1"
+                      className="w-full text-etiqueta border border-regua bg-sf text-tx rounded px-1 py-1"
                       allowCreate
                     />
                   </div>
@@ -496,15 +496,15 @@ export default function AttachmentList({
                     <p className="text-xs font-medium text-tx truncate w-full" title={a.name}>
                       {a.name}
                     </p>
-                    <p className="text-[10px] text-tx-2 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
+                    <p className="text-etiqueta text-tx-2 truncate w-full" title={getDocumentTypeLabel(a.docType)}>
                       {getDocumentTypeLabel(a.docType)}
                     </p>
                     {taskTag(a) && (
-                      <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2 truncate max-w-full">
+                      <span className="text-etiqueta font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2 truncate max-w-full">
                         {taskTag(a)}
                       </span>
                     )}
-                    <span className="flex items-center gap-0.5 text-[10px] text-marca-tx">
+                    <span className="flex items-center gap-0.5 text-etiqueta text-marca-tx">
                       <ExternalLink size={10} /> {getLinkSourceLabel(a.driveUrl)}
                     </span>
                   </a>
@@ -552,7 +552,7 @@ export default function AttachmentList({
                       value={a.docType}
                       onChange={(v) => handleUpdateDocType(a.id, v)}
                       excludeKeys={excludeParecer}
-                      className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[180px]"
+                      className="text-etiqueta border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[180px]"
                       allowCreate
                     />
                   </div>
@@ -567,17 +567,17 @@ export default function AttachmentList({
                     <span className="text-xs font-medium text-tx truncate" title={a.name}>
                       {a.name}
                     </span>
-                    <span className="hidden sm:inline text-[10px] text-tx-2 shrink-0">
+                    <span className="hidden sm:inline text-etiqueta text-tx-2 shrink-0">
                       {getDocumentTypeLabel(a.docType)}
                     </span>
                   </a>
                 )}
                 {taskTag(a) && (
-                  <span className="shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2">
+                  <span className="shrink-0 text-etiqueta font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2">
                     {taskTag(a)}
                   </span>
                 )}
-                <span className="shrink-0 text-[10px] text-tx-2">{formatDate(a.updatedAt ?? a.createdAt)}</span>
+                <span className="shrink-0 text-etiqueta text-tx-2">{formatDate(a.updatedAt ?? a.createdAt)}</span>
                 <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                   <button
                     onClick={() => setEditingId(editingId === a.id ? null : a.id)}
@@ -611,7 +611,7 @@ export default function AttachmentList({
         <div className="mb-3 overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2 border-b border-regua">
+              <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2 border-b border-regua">
                 <th className="pb-2 pr-3">Nome</th>
                 <th className="pb-2 pr-3">Formato</th>
                 <th className="pb-2 pr-3">Tipo</th>
@@ -644,7 +644,7 @@ export default function AttachmentList({
                         value={a.docType}
                         onChange={(v) => handleUpdateDocType(a.id, v)}
                         excludeKeys={excludeParecer}
-                        className="text-[10px] border border-regua bg-sf text-tx rounded px-1.5 py-1"
+                        className="text-etiqueta border border-regua bg-sf text-tx rounded px-1.5 py-1"
                         allowCreate
                       />
                     ) : (
@@ -687,7 +687,7 @@ export default function AttachmentList({
       )}
 
       {!driveConnected && (
-        <p className="text-[11px] text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5 mb-2">
+        <p className="text-etiqueta text-aviso bg-aviso-bg border border-aviso/25 rounded-md px-2.5 py-1.5 mb-2">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações, ou cole um link manualmente abaixo.
         </p>
       )}
@@ -770,7 +770,7 @@ export default function AttachmentList({
       )}
 
       {error && (
-        <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">
+        <p className="text-etiqueta text-urgente bg-urgente-bg border border-urgente/25 rounded-md px-2.5 py-1.5 mt-2">
           {error}
         </p>
       )}

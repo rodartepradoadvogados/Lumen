@@ -114,7 +114,7 @@ export default async function OfficeDetailPage({
           <Link
             key={t.key}
             href={`/painel-mestre/${office.id}?tab=${t.key}`}
-            className={`shrink-0 text-[13px] font-semibold px-3.5 py-2.5 border-b-2 -mb-px ${
+            className={`shrink-0 text-corpo font-semibold px-3.5 py-2.5 border-b-2 -mb-px ${
               tab === t.key ? "text-tx border-marca-tx" : "text-tx-2 border-transparent hover:text-tx"
             }`}
           >
@@ -146,7 +146,7 @@ export default async function OfficeDetailPage({
               {office.users.slice(0, 5).map((u) => (
                 <div key={u.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
                   <span className="text-tx">{u.name}</span>
-                  <span className="text-[11px] text-tx-3">{u.email}{u.isAdmin ? " · admin" : ""}</span>
+                  <span className="text-etiqueta text-tx-3">{u.email}{u.isAdmin ? " · admin" : ""}</span>
                 </div>
               ))}
             </div>
@@ -161,7 +161,7 @@ export default async function OfficeDetailPage({
             {office.users.map((u) => (
               <div key={u.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
                 <span className="text-tx">{u.name}</span>
-                <span className="text-[11px] text-tx-3">{u.email}{u.isAdmin ? " · admin" : ""}</span>
+                <span className="text-etiqueta text-tx-3">{u.email}{u.isAdmin ? " · admin" : ""}</span>
               </div>
             ))}
           </div>

@@ -14,7 +14,7 @@ export default function MobileNotFound() {
           <SearchX size={18} className="text-tx-3" />
         </div>
         <h1 className="text-base font-bold text-tx">Página não encontrada</h1>
-        <p className="text-[13px] text-tx-2">
+        <p className="text-corpo text-tx-2">
           O conteúdo que você procura não existe ou você não tem acesso a ele.
         </p>
         <div className="flex flex-col items-stretch gap-2 pt-1">

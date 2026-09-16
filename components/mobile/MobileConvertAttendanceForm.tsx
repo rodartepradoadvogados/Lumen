@@ -5,7 +5,7 @@ import { convertAttendanceToCase } from "@/lib/actions/attendance";
 
 const inputClass =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
-const labelClass = "text-[13px] font-medium text-tx-2";
+const labelClass = "text-corpo font-medium text-tx-2";
 
 // Versão mobile do conversor de atendimento em Caso/Processo Judicial. Reaproveita a mesma
 // server action do desktop (convertAttendanceToCase), mas informa "/m/processos" como base de
@@ -76,7 +76,7 @@ export default function MobileConvertAttendanceForm({ attendanceId }: { attendan
         <button
           type="button"
           onClick={() => setMode("none")}
-          className="px-4 text-[13px] font-semibold text-tx-2"
+          className="px-4 text-corpo font-semibold text-tx-2"
         >
           Cancelar
         </button>

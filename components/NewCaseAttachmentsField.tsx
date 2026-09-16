@@ -90,7 +90,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
       <input type="hidden" name="stagedAttachments" value={JSON.stringify(payload)} />
 
       {!driveConnected && (
-        <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 px-2.5 py-1.5">
+        <p className="mt-1 text-etiqueta text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 px-2.5 py-1.5">
           Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o caso, você
           ainda pode anexar documentos na aba Anexos.
         </p>
@@ -145,12 +145,12 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
               {it.uploading ? (
                 <Loader2 size={13} className="animate-spin text-tx-3 shrink-0" />
               ) : it.error ? (
-                <span className="text-[10px] text-red-600 dark:text-red-400 shrink-0">{it.error}</span>
+                <span className="text-etiqueta text-red-600 dark:text-red-400 shrink-0">{it.error}</span>
               ) : (
                 <DocumentTypeSelect
                   value={it.docType}
                   onChange={(v) => updateDocType(it.tempId, v)}
-                  className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[170px] shrink-0"
+                  className="text-etiqueta border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[170px] shrink-0"
                   allowCreate
                 />
               )}
@@ -167,7 +167,7 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
       )}
 
       {anyUploading && (
-        <p className="text-[11px] text-tx-3 mt-1">
+        <p className="text-etiqueta text-tx-3 mt-1">
           Enviando anexo(s)... o botão de salvar fica bloqueado até terminar, pra nenhum arquivo ficar de fora.
         </p>
       )}

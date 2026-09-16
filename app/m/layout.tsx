@@ -106,7 +106,7 @@ export default async function MobileLayout({ children }: { children: React.React
                 <span className="h-1.5 w-1.5 rounded-full bg-concluido shrink-0" aria-hidden="true" />
               </div>
               {office?.name && (
-                <p className="text-[13px] text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
+                <p className="text-corpo text-white/55 truncate max-w-[160px] leading-tight">{office.name}</p>
               )}
             </div>
           </Link>
@@ -119,12 +119,12 @@ export default async function MobileLayout({ children }: { children: React.React
               {/* Emoji só quando há pendência de verdade (pedido do dono do projeto ao validar
                   o protótipo) — sem pendência, continua o ícone de linha neutro de sempre. */}
               {totalAlerts > 0 ? (
-                <span aria-hidden="true" className="text-[19px] leading-none">🔔</span>
+                <span aria-hidden="true" className="text-destaque leading-none">🔔</span>
               ) : (
                 <Bell size={16} />
               )}
               {totalAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-white text-[13px] font-bold flex items-center justify-center border border-grafite-800">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-atencao text-white text-corpo font-bold flex items-center justify-center border border-grafite-800">
                   {totalAlerts > 99 ? "99+" : totalAlerts}
                 </span>
               )}

@@ -133,7 +133,7 @@ export default function OpposingPartyFields({
             setOpen(false);
             setEntries([{ key: counter.current++, name: "", document: "", role: "", address: "" }]);
           }}
-          className="text-[11px] font-semibold text-tx-2 hover:text-tx"
+          className="text-etiqueta font-semibold text-tx-2 hover:text-tx"
         >
           Remover todas
         </button>

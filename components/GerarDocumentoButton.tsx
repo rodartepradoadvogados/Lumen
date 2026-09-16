@@ -170,7 +170,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   ))}
 
                 {error && (
-                  <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
+                  <p className="text-etiqueta text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
                     {error}
                   </p>
                 )}
@@ -211,12 +211,12 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                   </div>
                 </div>
                 {templates && filtered.length === 0 && (
-                  <p className="text-[11px] text-tx-2">Nenhum modelo cadastrado nessa categoria ainda. Adicione em Configurações → Modelos de Documento.</p>
+                  <p className="text-etiqueta text-tx-2">Nenhum modelo cadastrado nessa categoria ainda. Adicione em Configurações → Modelos de Documento.</p>
                 )}
 
                 {isContrato && (
                   <div className="border-t border-regua pt-3 space-y-3">
-                    <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Forma de cobrança dos honorários</p>
+                    <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-wide">Forma de cobrança dos honorários</p>
                     <div>
                       <select value={formaCobranca} onChange={(e) => setFormaCobranca(e.target.value as FormaCobranca)} className="gd-input">
                         {FORMA_COBRANCA_OPTIONS.map((f) => (
@@ -302,7 +302,7 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
                 )}
 
                 {error && (
-                  <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
+                  <p className="text-etiqueta text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
                     {error}
                   </p>
                 )}
@@ -318,10 +318,6 @@ export default function GerarDocumentoButton({ caseId, attendanceId }: { caseId?
           </div>
         </ModalShell>
       )}
-      <style jsx global>{`
-        .gd-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
-        .gd-input:focus { outline: none; box-shadow: 0 0 0 2px var(--marca-bg); }
-      `}</style>
     </>
   );
 }

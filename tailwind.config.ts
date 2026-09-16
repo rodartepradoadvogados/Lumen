@@ -39,9 +39,78 @@ const config: Config = {
         // remover.
         display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
       },
+      // ---------------------------------------------------------------------------
+      // RAMPA TIPOGRAFICA — seis paradas, piso absoluto de 12px (redesign "Guias", F3).
+      //
+      // O diagnostico de 2026-09-16 mediu 16 tamanhos distintos em 1.003 ocorrencias, sendo os
+      // tres mais usados 11px (440), 13px (402) e 10px (133) — nenhum deles na rampa que o
+      // DESIGN.md documentava (24/16/14/12). Nao havia NADA entre 15px e 24px no portal, que e
+      // a causa material de "nao ha hierarquia": sem degrau intermediario, titulo de secao e
+      // corpo de texto sao a mesma coisa.
+      //
+      // Seis paradas, em rem, sem clamp (o modo Operate nao escala com viewport):
+      //   etiqueta  12px  rotulo de guia, cabecalho de tabela, unidade. NADA MENOR EXISTE.
+      //   corpo     15px  texto de leitura, campo, item de lista
+      //   destaque  18px  nome na fila, valor secundario, primeira linha de cartao
+      //   guia      22px  O DEGRAU QUE FALTAVA: titulo de secao, aba ativa, KPI secundario
+      //   autuacao  28px  titulo de tela, KPI principal
+      //   tarja     40px  so o numero que mede risco. Um por tela, nunca dois.
+      //
+      // A escala padrao do Tailwind e reapontada para as mesmas paradas, entao os 1170 usos de
+      // `text-xs` e 1023 de `text-sm` ja caem na rampa sem editar 200 arquivos — mesmo mecanismo
+      // que `borderRadius` e `boxShadow.card` usam abaixo. `text-xs` nao muda de valor (ja era
+      // 12px); `text-sm` sobe 1px.
+      fontSize: {
+        etiqueta: ["0.75rem", { lineHeight: "1.35" }],
+        corpo: ["0.9375rem", { lineHeight: "1.55" }],
+        destaque: ["1.125rem", { lineHeight: "1.35" }],
+        guia: ["1.375rem", { lineHeight: "1.25", letterSpacing: "-0.01em" }],
+        autuacao: ["1.75rem", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
+        tarja: ["2.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
+
+        xs: ["0.75rem", { lineHeight: "1.35" }],
+        sm: ["0.9375rem", { lineHeight: "1.55" }],
+        base: ["0.9375rem", { lineHeight: "1.55" }],
+        lg: ["1.125rem", { lineHeight: "1.35" }],
+        xl: ["1.375rem", { lineHeight: "1.25", letterSpacing: "-0.01em" }],
+        "2xl": ["1.375rem", { lineHeight: "1.25", letterSpacing: "-0.01em" }],
+        "3xl": ["1.75rem", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
+        "4xl": ["2.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
+        "5xl": ["2.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
+        "6xl": ["2.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+
+        // ---------------------------------------------------------------------------
+        // FAIXA DE SECAO — a cor diz ONDE voce esta (redesign "Guias", F3).
+        // Cinco faixas, uma por secao do trabalho. Apontam para variaveis de app/globals.css e
+        // por isso trocam sozinhas entre os temas. Regra do sistema: cor e risco ou e lugar,
+        // NUNCA categoria de conteudo. Nenhum dos 12 tipos de alerta ganha cor propria.
+        faixa: {
+          ardosia: "var(--faixa-ardosia)",
+          oliva: "var(--faixa-oliva)",
+          ocre: "var(--faixa-ocre)",
+          tijolo: "var(--faixa-tijolo)",
+          ameixa: "var(--faixa-ameixa)",
+        },
+        // VOCABULARIO DE RISCO — a cor diz O QUE ESTA ACONTECENDO. Deliberadamente separado das
+        // faixas: um prazo vencido e vermelho em qualquer secao.
+        risco: {
+          vencido: "var(--risco-vencido)",
+          hoje: "var(--risco-hoje)",
+          "em-dia": "var(--risco-em-dia)",
+        },
+        // Papel de texto sobre uma faixa PREENCHIDA (guia ativa, botao primario, tarja). Troca
+        // com o tema — claro sobre a faixa escura do tema manila, escuro sobre a faixa clara do
+        // tema gaveta. E o token que impede o defeito de `text-white` cravado, que hoje deixa
+        // quatro rotas do Painel Mestre com 1,35:1 no tema claro.
+        rotulo: "var(--rotulo)",
+        // Papel, ficha e gaveta — as tres superficies do mundo "Guias".
+        papel: "var(--papel)",
+        ficha: "var(--ficha)",
+        gaveta: "var(--gaveta)",
 
         /* ---------- Paleta nova ---------- */
         // Rail escuro — a única superfície que não retematiza entre Manhã e Noite (ver
@@ -175,26 +244,26 @@ const config: Config = {
         arrasto: "var(--sombra-arrasto)",
       },
       borderRadius: {
-        // Escala em 3 paradas (ajuste de tema, agosto/2026 — substitui o "raio zero" original
-        // do documento 01). Sobrescreve a escala inteira do Tailwind de uma vez, então todo
-        // `rounded-*` já espalhado pelo código (inclusive o que ainda não foi revisado
-        // componente a componente) já renderiza no valor certo:
-        //   sm (4px)        → chips, badges, tags de status
-        //   DEFAULT/md (6px) → botões, inputs, itens de rail, ícones de ação
-        //   lg/xl/2xl/3xl (10px) → cartões, linhas de lista, modais, painéis suspensos,
-        //                          contêiner da própria tela (documento de tema: "md" único
-        //                          para todas essas superfícies, sem um nível "lg" à parte)
-        // `rounded-full` não é redeclarado aqui — continua no valor padrão do Tailwind
-        // (9999px), para avatar e badge de contagem.
+        // Raio quase reto, uma parada so (redesign "Guias", F3). Cartolina cortada tem canto
+        // vivo; a guia ativa ganha um chanfro de 6px no canto superior externo, que e a
+        // assinatura formal do sistema (feito com clip-path, nao com border-radius).
+        //
+        // Isto RESOLVE POR DECISAO os 22 defeitos agudos que o detector acusou: ele reprova
+        // filete lateral e filete de topo combinados com canto arredondado, enquanto o DESIGN.md
+        // mandava usar filete. A direcao escolheu o filete e abandonou o arredondamento.
+        //
+        // Sobrescrever a escala inteira faz todo `rounded-*` ja espalhado pelo codigo renderizar
+        // no valor certo, e torna desnecessarios os dois blocos de seletor descendente que
+        // app/globals.css mantinha para .portal-shell e .mobile-dark.
         none: "0",
-        sm: "4px",
-        DEFAULT: "6px",
-        md: "6px",
-        lg: "10px",
-        xl: "10px",
-        "2xl": "10px",
-        "3xl": "10px",
-      },
+        sm: "2px",
+        DEFAULT: "2px",
+        md: "2px",
+        lg: "2px",
+        xl: "2px",
+        "2xl": "2px",
+        "3xl": "2px",
+      }
     },
   },
   plugins: [],

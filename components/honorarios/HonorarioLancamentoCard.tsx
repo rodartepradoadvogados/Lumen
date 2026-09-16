@@ -120,7 +120,7 @@ function DivergenceNote({ valorTotalIndicado, parcelas }: { valorTotalIndicado: 
   const diff = soma - valorTotalIndicado;
   if (Math.abs(diff) < 0.01) return null;
   return (
-    <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5 mt-2">
+    <p className="text-etiqueta text-aviso bg-aviso-bg rounded-md px-3 py-1.5 mt-2">
       A soma das parcelas vinculadas ao total ({formatCurrency(soma)}) {diff > 0 ? "excede" : "é menor que"} o valor indicado ({formatCurrency(valorTotalIndicado)}) em {formatCurrency(Math.abs(diff))}.
     </p>
   );
@@ -249,7 +249,7 @@ export default function HonorarioLancamentoCard({
                   >
                     {isApurar ? "—" : formatCurrency(liquido)}
                   </p>
-                  {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
+                  {p.status === "PARCIAL" && <p className="text-etiqueta text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
                   <FinanceStatusBadge status={p.status} kind="receivable" />
                 </div>
                 {!isApurar && (
@@ -282,12 +282,12 @@ export default function HonorarioLancamentoCard({
 
               {pagas.length > 0 && (
                 <div className="p-3 bg-sf-apoio border border-regua">
-                  <p className="text-[11px] font-medium text-tx-2 mb-1">Parcelas que já receberam algo (não editáveis)</p>
+                  <p className="text-etiqueta font-medium text-tx-2 mb-1">Parcelas que já receberam algo (não editáveis)</p>
                   {pagas.map((p) => (
                     <div key={p.id} className="flex justify-between text-xs text-tx-2 py-0.5">
                       <span>
                         {p.description}
-                        {p.status === "PARCIAL" && <span className="ml-1.5 text-[10px] font-semibold text-aviso">recebimento parcial</span>}
+                        {p.status === "PARCIAL" && <span className="ml-1.5 text-etiqueta font-semibold text-aviso">recebimento parcial</span>}
                       </span>
                       <span className="font-semibold">
                         {formatCurrency(p.paidAmount ?? p.amount)}
@@ -423,10 +423,6 @@ export default function HonorarioLancamentoCard({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
-        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </div>
   );
 }

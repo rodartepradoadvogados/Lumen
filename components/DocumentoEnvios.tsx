@@ -276,7 +276,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-tx-3 mt-1.5">
+              <p className="text-etiqueta text-tx-3 mt-1.5">
                 {metodo === "EMAIL"
                   ? "Os documentos selecionados são anexados de verdade e o e-mail sai imediatamente ao confirmar."
                   : "O WhatsApp não permite anexar arquivo por link direto — a mensagem vai incluir o link de cada documento para o destinatário abrir. Isto abre o WhatsApp da própria pessoa; nada sai do sistema sozinho."}
@@ -311,9 +311,9 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-tx">{c.name}</span>
-                        <span className="block truncate text-[11px] text-tx-2">{c.contato}</span>
+                        <span className="block truncate text-etiqueta text-tx-2">{c.contato}</span>
                       </span>
-                      <span className="shrink-0 text-[10px] font-semibold text-tx-3 font-mono">{CONTATO_TIPO_LABEL[c.tipo]}</span>
+                      <span className="shrink-0 text-etiqueta font-semibold text-tx-3 font-mono">{CONTATO_TIPO_LABEL[c.tipo]}</span>
                     </button>
                   ))}
                 </div>
@@ -346,7 +346,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                   />
                 </div>
               )}
-              <p className="text-[11px] text-tx-3 mt-1">
+              <p className="text-etiqueta text-tx-3 mt-1">
                 Não encontrou o contato na busca acima? Pode digitar o {metodo === "EMAIL" ? "e-mail" : "telefone"} direto aqui.
               </p>
             </div>
@@ -360,12 +360,12 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 placeholder="Escreva a introdução da mensagem"
                 className="w-full mt-1 border border-regua px-3 py-2 text-sm bg-sf text-tx resize-y"
               />
-              <p className="text-[11px] text-tx-3 mt-1">
+              <p className="text-etiqueta text-tx-3 mt-1">
                 {metodo === "EMAIL" ? "Vira o corpo do e-mail." : "Vira o texto da mensagem do WhatsApp."} O link de cada documento
                 selecionado é colado logo abaixo automaticamente, sempre em dia com a seleção atual — revise tudo antes de confirmar.
               </p>
               {linksBlock && (
-                <pre className="mt-1.5 whitespace-pre-wrap break-all text-[11px] text-tx-2 bg-sf-apoio border border-regua px-2.5 py-2 font-mono">
+                <pre className="mt-1.5 whitespace-pre-wrap break-all text-etiqueta text-tx-2 bg-sf-apoio border border-regua px-2.5 py-2 font-mono">
                   {linksBlock}
                 </pre>
               )}
@@ -419,7 +419,7 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                     <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua text-acao focus:ring-acao/40 shrink-0" />
                     <Icon size={14} className="text-tx-3 shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
-                    <span className="text-[10px] text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
+                    <span className="text-etiqueta text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
                   </label>
                 );
               })}
@@ -518,7 +518,7 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
                       onClick={() => handleReabrir(envio)}
                       disabled={reabrindoId === envio.id}
                       title="Abrir WhatsApp de novo"
-                      className="flex items-center gap-1 text-[11px] font-semibold text-marca-tx hover:underline px-2 py-1 disabled:opacity-50"
+                      className="flex items-center gap-1 text-etiqueta font-semibold text-marca-tx hover:underline px-2 py-1 disabled:opacity-50"
                     >
                       <Send size={11} /> {reabrindoId === envio.id ? "Abrindo..." : "Reabrir"}
                     </button>
@@ -544,9 +544,9 @@ export function HistoricoEnvios({ entity, envios }: { entity: EnvioEntity; envio
                     <div key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
                       <span className="flex-1 min-w-0 truncate text-tx" title={item.nomeSnapshot}>
                         {item.nomeSnapshot}
-                        {excluido && <span className="text-[10px] text-atencao ml-1.5">(excluído)</span>}
+                        {excluido && <span className="text-etiqueta text-atencao ml-1.5">(excluído)</span>}
                       </span>
-                      <span className="text-[10px] text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
+                      <span className="text-etiqueta text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
                     </div>
                   );
                 })}

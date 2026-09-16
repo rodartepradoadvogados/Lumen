@@ -42,13 +42,13 @@ function CardArquivo({ nome, legenda, badge, destaque }: { nome: string; legenda
 function BadgeLixeira({ trashed }: { trashed: "lixeira" | "definitivo" | null }) {
   if (trashed === "lixeira") {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-aviso-bg text-aviso">
+      <span className="inline-flex items-center gap-1 text-etiqueta font-semibold px-1.5 py-0.5 rounded-sm bg-aviso-bg text-aviso">
         <Trash2 size={11} /> Na lixeira do Drive
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-urgente-bg text-urgente">
+    <span className="inline-flex items-center gap-1 text-etiqueta font-semibold px-1.5 py-0.5 rounded-sm bg-urgente-bg text-urgente">
       Excluído em definitivo
     </span>
   );
@@ -301,7 +301,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                           const Icone = grupo.icone;
                           return (
                             <div key={grupo.tipo}>
-                              <p className={`text-[11px] font-bold uppercase tracking-wide flex items-center gap-1.5 mb-2 ${grupo.cor === "urgente" ? "text-urgente" : grupo.cor === "aviso" ? "text-aviso" : "text-tx-2"}`}>
+                              <p className={`text-etiqueta font-bold uppercase tracking-wide flex items-center gap-1.5 mb-2 ${grupo.cor === "urgente" ? "text-urgente" : grupo.cor === "aviso" ? "text-aviso" : "text-tx-2"}`}>
                                 <Icone size={13} /> {grupo.titulo} ({itens.length})
                               </p>
                               <div className="border border-regua rounded-lg divide-y divide-regua overflow-hidden">
@@ -311,7 +311,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                                   if (p.tipo === "SUBSTITUICAO") {
                                     titulo = `${p.antigo.name}  →  ${p.novo.name}`;
                                     extra = (
-                                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-urgente-bg text-urgente">
+                                      <span className="shrink-0 text-etiqueta font-bold px-1.5 py-0.5 rounded-sm bg-urgente-bg text-urgente">
                                         {p.similaridade}% parecido
                                       </span>
                                     );
@@ -329,10 +329,10 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                                       <Icone size={15} className="shrink-0 text-tx-2" />
                                       <span className="text-xs font-medium text-tx truncate flex-1">{titulo}</span>
                                       {p.subpasta && (
-                                        <span className="shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2">{p.subpasta}</span>
+                                        <span className="shrink-0 text-etiqueta font-semibold px-1.5 py-0.5 rounded-full bg-sf-apoio text-tx-2">{p.subpasta}</span>
                                       )}
                                       {extra}
-                                      <span className="shrink-0 text-[11px] font-semibold text-acao">Resolver</span>
+                                      <span className="shrink-0 text-etiqueta font-semibold text-acao">Resolver</span>
                                     </button>
                                   );
                                 })}
@@ -368,7 +368,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                     nome={pendenciaAtual.novo.name}
                     legenda="Encontrado no Drive, sem vínculo"
                     badge={
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-concluido-bg text-concluido">Novo</span>
+                      <span className="inline-flex items-center gap-1 text-etiqueta font-semibold px-1.5 py-0.5 rounded-sm bg-concluido-bg text-concluido">Novo</span>
                     }
                     destaque
                   />
@@ -400,11 +400,11 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
                 <CardArquivo
                   nome={pendenciaAtual.arquivo.name}
                   legenda={pendenciaAtual.subpasta ? `Encontrado na pasta "${pendenciaAtual.subpasta}"` : "Encontrado na pasta, sem vínculo"}
-                  badge={<span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-concluido-bg text-concluido">Novo, sem vínculo</span>}
+                  badge={<span className="inline-flex items-center gap-1 text-etiqueta font-semibold px-1.5 py-0.5 rounded-sm bg-concluido-bg text-concluido">Novo, sem vínculo</span>}
                   destaque
                 />
                 {pendenciaAtual.melhorSemelhanca > 0 && (
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     Maior semelhança encontrada com um anexo já existente: {pendenciaAtual.melhorSemelhanca}% — abaixo do limite de 60%, por isso foi tratado como
                     documento novo.
                   </p>
@@ -521,7 +521,7 @@ export default function DriveReconciliationModal({ scope, onClose }: { scope: Re
         )}
 
         {!carregando && !erro && !detalhe && (
-          <p className="shrink-0 border-t border-regua px-5 py-2.5 text-[11px] text-tx-3 flex items-start gap-1.5">
+          <p className="shrink-0 border-t border-regua px-5 py-2.5 text-etiqueta text-tx-3 flex items-start gap-1.5">
             <Info size={13} className="shrink-0 mt-0.5" />
             {scope === "GLOBAL"
               ? "Varre todo processo/caso/atendimento/licitação/assessoria com pelo menos um anexo já cadastrado — nunca cria pasta nova só por rodar esta auditoria."

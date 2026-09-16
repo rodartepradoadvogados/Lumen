@@ -11,13 +11,13 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F2 — A direção visual** · rodada feita, **aguardando aprovação do dono** (F0 e F1 concluídas) |
-| **Próximo passo concreto** | **O dono decide a direção** no artefato `.impeccable/plano-mestre/direcao/proposta-guias.html` (publicado em https://claude.ai/artifact/3oyngezqNFzh2maC521aH8). Aprovada → F3 (`colorize`, `typeset`, `layout`, `extract`). Recusada → re-roll com `--from 2cac85b3 --reroll 1` |
+| **Fase atual** | **F4 — Portal / SaaS** (F0, F1, F2 e F3 concluídas) |
+| **Próximo passo concreto** | F4, módulo a módulo do Portal, começando por `/painel` (a tarja de risco do escritório) e `/publicacoes`. **Antes disso: pedir ao dono a conferência visual do F3 em produção** — é a única coisa que este ambiente não consegue fazer |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
-| **Comandos executados** | 5 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
-| **Superfícies redesenhadas** | 0 de 5 |
+| **Comandos executados** | 9 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
+| **Superfícies redesenhadas** | 0 de 5 na composição — mas as 5 já estão no mundo novo de cor, tipo e raio (fundação F3) |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
-| **Bloqueios abertos** | **Um, e é o gate previsto:** nenhuma linha de código de produção pode ser escrita antes de o dono aprovar a direção (D-08). Pendências registradas: (a) inspeção visual renderizada só na máquina do dono → F8; (b) 10 defeitos reais listados no diagnóstico podem virar PR curto a qualquer momento |
+| **Bloqueios abertos** | Nenhum — a direção foi aprovada pelo dono em 2026-09-16. Pendências: (a) **conferência visual do F3 em produção, pelo dono** — nada aqui foi visto renderizado; (b) `audit` como passagem própria → F8; (c) 10 defeitos reais do diagnóstico, ainda sem decisão, dos quais 3 já caíram junto com o F3 |
 
 ---
 
@@ -425,7 +425,12 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F2 | Brief do Portal | `shape` | ✅ | #187 | 2026-09-16 | Contrato de direção em `.impeccable/surfaces/app-app.md`, seis blocos + seed |
 | F2 | Rodada de direção | `new-work`, `concept-seed` | ✅ | #187 | 2026-09-16 | Seed `2cac85b3`, designado 4 de 7 → **“Guias”**. 2 competitivos, 4 declinados, 6 elevações nomeadas |
 | F2 | Mockup clicável | — | ✅ | #187 | 2026-09-16 | 5 telas do Portal + 4 do app, dois temas, contraste medido. Pedido do dono ampliou o escopo (o plano previa 2 telas) |
-| F2 | **Aprovação do dono** | — | 🔄 | #187 | — | **GATE ABERTO.** Nada de código de produção antes disto |
+| F2 | **Aprovação do dono** | — | ✅ | — | 2026-09-16 | **"Aprovada a direção."** Gate fechado |
+| F3 | Rampa tipográfica | `typeset` | ✅ | #190 | 2026-09-16 | 6 paradas em rem, piso de 12px; **1.064 tamanhos arbitrários migrados** em 250 arquivos; escala do Tailwind reapontada; regra de lint |
+| F3 | Paleta e temas | `colorize` | ✅ | #190 | 2026-09-16 | 66 tokens × 8 cascas, **todas auto-contidas** — o vazamento de 9 a 14 tokens por casca acabou. Rail deixa de ser grafite fixo |
+| F3 | Raio e ritmo | `layout` | ✅ | #190 | 2026-09-16 | Raio único de 2px; 9 dos 22 defeitos agudos corrigidos no markup; halo decorativo morto |
+| F3 | Classe de campo única | `extract` | ✅ | #190 | 2026-09-16 | **23 classes de input** duplicadas (não 6) viraram uma; 39 definições locais e 36 blocos `<style>` vazios removidos |
+| F3 | DESIGN.md legível por máquina | — | ✅ | #190 | 2026-09-16 | Cabeçalho reescrito a partir do construído — sem isso o detector media contra um alvo morto |
 | F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |
 | F4 | Portal — Painel e Agenda | `layout`, `distill`, `clarify`, `polish` | ⬜ | — | — | — |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
@@ -461,6 +466,9 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | 2026-09-16 | Claude | Direção designada pelo sorteio = candidato 4, “Guias” (arquivo de cartório). Seed `2cac85b3` | `concept-seed --scope direction --mode operate` |
 | 2026-09-16 | Claude | Conflito filete × arredondamento resolvido em favor do **filete**; raio de 2px | F2, resolve os 22 `warning` do detector |
 | 2026-09-16 | Claude | Rampa de 6 paradas com piso de 12px, garantida por lint e não por convenção | F2, a partir do achado nº 1 do diagnóstico |
+| 2026-09-16 | Dono | **Direção "Guias" aprovada.** Seguir para a próxima etapa | Mensagem após a proposta |
+| 2026-09-16 | Claude | O mapeamento da rampa sai da medição, não do gosto: abaixo de 12px vira etiqueta; 12,5 a 16 vira corpo. 13px era o app (43 arquivos), 10-11px era o portal | F3, codemod |
+| 2026-09-16 | Claude | Os nomes de token antigos viram apelido dos novos, em vez de dois sistemas convivendo. É o que faz as 99 rotas entrarem no mundo novo sem editar 250 arquivos | F3, `colorize` |
 
 ---
 

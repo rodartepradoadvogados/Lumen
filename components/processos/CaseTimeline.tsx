@@ -43,8 +43,8 @@ export default function CaseTimeline({ events }: { events: CaseTimelineEvent[] }
               <Icon size={11} strokeWidth={2.3} />
             </span>
             <p className="text-xs font-semibold text-tx leading-snug">{ev.title}</p>
-            <p className="text-[10px] text-tx-2 mt-0.5">{formatEventDate(ev.date)}</p>
-            {ev.detail && <p className="text-[11px] text-tx-2 mt-1 leading-snug">{ev.detail}</p>}
+            <p className="text-etiqueta text-tx-2 mt-0.5">{formatEventDate(ev.date)}</p>
+            {ev.detail && <p className="text-etiqueta text-tx-2 mt-1 leading-snug">{ev.detail}</p>}
           </li>
         );
       })}

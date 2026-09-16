@@ -43,7 +43,7 @@ export default function OfficeListRow({ office }: { office: TenantOfficeSummary 
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-tx truncate">{office.name}</p>
-        <p className="text-[11px] text-tx-3 font-mono tabular-nums">
+        <p className="text-etiqueta text-tx-3 font-mono tabular-nums">
           {office.isInternal ? "conta interna" : office.monthlyFee ? `${formatCurrency(office.monthlyFee)}/mês` : "sem plano cadastrado"}
         </p>
       </div>
@@ -52,12 +52,12 @@ export default function OfficeListRow({ office }: { office: TenantOfficeSummary 
           lib/billingHealth.ts). Só aparece onde foi calculada (Escritórios); no Cockpit a linha
           fica só com o status de acesso de sempre. */}
       {office.saude && (
-        <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold whitespace-nowrap ${NIVEL_TEXT_CLASS[office.saude.nivel]}`}>
+        <span className={`hidden sm:inline-flex items-center gap-1.5 text-etiqueta font-semibold whitespace-nowrap ${NIVEL_TEXT_CLASS[office.saude.nivel]}`}>
           {NivelIcon && <NivelIcon size={13} />}
           {NIVEL_LABEL[office.saude.nivel]}
         </span>
       )}
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-tx-2 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1.5 text-etiqueta font-semibold text-tx-2 whitespace-nowrap">
         <LumenStatusDot tone={office.isInternal ? "slate" : STATUS_TONE[office.status] ?? "slate"} />
         {office.isInternal ? "Interno" : STATUS_LABEL[office.status] ?? office.status}
       </span>

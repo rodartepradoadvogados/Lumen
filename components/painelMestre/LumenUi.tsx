@@ -26,7 +26,7 @@ export function LumenStat({ label, value, tone = "default" }: { label: string; v
   const toneClass = { default: "text-tx", warn: "text-aviso", risk: "text-urgente", ok: "text-concluido" }[tone];
   return (
     <div className="p-4">
-      <p className="text-[10px] font-semibold text-tx-3 uppercase tracking-wide mb-1">{label}</p>
+      <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide mb-1">{label}</p>
       <p className={`font-mono text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
     </div>
   );

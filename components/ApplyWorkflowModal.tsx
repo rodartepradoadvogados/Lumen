@@ -96,11 +96,11 @@ export default function ApplyWorkflowModal({
                   </select>
                 </div>
               </div>
-              <p className="text-[11px] text-tx-3">
+              <p className="text-etiqueta text-tx-3">
                 Passos com cargo definido tentam usar o membro correspondente; caso contrário, usam este responsável.
               </p>
               {error && (
-                <p className="text-[11px] text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
+                <p className="text-etiqueta text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-400/10 border border-red-200 dark:border-red-400/30 px-2.5 py-1.5">
                   {error}
                 </p>
               )}

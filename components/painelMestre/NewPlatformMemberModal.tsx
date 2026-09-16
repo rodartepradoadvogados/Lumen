@@ -111,7 +111,7 @@ export default function NewPlatformMemberModal({
                       ))}
                     </select>
                     {eligibleUsers.length === 0 && (
-                      <p className="text-[11px] text-white/40 mt-1">Todos os usuários elegíveis já são membros da Lúmen.</p>
+                      <p className="text-etiqueta text-white/40 mt-1">Todos os usuários elegíveis já são membros da Lúmen.</p>
                     )}
                   </div>
                   <div>
@@ -177,22 +177,6 @@ export default function NewPlatformMemberModal({
           </div>
         </ModalShell>
       )}
-      <style jsx global>{`
-        .pmm-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: white;
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-        }
-        .pmm-input:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px color-mix(in srgb, var(--marca) 40%, transparent);
-        }
-      `}</style>
     </>
   );
 }

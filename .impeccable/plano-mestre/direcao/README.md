@@ -95,7 +95,15 @@ ficha, nunca no fundo.
 
 **O conflito dos 22 `warning` fica resolvido por decisão:** o DESIGN.md manda usar filete, o detector
 reprova filete combinado com canto arredondado. **A direção escolhe o filete e abandona o
-arredondamento.** Os 22 desaparecem por escolha, não por remendo.
+arredondamento.**
+
+> **Correção feita em F3, depois de medir:** eu escrevi aqui que "os 22 desaparecem por escolha". Só
+> **9** desapareceram — os do tipo `border-accent-on-rounded`, que eram o par filete-de-topo mais
+> canto arredondado e foram corrigidos no markup. Os outros **13 são `side-tab`**, filete lateral
+> colorido de 4px, e não se resolvem por decisão de raio: exigem julgar, tela a tela, quais são o
+> *sistema* (o filete de severidade da fila do dia, o da linha de triagem — esses a direção ganha) e
+> quais são recado avulso (as três de Conexões, as duas de Comunicados, o BreakGlassField). Isso é
+> trabalho de F4, não de F3.
 
 **Movimento:** um só movimento de navegação — a guia sobe 6px e puxa a ficha junto, em 120ms. Largura
 de conteúdo única de 1440px com rail de 232px, para que nada deslize lateralmente. Isso responde à

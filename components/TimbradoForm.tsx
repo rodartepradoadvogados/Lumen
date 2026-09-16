@@ -87,7 +87,7 @@ export default function TimbradoForm({
             <a href={atual.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-acao hover:underline truncate block">
               {atual.nome ?? "Papel timbrado"}
             </a>
-            <p className="text-[11px] text-tx-2">
+            <p className="text-etiqueta text-tx-2">
               {atual.formato === "DOCX"
                 ? "O relatório em Word é gerado dentro deste arquivo."
                 : "PDF fica guardado como referência — o Word não pode ser gerado dentro de um PDF."}
@@ -97,7 +97,7 @@ export default function TimbradoForm({
             type="button"
             onClick={remover}
             disabled={removendo}
-            className="text-[11px] font-semibold text-tx-3 hover:text-atencao shrink-0 disabled:opacity-50"
+            className="text-etiqueta font-semibold text-tx-3 hover:text-atencao shrink-0 disabled:opacity-50"
           >
             Remover
           </button>
@@ -125,7 +125,7 @@ export default function TimbradoForm({
         <p className="text-xs text-tx-2 text-center">
           {enviando ? "Enviando…" : atual.url ? "Arraste outro arquivo aqui para substituir, ou clique para selecionar" : "Arraste o papel timbrado aqui, ou clique para selecionar"}
         </p>
-        <p className="text-[11px] text-tx-3">Word (.docx) ou PDF</p>
+        <p className="text-etiqueta text-tx-3">Word (.docx) ou PDF</p>
         <input
           ref={inputRef}
           type="file"
@@ -139,7 +139,7 @@ export default function TimbradoForm({
         />
       </div>
 
-      <p className="text-[11px] text-tx-3">
+      <p className="text-etiqueta text-tx-3">
         Envie em <strong className="text-tx-2">.docx</strong> para o relatório sair dentro do seu papel timbrado, com cabeçalho, rodapé e
         margens preservados. Um timbrado em PDF não pode receber o conteúdo do Word: nesse caso o relatório sai com o nome e o CNPJ do
         escritório no topo.

@@ -69,11 +69,11 @@ export default function StorageProviderPicker({ current, isAdmin, oneDriveConnec
         })}
       </div>
       {needsConnection && (
-        <p className="text-[11px] text-aviso mt-2">
+        <p className="text-etiqueta text-aviso mt-2">
           {selectedOption?.label} escolhido, mas ainda não conectado — conecte a conta abaixo para ativar de verdade. Até lá, uploads continuam falhando.
         </p>
       )}
-      {error && <p className="text-[11px] text-vinho mt-2">{error}</p>}
+      {error && <p className="text-etiqueta text-vinho mt-2">{error}</p>}
     </div>
   );
 }

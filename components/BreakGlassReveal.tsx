@@ -70,7 +70,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
       <button
         type="button"
         onClick={openAndTry}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-marca-tx hover:underline"
+        className="inline-flex items-center gap-1 text-etiqueta font-semibold text-marca-tx hover:underline"
         title={`Este ${label} está mascarado pelo Vidro Fosco — pedir para ver os dados reais`}
       >
         <Lock size={11} /> Revelar dados reais
@@ -103,7 +103,7 @@ export default function BreakGlassReveal({ scopeType, scopeId }: { scopeType: Re
               <span className="text-tx font-medium">{formatRevealedValue(kinds[field], value)}</span>
             </p>
           ))}
-          <p className="text-[10px] text-tx-3 pt-1">
+          <p className="text-etiqueta text-tx-3 pt-1">
             Esta leitura foi registrada no histórico de acessos do escritório.
           </p>
         </div>

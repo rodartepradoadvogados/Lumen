@@ -128,22 +128,6 @@ export default function ClientQualificationModal({
           </button>
         </div>
       </div>
-      <style jsx global>{`
-        .cqm-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          border: 1px solid var(--regua-forte);
-          border-radius: 0.3125rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          background: var(--sf-superficie);
-          color: var(--tx);
-        }
-        .cqm-input:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px var(--acao-bg);
-        }
-      `}</style>
     </div>
   );
 }

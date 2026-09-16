@@ -39,7 +39,7 @@ export default function AssessoriaTimelineTab({ assessoria }: { assessoria: Asse
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 bg-sf border border-regua p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-3">Histórico</h4>
+        <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 mb-3">Histórico</h4>
         {events.length === 0 ? (
           <p className="text-sm text-tx-3">Ainda não há nada registrado.</p>
         ) : (
@@ -51,7 +51,7 @@ export default function AssessoriaTimelineTab({ assessoria }: { assessoria: Asse
                   {i < events.length - 1 && <span className="w-px flex-1 bg-regua mt-1" />}
                 </div>
                 <div className="pb-1">
-                  <p className="text-[11px] text-tx-3 tabular-nums">{formatDate(e.date)}</p>
+                  <p className="text-etiqueta text-tx-3 tabular-nums">{formatDate(e.date)}</p>
                   <p className="text-sm font-semibold text-tx">{e.title}</p>
                   <p className="text-xs text-tx-2">{e.desc}</p>
                 </div>
@@ -62,7 +62,7 @@ export default function AssessoriaTimelineTab({ assessoria }: { assessoria: Asse
       </div>
 
       <div className="bg-sf border border-regua p-4">
-        <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Planejamento</h4>
+        <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 mb-2.5">Planejamento</h4>
         {assessoria.planningNotes ? (
           <p className="text-sm text-tx-2 italic whitespace-pre-wrap">{assessoria.planningNotes}</p>
         ) : (

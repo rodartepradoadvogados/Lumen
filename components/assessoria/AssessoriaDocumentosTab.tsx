@@ -26,7 +26,7 @@ const VIEW_MODE_KEY = "rp-assessoria-documentos-view";
 function ParecerBadge({ name }: { name: string }) {
   return (
     <span
-      className="inline-flex items-center gap-1 text-[10px] font-medium text-tx-2 bg-sf-apoio px-1.5 py-0.5 rounded-full"
+      className="inline-flex items-center gap-1 text-etiqueta font-medium text-tx-2 bg-sf-apoio px-1.5 py-0.5 rounded-full"
       title={`Dentro da demanda "${name}"`}
     >
       <FolderOpen size={10} className="shrink-0" />
@@ -189,7 +189,7 @@ export default function AssessoriaDocumentosTab({
           aparece aqui E na lista geral, sem duplicar o cadastro. */}
       <div className="bg-sf border border-regua p-4 mb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
+          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
             <Building2 size={13} /> Documentos da Empresa
           </h4>
           <button
@@ -222,9 +222,9 @@ export default function AssessoriaDocumentosTab({
                   <span className="text-sm font-medium text-tx truncate" title={d.name}>
                     {d.name}
                   </span>
-                  <span className="hidden sm:inline text-[11px] text-tx-2 shrink-0">{getDocumentTypeLabel(d.docType)}</span>
+                  <span className="hidden sm:inline text-etiqueta text-tx-2 shrink-0">{getDocumentTypeLabel(d.docType)}</span>
                   <span className="flex-1" />
-                  <span className="shrink-0 text-[11px] text-tx-2">{formatDate(d.date)}</span>
+                  <span className="shrink-0 text-etiqueta text-tx-2">{formatDate(d.date)}</span>
                 </a>
               );
             })}
@@ -365,7 +365,6 @@ export default function AssessoriaDocumentosTab({
               Cancelar
             </button>
           </div>
-          <style>{`.doc-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
         </form>
       )}
 
@@ -463,11 +462,11 @@ export default function AssessoriaDocumentosTab({
                 <p className="text-xs font-medium text-tx truncate w-full" title={d.name}>
                   {d.name}
                 </p>
-                <p className="text-[10px] text-tx-2 truncate w-full" title={getDocumentTypeLabel(d.docType)}>
+                <p className="text-etiqueta text-tx-2 truncate w-full" title={getDocumentTypeLabel(d.docType)}>
                   {getDocumentTypeLabel(d.docType)}
                 </p>
                 {d.parecer && <ParecerBadge name={d.parecer.name} />}
-                <span className="flex items-center gap-0.5 text-[10px] text-marca-tx">
+                <span className="flex items-center gap-0.5 text-etiqueta text-marca-tx">
                   <ExternalLink size={10} /> {getLinkSourceLabel(d.driveUrl)}
                 </span>
               </a>
@@ -498,11 +497,11 @@ export default function AssessoriaDocumentosTab({
                   {d.name}
                 </span>
                 {d.parecer && <ParecerBadge name={d.parecer.name} />}
-                <span className="hidden sm:inline text-[11px] text-tx-2 shrink-0">
+                <span className="hidden sm:inline text-etiqueta text-tx-2 shrink-0">
                   {getDocumentTypeLabel(d.docType)}
                 </span>
                 <span className="flex-1" />
-                <span className="shrink-0 text-[11px] text-tx-2">{formatDate(d.date)}</span>
+                <span className="shrink-0 text-etiqueta text-tx-2">{formatDate(d.date)}</span>
               </a>
             );
           })}
@@ -523,7 +522,7 @@ export default function AssessoriaDocumentosTab({
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
+                <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2 border-b border-regua">
                   <th className="pb-2 pr-3">Nome</th>
                   <th className="pb-2 pr-3">Formato</th>
                   <th className="pb-2 pr-3">Categoria</th>

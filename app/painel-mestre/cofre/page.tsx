@@ -102,7 +102,7 @@ export default async function CofrePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+                <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
                   <th className="px-5 py-2.5 font-semibold">Escritório</th>
                   <th className="px-3 py-2.5 font-semibold">Membro</th>
                   <th className="px-3 py-2.5 font-semibold">Motivo</th>
@@ -133,7 +133,7 @@ export default async function CofrePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
                 <th className="px-5 py-2.5 font-semibold">Escritório</th>
                 <th className="px-3 py-2.5 font-semibold">Solicitante</th>
                 <th className="px-3 py-2.5 font-semibold">Motivo</th>
@@ -179,7 +179,7 @@ export default async function CofrePage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
                 <th className="px-5 py-2.5 font-semibold">Quando</th>
                 <th className="px-3 py-2.5 font-semibold">Escritório</th>
                 <th className="px-3 py-2.5 font-semibold">Membro</th>
@@ -197,7 +197,7 @@ export default async function CofrePage() {
                   <td className="px-3 py-3">
                     <span className="text-white/80">{ACTION_LABEL[log.action] ?? log.action}</span>
                     {log.outOfBand && (
-                      <span className="ml-2 inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-atencao border border-atencao/30 bg-atencao/10 rounded px-1.5 py-0.5">
+                      <span className="ml-2 inline-flex items-center text-etiqueta font-semibold uppercase tracking-wide text-atencao border border-atencao/30 bg-atencao/10 rounded px-1.5 py-0.5">
                         Fora do processo normal
                       </span>
                     )}

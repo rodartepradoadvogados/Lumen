@@ -100,7 +100,7 @@ export default function AssessoriaHonorariosTab({
           ) : (
             <>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-2 mb-1">Honorário mensal (receita)</p>
+                <p className="text-etiqueta font-semibold uppercase tracking-wide text-tx-2 mb-1">Honorário mensal (receita)</p>
                 <b className="text-tx">{formatCurrency(assessoria.monthlyFee)}</b>{" "}
                 <span className="text-tx-2 text-sm">por mês · vencimento todo dia {assessoria.dueDay}</span>
               </div>
@@ -130,7 +130,7 @@ export default function AssessoriaHonorariosTab({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-2 border-b border-regua">
+                <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2 border-b border-regua">
                   <th className="pb-2 pr-3">Competência</th>
                   <th className="pb-2 pr-3">Valor</th>
                   <th className="pb-2 pr-3">Vencimento</th>
@@ -153,7 +153,7 @@ export default function AssessoriaHonorariosTab({
                           <div className="flex flex-col gap-1.5 py-1 min-w-[15rem]">
                             <div className="flex items-center gap-1.5">
                               <div>
-                                <label className="block text-[10px] font-medium text-tx-2 mb-0.5">Data pgto.</label>
+                                <label className="block text-etiqueta font-medium text-tx-2 mb-0.5">Data pgto.</label>
                                 <input
                                   type="date"
                                   value={payDate}
@@ -162,7 +162,7 @@ export default function AssessoriaHonorariosTab({
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-medium text-tx-2 mb-0.5">Valor pago (R$)</label>
+                                <label className="block text-etiqueta font-medium text-tx-2 mb-0.5">Valor pago (R$)</label>
                                 <MoneyInput
                                   value={payAmount}
                                   onChange={setPayAmount}
@@ -170,7 +170,7 @@ export default function AssessoriaHonorariosTab({
                                 />
                               </div>
                             </div>
-                            {payError && <p className="text-[11px] text-urgente">{payError}</p>}
+                            {payError && <p className="text-etiqueta text-urgente">{payError}</p>}
                             <div className="flex items-center gap-1.5">
                               <button
                                 disabled={pending}

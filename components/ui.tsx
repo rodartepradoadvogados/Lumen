@@ -57,7 +57,7 @@ export function Card({ children, className, accent }: { children: ReactNode; cla
     // um seletor descendente em app/globals.css (".portal-shell .rounded-lg { ... }") sobrescreve
     // para 2px por especificidade — não precisa trocar a classe aqui nem em nenhum outro
     // componente que já usa `rounded-*`, ver "Portal Noturno" em DESIGN.md.
-    <div className={clsx("bg-sf border-t-2 rounded-lg", accent ? ACCENT_BORDER[accent] : "border-regua-forte", className)}>
+    <div className={clsx("bg-sf border-t-2", accent ? ACCENT_BORDER[accent] : "border-regua-forte", className)}>
       {children}
     </div>
   );
@@ -112,7 +112,7 @@ const badgeColors: Record<string, string> = {
 
 export function Badge({ children, color = "slate", className }: { children: ReactNode; color?: keyof typeof badgeColors; className?: string }) {
   return (
-    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap", badgeColors[color], className)}>
+    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-etiqueta font-semibold whitespace-nowrap", badgeColors[color], className)}>
       {children}
     </span>
   );
@@ -128,7 +128,7 @@ export function ConclusionChip({ children, className }: { children: ReactNode; c
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold whitespace-nowrap bg-concluido-bg text-concluido",
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-etiqueta font-semibold whitespace-nowrap bg-concluido-bg text-concluido",
         className
       )}
     >

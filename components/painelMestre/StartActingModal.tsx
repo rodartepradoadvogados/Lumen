@@ -59,7 +59,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
       >
         <Building2 size={13} /> Entrar como este escritório
       </button>
-      <p className="text-[11px] text-white/45 mt-1.5">
+      <p className="text-etiqueta text-white/45 mt-1.5">
         Pra ajudar a configurar Drive, DJEN ou e-mail junto com o dono. Sessão de {SESSION_MINUTES} minutos, registrada e
         visível ao escritório — sai a qualquer momento pelo aviso no topo, dos dois lados.
       </p>
@@ -132,7 +132,7 @@ export default function StartActingModal({ officeId }: { officeId: string }) {
                 />
               </div>
 
-              <p className="text-[11px] text-white/60 bg-white/5 px-3 py-2">
+              <p className="text-etiqueta text-white/60 bg-white/5 px-3 py-2">
                 O acesso dura {SESSION_MINUTES} minutos, fica registrado com motivo e chamado, e é visível ao escritório em
                 tempo real — com botão para encerrar a qualquer momento do lado deles.
               </p>

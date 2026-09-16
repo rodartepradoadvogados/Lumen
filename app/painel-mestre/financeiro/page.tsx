@@ -88,12 +88,12 @@ export default async function FinanceiroLumenPage({
           <LumenStat label="MRR" value={formatCurrency(mrr)} />
           <LumenStat label="Despesas do mês" value={formatCurrency(despesasDoMes)} />
           <div className="p-4">
-            <p className="text-[10px] font-semibold text-tx-3 uppercase tracking-wide mb-1">Margem estimada</p>
+            <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide mb-1">Margem estimada</p>
             <p className={`font-mono text-2xl font-semibold tabular-nums ${margem >= 0 ? "text-concluido" : "text-urgente"}`}>
               {formatCurrency(margem)}
             </p>
             {margemVariacao !== null && (
-              <p className={`text-[11px] font-semibold mt-1 ${margemVariacao >= 0 ? "text-concluido" : "text-urgente"}`}>
+              <p className={`text-etiqueta font-semibold mt-1 ${margemVariacao >= 0 ? "text-concluido" : "text-urgente"}`}>
                 {margemVariacao >= 0 ? "↑" : "↓"} {Math.abs(margemVariacao).toFixed(0)}% vs. {labelCompetencia(mesAnterior)}
               </p>
             )}
@@ -119,7 +119,7 @@ export default async function FinanceiroLumenPage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
+              <tr className="text-left text-etiqueta font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                 <th className="px-5 py-2.5 font-semibold">Conta</th>
                 <th className="px-3 py-2.5 font-semibold">Descrição</th>
                 <th className="px-3 py-2.5 font-semibold">Fornecedor</th>
@@ -133,7 +133,7 @@ export default async function FinanceiroLumenPage({
                 <tr key={e.id}>
                   <td className="px-5 py-3">
                     <span className="text-tx font-medium">{e.account.name}</span>
-                    {e.account.group && <span className="block text-[11px] text-tx-3">{e.account.group}</span>}
+                    {e.account.group && <span className="block text-etiqueta text-tx-3">{e.account.group}</span>}
                   </td>
                   <td className="px-3 py-3 text-tx-2">{e.description}</td>
                   <td className="px-3 py-3 text-tx-2">{e.supplier || "—"}</td>

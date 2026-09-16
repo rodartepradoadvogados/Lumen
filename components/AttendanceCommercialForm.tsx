@@ -84,7 +84,7 @@ export default function AttendanceCommercialForm({
           <h4 className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Comercial (Funil)</h4>
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx"
           >
             <Pencil size={12} /> Editar
           </button>
@@ -224,10 +224,6 @@ export default function AttendanceCommercialForm({
           Cancelar
         </button>
       </div>
-      <style jsx global>{`
-        .acf-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .acf-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-      `}</style>
     </form>
   );
 }

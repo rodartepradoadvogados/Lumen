@@ -47,7 +47,7 @@ const severityStyle: Record<string, string> = {
 };
 
 // Rótulo do tipo de alerta acima do título: 9,5px caixa alta, tracking .1em, --tx-2.
-const kindLabelClass = "text-[9.5px] font-semibold text-tx-2 uppercase tracking-[.1em]";
+const kindLabelClass = "text-etiqueta font-semibold text-tx-2 uppercase tracking-[.1em]";
 
 export default async function AlertasPage({ searchParams }: { searchParams: { tab?: string } }) {
   const tab = searchParams.tab === "hoje" ? "hoje" : "pendentes";

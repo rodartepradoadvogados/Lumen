@@ -73,7 +73,7 @@ export default function TribunalPickerModal({
               {grupos.length === 0 && <p className="px-3 py-4 text-sm text-tx-2">Nenhum tribunal encontrado.</p>}
               {grupos.map((g) => (
                 <div key={g.categoria} className="mb-1">
-                  <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-tx-3 uppercase tracking-wide">{g.categoria}</p>
+                  <p className="px-3 pt-2 pb-1 text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">{g.categoria}</p>
                   {g.itens.map((t) => (
                     <button
                       key={t.sigla}

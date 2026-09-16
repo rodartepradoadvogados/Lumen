@@ -98,7 +98,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
       >
         <Icon size={15} className="text-tx-2" />
         Tema: {THEME_LABEL[mode]}
-        <span className="ml-auto text-[11px] text-tx-3">Mudar p/ {nextLabel}</span>
+        <span className="ml-auto text-etiqueta text-tx-3">Mudar p/ {nextLabel}</span>
       </button>
     );
   }

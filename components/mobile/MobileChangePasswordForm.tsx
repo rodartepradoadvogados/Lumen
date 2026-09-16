@@ -5,7 +5,7 @@ import { changeOwnPassword } from "@/lib/actions/settings";
 
 const inputClass =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
-const labelClass = "text-[13px] font-medium text-tx-2";
+const labelClass = "text-corpo font-medium text-tx-2";
 
 // Versão mobile compacta do ChangePasswordForm do desktop (mesma server action
 // changeOwnPassword) — disponível para qualquer usuário logado, sem depender de nenhuma
@@ -51,12 +51,12 @@ export default function MobileChangePasswordForm() {
         <input id="change-password-confirm" name="confirmPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       {error && (
-        <p role="alert" className="text-[13px] text-urgente bg-urgente-bg border border-urgente rounded-md px-2.5 py-1.5">
+        <p role="alert" className="text-corpo text-urgente bg-urgente-bg border border-urgente rounded-md px-2.5 py-1.5">
           {error}
         </p>
       )}
       {success && (
-        <p className="text-[13px] text-concluido bg-concluido-bg border border-concluido/20 rounded-md px-2.5 py-1.5">
+        <p className="text-corpo text-concluido bg-concluido-bg border border-concluido/20 rounded-md px-2.5 py-1.5">
           Senha alterada com sucesso.
         </p>
       )}

@@ -640,13 +640,13 @@ export default async function CaseDetailPage({
               const authorName = authorDisplayName(cm.author, viewer.officeId);
               return (
               <div key={cm.id} className="flex gap-3">
-                <div className="h-8 w-8 rounded-full bg-grafite-700 text-ouro-500 flex items-center justify-center text-[11px] font-bold shrink-0">
+                <div className="h-8 w-8 rounded-full bg-grafite-700 text-ouro-500 flex items-center justify-center text-etiqueta font-bold shrink-0">
                   {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <div>
                   <p className="text-sm">
                     <span className="font-semibold text-tx">{authorName}</span>{" "}
-                    <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
+                    <span className="text-etiqueta text-tx-2">{formatDate(cm.createdAt)}</span>
                   </p>
                   <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                 </div>
@@ -749,7 +749,7 @@ export default async function CaseDetailPage({
                     <div className="flex items-center gap-1">
                       <div className="text-right">
                         <p className="text-sm font-semibold text-tx tabular-nums">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                        {r.status === "PARCIAL" && <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
+                        {r.status === "PARCIAL" && <p className="text-etiqueta text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
                         <Badge color={r.status === "PAGO" ? "green" : r.status === "ATRASADO" ? "red" : isApurar ? "slate" : "amber"}>
                           {isApurar ? "A apurar" : r.status}
                         </Badge>
@@ -849,7 +849,7 @@ export default async function CaseDetailPage({
                     <div className="flex items-center gap-1">
                       <div className="text-right">
                         <p className="text-sm font-semibold text-tx tabular-nums">{formatCurrency(liquido)}</p>
-                        {p.status === "PARCIAL" && <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
+                        {p.status === "PARCIAL" && <p className="text-etiqueta text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>}
                         <Badge color={p.status === "PAGO" ? "green" : p.status === "ATRASADO" ? "red" : "amber"}>{p.status}</Badge>
                       </div>
                       <SettleButton id={p.id} kind="payable" liquido={liquido} alreadyPaid={paidSum} status={p.status} bankAccounts={bankAccounts} />

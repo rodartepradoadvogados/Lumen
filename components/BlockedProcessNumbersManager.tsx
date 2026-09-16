@@ -33,7 +33,7 @@ export default function BlockedProcessNumbersManager({ items }: { items: Blocked
           <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-tx truncate">{item.displayNumber}</p>
-              <p className="text-[11px] text-tx-2">
+              <p className="text-etiqueta text-tx-2">
                 Bloqueado em {new Date(item.createdAt).toLocaleDateString("pt-BR")}
               </p>
             </div>

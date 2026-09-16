@@ -43,7 +43,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m/financeiro"
-        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Financeiro
       </Link>
@@ -65,18 +65,18 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
       <form className="flex items-end gap-2" action="/m/financeiro/receitas">
         {tab !== "abertas" && <input type="hidden" name="tab" value={tab} />}
         <div className="flex-1 min-w-0">
-          <label className="text-[13px] font-medium text-tx-2 block mb-1">
+          <label className="text-corpo font-medium text-tx-2 block mb-1">
             De {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
           </label>
           <input type="date" name="from" defaultValue={from} className="mobile-input" />
         </div>
         <div className="flex-1 min-w-0">
-          <label className="text-[13px] font-medium text-tx-2 block mb-1">
+          <label className="text-corpo font-medium text-tx-2 block mb-1">
             Até {tab === "pagas" ? "(recebido em)" : "(vencimento)"}
           </label>
           <input type="date" name="to" defaultValue={to} className="mobile-input" />
         </div>
-        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-2 shrink-0 transition-colors">
+        <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2 shrink-0 transition-colors">
           Filtrar
         </button>
       </form>
@@ -108,7 +108,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-tx">{r.description}</p>
-                      <p className="text-[13px] text-tx-2 mt-0.5">
+                      <p className="text-corpo text-tx-2 mt-0.5">
                         {r.client && <span>{r.client.name} · </span>}
                         {kindLabels[r.kind] ?? r.kind}
                         {r.category && <span> · {r.category.name}</span>}
@@ -116,12 +116,12 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
                         {r.isSuccessPortion && <span> · Êxito</span>}
                       </p>
                       {isApurar && (
-                        <p className="text-[13px] text-tx-2 mt-0.5">
+                        <p className="text-corpo text-tx-2 mt-0.5">
                           {r.percentual}% de {PERCENTUAL_BASE_LABELS[r.percentualBase ?? ""] ?? "base não definida"} — a apurar no desfecho
                         </p>
                       )}
                       {r.status === "PAGO" && (r.paymentMethod || r.paymentReceiptNumber) && (
-                        <p className="text-[13px] text-tx-2 mt-0.5">
+                        <p className="text-corpo text-tx-2 mt-0.5">
                           {r.paymentMethod && (paymentMethodLabels[r.paymentMethod] ?? r.paymentMethod)}
                           {r.paymentReceiptNumber && ` · Comprovante: ${r.paymentReceiptNumber}`}
                         </p>
@@ -130,9 +130,9 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold tabular-nums text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
                       {r.effectiveStatus === "PARCIAL" && (
-                        <p className="text-[13px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>
+                        <p className="text-corpo tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>
                       )}
-                      <p className="text-[13px] text-tx-2">
+                      <p className="text-corpo text-tx-2">
                         {r.noDueDate ? "Sem vencimento" : formatDate(r.dueDate)}
                       </p>
                     </div>
@@ -159,7 +159,7 @@ function TabLink({ label, href, active }: { label: string; href: string; active:
   return (
     <Link
       href={href}
-      className={`text-[13px] font-semibold px-3 py-1.5 rounded-full transition-colors ${
+      className={`text-corpo font-semibold px-3 py-1.5 rounded-full transition-colors ${
         active
           ? "bg-acao text-acao-tx"
           : "bg-sf text-tx-2 border border-regua"

@@ -103,11 +103,11 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                         <Icon size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
+                        <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
                         <p className="text-sm font-medium text-tx mt-0.5 break-words">{a.title}</p>
-                        {a.subtitle && <p className="text-[13px] text-tx-2 mt-0.5 break-words">{a.subtitle}</p>}
+                        {a.subtitle && <p className="text-corpo text-tx-2 mt-0.5 break-words">{a.subtitle}</p>}
                         {a.processNumber && <ProcessNumberChip processNumber={a.processNumber} />}
-                        <span className="text-[13px] text-tx-2 mt-1 block">{a.date.toLocaleDateString("pt-BR")}</span>
+                        <span className="text-corpo text-tx-2 mt-1 block">{a.date.toLocaleDateString("pt-BR")}</span>
                       </div>
                     </AlertRow>
                   </DismissibleAlertRow>
@@ -137,11 +137,11 @@ export default async function MobileAlertas({ searchParams }: { searchParams: { 
                       <Icon size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
+                      <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide">{meta.label}</p>
                       <p className="text-sm font-medium text-tx mt-0.5 break-words">{item.title}</p>
-                      {item.subtitle && <p className="text-[13px] text-tx-2 mt-0.5 break-words">{item.subtitle}</p>}
+                      {item.subtitle && <p className="text-corpo text-tx-2 mt-0.5 break-words">{item.subtitle}</p>}
                     </div>
-                    {item.time && <span className="text-[13px] font-semibold text-tx-2 shrink-0">{item.time}</span>}
+                    {item.time && <span className="text-corpo font-semibold text-tx-2 shrink-0">{item.time}</span>}
                   </Link>
                 );
               })}

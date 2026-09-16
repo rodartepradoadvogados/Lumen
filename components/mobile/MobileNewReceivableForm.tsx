@@ -52,7 +52,7 @@ export default function MobileNewReceivableForm({
         </button>
       </div>
 
-      {error && <p role="alert" className="text-[13px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {
@@ -94,21 +94,21 @@ export default function MobileNewReceivableForm({
         className="space-y-3"
       >
         <div>
-          <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-description">Descrição</label>
+          <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-description">Descrição</label>
           <input id="receivable-description" name="description" required className="mobile-input" placeholder="Ex: Honorários - parcela 1/6" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-amount">Valor (R$)</label>
+            <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-amount">Valor (R$)</label>
             <MoneyInput id="receivable-amount" name="amount" required className="mobile-input" />
           </div>
           <div>
-            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-due-date">Vencimento</label>
+            <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-due-date">Vencimento</label>
             <input id="receivable-due-date" name="dueDate" type="date" required className="mobile-input" />
           </div>
         </div>
         <div>
-          <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-kind">Tipo de Honorário</label>
+          <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-kind">Tipo de Honorário</label>
           <select id="receivable-kind" name="kind" defaultValue="HONORARIOS_CONTRATUAIS" className="mobile-input">
             {RECEIVABLE_KIND_OPTIONS.map((k) => (
               <option key={k.value} value={k.value}>
@@ -119,7 +119,7 @@ export default function MobileNewReceivableForm({
         </div>
         <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} />
         <div>
-          <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-client">Cliente (opcional)</label>
+          <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-client">Cliente (opcional)</label>
           <select id="receivable-client" name="clientId" defaultValue="" className="mobile-input">
             <option value="">Nenhum</option>
             {clients.map((c) => (
@@ -131,7 +131,7 @@ export default function MobileNewReceivableForm({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-category">Categoria</label>
+            <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-category">Categoria</label>
             <select id="receivable-category" name="categoryId" defaultValue="" className="mobile-input">
               <option value="">Sem categoria</option>
               {categories.map((c) => (
@@ -142,7 +142,7 @@ export default function MobileNewReceivableForm({
             </select>
           </div>
           <div>
-            <label className="text-[13px] font-medium text-tx-2" htmlFor="receivable-cost-center">Centro de Custo</label>
+            <label className="text-corpo font-medium text-tx-2" htmlFor="receivable-cost-center">Centro de Custo</label>
             <select id="receivable-cost-center" name="costCenterId" defaultValue="" className="mobile-input">
               <option value="">Nenhum</option>
               {costCenters.map((c) => (

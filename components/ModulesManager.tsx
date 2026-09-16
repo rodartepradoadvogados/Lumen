@@ -33,7 +33,7 @@ export default function ModulesManager({ modules }: { modules: OfficeModules }) 
         </div>
       ))}
       <div className="px-5 py-3">
-        <p className="text-[11px] text-tx-3">Para contratar ou cancelar um módulo, fale com a Lúmen.</p>
+        <p className="text-etiqueta text-tx-3">Para contratar ou cancelar um módulo, fale com a Lúmen.</p>
       </div>
     </div>
   );

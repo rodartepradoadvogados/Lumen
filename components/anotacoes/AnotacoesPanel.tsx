@@ -26,7 +26,7 @@ export default function AnotacoesPanel() {
           className="flex-1 flex flex-col items-center gap-3 pt-4 text-tx-2 hover:text-marca-tx hover:bg-sf-apoio transition-colors"
         >
           <NotebookPen size={17} />
-          <span className="text-[10px] font-bold tracking-widest [writing-mode:vertical-rl]">ANOTAÇÕES</span>
+          <span className="text-etiqueta font-bold tracking-widest [writing-mode:vertical-rl]">ANOTAÇÕES</span>
         </button>
       ) : (
         <>

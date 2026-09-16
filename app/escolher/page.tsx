@@ -35,7 +35,7 @@ export default async function EscolherPage() {
             href="/painel"
             className="block border-2 border-regua-forte bg-sf p-6 hover:border-acao transition-colors"
           >
-            <div className="text-[11px] font-extrabold uppercase tracking-[.1em] text-tx-3 mb-1">Escritório</div>
+            <div className="text-etiqueta font-extrabold uppercase tracking-[.1em] text-tx-3 mb-1">Escritório</div>
             <div className="text-lg font-extrabold text-tx">Entrar no escritório</div>
             <p className="text-sm text-tx-2 mt-1">Processos, agenda, financeiro e o dia a dia do escritório.</p>
           </Link>
@@ -43,7 +43,7 @@ export default async function EscolherPage() {
             href="/painel-mestre"
             className="block border-2 border-regua-forte bg-sf p-6 hover:border-acao transition-colors"
           >
-            <div className="text-[11px] font-extrabold uppercase tracking-[.1em] text-tx-3 mb-1">Plataforma</div>
+            <div className="text-etiqueta font-extrabold uppercase tracking-[.1em] text-tx-3 mb-1">Plataforma</div>
             <div className="text-lg font-extrabold text-tx">Painel Mestre</div>
             <p className="text-sm text-tx-2 mt-1">Administração da Lúmen — escritórios-cliente, cobrança e acesso.</p>
           </Link>

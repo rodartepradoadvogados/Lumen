@@ -80,7 +80,7 @@ export default function PlatformMemberRow({
       {error && (
         <tr>
           <td colSpan={4} className="px-5 pb-2 pt-0">
-            <span className="inline-block text-[11px] bg-atencao/15 text-atencao border border-atencao/20 px-2.5 py-1.5">
+            <span className="inline-block text-etiqueta bg-atencao/15 text-atencao border border-atencao/20 px-2.5 py-1.5">
               {error}
             </span>
           </td>

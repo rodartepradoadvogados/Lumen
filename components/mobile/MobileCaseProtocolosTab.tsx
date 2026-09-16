@@ -66,7 +66,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
 
   return (
     <div className="space-y-3">
-      <p className="text-[13px] text-tx-2 bg-sf-apoio px-3 py-2">
+      <p className="text-corpo text-tx-2 bg-sf-apoio px-3 py-2">
         Só leitura por aqui — para montar ou registrar um protocolo, use o computador.
       </p>
       <Card>
@@ -79,7 +79,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-tx truncate">{lote.titulo}</p>
-                    <p className="text-[13px] text-tx-2 mt-0.5">
+                    <p className="text-corpo text-tx-2 mt-0.5">
                       {lote.itens.length} documento{lote.itens.length === 1 ? "" : "s"}
                       {lote.numeroProtocolo && <> · nº {lote.numeroProtocolo}</>}
                       {lote.protocoladoEm && <> · protocolado em {formatCalendarDate(lote.protocoladoEm)}</>}
@@ -88,7 +88,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                   <Badge color={STATUS_COLOR[lote.status] ?? "slate"}>{STATUS_LABEL[lote.status] ?? lote.status}</Badge>
                 </div>
                 {tarefas[lote.id] && (
-                  <p className="flex items-center gap-1 text-[13px] text-tx-2 mt-1.5">
+                  <p className="flex items-center gap-1 text-corpo text-tx-2 mt-1.5">
                     <CalendarClock size={11} className="shrink-0" />
                     {tarefas[lote.id].title} · {formatCalendarDate(tarefas[lote.id].dueDate)}
                   </p>
@@ -100,7 +100,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                         href={`https://drive.google.com/drive/folders/${lote.driveFolderId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[13px] font-semibold text-acao hover:underline"
+                        className="inline-flex items-center gap-1 text-corpo font-semibold text-acao hover:underline"
                       >
                         <FolderOpen size={12} /> Pasta do lote
                       </a>
@@ -110,7 +110,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                         href={lote.comprovante.driveUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[13px] font-semibold text-acao hover:underline"
+                        className="inline-flex items-center gap-1 text-corpo font-semibold text-acao hover:underline"
                       >
                         <ExternalLink size={12} /> Comprovante
                       </a>
@@ -123,7 +123,7 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
         )}
       </Card>
 
-      <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mt-4 px-1">Documentos enviados</p>
+      <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mt-4 px-1">Documentos enviados</p>
       <Card>
         {envios.length === 0 ? (
           <EmptyState title="Nenhum envio registrado ainda" />
@@ -141,10 +141,10 @@ export default function MobileCaseProtocolosTab({ lotes, envios }: { lotes: Lote
                     <p className="text-sm font-medium text-tx truncate">
                       Para {envio.destinatarioNome} <span className="text-tx-2 font-normal">({envio.destinatarioContato})</span>
                     </p>
-                    <p className="text-[13px] text-tx-2 mt-0.5">
+                    <p className="text-corpo text-tx-2 mt-0.5">
                       {formatEnviadoEm(envio.enviadoEm)} · {envio.itens.length} documento{envio.itens.length === 1 ? "" : "s"} · {envio.enviadoPor?.name ?? "—"}
                     </p>
-                    <p className="text-[13px] text-tx-2 mt-1 truncate">
+                    <p className="text-corpo text-tx-2 mt-1 truncate">
                       {envio.itens.map((i) => i.nomeSnapshot).join(", ")}
                     </p>
                   </div>

@@ -43,7 +43,7 @@ export default async function MobileAcessosPage() {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/configuracoes" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
+      <Link href="/m/configuracoes" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Configurações
       </Link>
 
@@ -78,7 +78,7 @@ export default async function MobileAcessosPage() {
       <a
         href="/api/configuracoes/acessos/exportar"
         download
-        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-2.5 w-full justify-center"
+        className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2.5 w-full justify-center"
       >
         <Download size={14} /> Baixar extrato de acessos (CSV)
       </a>
@@ -86,7 +86,7 @@ export default async function MobileAcessosPage() {
       <Card>
         <div className="p-4 flex items-start gap-2.5">
           <Monitor size={18} className="text-tx-2 shrink-0 mt-0.5" />
-          <p className="text-[13px] text-tx-2">
+          <p className="text-corpo text-tx-2">
             A conferência campo a campo &ldquo;Ver como o suporte vê este escritório&rdquo; está disponível no computador
             (Configurações → Acessos da Lúmen) — é uma tabela densa, melhor numa tela maior.
           </p>
@@ -117,7 +117,7 @@ export default async function MobileAcessosPage() {
               <p>
                 <strong>{activeSession.memberName}</strong> — {ACCESS_REASONS[activeSession.reasonCode as AccessReasonCode] ?? activeSession.reasonCode}
               </p>
-              <p className="text-[13px] text-tx-2 mt-0.5">
+              <p className="text-corpo text-tx-2 mt-0.5">
                 Entrou às {activeSession.startedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}, expira às{" "}
                 {activeSession.expiresAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -139,16 +139,16 @@ export default async function MobileAcessosPage() {
                   <span className="text-sm font-semibold text-tx">
                     {ACCESS_ACTION_LABEL[entry.action] ?? entry.action}
                   </span>
-                  <span className="text-[13px] text-tx-2 shrink-0 whitespace-nowrap">
+                  <span className="text-corpo text-tx-2 shrink-0 whitespace-nowrap">
                     {entry.createdAt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <p className="text-[13px] text-tx-2 mt-0.5">
+                <p className="text-corpo text-tx-2 mt-0.5">
                   {entry.memberName} · {entry.reasonLabel}
                   {entry.durationMinutes !== null && ` · ${entry.durationMinutes} min`}
                 </p>
                 {entry.scopeDescription && (
-                  <p className="text-[13px] text-tx-2 mt-0.5">{entry.scopeDescription}</p>
+                  <p className="text-corpo text-tx-2 mt-0.5">{entry.scopeDescription}</p>
                 )}
                 {entry.outOfBand && (
                   <Badge color="red" className="mt-1.5">

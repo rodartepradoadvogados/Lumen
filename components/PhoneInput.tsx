@@ -160,7 +160,7 @@ export default function PhoneInput({
           autoComplete="off"
         />
       </div>
-      <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+      <label className="flex items-center gap-1.5 text-etiqueta text-tx-2">
         <input type="checkbox" checked={livre} onChange={(e) => setLivre(e.target.checked)} className="accent-acao" />
         Digitar código do país livremente
       </label>

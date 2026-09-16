@@ -22,7 +22,7 @@ export default async function ParecerMobilePage({ params }: { params: { id: stri
 
   return (
     <div className="p-4 space-y-1 animate-fade-in">
-      <Link href={`/m/assessoria/${assessoria.id}`} className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
+      <Link href={`/m/assessoria/${assessoria.id}`} className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Assessoria
       </Link>
       <div className="pt-2">

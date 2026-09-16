@@ -138,15 +138,15 @@ export default async function FunilPage() {
                             )}
                             {a.leadSource && <Badge color="blue">{leadSourceLabels[a.leadSource] || a.leadSource}</Badge>}
                           </div>
-                          <div className="flex items-center justify-between mt-2 text-[11px] text-tx-3">
+                          <div className="flex items-center justify-between mt-2 text-etiqueta text-tx-3">
                             <span>{days} dia(s) no estágio</span>
                             {a.responsible && <span className="truncate max-w-[45%]">{a.responsible.name}</span>}
                           </div>
                           {followupLate && (
-                            <p className="text-[11px] font-semibold text-urgente mt-1.5">follow-up atrasado</p>
+                            <p className="text-etiqueta font-semibold text-urgente mt-1.5">follow-up atrasado</p>
                           )}
                           {a.stage === "PERDIDO" && a.lostReason && (
-                            <p className="text-[11px] text-tx-3 mt-1.5 italic">Motivo: {a.lostReason}</p>
+                            <p className="text-etiqueta text-tx-3 mt-1.5 italic">Motivo: {a.lostReason}</p>
                           )}
                         </Link>
                         <div className="px-3 pb-2.5">

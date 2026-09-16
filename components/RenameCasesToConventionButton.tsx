@@ -172,7 +172,7 @@ export default function RenameCasesToConventionButton() {
                         </td>
                         <td className="px-3 py-2 align-top text-tx-2">
                           {s.currentTitle}
-                          {s.processNumber && <span className="block text-[11px] text-tx-3">{s.processNumber}</span>}
+                          {s.processNumber && <span className="block text-etiqueta text-tx-3">{s.processNumber}</span>}
                         </td>
                         <td className="px-3 py-2 align-top text-tx font-medium">{s.newTitle}</td>
                         <td className="px-3 py-2 align-top text-right">

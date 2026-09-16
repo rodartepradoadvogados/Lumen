@@ -226,14 +226,14 @@ export default function OfficeCobrancaTab({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[11px] text-tx-3">OABs monitoradas (limite) — hoje: {usage.oabs}</label>
+              <label className="text-etiqueta text-tx-3">OABs monitoradas (limite) — hoje: {usage.oabs}</label>
               <input
                 type="number" min={0} value={oabLimit ?? ""} onChange={(e) => setOabLimit(e.target.value === "" ? null : Number(e.target.value))} placeholder="sem limite"
                 className={`mt-1 w-full rounded-sm border px-2.5 py-1.5 text-xs bg-sf-apoio text-tx ${oabLimit != null && usage.oabs > oabLimit ? "border-atencao" : "border-regua-forte"}`}
               />
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Processos (limite) — hoje: {usage.processos}</label>
+              <label className="text-etiqueta text-tx-3">Processos (limite) — hoje: {usage.processos}</label>
               <input
                 type="number" min={0} value={caseLimit ?? ""} onChange={(e) => setCaseLimit(e.target.value === "" ? null : Number(e.target.value))} placeholder="sem limite"
                 className={`mt-1 w-full rounded-sm border px-2.5 py-1.5 text-xs bg-sf-apoio text-tx ${caseLimit != null && usage.processos > caseLimit ? "border-atencao" : "border-regua-forte"}`}
@@ -241,10 +241,10 @@ export default function OfficeCobrancaTab({
             </div>
           </div>
           {((oabLimit != null && usage.oabs > oabLimit) || (caseLimit != null && usage.processos > caseLimit)) && (
-            <p className="text-[11px] text-atencao">Este escritório está acima do limite do plano — considere um upgrade.</p>
+            <p className="text-etiqueta text-atencao">Este escritório está acima do limite do plano — considere um upgrade.</p>
           )}
 
-          <p className="text-[11px] text-tx-3">
+          <p className="text-etiqueta text-tx-3">
             Mensalidade calculada: <span className="text-tx font-semibold">{formatCurrency(calc.total)}</span>
             {calc.modulosSemPreco.length > 0 && (
               <span className="text-atencao"> — módulo sem preço: {calc.modulosSemPreco.map((k) => MODULOS.find((m) => m.key === k)?.label).join(", ")}</span>
@@ -262,34 +262,34 @@ export default function OfficeCobrancaTab({
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <div>
-              <label className="text-[11px] text-tx-3">E-mail de cobrança</label>
+              <label className="text-etiqueta text-tx-3">E-mail de cobrança</label>
               <input value={billing.billingEmail} onChange={(e) => setBilling((p) => ({ ...p, billingEmail: e.target.value }))} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs" />
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Mensalidade (R$){pricingMode === "MODULAR" ? " — calculada acima" : ""}</label>
+              <label className="text-etiqueta text-tx-3">Mensalidade (R$){pricingMode === "MODULAR" ? " — calculada acima" : ""}</label>
               <MoneyInput value={String(billing.monthlyFee)} onChange={(v) => setBilling((p) => ({ ...p, monthlyFee: Number(v) }))} disabled={pricingMode === "MODULAR"} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs disabled:opacity-50" />
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Dia de vencimento</label>
+              <label className="text-etiqueta text-tx-3">Dia de vencimento</label>
               <input type="number" min={1} max={28} value={billing.billingDueDay} onChange={(e) => setBilling((p) => ({ ...p, billingDueDay: Number(e.target.value) }))} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs" />
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Carência até bloqueio (dias)</label>
+              <label className="text-etiqueta text-tx-3">Carência até bloqueio (dias)</label>
               <input type="number" min={1} max={90} value={billing.paymentGraceDays} onChange={(e) => setBilling((p) => ({ ...p, paymentGraceDays: Number(e.target.value) }))} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs" />
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">CPF/CNPJ do escritório</label>
+              <label className="text-etiqueta text-tx-3">CPF/CNPJ do escritório</label>
               <input value={billing.cnpj} onChange={(e) => setBilling((p) => ({ ...p, cnpj: e.target.value }))} placeholder="Necessário pra Asaas emitir boleto/Pix" className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs" />
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Ciclo</label>
+              <label className="text-etiqueta text-tx-3">Ciclo</label>
               <select value={subForm.billingCycle} onChange={(e) => setSubForm((p) => ({ ...p, billingCycle: e.target.value as "MENSAL" | "SEMESTRAL", discountPercent: e.target.value === "MENSAL" ? null : p.discountPercent }))} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs">
                 <option value="MENSAL">Mensal</option>
                 <option value="SEMESTRAL">Semestral</option>
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Forma de pagamento</label>
+              <label className="text-etiqueta text-tx-3">Forma de pagamento</label>
               <select value={subForm.paymentMethod} onChange={(e) => setSubForm((p) => ({ ...p, paymentMethod: e.target.value as PaymentMethodOption }))} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs">
                 <option value="">Não configurada</option>
                 <option value="PIX_AUTOMATICO">Pix Automático</option>
@@ -298,7 +298,7 @@ export default function OfficeCobrancaTab({
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-tx-3">Desconto semestral (%)</label>
+              <label className="text-etiqueta text-tx-3">Desconto semestral (%)</label>
               <input type="number" min={0} max={100} disabled={subForm.billingCycle !== "SEMESTRAL"} value={subForm.discountPercent ?? ""} onChange={(e) => setSubForm((p) => ({ ...p, discountPercent: e.target.value === "" ? null : Number(e.target.value) }))} className="mt-1 w-full border border-regua-forte rounded-sm bg-sf-apoio text-tx px-2.5 py-1.5 text-xs disabled:opacity-40" />
             </div>
           </div>
@@ -315,7 +315,7 @@ export default function OfficeCobrancaTab({
                 Migrar para cálculo automático
               </button>
             ) : (
-              <span className="text-[11px] text-tx-3">Mensalidade calculada automaticamente pelos módulos</span>
+              <span className="text-etiqueta text-tx-3">Mensalidade calculada automaticamente pelos módulos</span>
             )}
           </div>
 
@@ -325,8 +325,8 @@ export default function OfficeCobrancaTab({
                 <button type="button" disabled={pending || !asaasConfigured} onClick={generateAutomatico} className="inline-flex items-center gap-1.5 bg-sf-apoio hover:bg-sf-superficie disabled:opacity-40 text-tx text-xs font-semibold px-3 py-1.5 rounded-sm">
                   <QrCode size={13} /> Gerar autorização Pix Automático
                 </button>
-                {subForm.pixAuthorizationStatus && <span className="text-[11px] text-tx-3">Autorização: {subForm.pixAuthorizationStatus.toLowerCase()}</span>}
-                {!asaasConfigured && <span className="text-[11px] text-tx-3">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>}
+                {subForm.pixAuthorizationStatus && <span className="text-etiqueta text-tx-3">Autorização: {subForm.pixAuthorizationStatus.toLowerCase()}</span>}
+                {!asaasConfigured && <span className="text-etiqueta text-tx-3">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>}
               </div>
               {qr && <QrPanel qr={qr} />}
             </div>
@@ -337,7 +337,7 @@ export default function OfficeCobrancaTab({
                 <button type="button" disabled={pending || !asaasConfigured} onClick={testQrCode} className="inline-flex items-center gap-1.5 bg-sf-apoio hover:bg-sf-superficie disabled:opacity-40 text-tx text-xs font-semibold px-3 py-1.5 rounded-sm">
                   <QrCode size={13} /> Testar geração de QR Code
                 </button>
-                {!asaasConfigured && <span className="text-[11px] text-tx-3">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>}
+                {!asaasConfigured && <span className="text-etiqueta text-tx-3">Cadastre a chave Asaas primeiro (ver README_ASAAS.md).</span>}
               </div>
               {qr && <QrPanel qr={qr} />}
             </div>
@@ -367,9 +367,9 @@ function QrPanel({ qr }: { qr: { image: string | null; payload: string | null } 
       )}
       {qr.payload && (
         <div className="flex-1 min-w-[220px]">
-          <p className="text-[11px] text-tx-3 mb-1">Pix Copia e Cola</p>
+          <p className="text-etiqueta text-tx-3 mb-1">Pix Copia e Cola</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-[11px] text-tx bg-sf-superficie border border-regua rounded-sm px-2 py-1.5 break-all">{qr.payload}</code>
+            <code className="flex-1 text-etiqueta text-tx bg-sf-superficie border border-regua rounded-sm px-2 py-1.5 break-all">{qr.payload}</code>
             <CopyButton text={qr.payload} label="Copiar" />
           </div>
         </div>

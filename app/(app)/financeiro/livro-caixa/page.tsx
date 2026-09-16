@@ -117,10 +117,6 @@ export default async function LivroCaixaPage({ searchParams }: { searchParams: {
           Mostrando as {visible.length} movimentações mais recentes de {todas.length} — estreite o período para ver tudo.
         </p>
       )}
-      <style>{`
-        .lc-input { border: 1px solid var(--regua-forte); padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }
-        .lc-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px var(--marca-bg); }
-      `}</style>
     </div>
   );
 }

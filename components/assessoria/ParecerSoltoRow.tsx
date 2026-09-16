@@ -56,7 +56,7 @@ export default function ParecerSoltoRow({ documento }: { documento: ParecerSolto
         <a href={documento.driveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0 flex-1 hover:underline">
           <FolderOpen size={14} className="shrink-0 text-tx-3" />
           <span className="font-medium text-tx truncate">{documento.name}</span>
-          <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(documento.docType)}</span>
+          <span className="shrink-0 text-etiqueta text-tx-3 font-mono">{getDocumentTypeLabel(documento.docType)}</span>
           <ExternalLink size={11} className="shrink-0 text-tx-3" />
         </a>
         <span className="flex items-center gap-2 shrink-0">
@@ -80,7 +80,7 @@ export default function ParecerSoltoRow({ documento }: { documento: ParecerSolto
           </button>
         </span>
       </div>
-      {deleteError && <p className="px-3 pb-2 text-[11px] text-urgente">{deleteError}</p>}
+      {deleteError && <p className="px-3 pb-2 text-etiqueta text-urgente">{deleteError}</p>}
 
       {editOpen && (
         <form action={handleEdit} className="px-3 pb-3 pt-1 border-t border-regua space-y-2">
@@ -102,7 +102,6 @@ export default function ParecerSoltoRow({ documento }: { documento: ParecerSolto
               Cancelar
             </button>
           </div>
-          <style>{`.parecer-solto-edit-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.5rem; padding:0.4rem 0.65rem; font-size:0.75rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
         </form>
       )}
     </div>

@@ -100,7 +100,7 @@ export default function ReorganizeAttachmentsButton() {
                     <div className="border border-regua overflow-x-auto scrollbar-thin">
                       <table className="w-full text-xs">
                         <thead className="bg-sf-apoio">
-                          <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2">
+                          <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2">
                             {!resultado && <th className="px-3 py-2 font-semibold w-10"></th>}
                             <th className="px-3 py-2 font-semibold w-[10%]">Tipo</th>
                             <th className="px-3 py-2 font-semibold w-[30%]">Arquivo</th>
@@ -156,7 +156,7 @@ export default function ReorganizeAttachmentsButton() {
                 >
                   {aplicando ? "Movendo..." : `Aplicar (${selecionados.size} de ${itens.length})`}
                 </button>
-                <span className="text-[11px] text-tx-2">Desmarque o que não quer mover agora — dá pra rodar de novo depois.</span>
+                <span className="text-etiqueta text-tx-2">Desmarque o que não quer mover agora — dá pra rodar de novo depois.</span>
               </div>
             )}
           </div>

@@ -130,7 +130,7 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
         <div className="space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-tx-3">Variáveis</p>
+          <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-tx-3">Variáveis</p>
           {TEMPLATE_VARS.map((v) => (
             <div
               key={v}
@@ -143,7 +143,7 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
               {`{{${v}}}`} <span className="text-tx-3">{VAR_LABEL[v]}</span>
             </div>
           ))}
-          <p className="text-[11px] text-tx-3 pt-1">Uma linha inteira some da prévia se alguma variável dela estiver sem valor.</p>
+          <p className="text-etiqueta text-tx-3 pt-1">Uma linha inteira some da prévia se alguma variável dela estiver sem valor.</p>
         </div>
 
         <div className="space-y-3">
@@ -184,14 +184,14 @@ export default function TemplateEditor({ initial }: { initial: EmailTemplateItem
           {aba === "rodape" && (
             <div className="bg-sf-apoio border-l-4 border-regua-forte p-3 space-y-2">
               <p className="text-xs text-tx-2">{RODAPE_OBRIGATORIO}</p>
-              <p className="text-[11px] text-tx-3">
+              <p className="text-etiqueta text-tx-3">
                 Texto fixo — não é editável aqui, pra ninguém apagar por engano o aviso de LGPD e o link de cancelamento.
               </p>
             </div>
           )}
 
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-tx-3 mb-1.5">Prévia</p>
+            <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-tx-3 mb-1.5">Prévia</p>
             <div className="border border-regua bg-sf-apoio p-3 max-w-[440px] overflow-x-auto">
               {/* eslint-disable-next-line react/no-danger -- prévia do próprio admin do HTML que
                   ele mesmo está editando agora (atual.bodyHtml); as variáveis vêm de SAMPLE_VARS,

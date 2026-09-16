@@ -48,7 +48,7 @@ export default function PendenciasEditor({
   function Column({ direction, options }: { direction: PendenciaDirection; options: typeof SOLICITAR_KIND_OPTIONS }) {
     return (
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">
+        <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-wide">
           {PENDENCIA_DIRECTION_LABELS[direction]}
         </p>
         <div className="space-y-1.5">

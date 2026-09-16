@@ -64,7 +64,7 @@ export default function MobileAssessoriaDocumentsSection({
       <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2">
         <h2 className="font-bold text-tx text-sm">Documentos</h2>
         {total > 0 && (
-          <span className="text-[13px] text-tx-2 shrink-0">
+          <span className="text-corpo text-tx-2 shrink-0">
             {total} documento{total === 1 ? "" : "s"}
           </span>
         )}
@@ -76,7 +76,7 @@ export default function MobileAssessoriaDocumentsSection({
         <>
           {empresaDocs.length > 0 && (
             <div className="border-b border-regua">
-              <p className="px-4 pt-3 pb-0.5 text-[13px] font-semibold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
+              <p className="px-4 pt-3 pb-0.5 text-corpo font-semibold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
                 <Building2 size={12} /> Documentos da Empresa
               </p>
               <div className="divide-y divide-regua">
@@ -89,13 +89,13 @@ export default function MobileAssessoriaDocumentsSection({
 
           <div className="border-b border-regua">
             <div className="px-4 pt-3 pb-1 flex items-center justify-between gap-2">
-              <p className="text-[13px] font-semibold uppercase tracking-wide text-tx-2">Demandas</p>
-              <Link href={`/m/assessoria/${assessoriaId}/pareceres/nova`} className="flex items-center gap-1 text-[13px] font-semibold text-acao shrink-0">
+              <p className="text-corpo font-semibold uppercase tracking-wide text-tx-2">Demandas</p>
+              <Link href={`/m/assessoria/${assessoriaId}/pareceres/nova`} className="flex items-center gap-1 text-corpo font-semibold text-acao shrink-0">
                 <Plus size={11} /> Nova
               </Link>
             </div>
             {pareceres.length === 0 ? (
-              <p className="px-4 pb-3 text-[13px] text-tx-3">Nenhuma demanda cadastrada ainda.</p>
+              <p className="px-4 pb-3 text-corpo text-tx-3">Nenhuma demanda cadastrada ainda.</p>
             ) : (
               <div className="divide-y divide-regua">
                 {pareceres.map((p) => (
@@ -104,7 +104,7 @@ export default function MobileAssessoriaDocumentsSection({
                       <FolderOpen size={15} className="shrink-0 text-marca-tx" />
                       <span className="min-w-0">
                         <span className="block text-sm font-medium text-tx truncate">{p.name}</span>
-                        <span className="block text-[13px] text-tx-2">
+                        <span className="block text-corpo text-tx-2">
                           {p.documents.length} documento{p.documents.length === 1 ? "" : "s"} · {formatDate(p.date)}
                         </span>
                       </span>
@@ -118,7 +118,7 @@ export default function MobileAssessoriaDocumentsSection({
 
           <div className="divide-y divide-regua">
             {soltos.length > 0 && (
-              <p className="px-4 pt-3 pb-0.5 text-[13px] font-semibold uppercase tracking-wide text-tx-2">
+              <p className="px-4 pt-3 pb-0.5 text-corpo font-semibold uppercase tracking-wide text-tx-2">
                 Sem pasta
               </p>
             )}
@@ -149,7 +149,7 @@ function DocumentoRow({ doc, indent }: { doc: DocumentoItem; indent?: boolean })
       <Icon size={15} className="shrink-0 text-tx-2" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-tx truncate">{doc.name}</p>
-        <p className="text-[13px] text-tx-2 mt-0.5">
+        <p className="text-corpo text-tx-2 mt-0.5">
           {getDocumentTypeLabel(doc.docType)} · {formatDate(doc.date)}
         </p>
       </div>

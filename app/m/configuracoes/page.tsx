@@ -132,7 +132,7 @@ export default async function MobileConfiguracoes({
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
+      <Link href="/m" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
@@ -149,7 +149,7 @@ export default async function MobileConfiguracoes({
         </div>
         <div className="min-w-0">
           <p className="font-bold text-tx leading-tight truncate">{viewer.name}</p>
-          <p className="text-[13px] text-tx-2 truncate">{viewer.email}</p>
+          <p className="text-corpo text-tx-2 truncate">{viewer.email}</p>
         </div>
       </div>
 
@@ -193,7 +193,7 @@ export default async function MobileConfiguracoes({
 
       {canConfig && driveStatus && (
         <>
-          <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide px-1 pt-2">
+          <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide px-1 pt-2">
             Administração
           </p>
 
@@ -207,90 +207,90 @@ export default async function MobileConfiguracoes({
                     navegação (2026-08) apontou que essa era a única seção do app que não
                     acompanhou a reorganização que o site já tinha. */}
                 <div className="px-4 pt-4 pb-1">
-                  <p className="text-[10.5px] font-bold uppercase tracking-wide text-marca-tx">Conexões</p>
-                  <p className="text-[13px] text-tx-2 mt-0.5">Contas de Google usadas pelo escritório</p>
+                  <p className="text-etiqueta font-bold uppercase tracking-wide text-marca-tx">Conexões</p>
+                  <p className="text-corpo text-tx-2 mt-0.5">Contas de Google usadas pelo escritório</p>
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-2">Drive e e-mail</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-2">Drive e e-mail</p>
                   {driveStatus.connected ? (
-                    <div className="flex items-center gap-2 text-[13px] text-tx mb-2">
+                    <div className="flex items-center gap-2 text-corpo text-tx mb-2">
                       <CheckCircle2 size={14} className="text-concluido shrink-0" />
                       <span className="truncate">Conectado como <strong>{driveStatus.accountEmail}</strong></span>
                     </div>
                   ) : (
-                    <p className="text-[13px] text-tx-2 mb-2">Nenhuma conta conectada ainda.</p>
+                    <p className="text-corpo text-tx-2 mb-2">Nenhuma conta conectada ainda.</p>
                   )}
                   <a
                     href="/api/google/connect"
-                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-2 w-fit"
+                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2 w-fit"
                   >
                     <HardDrive size={13} /> {driveStatus.connected ? "Reconectar" : "Conectar"} Google
                   </a>
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-2">Publicações e andamentos processuais de e-mail</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-2">Publicações e andamentos processuais de e-mail</p>
                   <div className="space-y-1.5 mb-3">
                     {users.map((u) => {
                       const found = googleAccounts.find((a) => a.userId === u.id);
                       return (
-                        <div key={u.id} className="flex items-center gap-1.5 text-[13px]">
+                        <div key={u.id} className="flex items-center gap-1.5 text-corpo">
                           <CheckCircle2 size={12} className={found ? "text-concluido shrink-0" : "text-tx-3 shrink-0"} />
                           <span className={found ? "text-tx" : "text-tx-2"}>{u.name}</span>
                         </div>
                       );
                     })}
                   </div>
-                  <p className="text-[13px] text-tx-2 mb-2">
+                  <p className="text-corpo text-tx-2 mb-2">
                     {minhaConexao ? <>Sua conta: <strong>{minhaConexao.accountEmail}</strong></> : "Você ainda não conectou seu e-mail."}
                   </p>
                   <a
                     href="/api/google/connect?mode=jusbrasil"
-                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-2 w-fit"
+                    className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2 w-fit"
                   >
                     <HardDrive size={13} /> {minhaConexao ? "Reconectar" : "Conectar"} meu e-mail
                   </a>
                 </div>
 
                 <div className="px-4 pt-4 pb-1 border-t border-regua mt-1">
-                  <p className="text-[10.5px] font-bold uppercase tracking-wide text-marca-tx">Captura automática</p>
-                  <p className="text-[13px] text-tx-2 mt-0.5">De onde publicações, andamentos e mensagens chegam sozinhos</p>
+                  <p className="text-etiqueta font-bold uppercase tracking-wide text-marca-tx">Captura automática</p>
+                  <p className="text-corpo text-tx-2 mt-0.5">De onde publicações, andamentos e mensagens chegam sozinhos</p>
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-1">Sincronizar publicações e andamentos</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-1">Sincronizar publicações e andamentos</p>
                   <SyncPublicationsButton />
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><Gavel size={13} /> DJEN (CNJ)</p>
-                  <p className="text-[13px] text-tx-2 mb-2">OABs cadastradas em Equipe, no computador.</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><Gavel size={13} /> DJEN (CNJ)</p>
+                  <p className="text-corpo text-tx-2 mb-2">OABs cadastradas em Equipe, no computador.</p>
                   <TestDjenButton />
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-1">Datajud — Andamentos (CNJ)</p>
-                  <p className="text-[13px] text-tx-2 mb-2">
+                  <p className="text-corpo font-semibold text-tx-2 mb-1">Datajud — Andamentos (CNJ)</p>
+                  <p className="text-corpo text-tx-2 mb-2">
                     {processosMonitoradosCount} processo(s) monitorado(s) — API oficial, não sofre o bloqueio do DJEN.
                   </p>
                   {ultimoLogDatajud ? (
-                    <p className={`text-[13px] px-2.5 py-1.5 rounded-md ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
+                    <p className={`text-corpo px-2.5 py-1.5 rounded-md ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
                       Última execução {formatRelativeTimeMobile(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
                     </p>
                   ) : (
-                    <p className="text-[13px] text-aviso">Nenhuma execução registrada ainda.</p>
+                    <p className="text-corpo text-aviso">Nenhuma execução registrada ainda.</p>
                   )}
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><CalendarClock size={13} /> E-mail diário da agenda</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-1 flex items-center gap-1.5"><CalendarClock size={13} /> E-mail diário da agenda</p>
                   <TestEmailButton />
                 </div>
 
                 {modules?.whatsapp && (
                   <div className="p-4 border-t border-regua">
-                    <p className="text-[13px] font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><MessageCircle size={13} /> WhatsApp</p>
+                    <p className="text-corpo font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><MessageCircle size={13} /> WhatsApp</p>
                     <WhatsappConfigForm connected={Boolean(whatsappConfig)} displayPhone={whatsappConfig?.displayPhone ?? null} />
                   </div>
                 )}
@@ -298,11 +298,11 @@ export default async function MobileConfiguracoes({
                 {driveStatus.connected && (
                   <>
                     <div className="px-4 pt-4 pb-1 border-t border-regua mt-1">
-                      <p className="text-[10.5px] font-bold uppercase tracking-wide text-marca-tx">Documentos e pastas</p>
-                      <p className="text-[13px] text-tx-2 mt-0.5">Organização do armazenamento</p>
+                      <p className="text-etiqueta font-bold uppercase tracking-wide text-marca-tx">Documentos e pastas</p>
+                      <p className="text-corpo text-tx-2 mt-0.5">Organização do armazenamento</p>
                     </div>
                     <div className="p-4 border-t border-regua">
-                      <p className="text-[13px] font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><FolderCog size={13} /> Anexos do Drive</p>
+                      <p className="text-corpo font-semibold text-tx-2 mb-2 flex items-center gap-1.5"><FolderCog size={13} /> Anexos do Drive</p>
                       <ReorganizeAttachmentsButton />
                     </div>
                   </>
@@ -319,11 +319,11 @@ export default async function MobileConfiguracoes({
                   {users.map((u) => (
                     <div key={u.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
                       <span className="text-sm text-tx">{u.name}</span>
-                      <span className="text-[13px] text-tx-2">{u.role}</span>
+                      <span className="text-corpo text-tx-2">{u.role}</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-[13px] text-tx-2 p-4 pt-3 border-t border-regua">
+                <p className="text-corpo text-tx-2 p-4 pt-3 border-t border-regua">
                   Cadastro de membros, credenciais e acesso ao Financeiro é ajustável só no computador.
                 </p>
               </Card>
@@ -336,7 +336,7 @@ export default async function MobileConfiguracoes({
             <Group icon={SlidersHorizontal} title="Geral" meta="3 itens">
               <Card className=" border-t-0">
                 <div className="p-4">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-2">Módulos contratados</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-2">Módulos contratados</p>
                   <div className="space-y-1.5">
                     {Object.entries(MODULE_LABELS).map(([key, label]) => (
                       <div key={key} className="flex items-center justify-between gap-2 text-sm">
@@ -347,12 +347,12 @@ export default async function MobileConfiguracoes({
                       </div>
                     ))}
                   </div>
-                  <p className="text-[13px] text-tx-2 mt-2">Liga/desliga só no computador.</p>
+                  <p className="text-corpo text-tx-2 mt-2">Liga/desliga só no computador.</p>
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-1.5 flex items-center gap-1.5"><Upload size={13} /> Importação de Dados</p>
-                  <p className="text-[13px] text-tx-2 leading-relaxed">
+                  <p className="text-corpo font-semibold text-tx-2 mb-1.5 flex items-center gap-1.5"><Upload size={13} /> Importação de Dados</p>
+                  <p className="text-corpo text-tx-2 leading-relaxed">
                     Traz Processos/Casos/Atendimentos, Agenda, Financeiro e Contatos de uma planilha (.xlsx ou .csv) — cada tipo
                     tem um modelo próprio pra baixar, com as colunas esperadas (ex.: cliente, partes, tribunal, valor). Clientes e
                     partes citados na planilha são cadastrados automaticamente. O envio do arquivo é feito só pelo computador,
@@ -361,7 +361,7 @@ export default async function MobileConfiguracoes({
                 </div>
 
                 <div className="p-4 border-t border-regua">
-                  <p className="text-[13px] font-semibold text-tx-2 mb-2">TaskScore — como está configurado</p>
+                  <p className="text-corpo font-semibold text-tx-2 mb-2">TaskScore — como está configurado</p>
                   <div className="space-y-1.5">
                     {taskTypePointsRows.map((row) => (
                       <div key={row.type} className="flex items-center justify-between gap-2 text-sm">
@@ -370,7 +370,7 @@ export default async function MobileConfiguracoes({
                       </div>
                     ))}
                   </div>
-                  <p className="text-[13px] text-tx-2 mt-2">Pontos por tarefa concluída. Ajustável só no computador.</p>
+                  <p className="text-corpo text-tx-2 mt-2">Pontos por tarefa concluída. Ajustável só no computador.</p>
                 </div>
               </Card>
             </Group>
@@ -430,7 +430,7 @@ export default async function MobileConfiguracoes({
                   <div className="p-4 flex gap-2 flex-wrap">
                     <Link
                       href="/m/configuracoes?blogTab=revisao"
-                      className={`text-[13px] font-semibold px-3 py-1.5 transition-colors ${
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colors ${
                         blogTab === "revisao" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >
@@ -438,7 +438,7 @@ export default async function MobileConfiguracoes({
                     </Link>
                     <Link
                       href="/m/configuracoes?blogTab=publicadas"
-                      className={`text-[13px] font-semibold px-3 py-1.5 transition-colors ${
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colors ${
                         blogTab === "publicadas" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >
@@ -446,7 +446,7 @@ export default async function MobileConfiguracoes({
                     </Link>
                     <Link
                       href="/m/configuracoes?blogTab=fotos"
-                      className={`text-[13px] font-semibold px-3 py-1.5 transition-colors ${
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colors ${
                         blogTab === "fotos" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >
@@ -508,7 +508,7 @@ export default async function MobileConfiguracoes({
           </details>
           )}
 
-          <p className="text-[13px] text-tx-2 px-1">
+          <p className="text-corpo text-tx-2 px-1">
             {isAdmin ? "Só administradores veem este bloco." : "Bloco liberado apenas para configurar integrações."}
           </p>
         </>
@@ -531,7 +531,7 @@ function formatRelativeTimeMobile(date: Date): string {
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="px-4 py-3 flex items-center justify-between gap-3">
-      <span className="text-[13px] text-tx-2">{label}</span>
+      <span className="text-corpo text-tx-2">{label}</span>
       <span className="text-sm font-medium text-tx truncate">{value || "—"}</span>
     </div>
   );
@@ -544,7 +544,7 @@ function Group({ icon: Icon, title, meta, children }: { icon: LucideIcon; title:
         <div className="flex items-center gap-2 px-4 py-3.5 bg-sf border border-regua group-open:border-b-0">
           <Icon size={16} className="text-marca-tx shrink-0" />
           <h3 className="font-bold text-tx text-sm flex-1">{title}</h3>
-          <span className="text-[13px] text-tx-2 font-medium">{meta}</span>
+          <span className="text-corpo text-tx-2 font-medium">{meta}</span>
           <ChevronRight size={14} className="text-tx-3 transition-transform group-open:rotate-90 shrink-0" />
         </div>
       </summary>

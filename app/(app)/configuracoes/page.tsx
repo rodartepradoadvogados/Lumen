@@ -68,7 +68,7 @@ function CategoryTree({ categories, parentId, depth = 0 }: { categories: Cat[]; 
       {children.map((c) => (
         <div key={c.id}>
           <div className="flex items-center gap-2 px-5 py-2 hover:bg-sf-apoio" style={{ paddingLeft: `${20 + depth * 20}px` }}>
-            <span className="text-[11px] text-tx-3 w-16 shrink-0 font-mono">{c.code}</span>
+            <span className="text-etiqueta text-tx-3 w-16 shrink-0 font-mono">{c.code}</span>
             <span className="text-sm text-tx flex-1">{c.name}</span>
             <DeleteButton
               id={c.id}
@@ -224,7 +224,7 @@ export default async function ConfiguracoesPage({
 
   async function submitColumn(formData: FormData) {
     "use server";
-    await createKanbanColumn({ name: String(formData.get("name")), color: String(formData.get("color") || "#94a3b8") });
+    await createKanbanColumn({ name: String(formData.get("name")), color: String(formData.get("color") || "#57613a") });
   }
 
   async function submitCategory(formData: FormData) {
@@ -298,7 +298,7 @@ export default async function ConfiguracoesPage({
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white truncate">{viewer.name}</p>
-              <p className="text-[10px] text-white/50 truncate">{viewer.role}</p>
+              <p className="text-etiqueta text-white/50 truncate">{viewer.role}</p>
             </div>
           </div>
         </aside>
@@ -524,7 +524,7 @@ export default async function ConfiguracoesPage({
         </div>
         <form action={submitColumn} className="p-5 flex gap-2 border-t border-regua">
           <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1" />
-          <input name="color" type="color" defaultValue="#94a3b8" className="cfg-input h-9 w-16 p-1" />
+          <input name="color" type="color" defaultValue="#57613a" className="cfg-input h-9 w-16 p-1" />
           <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 transition-colors">
             Adicionar
           </button>
@@ -753,11 +753,6 @@ export default async function ConfiguracoesPage({
       </div>
       </div>
 
-      <style>{`
-        .cfg-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
-        .cfg-input:focus { outline: none; box-shadow: 0 0 0 2px var(--acao-bg); }
-        .cfg-input::placeholder { color: var(--tx-3); }
-      `}</style>
     </div>
   );
 }
@@ -766,7 +761,7 @@ function Swatch({ color, label, border }: { color: string; label: string; border
   return (
     <div className="text-center">
       <div className={`h-14 w-14 ${border ? "border border-regua-forte" : ""}`} style={{ backgroundColor: color }} />
-      <p className="text-[11px] text-tx-3 mt-1">{label}</p>
+      <p className="text-etiqueta text-tx-3 mt-1">{label}</p>
     </div>
   );
 }

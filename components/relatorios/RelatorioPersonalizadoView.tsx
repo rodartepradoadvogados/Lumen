@@ -43,10 +43,10 @@ function dataBR(iso: string) {
 // comparação que transforma o número em informação (item validado pelo dono do escritório).
 function Variacao({ atual, anterior }: { atual: number; anterior: number }) {
   const delta = atual - anterior;
-  if (anterior === 0 && atual === 0) return <span className="text-[10.5px] text-tx-3">sem movimento no período anterior</span>;
-  if (delta === 0) return <span className="text-[10.5px] text-tx-3">igual ao período anterior</span>;
+  if (anterior === 0 && atual === 0) return <span className="text-etiqueta text-tx-3">sem movimento no período anterior</span>;
+  if (delta === 0) return <span className="text-etiqueta text-tx-3">igual ao período anterior</span>;
   return (
-    <span className={clsx("text-[10.5px] font-semibold tabular-nums", delta > 0 ? "text-concluido" : "text-urgente")}>
+    <span className={clsx("text-etiqueta font-semibold tabular-nums", delta > 0 ? "text-concluido" : "text-urgente")}>
       {delta > 0 ? "▲" : "▼"} {Math.abs(delta)} vs. período anterior ({anterior})
     </span>
   );
@@ -221,7 +221,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
       <div className="bg-sf-apoio border-t-2 border-regua-forte p-4 flex flex-col gap-4">
         <div className="flex flex-wrap items-end gap-3 justify-between">
           <div className="flex flex-col gap-2">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">Período</span>
+            <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">Período</span>
             <div className="flex items-center gap-2 flex-wrap">
               <input
                 type="date"
@@ -249,7 +249,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                 ))}
               </select>
             </div>
-            <span className="text-[10.5px] text-tx-3">{BASE_DATA_OPCOES.find((o) => o.value === filtros.baseData)?.ajuda}</span>
+            <span className="text-etiqueta text-tx-3">{BASE_DATA_OPCOES.find((o) => o.value === filtros.baseData)?.ajuda}</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -342,7 +342,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
         )}
 
         <div className="flex flex-col gap-2">
-          <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">Creditar o trabalho a</span>
+          <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">Creditar o trabalho a</span>
           <div className="flex flex-wrap gap-1.5">
             {CRITERIO_AUTORIA_OPCOES.map((o) => (
               <button
@@ -360,7 +360,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               </button>
             ))}
           </div>
-          <span className="text-[10.5px] text-tx-3">{CRITERIO_AUTORIA_OPCOES.find((o) => o.value === filtros.criterioAutoria)?.ajuda}</span>
+          <span className="text-etiqueta text-tx-3">{CRITERIO_AUTORIA_OPCOES.find((o) => o.value === filtros.criterioAutoria)?.ajuda}</span>
         </div>
       </div>
 
@@ -370,10 +370,10 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
       {resultado && (
         <div className="flex flex-col gap-5">
           <div className="flex items-baseline justify-between gap-3 flex-wrap">
-            <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">
+            <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">
               Resultado · {dataBR(resultado.periodo.de)} a {dataBR(resultado.periodo.ate)}
             </span>
-            <span className="text-[11px] text-tx-3">
+            <span className="text-etiqueta text-tx-3">
               comparando com {dataBR(resultado.periodo.anteriorDe)} a {dataBR(resultado.periodo.anteriorAte)}
             </span>
           </div>
@@ -382,26 +382,26 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
             {resultado.blocos.map((b) => (
               <div key={b.chave} className="bg-sf p-3.5 border-l-[3px] border-l-acao flex flex-col gap-0.5">
                 <span className="text-2xl font-bold text-tx tabular-nums leading-none">{b.valor}</span>
-                <span className="text-[11.5px] font-semibold text-tx-2">{b.rotulo}</span>
+                <span className="text-etiqueta font-semibold text-tx-2">{b.rotulo}</span>
                 <Variacao atual={b.valor} anterior={b.anterior} />
-                {b.detalhe && <span className="text-[10px] text-tx-3">{b.detalhe}</span>}
+                {b.detalhe && <span className="text-etiqueta text-tx-3">{b.detalhe}</span>}
               </div>
             ))}
           </div>
 
           <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))" }}>
             <div className="bg-sf border-t-2 border-regua-forte p-4 flex flex-col gap-3">
-              <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">
+              <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">
                 Volume por pessoa · {CRITERIO_AUTORIA_OPCOES.find((o) => o.value === filtros.criterioAutoria)?.label}
               </span>
               <Barras linhas={resultado.porPessoa} vazio="Nada no período com os filtros atuais." />
             </div>
 
             <div className="bg-sf border-t-2 border-regua-forte p-4 flex flex-col gap-3">
-              <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">Volume por assessoria</span>
+              <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">Volume por assessoria</span>
               <Barras linhas={resultado.porAssessoria} vazio="Nenhum item vinculado a assessoria no período." />
               {resultado.semVinculoAssessoria > 0 && (
-                <p className="text-[11.5px] text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2">
+                <p className="text-etiqueta text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2">
                   <strong className="text-tx">{resultado.semVinculoAssessoria} item(ns)</strong> do período ficaram de fora deste
                   corte por não terem assessoria vinculada — aparecem no detalhamento abaixo.
                 </p>
@@ -411,7 +411,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
 
           <div className="bg-sf border-t-2 border-regua-forte overflow-hidden">
             <div className="px-4 py-3 border-b-2 border-regua-forte">
-              <span className="text-[11px] font-semibold uppercase tracking-[.11em] text-tx-2">
+              <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">
                 Detalhamento — mostrando {resultado.detalhes.length} de {resultado.detalhesTotal}
               </span>
             </div>
@@ -422,12 +422,12 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                 <table className="w-full text-sm">
                   <thead className="bg-sf-apoio">
                     <tr>
-                      <th className="text-left px-4 py-2 font-semibold text-tx-2 text-[10px] uppercase tracking-wide">Item</th>
-                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-[10px] uppercase tracking-wide">Tipo</th>
-                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-[10px] uppercase tracking-wide">Vínculo</th>
-                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-[10px] uppercase tracking-wide">Anexou / concluiu</th>
-                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-[10px] uppercase tracking-wide">Responsável</th>
-                      <th className="text-right px-4 py-2 font-semibold text-tx-2 text-[10px] uppercase tracking-wide">Data</th>
+                      <th className="text-left px-4 py-2 font-semibold text-tx-2 text-etiqueta uppercase tracking-wide">Item</th>
+                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-etiqueta uppercase tracking-wide">Tipo</th>
+                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-etiqueta uppercase tracking-wide">Vínculo</th>
+                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-etiqueta uppercase tracking-wide">Anexou / concluiu</th>
+                      <th className="text-left px-3 py-2 font-semibold text-tx-2 text-etiqueta uppercase tracking-wide">Responsável</th>
+                      <th className="text-right px-4 py-2 font-semibold text-tx-2 text-etiqueta uppercase tracking-wide">Data</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-regua">
@@ -457,10 +457,10 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
                         <td className="px-3 py-2 align-top text-tx-2">
                           <span className="flex flex-wrap gap-1">
                             {d.assessoriaNome && (
-                              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full bg-marca-bg text-marca-tx">{d.assessoriaNome}</span>
+                              <span className="text-etiqueta font-semibold px-1.5 py-px rounded-full bg-marca-bg text-marca-tx">{d.assessoriaNome}</span>
                             )}
                             {d.origemLabel && (
-                              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full bg-acao-bg text-acao">{d.origemLabel}</span>
+                              <span className="text-etiqueta font-semibold px-1.5 py-px rounded-full bg-acao-bg text-acao">{d.origemLabel}</span>
                             )}
                           </span>
                         </td>
@@ -488,7 +488,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
               placeholder="Ex.: Relatório mensal — Guapó"
               className="w-full text-sm border border-regua-forte bg-sf text-tx px-3 py-2"
             />
-            <p className="text-[11px] text-tx-3">Salvar com um nome já existente substitui o modelo anterior.</p>
+            <p className="text-etiqueta text-tx-3">Salvar com um nome já existente substitui o modelo anterior.</p>
             <div className="flex gap-2 pt-1">
               <button
                 type="button"
@@ -504,7 +504,7 @@ export default function RelatorioPersonalizadoView({ hrefBase = "" }: { hrefBase
             </div>
             {modelos.length > 0 && (
               <div className="pt-2 border-t border-regua flex flex-col gap-1.5">
-                <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">Modelos salvos</span>
+                <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">Modelos salvos</span>
                 {modelos.map((m) => (
                   <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
                     <span className="text-tx-2 truncate">{m.nome}</span>

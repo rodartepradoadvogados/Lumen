@@ -60,7 +60,7 @@ export default function SendCaseEmailModal({ caseId, users }: { caseId: string; 
                     <button
                       type="button"
                       onClick={() => setUseOther((v) => !v)}
-                      className="text-[11px] font-semibold text-marca-tx hover:underline"
+                      className="text-etiqueta font-semibold text-marca-tx hover:underline"
                     >
                       {useOther ? "Escolher membro da equipe" : "Digitar outro e-mail"}
                     </button>

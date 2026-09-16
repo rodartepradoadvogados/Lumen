@@ -257,7 +257,7 @@ export default async function ProdutividadePage({
               <details key={row.user.id} className="group">
                 <summary className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-sf-apoio list-none">
                   <span
-                    className="h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                    className="h-7 w-7 rounded-full flex items-center justify-center text-white text-etiqueta font-bold shrink-0"
                     style={{ backgroundColor: row.user.color }}
                   >
                     {initials(row.user.name)}
@@ -270,7 +270,7 @@ export default async function ProdutividadePage({
                 <div className="bg-sf-apoio px-5 pb-3">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3">
+                      <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-3">
                         <th className="py-1.5 font-semibold">Tarefa</th>
                         <th className="py-1.5 font-semibold">Tipo</th>
                         <th className="py-1.5 font-semibold">Concluída em</th>
@@ -282,7 +282,7 @@ export default async function ProdutividadePage({
                         <tr key={t.id}>
                           <td className="py-1.5 pr-2 text-tx">
                             {t.title}
-                            {t.caseTitle && <span className="block text-[11px] text-tx-3 truncate">{t.caseTitle}</span>}
+                            {t.caseTitle && <span className="block text-etiqueta text-tx-3 truncate">{t.caseTitle}</span>}
                           </td>
                           <td className="py-1.5 pr-2">
                             <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>

@@ -150,7 +150,7 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
                 {kind === "client" && (
                   <div className="space-y-3">
                     <div className="border border-regua p-3 space-y-3">
-                      <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Dados para geração de documentos (opcional)</p>
+                      <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-wide">Dados para geração de documentos (opcional)</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs font-medium text-tx-2">Nacionalidade</label>
@@ -190,10 +190,6 @@ export default function NewContactModal({ kind }: { kind: "client" | "lawyer" })
           </form>
         </ModalShell>
       )}
-      <style jsx global>{`
-        .ct-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
-        .ct-input:focus { outline: none; box-shadow: 0 0 0 2px var(--marca-bg); }
-      `}</style>
     </>
   );
 }

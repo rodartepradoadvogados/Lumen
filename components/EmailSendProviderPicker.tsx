@@ -59,11 +59,11 @@ export default function EmailSendProviderPicker({ current, googleConnected, micr
         })}
       </div>
       {!selected && (
-        <p className="text-[11px] text-aviso mt-2">
+        <p className="text-etiqueta text-aviso mt-2">
           Nenhum provedor escolhido — o envio de e-mail no Atendimento está desabilitado até você escolher um acima.
         </p>
       )}
-      {error && <p className="text-[11px] text-vinho mt-2">{error}</p>}
+      {error && <p className="text-etiqueta text-vinho mt-2">{error}</p>}
     </div>
   );
 }

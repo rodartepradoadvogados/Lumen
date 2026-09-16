@@ -77,7 +77,7 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
   return (
     <div className="flex items-center gap-1.5">
       <span
-        className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+        className={`h-6 w-6 rounded-full flex items-center justify-center text-etiqueta font-bold shrink-0 ${
           done
             ? "bg-acao text-acao-tx"
             : active
@@ -432,7 +432,7 @@ export default function DelegateTaskForm({
           </div>
 
           <div className=" border border-regua bg-sf-apoio px-3 py-2">
-            <p className="text-[11px] font-semibold text-tx-2 uppercase tracking-wide">Data da solicitação</p>
+            <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-wide">Data da solicitação</p>
             <p className="text-sm text-tx mt-0.5">
               {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })} (hoje)
             </p>
@@ -463,11 +463,11 @@ export default function DelegateTaskForm({
             <div className=" border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex items-start gap-2">
               <Hourglass size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+                <p className="text-etiqueta font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
                   Prazo de segurança (automático)
                 </p>
                 <p className="text-sm text-amber-900 dark:text-amber-200 mt-0.5">{formatSafetyPreview(state.dueDate, state.dueTime)}</p>
-                <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 mt-0.5">
+                <p className="text-etiqueta text-amber-800/70 dark:text-amber-300/70 mt-0.5">
                   Sempre 24h antes do prazo fatal — vai aparecer na Agenda nos dois dias, em cores diferentes.
                 </p>
               </div>

@@ -18,7 +18,7 @@ export default function PendingListModal({
   accentClassName = "border-t-regua-forte",
   // Portal Noturno (DESIGN.md): font-display (Barlow Condensed) — usado só aqui, PendingListModal
   // não é reaproveitado por nenhuma outra tela hoje.
-  valueClassName = "font-display text-[26px] leading-none font-extrabold text-tx",
+  valueClassName = "font-display text-autuacao leading-none font-extrabold text-tx",
   title,
   icon,
   iconClassName,
@@ -47,14 +47,14 @@ export default function PendingListModal({
   return (
     <>
       <button onClick={() => setOpen(true)} className="text-left w-full block">
-        <div className={clsx("bg-sf border-t-2 rounded-lg p-5 h-full", accentClassName)}>
+        <div className={clsx("bg-sf border-t-2 p-5 h-full", accentClassName)}>
           <div className="flex items-center gap-2.5">
             {icon && (
               <span className={clsx("h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0", iconClassName)}>
                 {icon}
               </span>
             )}
-            <p className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">{label}</p>
+            <p className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">{label}</p>
           </div>
           <p className={clsx("mt-2.5 tabular-nums", valueClassName)}>{value}</p>
         </div>

@@ -125,7 +125,7 @@ export default function ComunicadosForm({ initial }: { initial: ComunicadoPrefer
 
       {/* Bloco 2 — Exceção: fura a fila */}
       <div className="bg-sf-apoio border-l-4 border-atencao p-4 space-y-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-atencao">Exceção — fura a fila</p>
+        <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-atencao">Exceção — fura a fila</p>
         <div className="space-y-1.5">
           {(Object.keys(BREAKTHROUGH_EVENTOS) as BreakthroughEvento[]).map((key) => {
             const checked = state.breakthrough.includes(key);
@@ -142,7 +142,7 @@ export default function ComunicadosForm({ initial }: { initial: ComunicadoPrefer
             );
           })}
         </div>
-        <p className="text-[11px] text-tx-3">Manter a lista curta é parte do desenho — se tudo pode furar a fila, não existe fila.</p>
+        <p className="text-etiqueta text-tx-3">Manter a lista curta é parte do desenho — se tudo pode furar a fila, não existe fila.</p>
       </div>
 
       {/* Bloco 3 — Por evento: canal e cadência */}
@@ -151,7 +151,7 @@ export default function ComunicadosForm({ initial }: { initial: ComunicadoPrefer
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3 border-b border-regua">
+              <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-3 border-b border-regua">
                 <th className="py-2 pr-3 font-semibold">Evento</th>
                 <th className="py-2 pr-3 font-semibold">Canal</th>
                 <th className="py-2 font-semibold">Cadência</th>

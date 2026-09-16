@@ -42,7 +42,7 @@ export default function AssuntosField({ defaultValue = [], inputClassName }: { d
             <div className="flex items-center justify-between px-4 py-3 border-b border-regua">
               <div>
                 <h3 className=" font-bold text-tx text-sm">Assuntos por matéria</h3>
-                <p className="text-[11px] text-tx-2">Só um guia — clique num item para preencher</p>
+                <p className="text-etiqueta text-tx-2">Só um guia — clique num item para preencher</p>
               </div>
               <button onClick={() => setOpen(false)} className="text-tx-3 hover:text-tx">
                 <X size={16} />

@@ -181,7 +181,7 @@ export default function EditCaseModal({
               <div>
                 <label className="text-xs font-medium text-tx-2">Título</label>
                 <input name="title" defaultValue={caseData.title ?? ""} className={inputClass} />
-                <p className="text-[11px] text-tx-3 mt-1">
+                <p className="text-etiqueta text-tx-3 mt-1">
                   Por padrão segue sozinho a convenção &ldquo;Cliente(s) x Parte(s)&rdquo; ao trocar cliente/parte. Editar aqui
                   substitui esse texto automático.
                 </p>
@@ -234,7 +234,7 @@ export default function EditCaseModal({
                       <MoneyInput name="convictionValue" defaultValue={caseData.convictionValue != null ? String(caseData.convictionValue) : undefined} className={inputClass} />
                     </div>
                   </div>
-                  <p className="text-[11px] text-tx-2">
+                  <p className="text-etiqueta text-tx-2">
                     Valor da Causa, Proveito Econômico e Valor da Condenação são as bases disponíveis para honorários lançados em percentual (aba Financeiro).
                   </p>
 

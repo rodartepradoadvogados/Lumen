@@ -168,19 +168,19 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
         <div className="flex items-center gap-1.5">
           {!done && <Badge color={priorityColors[task.priority]}>{task.priority}</Badge>}
           {task._count.comments > 0 && (
-            <span className="flex items-center gap-0.5 text-[11px] text-tx-3">
+            <span className="flex items-center gap-0.5 text-etiqueta text-tx-3">
               <MessageSquare size={11} /> {task._count.comments}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <span className={clsx("text-[11px] font-semibold", done ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
+          <span className={clsx("text-etiqueta font-semibold", done ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
             {formatRelativeDueDate(task.dueDate)}
           </span>
           {task.responsible && (
             <span
               title={task.responsible.name}
-              className="h-5 w-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+              className="h-5 w-5 rounded-full flex items-center justify-center text-white text-etiqueta font-bold"
               style={{ backgroundColor: task.responsible.color }}
             >
               {task.responsible.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}

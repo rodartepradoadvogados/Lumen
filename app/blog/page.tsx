@@ -67,7 +67,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
             reprova WCAG AA. text-rail-marca (--rail-marca, #c9707f) é a variante clara do bordô
             criada exatamente para bordô-como-texto sobre superfície fixa escura (mesmo raciocínio
             do comentário logo acima sobre branco/ouro fixos: não retematiza). */}
-        <p className="text-[11px] tracking-[0.3em] text-rail-marca font-medium mt-1">BLOG JURÍDICO</p>
+        <p className="text-etiqueta tracking-[0.3em] text-rail-marca font-medium mt-1">BLOG JURÍDICO</p>
         <p className="text-sm text-white/70 mt-3 max-w-xl mx-auto">
           Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial, tributário, trabalhista, previdenciário e mais.
         </p>
@@ -99,7 +99,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
                   </h2>
                   <p className="text-sm text-tx-2 flex-1 text-justify hyphens-auto">{post.summary}</p>
                   {post.publishedAt && (
-                    <p className="text-[11px] text-tx-2 mt-1">
+                    <p className="text-etiqueta text-tx-2 mt-1">
                       {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
                     </p>
                   )}
@@ -126,7 +126,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
         )}
       </main>
 
-      <footer className="text-center text-[11px] text-tx-3 py-8">
+      <footer className="text-center text-etiqueta text-tx-3 py-8">
         Lúmen — conteúdo informativo, não substitui consulta jurídica.
       </footer>
     </div>

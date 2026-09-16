@@ -190,14 +190,14 @@ export default async function ProcessosPage({
       {natureza === "ADMINISTRATIVO" && (
         <div className="space-y-2 mb-4">
           <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide mr-1">Esfera</span>
+            <span className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide mr-1">Esfera</span>
             <FilterLink label="Todas" href={qsFor(searchParams, { esfera: undefined })} active={!esfera} />
             {ESFERAS.map((e) => (
               <FilterLink key={e.value} label={e.label} href={qsFor(searchParams, { esfera: e.value })} active={esfera === e.value} />
             ))}
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide mr-1">Matéria</span>
+            <span className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide mr-1">Matéria</span>
             <FilterLink label="Todas" href={qsFor(searchParams, { materia: undefined })} active={!materia} />
             {MATERIAS_ADMIN.map((m) => (
               <FilterLink key={m.value} label={m.label} href={qsFor(searchParams, { materia: m.value })} active={materia === m.value} />
@@ -296,10 +296,6 @@ export default async function ProcessosPage({
           </div>
         )}
       </Card>
-      <style>{`
-        .pr-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background: var(--sf-superficie); color: var(--tx); }
-        .pr-input:focus { outline: none; box-shadow: 0 0 0 2px var(--acao-bg); }
-      `}</style>
     </div>
   );
 }

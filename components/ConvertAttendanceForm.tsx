@@ -63,10 +63,6 @@ export default function ConvertAttendanceForm({ attendanceId }: { attendanceId: 
           Cancelar
         </button>
       </div>
-      <style jsx global>{`
-        .cvt-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .cvt-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-      `}</style>
     </form>
   );
 }

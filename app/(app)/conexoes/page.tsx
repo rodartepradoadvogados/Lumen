@@ -256,7 +256,7 @@ export default async function ConexoesPage({
         dropboxConnected={dropboxStatus.connected}
       />
       <div>
-        <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-2">Manutenção</h3>
+        <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] mb-2">Manutenção</h3>
         <div className="flex flex-col gap-2 items-start">
           <MigrarPastaMaeButton />
           <MigrarPastasLegadasButton />
@@ -340,7 +340,7 @@ export default async function ConexoesPage({
           extra:
             djenTargets.length > 0 ? (
               <div>
-                <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">OABs monitoradas</h3>
+                <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">OABs monitoradas</h3>
                 <ul className="text-sm text-tx space-y-1">
                   {djenTargets.map((t) => (
                     <li key={`${t.numeroOab}-${t.ufOab}`}>
@@ -377,7 +377,7 @@ export default async function ConexoesPage({
           extra: (
             <div className="flex flex-col gap-4">
               <div>
-                <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">Webhook</h3>
+                <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">Webhook</h3>
                 <div className="flex items-center gap-2">
                   <code className="text-xs text-tx-2 bg-sf-apoio px-2 py-1 truncate">{`${getAppUrl()}/api/asaas/webhook`}</code>
                   <CopyButton text={`${getAppUrl()}/api/asaas/webhook`} label="Copiar" />
@@ -385,11 +385,11 @@ export default async function ConexoesPage({
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Últimos eventos recebidos</h3>
+                  <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">Últimos eventos recebidos</h3>
                   {/* PaymentWebhookEvent é global (todo escritório que paga a assinatura via Asaas
                       cai na mesma tabela) — não dá pra filtrar só o deste escritório sem juntar
                       com TenantInvoice por competência, fora do escopo desta PR. */}
-                  <span className="text-[10px] text-tx-3">de toda a plataforma, não só deste escritório</span>
+                  <span className="text-etiqueta text-tx-3">de toda a plataforma, não só deste escritório</span>
                 </div>
                 {webhookEvents.length === 0 ? (
                   <p className="text-sm text-tx-2">Nenhum evento recebido ainda.</p>

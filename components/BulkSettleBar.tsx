@@ -118,7 +118,7 @@ export default function BulkSettleBar({
                 <label className="text-xs font-medium text-tx-2">Nº do comprovante (opcional, único para todos)</label>
                 <input name="receiptNumber" placeholder="Ex: nº da transferência/PIX" className="settle-input" />
               </div>
-              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+              {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
@@ -130,23 +130,6 @@ export default function BulkSettleBar({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .settle-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          border: 1px solid var(--regua-forte);
-          border-radius: 0.3125rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          background-color: var(--sf);
-          color: var(--tx);
-        }
-        .settle-input:focus {
-          outline: none;
-          border-color: var(--acao);
-          box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent);
-        }
-      `}</style>
     </>
   );
 }

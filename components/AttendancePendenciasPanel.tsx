@@ -118,13 +118,13 @@ export default function AttendancePendenciasPanel({
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-tx">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-tx-2 mr-1.5">
+                    <span className="text-etiqueta font-semibold uppercase tracking-wide text-tx-2 mr-1.5">
                       {PENDENCIA_DIRECTION_LABELS[p.direction as "SOLICITAR" | "ENVIAR"] || p.direction}
                     </span>
                     {pendenciaKindLabel(p.direction, p.kind)}
                   </p>
                   {p.description && <p className="text-xs text-tx-2">{p.description}</p>}
-                  <p className="text-[11px] text-tx-3 mt-0.5">
+                  <p className="text-etiqueta text-tx-3 mt-0.5">
                     {p.responsible?.name ? `${p.responsible.name} · ` : ""}
                     {p.dueDate ? (urgencia === "vencida" ? `Vencida ${formatRelativeDueDate(p.dueDate)}` : `Prazo: ${formatRelativeDueDate(p.dueDate)}`) : "Sem prazo"}
                   </p>

@@ -83,7 +83,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
   return (
     <div>
       <label className="text-xs font-medium text-tx-2">Processos vinculados</label>
-      {error && <p className="text-[11px] text-urgente mt-1">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente mt-1">{error}</p>}
 
       {links.length > 0 && (
         <div className="mt-1.5 space-y-1.5">
@@ -93,7 +93,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                 <Link href={`/processos/${l.other.id}`} className="text-xs font-semibold text-tx hover:underline truncate block">
                   {l.other.title}
                 </Link>
-                <p className="text-[11px] text-tx-2">
+                <p className="text-etiqueta text-tx-2">
                   {l.other.processNumber && <>{l.other.processNumber} · </>}
                   {roleLabel[l.role]}
                 </p>
@@ -126,9 +126,9 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                   placeholder="Buscar por número ou título do processo..."
                   className="w-full border border-regua bg-sf text-tx px-3 py-1.5 text-xs"
                 />
-                {searching && <p className="text-[11px] text-tx-2">Buscando...</p>}
+                {searching && <p className="text-etiqueta text-tx-2">Buscando...</p>}
                 {!searching && query.trim().length >= 2 && results.length === 0 && (
-                  <p className="text-[11px] text-tx-2">Nenhum processo encontrado.</p>
+                  <p className="text-etiqueta text-tx-2">Nenhum processo encontrado.</p>
                 )}
                 {results.length > 0 && (
                   <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-1">
@@ -145,7 +145,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                     ))}
                   </div>
                 )}
-                <button type="button" onClick={() => setSearchOpen(false)} className="text-[11px] text-tx-2 hover:underline">
+                <button type="button" onClick={() => setSearchOpen(false)} className="text-etiqueta text-tx-2 hover:underline">
                   Cancelar
                 </button>
               </>
@@ -155,7 +155,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                   Vincular a <strong>{picked.title}</strong>
                 </p>
                 <div>
-                  <p className="text-[11px] text-tx-2 mb-1">Qual é o principal?</p>
+                  <p className="text-etiqueta text-tx-2 mb-1">Qual é o principal?</p>
                   <div className="flex flex-wrap gap-1.5">
                     {(
                       [
@@ -168,7 +168,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                         key={value}
                         type="button"
                         onClick={() => setPrincipal(value)}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                        className={`text-etiqueta font-semibold px-2.5 py-1 rounded-full border transition-colors ${
                           principal === value
                             ? "bg-acao text-acao-tx border-acao"
                             : "bg-sf text-tx-2 border-regua"
@@ -188,7 +188,7 @@ export default function CaseLinkField({ caseId, links }: { caseId: string; links
                   >
                     {saving ? "Vinculando..." : "Vincular"}
                   </button>
-                  <button type="button" onClick={() => setPicked(null)} className="text-[11px] text-tx-2 hover:underline">
+                  <button type="button" onClick={() => setPicked(null)} className="text-etiqueta text-tx-2 hover:underline">
                     Voltar
                   </button>
                 </div>

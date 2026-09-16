@@ -41,11 +41,11 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
 
   return (
     <div className="space-y-3">
-      {error && <p className="text-[11px] text-urgente">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente">{error}</p>}
       {anotacoes.map((a) => (
         <div key={a.id} className="border-t-2 border-regua-forte bg-sf p-4">
           <div className="flex items-start justify-between gap-2 mb-2">
-            <span className="text-[11px] font-semibold text-marca-tx">Consignada em {formatCalendarDate(a.referenceDate)}</span>
+            <span className="text-etiqueta font-semibold text-marca-tx">Consignada em {formatCalendarDate(a.referenceDate)}</span>
             <button
               type="button"
               onClick={() => handleDelete(a.id)}
@@ -63,7 +63,7 @@ export default function AnotacoesPessoaisList({ anotacoes }: { anotacoes: Anotac
             // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: a.content }}
           />
-          <p className="mt-2 text-[10px] text-tx-3">Criada em {formatDate(a.createdAt)}</p>
+          <p className="mt-2 text-etiqueta text-tx-3">Criada em {formatDate(a.createdAt)}</p>
         </div>
       ))}
     </div>

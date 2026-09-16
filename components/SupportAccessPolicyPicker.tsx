@@ -63,7 +63,7 @@ export default function SupportAccessPolicyPicker({ current }: { current: Policy
           );
         })}
       </div>
-      {error && <p className="text-[11px] text-urgente mt-2">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente mt-2">{error}</p>}
     </div>
   );
 }

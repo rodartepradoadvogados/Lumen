@@ -38,21 +38,21 @@ export default function ChipsFiltro({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">{rotulo}</span>
+        <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">{rotulo}</span>
         <span
           className={clsx(
-            "text-[9.5px] font-bold px-1.5 py-px rounded-full border",
+            "text-etiqueta font-bold px-1.5 py-px rounded-full border",
             vazio ? "bg-marca-bg text-marca-tx border-marca" : "bg-acao-bg text-acao border-transparent"
           )}
         >
           {vazio ? "todos" : `${selecionados.length} marcado${selecionados.length > 1 ? "s" : ""}`}
         </span>
         {!vazio && (
-          <button type="button" onClick={() => onChange([])} className="text-[10.5px] font-semibold text-tx-3 hover:text-tx underline">
+          <button type="button" onClick={() => onChange([])} className="text-etiqueta font-semibold text-tx-3 hover:text-tx underline">
             limpar
           </button>
         )}
-        {ajuda && <span className="text-[10.5px] text-tx-3">{ajuda}</span>}
+        {ajuda && <span className="text-etiqueta text-tx-3">{ajuda}</span>}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {opcoes.map((o) => {

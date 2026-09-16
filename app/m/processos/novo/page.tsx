@@ -51,7 +51,7 @@ export default async function MobileNewCasePage({
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/publicacoes" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
+      <Link href="/m/publicacoes" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Publicações
       </Link>
 

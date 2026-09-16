@@ -15,162 +15,191 @@
    Dois temas e só dois: Manhã (:root) e Noite (.dark no <html>, ver lib/theme.ts).
    ============================================================================ */
 :root {
-  /* ---- Rampa neutra (Modernist, gerada em OKLCH) --------------------------- */
-  --neutro-100: #f8f4f4;
-  --neutro-200: #eae7e7;
-  --neutro-300: #d7d3d3;
-  --neutro-400: #bab6b6;
-  --neutro-500: #9b9797;
-  --neutro-600: #7d7979;
-  --neutro-700: #605d5d;
-  --neutro-800: #444141;
-  --neutro-900: #2d2b2b;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #ddd7c8;
+  --ficha: #f0ece1;
+  --ficha-alt: #e7e2d5;
+  --gaveta: #c9c2b0;
+  --linha: #b9b1a0;
+  --linha-forte: #9b9184;
 
-  /* Rail escuro — a única superfície que não retematiza entre Manhã e Noite. */
-  --grafite-800: #16191d;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #23211c;
+  --tinta-2: #45413c;
+  --tinta-3: #625d55;
 
-  /* ---- Tokens semânticos — é isto que o componente usa -------------------- */
-  --sf-fundo: #f3f2f2;
-  --sf-superficie: #ffffff;
-  --sf-apoio: #eae9e9;
-  --regua: #d7d3d3;
-  --regua-forte: #bab6b6;
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #3f5a66;
+  --faixa-oliva: #57613a;
+  --faixa-ocre: #765a1a;
+  --faixa-tijolo: #8c4327;
+  --faixa-ameixa: #5b3a52;
 
-  --tx: #201e1d;
-  --tx-2: #605d5d;
-  --tx-3: #9b9797;
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #a8221b;
+  --risco-hoje: #8b5009;
+  --risco-em-dia: #2e694e;
 
-  /* Ação e marca: o bordô #8a2f42 é a única cor de destaque do produto — não muda entre
-     Manhã e Noite (mesmo princípio do vermelho Modernist que ele substituiu). --acao-tx
-     precisa ser CLARO (não escuro): o bordô é escuro o bastante que texto escuro sobre
-     ele quase não contrasta — o par antigo (texto escuro sobre vermelho-alaranjado
-     claro) não se aplica mais. */
-  --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
-  --acao-tx: #f7eef0;
-  --acao-bg: rgba(138, 47, 66, 0.08);
-  /* Variante mais clara do bordô sólido — pedido explícito para o "+Novo" da faixa de topo se
-     diferenciar do Peticionar (a ação mais forte da tela) sem virar contorno/outline. Não
-     retematiza, mesmo raciocínio de --acao/--marca/--vinho logo abaixo. */
-  --acao-light: #a8495c;
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #f7f4ec;
+  --selecao: rgba(140,67,39,.24);
+  --grain-opacity: 0.045;
+  --sombra-menu: 0 3px 10px rgba(35,33,28,.22);
+  --sombra-modal: 0 12px 32px rgba(35,33,28,.28);
+  --sombra-arrasto: 0 12px 32px rgba(35,33,28,.28);
 
-  --marca: #8a2f42;
-  /* --marca-tx (bordô como TEXTO/filete, não como fundo) na Manhã pode ser igual a
-     --marca: sobre branco o bordô já rende ~8:1, melhor que o vermelho-alaranjado antigo
-     (~4,2:1) — não precisa mais de uma variante escurecida à parte (ver .dark abaixo,
-     onde a Noite ainda precisa de uma variante CLARA, pelo motivo oposto). */
-  --marca-tx: var(--marca);
-  --marca-bg: rgba(138, 47, 66, 0.15);
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(168, 34, 27, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(139, 80, 9, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(46, 105, 78, .14);
+  --concluido-glow: 0 0 10px rgba(46, 105, 78, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #8c4327;
+  --acao-hover: #a04f30;
+  --acao-light: #8c4327;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(140, 67, 39, .14);
+  --marca: #8c4327;
+  --marca-tx: #8c4327;
+  --marca-bg: rgba(140, 67, 39, .14);
+  --rail-marca: #8c4327;
+  --rail-marca-bg: rgba(140, 67, 39, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
 
-  /* Vinho é a única outra cor de marca: ação destrutiva. Modelo B: #ae1800 (documento 01),
-     não muda entre temas. Não confundir com --urgente, que é DADO (algo venceu). */
-  --vinho: #ae1800;
-
-  --urgente: #b3261e;
-  --urgente-bg: rgba(179, 38, 30, 0.1);
-  --aviso: #9a6700;
-  --aviso-bg: rgba(154, 103, 0, 0.12);
-  --concluido: #1c6b52;
-  --concluido-bg: rgba(28, 107, 82, 0.1);
-
-  /* Texto sobre as superfícies que são grafite nos DOIS temas (rail, faixa de guias).
-     Não dá para usar --tx-2 aqui: ele é escuro no tema Manhã e sumiria sobre o grafite. */
-  --rail-tx: #9aa3ad;
-  --menu-tx: #aeb6be;
-
-  /* Item ativo do rail (pílula, proposta "Editorial fino" de 2026-08) — mesmo raciocínio de
-     --rail-tx acima: o rail nunca clareia, então precisa da variante CLARA do bordô (a de Noite,
-     --marca-tx: #c9707f) fixa nos dois temas. Usar --marca-tx direto ficaria escuro demais sobre
-     o grafite na Manhã (ela usa a mesma cor de --marca ali, ~8:1 só sobre fundo BRANCO). */
-  --rail-marca: #c9707f;
-  --rail-marca-bg: rgba(201, 112, 127, 0.16);
-
-  /* Fonte da publicação (DESIGN-SYSTEM.md §9). O PJE precisa de um azul distinto de
-     qualquer outro token — é o único azul que sobra no sistema, só para essa distinção. */
-  --fonte-pje: #2f6fb0;
-
-  /* Ouro de acento (Início, setembro/2026 — faixa colorida dos cartões, proposta C aprovada).
-     NÃO é o mesmo "ouro" legado de tailwind.config.ts (gold-*, que hoje só reaponta pro bordô
-     desde o redesenho Modernist) — este é dourado de verdade, reintroduzido de propósito só
-     como acento pontual (hoje: filete de Assessoria Jurídica na Início). Evitar espalhar em
-     preenchimento grande/texto — é decoração de destaque, não uma cor de marca nova. */
-  --ouro-acento: #a6790f;
-
-  /* Acabamento "premium" (agosto/2026, sétima rodada — Início/Painel): halo do bordô atrás da
-     saudação e textura granulada da superfície escura. Nos dois casos é o mesmo efeito com
-     intensidade MENOR na Manhã — o fundo já é claro (--sf-fundo quase branco), então tanto o
-     halo quanto o grão precisam de menos opacidade para não sujar a tela; na Noite (--sf-fundo
-     grafite) o mesmo efeito precisa de mais força para aparecer. Nunca usar rgba(0,0,0,...) ou
-     rgba(255,255,255,...) cravado num componente — os dois tons vivem só aqui. */
-  --halo-marca: rgba(138, 47, 66, 0.08);
-  --grain-opacity: 0.035;
-
-  --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
-  --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
-  --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
-
-  --background: var(--sf-fundo);
-  --foreground: var(--tx);
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: light;
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 .dark {
-  /* Camadas de fundo com degraus mais perceptíveis que antes (era #0f1216 → #161a1f →
-     #1b2026, uma diferença pequena demais para ler como profundidade real) — mesma
-     família de grafite-azulado, só mais espaçada. */
-  --sf-fundo: #14161c;
-  --sf-superficie: #1c1f27;
-  --sf-apoio: #262b35;
-  --regua: #333844;
-  --regua-forte: #414755;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #22211d;
+  --ficha: #2c2b26;
+  --ficha-alt: #333128;
+  --gaveta: #191815;
+  --linha: #403e37;
+  --linha-forte: #5b574c;
 
-  --tx: #eef1f5;
-  --tx-2: #a3aab6;
-  --tx-3: #767e8c;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #e8e3d6;
+  --tinta-2: #bbb6aa;
+  --tinta-3: #9d9a8f;
 
-  /* --acao/--marca/--vinho não retematizam (ver :root) — só os derivados de -bg/-tx que
-     dependem do fundo do tema mudam aqui. */
-  --acao: #8a2f42;
-  --acao-hover: #9c3a4d;
-  --acao-tx: #f7eef0;
-  --acao-bg: rgba(138, 47, 66, 0.16);
-  --acao-light: #a8495c;
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #7fa6b8;
+  --faixa-oliva: #9aa86a;
+  --faixa-ocre: #d3a63f;
+  --faixa-tijolo: #d58663;
+  --faixa-ameixa: #b58eab;
 
-  --marca: #8a2f42;
-  /* Aqui, diferente da Manhã, --marca-tx PRECISA ficar diferente de --marca: o bordô
-     sólido só rende ~2,3:1 sobre o novo fundo #14161c (ilegível como texto/filete). Esta
-     é uma variante mais clara, só para uso como texto/borda — o preenchimento de botão
-     continua no bordô sólido (--acao/--marca). */
-  --marca-tx: #c9707f;
-  --marca-bg: rgba(138, 47, 66, 0.18);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #eb786f;
+  --risco-hoje: #e0a13c;
+  --risco-em-dia: #5fbc90;
 
-  --vinho: #ae1800;
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #1b1a16;
+  --selecao: rgba(213,134,99,.3);
+  --grain-opacity: 0.07;
+  --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
+  --sombra-modal: 0 12px 32px rgba(0,0,0,.55);
+  --sombra-arrasto: 0 12px 32px rgba(0,0,0,.55);
 
-  --urgente: #e2685a;
-  --urgente-bg: rgba(226, 104, 90, 0.14);
-  --aviso: #d0a02a;
-  --aviso-bg: rgba(208, 160, 42, 0.14);
-  --concluido: #4fb28c;
-  --concluido-bg: rgba(79, 178, 140, 0.14);
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(235, 120, 111, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(224, 161, 60, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(95, 188, 144, .14);
+  --concluido-glow: 0 0 10px rgba(95, 188, 144, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #d58663;
+  --acao-hover: #e09b7c;
+  --acao-light: #d58663;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(213, 134, 99, .14);
+  --marca: #d58663;
+  --marca-tx: #d58663;
+  --marca-bg: rgba(213, 134, 99, .14);
+  --rail-marca: #d58663;
+  --rail-marca-bg: rgba(213, 134, 99, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
 
-  --rail-tx: #8b949e;
-  --menu-tx: #8b949e;
-
-  --rail-marca: #c9707f;
-  --rail-marca-bg: rgba(201, 112, 127, 0.16);
-  --fonte-pje: #93c0f0;
-  --ouro-acento: #e0ad3d;
-
-  --halo-marca: rgba(138, 47, 66, 0.16);
-  --grain-opacity: 0.05;
-
-  --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
-  --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);
-  --sombra-arrasto: 0 12px 32px rgba(0, 0, 0, 0.5);
-
-  --background: var(--sf-fundo);
-  --foreground: var(--tx);
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: dark;
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 /* ----------------------------------------------------------------------------
@@ -533,117 +562,193 @@ input[type="radio"] {
    --ouro-acento) não são redeclarados aqui: herdam de :root normalmente, porque já têm o mesmo
    valor em qualquer tema. */
 .portal-shell {
-  --sf-fundo: #1c1a22;
-  --sf-superficie: #242230;
-  --sf-apoio: #2c2939;
-  --regua: #3a3648;
-  --regua-forte: #4a4560;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #22211d;
+  --ficha: #2c2b26;
+  --ficha-alt: #333128;
+  --gaveta: #191815;
+  --linha: #403e37;
+  --linha-forte: #5b574c;
 
-  --tx: #f1eef7;
-  --tx-2: #a8a3bd;
-  --tx-3: #726d87;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #e8e3d6;
+  --tinta-2: #bbb6aa;
+  --tinta-3: #9d9a8f;
 
-  --acao-bg: rgba(138, 47, 66, 0.2);
-  --marca-tx: #c9707f;
-  --marca-bg: rgba(138, 47, 66, 0.24);
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #7fa6b8;
+  --faixa-oliva: #9aa86a;
+  --faixa-ocre: #d3a63f;
+  --faixa-tijolo: #d58663;
+  --faixa-ameixa: #b58eab;
 
-  --rail-tx: #8b949e;
-  --menu-tx: #8b949e;
-  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #eb786f;
+  --risco-hoje: #e0a13c;
+  --risco-em-dia: #5fbc90;
 
-  --urgente: #e2685a;
-  --urgente-bg: rgba(226, 104, 90, 0.16);
-  --aviso: #d0a02a;
-  --aviso-bg: rgba(208, 160, 42, 0.16);
-  --concluido: #4fb28c;
-  --concluido-bg: rgba(79, 178, 140, 0.16);
-  /* Único glow do sistema por enquanto (P3, indicador "ao vivo" das publicações não lidas no
-     Painel) — reservado, não espalhar (mesma disciplina do --ouro-acento em :root). */
-  --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #1b1a16;
+  --selecao: rgba(213,134,99,.3);
+  --grain-opacity: 0.07;
+  --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
+  --sombra-modal: 0 12px 32px rgba(0,0,0,.55);
+  --sombra-arrasto: 0 12px 32px rgba(0,0,0,.55);
 
-  --halo-marca: rgba(138, 47, 66, 0.16);
-  --grain-opacity: 0.05;
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(235, 120, 111, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(224, 161, 60, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(95, 188, 144, .14);
+  --concluido-glow: 0 0 10px rgba(95, 188, 144, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #d58663;
+  --acao-hover: #e09b7c;
+  --acao-light: #d58663;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(213, 134, 99, .14);
+  --marca: #d58663;
+  --marca-tx: #d58663;
+  --marca-bg: rgba(213, 134, 99, .14);
+  --rail-marca: #d58663;
+  --rail-marca-bg: rgba(213, 134, 99, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
 
-  --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
-  --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);
-  --sombra-arrasto: 0 12px 32px rgba(0, 0, 0, 0.5);
-
-  --background: var(--sf-fundo);
-  --foreground: var(--tx);
-
-  /* Tipografia revertida para Inter (2026-09-11) — Barlow/Barlow Condensed (P1-P5) não ficaram
-     bons, decisão do dono do projeto. `--font-sans` deixa de ser redefinido aqui (herda Inter
-     do layout raiz, app/layout.tsx, normalmente). `--font-display` (tailwind.config.ts,
-     `font-display`) passa a resolver para a mesma Inter — a classe continua nos componentes que
-     já a usam (NavRail, PendingListModal, PublicationsTriage, processos/[id]/page.tsx etc.),
-     sem precisar editar cada um: só muda o que a variável aponta. */
-  --font-display: var(--font-sans);
-
-  background: var(--sf-fundo);
-  color: var(--tx);
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: dark;
+  --font-display: var(--font-sans);
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 .portal-shell.portal-light {
-  --sf-fundo: #f3f2f2;
-  --sf-superficie: #ffffff;
-  --sf-apoio: #eae9e9;
-  --regua: #d7d3d3;
-  --regua-forte: #bab6b6;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #ddd7c8;
+  --ficha: #f0ece1;
+  --ficha-alt: #e7e2d5;
+  --gaveta: #c9c2b0;
+  --linha: #b9b1a0;
+  --linha-forte: #9b9184;
 
-  --tx: #201e1d;
-  --tx-2: #605d5d;
-  --tx-3: #9b9797;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #23211c;
+  --tinta-2: #45413c;
+  --tinta-3: #625d55;
 
-  --acao-bg: rgba(138, 47, 66, 0.08);
-  --marca-tx: var(--marca);
-  --marca-bg: rgba(138, 47, 66, 0.15);
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #3f5a66;
+  --faixa-oliva: #57613a;
+  --faixa-ocre: #765a1a;
+  --faixa-tijolo: #8c4327;
+  --faixa-ameixa: #5b3a52;
 
-  --rail-tx: #9aa3ad;
-  --menu-tx: #aeb6be;
-  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #a8221b;
+  --risco-hoje: #8b5009;
+  --risco-em-dia: #2e694e;
 
-  --urgente: #b3261e;
-  --urgente-bg: rgba(179, 38, 30, 0.1);
-  --aviso: #9a6700;
-  --aviso-bg: rgba(154, 103, 0, 0.12);
-  --concluido: #1c6b52;
-  --concluido-bg: rgba(28, 107, 82, 0.1);
-  --concluido-glow: 0 0 8px rgba(28, 107, 82, 0.4);
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #f7f4ec;
+  --selecao: rgba(140,67,39,.24);
+  --grain-opacity: 0.045;
+  --sombra-menu: 0 3px 10px rgba(35,33,28,.22);
+  --sombra-modal: 0 12px 32px rgba(35,33,28,.28);
+  --sombra-arrasto: 0 12px 32px rgba(35,33,28,.28);
 
-  --halo-marca: rgba(138, 47, 66, 0.08);
-  --grain-opacity: 0.035;
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(168, 34, 27, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(139, 80, 9, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(46, 105, 78, .14);
+  --concluido-glow: 0 0 10px rgba(46, 105, 78, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #8c4327;
+  --acao-hover: #a04f30;
+  --acao-light: #8c4327;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(140, 67, 39, .14);
+  --marca: #8c4327;
+  --marca-tx: #8c4327;
+  --marca-bg: rgba(140, 67, 39, .14);
+  --rail-marca: #8c4327;
+  --rail-marca-bg: rgba(140, 67, 39, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
 
-  --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
-  --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
-  --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
-
-  --background: var(--sf-fundo);
-  --foreground: var(--tx);
-
-  background: var(--sf-fundo);
-  color: var(--tx);
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: light;
-}
-
-/* Portal Noturno — raio quase reto (2px), escopado por SELETOR DESCENDENTE em vez de token: o
-   raio do Tailwind (tailwind.config.ts) compila para px fixo, não var(--...), então não dá pra
-   sobrescrever redefinindo uma custom property em `.portal-shell` (funciona para cor/fonte, ver
-   acima, mas não para isto). `.portal-shell .rounded-lg` (duas classes) tem mais especificidade
-   que `.rounded-lg` (uma classe) sozinho, então vence sem precisar tocar a className de nenhum
-   componente — Card, PendingListModal, NavRail, StatCard, qualquer coisa que já use `rounded-*`
-   dentro do portal já renderiza em 2px, mesmo os componentes compartilhados por módulos ainda não
-   redesenhados nas próximas rodadas (mesmo efeito colateral esperado do fundo/fonte, já
-   documentado em DESIGN.md). `rounded-full` fica de fora de propósito — pílula/avatar continuam
-   circulares, mesma regra do CowData ("pílulas 999px, círculos 50%"). */
-.portal-shell .rounded-sm,
-.portal-shell .rounded,
-.portal-shell .rounded-md,
-.portal-shell .rounded-lg,
-.portal-shell .rounded-xl,
-.portal-shell .rounded-2xl,
-.portal-shell .rounded-3xl {
-  border-radius: 2px;
+  --font-display: var(--font-sans);
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 /* Único glow do sistema (--concluido-glow, ver .portal-shell acima) — reservado a um indicador
@@ -692,109 +797,191 @@ input[type="radio"] {
    início (comentário "auto-contido de propósito" acima); só não copiei o cuidado pra este lado
    quando escrevi a Manhã como bloco vazio. */
 .mobile-shell {
-  --sf-fundo: #f3f2f2;
-  --sf-superficie: #ffffff;
-  --sf-apoio: #eae9e9;
-  --regua: #d7d3d3;
-  --regua-forte: #bab6b6;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #ddd7c8;
+  --ficha: #f0ece1;
+  --ficha-alt: #e7e2d5;
+  --gaveta: #c9c2b0;
+  --linha: #b9b1a0;
+  --linha-forte: #9b9184;
 
-  --tx: #201e1d;
-  --tx-2: #605d5d;
-  --tx-3: #9b9797;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #23211c;
+  --tinta-2: #45413c;
+  --tinta-3: #625d55;
 
-  --acao-bg: rgba(138, 47, 66, 0.08);
-  --marca-tx: var(--marca);
-  --marca-bg: rgba(138, 47, 66, 0.15);
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #3f5a66;
+  --faixa-oliva: #57613a;
+  --faixa-ocre: #765a1a;
+  --faixa-tijolo: #8c4327;
+  --faixa-ameixa: #5b3a52;
 
-  --rail-tx: #9aa3ad;
-  --menu-tx: #aeb6be;
-  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #a8221b;
+  --risco-hoje: #8b5009;
+  --risco-em-dia: #2e694e;
 
-  --urgente: #b3261e;
-  --urgente-bg: rgba(179, 38, 30, 0.1);
-  --aviso: #9a6700;
-  --aviso-bg: rgba(154, 103, 0, 0.12);
-  --concluido: #1c6b52;
-  --concluido-bg: rgba(28, 107, 82, 0.1);
-  /* Único token que o PWA precisa declarar mesmo na Manhã que --root/.dark não têm: não existia
-     fora do escopo do Portal Noturno até esta rodada — sem isto, o .live-dot abaixo renderizaria
-     sem glow nenhum na Manhã. */
-  --concluido-glow: 0 0 8px rgba(28, 107, 82, 0.4);
-  /* Filete lateral da publicação por fonte (border-l-fonte-pje, MobilePublicationsList.tsx) —
-     achado da auditoria do rollout: sem isto, herdava do tema do SITE PÚBLICO em vez do PWA,
-     mesma classe de bug do PR #174, só que sobrou esta variável de fora daquela correção. */
-  --fonte-pje: #2f6fb0;
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #f7f4ec;
+  --selecao: rgba(140,67,39,.24);
+  --grain-opacity: 0.045;
+  --sombra-menu: 0 3px 10px rgba(35,33,28,.22);
+  --sombra-modal: 0 12px 32px rgba(35,33,28,.28);
+  --sombra-arrasto: 0 12px 32px rgba(35,33,28,.28);
 
-  --halo-marca: rgba(138, 47, 66, 0.08);
-  --grain-opacity: 0.035;
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(168, 34, 27, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(139, 80, 9, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(46, 105, 78, .14);
+  --concluido-glow: 0 0 10px rgba(46, 105, 78, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #8c4327;
+  --acao-hover: #a04f30;
+  --acao-light: #8c4327;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(140, 67, 39, .14);
+  --marca: #8c4327;
+  --marca-tx: #8c4327;
+  --marca-bg: rgba(140, 67, 39, .14);
+  --rail-marca: #8c4327;
+  --rail-marca-bg: rgba(140, 67, 39, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
 
-  --sombra-menu: 0 3px 10px rgba(45, 43, 43, 0.16);
-  --sombra-modal: 0 12px 32px rgba(45, 43, 43, 0.22);
-  --sombra-arrasto: 0 12px 32px rgba(45, 43, 43, 0.22);
-
-  --background: var(--sf-fundo);
-  --foreground: var(--tx);
-
-  background: var(--sf-fundo);
-  color: var(--tx);
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: light;
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 .mobile-shell.mobile-dark {
-  --sf-fundo: #1c1a22;
-  --sf-superficie: #242230;
-  --sf-apoio: #2c2939;
-  --regua: #3a3648;
-  --regua-forte: #4a4560;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #22211d;
+  --ficha: #2c2b26;
+  --ficha-alt: #333128;
+  --gaveta: #191815;
+  --linha: #403e37;
+  --linha-forte: #5b574c;
 
-  --tx: #f1eef7;
-  --tx-2: #a8a3bd;
-  --tx-3: #726d87;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #e8e3d6;
+  --tinta-2: #bbb6aa;
+  --tinta-3: #9d9a8f;
 
-  --acao-bg: rgba(138, 47, 66, 0.2);
-  --marca-tx: #c9707f;
-  --marca-bg: rgba(138, 47, 66, 0.24);
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #7fa6b8;
+  --faixa-oliva: #9aa86a;
+  --faixa-ocre: #d3a63f;
+  --faixa-tijolo: #d58663;
+  --faixa-ameixa: #b58eab;
 
-  --rail-tx: #8b949e;
-  --menu-tx: #8b949e;
-  --rail-marca-bg: rgba(201, 112, 127, 0.16);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #eb786f;
+  --risco-hoje: #e0a13c;
+  --risco-em-dia: #5fbc90;
 
-  --urgente: #e2685a;
-  --urgente-bg: rgba(226, 104, 90, 0.16);
-  --aviso: #d0a02a;
-  --aviso-bg: rgba(208, 160, 42, 0.16);
-  --concluido: #4fb28c;
-  --concluido-bg: rgba(79, 178, 140, 0.16);
-  --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
-  --fonte-pje: #93c0f0;
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #1b1a16;
+  --selecao: rgba(213,134,99,.3);
+  --grain-opacity: 0.07;
+  --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
+  --sombra-modal: 0 12px 32px rgba(0,0,0,.55);
+  --sombra-arrasto: 0 12px 32px rgba(0,0,0,.55);
 
-  --halo-marca: rgba(138, 47, 66, 0.16);
-  --grain-opacity: 0.05;
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(235, 120, 111, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(224, 161, 60, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(95, 188, 144, .14);
+  --concluido-glow: 0 0 10px rgba(95, 188, 144, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #d58663;
+  --acao-hover: #e09b7c;
+  --acao-light: #d58663;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(213, 134, 99, .14);
+  --marca: #d58663;
+  --marca-tx: #d58663;
+  --marca-bg: rgba(213, 134, 99, .14);
+  --rail-marca: #d58663;
+  --rail-marca-bg: rgba(213, 134, 99, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
 
-  --sombra-menu: 0 3px 10px rgba(0, 0, 0, 0.45);
-  --sombra-modal: 0 12px 32px rgba(0, 0, 0, 0.5);
-  --sombra-arrasto: 0 12px 32px rgba(0, 0, 0, 0.5);
-
-  --background: var(--sf-fundo);
-  --foreground: var(--tx);
-
-  background: var(--sf-fundo);
-  color: var(--tx);
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: dark;
-}
-
-/* Raio quase reto (2px) só quando `.mobile-dark` está ativo — mesmo mecanismo de seletor
-   descendente do portal (tailwind compila rounded-* para px fixo, não var(--...), então não dá
-   pra sobrescrever via custom property). `rounded-full` fica de fora (pílula/avatar continuam
-   circulares), mesma exceção do portal. */
-.mobile-shell.mobile-dark .rounded-sm,
-.mobile-shell.mobile-dark .rounded,
-.mobile-shell.mobile-dark .rounded-md,
-.mobile-shell.mobile-dark .rounded-lg,
-.mobile-shell.mobile-dark .rounded-xl,
-.mobile-shell.mobile-dark .rounded-2xl,
-.mobile-shell.mobile-dark .rounded-3xl {
-  border-radius: 2px;
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 /* Mesmo glow reservado do portal (--concluido-glow acima) — primeiro uso aqui: Central de
@@ -829,30 +1016,97 @@ input[type="radio"] {
    ("grafite nos dois temas", DESIGN.md §3). Só a área de CONTEÚDO (`.painel-mestre-shell`,
    LumenPanel e o corpo de cada tela) retemea entre os dois estados abaixo. */
 .painel-mestre-shell {
-  --sf-fundo: #1c1a22;
-  --sf-superficie: #242230;
-  --sf-apoio: #2c2939;
-  --regua: #3a3648;
-  --regua-forte: #4a4560;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #22211d;
+  --ficha: #2c2b26;
+  --ficha-alt: #333128;
+  --gaveta: #191815;
+  --linha: #403e37;
+  --linha-forte: #5b574c;
 
-  --tx: #f1eef7;
-  --tx-2: #a8a3bd;
-  --tx-3: #726d87;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #e8e3d6;
+  --tinta-2: #bbb6aa;
+  --tinta-3: #9d9a8f;
 
-  --marca-tx: #c9707f;
-  --marca-bg: rgba(138, 47, 66, 0.24);
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #7fa6b8;
+  --faixa-oliva: #9aa86a;
+  --faixa-ocre: #d3a63f;
+  --faixa-tijolo: #d58663;
+  --faixa-ameixa: #b58eab;
 
-  --urgente: #e2685a;
-  --urgente-bg: rgba(226, 104, 90, 0.16);
-  --aviso: #d0a02a;
-  --aviso-bg: rgba(208, 160, 42, 0.16);
-  --concluido: #4fb28c;
-  --concluido-bg: rgba(79, 178, 140, 0.16);
-  --concluido-glow: 0 0 10px rgba(79, 178, 140, 0.6);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #eb786f;
+  --risco-hoje: #e0a13c;
+  --risco-em-dia: #5fbc90;
 
-  background: var(--sf-fundo);
-  color: var(--tx);
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #1b1a16;
+  --selecao: rgba(213,134,99,.3);
+  --grain-opacity: 0.07;
+  --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
+  --sombra-modal: 0 12px 32px rgba(0,0,0,.55);
+  --sombra-arrasto: 0 12px 32px rgba(0,0,0,.55);
+
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(235, 120, 111, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(224, 161, 60, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(95, 188, 144, .14);
+  --concluido-glow: 0 0 10px rgba(95, 188, 144, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #b58eab;
+  --acao-hover: #e09b7c;
+  --acao-light: #b58eab;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(181, 142, 171, .14);
+  --marca: #b58eab;
+  --marca-tx: #b58eab;
+  --marca-bg: rgba(181, 142, 171, .14);
+  --rail-marca: #b58eab;
+  --rail-marca-bg: rgba(181, 142, 171, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
+
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: dark;
+  background: var(--papel);
+  color: var(--tinta);
 }
 
 /* Manhã do Painel da Empresa — pedido explícito do dono do projeto ao validar o protótipo:
@@ -861,28 +1115,252 @@ input[type="radio"] {
    claramente mais fechada/cinza-arroxeada, deliberadamente distinta. Mesma família de matiz da
    Noite acima (grafite-arroxeado), só invertida em luminância — não um cinza neutro genérico. */
 .painel-mestre-shell.painel-mestre-light {
-  --sf-fundo: #b3aebc;
-  --sf-superficie: #c9c5d1;
-  --sf-apoio: #9d97ab;
-  --regua: #857e94;
-  --regua-forte: #6f687f;
+  /* --- as quatro superficies do mundo "Guias" --- */
+  --papel: #ddd7c8;
+  --ficha: #f0ece1;
+  --ficha-alt: #e7e2d5;
+  --gaveta: #c9c2b0;
+  --linha: #b9b1a0;
+  --linha-forte: #9b9184;
 
-  --tx: #201d29;
-  --tx-2: #4a4558;
-  --tx-3: #6b6579;
+  /* --- tinta, em tres patamares de contraste --- */
+  --tinta: #23211c;
+  --tinta-2: #45413c;
+  --tinta-3: #625d55;
 
-  --marca-tx: #6b2330;
-  --marca-bg: rgba(138, 47, 66, 0.16);
+  /* --- faixa de secao: a cor diz ONDE voce esta --- */
+  --faixa-ardosia: #3f5a66;
+  --faixa-oliva: #57613a;
+  --faixa-ocre: #765a1a;
+  --faixa-tijolo: #8c4327;
+  --faixa-ameixa: #5b3a52;
 
-  --urgente: #8a221c;
-  --urgente-bg: rgba(138, 34, 28, 0.14);
-  --aviso: #7a5600;
-  --aviso-bg: rgba(122, 86, 0, 0.14);
-  --concluido: #185f49;
-  --concluido-bg: rgba(24, 95, 73, 0.14);
-  --concluido-glow: 0 0 8px rgba(24, 95, 73, 0.4);
+  /* --- risco: a cor diz O QUE ESTA ACONTECENDO --- */
+  --risco-vencido: #a8221b;
+  --risco-hoje: #8b5009;
+  --risco-em-dia: #2e694e;
 
-  background: var(--sf-fundo);
-  color: var(--tx);
+  /* --- rotulo sobre faixa PREENCHIDA: troca com o tema, nunca e branco cravado --- */
+  --rotulo: #f7f4ec;
+  --selecao: rgba(140,67,39,.24);
+  --grain-opacity: 0.045;
+  --sombra-menu: 0 3px 10px rgba(35,33,28,.22);
+  --sombra-modal: 0 12px 32px rgba(35,33,28,.28);
+  --sombra-arrasto: 0 12px 32px rgba(35,33,28,.28);
+
+  /* --- APELIDOS DO SISTEMA ANTERIOR ---------------------------------------
+     Todo componente ja escrito aponta para estes nomes. Reaponta-los faz as 99 rotas
+     entrarem no mundo novo de uma vez, sem editar 250 arquivos — mesmo mecanismo que
+     `borderRadius` e `boxShadow.card` usam em tailwind.config.ts. Codigo novo usa os
+     nomes de cima; estes saem quando a ultima referencia sair (F9).                  */
+  --sf-fundo: var(--papel);
+  --sf-superficie: var(--ficha);
+  --sf-apoio: var(--ficha-alt);
+  --regua: var(--linha);
+  --regua-forte: var(--linha-forte);
+  --tx: var(--tinta);
+  --tx-2: var(--tinta-2);
+  --tx-3: var(--tinta-3);
+  --urgente: var(--risco-vencido);
+  --urgente-bg: rgba(168, 34, 27, .14);
+  --aviso: var(--risco-hoje);
+  --aviso-bg: rgba(139, 80, 9, .14);
+  --concluido: var(--risco-em-dia);
+  --concluido-bg: rgba(46, 105, 78, .14);
+  --concluido-glow: 0 0 10px rgba(46, 105, 78, .6);
+  --vinho: var(--risco-vencido);
+  --acao: #5b3a52;
+  --acao-hover: #a04f30;
+  --acao-light: #5b3a52;
+  --acao-tx: var(--rotulo);
+  --acao-bg: rgba(91, 58, 82, .14);
+  --marca: #5b3a52;
+  --marca-tx: #5b3a52;
+  --marca-bg: rgba(91, 58, 82, .14);
+  --rail-marca: #5b3a52;
+  --rail-marca-bg: rgba(91, 58, 82, .18);
+  --rail-tx: var(--tinta-2);
+  --menu-tx: var(--tinta-2);
+  --fonte-pje: var(--faixa-ardosia);
+  --ouro-acento: var(--faixa-ocre);
+  /* O halo decorativo morre aqui: "se um elemento nao carrega dado ou estado, ele nao
+     existe" (elevacao Ikeda, contrato de direcao). O gradiente de 340x160 atras da
+     saudacao do /painel deixa de renderizar sem editar o componente.                 */
+  --halo-marca: transparent;
+  --neutro-100: var(--ficha);
+  --neutro-200: var(--ficha-alt);
+  --neutro-300: var(--linha);
+  --neutro-400: var(--linha-forte);
+  --neutro-500: var(--tinta-3);
+  --neutro-600: var(--tinta-3);
+  --neutro-700: var(--tinta-2);
+  --neutro-800: var(--tinta-2);
+  --neutro-900: var(--tinta);
+  /* O rail deixa de ser grafite fixo nos dois temas — era um dos defeitos do
+     diagnostico ("uma barra preta a esquerda no tema claro"). Agora e a gaveta, e
+     retematiza. Os ~40 usos de `bg-grafite-800` acompanham sem edicao.               */
+  --grafite-800: var(--gaveta);
+
+  --background: var(--papel);
+  --foreground: var(--tinta);
   color-scheme: light;
+  background: var(--papel);
+  color: var(--tinta);
 }
+
+/* ============================================================================
+   CAMPO — uma classe so (redesign "Guias", F3, comando `extract`).
+
+   O diagnostico achou SEIS classes de input duplicadas — .fin-input, .cfg-input,
+   .fp-input, .pr-input, .doc-input e .lic-input — cada uma redeclarada em varios
+   arquivos dentro de <style jsx>, todas com raio 0.3125rem (5px, fora de qualquer
+   escala) e tamanho 0.8rem/0.875rem (fora da rampa). Uma delas, .fp-input, apontava
+   para `var(--sf)`, que NAO EXISTE em app/globals.css: os campos de tres telas
+   financeiras renderizavam sem fundo declarado.
+
+   Varrendo o repositorio inteiro apareceram mais 17 alem das seis documentadas — 23 no
+   total, alguma delas ainda com as cores da identidade anterior cravadas
+   (rgba(15,31,61,0.12)). Todos os nomes continuam validos como apelido, para nao editar
+   os ~340 usos de classe;
+   eles saem quando a ultima referencia sair (F9).
+   ========================================================================== */
+.campo,
+.fin-input,
+.cfg-input,
+.fp-input,
+.pr-input,
+.doc-input,
+.lic-input,
+.acf-input,
+.at-input,
+.cl-input,
+.cqm-input,
+.ct-input,
+.cvt-input,
+.gd-input,
+.lc-input,
+.mobile-lic-input,
+.mobile-parecer-input,
+.parecer-edit-input,
+.parecer-solto-edit-input,
+.pj-input,
+.pm-input,
+.pmm-input,
+.profile-input,
+.settle-input {
+  width: 100%;
+  border: 1px solid var(--linha-forte);
+  border-radius: 2px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  background: var(--ficha);
+  color: var(--tinta);
+}
+.campo::placeholder,
+.fin-input::placeholder,
+.cfg-input::placeholder,
+.fp-input::placeholder,
+.pr-input::placeholder,
+.doc-input::placeholder,
+.lic-input::placeholder,
+.acf-input::placeholder,
+.at-input::placeholder,
+.cl-input::placeholder,
+.cqm-input::placeholder,
+.ct-input::placeholder,
+.cvt-input::placeholder,
+.gd-input::placeholder,
+.lc-input::placeholder,
+.mobile-lic-input::placeholder,
+.mobile-parecer-input::placeholder,
+.parecer-edit-input::placeholder,
+.parecer-solto-edit-input::placeholder,
+.pj-input::placeholder,
+.pm-input::placeholder,
+.pmm-input::placeholder,
+.profile-input::placeholder,
+.settle-input::placeholder {
+  color: var(--tinta-3);
+}
+.campo:focus-visible,
+.fin-input:focus-visible,
+.cfg-input:focus-visible,
+.fp-input:focus-visible,
+.pr-input:focus-visible,
+.doc-input:focus-visible,
+.lic-input:focus-visible,
+.acf-input:focus-visible,
+.at-input:focus-visible,
+.cl-input:focus-visible,
+.cqm-input:focus-visible,
+.ct-input:focus-visible,
+.cvt-input:focus-visible,
+.gd-input:focus-visible,
+.lc-input:focus-visible,
+.mobile-lic-input:focus-visible,
+.mobile-parecer-input:focus-visible,
+.parecer-edit-input:focus-visible,
+.parecer-solto-edit-input:focus-visible,
+.pj-input:focus-visible,
+.pm-input:focus-visible,
+.pmm-input:focus-visible,
+.profile-input:focus-visible,
+.settle-input:focus-visible {
+  outline: 2px solid var(--acao);
+  outline-offset: 1px;
+  border-color: var(--acao);
+}
+.campo:disabled,
+.fin-input:disabled,
+.cfg-input:disabled,
+.fp-input:disabled,
+.pr-input:disabled,
+.doc-input:disabled,
+.lic-input:disabled,
+.acf-input:disabled,
+.at-input:disabled,
+.cl-input:disabled,
+.cqm-input:disabled,
+.ct-input:disabled,
+.cvt-input:disabled,
+.gd-input:disabled,
+.lc-input:disabled,
+.mobile-lic-input:disabled,
+.mobile-parecer-input:disabled,
+.parecer-edit-input:disabled,
+.parecer-solto-edit-input:disabled,
+.pj-input:disabled,
+.pm-input:disabled,
+.pmm-input:disabled,
+.profile-input:disabled,
+.settle-input:disabled {
+  background: var(--ficha-alt);
+  color: var(--tinta-3);
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   SUPERFICIES DO NAVEGADOR — as partes que ninguem desenha e que mesmo assim
+   carregam o design: selecao, cursor de texto, barra de rolagem, anel de foco,
+   sublinhado e numeral tabular. Sao o sinal mais barato de que a pagina foi
+   construida em vez de montada, e o que mais se esquece.
+   ========================================================================== */
+::selection { background: var(--selecao); color: var(--tinta); }
+html { caret-color: var(--acao); accent-color: var(--acao); }
+:focus-visible { outline: 2px solid var(--acao); outline-offset: 2px; border-radius: 2px; }
+a { text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+/* Todo digito que entra em coluna alinha. O produto e cheio de valor, data e prazo. */
+table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--linha-forte) transparent; }
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--linha-forte);
+  border-radius: 2px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--tinta-3); background-clip: content-box; }
+*::-webkit-scrollbar-corner { background: transparent; }

@@ -438,7 +438,7 @@ export default function NewAttendanceModal({
                         <button
                           type="button"
                           onClick={() => setClientMode("novo")}
-                          className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                          className={`text-etiqueta font-semibold px-2.5 py-1 transition-colors ${
                             clientMode === "novo"
                               ? "bg-sf text-tx"
                               : "text-tx-3 hover:text-tx"
@@ -449,7 +449,7 @@ export default function NewAttendanceModal({
                         <button
                           type="button"
                           onClick={() => setClientMode("selecionar")}
-                          className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                          className={`text-etiqueta font-semibold px-2.5 py-1 transition-colors ${
                             clientMode === "selecionar"
                               ? "bg-sf text-tx"
                               : "text-tx-3 hover:text-tx"
@@ -607,7 +607,7 @@ export default function NewAttendanceModal({
                     </div>
                     <AssessoriaSelect assessorias={assessorias} inputClassName="at-input" defaultValue={defaultAssessoriaId} />
                   </div>
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     Lead sem retorno é lead perdido — a Central de Alertas avisa se o prazo acima estourar sem resposta.
                   </p>
                 </SecaoLancamento>
@@ -689,7 +689,7 @@ export default function NewAttendanceModal({
                       </>
                     )}
                   </div>
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     Só uma intenção nesta fase — se o atendimento virar Processo, esses dados pré-preenchem (sem redigitar) a tela de Lançar
                     Honorários, mas a cobrança em si só é criada depois de você confirmar lá.
                   </p>
@@ -761,7 +761,7 @@ export default function NewAttendanceModal({
                       ))}
                     </div>
                   )}
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     Os arquivos só sobem para a pasta do atendimento no Drive depois que ele é criado — o progresso aparece no rodapé desta
                     janela.
                   </p>
@@ -832,25 +832,6 @@ export default function NewAttendanceModal({
         />
       )}
 
-      <style jsx global>{`
-        .at-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          border: 1px solid var(--regua-forte);
-          border-radius: 0.3125rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          background: var(--sf-superficie);
-          color: var(--tx);
-        }
-        .at-input:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px var(--acao-bg);
-        }
-        .at-input::placeholder {
-          color: var(--tx-3);
-        }
-      `}</style>
     </>
   );
 }

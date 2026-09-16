@@ -210,7 +210,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                             }
                           >
                             <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                            <p className={out ? "mt-1 text-[10px] text-acao-tx/70 text-right" : "mt-1 text-[10px] text-tx-3"}>
+                            <p className={out ? "mt-1 text-etiqueta text-acao-tx/70 text-right" : "mt-1 text-etiqueta text-tx-3"}>
                               {formatDate(m.createdAt)}{" "}
                               {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                               {out && m.status === "FAILED" ? " · falhou" : ""}
@@ -248,7 +248,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                     <div key={m.id} className=" border border-regua bg-sf-apoio px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-tx">{m.subject}</p>
-                        <span className="shrink-0 text-[10px] text-tx-3">
+                        <span className="shrink-0 text-etiqueta text-tx-3">
                           {formatDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>

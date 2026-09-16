@@ -112,12 +112,12 @@ export default function TrilhaAuditoria() {
           {rows.map((r) => (
             <div key={r.id} className="py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[18px] font-extrabold text-tx">
+                <p className="text-destaque font-extrabold text-tx">
                   {r.actorName} <span className="font-medium text-tx-2">{KIND_LABEL[r.kind] ?? r.kind}</span>
                 </p>
-                {contexto(r) && <p className="text-[16px] text-tx-2 mt-0.5">{contexto(r)}</p>}
+                {contexto(r) && <p className="text-corpo text-tx-2 mt-0.5">{contexto(r)}</p>}
               </div>
-              <span className="text-[15px] text-tx-3 shrink-0 whitespace-nowrap">{new Date(r.createdAt).toLocaleString("pt-BR")}</span>
+              <span className="text-corpo text-tx-3 shrink-0 whitespace-nowrap">{new Date(r.createdAt).toLocaleString("pt-BR")}</span>
             </div>
           ))}
         </div>

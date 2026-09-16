@@ -78,7 +78,7 @@ function EntityGroup({ label, items, onClose }: { label: string; items: Item[]; 
   if (items.length === 0) return null;
   return (
     <div>
-      <p className="text-[13px] font-bold uppercase tracking-wide text-tx-2 mb-2 px-0.5">{label}</p>
+      <p className="text-corpo font-bold uppercase tracking-wide text-tx-2 mb-2 px-0.5">{label}</p>
       <div className="grid grid-cols-4 gap-2">
         {items.map(({ href, label, icon: Icon }) => (
           <Link
@@ -90,7 +90,7 @@ function EntityGroup({ label, items, onClose }: { label: string; items: Item[]; 
             <span className="h-12 w-12 rounded-full bg-sf-apoio flex items-center justify-center text-tx">
               <Icon size={20} strokeWidth={1.75} />
             </span>
-            <span className="text-[13px] font-medium text-tx-2 text-center leading-tight">{label}</span>
+            <span className="text-corpo font-medium text-tx-2 text-center leading-tight">{label}</span>
           </Link>
         ))}
       </div>

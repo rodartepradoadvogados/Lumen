@@ -68,7 +68,7 @@ export default function NewDocumentTypeDialog({
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-tx-3 mt-1">Onde este tipo vai aparecer na lista de categorias.</p>
+            <p className="text-etiqueta text-tx-3 mt-1">Onde este tipo vai aparecer na lista de categorias.</p>
           </div>
 
           <div>
@@ -79,7 +79,7 @@ export default function NewDocumentTypeDialog({
               placeholder="Ex.: Print de conversa"
               className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
             />
-            <p className="text-[11px] text-tx-3 mt-1">Este nome também vira o nome da pasta correspondente no armazenamento em nuvem.</p>
+            <p className="text-etiqueta text-tx-3 mt-1">Este nome também vira o nome da pasta correspondente no armazenamento em nuvem.</p>
           </div>
 
           {error && <p className="text-xs text-urgente">{error}</p>}

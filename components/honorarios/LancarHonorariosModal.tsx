@@ -470,11 +470,11 @@ export default function LancarHonorariosModal({
                           onChange={handleCaseChange}
                         />
                         {!hasCase ? (
-                          <p className="text-[11px] text-aviso mt-1">
+                          <p className="text-etiqueta text-aviso mt-1">
                             Obrigatório — honorário sem processo não faz sentido.
                           </p>
                         ) : basesLoading ? (
-                          <p className="text-[11px] text-tx-2 mt-1">Carregando dados do processo...</p>
+                          <p className="text-etiqueta text-tx-2 mt-1">Carregando dados do processo...</p>
                         ) : null}
                       </div>
                     )}
@@ -612,7 +612,7 @@ export default function LancarHonorariosModal({
                     ]}
                   />
                   {!hasCase && (
-                    <p className="text-[11px] text-tx-2">
+                    <p className="text-etiqueta text-tx-2">
                       &quot;Recorrente até o arquivamento&quot; exige um processo — escolha um na seção Identificação, acima, para habilitar.
                     </p>
                   )}
@@ -653,7 +653,7 @@ export default function LancarHonorariosModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+                        <p className="text-etiqueta text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>
@@ -706,7 +706,7 @@ export default function LancarHonorariosModal({
                           </tbody>
                         </table>
                       </div>
-                      <p className="text-[11px] text-tx-2">
+                      <p className="text-etiqueta text-tx-2">
                         Parcela quitada antes do cadastro se marca na coluna &quot;Pago&quot; da própria linha — é o único caminho para lançamento
                         retroativo parcelado.
                       </p>
@@ -733,7 +733,7 @@ export default function LancarHonorariosModal({
                           />
                         </div>
                       </div>
-                      <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+                      <p className="text-etiqueta text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                         Gera uma conta a receber por mês, sempre no dia escolhido, e para sozinha quando o processo é arquivado — sem precisar
                         definir quantas parcelas.
                       </p>
@@ -758,7 +758,7 @@ export default function LancarHonorariosModal({
                           <div>
                             <label className={labelCls}>Valor em dinheiro (R$)</label>
                             <MoneyInput value={amount} onChange={setAmount} disabled={parcelado} className="fin-input disabled:opacity-50" />
-                            {parcelado && <p className="text-[11px] text-tx-2 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
+                            {parcelado && <p className="text-etiqueta text-tx-2 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
                           </div>
                         )}
                         <div>
@@ -823,17 +823,17 @@ export default function LancarHonorariosModal({
 
                       {cobrancaHasPercentual &&
                         (!hasCase ? (
-                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+                          <p className="text-etiqueta text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                             A base do percentual será conhecida depois de escolher o processo, na seção Identificação, acima.
                           </p>
                         ) : baseValue ? (
-                          <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+                          <p className="text-etiqueta text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                             {percentualNum || 0}% de {formatCurrency(baseValue)} = {formatCurrency((baseValue * (percentualNum || 0)) / 100)}
                             {abaterEntrada && cobranca === "AMBOS" && <> — abatendo {formatCurrency(jaPagoEmDinheiro)} já pago em dinheiro</>}
                             {" "}= <span className="font-semibold text-tx">{formatCurrency(percentualApurado)}</span> líquido de honorário
                           </p>
                         ) : (
-                          <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+                          <p className="text-etiqueta text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                             A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão a apurar (status
                             &quot;A apurar&quot;), fora do fluxo de caixa e do DRE, até alguém registrar o desfecho do processo.
                           </p>
@@ -857,7 +857,7 @@ export default function LancarHonorariosModal({
                           />
                         </div>
                       ) : (
-                        <p className="text-[11px] text-tx-2">
+                        <p className="text-etiqueta text-tx-2">
                           Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
                         </p>
                       )}
@@ -929,7 +929,7 @@ export default function LancarHonorariosModal({
                 <div className="flex items-center gap-4">
                   {recorrente ? (
                     <div>
-                      <span className="block text-[10px] uppercase tracking-wide text-tx-2">Valor mensal</span>
+                      <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Valor mensal</span>
                       <span className="text-lg font-bold tabular-nums text-marca-tx">
                         {formatCurrency(parseFloat(amountMensal || "0") || 0)}
                       </span>
@@ -937,23 +937,23 @@ export default function LancarHonorariosModal({
                   ) : (
                     <>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Bruto</span>
+                        <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Bruto</span>
                         <span className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(bruto)}</span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Desconto</span>
+                        <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Desconto</span>
                         <span className="text-sm font-semibold tabular-nums text-urgente">
                           -{formatCurrency(parcelado ? 0 : discountNum)}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Acréscimo</span>
+                        <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Acréscimo</span>
                         <span className="text-sm font-semibold tabular-nums text-concluido">
                           +{formatCurrency(parcelado ? 0 : surchargeNum)}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+                        <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Líquido</span>
                         <span className="text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                       </div>
                     </>
@@ -981,10 +981,6 @@ export default function LancarHonorariosModal({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
-        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </>
   );
 }

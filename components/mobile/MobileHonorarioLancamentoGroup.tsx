@@ -59,7 +59,7 @@ export default function MobileHonorarioLancamentoGroup({
         />
       </div>
       {lancamento.payerType !== "CLIENTE" && (
-        <p className="text-[13px] text-tx-2 mb-1.5">
+        <p className="text-corpo text-tx-2 mb-1.5">
           Pagador: {lancamento.payerType === "OUTRO" ? lancamento.payerName || "Outro" : PAYER_TYPE_LABELS[lancamento.payerType]}
         </p>
       )}
@@ -73,7 +73,7 @@ export default function MobileHonorarioLancamentoGroup({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm text-tx">{p.description}</p>
-                  <p className="text-[13px] text-tx-2 mt-0.5">
+                  <p className="text-corpo text-tx-2 mt-0.5">
                     {isApurar
                       ? `${p.percentual}% de ${PERCENTUAL_BASE_LABELS[p.percentualBase ?? ""] ?? "base não definida"} — a apurar`
                       : p.noDueDate
@@ -90,7 +90,7 @@ export default function MobileHonorarioLancamentoGroup({
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold tabular-nums text-tx">{isApurar ? "—" : formatCurrency(liquido)}</p>
-                  {p.status === "PARCIAL" && <p className="text-[13px] tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
+                  {p.status === "PARCIAL" && <p className="text-corpo tabular-nums text-tx-2">saldo {formatCurrency(saldo)}</p>}
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 mt-1.5">

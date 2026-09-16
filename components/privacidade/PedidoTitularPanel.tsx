@@ -88,7 +88,7 @@ export default function PedidoTitularPanel({ requests, isAdmin }: { requests: Da
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[11px] font-semibold ${prazo.atrasado ? "text-atencao" : "text-tx-2"}`}>{prazo.texto}</span>
+                    <span className={`text-etiqueta font-semibold ${prazo.atrasado ? "text-atencao" : "text-tx-2"}`}>{prazo.texto}</span>
                     <Badge color={STATUS_COLOR[r.status] ?? "slate"}>{STATUS_LABEL[r.status] ?? r.status}</Badge>
                   </div>
                 </div>

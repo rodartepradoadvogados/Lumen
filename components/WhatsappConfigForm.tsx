@@ -67,9 +67,9 @@ export default function WhatsappConfigForm({
           <label className="text-xs font-medium text-tx-2">Número exibido (opcional, só para referência)</label>
           <input name="displayPhone" placeholder="+55 62 99999-0000" className="cfg-input w-full" />
         </div>
-        {error && <p className="flex items-center gap-2 border-l-[3px] border-vinho text-vinho bg-sf-apoio px-2.5 py-1.5 text-[11px]">{error}</p>}
+        {error && <p className="flex items-center gap-2 border-l-[3px] border-vinho text-vinho bg-sf-apoio px-2.5 py-1.5 text-etiqueta">{error}</p>}
         {success && (
-          <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio px-2.5 py-1.5 text-[11px]">Conexão salva com sucesso.</p>
+          <p className="flex items-center gap-2 border-l-[3px] border-concluido text-concluido bg-sf-apoio px-2.5 py-1.5 text-etiqueta">Conexão salva com sucesso.</p>
         )}
         <div className="flex items-center gap-2">
           <button type="submit" disabled={loading} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50 transition-colors">

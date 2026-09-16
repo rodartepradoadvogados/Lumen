@@ -112,13 +112,13 @@ function ComparisonCard({
         <div className="divide-y divide-regua">
           {pairs.map((pair, i) => (
             <div key={i} className="px-5 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-3 mb-2">
+              <p className="text-etiqueta font-semibold uppercase tracking-wide text-tx-3 mb-2">
                 {recordNoun} {i + 1}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3">
+                    <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-3">
                       <th className="py-1 pr-4 font-semibold">Campo</th>
                       <th className="py-1 pr-4 font-semibold">O que você vê</th>
                       <th className="py-1 font-semibold">O que o suporte vê</th>

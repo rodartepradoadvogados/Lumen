@@ -67,7 +67,7 @@ function PointsRow({ item }: { item: Item }) {
           <Check size={16} />
         </span>
       )}
-      {error && <span className="text-[11px] text-urgente">{error}</span>}
+      {error && <span className="text-etiqueta text-urgente">{error}</span>}
     </div>
   );
 }
