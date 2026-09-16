@@ -86,7 +86,7 @@ export default async function AssessoriaDetailPage({
   const licitacoesEmAndamento = assessoria.licitacoes.filter((l) => l.status === "EM_ANALISE" || l.status === "PARTICIPANDO").length;
 
   return (
-    <div className="p-6 animate-fade-in">
+    <div className="tela">
       <Link href="/assessoria" className="text-xs font-semibold text-tx-2 hover:text-tx">
         ← Assessoria Jurídica
       </Link>

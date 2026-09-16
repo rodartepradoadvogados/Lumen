@@ -78,7 +78,7 @@ export default async function AtendimentoPage({
   };
 
   return (
-    <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">
+    <div className="tela">
       <PageHeader
         title="Atendimento"
         subtitle="Triagem de novos contatos antes de virarem processos/casos"

@@ -84,7 +84,7 @@ export default function KanbanBoard({ columns }: { columns: ColumnData[] }) {
                 {colTasks.length}
               </span>
             </div>
-            <div className="p-2.5 space-y-2 overflow-y-auto scrollbar-thin flex-1 stagger-in">
+            <div className="p-2.5 space-y-2 overflow-y-auto scrollbar-thin flex-1">
               {colTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onToggle={() => startTransition(async () => { await toggleTaskDone(task.id); router.refresh(); })} />
               ))}

@@ -38,7 +38,7 @@ export default async function FinanceiroPage() {
   ];
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
+    <div className="tela">
       <PageHeader title="Financeiro" subtitle="Controle completo de fluxo de caixa do escritório" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

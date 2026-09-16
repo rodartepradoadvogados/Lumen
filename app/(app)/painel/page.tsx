@@ -185,7 +185,7 @@ export default async function DashboardPage() {
   return (
     <div className="relative">
       <GrainOverlay />
-      <div className="relative z-10 p-6 max-w-[1400px] mx-auto animate-fade-in">
+      <div className="relative z-10 tela">
       {/* Halo sutil do bordô atrás da saudação — mesmo tratamento da Início mobile (gradiente de
           fundo, não sombra: DESIGN-SYSTEM.md §13). */}
       <div className="relative mb-6">
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
                 </Link>
               }
             />
-            <div className="divide-y divide-regua stagger-in">
+            <div className="divide-y divide-regua">
               {dayQueueVisible.length === 0 && <EmptyState title="Nada vencido ou agendado para os próximos dias" />}
               {dayQueueVisible.map((item) => (
                 <DayQueueRow key={item.id} item={item} />
@@ -272,7 +272,7 @@ export default async function DashboardPage() {
             icon={<Clock size={15} strokeWidth={1.5} />}
             iconClassName="bg-urgente-bg text-urgente"
           >
-            <div className="divide-y divide-regua stagger-in">
+            <div className="divide-y divide-regua">
               {myOverdueTasks.length === 0 && <EmptyState title="Nenhum prazo atrasado" />}
               {myOverdueTasks.map((t) => (
                 <OverdueTaskRow

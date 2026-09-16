@@ -77,7 +77,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     .reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
 
   return (
-    <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-5">
+    <div className="tela space-y-5">
       <Link href="/contatos/clientes" className="text-xs font-semibold text-tx-3 hover:text-tx flex items-center gap-1">
         <ArrowLeft size={14} /> Clientes
       </Link>

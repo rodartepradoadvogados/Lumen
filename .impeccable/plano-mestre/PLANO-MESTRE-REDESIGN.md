@@ -11,10 +11,10 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F4 — Portal / SaaS** (F0, F1, F2 e F3 concluídas) |
-| **Próximo passo concreto** | **Nova conferência visual do dono**, agora na paleta Ardósia. Depois F4, módulo a módulo do Portal, começando por `/painel` e `/publicacoes` |
+| **Fase atual** | **F4 — Portal / SaaS** · casca concluída, telas em andamento |
+| **Próximo passo concreto** | `/painel` — a tarja de risco do escritório, que corrige o defeito nº 1 do diagnóstico (a home mede a pessoa errada). Depois `/publicacoes`, `/processos/[id]` e os 13 filetes laterais |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
-| **Comandos executados** | 9 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
+| **Comandos executados** | 10 dos 24 fluxos (com `distill` em F4) (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | 0 de 5 na composição — mas as 5 já estão no mundo novo de cor, tipo e raio (fundação F3) |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
 | **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual na paleta Ardósia, pelo dono** — a primeira rodada de conferência derrubou a paleta anterior e achou dois defeitos meus; (b) `audit` como passagem própria → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
@@ -436,7 +436,9 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F3b | O rail passa a retematizar | `colorize` | ✅ | #191 | 2026-09-16 | Tokens `--gaveta*` próprios. A escala `grafite` do Tailwind era **hex cravado** — repontar só a variável CSS não fazia nada |
 | F3b | Fim do `text-white` cravado | `harden` | ✅ | #191 | 2026-09-16 | 98 linhas em 11 arquivos do Painel Mestre + aside de Configurações + campos com fundo sempre escuro |
 | F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |
-| F4 | Portal — Painel e Agenda | `layout`, `distill`, `clarify`, `polish` | ⬜ | — | — | — |
+| F4a | Casca — o rail vira mapa | `layout`, `clarify` | ✅ | #192 | 2026-09-16 | 6 ícones → 5 destinos, estado invisível, 2 ícones acesos, hub órfão, 250ms de atraso. **Contagem deixa de ser vermelha; Agenda = hoje + atrasados** (pedidos do dono) |
+| F4b | Casca — o layout para de se mexer | `layout` | ✅ | #193 | 2026-09-16 | 10 larguras → **1**, numa classe só. Fade de página e cascata de lista removidos. Barra de abas com altura estável. O mesmo atraso de 250ms que restava na barra de abas |
+| F4 | Portal — Painel e Agenda | `layout`, `distill`, `clarify`, `polish` | ⬜ | — | — | próximo: a tarja de risco |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
 | F4 | Portal — Comunicação | idem | ⬜ | — | — | — |
 | F4 | Portal — Financeiro | idem | ⬜ | — | — | — |
@@ -477,6 +479,9 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | 2026-09-16 | Dono | **Paleta Ardósia escolhida** (cinza-pedra frio), entre três propostas | Segunda rodada de cor |
 | 2026-09-16 | Dono | **Nenhuma faixa de seção é vermelha.** O tijolo sai, o anil entra. O vermelho existe só para risco; o bordô, só para ação | Segunda rodada de cor |
 | 2026-09-16 | Claude | O rail é superfície própria com tokens próprios, e não a escala `grafite`. A escala `grafite` fica literal, só para os blocos sempre escuros do site público | F3b, a partir do defeito que o dono viu |
+| 2026-09-16 | Dono | O número de notificação não é vermelho: contagem não é risco | Conferência do F3b |
+| 2026-09-16 | Dono | O número da Agenda reflete só compromisso do dia + atrasados | Conferência do F3b |
+| 2026-09-16 | Claude | A largura da tela mora numa classe só (`.tela`), nunca no arquivo de rota. Medida de leitura estreita é do conteúdo, nunca do quadro | F4b |
 
 ---
 

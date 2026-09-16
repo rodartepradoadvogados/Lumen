@@ -33,7 +33,7 @@ export default async function AcessosPage() {
   const totalEntradas = log.filter((l) => l.action === "ENTRADA").length;
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <Link
         href="/configuracoes"
         className="text-xs font-semibold text-tx-3 hover:text-tx"

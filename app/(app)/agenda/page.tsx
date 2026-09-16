@@ -125,7 +125,7 @@ export default async function AgendaPage({
   }));
 
   return (
-    <div className="p-6 h-full flex flex-col max-w-[1600px] mx-auto animate-fade-in">
+    <div className="tela tela-alta">
       <PageHeader
         title="Agenda"
         subtitle="Integrada ao Kanban — dar baixa aqui reflete automaticamente lá"

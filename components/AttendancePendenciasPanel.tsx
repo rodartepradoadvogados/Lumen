@@ -98,7 +98,7 @@ export default function AttendancePendenciasPanel({
       {abertas.length === 0 && !adding && <p className="text-sm text-tx-2">Nenhuma pendência em aberto.</p>}
 
       {abertas.length > 0 && (
-        <div className="space-y-2 stagger-in">
+        <div className="space-y-2">
           {abertas.map((p) => {
             // Urgência de prazo (proposta "Movimento & Prazos") — antes comparava dueDate contra
             // a hora cheia (mesmo bug de "vencimento hoje conta como atrasado" já corrigido em

@@ -168,7 +168,7 @@ export default async function PublicacoesPage({
   ];
 
   return (
-    <div className="h-full flex flex-col animate-fade-in">
+    <div className="tela tela-alta">
       <header className="shrink-0 border-b-2 border-regua-forte px-6 pt-5">
         <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
           <h1 className="text-autuacao font-extrabold text-tx">Publicações</h1>

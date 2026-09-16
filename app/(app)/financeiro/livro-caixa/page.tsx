@@ -36,7 +36,7 @@ export default async function LivroCaixaPage({ searchParams }: { searchParams: {
   const printHref = `/financeiro/livro-caixa/imprimir?${exportParams.toString()}`;
 
   return (
-    <div className="p-6 max-w-[1000px] mx-auto animate-fade-in">
+    <div className="tela">
       <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>

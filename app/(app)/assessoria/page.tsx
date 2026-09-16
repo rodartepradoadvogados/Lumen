@@ -17,7 +17,7 @@ export default async function AssessoriaListPage() {
   const assessorias = await listAssessorias();
 
   return (
-    <div className="p-6 animate-fade-in">
+    <div className="tela">
       <PageHeader
         title="Assessoria Jurídica"
         subtitle="Empresas com contrato de assessoria contínua — documentos, honorário mensal, licitações e histórico"

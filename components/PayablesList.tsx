@@ -118,7 +118,7 @@ export default function PayablesList({
 
   return (
     <div>
-      <div className="divide-y divide-regua stagger-in">
+      <div className="divide-y divide-regua">
         {payables.map((p) => {
           const selectable = p.status !== "PAGO";
           const liquido = valorLiquido(p.amount, p.discount, p.surcharge);

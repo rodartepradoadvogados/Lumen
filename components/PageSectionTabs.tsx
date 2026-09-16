@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -30,36 +30,34 @@ export default function PageSectionTabs({
 
   // Mesmo mecanismo de duplo clique do rail (components/NavRail.tsx) e do antigo SectionPanel:
   // clique simples navega, um 2º clique dentro da janela abre em aba nova.
-  const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  useEffect(() => {
-    const timers = clickTimers.current;
-    return () => {
-      Object.values(timers).forEach(clearTimeout);
-    };
-  }, []);
+  const ultimoClique = useRef<Record<string, number>>({});
 
   function handleClick(e: React.MouseEvent, href: string, label: string) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
     e.preventDefault();
-    const pending = clickTimers.current[href];
-    if (pending) {
-      clearTimeout(pending);
-      delete clickTimers.current[href];
+    // Mesma correção do NavRail: navega na hora, e o duplo clique é detectado DEPOIS do fato.
+    // Este arquivo tinha a mesma espera de 250ms e passou despercebido na rodada anterior.
+    const agora = Date.now();
+    const ultimo = ultimoClique.current[href];
+    if (typeof ultimo === "number" && agora - ultimo < 300) {
+      delete ultimoClique.current[href];
       openTab(href, label);
       return;
     }
-    clickTimers.current[href] = setTimeout(() => {
-      delete clickTimers.current[href];
-      goToLiveView();
-      router.push(href);
-    }, 250);
+    ultimoClique.current[href] = agora;
+    goToLiveView();
+    router.push(href);
   }
 
-  if (!section || section === "painel") return null;
-  const def = RAIL_SECTIONS.find((s) => s.key === section);
-  if (!def) return null;
-  const items = visibleSectionItems(def, { hasFinanceAccess, modules });
-  if (items.length < 2) return null;
+  const def = section && section !== "painel" ? RAIL_SECTIONS.find((s) => s.key === section) : undefined;
+  // A barra ocupa SEMPRE os mesmos 40px, mesmo quando não há aba para mostrar (o /painel, e
+  // qualquer seção com um item só). Antes ela sumia, e o conteúdo da tela saltava 40px para
+  // cima ao entrar no Painel e 40px para baixo ao sair — parte da mesma instabilidade que a
+  // largura única resolve: o quadro da página não se mexe entre navegações.
+  const items = def ? visibleSectionItems(def, { hasFinanceAccess, modules }) : [];
+  if (!def || items.length < 2) {
+    return <div className="h-10 shrink-0 border-b-2 border-regua-forte bg-sf" aria-hidden="true" />;
+  }
 
   return (
     <div className="h-10 shrink-0 flex items-center gap-4 px-4 md:px-6 border-b-2 border-regua-forte bg-sf overflow-x-auto scrollbar-thin">

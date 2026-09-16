@@ -29,7 +29,7 @@ export default async function ClientesPage() {
   ]);
 
   return (
-    <div className="p-6 max-w-[1100px] mx-auto animate-fade-in">
+    <div className="tela">
       <Link href="/contatos" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Contatos
       </Link>

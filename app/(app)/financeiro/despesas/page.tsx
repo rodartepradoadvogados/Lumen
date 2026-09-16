@@ -64,7 +64,7 @@ export default async function DespesasPage({
   };
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
+    <div className="tela">
       <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
         ← Financeiro
       </Link>
