@@ -99,11 +99,10 @@ const FEATURES = [
     p2: "Cada publicação vem com um toque para gerar prazo, marcar audiência ou delegar — o texto de origem fica sempre acessível, sem sair da tela.",
     figure: "Lista de Publicações: card com filete por fonte (DJEN/DATAJUD/PJe), badge “Não lida”, ações “Gerar Prazo” e “Delegar”",
     diagram: "publicacoes" as const,
-    // "Pilar" (junto com Sigilo abaixo) — os dois mecanismos que PRODUCT.md → Positioning cita
-    // como diferencial real (captura de publicação por fonte oficial, privacidade auditável),
-    // não só mais um item da lista. Tratamento maior, fundo com filete bordô — retomado da
-    // proposta "pulso" (.impeccable/plano-site-publico/andamento-site-publico.md).
-    pilar: true,
+    // Deixou de ser pilar em 2026-09-16: captura de publicação é commodity no mercado
+    // brasileiro, e o peso editorial passou para o diferencial de verdade (Assessoria, abaixo).
+    // A copy continua intacta — ela é o ativo mais valioso da página.
+    pilar: false,
   },
   {
     kicker: "Painel",
@@ -118,7 +117,10 @@ const FEATURES = [
     kicker: "Peticionamento",
     title: "Peticionamento com o timbrado do escritório",
     p1: "Modelos de peça já saem formatados com o timbrado, os dados do processo e da parte preenchidos automaticamente — o texto jurídico continua sendo escrito pelo advogado.",
-    p2: "O histórico de peças de cada processo fica junto com ele, pesquisável, sem depender de pasta de rede.",
+    // A frase aqui era "...sem depender de pasta de rede", que sugeria o OPOSTO do
+    // posicionamento: dava a entender que o Lúmen guarda os autos, quando o argumento do produto
+    // é que o ESCRITÓRIO guarda. Achado P2 do `audit` de 2026-09-16.
+    p2: "O histórico de peças de cada processo fica junto com ele, pesquisável — e o arquivo em si fica no Drive do escritório, na pasta daquele processo.",
     figure: "Editor de petição com timbrado do escritório, campos de processo/parte preenchidos, botão “Baixar .docx”",
     diagram: "peticionamento" as const,
     pilar: false,
@@ -133,13 +135,30 @@ const FEATURES = [
     pilar: false,
   },
   {
+    kicker: "Assessoria",
+    title: "Assessoria empresarial não é processo disfarçado",
+    p1: "Contrato, licitação, parecer e demanda recorrente têm modelo, pasta e ciclo próprios — não são um processo adaptado com gambiarra. Honorário mensal, documentos da empresa e histórico de demandas ficam no mesmo lugar.",
+    p2: "A pasta da empresa no Drive segue a mesma regra dos processos: Contratos, Pareceres, Licitações e Regimentos Internos, cada um no seu lugar, com o nome já padronizado.",
+    figure: "Assessoria: abas Documentos, Licitações, Demandas e Honorários; pasta da empresa com as quatro subpastas",
+    diagram: "peticionamento" as const,
+    // ÚNICO pilar da lista. O diagnóstico mediu que o peso "pilar" estava em Publicações
+    // (commodity no mercado brasileiro) e Sigilo, e que NENHUMA das cinco linhas era sobre
+    // contrato, licitação ou parecer — de modo que um sócio de escritório empresarial concluía,
+    // corretamente, que o Lúmen era software de contencioso. O outro diferencial do PRODUCT.md,
+    // a custódia no Drive do cliente, ocupa o primeiro viewport; este ocupa o pilar aqui.
+    // Um só, de propósito: se tudo é pilar, nada é.
+    pilar: true,
+  },
+  {
     kicker: "Sigilo",
     title: "Sigilo auditável",
     p1: "Documento e telefone de cliente aparecem mascarados por padrão; revelar exige motivo registrado, com validade de 15 minutos — e fica na trilha de auditoria do escritório.",
     p2: "Suporte técnico só entra na conta de um escritório com sessão de tempo limitado e visível para o administrador — nunca em silêncio.",
     figure: "Campo de CPF mascarado com botão “Revelar” e caixa de motivo, trilha de auditoria listando revelações",
     diagram: "sigilo" as const,
-    pilar: true,
+    // Idem: continua sendo um mecanismo forte, mas não é o que diferencia o produto de um
+    // concorrente. Um pilar só na lista, ou nenhum é pilar.
+    pilar: false,
   },
 ];
 
@@ -325,21 +344,32 @@ export default async function HomePage() {
             protótipo ("muito geométrico... precisam ser preenchidas"), sem depender de
             fotografia real (ainda não disponível, PRODUCT.md). */}
         <section className="relative overflow-hidden">
-          <div
-            className="absolute -top-16 -left-24 h-[360px] w-[520px] pointer-events-none"
-            style={{ background: "radial-gradient(ellipse at top left, var(--halo-marca), transparent 70%)" }}
-          />
+          {/* O halo ficou para trás: `--halo-marca` virou transparente em F3 (elevação Ikeda do
+              contrato de direção — "se um elemento não carrega dado ou estado, ele não existe"),
+              então a div renderizava nada. */}
           <GrainOverlay />
-          <div className="relative max-w-[1120px] mx-auto px-6 pt-24 pb-20 grid md:grid-cols-[1fr_0.86fr] gap-12 items-center">
+          <div className="relative max-w-[1120px] mx-auto px-6 pt-24 pb-20 grid md:grid-cols-[1fr_0.92fr] gap-12 items-center">
             <div>
               <p className="text-etiqueta font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
                 Software de gestão para escritórios de advocacia
               </p>
-              <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[15ch]">
-                O escritório inteiro, num só lugar — sem perder um prazo.
+              {/* O diagnóstico de 2026-09-16 mediu o problema desta manchete: ela era a frase de
+                  CATEGORIA — "o escritório inteiro, num só lugar, sem perder um prazo" — que AdvBox,
+                  Astrea e Projuris também usam. O que diferencia o produto estava no subtítulo, a
+                  18px: a hierarquia premiava o genérico com 60px e o específico com 18. Aqui o
+                  primeiro diferencial do PRODUCT.md ocupa a manchete, e a frase de categoria vira
+                  a linha de apoio, que é o lugar dela. */}
+              <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[16ch]">
+                Os documentos do seu escritório ficam no <span className="text-marca-tx">seu</span> Drive.
               </h1>
-              <p className="mt-5 text-lg text-tx-2 max-w-[40ch]">
-                Publicações triadas, agenda com prazo fatal e financeiro que fecha sozinho.
+              <p className="mt-5 text-lg text-tx-2 max-w-[44ch]">
+                Cada processo vira uma pasta no Google Drive do próprio escritório, dividida por tipo
+                de documento. Se você cancelar amanhã, o acervo continua lá — organizado, nomeado e
+                seu.
+              </p>
+              <p className="mt-3 text-corpo text-tx-2 max-w-[44ch]">
+                E o resto do escritório vem junto: publicações triadas, prazo fatal com o calendário
+                de feriados do tribunal, e financeiro que fecha.
               </p>
               <div className="flex flex-wrap gap-3 mt-8">
                 <Link href="/cadastro" className={btnPrimary}>Começar agora</Link>
@@ -347,30 +377,41 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* "Ledger vivo" — demonstração do próprio mecanismo citado em PRODUCT.md →
-                Positioning (captura por fonte oficial), não uma imagem estática de tela. Rótulos
-                e ações idênticos aos reais (PublicationsTriage.tsx: "Gerar Prazo"/"Delegar"). */}
+            {/* A DEMONSTRAÇÃO do diferencial, não uma descrição dele — e não uma imagem decorativa.
+                Antes este painel rotulava "Fila de publicações — ao vivo" com ponto verde pulsante
+                sobre três objetos cravados no código, que nunca mudavam: era uma afirmação de
+                vivacidade que o componente não cumpria. O diagnóstico registrou isso.
+
+                Esta é a estrutura de pastas que o produto CRIA de fato — pasta por processo, com
+                subpasta por tipo de documento (lib/googleDrive.ts, getOrCreateCategoryFolder) — e o
+                rótulo diz onde ela está, que é a única coisa que precisa ser dita aqui. */}
             <div className="border-2 border-regua-forte bg-sf rounded-[2px]">
-              <div className="px-4 py-3 border-b border-regua flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-regua flex items-center gap-2 flex-wrap">
                 <span className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-2">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-concluido mr-1.5 animate-pulse motion-reduce:animate-none" />
-                  Fila de publicações — ao vivo
+                  Google Drive do escritório
                 </span>
+                <span className="text-etiqueta text-tx-3 ml-auto">conta do cliente, não a nossa</span>
               </div>
-              {[
-                { src: "DJEN", accent: "marca-tx", tt: "Intimação — 0012340-55.2025.8.09.0051", ss: "Contestação, prazo de 15 dias", action: "Gerar Prazo" },
-                { src: "DATAJUD", accent: "aviso", tt: "Andamento — 0089213-11.2024.8.09.0006", ss: "Audiência de instrução designada", action: "Marcar Audiência" },
-                { src: "DJEN", accent: "marca-tx", tt: "Publicação — 0045678-22.2025.8.09.0132", ss: "Sentença de parcial procedência", action: "Delegar" },
-              ].map((row, i) => (
-                <div key={i} className={`flex gap-3 px-4 py-3 border-l-[3px] ${row.accent === "aviso" ? "border-aviso" : "border-marca-tx"} ${i > 0 ? "border-t border-regua" : ""}`}>
-                  <span className={`text-etiqueta font-extrabold tracking-[.04em] w-14 shrink-0 ${row.accent === "aviso" ? "text-aviso" : "text-marca-tx"}`}>{row.src}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-corpo font-semibold text-tx">{row.tt}</p>
-                    <p className="text-etiqueta text-tx-3 mt-0.5">{row.ss}</p>
+              <div className="px-4 py-4 font-mono text-corpo">
+                <p className="font-semibold text-tx">Lúmen — Processos</p>
+                <div className="mt-2 pl-3 border-l border-regua space-y-2">
+                  <p className="font-semibold text-tx">Arantes, Wagner Barros — 0812445-19.2025</p>
+                  <div className="pl-3 border-l border-regua space-y-1.5 text-tx-2">
+                    <p className="flex gap-3"><span className="flex-1">Petições</span><span className="text-tx-3">4</span></p>
+                    <p className="flex gap-3"><span className="flex-1">Contratos</span><span className="text-tx-3">2</span></p>
+                    <p className="flex gap-3"><span className="flex-1">Documentos do cliente</span><span className="text-tx-3">7</span></p>
+                    <p className="flex gap-3"><span className="flex-1">Procuração</span><span className="text-tx-3">1</span></p>
                   </div>
-                  <span className="text-etiqueta font-bold text-marca-tx shrink-0 self-center whitespace-nowrap">{row.action} →</span>
+                  <p className="font-semibold text-tx pt-1">Meireles &amp; Cia — 0755102-44.2025</p>
+                  <p className="font-semibold text-tx">Alves Transportes — 0660154-06.2026</p>
                 </div>
-              ))}
+              </div>
+              <div className="px-4 py-3 border-t border-regua">
+                <p className="text-etiqueta text-tx-2 leading-relaxed">
+                  O Lúmen nomeia, move e reconcilia — inclusive quando você troca um arquivo direto no
+                  Drive, pelo celular, sem abrir o sistema.
+                </p>
+              </div>
             </div>
           </div>
         </section>
