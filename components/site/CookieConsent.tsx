@@ -32,7 +32,10 @@ export default function CookieConsent() {
       role="region"
       aria-label="Aviso de cookies"
       aria-live="polite"
-      className="fixed left-4 right-4 bottom-4 md:left-auto md:right-6 md:bottom-6 md:max-w-sm z-50 bg-grafite-800 text-neutro-100 p-5 shadow-modal"
+      // Movimento 8 · avisar (globals.css): o aviso já se anuncia para leitor de tela via
+      // aria-live; a entrada de 180ms é a mesma frase dita a quem enxerga. Antes ele
+      // simplesmente materializava sobre o canto da página, sem nada explicando de onde veio.
+      className="animate-aviso-entra fixed left-4 right-4 bottom-4 md:left-auto md:right-6 md:bottom-6 md:max-w-sm z-50 bg-grafite-800 text-neutro-100 p-5 shadow-modal"
     >
       <p className="text-xs leading-relaxed text-neutro-300">
         Usamos cookies essenciais para o site funcionar e, com sua permissão, cookies de análise. Veja a{" "}
@@ -45,14 +48,14 @@ export default function CookieConsent() {
         <button
           type="button"
           onClick={() => escolher("todos")}
-          className="h-9 px-4 bg-marca text-acao-tx font-semibold text-xs"
+          className="h-9 px-4 bg-marca text-acao-tx font-semibold text-xs transition-[background-color,transform] duration-100 ease-out active:translate-y-px"
         >
           Aceitar todos
         </button>
         <button
           type="button"
           onClick={() => escolher("essenciais")}
-          className="h-9 px-4 border-2 border-neutro-700 text-white font-semibold text-xs hover:bg-white/5"
+          className="h-9 px-4 border-2 border-neutro-700 text-white font-semibold text-xs hover:bg-white/5 transition-[background-color,transform] duration-100 ease-out active:translate-y-px"
         >
           Somente essenciais
         </button>
