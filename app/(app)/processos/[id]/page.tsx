@@ -69,13 +69,6 @@ const TABS = [
   { key: "anotacoes-pessoais", label: "Anotações pessoais" },
 ];
 
-// Cor da etiqueta de natureza — mesmo mapeamento de app/(app)/processos/page.tsx (dourado
-// Judicial, bordô Administrativo, navy Caso).
-const naturezaBadgeColor: Record<string, "gold" | "bordo" | "navy"> = {
-  JUDICIAL: "gold",
-  ADMINISTRATIVO: "bordo",
-  CASO: "navy",
-};
 
 export default async function CaseDetailPage({
   params,
@@ -244,6 +237,24 @@ export default async function CaseDetailPage({
   // CaseStatusSelect). jaPagoEmDinheiro é a soma real de FinancePayment das parcelas FIXO do MESMO
   // cabeçalho, mesma conta que o Server Action (lib/actions/apuracao.ts) refaz na apuração de
   // verdade — aqui é só para a prévia ao vivo dentro do modal.
+  // O QUE ESTÁ PENDENTE NESTE PROCESSO — calculado do que a página já carregou, sem consulta
+  // nova. O diagnóstico registrou que a aba padrão traz ~25 campos de mesmo peso numa viewport e
+  // que nada na tela diz o que está pendente aqui. A faixa abaixo responde isso na chegada, e em
+  // TODAS as abas — não só na primeira.
+  const _fimHoje = new Date(); _fimHoje.setHours(23, 59, 59, 999);
+  const _inicioHoje = new Date(); _inicioHoje.setHours(0, 0, 0, 0);
+  const prazosVencidos = c.tasks.filter(
+    (t) => t.dueDate && t.dueDate < _inicioHoje && !["CONCLUIDO", "CANCELADO"].includes(t.status)
+  );
+  const prazosHoje = c.tasks.filter(
+    (t) => t.dueDate && t.dueDate >= _inicioHoje && t.dueDate <= _fimHoje && !["CONCLUIDO", "CANCELADO"].includes(t.status)
+  );
+  const contasVencidasCaso = hasFinanceAccess
+    ? [...c.receivables, ...c.payables].filter(
+        (r) => r.dueDate && r.dueDate < _inicioHoje && ["PENDENTE", "ATRASADO", "PARCIAL"].includes(r.status)
+      ).length
+    : 0;
+
   const pendentesApurar = c.honorarioLancamentos.flatMap((h) => {
     const jaPagoEmDinheiro = h.parcelas
       .filter((x) => x.valueType === "FIXO")
@@ -348,7 +359,15 @@ export default async function CaseDetailPage({
       )}
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
-        <h1 className="text-2xl font-bold text-tx">{c.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-autuacao font-bold text-tx leading-tight">{c.title}</h1>
+          {/* A natureza é IDENTIDADE, não ação — fica junto do título, e em contorno neutro.
+              Regra do sistema: cor é lugar ou risco, nunca categoria (o diagnóstico registrou
+              que o produto usava a mesma cor para sete significados incompatíveis). */}
+          <span className="inline-flex items-center mt-2 text-etiqueta font-semibold uppercase tracking-[.08em] text-tx-2 border border-regua-forte px-2 py-1">
+            {NATUREZA_LABELS[nat]}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           {/* Abre em aba nova, de propósito: fica junto do site aberto, pronta pra projetar/
               imprimir na frente do cliente sem sair do que já estava sendo feito no Processo
@@ -360,14 +379,17 @@ export default async function CaseDetailPage({
             rel="noopener noreferrer"
             data-tip="Vista de impressão/apresentação para reunião com o cliente"
             data-tip-pos="bottom"
-            className="inline-flex items-center gap-1.5 border border-regua text-tx font-semibold text-xs px-3 py-2 hover:bg-sf-apoio transition-colors"
+            className="inline-flex items-center gap-1.5 border border-regua text-tx font-semibold text-etiqueta px-3 py-2 hover:bg-sf-apoio transition-colors"
           >
             <Presentation size={14} /> Modo reunião
           </Link>
           <PeticionarButton compact caseId={c.id} />
           <CaseAssessoriaSelect caseId={c.id} assessoriaId={c.assessoriaId} assessorias={assessorias} />
-          <Badge color={naturezaBadgeColor[nat]}>{NATUREZA_LABELS[nat]}</Badge>
           <CaseStatusSelect caseId={c.id} status={c.status} hasPendingApuracao={pendentesApurar.length > 0} />
+          {/* Nenhuma ação destrutiva divide peso visual com uma não-destrutiva. Antes o seletor
+              de status — que ALTERA o registro — e o botão de excluir eram vizinhos imediatos e
+              idênticos em peso. Agora há um filete entre eles. */}
+          <span className="self-stretch w-px bg-regua-forte mx-1.5" aria-hidden="true" />
           <DeleteEntityButton
             entityType="CASE"
             entityId={c.id}
@@ -401,30 +423,84 @@ export default async function CaseDetailPage({
         </div>
       )}
 
+      {/* O QUE ESTÁ PENDENTE — antes da barra de abas, visível em todas elas. A ordem é a mesma
+          do resto do produto: vencido primeiro, hoje depois, o resto por último. Cor é risco,
+          nunca categoria. Quando não há nada pendente, a faixa não existe — silêncio também é
+          informação, e uma faixa vazia todo dia vira ruído que ninguém lê. */}
+      {(prazosVencidos.length > 0 || prazosHoje.length > 0 || contasVencidasCaso > 0 || pendentesApurar.length > 0) && (
+        <div className="mb-5 border-t-2 border-urgente bg-sf">
+          <div className="px-4 py-2.5 flex flex-wrap items-center gap-x-5 gap-y-2">
+            <span className="text-etiqueta font-semibold uppercase tracking-[.09em] text-tx-2">
+              Pendente neste processo
+            </span>
+            {prazosVencidos.length > 0 && (
+              <Link href={`/processos/${c.id}?tab=atividades`} className="inline-flex items-baseline gap-1.5 hover:underline">
+                <b className="text-destaque font-bold text-urgente tabular-nums leading-none">{prazosVencidos.length}</b>
+                <span className="text-corpo text-urgente">
+                  {prazosVencidos.length === 1 ? "prazo vencido" : "prazos vencidos"}
+                </span>
+              </Link>
+            )}
+            {prazosHoje.length > 0 && (
+              <Link href={`/processos/${c.id}?tab=atividades`} className="inline-flex items-baseline gap-1.5 hover:underline">
+                <b className="text-destaque font-bold text-aviso tabular-nums leading-none">{prazosHoje.length}</b>
+                <span className="text-corpo text-aviso">para hoje</span>
+              </Link>
+            )}
+            {contasVencidasCaso > 0 && (
+              <Link href={`/processos/${c.id}?tab=financeiro`} className="inline-flex items-baseline gap-1.5 hover:underline">
+                <b className="text-destaque font-bold text-urgente tabular-nums leading-none">{contasVencidasCaso}</b>
+                <span className="text-corpo text-urgente">
+                  {contasVencidasCaso === 1 ? "conta vencida" : "contas vencidas"}
+                </span>
+              </Link>
+            )}
+            {pendentesApurar.length > 0 && (
+              <Link href={`/processos/${c.id}?tab=financeiro`} className="inline-flex items-baseline gap-1.5 hover:underline">
+                <b className="text-destaque font-bold text-aviso tabular-nums leading-none">{pendentesApurar.length}</b>
+                <span className="text-corpo text-aviso">
+                  {pendentesApurar.length === 1 ? "honorário a apurar" : "honorários a apurar"}
+                </span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Portal Noturno (DESIGN.md): barra de abas estilo editor — régua vertical fina entre
           abas (divide-x, mesmo motivo visual das abas do VS Code que inspiraram esta rodada) e
           rótulo em font-display (Barlow Condensed). O sublinhado bordô na aba ativa e o filete
           horizontal de baixo (border-b) já existiam antes desta rodada, sem mudança. */}
-      <div className="flex border-b border-regua divide-x divide-regua mb-6 overflow-x-auto">
+      {/* GUIAS ESCALONADAS (contrato de direção "Guias"): cada uma numerada, para acesso direto,
+          e a ativa recebe a cor da seção com o chanfro de 6px no canto superior externo — a
+          assinatura formal do sistema. O número não é decoração: o diagnóstico registrou que a
+          barra muda de tamanho conforme o registro (quatro das nove abas são condicionais), de
+          modo que não existe memória muscular de POSIÇÃO. Existe, agora, de NÚMERO. */}
+      <div className="flex flex-wrap items-end gap-[3px] border-b-2 border-faixa-anil mb-6">
         {TABS.filter(
           (t) =>
             (t.key !== "financeiro" || hasFinanceAccess) &&
             (t.key !== "vigilancia" || nat === "ADMINISTRATIVO") &&
             (t.key !== "protocolos" || nat !== "CASO") &&
             (t.key !== "publicacoes" || nat !== "CASO")
-        ).map((t) => (
-          <Link
-            key={t.key}
-            href={`/processos/${c.id}?tab=${t.key}`}
-            className={`font-display px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              tab === t.key
-                ? "border-acao text-tx bg-sf-apoio"
-                : "border-transparent text-tx-2 hover:text-tx hover:bg-sf-apoio/60"
-            }`}
-          >
-            {t.label}
-          </Link>
-        ))}
+        ).map((t, i) => {
+          const ativa = tab === t.key;
+          return (
+            <Link
+              key={t.key}
+              href={`/processos/${c.id}?tab=${t.key}`}
+              aria-current={ativa ? "page" : undefined}
+              className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
+                ativa
+                  ? "bg-faixa-anil text-rotulo border-faixa-anil"
+                  : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
+              }`}
+            >
+              <span className="opacity-70 mr-1.5 tabular-nums">{i + 1}</span>
+              {t.label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Visão Geral em 3 painéis fixos lado a lado (Dados do processo / Partes e vínculos /

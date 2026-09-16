@@ -1442,3 +1442,30 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 /* Coluna de leitura dentro do quadro. O quadro continua com 1440px; so o conteudo estreita. */
 .medida-curta { max-width: 720px; }
 .medida-media { max-width: 1000px; }
+
+/* ============================================================================
+   GUIA — a aba de uma ficha, com o chanfro que é a assinatura do mundo "Guias".
+   Cartolina cortada tem canto vivo; a guia ativa ganha um chanfro de 6px no canto superior
+   externo. Não dá para fazer isso com border-radius, então é clip-path — e por isso mora aqui,
+   numa classe, e não repetido em cada tela que tem abas.
+   ========================================================================== */
+.guia-ficha {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 13px 8px;
+  border: 1px solid;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  position: relative;
+  top: 0;
+  transition: top 0.12s cubic-bezier(0.2, 0.7, 0.3, 1), background-color 0.12s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+/* O único movimento de navegação do produto: a guia sobe 6px e puxa a ficha junto. */
+.guia-ficha[aria-current="page"] {
+  top: -4px;
+  padding-bottom: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guia-ficha { transition: none; }
+}
