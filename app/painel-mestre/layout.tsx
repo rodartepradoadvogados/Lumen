@@ -14,7 +14,7 @@ export default async function PainelMestreLayout({ children }: { children: React
   const access = await requirePlatformAccess();
 
   return (
-    // "painel-mestre-shell" substitui o `dark`/`bg-grafite-900`/`text-white` cravados que existiam
+    // "painel-mestre-shell" substitui o `dark`/`bg-grafite-900`/`text-tx` cravados que existiam
     // aqui antes desta rodada — mesma técnica auto-contida de `.portal-shell`/`.mobile-shell` (ver
     // app/globals.css e DESIGN.md, seção "Painel da Empresa"). Rail e TopStrip continuam grafite
     // fixo (não usam os tokens que retemam aqui), só o conteúdo dentro de `<main>` muda de tema.

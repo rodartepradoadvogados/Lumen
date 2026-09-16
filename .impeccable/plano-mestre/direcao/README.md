@@ -8,9 +8,34 @@
 | `proposta-guias.html` | A proposta clicável entregue ao dono. Artefato publicado em https://claude.ai/artifact/3oyngezqNFzh2maC521aH8 |
 | `../../surfaces/app-app.md` | O contrato de direção gravado (THESIS, OWN-WORLD, STORY, FIRST VIEWPORT, FORM, FINISH) |
 
-> ⚠️ **A direção ainda não foi aprovada.** O gate do dono (decisão D-08) é o artefato acima. Nenhuma
-> linha de código de produção pode ser escrita antes de uma aprovação registrada na seção 11 do plano
-> mestre.
+> ✅ **Direção aprovada pelo dono em 2026-09-16.** A estrutura do mundo "Guias" foi aceita; a
+> **paleta foi recusada e refeita** numa segunda rodada, com três propostas, e o dono escolheu a
+> **Ardósia**. O artefato da segunda rodada está em https://claude.ai/artifact/VN6NJ1T2HzkDwMdWEaqtss
+
+### A paleta que o dono recusou, e por quê
+
+O creme/manila foi rejeitado literalmente como *"impressão de coisa velha"*. A queixa tinha causa
+medível: num fundo branco o texto alcança 21:1, no creme o teto cai para **11:1** e a escala inteira
+de tinta comprime junto — daí a sensação de "letras meio apagadas", mesmo com cada nível passando no
+mínimo. Eu havia escrito no risco honesto desta mesma página que *"se uma tela ficar só bege, a
+direção falhou e deve ser recusada"*. Foi o que aconteceu.
+
+**Paleta em vigor: Ardósia.** Cinza-pedra frio (`#eaedf0` no claro, `#181b1f` no escuro), ficha
+branca, rail que retematiza. Bordô `#8a2f42` volta como ação, cheio nos dois temas. **Nenhuma faixa
+de seção é vermelha** — o tijolo saiu por decisão do dono e o anil entrou no lugar; o vermelho existe
+só no vocabulário de risco. Folga de contraste deliberada: tinta 13:1, tinta 2 8:1, tinta 3 5,2:1.
+
+### Dois defeitos meus que a conferência do dono expôs
+
+1. **O rail continuou preto no claro e azulado no escuro.** Eu troquei a variável CSS
+   `--grafite-800` achando que o rail retematizaria, mas no `tailwind.config.ts` a cor `grafite` é
+   **hex cravado** e não aponta para variável nenhuma: os 135 usos de `bg-grafite-800` nunca mudaram.
+   E `#16191d` é um preto **frio**; contra o fundo quente do creme, produzia as duas temperaturas
+   brigando que o dono descreveu. O rail agora tem tokens próprios (`--gaveta*`), e a escala
+   `grafite` continua literal só para os blocos sempre escuros do site público.
+2. **O `text-white` cravado.** Eu o critiquei no Painel Mestre no diagnóstico, cometi o mesmo erro
+   duas vezes no artefato e não o corrigi no código em F3. Foram 98 linhas em 11 arquivos do Painel
+   Mestre, mais o aside de Configurações e os campos de formulário com fundo sempre escuro.
 
 ---
 

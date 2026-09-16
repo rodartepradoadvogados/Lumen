@@ -12,12 +12,12 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F4 — Portal / SaaS** (F0, F1, F2 e F3 concluídas) |
-| **Próximo passo concreto** | F4, módulo a módulo do Portal, começando por `/painel` (a tarja de risco do escritório) e `/publicacoes`. **Antes disso: pedir ao dono a conferência visual do F3 em produção** — é a única coisa que este ambiente não consegue fazer |
+| **Próximo passo concreto** | **Nova conferência visual do dono**, agora na paleta Ardósia. Depois F4, módulo a módulo do Portal, começando por `/painel` e `/publicacoes` |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 9 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | 0 de 5 na composição — mas as 5 já estão no mundo novo de cor, tipo e raio (fundação F3) |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
-| **Bloqueios abertos** | Nenhum — a direção foi aprovada pelo dono em 2026-09-16. Pendências: (a) **conferência visual do F3 em produção, pelo dono** — nada aqui foi visto renderizado; (b) `audit` como passagem própria → F8; (c) 10 defeitos reais do diagnóstico, ainda sem decisão, dos quais 3 já caíram junto com o F3 |
+| **Bloqueios abertos** | Nenhum. Pendências: (a) **conferência visual na paleta Ardósia, pelo dono** — a primeira rodada de conferência derrubou a paleta anterior e achou dois defeitos meus; (b) `audit` como passagem própria → F8; (c) dos 10 defeitos reais do diagnóstico, **5 já caíram** (o rail fixo, o `text-white` do Painel Mestre, o `var(--sf)` inexistente, o halo, e o token de ouro ausente) |
 
 ---
 
@@ -431,6 +431,10 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F3 | Raio e ritmo | `layout` | ✅ | #190 | 2026-09-16 | Raio único de 2px; 9 dos 22 defeitos agudos corrigidos no markup; halo decorativo morto |
 | F3 | Classe de campo única | `extract` | ✅ | #190 | 2026-09-16 | **23 classes de input** duplicadas (não 6) viraram uma; 39 definições locais e 36 blocos `<style>` vazios removidos |
 | F3 | DESIGN.md legível por máquina | — | ✅ | #190 | 2026-09-16 | Cabeçalho reescrito a partir do construído — sem isso o detector media contra um alvo morto |
+| F3b | **Conferência do dono** | — | ✅ | — | 2026-09-16 | Derrubou a paleta creme (*"impressão de coisa velha"*) e expôs dois defeitos meus: o rail que nunca retematizou e o `text-white` cravado |
+| F3b | Segunda rodada de paleta | `colorize` | ✅ | #191 | 2026-09-16 | 3 propostas × 2 telas × 2 temas. Escolhida a **Ardósia** (cinza-pedra frio). Bordô volta como ação; **nenhuma faixa é vermelha** |
+| F3b | O rail passa a retematizar | `colorize` | ✅ | #191 | 2026-09-16 | Tokens `--gaveta*` próprios. A escala `grafite` do Tailwind era **hex cravado** — repontar só a variável CSS não fazia nada |
+| F3b | Fim do `text-white` cravado | `harden` | ✅ | #191 | 2026-09-16 | 98 linhas em 11 arquivos do Painel Mestre + aside de Configurações + campos com fundo sempre escuro |
 | F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |
 | F4 | Portal — Painel e Agenda | `layout`, `distill`, `clarify`, `polish` | ⬜ | — | — | — |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
@@ -469,6 +473,10 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | 2026-09-16 | Dono | **Direção "Guias" aprovada.** Seguir para a próxima etapa | Mensagem após a proposta |
 | 2026-09-16 | Claude | O mapeamento da rampa sai da medição, não do gosto: abaixo de 12px vira etiqueta; 12,5 a 16 vira corpo. 13px era o app (43 arquivos), 10-11px era o portal | F3, codemod |
 | 2026-09-16 | Claude | Os nomes de token antigos viram apelido dos novos, em vez de dois sistemas convivendo. É o que faz as 99 rotas entrarem no mundo novo sem editar 250 arquivos | F3, `colorize` |
+| 2026-09-16 | Dono | **Paleta creme recusada** — "impressão de coisa velha". O tema claro não pode ter fundo bege | Conferência do F3 em produção |
+| 2026-09-16 | Dono | **Paleta Ardósia escolhida** (cinza-pedra frio), entre três propostas | Segunda rodada de cor |
+| 2026-09-16 | Dono | **Nenhuma faixa de seção é vermelha.** O tijolo sai, o anil entra. O vermelho existe só para risco; o bordô, só para ação | Segunda rodada de cor |
+| 2026-09-16 | Claude | O rail é superfície própria com tokens próprios, e não a escala `grafite`. A escala `grafite` fica literal, só para os blocos sempre escuros do site público | F3b, a partir do defeito que o dono viu |
 
 ---
 

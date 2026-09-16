@@ -88,11 +88,16 @@ const config: Config = {
         // Cinco faixas, uma por secao do trabalho. Apontam para variaveis de app/globals.css e
         // por isso trocam sozinhas entre os temas. Regra do sistema: cor e risco ou e lugar,
         // NUNCA categoria de conteudo. Nenhum dos 12 tipos de alerta ganha cor propria.
+        //
+        // NENHUMA delas e vermelha, por decisao do dono (2026-09-16): o tijolo saiu e o anil
+        // entrou no lugar. O vermelho existe SO no vocabulario de risco, logo abaixo, e o
+        // bordo existe SO como acao. Assim as tres cores quentes do produto param de brigar —
+        // era um dos achados do diagnostico ("tres vermelhos brigando em 200px").
         faixa: {
           ardosia: "var(--faixa-ardosia)",
           oliva: "var(--faixa-oliva)",
           ocre: "var(--faixa-ocre)",
-          tijolo: "var(--faixa-tijolo)",
+          anil: "var(--faixa-anil)",
           ameixa: "var(--faixa-ameixa)",
         },
         // VOCABULARIO DE RISCO — a cor diz O QUE ESTA ACONTECENDO. Deliberadamente separado das
@@ -107,20 +112,35 @@ const config: Config = {
         // tema gaveta. E o token que impede o defeito de `text-white` cravado, que hoje deixa
         // quatro rotas do Painel Mestre com 1,35:1 no tema claro.
         rotulo: "var(--rotulo)",
-        // Papel, ficha e gaveta — as tres superficies do mundo "Guias".
+        // As superficies do mundo. `gaveta` e o RAIL, que deixou de ser grafite fixo nos dois
+        // temas — era a "barra preta a esquerda" que aparecia no tema claro.
         papel: "var(--papel)",
         ficha: "var(--ficha)",
-        gaveta: "var(--gaveta)",
+        "ficha-alt": "var(--ficha-alt)",
+        gaveta: {
+          DEFAULT: "var(--gaveta)",
+          fundo: "var(--gaveta-fundo)",
+          tinta: "var(--gaveta-tinta)",
+          "tinta-2": "var(--gaveta-tinta-2)",
+          linha: "var(--gaveta-linha)",
+        },
 
         /* ---------- Paleta nova ---------- */
         // Rail escuro — a única superfície que não retematiza entre Manhã e Noite (ver
         // app/globals.css). 800/900 preservados por compatibilidade com o legado abaixo.
+        // Blocos SEMPRE escuros do site publico: o poster da landing, o masthead de
+        // /privacidade, o fundo de /cadastro, a dica de ferramenta. Continuam literais de
+        // proposito — se retematizassem, o `text-white` que vive neles sumiria no tema claro.
+        // Foram apenas retonalizados para o frio do Ardosia: o #16191d anterior era um preto
+        // AZULADO que, contra o fundo quente, produzia as "duas temperaturas brigando".
+        //
+        // O RAIL nao usa mais esta escala: ele tem tokens proprios (`gaveta`) que retematizam.
         grafite: {
-          300: "#5b646e",
-          500: "#39414a",
-          700: "#22272e",
-          800: "#16191d",
-          900: "#0f1216",
+          300: "#6b7280",
+          500: "#3f464f",
+          700: "#272c33",
+          800: "#181b1f",
+          900: "#0f1113",
         },
         // Rampa neutra do Modernist (documento 01) — substitui grafite para SUPERFÍCIES claras.
         // Espelha 1:1 os tokens semânticos de Manhã: 200≈sf-apoio, 300=regua, 400=regua-forte,

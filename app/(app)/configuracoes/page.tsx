@@ -224,7 +224,7 @@ export default async function ConfiguracoesPage({
 
   async function submitColumn(formData: FormData) {
     "use server";
-    await createKanbanColumn({ name: String(formData.get("name")), color: String(formData.get("color") || "#57613a") });
+    await createKanbanColumn({ name: String(formData.get("name")), color: String(formData.get("color") || "#4a6b33") });
   }
 
   async function submitCategory(formData: FormData) {
@@ -265,11 +265,14 @@ export default async function ConfiguracoesPage({
       )}
 
       <div className="flex gap-6 items-start">
-      {/* O rail lateral é sempre grafite sólido nos dois temas (mesmo padrão do NavRail/casca —
+      {/* O aside deixou de ser grafite sólido nos dois temas (2026-09-16, redesign "Guias"):
+          era um bloco preto no meio de Configurações no tema claro, um dos defeitos que o
+          diagnóstico apontou. Agora usa os tokens de gaveta, que retematizam junto com o rail.
+          Comentário anterior, preservado como histórico: (mesmo padrão do NavRail/casca —
           DESIGN-SYSTEM.md §3), então o texto aqui é propositalmente sempre claro, sem variante
           dark: própria. */}
       {isAdmin && (
-        <aside className="hidden lg:block w-56 shrink-0 bg-grafite-800 overflow-hidden sticky top-6">
+        <aside className="hidden lg:block w-56 shrink-0 bg-gaveta overflow-hidden sticky top-6">
           <nav className="p-3 space-y-1">
             {availableSecoes.map((s) => {
               const Icon = SECAO_ICONS[s.key];
@@ -280,25 +283,25 @@ export default async function ConfiguracoesPage({
                   href={`/configuracoes?secao=${s.key}`}
                   className={`flex items-center gap-2.5 px-3 py-2.5 text-sm border-l-2 transition-colors ${
                     active
-                      ? "bg-marca-bg text-white font-semibold border-marca"
-                      : "text-white/70 font-medium border-transparent hover:bg-white/5 hover:text-white"
+                      ? "bg-marca-bg text-gaveta-tinta font-semibold border-marca"
+                      : "text-gaveta-tinta-2 font-medium border-transparent hover:bg-gaveta-fundo hover:text-gaveta-tinta"
                   }`}
                 >
-                  {/* P0-5: text-marca sobre bg-grafite-800 (aside acima) mede ~2,16:1, reprova
+                  {/* P0-5: text-marca sobre bg-gaveta (aside acima) mede ~2,16:1, reprova
                       WCAG AA — text-rail-marca é a variante clara do bordô fixa nos dois temas. */}
-                  <Icon size={16} className={active ? "text-rail-marca" : "text-white/45"} />
+                  <Icon size={16} className={active ? "text-rail-marca" : "text-gaveta-tinta-2"} />
                   {s.label}
                 </Link>
               );
             })}
           </nav>
-          <div className="px-4 py-4 border-t border-white/10 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-white/10 text-rail-marca flex items-center justify-center text-xs font-bold shrink-0">
+          <div className="px-4 py-4 border-t border-gaveta-linha flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full bg-gaveta-fundo text-rail-marca flex items-center justify-center text-xs font-bold shrink-0">
               {viewerInitials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{viewer.name}</p>
-              <p className="text-etiqueta text-white/50 truncate">{viewer.role}</p>
+              <p className="text-xs font-semibold text-gaveta-tinta truncate">{viewer.name}</p>
+              <p className="text-etiqueta text-gaveta-tinta-2 truncate">{viewer.role}</p>
             </div>
           </div>
         </aside>
@@ -524,7 +527,7 @@ export default async function ConfiguracoesPage({
         </div>
         <form action={submitColumn} className="p-5 flex gap-2 border-t border-regua">
           <input name="name" required placeholder="Nome da nova coluna" className="cfg-input flex-1" />
-          <input name="color" type="color" defaultValue="#57613a" className="cfg-input h-9 w-16 p-1" />
+          <input name="color" type="color" defaultValue="#4a6b33" className="cfg-input h-9 w-16 p-1" />
           <button type="submit" className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 transition-colors">
             Adicionar
           </button>
@@ -568,13 +571,22 @@ export default async function ConfiguracoesPage({
       <Card>
         <CardHeader title="Identidade Visual" subtitle="Paleta oficial do escritório — manual da marca v2" />
         {/* Cores lidas das variáveis CSS (app/globals.css), não cravadas aqui — por isso o
-            swatch já troca sozinho de Manhã pra Noite junto com o resto da tela. */}
+            swatch já troca sozinho de Manhã pra Noite junto com o resto da tela.
+            Corrigido em 2026-09-16: dois destes apontavam para `--grafite-500`, que nunca
+            existiu como variável (só como cor do Tailwind), e um estava rotulado "Ouro",
+            de uma identidade que saiu há duas rodadas. */}
         <div className="p-5 flex gap-4 flex-wrap">
-          <Swatch color="var(--grafite-800)" label="Grafite 800" />
-          <Swatch color="var(--grafite-500)" label="Grafite 500" />
-          <Swatch color="var(--marca)" label="Marca (Ouro)" />
-          <Swatch color="var(--vinho)" label="Vinho" />
-          <Swatch color="var(--sf-fundo)" label="Fundo" border />
+          <Swatch color="var(--acao)" label="Ação (bordô)" />
+          <Swatch color="var(--faixa-ardosia)" label="Ardósia" />
+          <Swatch color="var(--faixa-anil)" label="Anil" />
+          <Swatch color="var(--faixa-oliva)" label="Oliva" />
+          <Swatch color="var(--faixa-ocre)" label="Ocre" />
+          <Swatch color="var(--faixa-ameixa)" label="Ameixa" />
+          <Swatch color="var(--risco-vencido)" label="Vencido" />
+          <Swatch color="var(--risco-hoje)" label="Hoje" />
+          <Swatch color="var(--risco-em-dia)" label="Em dia" />
+          <Swatch color="var(--gaveta)" label="Gaveta (rail)" border />
+          <Swatch color="var(--papel)" label="Papel" border />
         </div>
       </Card>
       )}

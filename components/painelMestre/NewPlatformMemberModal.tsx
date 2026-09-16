@@ -70,11 +70,11 @@ export default function NewPlatformMemberModal({
       {open && (
         // "medio": no máximo 4 campos por aba — 80% da tela deixaria a janela quase vazia.
         <ModalShell size="medio" title="Novo membro" onClose={() => setOpen(false)}>
-          <div className="flex border-b border-white/10 shrink-0">
+          <div className="flex border-b border-regua shrink-0">
             <button
               onClick={() => { setTab("vincular"); setError(null); }}
               className={`flex-1 text-xs font-semibold uppercase tracking-wide py-3 border-b-2 transition-colors ${
-                tab === "vincular" ? "border-marca text-white" : "border-transparent text-white/40 hover:text-white/70"
+                tab === "vincular" ? "border-marca text-tx" : "border-transparent text-tx-3 hover:text-tx-2"
               }`}
             >
               Vincular usuário existente
@@ -82,7 +82,7 @@ export default function NewPlatformMemberModal({
             <button
               onClick={() => { setTab("cadastrar"); setError(null); }}
               className={`flex-1 text-xs font-semibold uppercase tracking-wide py-3 border-b-2 transition-colors ${
-                tab === "cadastrar" ? "border-marca text-white" : "border-transparent text-white/40 hover:text-white/70"
+                tab === "cadastrar" ? "border-marca text-tx" : "border-transparent text-tx-3 hover:text-tx-2"
               }`}
             >
               Pessoa exclusiva da Lúmen
@@ -92,13 +92,13 @@ export default function NewPlatformMemberModal({
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             {tab === "vincular" ? (
               <form action={handleVincular} className="p-5 space-y-3">
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-tx-3">
                   Vincula um usuário que já tem conta em algum escritório — ele passa a existir também do lado da Lúmen, com
                   o papel escolhido abaixo. Não cria acesso ao Painel da Empresa.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-white/60">Usuário</label>
+                    <label className="text-xs font-medium text-tx-2">Usuário</label>
                     <select name="userId" required defaultValue="" className="pmm-input">
                       <option value="" disabled>
                         Selecione um usuário
@@ -111,11 +111,11 @@ export default function NewPlatformMemberModal({
                       ))}
                     </select>
                     {eligibleUsers.length === 0 && (
-                      <p className="text-etiqueta text-white/40 mt-1">Todos os usuários elegíveis já são membros da Lúmen.</p>
+                      <p className="text-etiqueta text-tx-3 mt-1">Todos os usuários elegíveis já são membros da Lúmen.</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-white/60">Papel</label>
+                    <label className="text-xs font-medium text-tx-2">Papel</label>
                     <select name="roleId" required defaultValue="" className="pmm-input">
                       <option value="" disabled>
                         Selecione um papel
@@ -135,27 +135,27 @@ export default function NewPlatformMemberModal({
               </form>
             ) : (
               <form action={handleCadastrar} className="p-5 space-y-3">
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-tx-3">
                   Cadastra alguém exclusivo da Lúmen, sem vínculo com nenhum escritório. A pessoa já pode entrar direto
                   no Painel Mestre com este e-mail e senha, pela tela de login normal.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-white/60">Nome</label>
+                    <label className="text-xs font-medium text-tx-2">Nome</label>
                     <input name="name" required className="pmm-input" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-white/60">E-mail</label>
+                    <label className="text-xs font-medium text-tx-2">E-mail</label>
                     <input name="email" type="email" required className="pmm-input" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-white/60">Senha</label>
+                    <label className="text-xs font-medium text-tx-2">Senha</label>
                     <input name="password" type="password" required className="pmm-input" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-white/60">Papel</label>
+                    <label className="text-xs font-medium text-tx-2">Papel</label>
                     <select name="roleId" required defaultValue="" className="pmm-input">
                       <option value="" disabled>
                         Selecione um papel

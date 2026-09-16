@@ -27,17 +27,17 @@ function statusTone(log: RoboLog | undefined): "ok" | "risk" | "slate" {
 function FonteCard({ nome, log }: { nome: string; log: RoboLog | undefined }) {
   return (
     <div className="p-5">
-      <p className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">{nome}</p>
-      <div className="flex items-center gap-2 text-sm text-white">
+      <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-2">{nome}</p>
+      <div className="flex items-center gap-2 text-sm text-tx">
         <LumenStatusDot tone={statusTone(log)} />
         {log ? (log.sucesso ? "Sucesso" : "Falha") : "Nunca rodou"}
       </div>
       {log && (
-        <p className="text-xs text-white/50 mt-1 font-mono tabular-nums">
+        <p className="text-xs text-tx-3 mt-1 font-mono tabular-nums">
           {formatRelativeTime(log.executadoEm)}
         </p>
       )}
-      {log?.detalhe && <p className="text-xs text-white/45 mt-1">{log.detalhe}</p>}
+      {log?.detalhe && <p className="text-xs text-tx-3 mt-1">{log.detalhe}</p>}
     </div>
   );
 }
@@ -58,22 +58,22 @@ export default async function ProdutoPage() {
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Produto e robôs</h1>
-        <p className="text-sm text-white/55 mt-1">
+        <h1 className="text-2xl font-bold text-tx">Produto e robôs</h1>
+        <p className="text-sm text-tx/55 mt-1">
           Saúde dos robôs de captura (DJEN e Datajud) — somente leitura
         </p>
       </div>
 
       <LumenPanel>
         <LumenPanelHeader title="Robôs de captura" subtitle="Última execução de cada fonte" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-regua">
           <FonteCard nome="DJEN" log={ultimoLogDjen} />
           <FonteCard nome="Datajud" log={ultimoLogDatajud} />
         </div>
       </LumenPanel>
 
       <LumenPanel>
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-x divide-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-x divide-regua">
           <LumenStat label="Processos monitorados" value={String(processosMonitoradosCount)} />
         </div>
       </LumenPanel>
@@ -83,31 +83,31 @@ export default async function ProdutoPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-tx-3 uppercase tracking-wide border-b border-regua">
                 <th className="px-5 py-2.5 font-semibold">Fonte</th>
                 <th className="px-3 py-2.5 font-semibold">Quando</th>
                 <th className="px-3 py-2.5 font-semibold">Resultado</th>
                 <th className="px-3 py-2.5 font-semibold">Detalhe</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-regua">
               {logs.map((log) => (
                 <tr key={log.id}>
-                  <td className="px-5 py-3 text-white">{log.fonte}</td>
-                  <td className="px-3 py-3 font-mono tabular-nums text-white/70">
+                  <td className="px-5 py-3 text-tx">{log.fonte}</td>
+                  <td className="px-3 py-3 font-mono tabular-nums text-tx-2">
                     {formatRelativeTime(log.executadoEm)}
                   </td>
                   <td className="px-3 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2">
                       <LumenStatusDot tone={log.sucesso ? "ok" : "risk"} /> {log.sucesso ? "sucesso" : "falha"}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-white/50 text-xs">{log.detalhe ?? "—"}</td>
+                  <td className="px-3 py-3 text-tx-3 text-xs">{log.detalhe ?? "—"}</td>
                 </tr>
               ))}
               {logs.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-white/40 text-sm">
+                  <td colSpan={4} className="px-5 py-8 text-center text-tx-3 text-sm">
                     Nenhuma execução registrada ainda.
                   </td>
                 </tr>
