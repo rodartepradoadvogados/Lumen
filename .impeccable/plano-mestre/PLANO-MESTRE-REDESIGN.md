@@ -14,7 +14,7 @@ indicada.
 | **Fase atual** | **F2 — A direção visual** · rodada feita, **aguardando aprovação do dono** (F0 e F1 concluídas) |
 | **Próximo passo concreto** | **O dono decide a direção** no artefato `.impeccable/plano-mestre/direcao/proposta-guias.html` (publicado em https://claude.ai/artifact/3oyngezqNFzh2maC521aH8). Aprovada → F3 (`colorize`, `typeset`, `layout`, `extract`). Recusada → re-roll com `--from 2cac85b3 --reroll 1` |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
-| **Comandos executados** | 8 de 24 (`context`, `init`, `detect`, `critique`, `audit`, `shape`, `new-work`, `concept-seed`) |
+| **Comandos executados** | 5 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). **`audit` ainda não foi rodado** — ver seção 10 |
 | **Superfícies redesenhadas** | 0 de 5 |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
 | **Bloqueios abertos** | **Um, e é o gate previsto:** nenhuma linha de código de produção pode ser escrita antes de o dono aprovar a direção (D-08). Pendências registradas: (a) inspeção visual renderizada só na máquina do dono → F8; (b) 10 defeitos reais listados no diagnóstico podem virar PR curto a qualquer momento |
@@ -417,10 +417,11 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F0 | Contexto e verdade de produto | `context`, `init` | ✅ | — | 2026-09-16 | `PRODUCT.md` e `config.json` criados |
 | F1 | Congelar mundo atual | `document` (refresh) | ⏭️ | — | 2026-09-16 | **Pulado com motivo:** os 4 relatórios de diagnóstico congelam o mundo atual com muito mais detalhe do que um refresh do DESIGN.md, e o DESIGN.md é reescrito do zero em F9. Para não deixar ficção no lugar, o DESIGN.md ganhou um aviso no topo apontando a rampa real medida |
 | F1 | Diagnóstico mecânico (5 superfícies) | `detect` | ✅ | #186 | 2026-09-16 | 1.078 achados · 263 arquivos · **93% é tipografia**; 73% mora em `components/**` |
-| F1 | Diagnóstico site público + blog | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Os 2 diferenciais do produto **não estão na landing**; blog é beco sem saída |
-| F1 | Diagnóstico Portal | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Rail = mapa do banco; 6 ícones → 5 destinos; nada entre 15px e 24px |
-| F1 | Diagnóstico PWA + Painel Mestre | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Piso de 13px vaza por componente compartilhado; `text-white` invisível no claro |
+| F1 | Diagnóstico site público + blog | `critique` | ✅ | #186 | 2026-09-16 | Os 2 diferenciais do produto **não estão na landing**; blog é beco sem saída |
+| F1 | Diagnóstico Portal | `critique` | ✅ | #186 | 2026-09-16 | Rail = mapa do banco; 6 ícones → 5 destinos; nada entre 15px e 24px |
+| F1 | Diagnóstico PWA + Painel Mestre | `critique` | ✅ | #186 | 2026-09-16 | Piso de 13px vaza por componente compartilhado; `text-white` invisível no claro |
 | F1 | Consolidação e cobertura | — | ✅ | #186 | 2026-09-16 | `diagnostico/README.md` + seção 7 do inventário: **99 rotas cobertas** |
+| F1 | **`audit` como passagem própria** | `audit` | ⬜ | — | — | **NÃO foi rodado.** As críticas cobriram contraste, tema, responsivo e um achado de desempenho, mas de forma incidental — não houve passagem dedicada de a11y/performance/theming/responsivo. Rodar junto com F8, quando houver navegador e banco |
 | F2 | Brief do Portal | `shape` | ✅ | #187 | 2026-09-16 | Contrato de direção em `.impeccable/surfaces/app-app.md`, seis blocos + seed |
 | F2 | Rodada de direção | `new-work`, `concept-seed` | ✅ | #187 | 2026-09-16 | Seed `2cac85b3`, designado 4 de 7 → **“Guias”**. 2 competitivos, 4 declinados, 6 elevações nomeadas |
 | F2 | Mockup clicável | — | ✅ | #187 | 2026-09-16 | 5 telas do Portal + 4 do app, dois temas, contraste medido. Pedido do dono ampliou o escopo (o plano previa 2 telas) |

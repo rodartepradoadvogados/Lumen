@@ -208,6 +208,12 @@ fases correspondentes. **Pendente de decisão do dono.**
 
 ## Pendência que este ambiente não resolve
 
+**`audit` não foi rodado como passagem própria.** Os quatro relatórios são `detect` + `critique`. As
+críticas tocam em acessibilidade (contraste medido), tema, responsivo (416px no PWA) e um achado de
+desempenho (11 consultas por troca de aba), mas **incidentalmente** — não houve a varredura dedicada
+que o comando `audit` faz. Ela depende das mesmas coisas que faltam aqui (navegador e banco) e está
+agendada para F8.
+
 ⚠️ **A inspeção visual não foi feita.** O sandbox não alcança o banco Neon, então nenhuma tela
 renderiza com dado real aqui. Todo este diagnóstico é leitura de código mais detector estático —
 rigoroso quanto ao que afirma, mas **cego para o que só aparece renderizado**. Registrado como
