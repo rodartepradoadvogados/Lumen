@@ -11,13 +11,13 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F2 — A direção visual** (F0 e F1 concluídas) |
-| **Próximo passo concreto** | `shape` no Portal (superfície-âncora) → `new-work` nível *criar ou substituir o mundo* → mockup clicável de `/painel` e `/processos/[id]` nos dois temas → **aprovação escrita do dono** |
-| **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — F2 em andamento |
-| **Comandos executados** | 5 de 24 (`context`, `init`, `detect`, `critique`, `audit`) |
+| **Fase atual** | **F2 — A direção visual** · rodada feita, **aguardando aprovação do dono** (F0 e F1 concluídas) |
+| **Próximo passo concreto** | **O dono decide a direção** no artefato `.impeccable/plano-mestre/direcao/proposta-guias.html` (publicado em https://claude.ai/artifact/3oyngezqNFzh2maC521aH8). Aprovada → F3 (`colorize`, `typeset`, `layout`, `extract`). Recusada → re-roll com `--from 2cac85b3 --reroll 1` |
+| **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
+| **Comandos executados** | 8 de 24 (`context`, `init`, `detect`, `critique`, `audit`, `shape`, `new-work`, `concept-seed`) |
 | **Superfícies redesenhadas** | 0 de 5 |
 | **Última atualização** | 2026-09-16 · Claude (sessão `session_01QkwT3jkWwpUJLEQcdNbS2C`) |
-| **Bloqueios abertos** | Nenhum. **Duas pendências registradas:** (a) inspeção visual renderizada só na máquina do dono → F8; (b) 10 defeitos reais listados no diagnóstico podem virar PR curto antes de F2 — decisão do dono |
+| **Bloqueios abertos** | **Um, e é o gate previsto:** nenhuma linha de código de produção pode ser escrita antes de o dono aprovar a direção (D-08). Pendências registradas: (a) inspeção visual renderizada só na máquina do dono → F8; (b) 10 defeitos reais listados no diagnóstico podem virar PR curto a qualquer momento |
 
 ---
 
@@ -421,8 +421,10 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F1 | Diagnóstico Portal | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Rail = mapa do banco; 6 ícones → 5 destinos; nada entre 15px e 24px |
 | F1 | Diagnóstico PWA + Painel Mestre | `critique`, `audit` | ✅ | #186 | 2026-09-16 | Piso de 13px vaza por componente compartilhado; `text-white` invisível no claro |
 | F1 | Consolidação e cobertura | — | ✅ | #186 | 2026-09-16 | `diagnostico/README.md` + seção 7 do inventário: **99 rotas cobertas** |
-| F2 | Brief do Portal | `shape` | ⬜ | — | — | — |
-| F2 | Direção visual + mockup + aprovação | `new-work` | ⬜ | — | — | **gate do dono** |
+| F2 | Brief do Portal | `shape` | ✅ | #187 | 2026-09-16 | Contrato de direção em `.impeccable/surfaces/app-app.md`, seis blocos + seed |
+| F2 | Rodada de direção | `new-work`, `concept-seed` | ✅ | #187 | 2026-09-16 | Seed `2cac85b3`, designado 4 de 7 → **“Guias”**. 2 competitivos, 4 declinados, 6 elevações nomeadas |
+| F2 | Mockup clicável | — | ✅ | #187 | 2026-09-16 | 5 telas do Portal + 4 do app, dois temas, contraste medido. Pedido do dono ampliou o escopo (o plano previa 2 telas) |
+| F2 | **Aprovação do dono** | — | 🔄 | #187 | — | **GATE ABERTO.** Nada de código de produção antes disto |
 | F3 | Tokens, temas, tipografia | `colorize`, `typeset`, `layout`, `extract` | ⬜ | — | — | inclui `--tx-3` |
 | F4 | Portal — Painel e Agenda | `layout`, `distill`, `clarify`, `polish` | ⬜ | — | — | — |
 | F4 | Portal — Jurídico | idem | ⬜ | — | — | telas mais densas |
@@ -453,6 +455,11 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | 2026-09-16 | Dono | WCAG AA como piso, com autorização para mexer em tokens de texto | `init` rodada 1 |
 | 2026-09-16 | Dono | `buildPath: code` — mockup clicável antes do código | `init` passo 5 |
 | 2026-09-16 | Claude | Superfície-âncora da direção = Portal, não site público | Seção 5, tese 1 |
+| 2026-09-16 | Dono | Seguir sem interferência até a proposta completa; criticar e corrigir o próprio resultado a cada etapa | Mensagem durante F1 |
+| 2026-09-16 | Dono | A proposta final é artefato HTML clicável com várias telas do SaaS **e** do app mobile | Mensagem durante F1 |
+| 2026-09-16 | Claude | Direção designada pelo sorteio = candidato 4, “Guias” (arquivo de cartório). Seed `2cac85b3` | `concept-seed --scope direction --mode operate` |
+| 2026-09-16 | Claude | Conflito filete × arredondamento resolvido em favor do **filete**; raio de 2px | F2, resolve os 22 `warning` do detector |
+| 2026-09-16 | Claude | Rampa de 6 paradas com piso de 12px, garantida por lint e não por convenção | F2, a partir do achado nº 1 do diagnóstico |
 
 ---
 
