@@ -223,3 +223,32 @@ continuidade), registrados no catálogo de `app/globals.css`:
 - **Movimento 9 · abrir menu** — a folha do hambúrguer desce do cabeçalho de onde foi puxada.
 - **Retorno de interação** — nenhum dos cinco estilos de botão/link do site tinha *uma* transição:
   todo hover era um salto e nenhum clique deixava recibo. Agora têm, a 100ms.
+
+---
+
+## Decisão do dono — 2026-09-16, sobre o artefato de movimento
+
+Artefato: `https://claude.ai/artifact/3YbaYWUBuX7e4u37EiYtGa`. Resposta: **"Aceito. Pode seguir."**
+Os cinco itens pendentes entram, cada um na forma recomendada no artefato. Estado final do roteiro:
+
+| Item | Estado | Forma em que entrou |
+|---|---|---|
+| D1 | morto | — |
+| **D2** | **✅ feito** | `components/site/SiteHeader.tsx`. O cabeçalho virou componente cliente. Realce por **régua de 2px**, não por sublinhado: um item que precisa marcar hover *e* estado ativo com text-decoration acaba com duas linhas a 4px uma da outra. A régua é a gramática da guia do produto. No topo da página **nenhum** item acende — não há seção na faixa de leitura, e acender "Produto" ali seria mentira |
+| **D3** | recusado | — |
+| **D4** | **✅ feito** | Movimento 10 em `globals.css` + `components/site/FeatureFigure.tsx`. Quatro materiais escolhidos por significado: `chegaNaFila`, `pousaNoDia`, `preencheCampo`, `tracaLinha`. Na petição, o **corpo do texto não anima** — a copy diz que o texto jurídico continua sendo escrito pelo advogado, e um corpo se escrevendo sozinho ilustraria o contrário do que a página afirma |
+| **D5** | **✅ feito** | Na forma da **régua**, não na do cartão que levanta com sombra. O produto inteiro recusou sombra, e "cartão que levanta no hover" é um dos tiques mais reconhecíveis de interface gerada por máquina |
+| **D6** | **✅ feito** | Seta `aria-hidden` no botão do fecho, 5px no hover, 150ms |
+| D7 | feito | — |
+| **D8** | **✅ feito** | Mesmo componente do D2, mesmo ouvinte — que é a razão de serem um arquivo só |
+
+**Dois defeitos que esta rodada pegou antes de subir, e que valem como regra da casa:**
+
+1. **Conteúdo escondido por CSS e revelado por JS é conteúdo perdido.** A primeira versão do Movimento
+   10 zerava a opacidade das peças do diagrama por padrão e só as trazia de volta quando o
+   observador marcasse `data-visivel`. Bundle que não chega, script bloqueado, hidratação quebrada —
+   e os cinco diagramas ficariam invisíveis para sempre. O atributo que autoriza o CSS a esconder
+   (`data-observando`) agora só existe depois que o JS rodou; o HTML do servidor não o tem.
+2. **`clip-path: inset()` em filho de SVG foi medido, não suposto.** `<rect>` e `<g>`, recorte
+   parcial e total, conferidos em Chromium com renderização real e leitura de pixel — a caixa de
+   referência é a do próprio elemento, que é o que o Movimento 10 precisa.

@@ -7,9 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { calcularPrecoDoPlano, MODULOS } from "@/lib/officePricing";
 import { formatCurrency } from "@/components/ui";
 import LumenMark from "@/components/LumenMark";
-import ThemeToggle from "@/components/ThemeToggle";
 import CookieConsent from "@/components/site/CookieConsent";
-import MobileNav from "@/components/site/MobileNav";
+import SiteHeader from "@/components/site/SiteHeader";
+import FeatureFigure from "@/components/site/FeatureFigure";
 import GrainOverlay from "@/components/GrainOverlay";
 
 // Homepage PÚBLICA do produto de software "Lúmen" (documento 09 do redesenho: "o site passa a
@@ -179,8 +179,10 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
             { y: 4, fillCls: "fill-marca-tx", bgCls: "fill-marca-bg", strokeCls: "stroke-marca-tx", w: 34 },
             { y: 26, fillCls: "fill-aviso", bgCls: "fill-aviso-bg", strokeCls: "stroke-aviso", w: 40 },
             { y: 48, fillCls: "fill-fonte-pje", bgCls: "fill-sf-apoio", strokeCls: "stroke-fonte-pje", w: 38 },
-          ].map((r) => (
-            <g key={r.y}>
+          ].map((r, i) => (
+            // Movimento 10 · a publicação CAI na fila, sozinha, uma após a outra — que é
+            // literalmente o que esta linha de recurso afirma que acontece.
+            <g key={r.y} className="chega" style={{ animationDelay: `${i * 200}ms` }}>
               <rect x="2" y={r.y} width="96" height="18" className={`${r.bgCls} ${r.strokeCls}`} strokeWidth="1.5" />
               <rect x="2" y={r.y} width="3" height="18" className={r.fillCls} />
               <circle cx="10" cy={r.y + 5} r="1.8" className={r.fillCls} />
@@ -210,18 +212,25 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
           {[16, 30, 44, 58, 72, 86].map((x) => (
             <line key={x} x1={x} y1="38" x2={x} y2="66" className="stroke-regua" strokeWidth="1" />
           ))}
-          <rect x="18" y="48" width="10" height="6" className="fill-marca-tx" fillOpacity="0.7" />
-          <rect x="46" y="54" width="10" height="6" className="fill-aviso" fillOpacity="0.55" />
-          <rect x="74" y="44" width="10" height="6" className="fill-concluido" fillOpacity="0.55" />
+          {/* Movimento 10 · cada compromisso POUSA na coluna do seu dia. As colunas e a moldura
+              da semana já estão lá: a grade existe primeiro, os compromissos caem nela. */}
+          <rect x="18" y="48" width="10" height="6" className="fill-marca-tx pousa" fillOpacity="0.7" style={{ animationDelay: "120ms" }} />
+          <rect x="46" y="54" width="10" height="6" className="fill-aviso pousa" fillOpacity="0.55" style={{ animationDelay: "260ms" }} />
+          <rect x="74" y="44" width="10" height="6" className="fill-concluido pousa" fillOpacity="0.55" style={{ animationDelay: "400ms" }} />
         </>
       );
     case "peticionamento":
       return (
         <>
           <rect x="18" y="2" width="64" height="66" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
-          <rect x="24" y="7" width="10" height="10" className="fill-marca-tx" />
-          <rect x="37" y="9" width="30" height="2.4" className="fill-tx" />
-          <rect x="37" y="14" width="20" height="2" className="fill-tx-3" />
+          {/* Movimento 10 · anima SÓ o que o produto preenche sozinho: o timbrado do escritório e
+              os campos do processo e da parte. As linhas do corpo, logo abaixo, ficam paradas de
+              propósito — a copy desta linha diz que "o texto jurídico continua sendo escrito pelo
+              advogado", e um corpo se escrevendo sozinho ilustraria o contrário do que a página
+              afirma. */}
+          <rect x="24" y="7" width="10" height="10" className="fill-marca-tx preenche" />
+          <rect x="37" y="9" width="30" height="2.4" className="fill-tx preenche" style={{ animationDelay: "140ms" }} />
+          <rect x="37" y="14" width="20" height="2" className="fill-tx-3 preenche" style={{ animationDelay: "240ms" }} />
           <line x1="24" y1="23" x2="76" y2="23" className="stroke-regua" strokeWidth="1" />
           <rect x="24" y="28" width="52" height="2.2" className="fill-regua-forte" />
           <rect x="24" y="34" width="52" height="2.2" className="fill-regua-forte" />
@@ -229,8 +238,10 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
           <rect x="24" y="46" width="40" height="2.2" className="fill-regua" />
           <rect x="24" y="51" width="52" height="2.2" className="fill-regua" />
           <rect x="24" y="56" width="26" height="2.2" className="fill-regua" />
-          <rect x="52" y="60" width="24" height="6" className="fill-marca-tx" />
-          <text x="55" y="64.3" fontFamily="sans-serif" fontSize="4" className="fill-acao-tx">.docx</text>
+          <g className="preenche" style={{ animationDelay: "420ms" }}>
+            <rect x="52" y="60" width="24" height="6" className="fill-marca-tx" />
+            <text x="55" y="64.3" fontFamily="sans-serif" fontSize="4" className="fill-acao-tx">.docx</text>
+          </g>
         </>
       );
     case "financeiro":
@@ -244,9 +255,12 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
           </defs>
           <line x1="4" y1="10" x2="4" y2="42" className="stroke-regua" strokeWidth="1" />
           <line x1="4" y1="42" x2="96" y2="42" className="stroke-regua" strokeWidth="1" />
-          <polygon points="4,50 20,42 36,46 52,30 68,34 84,18 96,22 96,42 4,42" fill="url(#feature-financeiro-fill)" />
-          <polyline points="4,50 20,42 36,46 52,30 68,34 84,18 96,22" className="stroke-concluido" strokeWidth="2" fill="none" />
-          <circle cx="96" cy="22" r="2.2" className="fill-concluido" />
+          {/* Movimento 10 · a curva do caixa se TRAÇA da esquerda para a direita (o tempo passando,
+              que é o que um fluxo de caixa é), a área sobe atrás dela e o ponto final pousa no fim.
+              Os eixos não animam: a régua existe antes do número. */}
+          <polygon className="area" points="4,50 20,42 36,46 52,30 68,34 84,18 96,22 96,42 4,42" fill="url(#feature-financeiro-fill)" />
+          <polyline className="traca stroke-concluido" points="4,50 20,42 36,46 52,30 68,34 84,18 96,22" strokeWidth="2" fill="none" />
+          <circle cx="96" cy="22" r="2.2" className="fill-concluido pousa" style={{ animationDelay: "820ms" }} />
           {[
             { y: 50, fillCls: "fill-concluido", bgCls: "fill-concluido-bg", w: 40 },
             { y: 60, fillCls: "fill-aviso", bgCls: "fill-aviso-bg", w: 34 },
@@ -266,15 +280,21 @@ function FeatureDiagram({ kind }: { kind: (typeof FEATURES)[number]["diagram"] }
           <rect x="4" y="4" width="92" height="20" className="fill-sf stroke-regua-forte" strokeWidth="1.5" />
           <rect x="10" y="9" width="6" height="6" className="fill-none stroke-tx-2" strokeWidth="1.2" />
           <text x="20" y="17" fontFamily="monospace" fontSize="8" className="fill-tx-2">•••.•••.•••-••</text>
-          <rect x="70" y="8" width="20" height="10" className="fill-marca-tx" />
-          <text x="73" y="15" fontFamily="sans-serif" fontSize="5.5" className="fill-acao-tx">Revelar</text>
+          {/* Movimento 10 · o campo continua mascarado (é o estado padrão do produto, e mexer nisso
+              seria contar outra história). O que se move é a consequência: o botão "Revelar" acende
+              uma vez, e a trilha de auditoria se ESCREVE da esquerda para a direita — que é o que a
+              copy promete, revelar exige motivo e fica registrado. */}
+          <g className="acende">
+            <rect x="70" y="8" width="20" height="10" className="fill-marca-tx" />
+            <text x="73" y="15" fontFamily="sans-serif" fontSize="5.5" className="fill-acao-tx">Revelar</text>
+          </g>
           <text x="4" y="32" fontFamily="sans-serif" fontSize="4.2" letterSpacing="0.4" className="fill-tx-3">TRILHA DE AUDITORIA</text>
           {[
             { y: 40, fillCls: "fill-concluido", w: 48 },
             { y: 48, fillCls: "fill-aviso", w: 40 },
             { y: 56, fillCls: "fill-tx-2", w: 52 },
-          ].map((r) => (
-            <g key={r.y}>
+          ].map((r, i) => (
+            <g key={r.y} className="preenche" style={{ animationDelay: `${260 + i * 180}ms` }}>
               <circle cx="6" cy={r.y} r="1.3" className={r.fillCls} />
               <rect x="10" y={r.y - 1.2} width={r.w} height="2.2" className="fill-tx" />
               <rect x="78" y={r.y - 1.2} width="14" height="2.2" className="fill-regua-forte" />
@@ -312,36 +332,11 @@ export default async function HomePage() {
 
   return (
     <div className="site-publico bg-sf-fundo text-tx">
-      {/* 1. Barra */}
-      <header className="sticky top-0 z-30 bg-sf border-b-2 border-regua-forte">
-        <div className="max-w-[1120px] mx-auto px-6 h-[76px] flex items-center justify-between gap-6">
-          <Link href="/" className="flex items-center gap-2.5 font-extrabold text-lg tracking-[.16em] shrink-0">
-            <LumenMark size={26} /> LÚMEN
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <a className={navLink} href="#recursos">Produto</a>
-            <a className={navLink} href="#preco">Preço</a>
-            <Link className={navLink} href="/blog">Blog</Link>
-          </nav>
-          {/* "Entrar" fica FORA do <nav> escondido em telas estreitas de propósito — o app
-              mobile (PWA) só enxerga esta homepage depois de um logout, e nela era o único
-              jeito de alcançar /login. Com "Entrar" preso em "hidden md:flex", a barra em
-              largura de celular mostrava só "Começar" (→/cadastro): quem saía do sistema e
-              tentava entrar de novo caía sempre no cadastro, sem forma visível de logar sem
-              rolar até o rodapé. */}
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link className={navLink} href="/login">Entrar</Link>
-            {/* Alternador de tema — a auditoria de 2026-09-16 achou que o tema escuro alcança TODA
-                página pública (o script de tema em app/layout.tsx aplica a classe a partir do
-                armazenamento, em qualquer rota) e que NENHUMA delas tinha alternador. Quem escolhia
-                "Noite" dentro do produto e fazia logout ficava preso, sem porta de volta a não ser
-                limpar o armazenamento do navegador. O tema sempre funcionou; faltava a porta. */}
-            <ThemeToggle />
-            <Link href="/cadastro" className={btnPrimary}>Começar</Link>
-            <MobileNav />
-          </div>
-        </div>
-      </header>
+      {/* 1. Barra — componente cliente desde 2026-09-16 (itens D2 e D8 do roteiro de dinamismo,
+          aprovados pelo dono): o item de seção acende quando a seção está na tela, e a régua de
+          baixo troca de cinza para bordô depois dos primeiros 40px de rolagem. Os dois usam o
+          mesmo ouvinte, por isso são um componente só. Ver components/site/SiteHeader.tsx. */}
+      <SiteHeader navLink={navLink} btnPrimary={btnPrimary} />
 
       <main>
         {/* 2. Hero assimétrico — retomado da proposta "pulso" (.impeccable/plano-site-publico/
@@ -476,11 +471,9 @@ export default async function HomePage() {
                   <p className="text-corpo text-tx-2 max-w-[46ch]">{f.p1}</p>
                   <p className="text-corpo text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
                 </div>
-                <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf rounded-[2px] flex items-center p-10 ${i % 2 === 1 ? "md:order-1" : ""}`}>
-                  <svg viewBox="0 0 100 70" role="img" aria-label={f.figure} className="w-full h-full">
-                    <FeatureDiagram kind={f.diagram} />
-                  </svg>
-                </div>
+                <FeatureFigure figure={f.figure} ordem={i}>
+                  <FeatureDiagram kind={f.diagram} />
+                </FeatureFigure>
               </div>
             ))}
           </div>
@@ -512,7 +505,13 @@ export default async function HomePage() {
                 return (
                   <div
                     key={plan.id}
-                    className={`relative p-6 border-2 bg-sf rounded-[2px] ${plan.recommended ? "border-acao" : "border-regua-forte"}`}
+                    // D5 do roteiro de dinamismo, aprovado pelo dono em 2026-09-16 — na forma da
+                    // RÉGUA, não na do cartão que levanta com sombra. Duas razões, e nenhuma é de
+                    // gosto: o produto inteiro recusou sombra (usa filete de 2px no lugar, e não há
+                    // um `box-shadow` sequer nas telas), e "cartão que levanta no hover" é um dos
+                    // tiques mais reconhecíveis de interface gerada por máquina. O cartão
+                    // recomendado já nasce com a régua em `--acao`, então ele responde pelo fundo.
+                    className={`relative p-6 border-2 bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out ${plan.recommended ? "border-acao hover:bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-acao-bg"}`}
                   >
                     {/* FORA DO FLUXO. Antes o selo era renderizado dentro dele e empurrava ~24px de
                         conteúdo para baixo, de modo que preço, módulos e botão deixavam de alinhar
@@ -554,7 +553,7 @@ export default async function HomePage() {
                 );
               })}
               {sobMedida && (
-                <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px]">
+                <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px] transition-[border-color,background-color] duration-100 ease-out hover:border-acao hover:bg-acao-bg">
                   <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
                   <div className="text-corpo text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
                   <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
@@ -581,8 +580,26 @@ export default async function HomePage() {
                 2,15:1 ao vivo, reprova WCAG AA (1.4.3, precisa 4,5:1). text-acao-tx (creme,
                 --acao-tx nos globals.css) é o mesmo tom do botão primário do hero (btnPrimary)
                 e — igual a --marca/--acao — não retematiza entre Manhã e Noite. */}
-            <Link href="/cadastro" className="inline-flex items-center justify-start h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm rounded-[2px] mt-8 transition-[background-color,transform] duration-100 ease-out active:translate-y-px">
+            {/* D6, aprovado pelo dono em 2026-09-16: a seta anda 5px quando o ponteiro chega. A
+                seta é `aria-hidden` — ela repete em desenho o que o texto do botão já diz, e
+                anunciá-la de novo para leitor de tela seria ruído. */}
+            <Link
+              href="/cadastro"
+              className="group inline-flex items-center justify-start gap-2.5 h-11 px-6 bg-grafite-800 hover:bg-grafite-900 text-acao-tx font-extrabold text-sm rounded-[2px] mt-8 transition-[background-color,transform] duration-100 ease-out active:translate-y-px"
+            >
               Começar agora
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                aria-hidden="true"
+                className="transition-transform duration-150 ease-out group-hover:translate-x-[5px]"
+              >
+                <path d="M5 12h13M13 6l6 6-6 6" />
+              </svg>
             </Link>
           </div>
         </section>
