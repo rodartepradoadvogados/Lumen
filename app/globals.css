@@ -1764,12 +1764,24 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 }
 .artigo h3 { font-size: 1.125rem; line-height: 1.35; font-weight: 650; }
 .artigo strong { font-weight: 650; }
-.artigo ul, .artigo ol { padding-left: 1.4em; }
+/* `list-style` PRECISA estar aqui. O preflight do Tailwind zera `list-style` de toda `ul`/`ol` do
+   documento, e esta regra só devolvia o recuo — os itens saíam sem marcador nenhum, indistinguíveis
+   de parágrafos indentados. O defeito era invisível porque nenhuma matéria conseguia produzir uma
+   lista (o corpo virava sempre `<p>`); apareceu no primeiro minuto em que o renderizador de
+   markdown passou a emitir `<ul>`, numa conferência visual com o CSS de produção. */
+.artigo ul { list-style: disc; padding-left: 1.4em; }
+.artigo ol { list-style: decimal; padding-left: 1.4em; }
+.artigo li::marker { color: var(--tinta-3); }
 .artigo li + li { margin-top: 0.45em; }
 .artigo blockquote {
-  border-left: 2px solid var(--acao);
+  border-left: 2px solid var(--marca-tx); /* mesmo motivo do link abaixo: --acao some na ficha escura */
   padding-left: 1.1em;
   color: var(--tinta-2);
   font-style: italic;
 }
-.artigo a { color: var(--acao); text-decoration: underline; text-underline-offset: 0.18em; }
+/* `--marca-tx`, não `--acao`. `--acao` é o bordô FIXO da marca (#8a2f42 nos dois temas): como
+   fundo de botão ele é certo, com `--acao-tx` por cima; como TEXTO sobre uma superfície que
+   retematiza ele mede 1,88:1 sobre a ficha escura — reprova WCAG AA (4,5:1) por larga margem, e o
+   link do corpo do artigo é justamente o texto que precisa ser visto. `--marca-tx` é a variante
+   que acompanha o tema: 8,18:1 no claro, 5,58:1 no escuro. Medido, não estimado. */
+.artigo a { color: var(--marca-tx); text-decoration: underline; text-underline-offset: 0.18em; }

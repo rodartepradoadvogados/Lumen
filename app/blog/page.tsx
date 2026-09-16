@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPlatformOffice } from "@/lib/officeModules";
-import { Badge } from "@/components/ui";
-import LumenMark from "@/components/LumenMark";
+import { minutosDeLeitura } from "@/lib/markdownSimples";
+import CabecalhoBlog from "@/components/blog/CabecalhoBlog";
+import FichaMateria from "@/components/blog/FichaMateria";
 
 // P2-5 do roteiro de adequação: force-dynamic era redundante e removido — a paginação por
 // searchParams (P2-3, ?page=N) já obriga o Next a renderizar esta rota dinamicamente por
 // request (searchParams só é conhecido em tempo de requisição), então não há cache de borda a
 // ganhar aqui de qualquer forma. Ver app/blog/[slug]/page.tsx (ISR de verdade) e app/page.tsx
 // (cache da consulta ao banco) para os outros dois pontos do mesmo achado do $impeccable audit.
-//
-// P3-2: os tamanhos de fonte arbitrários aqui (11px) fazem parte da exceção de escala
-// tipográfica do site público documentada em app/page.tsx — ver o comentário lá antes de
-// convergir esses valores pra escala 24/16/14/12 do DESIGN.md.
 
 export const metadata = {
   title: "Blog Jurídico | Lúmen",
@@ -52,88 +49,73 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
 
   return (
     <div className="min-h-screen bg-sf-fundo">
-      {/* Masthead grafite-800 fixo, nos dois temas — é chrome/marca do site público, não
-          conteúdo, mesmo raciocínio do rail e da barra de menus (DESIGN-SYSTEM.md §3). Por
-          isso o texto aqui é branco/ouro fixos: --acao/--tx trocam de tema e, no Manhã,
-          ficariam ilegíveis contra um fundo que não troca. */}
-      <header className="bg-grafite-800 px-6 py-10 text-center">
-        <div className="flex justify-center mb-2">
-          <LumenMark size={40} />
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-white [font-family:var(--font-blog-serif)]">
-          LÚMEN
-        </h1>
-        {/* P0-5 do roteiro de adequação: text-marca sobre bg-grafite-800 media 2,15:1 ao vivo,
-            reprova WCAG AA. text-rail-marca (--rail-marca, #c9707f) é a variante clara do bordô
-            criada exatamente para bordô-como-texto sobre superfície fixa escura (mesmo raciocínio
-            do comentário logo acima sobre branco/ouro fixos: não retematiza). */}
-        <p className="text-etiqueta tracking-[0.3em] text-rail-marca font-medium mt-1">BLOG JURÍDICO</p>
-        {/* Caminho para o produto — ver o comentário em app/blog/[slug]/page.tsx. */}
-        <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
-          <Link
-            href="/"
-            className="inline-flex items-center h-9 px-4 border border-gaveta-linha text-rail-tx hover:text-rotulo text-etiqueta font-semibold uppercase tracking-[.07em] rounded-sm"
-          >
-            Ir para o site
-          </Link>
-          <Link
-            href="/cadastro"
-            className="inline-flex items-center h-9 px-4 bg-acao hover:bg-acao-hover text-acao-tx text-etiqueta font-semibold uppercase tracking-[.07em] rounded-sm"
-          >
-            Conhecer o Lúmen
-          </Link>
-        </div>
-        <p className="text-sm text-white/70 mt-3 max-w-xl mx-auto">
-          Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial, tributário, trabalhista, previdenciário e mais.
-        </p>
-      </header>
+      <CabecalhoBlog nomeDaSecao={false} />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        {/* A identidade editorial desceu do cromo para o papel. Antes ela vivia dentro do masthead
+            grafite, centralizada, com a marca repetida em tipo grande — quase uma tela de cromo
+            antes da primeira matéria. Aqui ela é conteúdo, que é o que ela sempre foi. */}
+        <div className="max-w-[46ch] mb-10">
+          <h1 className="text-autuacao font-bold text-tx [font-family:var(--font-blog-serif)]">
+            Blog Jurídico
+          </h1>
+          <p className="text-corpo text-tx-2 mt-3">
+            Jurisprudência, legislação e doutrina em atualização — civil, consumerista, empresarial,
+            tributário, trabalhista, previdenciário e mais. Toda matéria traz as fontes que a
+            sustentam.
+          </p>
+        </div>
+
         {posts.length === 0 ? (
-          <div className="text-center py-20 text-tx-3">
-            <p className="font-medium">Nenhuma matéria publicada ainda.</p>
+          // Vazio que diz o que está acontecendo e o que fazer, em vez de só constatar a ausência.
+          <div className="border-2 border-regua-forte bg-sf rounded-[2px] p-8 max-w-[46ch]">
+            <p className="text-destaque font-bold text-tx">Ainda não há matéria publicada.</p>
+            <p className="text-corpo text-tx-2 mt-2">
+              As matérias são conferidas contra pelo menos duas fontes independentes antes de entrar
+              no ar — as primeiras aparecem aqui assim que passarem por essa conferência.
+            </p>
+            <Link
+              href="/"
+              className="inline-block mt-5 text-corpo font-semibold text-marca-tx underline underline-offset-4"
+            >
+              Conhecer o Lúmen enquanto isso →
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {posts.map((post) => (
-              <Link
+              <FichaMateria
                 key={post.id}
-                href={`/blog/${post.slug}`}
-                className="bg-sf border-t-2 border-regua-forte overflow-hidden hover:bg-sf-apoio transition-colors flex flex-col"
-              >
-                {post.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.imageUrl} alt="" loading="lazy" decoding="async" className="h-40 w-full object-cover" />
-                )}
-                <div className="p-5 flex-1 flex flex-col gap-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge color="slate">{TYPE_LABELS[post.type] ?? post.type}</Badge>
-                  </div>
-                  <h2 className="font-bold text-tx text-lg leading-snug [font-family:var(--font-blog-serif)]">
-                    {post.title}
-                  </h2>
-                  <p className="text-sm text-tx-2 flex-1 text-justify hyphens-auto">{post.summary}</p>
-                  {post.publishedAt && (
-                    <p className="text-etiqueta text-tx-2 mt-1">
-                      {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-                    </p>
-                  )}
-                  <span className="text-xs font-semibold text-acao inline-flex items-center gap-1 mt-1">Ler matéria completa →</span>
-                </div>
-              </Link>
+                slug={post.slug}
+                titulo={post.title}
+                resumo={post.summary}
+                area={post.area}
+                formato={TYPE_LABELS[post.type] ?? post.type}
+                minutos={minutosDeLeitura(post.content)}
+                publicadoEm={post.publishedAt}
+                imagem={post.imageUrl}
+              />
             ))}
           </div>
         )}
 
         {(page > 1 || hasNext) && (
-          <nav className="flex justify-center gap-3 pt-4">
-            {page > 1 && (
-              <Link href={`/blog?page=${page - 1}`} className="text-sm font-semibold text-acao">
+          <nav className="flex justify-between gap-3 pt-10" aria-label="Paginação">
+            {page > 1 ? (
+              <Link
+                href={`/blog?page=${page - 1}`}
+                className="text-corpo font-semibold text-marca-tx underline underline-offset-4 transition-colors duration-100 ease-out hover:text-tx"
+              >
                 ← Página anterior
               </Link>
+            ) : (
+              <span />
             )}
             {hasNext && (
-              <Link href={`/blog?page=${page + 1}`} className="text-sm font-semibold text-acao">
+              <Link
+                href={`/blog?page=${page + 1}`}
+                className="text-corpo font-semibold text-marca-tx underline underline-offset-4 transition-colors duration-100 ease-out hover:text-tx"
+              >
                 Próxima página →
               </Link>
             )}
@@ -141,8 +123,10 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
         )}
       </main>
 
-      <footer className="text-center text-etiqueta text-tx-3 py-8">
-        Lúmen — conteúdo informativo, não substitui consulta jurídica.
+      <footer className="border-t-2 border-regua-forte mt-10">
+        <p className="max-w-5xl mx-auto px-4 sm:px-6 py-8 text-etiqueta text-tx-3">
+          Lúmen — conteúdo informativo, não substitui consulta jurídica.
+        </p>
       </footer>
     </div>
   );
