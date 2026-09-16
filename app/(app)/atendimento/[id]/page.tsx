@@ -108,7 +108,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
               de visualização, não um teto fixo aqui. */}
           <div className="tela">
             <div className="flex items-start justify-between flex-wrap gap-3 mb-1">
-              <h1 className="text-2xl font-bold text-tx">{a.clientName}</h1>
+              <h1 className="text-autuacao font-bold text-tx leading-tight">{a.clientName}</h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <FunnelStageSelect attendanceId={a.id} stage={a.stage} />
                 <AttendanceStatusSelect attendanceId={a.id} status={a.status} />

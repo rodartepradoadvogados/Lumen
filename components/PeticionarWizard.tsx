@@ -44,6 +44,17 @@ const TYPE_OPTIONS: { type: PeticionarLinkType; label: string }[] = [
 const btnPrimary = "h-10 px-5 rounded-md bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold disabled:opacity-50";
 const btnSecondary = "h-10 px-5 rounded-md border border-regua-forte text-tx text-sm font-semibold hover:bg-sf-apoio disabled:opacity-50";
 
+// Monta a URL do espaço de peticionamento com o vínculo escolhido. Precisa ser SÍNCRONA: ela é
+// chamada dentro do gesto de clique, antes de qualquer await, senão o navegador bloqueia a aba
+// (ver o comentário em finalize).
+function urlDoEspaco(link: PeticionarLink | null): string {
+  if (!link) return "/peticionar";
+  if ("caseId" in link) return `/peticionar?tipo=caso&id=${encodeURIComponent(link.caseId)}`;
+  if ("attendanceId" in link) return `/peticionar?tipo=atendimento&id=${encodeURIComponent(link.attendanceId)}`;
+  if ("licitacaoId" in link) return `/peticionar?tipo=licitacao&id=${encodeURIComponent(link.licitacaoId)}`;
+  return `/peticionar?tipo=assessoria&id=${encodeURIComponent(link.assessoriaId)}`;
+}
+
 export default function PeticionarWizard({
   screenContext,
   onClose,
@@ -119,7 +130,12 @@ export default function PeticionarWizard({
     // Mesmo truque de sempre: abrir as duas abas DENTRO do gesto de clique, antes de qualquer
     // await — senão o navegador perde o gesto e bloqueia a aba como pop-up.
     const driveWindow = window.open("", "_blank", "noopener,noreferrer");
-    window.open("/peticionar", "_blank", "noopener,noreferrer");
+    // O espaço de peticionamento passa a saber DE QUAL petição se trata. Ele abria sempre em
+    // branco: quem ficasse com duas abas abertas não tinha como distinguir uma da outra, e quem
+    // abrisse por engano não sabia o que estava vendo. A URL leva só o id; o título é resolvido no
+    // servidor, filtrado pelo escritório do usuário (app/peticionar/page.tsx) — nome de cliente
+    // não vai para a barra de endereço nem para o histórico do navegador.
+    window.open(urlDoEspaco(link), "_blank", "noopener,noreferrer");
     setPending(true);
     criarPeticao(link ?? undefined).then((result) => {
       setPending(false);

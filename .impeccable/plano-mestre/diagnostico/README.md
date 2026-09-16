@@ -202,6 +202,7 @@ fases correspondentes. **Pendente de decisão do dono.**
 | 7 | Grade de preço sem `gap` (filete duplo entre cards) + badge "Recomendado" no fluxo, **desalinhando justamente o card em destaque** | `app/page.tsx:432`, `:444-449` | Média |
 | 8 | Classe `prose-like` **não existe no repositório** | `app/blog/[slug]/page.tsx:95` | Média |
 | 9 | `/peticionar` sem nenhum link interno — beco sem saída absoluto | `components/PeticionarWorkspace.tsx` | Média |
+| | **Correção de 2026-09-16:** esta linha foi lida ao contrário por mim em três relatos ao dono — como se a tela não tivesse ENTRADA. Tem, e sempre teve: `PeticionarButton` está em `TopBarActionsContent`, ou seja, na barra superior de **toda** tela do portal, mais `/processos/[id]`, `PublicationsTriage` e `PublicationRow`. O achado original é o oposto e está certo: a tela não tinha **saída** — três links externos e nada mais, sem voltar, sem fechar, sem dizer do que se tratava. Corrigido no PR #211 | | |
 | 10 | Copy *"sem depender de pasta de rede"* contradiz o posicionamento de custódia no Drive do cliente | `app/page.tsx:120` | Média |
 
 ---

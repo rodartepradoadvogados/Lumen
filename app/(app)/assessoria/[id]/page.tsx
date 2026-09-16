@@ -87,14 +87,20 @@ export default async function AssessoriaDetailPage({
 
   return (
     <div className="tela">
-      <Link href="/assessoria" className="text-xs font-semibold text-tx-2 hover:text-tx">
+      <Link href="/assessoria" className="text-etiqueta font-semibold text-tx-2 hover:text-tx transition-colors duration-100 ease-out">
         ← Assessoria Jurídica
       </Link>
 
-      <div className="flex items-start justify-between gap-4 flex-wrap mt-2 mb-5">
+      {/* P1-4 do diagnóstico: o nome do cliente e os QUATRO números eram todos `text-2xl
+          font-bold` — cinco elementos idênticos em peso, com os rótulos a 12px. Uma razão de
+          22:12 sem nenhum degrau no meio, numa tela cujo trabalho é dizer DE QUEM é a assessoria
+          e QUANTO ela vale. Agora a rampa tem quatro paradas de verdade: 28 na identidade, 22 no
+          dinheiro, 18 nos contadores, 12 nos rótulos. Mesmo `text-autuacao` do <h1> de
+          /processos/[id], que é a tela irmã desta na mesma seção. */}
+      <div className="flex items-start justify-between gap-4 flex-wrap mt-2 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-tx">{assessoria.client.name}</h1>
-          <div className="flex items-center gap-2 flex-wrap text-xs text-tx-2 mt-1">
+          <h1 className="text-autuacao font-bold text-tx leading-tight">{assessoria.client.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap text-etiqueta text-tx-2 mt-1.5">
             {assessoria.client.document && <span>CNPJ {assessoria.client.document}</span>}
             {assessoria.responsible && <><span className="opacity-40">·</span><span>Responsável: {assessoria.responsible.name}</span></>}
             <span className="opacity-40">·</span>
@@ -116,39 +122,64 @@ export default async function AssessoriaDetailPage({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-sf border border-regua p-3.5">
-          <p className="text-2xl font-bold text-tx">{assessoria.linkedCases.length}</p>
-          <p className="text-etiqueta text-tx-2 mt-0.5">Processos vinculados</p>
-        </div>
-        <div className="bg-sf border border-regua p-3.5">
-          <p className="text-2xl font-bold text-tx">{formatCurrency(assessoria.monthlyFee)}</p>
-          <p className="text-etiqueta text-tx-2 mt-0.5">Honorário · vence dia {assessoria.dueDay}</p>
-        </div>
-        <div className="bg-sf border border-regua p-3.5">
-          <p className="text-2xl font-bold text-tx">{licitacoesEmAndamento}</p>
-          <p className="text-etiqueta text-tx-2 mt-0.5">Licitações em andamento</p>
-        </div>
-        <div className="bg-sf border border-regua p-3.5">
-          <p className="text-2xl font-bold text-tx">{assessoria.documents.length}</p>
-          <p className="text-etiqueta text-tx-2 mt-0.5">Documentos no catálogo</p>
-        </div>
-      </div>
+      {/* UMA faixa, não quatro cartões iguais. O contrato de direção recusa a arrumação-padrão da
+          categoria com todas as letras — "quatro KPIs iguais lado a lado" está na lista de coisas
+          que este produto não faz — e esta tela era exatamente isso.
 
-      <div className="flex gap-1 border-b-2 border-regua mb-5 flex-wrap">
-        {TABS.map((t) => (
+          O peso é desigual porque os quatro números não valem o mesmo: o honorário é o dinheiro,
+          é o único com data, e é a razão de a assessoria existir. Os outros três são inventário.
+
+          E os quatro passam a LEVAR A ALGUM LUGAR. Eram números inertes: o visitante lia
+          "2 licitações em andamento" e tinha de procurar a aba na mão. Cada um agora abre a aba
+          que detalha aquele número — é a diferença entre um painel que informa e um que serve. */}
+      <div className="flex flex-wrap items-stretch border-2 border-regua-forte bg-sf rounded-[2px] mb-6">
+        <Link
+          href={`/assessoria/${assessoria.id}?tab=honorarios`}
+          className="flex-1 min-w-[220px] px-5 py-4 transition-colors duration-100 ease-out hover:bg-acao-bg"
+        >
+          <p className="text-etiqueta font-extrabold uppercase tracking-[.1em] text-tx-3">Honorário mensal</p>
+          <p className="text-guia font-bold text-tx tabular-nums mt-1">{formatCurrency(assessoria.monthlyFee)}</p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">vence todo dia {assessoria.dueDay}</p>
+        </Link>
+        {[
+          { n: assessoria.linkedCases.length, rotulo: "Processos vinculados", aba: "processos-casos" },
+          { n: licitacoesEmAndamento, rotulo: "Licitações em andamento", aba: "licitacoes" },
+          { n: assessoria.documents.length, rotulo: "Documentos no catálogo", aba: "documentos" },
+        ].map((k) => (
           <Link
-            key={t.key}
-            href={`/assessoria/${assessoria.id}?tab=${t.key}`}
-            className={`text-sm font-semibold px-3.5 py-2.5 border-b-2 -mb-0.5 transition-colors ${
-              tab === t.key
-                ? "border-marca-tx text-tx"
-                : "border-transparent text-tx-2 hover:text-tx"
-            }`}
+            key={k.aba}
+            href={`/assessoria/${assessoria.id}?tab=${k.aba}`}
+            className="flex-1 min-w-[150px] px-5 py-4 border-l border-regua transition-colors duration-100 ease-out hover:bg-acao-bg"
           >
-            {t.label}
+            <p className="text-destaque font-bold text-tx tabular-nums">{k.n}</p>
+            <p className="text-etiqueta text-tx-2 mt-0.5">{k.rotulo}</p>
           </Link>
         ))}
+      </div>
+
+      {/* A guia da gaveta, igual à de /processos/[id] — a tela irmã desta, na MESMA seção do rail
+          (Jurídico, faixa anil). Esta usava sublinhado de 2px e a outra usa a aba chanfrada que é
+          a assinatura formal do sistema: duas gramáticas de navegação para o mesmo gesto, dentro
+          da mesma seção. A faixa anil é a da seção, não uma escolha desta tela. */}
+      <div className="flex flex-wrap items-end gap-[3px] border-b-2 border-faixa-anil mb-6">
+        {TABS.map((t, i) => {
+          const ativa = tab === t.key;
+          return (
+            <Link
+              key={t.key}
+              href={`/assessoria/${assessoria.id}?tab=${t.key}`}
+              aria-current={ativa ? "page" : undefined}
+              className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
+                ativa
+                  ? "bg-faixa-anil text-rotulo border-faixa-anil"
+                  : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
+              }`}
+            >
+              <span className="opacity-70 mr-1.5 tabular-nums">{i + 1}</span>
+              {t.label}
+            </Link>
+          );
+        })}
       </div>
 
       {tab === "geral" && <AssessoriaOverviewTab assessoria={assessoria} />}
