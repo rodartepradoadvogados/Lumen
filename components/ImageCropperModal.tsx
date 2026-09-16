@@ -148,7 +148,7 @@ export default function ImageCropperModal({
               className="w-full accent-acao"
             />
           </div>
-          <p className="text-[11px] text-tx-2 text-center">Arraste a foto para posicionar e use o controle para dar zoom.</p>
+          <p className="text-etiqueta text-tx-2 text-center">Arraste a foto para posicionar e use o controle para dar zoom.</p>
           <div className="flex gap-2 w-full">
             <button onClick={onCancel} className="flex-1 text-sm font-semibold text-tx-2 hover:text-tx py-2.5 border border-regua">
               Cancelar

@@ -1,91 +1,124 @@
 ---
 name: Lúmen
-description: Sistema de gestão jurídica — livro-razão vivo de processos, financeiro e comunicação, no sistema visual Modernist
+description: Sistema de gestão jurídica no mundo visual "Guias" — o arquivo de cartório com as guias todas para cima
 colors:
-  acao: "#8a2f42"
-  acao-hover: "#9c3a4d"
-  acao-tx: "#f7eef0"
-  acao-light: "#a8495c"
-  marca-bg: "rgba(138, 47, 66, 0.15)"
-  vinho: "#ae1800"
-  urgente: "#b3261e"
-  urgente-bg: "rgba(179, 38, 30, 0.1)"
-  aviso: "#9a6700"
-  aviso-bg: "rgba(154, 103, 0, 0.12)"
-  concluido: "#1c6b52"
-  concluido-bg: "rgba(28, 107, 82, 0.1)"
-  fonte-pje: "#2f6fb0"
-  ouro-acento: "#a6790f"
-  ardosia-noturna: "#16191d"
-  rail-marca: "#c9707f"
-  sf-fundo: "#f3f2f2"
-  sf-superficie: "#ffffff"
-  sf-apoio: "#eae9e9"
-  regua: "#d7d3d3"
-  regua-forte: "#bab6b6"
-  tx: "#201e1d"
-  tx-2: "#605d5d"
-  tx-3: "#9b9797"
+  papel: "#ddd7c8"
+  ficha: "#f0ece1"
+  ficha-alt: "#e7e2d5"
+  gaveta: "#c9c2b0"
+  linha: "#b9b1a0"
+  linha-forte: "#9b9184"
+  tinta: "#23211c"
+  tinta-2: "#45413c"
+  tinta-3: "#625d55"
+  faixa-ardosia: "#3f5a66"
+  faixa-oliva: "#57613a"
+  faixa-ocre: "#765a1a"
+  faixa-tijolo: "#8c4327"
+  faixa-ameixa: "#5b3a52"
+  risco-vencido: "#a8221b"
+  risco-hoje: "#8b5009"
+  risco-em-dia: "#2e694e"
+  rotulo: "#f7f4ec"
+  acao: "#8c4327"
+  acao-hover: "#a04f30"
+  acao-tx: "#f7f4ec"
+  papel-escuro: "#22211d"
+  ficha-escuro: "#2c2b26"
+  ficha-alt-escuro: "#333128"
+  gaveta-escuro: "#191815"
+  linha-escuro: "#403e37"
+  linha-forte-escuro: "#5b574c"
+  tinta-escuro: "#e8e3d6"
+  tinta-2-escuro: "#bbb6aa"
+  tinta-3-escuro: "#9d9a8f"
+  faixa-ardosia-escuro: "#7fa6b8"
+  faixa-oliva-escuro: "#9aa86a"
+  faixa-ocre-escuro: "#d3a63f"
+  faixa-tijolo-escuro: "#d58663"
+  faixa-ameixa-escuro: "#b58eab"
+  risco-vencido-escuro: "#eb786f"
+  risco-hoje-escuro: "#e0a13c"
+  risco-em-dia-escuro: "#5fbc90"
+  rotulo-escuro: "#1b1a16"
+  papel-impresso: "#d5cec0"
+  # A folha A4 e fisicamente branca — o mundo manila e da tela, nao do papel impresso.
+  folha-a4: "#ffffff"
 typography:
-  display:
+  tarja:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "24px"
-    fontWeight: 800
-    lineHeight: 1.2
-    letterSpacing: "normal"
-  headline:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "24px"
+    fontSize: "40px"
     fontWeight: 700
+    lineHeight: 1
+    letterSpacing: "-0.02em"
+  autuacao:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "28px"
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: "-0.015em"
+  guia:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 680
     lineHeight: 1.25
-  title:
+    letterSpacing: "-0.01em"
+  destaque:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "16px"
-    fontWeight: 600
-    lineHeight: 1.3
-  body:
+    fontSize: "18px"
+    fontWeight: 650
+    lineHeight: 1.35
+  corpo:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "14px"
+    fontSize: "15px"
     fontWeight: 400
-    lineHeight: 1.5
-  label:
+    lineHeight: 1.55
+  etiqueta:
     fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "12px"
-    fontWeight: 500
-    lineHeight: 1.3
-    letterSpacing: "0.02em"
+    fontWeight: 650
+    lineHeight: 1.35
+    letterSpacing: "0.08em"
 rounded:
-  sm: "4px"
-  md: "6px"
-  lg: "10px"
+  none: "0"
+  sm: "2px"
+  md: "2px"
+  lg: "2px"
   full: "9999px"
 components:
+  campo:
+    backgroundColor: "{colors.ficha}"
+    textColor: "{colors.tinta}"
+    rounded: "{rounded.sm}"
+    padding: "0.5rem 0.7rem"
+    typography: { fontWeight: 400, fontSize: "15px" }
   button-primary:
     backgroundColor: "{colors.acao}"
-    textColor: "{colors.acao-tx}"
-    rounded: "{rounded.md}"
+    textColor: "{colors.rotulo}"
+    rounded: "{rounded.sm}"
     padding: "0 16px"
     height: "32px"
-    typography: { fontWeight: 600, fontSize: "14px" }
+    typography: { fontWeight: 650, fontSize: "12px" }
   button-primary-hover:
     backgroundColor: "{colors.acao-hover}"
   button-secondary:
     backgroundColor: "transparent"
-    textColor: "{colors.tx}"
-    rounded: "{rounded.md}"
+    textColor: "{colors.tinta}"
+    rounded: "{rounded.sm}"
     padding: "0 16px"
     height: "32px"
-    typography: { fontWeight: 600, fontSize: "14px" }
+    typography: { fontWeight: 650, fontSize: "12px" }
   card:
-    backgroundColor: "{colors.sf-superficie}"
-    rounded: "{rounded.lg}"
+    backgroundColor: "{colors.ficha}"
+    rounded: "{rounded.sm}"
     padding: "20px"
   badge:
-    backgroundColor: "{colors.sf-apoio}"
-    textColor: "{colors.tx-2}"
-    rounded: "{rounded.full}"
+    backgroundColor: "{colors.ficha-alt}"
+    textColor: "{colors.tinta-2}"
+    rounded: "{rounded.sm}"
     padding: "2px 8px"
-    typography: { fontWeight: 600, fontSize: "11px" }
+    typography: { fontWeight: 650, fontSize: "12px" }
+
 ---
 
 > ⚠️ **ESTE DOCUMENTO ESTÁ EM PROCESSO DE SUBSTITUIÇÃO — 2026-09-16.**
@@ -94,14 +127,14 @@ components:
 > ele não for reescrito no fim do trabalho (fase F9 do plano mestre), leia o que está abaixo como
 > **registro do que existe hoje**, não como regra a seguir.
 >
-> **Correção de fato, medida em 2026-09-16 com `impeccable detect` sobre 263 arquivos:** a rampa
-> tipográfica descrita adiante (24 / 16 / 14 / 12) **não é a que o código usa**. O código usa
-> **11px (422 usos), 13px (376) e 10px (126)**, em 16 tamanhos distintos, com 1.003 ocorrências fora
-> da rampa. Nenhum dos três tamanhos mais usados existe na rampa documentada.
+> **O cabeçalho acima já é o mundo novo.** Ele foi reescrito em 2026-09-16, na fase F3, a partir do
+> que foi de fato construído em `tailwind.config.ts` e `app/globals.css` — não é uma intenção, é uma
+> descrição. Antes disso ele documentava uma rampa (24/16/14/12) que o código não usava em lugar
+> nenhum, e um token de texto (`--tx-3`) que reprovava WCAG AA nas cinco superfícies. Sem essa
+> correção o detector mede contra um alvo morto e acusa o sistema novo como deriva.
 >
-> Da mesma forma, o token `--tx-3` documentado abaixo **reprova WCAG AA** em todas as superfícies
-> (2,96:1 no PWA claro, 3,30:1 no Painel Mestre claro, ≈2,8:1 no site) e **já está autorizado a
-> mudar** (decisão D-07).
+> **O texto abaixo do cabeçalho ainda é o mundo antigo** e continua valendo só como registro. Ele é
+> reescrito por inteiro na fase F9, a partir do produto construído.
 >
 > Diagnóstico completo: `.impeccable/plano-mestre/diagnostico/`. Plano: `.impeccable/plano-mestre/PLANO-MESTRE-REDESIGN.md`.
 

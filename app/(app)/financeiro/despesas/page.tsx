@@ -164,7 +164,7 @@ export default async function DespesasPage({
               <ChevronDown size={16} className="text-tx-3 shrink-0 transition-transform group-open:rotate-180" />
             </summary>
             <div className="border-t border-regua">
-              <p className="text-[11px] text-tx-2 px-5 pt-3 pb-1">
+              <p className="text-etiqueta text-tx-2 px-5 pt-3 pb-1">
                 Despesas recorrentes ativas — cada mês já vira uma conta normal (ex.: &ldquo;nome — {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}&rdquo;) na aba{" "}
                 <strong>Contas a Pagar</strong> abaixo, com Dar Baixa e anexo de comprovante iguais a qualquer outro lançamento. &ldquo;Encerrar&rdquo; aqui só para de gerar os meses futuros.
               </p>
@@ -230,10 +230,6 @@ export default async function DespesasPage({
           bankAccounts={bankAccounts}
         />
       </Card>
-      <style>{`
-        .fp-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }
-        .fp-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </div>
   );
 }

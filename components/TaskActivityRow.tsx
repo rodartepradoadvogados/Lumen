@@ -96,7 +96,7 @@ export default function TaskActivityRow({
               {task.title}
             </p>
             {task.commentCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[11px] text-tx-3">
+              <span className="flex items-center gap-0.5 text-etiqueta text-tx-3">
                 <MessageSquare size={11} /> {task.commentCount}
               </span>
             )}

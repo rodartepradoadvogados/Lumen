@@ -152,22 +152,6 @@ export default function PlatformExpenseModal({
           </form>
         </ModalShell>
       )}
-      <style jsx global>{`
-        .pm-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          background: var(--sf-apoio);
-          border: 1px solid var(--regua-forte);
-          color: var(--tx);
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-        }
-        .pm-input:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px color-mix(in srgb, var(--marca) 40%, transparent);
-        }
-      `}</style>
     </>
   );
 }

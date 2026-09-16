@@ -288,7 +288,7 @@ export default function EditReceivableModal({
                       />
                     </div>
                   ) : (
-                    <p className="text-[11px] text-tx-2">
+                    <p className="text-etiqueta text-tx-2">
                       Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
                     </p>
                   )}
@@ -296,12 +296,12 @@ export default function EditReceivableModal({
 
                 <SecaoLancamento title="Parcelamento" tone="rosa">
                   {receivable.installmentTotal ? (
-                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+                    <p className="text-etiqueta text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                       Parcela {receivable.installmentNumber}/{receivable.installmentTotal} de um lançamento parcelado — para mudar quantidade/intervalo,
                       lance um novo parcelamento.
                     </p>
                   ) : (
-                    <p className="text-[11px] text-tx-2">Lançamento único, não parcelado.</p>
+                    <p className="text-etiqueta text-tx-2">Lançamento único, não parcelado.</p>
                   )}
                   <div>
                     <label className={labelCls}>Nº do boleto desta parcela</label>
@@ -324,9 +324,9 @@ export default function EditReceivableModal({
                       {receivable.paymentReceiptNumber && <> · comprovante {receivable.paymentReceiptNumber}</>}
                     </p>
                   ) : (
-                    <p className="text-[11px] text-tx-2">Ainda não há nenhuma baixa lançada nesta conta.</p>
+                    <p className="text-etiqueta text-tx-2">Ainda não há nenhuma baixa lançada nesta conta.</p>
                   )}
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     Para dar baixa (parcial ou integral) ou reabrir, use os botões na listagem — esta tela edita só o cadastro.
                   </p>
                 </SecaoLancamento>
@@ -335,19 +335,19 @@ export default function EditReceivableModal({
               <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="flex items-center gap-4">
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Bruto</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Bruto</span>
                     <span className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(amountNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Desconto</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Desconto</span>
                     <span className="text-sm font-semibold tabular-nums text-urgente">-{formatCurrency(discountNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Acréscimo</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Acréscimo</span>
                     <span className="text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">+{formatCurrency(surchargeNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Líquido</span>
                     <span className=" text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                   </div>
                 </div>
@@ -368,10 +368,6 @@ export default function EditReceivableModal({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid rgba(15,31,61,0.12); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
-        .fin-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(198,160,92,0.4); }
-      `}</style>
     </>
   );
 }

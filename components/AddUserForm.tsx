@@ -20,7 +20,7 @@ export default function AddUserForm() {
       email: String(formData.get("email") || ""),
       role: String(formData.get("role")),
       oab: String(formData.get("oab") || ""),
-      color: String(formData.get("color") || "#0f1f3d"),
+      color: String(formData.get("color") || "#3f5a66"),
     });
     setLoading(false);
     if (result?.error) {
@@ -45,7 +45,7 @@ export default function AddUserForm() {
           <option value="Contador">Contador</option>
         </select>
         <input name="oab" placeholder="OAB (opcional)" className="cfg-input" />
-        <input name="color" type="color" defaultValue="#0f1f3d" className="cfg-input h-9 p-1" />
+        <input name="color" type="color" defaultValue="#3f5a66" className="cfg-input h-9 p-1" />
         <button
           type="submit"
           disabled={loading}

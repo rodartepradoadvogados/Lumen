@@ -116,7 +116,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                 </Link>
                 <p className="text-xs text-tx-2">{task.case.title}</p>
                 {(task.case.clientsLabel || task.case.partiesLabel) && (
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     {task.case.clientsLabel && <>Cliente: {task.case.clientsLabel}</>}
                     {task.case.clientsLabel && task.case.partiesLabel && " · "}
                     {task.case.partiesLabel && <>Parte contrária: {task.case.partiesLabel}</>}
@@ -184,7 +184,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                   // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio +
                   // filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
                   <div className={`reuniao-panel border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
-                    <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
+                    <p className={`text-etiqueta font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                       {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                     </p>
                     <div className="flex gap-4">
@@ -255,13 +255,13 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                 <div className="space-y-3 max-h-56 overflow-y-auto scrollbar-thin">
                   {task.comments.map((cm) => (
                     <div key={cm.id} className="flex gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-[10px] font-bold shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-etiqueta font-bold shrink-0">
                         {cm.authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm">
                           <span className="font-semibold text-tx">{cm.authorName}</span>{" "}
-                          <span className="text-[11px] text-tx-3">{formatDate(cm.createdAt)}</span>
+                          <span className="text-etiqueta text-tx-3">{formatDate(cm.createdAt)}</span>
                         </p>
                         <p className="text-sm text-tx-2 mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                       </div>
@@ -274,7 +274,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           </div>
 
           <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center gap-2 flex-wrap bg-sf-apoio">
-            {error && <p className="w-full text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+            {error && <p className="w-full text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
             <button
               type="submit"
               form="task-detail-form"
@@ -309,9 +309,9 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           width: 100%;
           margin-top: 0.25rem;
           border: 1px solid var(--regua-forte);
-          border-radius: 0.3125rem;
+          border-radius: 2px;
           padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
+          font-size: 0.9375rem;
           color: var(--tx);
           /* --sf-apoio, não --sf-superficie: o modal em si (ModalShell, bg-sf) já usa
              --sf-superficie — campo com o mesmo tom do fundo do modal é o que fazia os campos

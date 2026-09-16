@@ -68,7 +68,7 @@ export default function SelecaoItensRelatorioModal({
             {blocosAoVivo.map((b) => (
               <div key={b.chave} className="bg-sf-apoio border border-regua px-3 py-2 border-l-[3px] border-l-acao">
                 <div className="text-xl font-bold text-tx tabular-nums leading-none">{b.valorSelecionado}</div>
-                <div className="text-[10.5px] font-semibold text-tx-2 mt-0.5">{b.rotulo}</div>
+                <div className="text-etiqueta font-semibold text-tx-2 mt-0.5">{b.rotulo}</div>
               </div>
             ))}
           </div>
@@ -132,7 +132,7 @@ export default function SelecaoItensRelatorioModal({
                           </a>
                         )}
                       </div>
-                      <p className="text-[11px] text-tx-3 mt-0.5">
+                      <p className="text-etiqueta text-tx-3 mt-0.5">
                         {d.tipoLabel}
                         {d.assessoriaNome && <> · {d.assessoriaNome}</>}
                         {d.origemLabel && <> · {d.origemLabel}</>}

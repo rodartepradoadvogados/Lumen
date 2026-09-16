@@ -103,7 +103,7 @@ export default function MigrarPastaMaeButton() {
         )}
       </div>
 
-      <p className="text-[11px] text-tx-3">
+      <p className="text-etiqueta text-tx-3">
         Move as raízes &ldquo;Lúmen - *&rdquo; soltas para dentro da pasta-mãe &ldquo;Lúmen&rdquo; e organiza o que restou das
         pastas antigas &ldquo;RP Financeiro - *&rdquo;. Nada é apagado — o que sai do lugar vai para a Lixeira do Drive,
         reversível por 30 dias.
@@ -174,7 +174,7 @@ export default function MigrarPastaMaeButton() {
             <div className="border border-regua overflow-x-auto scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="bg-sf-apoio">
-                  <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2">
+                  <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2">
                     <th className="px-3 py-2 font-semibold w-[13%]">Tipo</th>
                     <th className="px-3 py-2 font-semibold w-[18%]">Registro</th>
                     <th className="px-3 py-2 font-semibold w-[22%]">Origem no Drive</th>
@@ -189,7 +189,7 @@ export default function MigrarPastaMaeButton() {
                       <td className="px-3 py-2.5 align-top font-medium text-tx">{m.label}</td>
                       <td className="px-3 py-2.5 align-top text-tx-2 break-all">{m.path}</td>
                       <td className="px-3 py-2.5 align-top">
-                        <span className={`inline-block px-2 py-0.5 text-[11px] ${movidoBadgeClass(m.action)}`}>
+                        <span className={`inline-block px-2 py-0.5 text-etiqueta ${movidoBadgeClass(m.action)}`}>
                           {m.action === "CONFLITO" ? "Conflito — decisão manual" : resultado ? "Movido" : "Será movido"}
                         </span>
                       </td>
@@ -208,7 +208,7 @@ export default function MigrarPastaMaeButton() {
                 <FileQuestion size={14} className="shrink-0" /> {exibido.naoIdentificados.length} item(ns) não identificado(s) — nada
                 foi movido nem apagado
               </p>
-              <p className="text-[11px] text-tx-2">
+              <p className="text-etiqueta text-tx-2">
                 Não correspondem a nenhum registro do sistema. Abra cada um no Drive para decidir manualmente o que fazer.
               </p>
               <ul className="space-y-1 pt-0.5">

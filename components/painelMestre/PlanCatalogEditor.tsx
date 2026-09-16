@@ -151,7 +151,7 @@ export function PlansEditor({ plans }: { plans: PlanRow[] }) {
 
               <div className="flex flex-col gap-2 mb-3">
                 <div>
-                  <label className="text-[11px] text-tx-3">Limite de OABs</label>
+                  <label className="text-etiqueta text-tx-3">Limite de OABs</label>
                   <input
                     type="number"
                     min={0}
@@ -162,7 +162,7 @@ export function PlansEditor({ plans }: { plans: PlanRow[] }) {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-tx-3">Limite de processos</label>
+                  <label className="text-etiqueta text-tx-3">Limite de processos</label>
                   <input
                     type="number"
                     min={0}

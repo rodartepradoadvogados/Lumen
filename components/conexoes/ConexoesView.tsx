@@ -85,7 +85,7 @@ function RunsTable({ runs, showIntegration }: { runs: (IntegrationRunRow & { int
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-[10px] font-semibold uppercase tracking-[.1em] text-tx-2 border-b border-regua">
+          <tr className="text-left text-etiqueta font-semibold uppercase tracking-[.1em] text-tx-2 border-b border-regua">
             <th className="px-5 py-2 font-semibold w-[150px]">Data/hora</th>
             {showIntegration && <th className="px-2 py-2 font-semibold">Integração</th>}
             <th className="px-2 py-2 font-semibold w-[90px]">Status</th>
@@ -207,14 +207,14 @@ function IntegrationDetail({ item, runs }: { item: ConexaoItem; runs: Integratio
 
       {item.frequenciaNota && (
         <div>
-          <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">Frequência</h3>
+          <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] mb-1.5">Frequência</h3>
           <p className="text-sm text-tx-2">{item.frequenciaNota}</p>
         </div>
       )}
 
       <div className="border-t-2 border-regua-forte">
         <div className="flex items-center justify-between px-1 py-3">
-          <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Log de execução</h3>
+          <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">Log de execução</h3>
           <div className="flex gap-1">
             {([7, 30] as const).map((n) => (
               <button
@@ -262,7 +262,7 @@ export default function ConexoesView({
     // outra tela do produto).
     <div className="animate-fade-in">
       <div className="px-6 py-5 border-b-2 border-regua-forte">
-        <h1 className="text-[30px] font-extrabold text-tx leading-tight">Conexões</h1>
+        <h1 className="text-autuacao font-extrabold text-tx leading-tight">Conexões</h1>
         <p className="text-sm text-tx-2 mt-1">
           {totalIntegracoes} integrações · {exigemAtencao} exige{exigemAtencao === 1 ? "" : "m"} atenção
         </p>
@@ -272,7 +272,7 @@ export default function ConexoesView({
         <div className="w-full md:w-[520px] shrink-0 border-b-2 md:border-b-0 md:border-r-2 border-regua-forte">
           {grupos.map((g) => (
             <div key={g.grupo}>
-              <p className="px-5 py-2 text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] bg-sf-apoio">{g.grupo}</p>
+              <p className="px-5 py-2 text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] bg-sf-apoio">{g.grupo}</p>
               <div className="divide-y divide-regua">
                 {g.itens.map((item) => {
                   const active = item.id === selectedId;

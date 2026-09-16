@@ -71,7 +71,7 @@ export default function NewAssessoriaForm({ clients, users }: { clients: ClientO
       {/* Sem classe .dark própria: --regua-forte/--tx/--sf-superficie (app/globals.css) já trocam
           de valor sozinhas entre Manhã e Noite — nenhum hex cravado (DESIGN-SYSTEM.md §0/§16). */}
       <style>{`
-        .input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: var(--tx); background: var(--sf-superficie); }
+        .input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 2px; padding: 0.5rem 0.75rem; font-size: 0.9375rem; color: var(--tx); background: var(--sf-superficie); }
         .input:focus { outline: none; box-shadow: 0 0 0 2px var(--acao-bg); }
       `}</style>
     </form>

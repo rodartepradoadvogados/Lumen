@@ -104,7 +104,7 @@ export default function DistributePublicationsButton() {
               ) : (
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-sf-apoio z-10">
-                    <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3">
+                    <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-3">
                       <th className="px-4 py-2.5 font-semibold w-[42%]">Processo / do que se trata</th>
                       <th className="px-4 py-2.5 font-semibold">Advogado(s)</th>
                       <th className="px-4 py-2.5 font-semibold">Prazo</th>

@@ -138,7 +138,7 @@ export default function ModoReuniaoView({
                 <ul className="text-sm space-y-1.5 text-tx print:text-black">
                   {pendingTasks.map((t) => (
                     <li key={t.id} className="flex items-baseline gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-atencao print:text-black/60 shrink-0">
+                      <span className="text-etiqueta font-semibold uppercase tracking-wide text-atencao print:text-black/60 shrink-0">
                         {taskTypeLabels[t.type] ?? t.type}
                       </span>
                       <span className="font-medium">{t.title}</span>

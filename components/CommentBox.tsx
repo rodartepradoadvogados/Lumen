@@ -51,7 +51,7 @@ export default function CommentBox({
               key={u.id}
               type="button"
               onClick={() => setContent((c) => `${c}${c.endsWith(" ") || c === "" ? "" : " "}@${u.name} `)}
-              className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2 hover:bg-acao-bg hover:text-acao"
+              className="text-etiqueta font-medium px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2 hover:bg-acao-bg hover:text-acao"
             >
               @{u.name.split(" ")[0]}
             </button>

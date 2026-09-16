@@ -17,7 +17,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           <AlertTriangle size={18} className="text-urgente" />
         </div>
         <h1 className="text-base font-bold text-tx">Algo deu errado</h1>
-        <p className="text-[13px] text-tx-2">
+        <p className="text-corpo text-tx-2">
           Não foi possível carregar esta página. Tente novamente ou volte para o Início.
         </p>
         <div className="flex flex-col items-stretch gap-2 pt-1">

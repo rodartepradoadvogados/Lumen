@@ -154,7 +154,7 @@ export default async function MobileHome() {
               <Card className="p-4 h-full">
                 <TileBadge icon={Phone} tone="bordo" />
                 <p className="text-sm font-bold text-tx mt-2.5">Novo Atendimento</p>
-                <p className="text-[13px] text-tx-2 mt-0.5">Abrir caso ou contato</p>
+                <p className="text-corpo text-tx-2 mt-0.5">Abrir caso ou contato</p>
               </Card>
             </Link>
           )}
@@ -165,14 +165,14 @@ export default async function MobileHome() {
             abrir sem precisar entrar. Card largo (não tile) de propósito: uma lista de verdade
             não cabe direito no formato compacto dos atalhos de "Acompanhar" abaixo. */}
         <Link href="/m/alertas" className="flex items-center justify-between gap-2 px-1">
-          <span className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-tx-2">
+          <span className="flex items-center gap-1.5 text-corpo font-bold uppercase tracking-wide text-tx-2">
             <Bell size={12} strokeWidth={1.5} /> Central de Alertas
             {/* Mesmo glow reservado do portal (app/globals.css, ".live-dot") — indicador "isto
                 está acontecendo agora", só quando há alerta pendente de verdade. */}
             {totalAlerts > 0 && <span className="live-dot" aria-hidden="true" />}
           </span>
           {totalAlerts > 0 && (
-            <span className="flex items-center gap-1 text-[13px] font-semibold text-urgente">
+            <span className="flex items-center gap-1 text-corpo font-semibold text-urgente">
               {totalAlerts} pendente{totalAlerts > 1 ? "s" : ""} <ChevronRight size={13} strokeWidth={1.5} />
             </span>
           )}
@@ -195,13 +195,13 @@ export default async function MobileHome() {
               >
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-tx truncate">{a.title}</span>
-                  {a.subtitle && <span className="block text-[13px] text-tx-2 mt-0.5 truncate">{a.subtitle}</span>}
+                  {a.subtitle && <span className="block text-corpo text-tx-2 mt-0.5 truncate">{a.subtitle}</span>}
                 </span>
-                <span className="text-[13px] text-tx-3 shrink-0 whitespace-nowrap">{a.date.toLocaleDateString("pt-BR")}</span>
+                <span className="text-corpo text-tx-3 shrink-0 whitespace-nowrap">{a.date.toLocaleDateString("pt-BR")}</span>
               </AlertRow>
             ))}
             {totalAlerts > alertsPreview.length && (
-              <Link href="/m/alertas" className="block px-4 py-2.5 text-[13px] font-semibold text-acao hover:underline">
+              <Link href="/m/alertas" className="block px-4 py-2.5 text-corpo font-semibold text-acao hover:underline">
                 Ver todos os {totalAlerts} alertas →
               </Link>
             )}
@@ -331,18 +331,18 @@ function TileLink({
     <Link href={href} className="block h-full">
       <Card className="p-3.5 h-full" accent={accent}>
         <TileBadge icon={icon} tone={tone} size={17} />
-        <p className="text-[13px] font-bold text-tx mt-2.5 leading-tight">{title}</p>
+        <p className="text-corpo font-bold text-tx mt-2.5 leading-tight">{title}</p>
         {count !== undefined ? (
-          <p className="text-[13px] mt-0.5">
+          <p className="text-corpo mt-0.5">
             <span className={`font-extrabold tabular-nums ${countTone === "bordo" ? "text-urgente" : "text-tx"}`}>
               {count}
             </span>{" "}
             <span className="text-tx-2">{countLabel}</span>
           </p>
         ) : (
-          subtitle && <p className="text-[13px] text-tx-2 mt-0.5 leading-snug">{subtitle}</p>
+          subtitle && <p className="text-corpo text-tx-2 mt-0.5 leading-snug">{subtitle}</p>
         )}
-        {subCaption && <p className="text-[13px] text-tx-2 mt-0.5 tabular-nums">{subCaption}</p>}
+        {subCaption && <p className="text-corpo text-tx-2 mt-0.5 tabular-nums">{subCaption}</p>}
       </Card>
     </Link>
   );
@@ -376,7 +376,7 @@ function HubCard({
           <TileBadge icon={Icon} tone={tone} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-tx">{title}</p>
-            {subtitle && <p className="text-[13px] text-tx-2 truncate">{subtitle}</p>}
+            {subtitle && <p className="text-corpo text-tx-2 truncate">{subtitle}</p>}
           </div>
           <ChevronDown size={16} strokeWidth={1.5} className="text-tx-3 transition-transform group-open:rotate-180 shrink-0" />
         </summary>
@@ -387,7 +387,7 @@ function HubCard({
             <ChevronDown size={15} strokeWidth={1.5} className="text-tx-3 transition-transform group-open:rotate-180 mt-1.5" />
           </div>
           <p className="text-sm font-bold text-tx mt-2.5">{title}</p>
-          {subtitle && <p className="text-[13px] text-tx-2 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-corpo text-tx-2 mt-0.5">{subtitle}</p>}
         </summary>
       )}
       <div className="px-4 pb-4 grid grid-cols-2 gap-2">
@@ -405,7 +405,7 @@ function HubChip({ href, label, icon: Icon }: Chip) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 border border-regua text-tx-2 px-3 py-2.5 text-[13px] font-semibold hover:bg-sf-apoio transition-colors"
+      className="flex items-center gap-2 border border-regua text-tx-2 px-3 py-2.5 text-corpo font-semibold hover:bg-sf-apoio transition-colors"
     >
       <Icon size={15} strokeWidth={1.5} className="shrink-0" />
       <span className="truncate">{label}</span>

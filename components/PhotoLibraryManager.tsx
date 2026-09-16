@@ -96,11 +96,11 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
 
   return (
     <div className="space-y-4 p-5">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <form onSubmit={handleUpload} className="flex gap-2 flex-wrap items-end border border-regua p-3">
         <div className="flex-1 min-w-[200px]">
-          <label className="text-[11px] font-medium text-tx-2">Arquivo de imagem</label>
+          <label className="text-etiqueta font-medium text-tx-2">Arquivo de imagem</label>
           <input
             id="photo-file-input"
             type="file"
@@ -110,7 +110,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           />
         </div>
         <div className="min-w-[180px]">
-          <label className="text-[11px] font-medium text-tx-2">Categoria/Área</label>
+          <label className="text-etiqueta font-medium text-tx-2">Categoria/Área</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="cfg-input w-full">
             {PHOTO_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -120,7 +120,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           </select>
         </div>
         <div className="min-w-[140px]">
-          <label className="text-[11px] font-medium text-tx-2">Tribunal</label>
+          <label className="text-etiqueta font-medium text-tx-2">Tribunal</label>
           <select value={court} onChange={(e) => setCourt(e.target.value)} className="cfg-input w-full">
             {PHOTO_COURTS.map((c) => (
               <option key={c.value} value={c.value}>
@@ -130,7 +130,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="text-[11px] font-medium text-tx-2">Legenda (opcional)</label>
+          <label className="text-etiqueta font-medium text-tx-2">Legenda (opcional)</label>
           <input
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
@@ -163,11 +163,11 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
                   <Badge color="navy">{photo.category}</Badge>
                   <Badge color="gold">{photo.court}</Badge>
                 </div>
-                {photo.caption && <p className="text-[11px] text-tx-2 truncate">{photo.caption}</p>}
+                {photo.caption && <p className="text-etiqueta text-tx-2 truncate">{photo.caption}</p>}
                 <button
                   onClick={() => handleDelete(photo.id)}
                   disabled={pending}
-                  className="w-full flex items-center justify-center gap-1 mt-1 px-2 py-1 text-[11px] font-semibold text-vinho border border-regua hover:bg-sf-apoio disabled:opacity-40"
+                  className="w-full flex items-center justify-center gap-1 mt-1 px-2 py-1 text-etiqueta font-semibold text-vinho border border-regua hover:bg-sf-apoio disabled:opacity-40"
                 >
                   <Trash2 size={12} /> Excluir
                 </button>

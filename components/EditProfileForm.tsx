@@ -96,7 +96,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
           >
             {uploading ? "Enviando..." : "Trocar foto"}
           </button>
-          <p className="text-[11px] text-tx-2 mt-0.5">Aparece no lugar das iniciais em todo o sistema.</p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">Aparece no lugar das iniciais em todo o sistema.</p>
         </div>
         <input
           ref={fileInputRef}
@@ -180,17 +180,13 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         </div>
       </div>
 
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg border border-urgente/20 rounded-md px-2.5 py-1.5">{error}</p>}
-      {success && <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-md px-2.5 py-1.5">Perfil atualizado com sucesso.</p>}
+      {error && <p className="text-etiqueta text-urgente bg-urgente-bg border border-urgente/20 rounded-md px-2.5 py-1.5">{error}</p>}
+      {success && <p className="text-etiqueta text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-400/15 border border-emerald-200 dark:border-emerald-400/20 rounded-md px-2.5 py-1.5">Perfil atualizado com sucesso.</p>}
 
       <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-sm font-semibold px-4 py-2 disabled:opacity-50">
         {pending ? "Salvando..." : "Salvar alterações"}
       </button>
 
-      <style jsx>{`
-        .profile-input { border: 1px solid var(--regua-forte); border-radius: 0; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: var(--sf-superficie); color: var(--tx); }
-        .profile-input:focus { outline: none; box-shadow: 0 0 0 2px var(--marca-bg); }
-      `}</style>
     </form>
   );
 }

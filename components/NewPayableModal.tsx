@@ -455,7 +455,7 @@ export default function NewPayableModal({
                               />
                               Criar conta a receber vinculada para reembolso deste valor pelo cliente?
                             </label>
-                            <p className="text-[11px] text-tx-2 mt-1 ml-6">
+                            <p className="text-etiqueta text-tx-2 mt-1 ml-6">
                               Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor líquido total desta
                               despesa{parcelado ? " (parcelada ou não, o reembolso nasce como um único lançamento pelo total)" : ""}.
                             </p>
@@ -509,7 +509,7 @@ export default function NewPayableModal({
                         required={!parcelado}
                         className="fin-input disabled:opacity-50"
                       />
-                      {parcelado && <p className="text-[11px] text-tx-2 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
+                      {parcelado && <p className="text-etiqueta text-tx-2 mt-1">Substituído pela tabela de parcelas, abaixo.</p>}
                     </div>
                     <div>
                       <label className={labelCls}>Desconto (R$)</label>
@@ -545,7 +545,7 @@ export default function NewPayableModal({
                   )}
                   {recorrente ? (
                     <>
-                      <p className="text-[11px] text-tx-2">
+                      <p className="text-etiqueta text-tx-2">
                         Ex.: honorário de advogado contratado, salário de funcionário/estagiário, assinatura de software (Claude, Jusbrasil,
                         T.I....) — gera a conta automaticamente todo mês, sem precisar lançar de novo. Encerre quando o contrato/assinatura
                         acabar (fica um card &quot;Despesa recorrente&quot; no topo da listagem, com o botão Encerrar).
@@ -581,7 +581,7 @@ export default function NewPayableModal({
                           />
                         </div>
                       ) : (
-                        <p className="text-[11px] text-tx-2">
+                        <p className="text-etiqueta text-tx-2">
                           Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
                         </p>
                       )}
@@ -595,7 +595,7 @@ export default function NewPayableModal({
                     <input type="checkbox" checked={parcelado} disabled={pago} onChange={(e) => handleParceladoToggle(e.target.checked)} />
                     Lançamento parcelado
                   </label>
-                  {pago && <p className="text-[11px] text-tx-3">Indisponível com &quot;Já foi pago&quot; marcado, abaixo.</p>}
+                  {pago && <p className="text-etiqueta text-tx-3">Indisponível com &quot;Já foi pago&quot; marcado, abaixo.</p>}
 
                   {parcelado && (
                     <div className="space-y-3">
@@ -637,7 +637,7 @@ export default function NewPayableModal({
                       </div>
 
                       {Math.abs(divergencia) > 0.01 && (
-                        <p className="text-[11px] text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+                        <p className="text-etiqueta text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
                           A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                           {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
                         </p>
@@ -690,7 +690,7 @@ export default function NewPayableModal({
                           </tbody>
                         </table>
                       </div>
-                      <p className="text-[11px] text-tx-2">
+                      <p className="text-etiqueta text-tx-2">
                         Parcela quitada antes do cadastro se marca na coluna &quot;Pago&quot; da própria linha — é o único caminho para lançamento
                         retroativo parcelado.
                       </p>
@@ -707,7 +707,7 @@ export default function NewPayableModal({
                     Já foi pago
                   </label>
                   {parcelado && (
-                    <p className="text-[11px] text-tx-3">
+                    <p className="text-etiqueta text-tx-3">
                       Indisponível com &quot;Lançamento parcelado&quot; marcado, acima — quite parcelas retroativas na própria tabela de parcelas.
                     </p>
                   )}
@@ -771,23 +771,23 @@ export default function NewPayableModal({
               <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="flex items-center gap-4">
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Bruto</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Bruto</span>
                     <span className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(bruto)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Desconto</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Desconto</span>
                     <span className="text-sm font-semibold tabular-nums text-urgente">
                       -{formatCurrency(parcelado ? 0 : discountNum)}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Acréscimo</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Acréscimo</span>
                     <span className="text-sm font-semibold tabular-nums text-concluido">
                       +{formatCurrency(parcelado ? 0 : surchargeNum)}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Líquido</span>
                     <span className="text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                   </div>
                 </div>
@@ -808,10 +808,6 @@ export default function NewPayableModal({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
-        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </>
   );
 }

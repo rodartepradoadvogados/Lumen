@@ -89,7 +89,7 @@ export default function InstanciaTribunalPanel({
 
       {temOrigem && (
         <div className="flex items-center justify-between gap-2 bg-sf-apoio px-3 py-2">
-          <p className="text-[11px] text-tx-2">
+          <p className="text-etiqueta text-tx-2">
             Veio de <strong>{instanciaLabel(origemInstance)}</strong>
             {tribunalOrigemSigla && (
               <>
@@ -102,7 +102,7 @@ export default function InstanciaTribunalPanel({
             type="button"
             onClick={handleRetornar}
             disabled={loading}
-            className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio disabled:opacity-50"
           >
             <Undo2 size={12} /> {loading ? "Retornando..." : "Marcar retorno dos autos"}
           </button>
@@ -114,20 +114,20 @@ export default function InstanciaTribunalPanel({
           <button
             type="button"
             onClick={() => setShowHistory((v) => !v)}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx"
+            className="inline-flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx"
           >
             <History size={12} /> {showHistory ? "Ocultar" : "Ver"} histórico de instância ({history.length})
           </button>
           {showHistory && (
             <ul className="mt-1.5 space-y-1">
               {history.map((h) => (
-                <li key={h.id} className="flex items-center justify-between gap-2 text-[11px] text-tx-2 border-b border-regua pb-1 last:border-0">
+                <li key={h.id} className="flex items-center justify-between gap-2 text-etiqueta text-tx-2 border-b border-regua pb-1 last:border-0">
                   <span>
                     {h.order}ª: {instanciaLabel(h.fromInstance)} → {instanciaLabel(h.toInstance)} ({h.toTribunalSigla})
                     {h.toInstanceDetail && ` — ${h.toInstanceDetail}`}
                     <span className="text-tx-3"> · {formatDate(h.escalatedAt)}</span>
                   </span>
-                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${h.returnedAt ? "bg-sf-apoio text-tx-2" : "bg-marca-bg text-marca-tx"}`}>
+                  <span className={`shrink-0 text-etiqueta font-semibold px-1.5 py-0.5 rounded-full ${h.returnedAt ? "bg-sf-apoio text-tx-2" : "bg-marca-bg text-marca-tx"}`}>
                     {h.returnedAt ? `Revertida em ${formatDate(h.returnedAt)}` : "Ativa"}
                   </span>
                 </li>

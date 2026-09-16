@@ -85,7 +85,7 @@ export default function MobileLicitacaoDocumentUpload({
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-full flex items-center justify-center gap-1.5 text-[13px] font-semibold text-acao border border-dashed border-regua hover:border-acao/40 py-2.5 transition-colors mt-2"
+        className="w-full flex items-center justify-center gap-1.5 text-corpo font-semibold text-acao border border-dashed border-regua hover:border-acao/40 py-2.5 transition-colors mt-2"
       >
         <Paperclip size={13} /> Anexar documento
         <input
@@ -104,7 +104,7 @@ export default function MobileLicitacaoDocumentUpload({
   return (
     <div className="border border-regua bg-sf-apoio p-2.5 space-y-2 mt-2">
       <div className="flex items-center gap-2">
-        <span className="flex-1 min-w-0 text-[13px] font-medium text-tx truncate" title={file.name}>
+        <span className="flex-1 min-w-0 text-corpo font-medium text-tx truncate" title={file.name}>
           {file.name}
         </span>
         <button type="button" onClick={cancel} disabled={uploading} className="shrink-0 text-tx-3 hover:text-atencao disabled:opacity-50" aria-label="Cancelar">
@@ -115,23 +115,23 @@ export default function MobileLicitacaoDocumentUpload({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nome do documento"
-        className="w-full text-[13px] border border-regua bg-sf text-tx px-2.5 py-1.5"
+        className="w-full text-corpo border border-regua bg-sf text-tx px-2.5 py-1.5"
       />
-      <DocumentTypeSelect value={docType} onChange={setDocType} className="w-full text-[13px] border border-regua bg-sf text-tx px-2.5 py-1.5" allowCreate />
+      <DocumentTypeSelect value={docType} onChange={setDocType} className="w-full text-corpo border border-regua bg-sf text-tx px-2.5 py-1.5" allowCreate />
       {showTaskPicker && (
-        <select value={assignTaskId} onChange={(e) => setAssignTaskId(e.target.value)} className="w-full text-[13px] border border-regua bg-sf text-tx px-2.5 py-1.5">
+        <select value={assignTaskId} onChange={(e) => setAssignTaskId(e.target.value)} className="w-full text-corpo border border-regua bg-sf text-tx px-2.5 py-1.5">
           <option value="">Geral da licitação</option>
           {taskOptions!.map((t) => (
             <option key={t.id} value={t.id}>{t.title}</option>
           ))}
         </select>
       )}
-      {error && <p role="alert" className="text-[13px] text-urgente">{error}</p>}
+      {error && <p role="alert" className="text-corpo text-urgente">{error}</p>}
       <button
         type="button"
         onClick={send}
         disabled={uploading}
-        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold py-1.5 disabled:opacity-50"
+        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold py-1.5 disabled:opacity-50"
       >
         {uploading ? "Enviando..." : "Enviar para o Drive"}
       </button>

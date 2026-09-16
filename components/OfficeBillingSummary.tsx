@@ -46,20 +46,20 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <p className="text-[11px] text-tx-3">Ciclo de cobrança</p>
+          <p className="text-etiqueta text-tx-3">Ciclo de cobrança</p>
           <p className="text-sm font-semibold text-tx mt-0.5">
             {billingCycleLabel(subscription.billingCycle, subscription.discountPercent)}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-tx-3">Forma de pagamento</p>
+          <p className="text-etiqueta text-tx-3">Forma de pagamento</p>
           <p className="text-sm font-semibold text-tx mt-0.5">
             {subscription.paymentMethod ? PAYMENT_METHOD_LABEL[subscription.paymentMethod] ?? subscription.paymentMethod : "Não configurada"}
           </p>
         </div>
         {subscription.paymentMethod === "PIX_AUTOMATICO" && (
           <div>
-            <p className="text-[11px] text-tx-3">Autorização Pix Automático</p>
+            <p className="text-etiqueta text-tx-3">Autorização Pix Automático</p>
             <p className="text-sm font-semibold text-tx mt-0.5">
               {subscription.pixAuthorizationStatus
                 ? PIX_AUTH_STATUS_LABEL[subscription.pixAuthorizationStatus] ?? subscription.pixAuthorizationStatus
@@ -83,13 +83,13 @@ export default function OfficeBillingSummary({ billing }: { billing: OwnOfficeBi
             <p className="text-xs font-semibold text-tx mb-1">
               Fatura de {latestInvoice.competencia} — <span className="tabular-nums">{formatCurrency(latestInvoice.amount)}</span>, vence {formatDate(latestInvoice.dueDate)}
             </p>
-            <p className="text-[11px] text-tx-3 mb-1.5">Pix Copia e Cola:</p>
+            <p className="text-etiqueta text-tx-3 mb-1.5">Pix Copia e Cola:</p>
             <div className="flex items-center gap-2">
               <input
                 readOnly
                 value={latestInvoice.pixQrCodePayload ?? ""}
                 onFocus={(e) => e.currentTarget.select()}
-                className="flex-1 min-w-0 text-[11px] font-mono text-tx bg-sf border border-regua-forte rounded px-2 py-1.5"
+                className="flex-1 min-w-0 text-etiqueta font-mono text-tx bg-sf border border-regua-forte rounded px-2 py-1.5"
               />
               <CopyButton text={latestInvoice.pixQrCodePayload ?? ""} label="Copiar" />
             </div>

@@ -63,7 +63,7 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
 
   return (
     <div className="space-y-4">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <form action={handleCreate} className="flex gap-2 flex-wrap items-start">
         <input name="name" required placeholder="Nome do workflow (ex: Ação Trabalhista)" className="cfg-input flex-1 min-w-[200px]" />
@@ -116,9 +116,9 @@ export default function WorkflowsManager({ templates, roles }: { templates: Temp
                     <span className="flex-1 min-w-0 text-tx truncate">{step.title}</span>
                     <Badge color={taskTypeColors[step.taskType]}>{taskTypeLabels[step.taskType] ?? step.taskType}</Badge>
                     <Badge color={priorityColors[step.priority]}>{step.priority}</Badge>
-                    <span className="text-[11px] text-tx-3 whitespace-nowrap">D+{step.offsetDays}</span>
-                    {step.role && <span className="text-[11px] text-tx-3 whitespace-nowrap">{step.role}</span>}
-                    {step.points != null && <span className="text-[11px] text-tx-3 whitespace-nowrap">{step.points} pts</span>}
+                    <span className="text-etiqueta text-tx-3 whitespace-nowrap">D+{step.offsetDays}</span>
+                    {step.role && <span className="text-etiqueta text-tx-3 whitespace-nowrap">{step.role}</span>}
+                    {step.points != null && <span className="text-etiqueta text-tx-3 whitespace-nowrap">{step.points} pts</span>}
                     <button
                       onClick={() => {
                         if (window.confirm(`Excluir o passo "${step.title}" deste workflow?`)) run(() => deleteWorkflowStep(step.id));
@@ -173,11 +173,11 @@ function AddStepForm({
   return (
     <form action={handleAdd} className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-2 border-t border-regua items-end">
       <div className="sm:col-span-4">
-        <label className="text-[11px] font-medium text-tx-2">Título do passo</label>
+        <label className="text-etiqueta font-medium text-tx-2">Título do passo</label>
         <input name="title" required placeholder="Ex: Elaborar petição inicial" className="cfg-input w-full" />
       </div>
       <div className="sm:col-span-2">
-        <label className="text-[11px] font-medium text-tx-2">Tipo</label>
+        <label className="text-etiqueta font-medium text-tx-2">Tipo</label>
         <select name="taskType" className="cfg-input w-full" defaultValue="TAREFA">
           {TASK_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -187,11 +187,11 @@ function AddStepForm({
         </select>
       </div>
       <div className="sm:col-span-1">
-        <label className="text-[11px] font-medium text-tx-2">Dias</label>
+        <label className="text-etiqueta font-medium text-tx-2">Dias</label>
         <input name="offsetDays" type="number" min={0} step={1} defaultValue={0} className="cfg-input w-full" />
       </div>
       <div className="sm:col-span-2">
-        <label className="text-[11px] font-medium text-tx-2">Prioridade</label>
+        <label className="text-etiqueta font-medium text-tx-2">Prioridade</label>
         <select name="priority" className="cfg-input w-full" defaultValue="MEDIA">
           {PRIORITIES.map((p) => (
             <option key={p} value={p}>
@@ -201,7 +201,7 @@ function AddStepForm({
         </select>
       </div>
       <div className="sm:col-span-2">
-        <label className="text-[11px] font-medium text-tx-2">Cargo</label>
+        <label className="text-etiqueta font-medium text-tx-2">Cargo</label>
         <select name="role" className="cfg-input w-full" defaultValue="">
           <option value="">Qualquer</option>
           {roles.map((r) => (
@@ -212,7 +212,7 @@ function AddStepForm({
         </select>
       </div>
       <div className="sm:col-span-1">
-        <label className="text-[11px] font-medium text-tx-2">Pontos</label>
+        <label className="text-etiqueta font-medium text-tx-2">Pontos</label>
         <input name="points" type="number" min={0} step={1} placeholder="auto" className="cfg-input w-full" />
       </div>
       <div className="sm:col-span-12">

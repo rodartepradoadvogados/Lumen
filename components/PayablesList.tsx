@@ -165,7 +165,7 @@ export default function PayablesList({
                 {/* Problema 2 (autoavaliação Fase 10) — sem isto, nada na lista denunciava que esta
                     despesa já tinha um reembolso vinculado, abrindo espaço para duplicar por engano. */}
                 {p.reimbursementReceivable && (
-                  <p className="text-[11px] text-tx-2 mt-1 flex items-center gap-1.5">
+                  <p className="text-etiqueta text-tx-2 mt-1 flex items-center gap-1.5">
                     ↳ Reembolso vinculado · {formatCurrency(p.reimbursementReceivable.amount)}
                     <FinanceStatusBadge status={p.reimbursementReceivable.status} kind="receivable" />
                   </p>
@@ -181,7 +181,7 @@ export default function PayablesList({
                     {formatCurrency(liquido)}
                   </p>
                   {p.effectiveStatus === "PARCIAL" && (
-                    <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
+                    <p className="text-etiqueta text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
                   )}
                   <p className={clsx("text-xs", p.noDueDate ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
                     {p.noDueDate ? "Sem vencimento" : formatRelativeDueDate(p.dueDate)}

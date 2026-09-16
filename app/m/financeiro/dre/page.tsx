@@ -44,7 +44,7 @@ export default async function MobileDre({
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
@@ -56,7 +56,7 @@ export default async function MobileDre({
         </div>
         <a
           href={exportHref}
-          className="flex items-center gap-1 text-[13px] font-semibold text-tx-2 border border-regua-forte px-2.5 py-1.5 shrink-0"
+          className="flex items-center gap-1 text-corpo font-semibold text-tx-2 border border-regua-forte px-2.5 py-1.5 shrink-0"
         >
           <Download size={12} /> .xlsx
         </a>
@@ -95,7 +95,7 @@ export default async function MobileDre({
       {(totalAdiantado > 0 || totalReembolsado > 0) && (
         <Card className="border border-dashed border-regua">
           <CardHeader title="Adiantamentos a Clientes" subtitle="Informativo — fora do Resultado" />
-          <div className="px-4 py-3 flex items-start gap-2 text-[13px] text-tx-2">
+          <div className="px-4 py-3 flex items-start gap-2 text-corpo text-tx-2">
             <Info size={13} className="shrink-0 mt-0.5" />
             <p>Despesas do processo pagas por conta do cliente (com reembolso vinculado) não entram na Receita/Despesa nem no Resultado.</p>
           </div>
@@ -121,11 +121,11 @@ export default async function MobileDre({
           <span className="font-bold text-tx">Resultado Líquido</span>
           <span className={`font-bold text-lg tabular-nums ${resultado >= 0 ? "text-concluido" : "text-urgente"}`}>{formatCurrency(resultado)}</span>
         </div>
-        <div className="flex justify-between items-center text-[13px] text-tx-2">
+        <div className="flex justify-between items-center text-corpo text-tx-2">
           <span>Margem líquida</span>
           <span className="tabular-nums font-medium">{margemLiquida === null ? "—" : `${margemLiquida.toFixed(1)}%`}</span>
         </div>
-        <div className="flex justify-between items-center text-[13px] text-tx-2">
+        <div className="flex justify-between items-center text-corpo text-tx-2">
           <span>Período anterior</span>
           <span className="tabular-nums">
             {formatCurrency(anterior.resultado)}

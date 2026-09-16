@@ -76,7 +76,7 @@ export default function ComprovanteField({
           <Paperclip size={13} /> {existingUrl || file ? "Substituir comprovante" : "Anexar comprovante"}
         </button>
         {!file && (
-          <span className="text-[11px] text-tx-3 inline-flex items-center gap-1">
+          <span className="text-etiqueta text-tx-3 inline-flex items-center gap-1">
             <UploadCloud size={12} /> ou arraste o arquivo aqui
           </span>
         )}

@@ -54,7 +54,7 @@ export default async function PerfilPage({
         <CardHeader title="Minha conta conectada" subtitle="Captura suas publicações por e-mail e permite enviar e-mail no Atendimento pela sua própria caixa" />
         <div className="divide-y divide-regua">
           <div className="p-5 space-y-3">
-            <p className="text-[15px] font-semibold text-tx">Google</p>
+            <p className="text-corpo font-semibold text-tx">Google</p>
             {searchParams.google === "conectado" && <StatusLine state="ok">Google conectado com sucesso!</StatusLine>}
             {searchParams.google === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
             {minhaConexaoGoogle ? (
@@ -73,7 +73,7 @@ export default async function PerfilPage({
           </div>
 
           <div className="p-5 space-y-3">
-            <p className="text-[15px] font-semibold text-tx">Microsoft (Outlook)</p>
+            <p className="text-corpo font-semibold text-tx">Microsoft (Outlook)</p>
             {searchParams.microsoft === "conectado" && <StatusLine state="ok">Microsoft conectado com sucesso!</StatusLine>}
             {searchParams.microsoft === "erro" && <StatusLine state="erro">Erro ao conectar: {searchParams.msg || "tente novamente."}</StatusLine>}
             {minhaConexaoMicrosoft ? (

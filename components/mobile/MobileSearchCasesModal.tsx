@@ -61,7 +61,7 @@ export default function MobileSearchCasesModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-[13px] font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1 shrink-0"
+        className="flex items-center gap-1 text-corpo font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1 shrink-0"
       >
         <Search size={12} /> Pesquisar
       </button>
@@ -90,7 +90,7 @@ export default function MobileSearchCasesModal({
                   className="w-full text-sm border border-regua bg-sf text-tx pl-8 pr-3 py-2"
                 />
               </div>
-              {error && <p role="alert" className="text-[13px] text-urgente mt-2">{error}</p>}
+              {error && <p role="alert" className="text-corpo text-urgente mt-2">{error}</p>}
             </div>
 
             <div className="overflow-y-auto scrollbar-thin flex-1 divide-y divide-regua">
@@ -103,19 +103,19 @@ export default function MobileSearchCasesModal({
                   <div key={c.id} className="flex items-center justify-between gap-2 px-4 py-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-tx truncate">{c.title}</p>
-                      {c.processNumber && <p className="text-[13px] text-tx-2">{c.processNumber}</p>}
+                      {c.processNumber && <p className="text-corpo text-tx-2">{c.processNumber}</p>}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Link
                         href={`/m/processos/${c.id}`}
-                        className="text-[13px] font-semibold text-tx-2 hover:text-tx px-2 py-1.5 hover:bg-sf-apoio"
+                        className="text-corpo font-semibold text-tx-2 hover:text-tx px-2 py-1.5 hover:bg-sf-apoio"
                       >
                         Abrir
                       </Link>
                       <button
                         onClick={() => handleLink(c.id)}
                         disabled={pending}
-                        className="inline-flex items-center gap-1 text-[13px] font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1.5 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-corpo font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1.5 disabled:opacity-50"
                       >
                         <Link2 size={12} /> {pending && linkingId === c.id ? "..." : "Vincular"}
                       </button>

@@ -165,7 +165,7 @@ export default function DeleteEntityButton({
       </button>
       {msg && (
         <span
-          className={`absolute right-0 top-full mt-1 z-10 w-64 text-[11px] px-2.5 py-1.5 shadow-pop rounded-lg border ${
+          className={`absolute right-0 top-full mt-1 z-10 w-64 text-etiqueta px-2.5 py-1.5 shadow-pop rounded-lg border ${
             msg.type === "error"
               ? "bg-urgente-bg text-urgente border-urgente/20"
               : "bg-blue-50 dark:bg-blue-400/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-400/20"
@@ -250,7 +250,7 @@ export default function DeleteEntityButton({
             </div>
             <div className="p-4 space-y-3">
               <p className="text-xs text-tx-2">{confirmMessage}</p>
-              <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
+              <p className="text-etiqueta text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
                 {linkedReimbursement.direction === "payableHasReimbursement" ? (
                   <>
                     Esta despesa tem um reembolso vinculado ({formatCurrency(linkedReimbursement.amount)}, {linkedReimbursement.status}). Excluir aqui

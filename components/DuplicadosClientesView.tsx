@@ -43,7 +43,7 @@ function GrupoCardHistorico({ grupo }: { grupo: GrupoClientesDuplicados }) {
       </div>
       <div className="px-4 pb-3 flex flex-wrap gap-x-4 gap-y-1">
         {grupo.clientes.map((c) => (
-          <span key={c.id} className="text-[11px] text-tx-3">
+          <span key={c.id} className="text-etiqueta text-tx-3">
             {c.nome} <span className="text-tx-3/70">({c.assessoriaStatus === "ENCERRADA" ? "Assessoria encerrada" : "cadastrado " + dataBR(c.criadoEm)})</span>
           </span>
         ))}
@@ -145,10 +145,10 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-tx">{c.nome}</span>
-                  {c.id === canonicoId && <span className="text-[10px] font-bold text-acao uppercase tracking-wide">Manter este</span>}
+                  {c.id === canonicoId && <span className="text-etiqueta font-bold text-acao uppercase tracking-wide">Manter este</span>}
                 </div>
-                <p className="text-[11px] text-tx-3">Cadastrado em {dataBR(c.criadoEm)}</p>
-                <p className="text-[11px] text-tx-2">{resumoAtividade(c)}</p>
+                <p className="text-etiqueta text-tx-3">Cadastrado em {dataBR(c.criadoEm)}</p>
+                <p className="text-etiqueta text-tx-2">{resumoAtividade(c)}</p>
               </div>
             </label>
           ))}
@@ -210,7 +210,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                         </li>
                       ))}
                     </ul>
-                    <p className="text-[11px] text-tx-3">
+                    <p className="text-etiqueta text-tx-3">
                       Confira essas pastas direto no Drive e mescle manualmente o que fizer sentido antes (ou depois) de
                       confirmar — a unificação segue em frente sem elas, elas só não serão tocadas automaticamente.
                     </p>
@@ -218,7 +218,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                 )}
 
                 {simulacao.conflitosPastaDrive === null && (
-                  <p className="text-[11px] text-tx-3">Nenhuma pasta física envolvida nesta unificação, ou só um dos dois lados tem pasta.</p>
+                  <p className="text-etiqueta text-tx-3">Nenhuma pasta física envolvida nesta unificação, ou só um dos dois lados tem pasta.</p>
                 )}
               </>
             )}

@@ -178,15 +178,15 @@ export default function AssessoriaProcessosCasosTab({
     <div className="space-y-5">
       <div className="bg-sf border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Demandas</h4>
+          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Demandas</h4>
           <div className="flex items-center gap-2 flex-wrap">
             {(assessoria.pareceres.length > 0 || pareceresSoltos.length > 0) && (
-              <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+              <label className="flex items-center gap-1.5 text-etiqueta text-tx-2">
                 Ordenar
                 <select
                   value={demandaSort}
                   onChange={(e) => setDemandaSort(e.target.value as SortOption)}
-                  className="text-[11px] border border-regua bg-sf text-tx px-1.5 py-1"
+                  className="text-etiqueta border border-regua bg-sf text-tx px-1.5 py-1"
                 >
                   {SORT_OPTIONS_SEM_TIPO.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -235,7 +235,6 @@ export default function AssessoriaProcessosCasosTab({
                 Cancelar
               </button>
             </div>
-            <style>{`.doc-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
           </form>
         )}
 
@@ -261,7 +260,7 @@ export default function AssessoriaProcessosCasosTab({
 
       <div className="bg-sf border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Processos vinculados</h4>
+          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Processos vinculados</h4>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
@@ -303,20 +302,20 @@ export default function AssessoriaProcessosCasosTab({
                     className="w-full text-left border border-regua rounded-lg bg-sf p-3.5 hover:border-regua-forte transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <p className="font-semibold text-tx text-[14px] truncate">{c.title}</p>
+                      <p className="font-semibold text-tx text-corpo truncate">{c.title}</p>
                       <ChevronRight size={16} className="text-tx-3 shrink-0 mt-0.5" />
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 mt-2">
                       <div>
-                        <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Número</p>
-                        <p className="text-[12.5px] text-tx truncate">{c.processNumber || "—"}</p>
+                        <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Número</p>
+                        <p className="text-corpo text-tx truncate">{c.processNumber || "—"}</p>
                       </div>
                       <div>
-                        <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Atualizado em</p>
-                        <p className="text-[12.5px] text-tx tabular-nums">{formatDate(c.updatedAt)}</p>
+                        <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Atualizado em</p>
+                        <p className="text-corpo text-tx tabular-nums">{formatDate(c.updatedAt)}</p>
                       </div>
                       <div>
-                        <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
+                        <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
                         <Badge color={caseStatusColors[c.status] || "slate"}>{caseStatusLabels[c.status] || c.status}</Badge>
                       </div>
                     </div>
@@ -330,7 +329,7 @@ export default function AssessoriaProcessosCasosTab({
 
       <div className="bg-sf border border-regua p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Casos vinculados</h4>
+          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Casos vinculados</h4>
           {/* Abre o modal "Novo Atendimento" (components/NewAttendanceModal.tsx) já aberto
               (?novo=1), com esta assessoria pré-selecionada (?assessoriaId=...). O rótulo é "Novo
               caso" de propósito (o termo do dia a dia) — continua criando um Atendimento por
@@ -354,24 +353,24 @@ export default function AssessoriaProcessosCasosTab({
                 className="w-full text-left border border-regua rounded-lg bg-sf p-3.5 hover:border-regua-forte transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-semibold text-tx text-[14px] truncate">{a.subject}</p>
+                  <p className="font-semibold text-tx text-corpo truncate">{a.subject}</p>
                   <ChevronRight size={16} className="text-tx-3 shrink-0 mt-0.5" />
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mt-2">
                   <div>
-                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Área</p>
-                    <p className="text-[12.5px] text-tx truncate">{a.area || "—"}</p>
+                    <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Área</p>
+                    <p className="text-corpo text-tx truncate">{a.area || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Canal</p>
-                    <p className="text-[12.5px] text-tx truncate">{channelLabels[a.channel] || a.channel}</p>
+                    <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Canal</p>
+                    <p className="text-corpo text-tx truncate">{channelLabels[a.channel] || a.channel}</p>
                   </div>
                   <div>
-                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Criado em</p>
-                    <p className="text-[12.5px] text-tx tabular-nums">{formatDate(a.createdAt)}</p>
+                    <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Criado em</p>
+                    <p className="text-corpo text-tx tabular-nums">{formatDate(a.createdAt)}</p>
                   </div>
                   <div>
-                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
+                    <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
                     <Badge color={attendanceStatusColors[a.status] || "slate"}>{attendanceStatusLabels[a.status] || a.status}</Badge>
                   </div>
                 </div>
@@ -481,7 +480,7 @@ export default function AssessoriaProcessosCasosTab({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">{label}</p>
+      <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">{label}</p>
       <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{children}</p>
     </div>
   );

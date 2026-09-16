@@ -19,7 +19,7 @@ const FINANCE_ITEMS: { href: string; label: string; desc: string; Icon: LucideIc
 export default function MobileFinanceiroMenu() {
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m/financeiro" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
+      <Link href="/m/financeiro" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Financeiro
       </Link>
 
@@ -37,7 +37,7 @@ export default function MobileFinanceiroMenu() {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-tx">{label}</p>
-                <p className="text-[13px] text-tx-2 truncate">{desc}</p>
+                <p className="text-corpo text-tx-2 truncate">{desc}</p>
               </div>
             </Link>
           ))}

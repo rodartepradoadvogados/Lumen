@@ -81,7 +81,7 @@ export default function MobileInstallMenuItem() {
 
       {platform === "ios" && showIOSInstructions && (
         <div className="px-4 pb-3.5 -mt-1">
-          <p className="text-[13px] text-tx-2 leading-relaxed">
+          <p className="text-corpo text-tx-2 leading-relaxed">
             Toque em <Share size={12} className="inline -mt-0.5" /> Compartilhar e depois em{" "}
             <SquarePlus size={12} className="inline -mt-0.5" /> &ldquo;Adicionar à Tela de Início&rdquo;.
           </p>
@@ -90,7 +90,7 @@ export default function MobileInstallMenuItem() {
 
       {notReadyWarning && (
         <div className="px-4 pb-3.5 -mt-1">
-          <p className="text-[13px] text-urgente leading-relaxed">
+          <p className="text-corpo text-urgente leading-relaxed">
             A instalação automática ainda não está disponível neste navegador — tente novamente em alguns instantes, ou atualize a página.
           </p>
         </div>

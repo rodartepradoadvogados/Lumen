@@ -79,7 +79,7 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
     return (
       <form action={handleSave} className="px-5 py-3 space-y-2 bg-sf-apoio">
         <Fields defaults={holiday} />
-        {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
+        {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
         <div className="flex gap-2">
           <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
             {pending ? "Salvando..." : "Salvar"}
@@ -96,7 +96,7 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
     <div className="flex items-center gap-3 px-5 py-3">
       <span className="text-xs font-mono text-tx-2 w-24 shrink-0">{formatCalendarDate(holiday.date)}</span>
       <p className="text-sm text-tx flex-1 min-w-0 truncate">{holiday.name}</p>
-      <span className="text-[11px] font-semibold text-tx-2 shrink-0">{SCOPE_LABELS[holiday.scope] ?? holiday.scope}</span>
+      <span className="text-etiqueta font-semibold text-tx-2 shrink-0">{SCOPE_LABELS[holiday.scope] ?? holiday.scope}</span>
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={() => setEditing(true)} data-tip="Editar" className="p-1.5 text-tx-3 hover:text-tx hover:bg-sf-apoio rounded-md">
           <Pencil size={14} />
@@ -105,7 +105,7 @@ function HolidayRow({ holiday }: { holiday: Holiday }) {
           <Trash2 size={14} />
         </button>
       </div>
-      {error && <p className="text-[11px] text-urgente">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente">{error}</p>}
     </div>
   );
 }
@@ -149,7 +149,7 @@ export default function HolidaysManager({ holidays }: { holidays: Holiday[] }) {
       {adding ? (
         <form action={handleCreate} className="p-5 space-y-2 border-t border-regua bg-sf-apoio">
           <Fields />
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
+          {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-xs font-semibold px-3 py-1.5 disabled:opacity-50">
               {pending ? "Salvando..." : "Adicionar"}
@@ -171,7 +171,7 @@ export default function HolidaysManager({ holidays }: { holidays: Holiday[] }) {
         <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-1">
           Feriados nacionais de {anoAtual} (calculados automaticamente — não cadastre aqui)
         </p>
-        <p className="text-[11px] text-tx-2 mb-3">
+        <p className="text-etiqueta text-tx-2 mb-3">
           Fixos por lei/calendário civil e móveis (Carnaval, Sexta-feira Santa, Corpus Christi, calculados a partir da Páscoa) —
           o cálculo de prazo em dias úteis já os considera sozinho, todo ano, sem precisar de cadastro. Só leitura.
         </p>

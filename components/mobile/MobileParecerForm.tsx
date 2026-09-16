@@ -41,15 +41,15 @@ export default function MobileParecerForm({ assessoriaId, parecer }: { assessori
     <form action={handleSubmit} className="flex flex-col" style={{ minHeight: "calc(100dvh - 3.5rem)" }}>
       <div className="flex-1 p-4 space-y-3 pb-24">
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="parecer-name">Nome da demanda</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="parecer-name">Nome da demanda</label>
           <input id="parecer-name" name="name" required defaultValue={parecer?.name || ""} className="mobile-parecer-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="parecer-date">Data</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="parecer-date">Data</label>
           <input id="parecer-date" name="date" type="date" defaultValue={dateInputValue(parecer?.date)} className="mobile-parecer-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="parecer-description">Descrição</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="parecer-description">Descrição</label>
           <textarea id="parecer-description" name="description" rows={4} defaultValue={parecer?.description || ""} placeholder="Descrição (opcional)" className="mobile-parecer-input" />
         </div>
         {error && <p role="alert" className="text-sm text-urgente">{error}</p>}
@@ -60,7 +60,6 @@ export default function MobileParecerForm({ assessoriaId, parecer }: { assessori
           {pending ? "Salvando..." : "Salvar"}
         </button>
       </div>
-      <style>{`.mobile-parecer-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.375rem; padding:0.55rem 0.7rem; font-size:0.9rem; background:var(--sf-superficie); color:var(--tx); margin-top:0.25rem; }`}</style>
     </form>
   );
 }

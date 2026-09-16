@@ -159,15 +159,15 @@ export default function ReceivablesList({
                   {r.status === "PAGO" && r.paymentReceiptNumber && <span> · Comprovante: {r.paymentReceiptNumber}</span>}
                 </p>
                 {isApurar && (
-                  <p className="text-[11px] text-tx-3 mt-0.5">
+                  <p className="text-etiqueta text-tx-3 mt-0.5">
                     {r.percentual}% de {PERCENTUAL_BASE_LABELS[r.percentualBase ?? ""] ?? "base não definida"} — regra a apurar no desfecho do processo
                   </p>
                 )}
                 {/* Problema 2 (autoavaliação Fase 10) — contraparte do badge de PayablesList.tsx:
                     sem isto, nada denunciava que esta receita já era o reembolso de uma despesa. */}
                 {r.reimbursesPayable && (
-                  <p className="text-[11px] text-tx-2 mt-1">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-marca-bg text-marca-tx">
+                  <p className="text-etiqueta text-tx-2 mt-1">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-etiqueta font-semibold whitespace-nowrap bg-marca-bg text-marca-tx">
                       ↳ Reembolso de despesa · {r.reimbursesPayable.description}
                     </span>
                   </p>
@@ -183,7 +183,7 @@ export default function ReceivablesList({
                     {isApurar ? "—" : formatCurrency(liquido)}
                   </p>
                   {r.effectiveStatus === "PARCIAL" && (
-                    <p className="text-[11px] text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
+                    <p className="text-etiqueta text-tx-2 tabular-nums">saldo {formatCurrency(saldo)}</p>
                   )}
                   <p className={clsx("text-xs", r.noDueDate || isApurar ? "text-tx-3" : PRAZO_URGENCIA_TEXT[urgencia])}>
                     {r.noDueDate ? "Sem vencimento" : formatRelativeDueDate(r.dueDate)}

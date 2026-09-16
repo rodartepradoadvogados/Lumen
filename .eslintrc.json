@@ -6,6 +6,32 @@
     // injetado sem passar pelo escape automático do React é o vetor mais direto de XSS
     // armazenado (ver achados F4/F5 da auditoria). As poucas ocorrências já revisadas e
     // legítimas têm `eslint-disable-next-line react/no-danger` com o motivo ao lado.
-    "react/no-danger": "warn"
+    "react/no-danger": "warn",
+
+    // Redesign "Guias", fase F3 — a rampa tipográfica passa a ser garantida por lint, e não
+    // por combinado.
+    //
+    // Por que isto existe: o app mobile tinha um piso de 13px aplicado À MÃO em 391 lugares, e
+    // ele vazava toda vez que o app importava um componente do portal (o distintivo a 11px, o
+    // botão de copiar a 11px no próprio número do processo, a lista de anotações a 10px). Não
+    // havia nada guardando — `next lint` era puro. O diagnóstico de 2026-09-16 mediu 16
+    // tamanhos distintos em 1.003 ocorrências por causa disso.
+    //
+    // A rampa tem seis paradas e vive em tailwind.config.ts:
+    //   text-etiqueta 12px · text-corpo 15px · text-destaque 18px
+    //   text-guia 22px · text-autuacao 28px · text-tarja 40px
+    // Os apelidos do Tailwind (text-xs/sm/base/lg/xl/2xl/3xl/4xl) apontam para as mesmas
+    // paradas, então continuam válidos.
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "Literal[value=/text-\\[[0-9.]/]",
+        "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
+      },
+      {
+        "selector": "TemplateElement[value.raw=/text-\\[[0-9.]/]",
+        "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
+      }
+    ]
   }
 }

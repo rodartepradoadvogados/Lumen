@@ -90,7 +90,7 @@ export default async function ReceitasPage({
                 defaultResponsibleId={viewer.id}
               />
             </div>
-            <p className="text-[11px] text-tx-2 max-w-sm text-right">
+            <p className="text-etiqueta text-tx-2 max-w-sm text-right">
               <span className="font-semibold">Nova Conta a Receber</span>: qualquer receita (aluguel, reembolso, venda).{" "}
               <span className="font-semibold">Lançar Honorários</span>: honorário vinculado a processo, com forma de cobrança e apuração de êxito.
             </p>
@@ -216,10 +216,6 @@ export default async function ReceitasPage({
           bankAccounts={bankAccounts}
         />
       </Card>
-      <style>{`
-        .fp-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }
-        .fp-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </div>
   );
 }

@@ -115,7 +115,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
-      <Link href="/m" className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2">
+      <Link href="/m" className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2">
         <ArrowLeft size={13} /> Início
       </Link>
 
@@ -131,7 +131,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
             <Link
               key={opt.value}
               href={`/m/relatorios?meses=${opt.value}`}
-              className={`text-[13px] font-semibold px-2.5 py-1 transition-colors ${
+              className={`text-corpo font-semibold px-2.5 py-1 transition-colors ${
                 meses === opt.value ? "bg-tx text-sf" : "text-tx-2"
               }`}
             >
@@ -148,7 +148,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-tx">Relatório Personalizado</p>
-            <p className="text-[13px] text-tx-2">Monte a pergunta: filtros, modelos salvos, Word e PDF</p>
+            <p className="text-corpo text-tx-2">Monte a pergunta: filtros, modelos salvos, Word e PDF</p>
           </div>
           <ChevronRight size={16} className="text-tx-3 shrink-0" />
         </Card>
@@ -161,7 +161,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
           <h3 className="font-bold text-tx text-sm">Produtividade</h3>
         </div>
         <div className="px-4 py-3 flex items-center justify-between border-b border-regua">
-          <span className="text-[13px] text-tx-2">Tarefas concluídas no período</span>
+          <span className="text-corpo text-tx-2">Tarefas concluídas no período</span>
           <span className="text-lg font-bold tabular-nums text-tx">{doneTasks.length}</span>
         </div>
         {prodRanking.length === 0 ? (
@@ -171,14 +171,14 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
             {prodRanking.map((r, i) => (
               <div key={r.user.id} className="px-4 py-3 flex items-center gap-3">
                 <span
-                  className="h-6 w-6 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
+                  className="h-6 w-6 rounded-full flex items-center justify-center text-corpo font-bold shrink-0"
                   style={{ backgroundColor: `${r.user.color}22`, color: r.user.color }}
                 >
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm font-medium text-tx truncate">{r.user.name}</span>
                 <span className="text-sm font-semibold tabular-nums text-tx shrink-0">{r.points} pts</span>
-                <span className="text-[13px] text-tx-2 shrink-0">{r.count} tarefa(s)</span>
+                <span className="text-corpo text-tx-2 shrink-0">{r.count} tarefa(s)</span>
               </div>
             ))}
           </div>
@@ -192,7 +192,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
           <h3 className="font-bold text-tx text-sm">Processos</h3>
         </div>
         <div className="px-4 pt-3 pb-1">
-          <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">
+          <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide">
             Por área/matéria (processos ativos)
           </p>
         </div>
@@ -211,7 +211,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
           </div>
         )}
         <div className="px-4 pt-3 pb-1 border-t border-regua mt-1">
-          <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide">
+          <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide">
             Por status (todos os processos)
           </p>
         </div>
@@ -233,7 +233,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
         <div className="flex items-center gap-2 px-4 py-3.5 border-b border-regua">
           <Target size={16} className="text-marca-tx" />
           <h3 className="font-bold text-tx text-sm flex-1">Funil Comercial</h3>
-          <span className="text-[13px] text-tx-2">
+          <span className="text-corpo text-tx-2">
             Conversão:{" "}
             {conversionRate !== null ? (
               <span className="font-semibold text-concluido">{conversionRate.toFixed(0)}%</span>
@@ -266,11 +266,11 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
           <h3 className="font-bold text-tx text-sm">Publicações</h3>
         </div>
         <div className="px-4 py-3 flex items-center justify-between border-b border-regua">
-          <span className="text-[13px] text-tx-2">Volume no período</span>
+          <span className="text-corpo text-tx-2">Volume no período</span>
           <span className="text-lg font-bold tabular-nums text-tx">{publications.length}</span>
         </div>
         <div className="p-4">
-          <p className="text-[13px] font-semibold text-tx-2 uppercase tracking-wide mb-2">
+          <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">
             Pendências de triagem
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -282,7 +282,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
                 <p className="font-bold text-lg tabular-nums text-tx">{t.value}</p>
                 <div className="flex items-center justify-center gap-1 mt-1">
                   <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: triageColor[t.status] }} />
-                  <span className="text-[13px] text-tx-2">{triageLabels[t.status]}</span>
+                  <span className="text-corpo text-tx-2">{triageLabels[t.status]}</span>
                 </div>
               </div>
             ))}

@@ -152,7 +152,7 @@ export default function NavRail({
           />
         </div>
 
-        <div className="pb-3 text-[8px] text-white/30 text-center px-1">v0.1</div>
+        <div className="pb-3 text-etiqueta text-white/30 text-center px-1">v0.1</div>
       </aside>
     </>
   );
@@ -194,14 +194,14 @@ function RailButton({
       <span className="relative">
         <Icon size={19} strokeWidth={1.5} />
         {badge > 0 && (
-          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-white text-[9px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 rounded-full bg-atencao text-white text-etiqueta font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
       </span>
       {/* Barlow Condensed (Portal Noturno, DESIGN.md) — rótulo pequeno de navegação é
           exatamente o papel que a fonte condensada cumpre no CowData (número/rótulo/aba). */}
-      <span className="hidden lg:block font-display font-semibold text-[9px] leading-none tracking-wide">{label}</span>
+      <span className="hidden lg:block font-display font-semibold text-etiqueta leading-none tracking-wide">{label}</span>
     </Link>
   );
 }

@@ -83,7 +83,7 @@ export default function ClientPicker({
                 <button
                   type="button"
                   onClick={() => update(entry.key, { mode: "selecionar" })}
-                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                  className={`text-etiqueta font-semibold px-2.5 py-1 transition-colors ${
                     entry.mode === "selecionar"
                       ? "bg-sf text-tx"
                       : "text-tx-2 hover:text-tx"
@@ -94,7 +94,7 @@ export default function ClientPicker({
                 <button
                   type="button"
                   onClick={() => update(entry.key, { mode: "novo" })}
-                  className={`text-[11px] font-semibold px-2.5 py-1 transition-colors ${
+                  className={`text-etiqueta font-semibold px-2.5 py-1 transition-colors ${
                     entry.mode === "novo"
                       ? "bg-sf text-tx"
                       : "text-tx-2 hover:text-tx"

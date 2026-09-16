@@ -151,12 +151,12 @@ export default function SettleModal({
           </div>
           <ComprovanteField file={receiptFile} onFileChange={setReceiptFile} existingUrl={existingReceiptUrl} existingName={existingReceiptName} />
           {ficaParcial && (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
+            <p className="text-etiqueta text-amber-700 dark:text-amber-400 bg-amber-500/10 px-3 py-2">
               Valor menor que o saldo em aberto — esta conta ficará <strong>PARCIAL</strong>, com saldo em aberto de {formatCurrency(saldoResultante)}{" "}
               após esta baixa.
             </p>
           )}
-          {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+          {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
           <button
             type="submit"
             disabled={loading || valorNum <= 0}
@@ -166,20 +166,6 @@ export default function SettleModal({
           </button>
         </form>
       </div>
-      <style jsx global>{`
-        .settle-input {
-          width: 100%;
-          margin-top: 0.25rem;
-          border: 1px solid rgba(15, 31, 61, 0.12);
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-        }
-        .settle-input:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
-        }
-      `}</style>
     </div>
   );
 }

@@ -149,7 +149,7 @@ export default async function DrePage({
         </form>
       </Card>
 
-      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-5 py-1.5 text-[10px] font-semibold text-tx-3 uppercase tracking-wide">
+      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-5 py-1.5 text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">
         <span>Linha</span>
         <span className="text-right">Valor</span>
         <span className="text-right w-14">% Receita</span>
@@ -213,10 +213,6 @@ export default async function DrePage({
           </div>
         </div>
       </Card>
-      <style>{`
-        .fp-input { border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.45rem 0.65rem; font-size: 0.8rem; background-color: var(--sf); color: var(--tx); }
-        .fp-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </div>
   );
 }

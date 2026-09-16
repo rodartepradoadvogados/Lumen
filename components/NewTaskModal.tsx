@@ -183,7 +183,7 @@ export default function NewTaskModal({
                       className="input"
                       placeholder="Padrão do tipo de tarefa"
                     />
-                    <p className="text-[11px] text-tx-3 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
+                    <p className="text-etiqueta text-tx-3 mt-1">Deixe em branco para usar a pontuação padrão configurada para o tipo escolhido.</p>
                   </div>
                 </div>
 
@@ -192,7 +192,7 @@ export default function NewTaskModal({
                     // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio
                     // + filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
                     <div className={`reuniao-panel border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
-                      <p className={`text-[10px] font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
+                      <p className={`text-etiqueta font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
                         {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                       </p>
                       <div className="flex gap-4">
@@ -249,7 +249,7 @@ export default function NewTaskModal({
             </div>
 
             <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-end gap-3 bg-sf-apoio">
-              {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2 flex-1">{error}</p>}
+              {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2 flex-1">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
@@ -267,9 +267,9 @@ export default function NewTaskModal({
           width: 100%;
           margin-top: 0.25rem;
           border: 1px solid var(--regua-forte);
-          border-radius: 0.3125rem;
+          border-radius: 2px;
           padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
+          font-size: 0.9375rem;
           color: var(--tx);
           /* --sf-apoio, não --sf-superficie: o modal em si (ModalShell, bg-sf) já usa
              --sf-superficie — campo com o mesmo tom do fundo do modal é o que fazia os campos

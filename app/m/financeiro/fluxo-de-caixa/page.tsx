@@ -73,7 +73,7 @@ export default async function MobileFluxoDeCaixa() {
     <div className="p-4 space-y-4 animate-fade-in">
       <Link
         href="/m"
-        className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2"
+        className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2"
       >
         <ArrowLeft size={13} /> Início
       </Link>
@@ -85,7 +85,7 @@ export default async function MobileFluxoDeCaixa() {
         </div>
         <a
           href="/api/financeiro/fluxo-de-caixa/export"
-          className="flex items-center gap-1 text-[13px] font-semibold text-tx-2 border border-regua-forte px-2.5 py-1.5 shrink-0"
+          className="flex items-center gap-1 text-corpo font-semibold text-tx-2 border border-regua-forte px-2.5 py-1.5 shrink-0"
         >
           <Download size={12} /> .xlsx
         </a>
@@ -106,7 +106,7 @@ export default async function MobileFluxoDeCaixa() {
                   Acumulado: {formatCurrency(m.saldoAcumulado)}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-1 text-[13px]">
+              <div className="grid grid-cols-3 gap-1 text-corpo">
                 <span className="tabular-nums text-concluido">↑ {formatCurrency(m.entradas)}</span>
                 <span className="tabular-nums text-urgente text-center">↓ {formatCurrency(m.saidas)}</span>
                 <span

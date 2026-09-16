@@ -48,21 +48,21 @@ export default function NomeacaoDriveForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-tx-2">Pasta-mãe</label>
           <input value={mae} onChange={(e) => setMae(e.target.value)} placeholder="Lúmen" className="cfg-input w-full" />
-          <span className="text-[11px] text-tx-3">A pasta única que guarda todas as demais, na raiz do {provedor}.</span>
+          <span className="text-etiqueta text-tx-3">A pasta única que guarda todas as demais, na raiz do {provedor}.</span>
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-tx-2">Prefixo das pastas</label>
           <input value={pre} onChange={(e) => setPre(e.target.value)} placeholder="Lúmen - " className="cfg-input w-full" />
-          <span className="text-[11px] text-tx-3">Pode ficar em branco — aí as pastas ficam só “Processos”, “Casos”…</span>
+          <span className="text-etiqueta text-tx-3">Pode ficar em branco — aí as pastas ficam só “Processos”, “Casos”…</span>
         </div>
       </div>
 
       <div className=" border border-regua bg-sf-apoio p-3.5 flex flex-col gap-1.5">
-        <span className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-tx-2">Como vai ficar</span>
+        <span className="text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">Como vai ficar</span>
         <span className="text-xs font-mono text-tx">{previa.pastaMae || "—"}/</span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
           {raizes.map((r) => (
-            <span key={r} className="text-[11px] font-mono text-tx-2 truncate" title={RAIZ_ROTULO[r]}>
+            <span key={r} className="text-etiqueta font-mono text-tx-2 truncate" title={RAIZ_ROTULO[r]}>
               &nbsp;&nbsp;└ {previa.raizes[r]}
             </span>
           ))}

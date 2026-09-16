@@ -276,7 +276,7 @@ export default function EditPayableModal({
                           <div className="fin-input bg-sf-apoio text-tx-2">
                             {cases.find((c) => c.id === payable.caseId)?.name ?? "—"}
                           </div>
-                          <p className="text-[11px] text-tx-2 mt-1">
+                          <p className="text-etiqueta text-tx-2 mt-1">
                             Travado — esta despesa já tem um reembolso vinculado. Para mudar o processo, exclua primeiro o reembolso vinculado.
                           </p>
                         </>
@@ -320,7 +320,7 @@ export default function EditPayableModal({
                           {hasReimbursement ? (
                             <div className="mt-1">
                               <p className="text-sm font-medium text-tx">{EXPENSE_PAYER_LABELS.CLIENTE}</p>
-                              <p className="text-[11px] text-tx-2 mt-1">
+                              <p className="text-etiqueta text-tx-2 mt-1">
                                 Travado — já existe um reembolso vinculado a esta despesa. Para voltar a &quot;Escritório&quot;, exclua primeiro o
                                 reembolso vinculado.
                               </p>
@@ -356,7 +356,7 @@ export default function EditPayableModal({
                               />
                               Criar conta a receber vinculada para reembolso deste valor pelo cliente?
                             </label>
-                            <p className="text-[11px] text-tx-2 mt-1 ml-6">
+                            <p className="text-etiqueta text-tx-2 mt-1 ml-6">
                               Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor líquido atual desta despesa
                               (lançamento retroativo — a despesa já existia sem reembolso).
                             </p>
@@ -425,7 +425,7 @@ export default function EditPayableModal({
                       />
                     </div>
                   ) : (
-                    <p className="text-[11px] text-tx-2">
+                    <p className="text-etiqueta text-tx-2">
                       Fica fora da projeção do Fluxo de Caixa e aparece na Central de Alertas até ganhar uma data.
                     </p>
                   )}
@@ -438,12 +438,12 @@ export default function EditPayableModal({
                     parcelamento, mostra em qual posição ela está (somente leitura). */}
                 <SecaoLancamento title="Parcelamento" tone="rosa">
                   {payable.installmentTotal ? (
-                    <p className="text-[11px] text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
+                    <p className="text-etiqueta text-tx-2 bg-white/60 dark:bg-white/5 px-3 py-1.5">
                       Parcela {payable.installmentNumber}/{payable.installmentTotal} de um lançamento parcelado — para mudar quantidade/intervalo,
                       lance um novo parcelamento.
                     </p>
                   ) : (
-                    <p className="text-[11px] text-tx-2">Lançamento único, não parcelado.</p>
+                    <p className="text-etiqueta text-tx-2">Lançamento único, não parcelado.</p>
                   )}
                   <div>
                     <label className={labelCls}>Nº do boleto desta parcela</label>
@@ -470,9 +470,9 @@ export default function EditPayableModal({
                       {payable.paymentReceiptNumber && <> · comprovante {payable.paymentReceiptNumber}</>}
                     </p>
                   ) : (
-                    <p className="text-[11px] text-tx-2">Ainda não há nenhuma baixa lançada nesta conta.</p>
+                    <p className="text-etiqueta text-tx-2">Ainda não há nenhuma baixa lançada nesta conta.</p>
                   )}
-                  <p className="text-[11px] text-tx-3">
+                  <p className="text-etiqueta text-tx-3">
                     Para dar baixa (parcial ou integral) ou reabrir, use os botões na listagem — esta tela edita só o cadastro.
                   </p>
                 </SecaoLancamento>
@@ -481,19 +481,19 @@ export default function EditPayableModal({
               <div className="shrink-0 border-t border-regua px-5 py-3 flex items-center justify-between gap-4 flex-wrap bg-sf-apoio">
                 <div className="flex items-center gap-4">
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Bruto</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Bruto</span>
                     <span className="text-sm font-semibold tabular-nums text-tx">{formatCurrency(amountNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Desconto</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Desconto</span>
                     <span className="text-sm font-semibold tabular-nums text-urgente">-{formatCurrency(discountNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Acréscimo</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Acréscimo</span>
                     <span className="text-sm font-semibold tabular-nums text-concluido">+{formatCurrency(surchargeNum)}</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] uppercase tracking-wide text-tx-2">Líquido</span>
+                    <span className="block text-etiqueta uppercase tracking-wide text-tx-2">Líquido</span>
                     <span className="text-lg font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
                   </div>
                 </div>
@@ -514,10 +514,6 @@ export default function EditPayableModal({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
-        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </>
   );
 }

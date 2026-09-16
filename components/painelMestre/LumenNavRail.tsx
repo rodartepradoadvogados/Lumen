@@ -83,7 +83,7 @@ export default function LumenNavRail() {
             <LumenMark size={28} />
             <span className="text-lg font-semibold text-white">LÚMEN</span>
           </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40 mt-1.5">
+          <p className="text-etiqueta font-semibold uppercase tracking-wide text-white/40 mt-1.5">
             Painel da Empresa
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function LumenNavRail() {
         <div className="flex-1 py-4 space-y-6">
           {GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="px-4 text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-1.5">
+              <p className="px-4 text-etiqueta font-semibold uppercase tracking-wide text-white/35 mb-1.5">
                 {group.label}
               </p>
               <div className="space-y-0.5 px-2">
@@ -111,7 +111,7 @@ export default function LumenNavRail() {
                       <Icon size={16} />
                       <span className="flex-1 truncate">{item.label}</span>
                       {item.comingSoon && (
-                        <span className="text-[9px] font-semibold uppercase tracking-wide text-white/30">
+                        <span className="text-etiqueta font-semibold uppercase tracking-wide text-white/30">
                           em breve
                         </span>
                       )}

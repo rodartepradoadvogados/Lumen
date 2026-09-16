@@ -162,7 +162,7 @@ export default function MigrarPastasLegadasButton() {
                     <div className="border border-regua overflow-x-auto scrollbar-thin">
                       <table className="w-full text-xs">
                         <thead className="bg-sf-apoio">
-                          <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2">
+                          <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2">
                             {!resultado && <th className="px-3 py-2 font-semibold w-10"></th>}
                             <th className="px-3 py-2 font-semibold w-[8%]">Tipo</th>
                             <th className="px-3 py-2 font-semibold w-[22%]">Título</th>
@@ -191,7 +191,7 @@ export default function MigrarPastasLegadasButton() {
                                 <td className="px-3 py-2.5 align-top text-tx-2">{e.kind === "PROCESSO" ? "Processo" : "Atendimento"}</td>
                                 <td className="px-3 py-2.5 align-top font-medium text-tx">{e.title}</td>
                                 <td className="px-3 py-2.5 align-top">
-                                  <span className={`inline-block px-2 py-0.5 text-[11px] ${actionBadgeClass(e.action)}`}>{ACTION_LABEL[e.action]}</span>
+                                  <span className={`inline-block px-2 py-0.5 text-etiqueta ${actionBadgeClass(e.action)}`}>{ACTION_LABEL[e.action]}</span>
                                 </td>
                                 <td className="px-3 py-2.5 align-top text-tx-2">{e.detail}</td>
                               </tr>
@@ -207,7 +207,7 @@ export default function MigrarPastasLegadasButton() {
                       <p className="text-xs font-semibold text-aviso">
                         {plano.orfas.length} pasta(s) com conteúdo e sem processo vinculado — nada foi movido nem apagado
                       </p>
-                      <p className="text-[11px] text-tx-2">
+                      <p className="text-etiqueta text-tx-2">
                         Abra cada uma, veja a que processo pertence e vincule os documentos pela tela de Anexos daquele processo.
                       </p>
                       <ul className="space-y-0.5 pt-0.5">
@@ -236,7 +236,7 @@ export default function MigrarPastasLegadasButton() {
                       >
                         {aplicando ? "Aplicando..." : `Aplicar a migração (${selecionadas.size} de ${totalSelecionavel})`}
                       </button>
-                      <span className="text-[11px] text-tx-2">Desmarque o que não quer mover agora — dá pra rodar de novo depois.</span>
+                      <span className="text-etiqueta text-tx-2">Desmarque o que não quer mover agora — dá pra rodar de novo depois.</span>
                     </div>
                   )}
                 </div>
@@ -264,7 +264,7 @@ export default function MigrarPastasLegadasButton() {
                       <div className="border border-regua overflow-x-auto scrollbar-thin">
                         <table className="w-full text-xs">
                           <thead className="bg-sf-apoio">
-                            <tr className="text-left text-[10px] uppercase tracking-wide text-tx-2">
+                            <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-2">
                               <th className="px-3 py-2 font-semibold w-10"></th>
                               <th className="px-3 py-2 font-semibold w-[10%]">Tipo</th>
                               <th className="px-3 py-2 font-semibold w-[30%]">Arquivo</th>
@@ -298,7 +298,7 @@ export default function MigrarPastasLegadasButton() {
                         >
                           {sincronizando ? "Sincronizando..." : `Sincronizar (${selecionadosVinculo.size} de ${itensVinculo.length})`}
                         </button>
-                        <span className="text-[11px] text-tx-2">Desmarque o que não quer vincular agora — dá pra rodar de novo depois.</span>
+                        <span className="text-etiqueta text-tx-2">Desmarque o que não quer vincular agora — dá pra rodar de novo depois.</span>
                       </div>
                     </>
                   )}

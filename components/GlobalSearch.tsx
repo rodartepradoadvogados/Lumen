@@ -207,7 +207,7 @@ export default function GlobalSearch({
       >
         <Search size={15} />
         <span className="hidden lg:inline">Buscar...</span>
-        <kbd className="hidden lg:inline text-[10px] font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5 rounded-sm">⌘K</kbd>
+        <kbd className="hidden lg:inline text-etiqueta font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5 rounded-sm">⌘K</kbd>
       </button>
 
       {open && (
@@ -238,7 +238,7 @@ export default function GlobalSearch({
                   if (groupItems.length === 0) return null;
                   return (
                     <div key={group} className="border-b border-regua last:border-0">
-                      <p className="px-4 pt-2.5 pb-1 text-[8px] font-semibold text-tx-3 uppercase tracking-[.12em]">{group}</p>
+                      <p className="px-4 pt-2.5 pb-1 text-etiqueta font-semibold text-tx-3 uppercase tracking-[.12em]">{group}</p>
                       {groupItems.map((item) => {
                         const idx = ordered.indexOf(item);
                         const active = idx === activeIndex;

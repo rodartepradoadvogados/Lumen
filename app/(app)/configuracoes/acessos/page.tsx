@@ -130,7 +130,7 @@ export default async function AcessosPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-tx-3 border-b border-regua">
+                <tr className="text-left text-etiqueta uppercase tracking-wide text-tx-3 border-b border-regua">
                   <th className="px-5 py-2 font-semibold">Data/hora</th>
                   <th className="px-5 py-2 font-semibold">Quem</th>
                   <th className="px-5 py-2 font-semibold">Motivo</th>
@@ -154,7 +154,7 @@ export default async function AcessosPage() {
                     <td className="px-5 py-2.5">
                       {ACTION_LABEL[entry.action] ?? entry.action}
                       {entry.scopeDescription && (
-                        <p className="text-[11px] font-normal text-tx-3 mt-0.5">
+                        <p className="text-etiqueta font-normal text-tx-3 mt-0.5">
                           {entry.scopeDescription}
                         </p>
                       )}

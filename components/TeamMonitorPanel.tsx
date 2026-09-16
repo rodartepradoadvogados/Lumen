@@ -13,7 +13,7 @@ import type { TeamSummary, DayHistory } from "@/lib/timesheet";
 // Rótulo de bloco dentro do menu (DESIGN-SYSTEM.md §5): 9,5px caixa alta, tracking .11em, --tx-2.
 // Usado pelo bloco "TEMA".
 function MenuBlockLabel({ children }: { children: string }) {
-  return <p className="px-2.5 pt-2.5 pb-1 text-[9.5px] font-semibold uppercase tracking-[.11em] text-tx-2">{children}</p>;
+  return <p className="px-2.5 pt-2.5 pb-1 text-etiqueta font-semibold uppercase tracking-[.11em] text-tx-2">{children}</p>;
 }
 
 function formatHMS(totalSeconds: number) {
@@ -134,7 +134,7 @@ export default function TeamMonitorPanel({
           <p className="text-sm font-medium text-tx flex items-center gap-1">
             {name} <ChevronDown size={12} className="text-tx-3" />
           </p>
-          <p className="text-[11px] text-tx-2">{role}</p>
+          <p className="text-etiqueta text-tx-2">{role}</p>
         </div>
       </button>
 
@@ -154,7 +154,7 @@ export default function TeamMonitorPanel({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-tx truncate">{name}</p>
-              <p className="text-[11px] text-tx-2 truncate">{role}</p>
+              <p className="text-etiqueta text-tx-2 truncate">{role}</p>
             </div>
           </div>
 
@@ -235,27 +235,27 @@ export default function TeamMonitorPanel({
             {summaries?.map((s) => (
               <div key={s.id} className="border-b border-regua last:border-0">
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <span className="h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style={{ backgroundColor: s.color }}>
+                  <span className="h-7 w-7 rounded-full flex items-center justify-center text-white text-etiqueta font-bold shrink-0" style={{ backgroundColor: s.color }}>
                     {s.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-tx">{s.name}</p>
-                    <p className="text-[11px] text-tx-2">
+                    <p className="text-etiqueta text-tx-2">
                       Último login: {formatDateTime(s.lastLoginAt)} · Timesheet: {formatHMS(s.todaySeconds)}
                     </p>
                   </div>
-                  <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-[11px] font-semibold text-marca-tx hover:opacity-80 shrink-0">
+                  <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-etiqueta font-semibold text-marca-tx hover:opacity-80 shrink-0">
                     Histórico
                     <ChevronDown size={12} className={`transition-transform ${expanded === s.id ? "rotate-180" : ""}`} />
                   </button>
                 </div>
                 {expanded === s.id && (
                   <div className="bg-sf-apoio px-4 py-2">
-                    {!history[s.id] && <p className="text-[11px] text-tx-3 py-1">Carregando histórico...</p>}
-                    {history[s.id]?.length === 0 && <p className="text-[11px] text-tx-3 py-1">Sem registros recentes.</p>}
+                    {!history[s.id] && <p className="text-etiqueta text-tx-3 py-1">Carregando histórico...</p>}
+                    {history[s.id]?.length === 0 && <p className="text-etiqueta text-tx-3 py-1">Sem registros recentes.</p>}
                     {history[s.id]?.map((h) => (
                       <div key={h.date} className="py-1.5 border-b border-regua last:border-0">
-                        <div className="flex justify-between text-[11px]">
+                        <div className="flex justify-between text-etiqueta">
                           <span className="text-tx-2">
                             {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR")} · primeiro login {formatTime(h.firstLogin)}
                           </span>
@@ -267,7 +267,7 @@ export default function TeamMonitorPanel({
                         {h.sessions.length > 1 && (
                           <div className="mt-1 pl-2 border-l-2 border-regua space-y-0.5">
                             {h.sessions.map((seg, i) => (
-                              <p key={i} className="text-[10px] text-tx-3 font-mono">
+                              <p key={i} className="text-etiqueta text-tx-3 font-mono">
                                 {formatTime(seg.loginAt)}–{formatTime(seg.lastPingAt)} ({formatHMS(seg.seconds)})
                               </p>
                             ))}

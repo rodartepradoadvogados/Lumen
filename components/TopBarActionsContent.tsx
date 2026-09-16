@@ -44,7 +44,7 @@ export default function TopBarActionsContent({
       <Link href="/alertas?tab=hoje" className="relative p-2 hover:bg-sf-apoio transition-colors rounded-md">
         <Bell size={20} className="text-tx" />
         {todayCount > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white bg-atencao">
+          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-etiqueta font-bold flex items-center justify-center text-white bg-atencao">
             {todayCount > 9 ? "9+" : todayCount}
           </span>
         )}

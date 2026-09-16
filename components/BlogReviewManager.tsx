@@ -163,7 +163,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
   return (
     <div className="p-5 space-y-3">
-      {error && <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <div className="flex items-start gap-2 flex-wrap">
         <div className="flex-1 min-w-[220px]">
@@ -172,7 +172,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
           ) : (
             <h4 className="font-bold text-tx text-base">{title}</h4>
           )}
-          <p className="text-[11px] text-tx-3 mt-0.5">
+          <p className="text-etiqueta text-tx-3 mt-0.5">
             Enviado pelo robô em {new Date(post.createdAt).toLocaleString("pt-BR")}
           </p>
         </div>
@@ -210,22 +210,22 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
       {editing ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label className="text-[11px] font-medium text-tx-2">Área</label>
+            <label className="text-etiqueta font-medium text-tx-2">Área</label>
             <input value={area} onChange={(e) => setArea(e.target.value)} className="cfg-input w-full" />
           </div>
           <div>
-            <label className="text-[11px] font-medium text-tx-2">Formato</label>
+            <label className="text-etiqueta font-medium text-tx-2">Formato</label>
             <select value={type} onChange={(e) => setType(e.target.value)} className="cfg-input w-full">
               <option value="NOTICIA">Notícia curta</option>
               <option value="ANALISE">Análise aprofundada</option>
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="text-[11px] font-medium text-tx-2">Resumo</label>
+            <label className="text-etiqueta font-medium text-tx-2">Resumo</label>
             <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="cfg-input w-full" />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-[11px] font-medium text-tx-2">Conteúdo</label>
+            <label className="text-etiqueta font-medium text-tx-2">Conteúdo</label>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={10} className="cfg-input w-full font-mono text-xs" />
           </div>
         </div>
@@ -246,7 +246,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
       {sourceLinks.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-tx-2 uppercase mb-1">Fontes usadas</p>
+          <p className="text-etiqueta font-semibold text-tx-2 uppercase mb-1">Fontes usadas</p>
           <ul className="space-y-0.5">
             {sourceLinks.map((url, i) => (
               <li key={i}>
@@ -263,13 +263,13 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
         <div className="pt-2 border-t border-regua space-y-2">
           {suggestedPhotos.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold text-tx-2 uppercase mb-1">Sugeridas para &ldquo;{area}&rdquo;</p>
+              <p className="text-etiqueta font-semibold text-tx-2 uppercase mb-1">Sugeridas para &ldquo;{area}&rdquo;</p>
               <PhotoPickerGrid photos={suggestedPhotos} imageUrl={imageUrl} onSelect={setImageUrl} />
             </div>
           )}
           {otherPhotos.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold text-tx-2 uppercase mb-1">Outras fotos</p>
+              <p className="text-etiqueta font-semibold text-tx-2 uppercase mb-1">Outras fotos</p>
               <PhotoPickerGrid photos={otherPhotos} imageUrl={imageUrl} onSelect={setImageUrl} />
             </div>
           )}
@@ -278,7 +278,7 @@ function ReviewCard({ post, photos }: { post: PendingPost; photos: LibraryPhoto[
 
       <div className="flex items-end gap-2 flex-wrap pt-2 border-t border-regua">
         <div className="flex-1 min-w-[220px]">
-          <label className="text-[11px] font-medium text-tx-2">URL da imagem (opcional, adicione antes de publicar)</label>
+          <label className="text-etiqueta font-medium text-tx-2">URL da imagem (opcional, adicione antes de publicar)</label>
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}

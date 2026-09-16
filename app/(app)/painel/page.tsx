@@ -194,10 +194,10 @@ export default async function DashboardPage() {
           style={{ background: "radial-gradient(ellipse at top left, var(--halo-marca), transparent 70%)" }}
         />
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
-          <h1 className="text-[30px] font-extrabold text-tx leading-tight">
+          <h1 className="text-autuacao font-extrabold text-tx leading-tight">
             {greeting(now.getHours())}, {viewer.name.split(" ")[0]}
           </h1>
-          <p className="text-[15px] text-tx-2 capitalize mt-1">
+          <p className="text-corpo text-tx-2 capitalize mt-1">
             {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
           </p>
         </div>
@@ -267,7 +267,7 @@ export default async function DashboardPage() {
             label="Minhas atrasadas"
             value={String(myOverdueTasks.length)}
             accentClassName="border-t-urgente"
-            valueClassName="font-display text-[34px] leading-none font-extrabold text-urgente"
+            valueClassName="font-display text-autuacao leading-none font-extrabold text-urgente"
             title="Minhas Atrasadas"
             icon={<Clock size={15} strokeWidth={1.5} />}
             iconClassName="bg-urgente-bg text-urgente"
@@ -379,12 +379,12 @@ export default async function DashboardPage() {
             </>
           )}
 
-          <div className="bg-sf border-t-2 border-regua-forte rounded-lg p-5">
+          <div className="bg-sf border-t-2 border-regua-forte p-5">
             <div className="flex items-center gap-2.5">
               <span className="h-[30px] w-[30px] rounded-lg flex items-center justify-center shrink-0 bg-sf-apoio text-tx-2">
                 <Filter size={15} strokeWidth={1.5} />
               </span>
-              <p className="font-display text-[11px] font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
+              <p className="font-display text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">Funil — {funilHoje.length} hoje</p>
             </div>
             <div className="mt-2.5 space-y-1.5">
               {funilHoje.length === 0 && <p className="text-sm text-tx-2">Nenhum follow-up para hoje.</p>}

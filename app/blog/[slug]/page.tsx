@@ -92,7 +92,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
               {post.summary}
             </p>
 
-            <div className="prose-like text-tx text-[15px] leading-relaxed space-y-4 text-justify hyphens-auto [font-family:var(--font-blog-serif)]">
+            <div className="prose-like text-tx text-corpo leading-relaxed space-y-4 text-justify hyphens-auto [font-family:var(--font-blog-serif)]">
               {post.content
                 .split(/\n+/)
                 .filter(Boolean)
@@ -118,7 +118,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           </div>
         </article>
 
-        <p className="text-center text-[11px] text-tx-3 mt-8">
+        <p className="text-center text-etiqueta text-tx-3 mt-8">
           Lúmen — conteúdo informativo, não substitui consulta jurídica.
         </p>
       </main>

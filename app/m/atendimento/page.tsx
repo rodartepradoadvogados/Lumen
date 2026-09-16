@@ -85,7 +85,7 @@ export default async function MobileAtendimento({
         </div>
         <Link
           href="/m/atendimento/novo"
-          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-[13px] font-semibold px-3 py-2 shrink-0"
+          className="inline-flex items-center gap-1.5 bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-2 shrink-0"
         >
           <Plus size={14} /> Novo
         </Link>
@@ -98,7 +98,7 @@ export default async function MobileAtendimento({
             <Link
               key={t.label}
               href={tabHref(t.status)}
-              className={`shrink-0 text-[13px] font-semibold px-3 py-1.5 rounded-full transition-colors ${
+              className={`shrink-0 text-corpo font-semibold px-3 py-1.5 rounded-full transition-colors ${
                 active
                   ? "bg-acao text-acao-tx"
                   : "bg-sf text-tx-2 border border-regua"
@@ -143,15 +143,15 @@ export default async function MobileAtendimento({
                     <p className="text-sm font-medium text-tx truncate">{a.clientName}</p>
                     <Badge color={statusColors[a.status]}>{attendanceStatusLabels[a.status] ?? a.status}</Badge>
                   </div>
-                  <p className="text-[13px] text-tx-2 mt-0.5 truncate">{a.subject}</p>
+                  <p className="text-corpo text-tx-2 mt-0.5 truncate">{a.subject}</p>
                   <div className="flex items-center gap-2 flex-wrap mt-1">
                     <Badge color="navy">{channelLabels[a.channel]}</Badge>
                     {a.area && <Badge color="gold">{a.area}</Badge>}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[13px] text-tx-2">{formatDate(a.createdAt)}</p>
-                  {a.responsible && <p className="text-[13px] text-tx-2 mt-0.5">{a.responsible.name}</p>}
+                  <p className="text-corpo text-tx-2">{formatDate(a.createdAt)}</p>
+                  {a.responsible && <p className="text-corpo text-tx-2 mt-0.5">{a.responsible.name}</p>}
                 </div>
               </Link>
             ))}
@@ -160,7 +160,7 @@ export default async function MobileAtendimento({
       </Card>
 
       {attendances.length < totalCount && (
-        <p className="text-[13px] text-tx-2 text-center">
+        <p className="text-corpo text-tx-2 text-center">
           Mostrando os {attendances.length} mais recentes de {totalCount} — use a busca para encontrar os demais
         </p>
       )}

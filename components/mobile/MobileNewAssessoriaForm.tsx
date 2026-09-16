@@ -7,7 +7,7 @@ import MoneyInput from "@/components/MoneyInput";
 
 const inputClass =
   "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
-const labelClass = "text-[13px] font-medium text-tx-2";
+const labelClass = "text-corpo font-medium text-tx-2";
 
 type ClientOption = { id: string; name: string };
 type UserOption = { id: string; name: string };
@@ -42,7 +42,7 @@ export default function MobileNewAssessoriaForm({ clients, users }: { clients: C
           ))}
         </select>
         {clients.length === 0 && (
-          <p className="text-[13px] text-tx-2 mt-1">
+          <p className="text-corpo text-tx-2 mt-1">
             Nenhuma empresa PJ disponível — cadastre o cliente em Contatos primeiro, ou todas já têm assessoria.
           </p>
         )}
@@ -69,7 +69,7 @@ export default function MobileNewAssessoriaForm({ clients, users }: { clients: C
         </select>
       </div>
 
-      {error && <p role="alert" className="text-[13px] font-semibold text-urgente">{error}</p>}
+      {error && <p role="alert" className="text-corpo font-semibold text-urgente">{error}</p>}
 
       <button type="submit" disabled={pending} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-md transition-colors disabled:opacity-50">
         {pending ? "Criando..." : "Criar Assessoria"}

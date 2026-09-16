@@ -59,18 +59,18 @@ export default function SettleButton({
             }}
             disabled={loading}
             data-tip={isParcial ? "Reabrir e apagar os pagamentos parciais já lançados" : "Reabrir e desfazer a baixa"}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio disabled:opacity-50"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2 py-1 hover:bg-sf-apoio disabled:opacity-50"
           >
             <RotateCcw size={12} /> Reabrir
           </button>
-          {error && <p className="text-[10px] text-urgente">{error}</p>}
+          {error && <p className="text-etiqueta text-urgente">{error}</p>}
         </div>
       )}
       {!isPago && (
         <>
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 "
+            className="flex items-center gap-1 text-etiqueta font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 "
           >
             <Check size={12} /> Dar Baixa
           </button>

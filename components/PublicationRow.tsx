@@ -156,7 +156,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           href={`/processos/${pub.case.id}?tab=atividades`}
           onClick={(e) => e.stopPropagation()}
           data-tip="Ver atividades vinculadas a esta publicação"
-          className="absolute right-7 top-4 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-atencao text-white text-[10px] font-bold tabular-nums z-10"
+          className="absolute right-7 top-4 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-atencao text-white text-etiqueta font-bold tabular-nums z-10"
         >
           {pub.taskCount}
         </Link>
@@ -222,7 +222,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           <button
             onClick={markRead}
             disabled={loading}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <Check size={12} /> Marcar como lida
           </button>
@@ -230,7 +230,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           <button
             onClick={markUnread}
             disabled={loading}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <Undo2 size={12} /> Marcar como não lida
           </button>
@@ -240,13 +240,13 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           <TabLink
             href={`/processos/${pub.case.id}`}
             label={pub.case.title}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             Abrir Processo
           </TabLink>
         )}
         {!pub.case && pub.client && (
-          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-[11px] font-semibold text-concluido hover:opacity-80 px-2.5 py-1 bg-concluido-bg rounded-sm">
+          <Link href={`/contatos/clientes#client-${pub.client.id}`} className="flex items-center gap-1 text-etiqueta font-semibold text-concluido hover:opacity-80 px-2.5 py-1 bg-concluido-bg rounded-sm">
             Abrir Cadastro do Cliente
           </Link>
         )}
@@ -268,7 +268,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setAgendaOpen((o) => !o)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <CalendarClock size={12} /> Agenda <ChevronDown size={11} />
           </button>
@@ -288,7 +288,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
         </div>
 
         {assignedToName && (
-          <span data-tip="Responsável pela triagem" className="text-[11px] font-medium text-tx-2 px-2 py-1 bg-sf-apoio">
+          <span data-tip="Responsável pela triagem" className="text-etiqueta font-medium text-tx-2 px-2 py-1 bg-sf-apoio">
             Responsável: {assignedToName}
           </span>
         )}
@@ -299,7 +299,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
               setDelegateType("TAREFA");
               setDelegateOpen(true);
             }}
-            className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+            className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
           >
             <UserPlus size={12} /> Delegar
           </button>
@@ -310,7 +310,7 @@ export default function PublicationRow({ group, users = [] }: { group: Publicati
           disabled={loading}
           onChange={(e) => handleTriage(e.target.value)}
           data-tip="Status da triagem"
-          className="text-[11px] font-semibold text-tx-2 px-2 py-1 bg-sf-apoio border border-regua cursor-pointer disabled:opacity-50"
+          className="text-etiqueta font-semibold text-tx-2 px-2 py-1 bg-sf-apoio border border-regua cursor-pointer disabled:opacity-50"
         >
           <option value="PENDENTE">Pendente</option>
           <option value="EM_ANALISE">Em análise</option>

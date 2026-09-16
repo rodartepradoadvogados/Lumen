@@ -201,7 +201,7 @@ export default function ApurarHonorarioModal({
                   </label>
 
                   {usarPresuncao ? (
-                    <p className="text-[11px] text-tx-2 bg-sf-apoio px-3 py-2">
+                    <p className="text-etiqueta text-tx-2 bg-sf-apoio px-3 py-2">
                       Trânsito em julgado presumido:{" "}
                       <span className="font-semibold text-tx">
                         {transitoPresumidoStr ? formatCalendarDate(transitoPresumidoStr) : "—"}
@@ -247,7 +247,7 @@ export default function ApurarHonorarioModal({
               )}
 
               {semExito && (
-                <p className="text-[11px] text-urgente bg-urgente-bg rounded-md px-3 py-2">
+                <p className="text-etiqueta text-urgente bg-urgente-bg rounded-md px-3 py-2">
                   Não gera receita. {itensDaBase.length} parcela(s) desta base serão encerradas (status Cancelado) — o registro não é
                   apagado, continua consultável no histórico financeiro do processo.
                 </p>
@@ -274,10 +274,6 @@ export default function ApurarHonorarioModal({
           </div>
         </div>
       )}
-      <style jsx global>{`
-        .fin-input { width: 100%; margin-top: 0.25rem; border: 1px solid var(--regua-forte); border-radius: 0.3125rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: var(--sf); color: var(--tx); }
-        .fin-input:focus { outline: none; border-color: var(--acao); box-shadow: 0 0 0 2px color-mix(in srgb, var(--acao) 35%, transparent); }
-      `}</style>
     </>
   );
 }

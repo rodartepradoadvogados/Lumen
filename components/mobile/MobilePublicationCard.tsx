@@ -112,12 +112,12 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
       </div>
 
       {pub.caseId && pub.caseTitle && (
-        <Link href={`/m/processos/${pub.caseId}`} className="text-[13px] font-medium text-acao block mb-1">
+        <Link href={`/m/processos/${pub.caseId}`} className="text-corpo font-medium text-acao block mb-1">
           {pub.caseTitle}
         </Link>
       )}
       {!pub.caseId && pub.clientId && pub.clientName && (
-        <p className="text-[13px] font-medium text-concluido mb-1">Cliente compatível: {pub.clientName}</p>
+        <p className="text-corpo font-medium text-concluido mb-1">Cliente compatível: {pub.clientName}</p>
       )}
 
       {/* Cartão recolhido por padrão — clicar no conteúdo expande INLINE (mesma posição, sem
@@ -175,7 +175,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
               type="button"
               disabled={pending || leaving}
               onClick={markRead}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua disabled:opacity-50"
             >
               <Check size={13} /> {pending || leaving ? "Marcando..." : "Marcar como lida"}
             </button>
@@ -183,7 +183,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
             {pub.caseId && (
               <Link
                 href={`/m/processos/${pub.caseId}`}
-                className="inline-flex items-center gap-1 text-[13px] font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua"
+                className="inline-flex items-center gap-1 text-corpo font-semibold text-tx-2 px-3 py-1.5 bg-sf-apoio hover:bg-regua"
               >
                 Abrir Processo
               </Link>
@@ -212,7 +212,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
               <button
                 type="button"
                 onClick={() => setAgendaOpen((o) => !o)}
-                className="inline-flex items-center gap-1 text-[13px] font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg"
+                className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg"
               >
                 <CalendarClock size={13} /> Agenda <ChevronDown size={12} />
               </button>
@@ -227,7 +227,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                         setDelegateType(a.type);
                         setDelegateOpen(true);
                       }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-[13px] text-tx hover:bg-sf-apoio"
+                      className="flex items-center gap-2 w-full px-3 py-2 text-corpo text-tx hover:bg-sf-apoio"
                     >
                       <a.icon size={13} /> {a.label}
                     </button>
@@ -244,7 +244,7 @@ export default function MobilePublicationCard({ group, users = [] }: { group: Pu
                   setDelegateType("TAREFA");
                   setDelegateOpen(true);
                 }}
-                className="inline-flex items-center gap-1 text-[13px] font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg"
+                className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx px-3 py-1.5 bg-marca-bg"
               >
                 <UserPlus size={13} /> Delegar
               </button>

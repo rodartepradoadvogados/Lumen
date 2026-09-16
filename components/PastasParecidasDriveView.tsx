@@ -100,9 +100,9 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-tx break-all">{p.nome}</span>
-                  {p.id === canonicoId && <span className="text-[10px] font-bold text-acao uppercase tracking-wide shrink-0">Manter esta</span>}
+                  {p.id === canonicoId && <span className="text-etiqueta font-bold text-acao uppercase tracking-wide shrink-0">Manter esta</span>}
                 </div>
-                <p className="text-[11px] text-tx-2 flex items-center gap-1">
+                <p className="text-etiqueta text-tx-2 flex items-center gap-1">
                   {p.vinculada ? (
                     <>Vinculada ao cadastro &ldquo;{p.clienteVinculado}&rdquo;</>
                   ) : (
@@ -117,7 +117,7 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-[11px] text-acao hover:underline inline-flex items-center gap-1 mt-0.5"
+                    className="text-etiqueta text-acao hover:underline inline-flex items-center gap-1 mt-0.5"
                   >
                     Abrir no Drive <ExternalLink size={10} />
                   </a>
@@ -163,7 +163,7 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
                         </li>
                       ))}
                     </ul>
-                    <p className="text-[11px] text-tx-3">
+                    <p className="text-etiqueta text-tx-3">
                       Confira essas pastas direto no Drive e mescle manualmente o que fizer sentido — a mesclagem segue
                       em frente sem elas.
                     </p>
@@ -257,7 +257,7 @@ export default function PastasParecidasDriveView() {
           <p className="text-xs font-semibold uppercase tracking-wide text-tx-2 flex items-center gap-1.5">
             <Link2Off size={13} /> {soltas.length} pasta(s) solta(s), sem nome parecido com nenhuma outra
           </p>
-          <p className="text-[11px] text-tx-3">
+          <p className="text-etiqueta text-tx-3">
             Não têm cadastro de cliente vinculado nem duplicata aparente — confira se estão certas direto no Drive.
           </p>
           <ul className="text-xs text-tx-2 divide-y divide-regua">

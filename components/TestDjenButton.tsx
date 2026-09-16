@@ -40,13 +40,13 @@ export default function TestDjenButton() {
                 // Cor explícita: um <pre> sem text-* herda do ancestral mais próximo que definir
                 // color — qualquer card acima na árvore que não tenha migrado pra token deixa este
                 // bloco ilegível no Noite sem nenhum aviso. Não depender de herança.
-                <pre className="text-[11px] text-tx bg-sf p-2 mt-2 overflow-x-auto max-h-64 whitespace-pre-wrap break-words">
+                <pre className="text-etiqueta text-tx bg-sf p-2 mt-2 overflow-x-auto max-h-64 whitespace-pre-wrap break-words">
                   {JSON.stringify(r.sample, null, 2)}
                 </pre>
               )}
             </div>
           ))}
-          <p className="text-[11px] text-tx-2">
+          <p className="text-etiqueta text-tx-2">
             Copie o resultado acima e envie para conferirmos o formato antes de ligar a sincronização automática.
           </p>
         </div>

@@ -132,7 +132,7 @@ export default function NoticesPanel({
           return (
             <div key={n.id} className={clsx("px-5 py-3 flex gap-3", n.pinned && "bg-marca-bg")}>
               <div
-                className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                className="h-8 w-8 rounded-full flex items-center justify-center text-etiqueta font-bold text-white shrink-0"
                 style={{ backgroundColor: n.author.color }}
               >
                 {initials(n.author.name)}
@@ -141,7 +141,7 @@ export default function NoticesPanel({
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-tx">{n.author.name}</p>
                   {n.pinned && <Pin size={12} className="text-marca fill-marca" />}
-                  <span className="text-[11px] text-tx-3">{relativeTime(n.createdAt)}</span>
+                  <span className="text-etiqueta text-tx-3">{relativeTime(n.createdAt)}</span>
                   <span className="ml-auto flex items-center gap-0.5">
                     {isAdmin && (
                       <button
@@ -172,7 +172,7 @@ export default function NoticesPanel({
         })}
       </div>
       <div className="border-t border-regua p-3">
-        {error && <p className="text-[11px] text-urgente mb-1.5">{error}</p>}
+        {error && <p className="text-etiqueta text-urgente mb-1.5">{error}</p>}
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <textarea

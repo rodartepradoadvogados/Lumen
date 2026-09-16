@@ -238,7 +238,7 @@ export default function AssessoriaLicitacoesTab({
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-tx-2">
+        <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">
           {assessoria.licitacoes.length} licitaç{assessoria.licitacoes.length === 1 ? "ão" : "ões"}
         </p>
         <button
@@ -257,12 +257,12 @@ export default function AssessoriaLicitacoesTab({
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+            <label className="flex items-center gap-1.5 text-etiqueta text-tx-2">
               Status
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-[11px] border border-regua bg-sf text-tx px-1.5 py-1"
+                className="text-etiqueta border border-regua bg-sf text-tx px-1.5 py-1"
               >
                 <option value="TODOS">Todos</option>
                 {STATUS_OPTIONS.map((s) => (
@@ -270,12 +270,12 @@ export default function AssessoriaLicitacoesTab({
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-1.5 text-[11px] text-tx-2">
+            <label className="flex items-center gap-1.5 text-etiqueta text-tx-2">
               Ordenar
               <select
                 value={tableSort}
                 onChange={(e) => setTableSort(e.target.value as LicitacaoSort)}
-                className="text-[11px] border border-regua bg-sf text-tx px-1.5 py-1"
+                className="text-etiqueta border border-regua bg-sf text-tx px-1.5 py-1"
               >
                 {LICITACAO_SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -294,8 +294,8 @@ export default function AssessoriaLicitacoesTab({
               >
                 <div className="flex items-start justify-between gap-3 mb-2.5">
                   <div className="min-w-0">
-                    <p className="font-semibold text-tx text-[14px] truncate">{l.nome || l.objeto}</p>
-                    <p className="text-[11.5px] text-tx-2 mt-0.5 truncate">{l.orgao}</p>
+                    <p className="font-semibold text-tx text-corpo truncate">{l.nome || l.objeto}</p>
+                    <p className="text-etiqueta text-tx-2 mt-0.5 truncate">{l.orgao}</p>
                   </div>
                   <ChevronRight size={16} className="text-tx-3 shrink-0 mt-0.5" />
                 </div>
@@ -305,7 +305,7 @@ export default function AssessoriaLicitacoesTab({
                   <CardField label="Prazo final" value={l.prazoFinal ? formatCalendarDate(l.prazoFinal) : "—"} tabular />
                   <CardField label="Valor estimado" value={l.valorEstimado ? formatCurrency(l.valorEstimado) : "—"} tabular />
                   <div>
-                    <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
+                    <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Status</p>
                     <Badge color={statusMeta(l.status).color}>{statusMeta(l.status).label}</Badge>
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export default function AssessoriaLicitacoesTab({
         >
           <div className="p-5 flex flex-col gap-4">
             <div className="bg-sf-apoio border border-regua p-4">
-              <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Dados da licitação</h4>
+              <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 mb-2.5">Dados da licitação</h4>
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between gap-3"><span className="text-tx-2 shrink-0">Objeto</span><span className="text-tx text-right">{selected.objeto}</span></div>
                 <div className="flex justify-between"><span className="text-tx-2">Órgão</span><span className="text-tx">{selected.orgao}</span></div>
@@ -376,7 +376,7 @@ export default function AssessoriaLicitacoesTab({
 
             <div className="bg-sf-apoio border border-regua p-4">
               <div className="flex items-center justify-between mb-2.5">
-                <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Tarefas &amp; Prazos</h4>
+                <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Tarefas &amp; Prazos</h4>
                 <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-acao hover:text-acao-hover">
                   + Nova tarefa
                 </button>
@@ -440,7 +440,7 @@ export default function AssessoriaLicitacoesTab({
 
             <div className="bg-sf-apoio border border-regua p-4">
               <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-                <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2">Documentos</h4>
+                <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Documentos</h4>
                 <EnviarDocumentosButton
                   entity={{ tipo: "LICITACAO", id: selected.id, titulo: selected.nome || selected.objeto }}
                   attachments={selectedAttachmentOptions}
@@ -458,7 +458,7 @@ export default function AssessoriaLicitacoesTab({
                       key={c.key}
                       type="button"
                       onClick={() => setDocFilter(c.key)}
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                      className={`text-etiqueta font-semibold px-2.5 py-1 rounded-full border ${
                         docFilter === c.key ? "bg-acao text-acao-tx border-acao" : "border-regua text-tx-2 hover:border-regua-forte hover:text-tx"
                       }`}
                     >
@@ -482,7 +482,7 @@ export default function AssessoriaLicitacoesTab({
             </div>
 
             <div className="bg-sf-apoio border border-regua p-4">
-              <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Anotações</h4>
+              <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 mb-2.5">Anotações</h4>
               <div className="space-y-4 mb-3 max-h-[360px] overflow-y-auto scrollbar-thin">
                 {selected.comments.length === 0 && (
                   <EmptyState title="Nenhuma anotação ainda" subtitle="Use @ para mencionar alguém da equipe" />
@@ -491,13 +491,13 @@ export default function AssessoriaLicitacoesTab({
                   const authorName = authorDisplayName(cm.author, viewerOfficeId);
                   return (
                     <div key={cm.id} className="flex gap-3">
-                      <div className="h-8 w-8 rounded-full bg-grafite-700 text-acao-tx flex items-center justify-center text-[11px] font-bold shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-grafite-700 text-acao-tx flex items-center justify-center text-etiqueta font-bold shrink-0">
                         {authorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                       </div>
                       <div>
                         <p className="text-sm">
                           <span className="font-semibold text-tx">{authorName}</span>{" "}
-                          <span className="text-[11px] text-tx-2">{formatDate(cm.createdAt)}</span>
+                          <span className="text-etiqueta text-tx-2">{formatDate(cm.createdAt)}</span>
                         </p>
                         <p className="text-sm text-tx mt-0.5 whitespace-pre-wrap">{cm.content}</p>
                       </div>
@@ -522,7 +522,7 @@ export default function AssessoriaLicitacoesTab({
             </div>
             <form action={handleSubmitModal} className="p-5 space-y-3">
               <div>
-                <label className="text-[11px] text-tx-2">Nome da licitação</label>
+                <label className="text-etiqueta text-tx-2">Nome da licitação</label>
                 <input
                   name="nome"
                   required
@@ -530,12 +530,12 @@ export default function AssessoriaLicitacoesTab({
                   placeholder="Ex: Pregão 014/2026 — Locação de Veículos"
                   className="lic-input"
                 />
-                <p className="text-[10.5px] text-tx-3 mt-0.5">
+                <p className="text-etiqueta text-tx-3 mt-0.5">
                   Nome curto para gestão — aparece no card e vira o nome da pasta no Drive.
                 </p>
               </div>
               <div>
-                <label className="text-[11px] text-tx-2">Objeto</label>
+                <label className="text-etiqueta text-tx-2">Objeto</label>
                 <textarea
                   name="objeto"
                   required
@@ -547,11 +547,11 @@ export default function AssessoriaLicitacoesTab({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] text-tx-2">Órgão</label>
+                  <label className="text-etiqueta text-tx-2">Órgão</label>
                   <input name="orgao" required defaultValue={modalMode === "edit" ? selected?.orgao || "" : ""} className="lic-input" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-tx-2">Modalidade</label>
+                  <label className="text-etiqueta text-tx-2">Modalidade</label>
                   <input
                     name="modalidade"
                     defaultValue={modalMode === "edit" ? selected?.modalidade || "" : ""}
@@ -562,20 +562,20 @@ export default function AssessoriaLicitacoesTab({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[11px] text-tx-2">Abertura</label>
+                  <label className="text-etiqueta text-tx-2">Abertura</label>
                   <input name="dataAbertura" type="date" defaultValue={modalMode === "edit" ? dateInputValue(selected?.dataAbertura) : ""} className="lic-input" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-tx-2">Prazo final</label>
+                  <label className="text-etiqueta text-tx-2">Prazo final</label>
                   <input name="prazoFinal" type="date" defaultValue={modalMode === "edit" ? dateInputValue(selected?.prazoFinal) : ""} className="lic-input" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-tx-2">Valor estimado (R$)</label>
+                  <label className="text-etiqueta text-tx-2">Valor estimado (R$)</label>
                   <MoneyInput name="valorEstimado" defaultValue={modalMode === "edit" && selected?.valorEstimado != null ? String(selected.valorEstimado) : undefined} className="lic-input" />
                 </div>
               </div>
               <div>
-                <label className="text-[11px] text-tx-2">Link do edital (Drive)</label>
+                <label className="text-etiqueta text-tx-2">Link do edital (Drive)</label>
                 <input name="editalUrl" type="url" defaultValue={modalMode === "edit" ? selected?.editalUrl || "" : ""} placeholder="https://..." className="lic-input" />
               </div>
               {error && <p className="text-xs text-urgente">{error}</p>}
@@ -589,7 +589,6 @@ export default function AssessoriaLicitacoesTab({
           </div>
         </div>
       )}
-      <style>{`.lic-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
     </div>
   );
 }
@@ -597,8 +596,8 @@ export default function AssessoriaLicitacoesTab({
 function CardField({ label, value, tabular, clamp, className }: { label: string; value: string; tabular?: boolean; clamp?: boolean; className?: string }) {
   return (
     <div className={className}>
-      <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">{label}</p>
-      <p className={`text-[12.5px] text-tx ${tabular ? "tabular-nums" : ""} ${clamp ? "truncate" : ""}`} title={value}>{value}</p>
+      <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">{label}</p>
+      <p className={`text-corpo text-tx ${tabular ? "tabular-nums" : ""} ${clamp ? "truncate" : ""}`} title={value}>{value}</p>
     </div>
   );
 }

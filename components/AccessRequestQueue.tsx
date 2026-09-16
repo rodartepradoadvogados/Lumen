@@ -68,9 +68,9 @@ export default function AccessRequestQueue({ requests }: { requests: PendingAcce
             {req.reasonNote && (
               <p className="text-xs text-tx-2 mt-0.5 italic">“{req.reasonNote}”</p>
             )}
-            <p className="text-[11px] text-tx-2 mt-1">Pedido {timeAgo(req.requestedAt)}</p>
+            <p className="text-etiqueta text-tx-2 mt-1">Pedido {timeAgo(req.requestedAt)}</p>
             {errors[req.id] && (
-              <p className="text-[11px] text-urgente mt-1">{errors[req.id]}</p>
+              <p className="text-etiqueta text-urgente mt-1">{errors[req.id]}</p>
             )}
           </div>
           <div className="flex gap-2 shrink-0">

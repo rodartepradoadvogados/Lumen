@@ -221,20 +221,20 @@ export default function AgendaView({
       </select>
 
       <div className="flex items-center gap-3 flex-wrap ml-auto">
-        <span className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">Cores por tipo:</span>
+        <span className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">Cores por tipo:</span>
         {Object.entries(typeMeta).map(([k, m]) => (
-          <span key={k} className="flex items-center gap-1.5 text-[11px] text-tx-2">
+          <span key={k} className="flex items-center gap-1.5 text-etiqueta text-tx-2">
             <span className={clsx("h-2.5 w-2.5 rounded-full", m.dot)} />
             {taskTypeLabels[k]}
           </span>
         ))}
         {hasFinanceAccess && (
           <>
-            <span className="flex items-center gap-1.5 text-[11px] text-tx-2">
+            <span className="flex items-center gap-1.5 text-etiqueta text-tx-2">
               <span className={clsx("h-2.5 w-2.5 rounded-full", financeMeta.PAGAR.dot)} />
               Conta a Pagar
             </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-tx-2">
+            <span className="flex items-center gap-1.5 text-etiqueta text-tx-2">
               <span className={clsx("h-2.5 w-2.5 rounded-full", financeMeta.RECEBER.dot)} />
               Conta a Receber
             </span>
@@ -244,7 +244,7 @@ export default function AgendaView({
       {/* Desde a proposta "Movimento & Prazos" (setembro/2026): o filete/borda dos cartões abaixo
           passou a indicar URGÊNCIA (vencida/vencendo/a vencer), não mais o tipo — que continua
           só no fundo+texto do chip/badge e na bolinha desta legenda. */}
-      <p className="text-[10.5px] text-tx-3 -mt-1">
+      <p className="text-etiqueta text-tx-3 -mt-1">
         A borda de cada compromisso indica prazo — <span className="text-urgente font-semibold">vencida</span>,{" "}
         <span className="text-aviso font-semibold">vencendo</span> (hoje/amanhã) ou neutra (a vencer).
       </p>
@@ -319,7 +319,7 @@ function EventChip({ t }: { t: TaskData }) {
     <div
       data-tip={isSafety ? "Prazo de segurança — 24h antes do prazo fatal" : doneTip || undefined}
       className={clsx(
-        "text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm",
+        "text-etiqueta pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm",
         isSafety ? clsx(safetyChip, "border-aviso") : clsx(meta.chip, PRAZO_URGENCIA_BORDER[urgencia]),
         done && "line-through opacity-60"
       )}
@@ -337,7 +337,7 @@ function EventChip({ t }: { t: TaskData }) {
 function FinanceEventChip({ f }: { f: FinanceEntryData }) {
   const meta = financeMeta[f.kind];
   return (
-    <div className={clsx("text-[10px] pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm", meta.chip, meta.filete)}>
+    <div className={clsx("text-etiqueta pl-1.5 pr-1 py-0.5 truncate font-medium flex items-center gap-1 border-l-[3px] rounded-sm", meta.chip, meta.filete)}>
       <span className="shrink-0">{f.kind === "PAGAR" ? "↓" : "↑"}</span>
       <span className="truncate">{f.description}</span>
     </div>
@@ -384,7 +384,7 @@ function MonthView({
   const nextMonthHref = buildHref({ year: String(month === 11 ? year + 1 : year), month: String(month === 11 ? 0 : month + 1) });
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte rounded-lg overflow-hidden flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte overflow-hidden flex flex-col min-h-0">
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">
           {MONTHS[month]} {year}
@@ -404,7 +404,7 @@ function MonthView({
 
       <div className="grid grid-cols-7 border-b border-regua">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="text-center text-[11px] font-semibold text-tx-3 py-2 uppercase tracking-wide">
+          <div key={w} className="text-center text-etiqueta font-semibold text-tx-3 py-2 uppercase tracking-wide">
             {w}
           </div>
         ))}
@@ -446,7 +446,7 @@ function MonthView({
                   <EventChip key={t.id} t={t} />
                 ))}
                 {dayTasks.length < 3 && dayFinance.slice(0, 3 - dayTasks.length).map((f) => <FinanceEventChip key={f.id} f={f} />)}
-                {totalCount > 3 && <p className="text-[10px] text-tx-3 pl-1">+{totalCount - 3} mais</p>}
+                {totalCount > 3 && <p className="text-etiqueta text-tx-3 pl-1">+{totalCount - 3} mais</p>}
               </div>
             </button>
           );
@@ -480,7 +480,7 @@ function WeekView({
   const label = `${start.getDate()}/${String(start.getMonth() + 1).padStart(2, "0")} – ${days[6].getDate()}/${String(days[6].getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte rounded-lg overflow-hidden flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte overflow-hidden flex flex-col min-h-0">
       <div className="flex items-center justify-between px-5 py-4 border-b border-regua">
         <h3 className="font-bold text-tx text-lg">Semana de {label}</h3>
         <div className="flex items-center gap-1">
@@ -514,7 +514,7 @@ function WeekView({
               )}
             >
               <div className="flex flex-col items-center mb-1.5">
-                <span className="text-[10px] font-semibold text-tx-3 uppercase">{WEEKDAYS[date.getDay()]}</span>
+                <span className="text-etiqueta font-semibold text-tx-3 uppercase">{WEEKDAYS[date.getDay()]}</span>
                 <span
                   className={clsx(
                     "text-xs font-semibold h-6 w-6 flex items-center justify-center rounded-full",
@@ -550,7 +550,7 @@ function ListView({
   const days = Array.from(new Set([...Object.keys(tasksByDay), ...Object.keys(financeByDay)])).sort();
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte rounded-lg flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+    <div className="bg-sf border-t-2 border-regua-forte flex-1 min-h-0 overflow-y-auto scrollbar-thin">
       {days.length === 0 && <p className="text-center text-sm text-tx-3 py-16">Nada agendado nos próximos 30 dias</p>}
       {days.map((day) => {
         const items = (tasksByDay[day] || []).sort((a, b) => (a.dueTime || "").localeCompare(b.dueTime || ""));
@@ -578,7 +578,7 @@ function ListView({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <Badge color={taskTypeColors[t.type]}>{taskTypeLabels[t.type]}</Badge>
                         {isSafety && <Badge color="gold">Prazo de segurança (24h antes)</Badge>}
-                        {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
+                        {t.dueTime && <span className="text-etiqueta font-semibold text-tx-3">{t.dueTime}</span>}
                       </div>
                       <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
                       {t.case && (
@@ -586,9 +586,9 @@ function ListView({
                           {t.case.title}
                         </Link>
                       )}
-                      {t.responsible && <p className="text-[11px] text-tx-3 mt-0.5">Responsável: {t.responsible.name}</p>}
+                      {t.responsible && <p className="text-etiqueta text-tx-3 mt-0.5">Responsável: {t.responsible.name}</p>}
                       {done && completedLabel(t) && (
-                        <p className="text-[11px] text-tx-3 mt-0.5">{completedLabel(t)}</p>
+                        <p className="text-etiqueta text-tx-3 mt-0.5">{completedLabel(t)}</p>
                       )}
                     </div>
                   </div>
@@ -627,7 +627,7 @@ function DayPanel({
   const totalCount = selectedTasks.length + selectedFinance.length;
 
   return (
-    <div className="bg-sf border-t-2 border-regua-forte rounded-lg overflow-hidden flex flex-col min-h-0">
+    <div className="bg-sf border-t-2 border-regua-forte overflow-hidden flex flex-col min-h-0">
       <div className="px-5 py-4 border-b border-regua flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-tx">
@@ -672,7 +672,7 @@ function FinanceListRow({ f }: { f: FinanceEntryData }) {
       <span className={clsx("mt-1.5 h-2.5 w-2.5 rounded-full shrink-0", meta.dot)} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className={clsx("text-[11px] font-semibold", f.kind === "PAGAR" ? "text-atencao" : "text-concluido")}>{meta.label}</span>
+          <span className={clsx("text-etiqueta font-semibold", f.kind === "PAGAR" ? "text-atencao" : "text-concluido")}>{meta.label}</span>
           <Badge color={statusColor}>{isApurar ? "A apurar" : f.effectiveStatus}</Badge>
         </div>
         <p className="text-sm font-medium text-tx mt-1">{f.description}</p>
@@ -746,16 +746,16 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
                 )}
               </>
             )}
-            {t.dueTime && <span className="text-[11px] font-semibold text-tx-3">{t.dueTime}</span>}
+            {t.dueTime && <span className="text-etiqueta font-semibold text-tx-3">{t.dueTime}</span>}
             {!done && (
-              <span className={clsx("text-[11px] font-semibold", PRAZO_URGENCIA_TEXT[urgencia])}>
+              <span className={clsx("text-etiqueta font-semibold", PRAZO_URGENCIA_TEXT[urgencia])}>
                 {formatRelativeDueDate(t.dueDate)}
               </span>
             )}
           </div>
           <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
-          {t.responsible && <p className="text-[11px] text-tx-3 mt-1">Responsável: {t.responsible.name}</p>}
-          {t.meetingType === "PRESENCIAL" && t.location && <p className="text-[11px] text-tx-3 mt-1">📍 {t.location}</p>}
+          {t.responsible && <p className="text-etiqueta text-tx-3 mt-1">Responsável: {t.responsible.name}</p>}
+          {t.meetingType === "PRESENCIAL" && t.location && <p className="text-etiqueta text-tx-3 mt-1">📍 {t.location}</p>}
         </button>
         {t.case && (
           <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline mt-1 block truncate">
@@ -763,7 +763,7 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
           </Link>
         )}
         {t.meetingType === "ONLINE" && safeMeetingUrl && (
-          <a href={safeMeetingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-acao hover:underline mt-1 block truncate">
+          <a href={safeMeetingUrl} target="_blank" rel="noopener noreferrer" className="text-etiqueta text-acao hover:underline mt-1 block truncate">
             🔗 {safeMeetingUrl}
           </a>
         )}

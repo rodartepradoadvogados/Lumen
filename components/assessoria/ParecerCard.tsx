@@ -202,21 +202,21 @@ export default function ParecerCard({
         className="w-full text-left border border-regua rounded-lg bg-sf p-3.5 hover:border-regua-forte transition-colors"
       >
         <div className="flex items-start justify-between gap-3">
-          <p className="font-semibold text-tx text-[14px] truncate">{parecer.name}</p>
+          <p className="font-semibold text-tx text-corpo truncate">{parecer.name}</p>
           <ChevronRight size={16} className="text-tx-3 shrink-0 mt-0.5" />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 mt-2">
           <div>
-            <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Data</p>
-            <p className="text-[12.5px] text-tx tabular-nums">{formatDate(parecer.date)}</p>
+            <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Data</p>
+            <p className="text-corpo text-tx tabular-nums">{formatDate(parecer.date)}</p>
           </div>
           <div>
-            <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Documentos</p>
-            <p className="text-[12.5px] text-tx tabular-nums">{parecer.documents.length}</p>
+            <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Documentos</p>
+            <p className="text-corpo text-tx tabular-nums">{parecer.documents.length}</p>
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <p className="text-[9.5px] font-bold uppercase tracking-wide text-tx-3 mb-1">Descrição</p>
-            <p className="text-[12.5px] text-tx truncate" title={parecer.description || ""}>{parecer.description || "—"}</p>
+            <p className="text-etiqueta font-bold uppercase tracking-wide text-tx-3 mb-1">Descrição</p>
+            <p className="text-corpo text-tx truncate" title={parecer.description || ""}>{parecer.description || "—"}</p>
           </div>
         </div>
       </button>
@@ -252,7 +252,7 @@ export default function ParecerCard({
         >
           <div className="p-5 flex flex-col gap-4">
             <div className="bg-sf-apoio border border-regua p-4">
-              <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2">Dados da demanda</h4>
+              <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 mb-2">Dados da demanda</h4>
               {parecer.description ? (
                 <p className="text-sm text-tx whitespace-pre-wrap">{parecer.description}</p>
               ) : (
@@ -261,7 +261,7 @@ export default function ParecerCard({
             </div>
 
             <div className="bg-sf-apoio border border-regua p-4">
-              <h4 className="text-[11px] font-bold uppercase tracking-wide text-tx-2 mb-2.5">Documentos</h4>
+              <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2 mb-2.5">Documentos</h4>
 
               {driveConnected && (
                 <div className="mb-2.5">
@@ -280,7 +280,7 @@ export default function ParecerCard({
                         <a href={d.driveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 text-sm">
                           <Icon size={13} className="shrink-0 text-tx-3" />
                           <span className="flex-1 min-w-0 truncate text-tx">{d.name}</span>
-                          <span className="shrink-0 text-[10px] text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
+                          <span className="shrink-0 text-etiqueta text-tx-3 font-mono">{getDocumentTypeLabel(d.docType)}</span>
                           <ExternalLink size={11} className="shrink-0 text-tx-3" />
                         </a>
                         <button
@@ -297,7 +297,7 @@ export default function ParecerCard({
                   })}
                 </div>
               )}
-              {docDeleteError && <p className="text-[11px] text-urgente mb-2">{docDeleteError}</p>}
+              {docDeleteError && <p className="text-etiqueta text-urgente mb-2">{docDeleteError}</p>}
 
               {driveConnected ? (
                 <div
@@ -317,7 +317,7 @@ export default function ParecerCard({
                   }`}
                 >
                   <UploadCloud size={16} className="text-tx-2" />
-                  <p className="text-[11px] text-tx-2 text-center">Arraste arquivos aqui, ou clique para selecionar (pode escolher vários)</p>
+                  <p className="text-etiqueta text-tx-2 text-center">Arraste arquivos aqui, ou clique para selecionar (pode escolher vários)</p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -346,11 +346,11 @@ export default function ParecerCard({
                         <DocumentTypeSelect
                           value={it.docType}
                           onChange={(v) => updateItem(it.tempId, { docType: v })}
-                          className="text-[11px] border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[170px] shrink-0"
+                          className="text-etiqueta border border-regua bg-sf text-tx rounded px-1.5 py-1 max-w-[170px] shrink-0"
                           allowCreate
                         />
                       )}
-                      {it.error && <span className="text-[10px] text-urgente shrink-0">{it.error}</span>}
+                      {it.error && <span className="text-etiqueta text-urgente shrink-0">{it.error}</span>}
                       <button type="button" onClick={() => removeItem(it.tempId)} disabled={it.uploading} className="p-1 text-tx-3 hover:text-atencao shrink-0 disabled:opacity-50">
                         <X size={13} />
                       </button>
@@ -373,11 +373,11 @@ export default function ParecerCard({
                 type="button"
                 onClick={handleDelete}
                 disabled={deletePending}
-                className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-atencao disabled:opacity-50"
+                className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-atencao disabled:opacity-50"
               >
                 <Trash2 size={11} /> Excluir pasta
               </button>
-              {deleteError && <p className="text-[11px] text-urgente mt-1">{deleteError}</p>}
+              {deleteError && <p className="text-etiqueta text-urgente mt-1">{deleteError}</p>}
             </div>
           </div>
         </SlideDrawer>
@@ -395,16 +395,16 @@ export default function ParecerCard({
             <form action={handleEdit} className="p-5 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] text-tx-2">Nome da demanda</label>
+                  <label className="text-etiqueta text-tx-2">Nome da demanda</label>
                   <input name="name" required defaultValue={parecer.name} className="parecer-edit-input" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-tx-2">Data</label>
+                  <label className="text-etiqueta text-tx-2">Data</label>
                   <input name="date" type="date" defaultValue={new Date(parecer.date).toISOString().slice(0, 10)} className="parecer-edit-input" />
                 </div>
               </div>
               <div>
-                <label className="text-[11px] text-tx-2">Descrição</label>
+                <label className="text-etiqueta text-tx-2">Descrição</label>
                 <textarea name="description" defaultValue={parecer.description || ""} rows={3} placeholder="Descrição (opcional)" className="parecer-edit-input w-full" />
               </div>
               {editError && <p className="text-xs text-urgente">{editError}</p>}
@@ -418,7 +418,6 @@ export default function ParecerCard({
           </div>
         </div>
       )}
-      <style>{`.parecer-edit-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.3125rem; padding:0.45rem 0.7rem; font-size:0.8rem; background:var(--sf-superficie); color:var(--tx); }`}</style>
     </div>
   );
 }

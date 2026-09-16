@@ -89,7 +89,7 @@ export default function LinkPublicationMenu({
             e.stopPropagation();
             setMenuOpen((o) => !o);
           }}
-          className="flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
+          className="flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2.5 py-1 bg-sf-apoio hover:bg-regua"
         >
           <FilePlus2 size={12} /> Cadastrar Processo <ChevronDown size={11} />
         </button>

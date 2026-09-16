@@ -325,7 +325,7 @@ export default async function HomePage() {
           <GrainOverlay />
           <div className="relative max-w-[1120px] mx-auto px-6 pt-24 pb-20 grid md:grid-cols-[1fr_0.86fr] gap-12 items-center">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
+              <p className="text-etiqueta font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
                 Software de gestão para escritórios de advocacia
               </p>
               <h1 className="font-extrabold text-[clamp(36px,5.5vw,60px)] leading-[1.05] tracking-[-.02em] max-w-[15ch]">
@@ -345,7 +345,7 @@ export default async function HomePage() {
                 e ações idênticos aos reais (PublicationsTriage.tsx: "Gerar Prazo"/"Delegar"). */}
             <div className="border-2 border-regua-forte bg-sf rounded-[2px]">
               <div className="px-4 py-3 border-b border-regua flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-2">
+                <span className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-2">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-concluido mr-1.5 animate-pulse motion-reduce:animate-none" />
                   Fila de publicações — ao vivo
                 </span>
@@ -356,12 +356,12 @@ export default async function HomePage() {
                 { src: "DJEN", accent: "marca-tx", tt: "Publicação — 0045678-22.2025.8.09.0132", ss: "Sentença de parcial procedência", action: "Delegar" },
               ].map((row, i) => (
                 <div key={i} className={`flex gap-3 px-4 py-3 border-l-[3px] ${row.accent === "aviso" ? "border-aviso" : "border-marca-tx"} ${i > 0 ? "border-t border-regua" : ""}`}>
-                  <span className={`text-[9.5px] font-extrabold tracking-[.04em] w-14 shrink-0 ${row.accent === "aviso" ? "text-aviso" : "text-marca-tx"}`}>{row.src}</span>
+                  <span className={`text-etiqueta font-extrabold tracking-[.04em] w-14 shrink-0 ${row.accent === "aviso" ? "text-aviso" : "text-marca-tx"}`}>{row.src}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12.5px] font-semibold text-tx">{row.tt}</p>
-                    <p className="text-[11px] text-tx-3 mt-0.5">{row.ss}</p>
+                    <p className="text-corpo font-semibold text-tx">{row.tt}</p>
+                    <p className="text-etiqueta text-tx-3 mt-0.5">{row.ss}</p>
                   </div>
-                  <span className="text-[10.5px] font-bold text-marca-tx shrink-0 self-center whitespace-nowrap">{row.action} →</span>
+                  <span className="text-etiqueta font-bold text-marca-tx shrink-0 self-center whitespace-nowrap">{row.action} →</span>
                 </div>
               ))}
             </div>
@@ -406,10 +406,10 @@ export default async function HomePage() {
                 className={`grid md:grid-cols-2 gap-10 items-center ${f.pilar ? "py-20 -mx-6 px-6 bg-acao-bg" : "py-16"} ${i > 0 ? "border-t border-regua" : ""}`}
               >
                 <div className={i % 2 === 1 ? "md:order-2" : ""}>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-marca-tx mb-3">{f.kicker}</p>
-                  <h3 className={`font-extrabold tracking-[-.01em] mb-4 ${f.pilar ? "text-[32px]" : "text-[26px]"}`}>{f.title}</h3>
-                  <p className="text-[15px] text-tx-2 max-w-[46ch]">{f.p1}</p>
-                  <p className="text-[15px] text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
+                  <p className="text-etiqueta font-extrabold uppercase tracking-[.12em] text-marca-tx mb-3">{f.kicker}</p>
+                  <h3 className={`font-extrabold tracking-[-.01em] mb-4 ${f.pilar ? "text-autuacao" : "text-autuacao"}`}>{f.title}</h3>
+                  <p className="text-corpo text-tx-2 max-w-[46ch]">{f.p1}</p>
+                  <p className="text-corpo text-tx-2 max-w-[46ch] mt-3">{f.p2}</p>
                 </div>
                 <div className={`aspect-[4/3] border-2 border-regua-forte bg-sf rounded-[2px] flex items-center p-10 ${i % 2 === 1 ? "md:order-1" : ""}`}>
                   <svg viewBox="0 0 100 70" role="img" aria-label={f.figure} className="w-full h-full">
@@ -428,7 +428,7 @@ export default async function HomePage() {
             módulo. */}
         <section id="preco" className="border-t-2 border-regua-forte py-20">
           <div className="max-w-[1120px] mx-auto px-6">
-            <h2 className="text-[30px] font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
+            <h2 className="text-autuacao font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
             <div className="grid md:grid-cols-3 lg:grid-cols-5">
               {plans.map((plan) => {
                 const calc = calcularPrecoDoPlano(plan, modulePrices);
@@ -442,12 +442,12 @@ export default async function HomePage() {
                 return (
                   <div key={plan.id} className={`p-6 border-2 bg-sf rounded-[2px] ${plan.recommended ? "border-acao-light" : "border-regua-forte"}`}>
                     {plan.recommended && (
-                      <span className="inline-block text-[9.5px] font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao-light px-2 py-0.5">
+                      <span className="inline-block text-etiqueta font-extrabold uppercase tracking-[.08em] text-acao-tx bg-acao-light px-2 py-0.5">
                         Recomendado
                       </span>
                     )}
-                    <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
-                    <div className="text-[13px] text-tx-3 mt-1">
+                    <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{plan.name}</div>
+                    <div className="text-corpo text-tx-3 mt-1">
                       {plan.maxOabs != null && `Até ${plan.maxOabs} OAB${plan.maxOabs > 1 ? "s" : ""}`}
                       {plan.maxOabs != null && plan.maxProcessos != null && " · "}
                       {plan.maxProcessos != null && `até ${plan.maxProcessos} processos`}
@@ -478,8 +478,8 @@ export default async function HomePage() {
               })}
               {sobMedida && (
                 <div className="p-6 border-2 border-regua-forte bg-sf rounded-[2px]">
-                  <div className="text-[13px] font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
-                  <div className="text-[13px] text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
+                  <div className="text-corpo font-extrabold uppercase tracking-[.08em] text-tx-2 mt-3">{sobMedida.name}</div>
+                  <div className="text-corpo text-tx-3 mt-1">Módulos, processos e OABs sob medida</div>
                   <div className="text-2xl font-extrabold mt-3">Sob consulta</div>
                   <p className="text-sm text-tx-2 mt-5">Escolha os módulos e o volume certo para o seu escritório — a gente monta o plano com você.</p>
                   <Link href="/cadastro" className={`${btnSecondary} w-full justify-center mt-6 mb-1`}>Falar com a gente</Link>
@@ -519,10 +519,10 @@ export default async function HomePage() {
               <div className="flex items-center gap-2 font-extrabold text-base tracking-[.16em] mb-3">
                 <LumenMark size={24} /> LÚMEN
               </div>
-              <p className="text-[13px] text-tx-2 max-w-[32ch]">Software de gestão jurídica para escritórios de advocacia.</p>
+              <p className="text-corpo text-tx-2 max-w-[32ch]">Software de gestão jurídica para escritórios de advocacia.</p>
             </div>
             <div>
-              <h3 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h3>
+              <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Produto</h3>
               <ul className="space-y-2.5 text-sm">
                 <li><a href="#recursos" className={footerLink}>Recursos</a></li>
                 <li><a href="#preco" className={footerLink}>Preço</a></li>
@@ -531,7 +531,7 @@ export default async function HomePage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h3>
+              <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Contato</h3>
               <ul className="space-y-2.5 text-sm">
                 <li className="text-tx-2">Goiânia — GO</li>
                 <li><a href="https://wa.me/5562981283481" target="_blank" rel="noopener noreferrer" className={footerLink}>(62) 98128-3481</a></li>
@@ -539,7 +539,7 @@ export default async function HomePage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-[11px] font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h3>
+              <h3 className="text-etiqueta font-extrabold uppercase tracking-[.08em] text-tx-3 mb-3.5">Legal</h3>
               <ul className="space-y-2.5 text-sm">
                 <li><Link href="/privacidade" className={footerLink}>Política de privacidade</Link></li>
                 {/* DPO reaproveita o contato real já existente no rodapé em vez de um dado fictício —

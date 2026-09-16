@@ -55,36 +55,36 @@ export default function MobileLicitacaoForm({
     <form action={handleSubmit} className="flex flex-col" style={{ minHeight: "calc(100dvh - 3.5rem)" }}>
       <div className="flex-1 p-4 space-y-3 pb-24">
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-nome">Nome da licitação</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-nome">Nome da licitação</label>
           <input id="licitacao-nome" name="nome" required defaultValue={licitacao?.nome || ""} placeholder="Ex: Pregão 014/2026 — Locação de Veículos" className="mobile-lic-input" />
-          <p className="text-[13px] text-tx-3 mt-1">Aparece na lista e vira o nome da pasta no Drive.</p>
+          <p className="text-corpo text-tx-3 mt-1">Aparece na lista e vira o nome da pasta no Drive.</p>
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-objeto">Objeto</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-objeto">Objeto</label>
           <textarea id="licitacao-objeto" name="objeto" required rows={3} defaultValue={licitacao?.objeto || ""} placeholder="Texto completo do edital" className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-orgao">Órgão</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-orgao">Órgão</label>
           <input id="licitacao-orgao" name="orgao" required defaultValue={licitacao?.orgao || ""} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-modalidade">Modalidade</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-modalidade">Modalidade</label>
           <input id="licitacao-modalidade" name="modalidade" defaultValue={licitacao?.modalidade || ""} placeholder="Ex: Pregão Eletrônico 014/2026" className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-abertura">Abertura</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-abertura">Abertura</label>
           <input id="licitacao-abertura" name="dataAbertura" type="date" defaultValue={dateInputValue(licitacao?.dataAbertura)} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-prazo-final">Prazo final</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-prazo-final">Prazo final</label>
           <input id="licitacao-prazo-final" name="prazoFinal" type="date" defaultValue={dateInputValue(licitacao?.prazoFinal)} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-valor-estimado">Valor estimado (R$)</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-valor-estimado">Valor estimado (R$)</label>
           <MoneyInput id="licitacao-valor-estimado" name="valorEstimado" defaultValue={licitacao?.valorEstimado != null ? String(licitacao.valorEstimado) : undefined} className="mobile-lic-input" />
         </div>
         <div>
-          <label className="text-[13px] font-semibold text-tx-2" htmlFor="licitacao-edital-url">Link do edital (Drive)</label>
+          <label className="text-corpo font-semibold text-tx-2" htmlFor="licitacao-edital-url">Link do edital (Drive)</label>
           <input id="licitacao-edital-url" name="editalUrl" type="url" defaultValue={licitacao?.editalUrl || ""} placeholder="https://..." className="mobile-lic-input" />
         </div>
         {error && <p role="alert" className="text-sm text-urgente">{error}</p>}
@@ -95,7 +95,6 @@ export default function MobileLicitacaoForm({
           {pending ? "Salvando..." : "Salvar"}
         </button>
       </div>
-      <style>{`.mobile-lic-input { width:100%; border:1px solid var(--regua-forte); border-radius:0.375rem; padding:0.55rem 0.7rem; font-size:0.9rem; background:var(--sf-superficie); color:var(--tx); margin-top:0.25rem; }`}</style>
     </form>
   );
 }

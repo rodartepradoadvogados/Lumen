@@ -61,7 +61,7 @@ export default function JusbrasilEmailsManager({
     const ownRow = emails.find((e) => e.userId === viewerId) ?? null;
     return (
       <div>
-        <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em] mb-2">Meu e-mail para publicações</h3>
+        <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em] mb-2">Meu e-mail para publicações</h3>
         {ownRow ? (
           <div className="flex items-center justify-between gap-2 border border-regua px-3 py-2">
             <span className="flex items-center gap-2 text-sm text-tx min-w-0">
@@ -77,7 +77,7 @@ export default function JusbrasilEmailsManager({
             <Plus size={14} /> Conectar meu e-mail
           </a>
         )}
-        <p className="text-[11px] text-tx-3 mt-1.5">Só a caixa que você conectar aqui é varrida em busca de publicações e andamentos com o seu nome.</p>
+        <p className="text-etiqueta text-tx-3 mt-1.5">Só a caixa que você conectar aqui é varrida em busca de publicações e andamentos com o seu nome.</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function JusbrasilEmailsManager({
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">
+        <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">
           E-mails para publicações
           {limite != null && <span className="normal-case font-normal text-tx-3"> — {usados} de {limite} usados</span>}
         </h3>
@@ -101,7 +101,7 @@ export default function JusbrasilEmailsManager({
       </div>
 
       {limite != null && (
-        <p className="text-[11px] text-tx-3 mb-2">
+        <p className="text-etiqueta text-tx-3 mb-2">
           {limite - 1} OAB{limite - 1 !== 1 ? "s" : ""} do plano + 1 vaga fixa da conta do Google Drive do escritório.
         </p>
       )}

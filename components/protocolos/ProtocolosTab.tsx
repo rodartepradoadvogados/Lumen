@@ -255,7 +255,7 @@ function LoteCard({
 
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
         {tarefa ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 bg-sf-apoio rounded-full pl-2 pr-1 py-0.5">
+          <span className="inline-flex items-center gap-1 text-etiqueta font-semibold text-tx-2 bg-sf-apoio rounded-full pl-2 pr-1 py-0.5">
             <CalendarClock size={11} />
             {tarefa.title} · {formatCalendarDate(tarefa.dueDate)}
             {editavel && (
@@ -273,7 +273,7 @@ function LoteCard({
           editavel && (
             <button
               onClick={() => setTarefaModalOpen(true)}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx rounded-full px-2 py-0.5 hover:bg-sf-apoio"
+              className="inline-flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx rounded-full px-2 py-0.5 hover:bg-sf-apoio"
             >
               <Link2 size={11} /> Vincular prazo
             </button>
@@ -287,11 +287,11 @@ function LoteCard({
             <span className="font-mono text-xs text-tx-2 w-6 shrink-0 tabular-nums">{String(item.ordem).padStart(2, "0")}</span>
             <span className="flex-1 min-w-0 truncate text-tx" title={item.nomeSnapshot}>
               {item.nomeSnapshot}
-              {!item.attachmentId && <span className="text-[10px] text-urgente ml-1.5">(excluído do processo)</span>}
+              {!item.attachmentId && <span className="text-etiqueta text-urgente ml-1.5">(excluído do processo)</span>}
             </span>
-            <span className="text-[10px] text-tx-2 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
+            <span className="text-etiqueta text-tx-2 font-mono shrink-0">{getDocumentTypeLabel(item.docTypeSnapshot)}</span>
             {item.driveUrl && (
-              <a href={item.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-marca-tx shrink-0 flex items-center gap-0.5">
+              <a href={item.driveUrl} target="_blank" rel="noopener noreferrer" className="text-etiqueta text-marca-tx shrink-0 flex items-center gap-0.5">
                 abrir <ExternalLink size={10} />
               </a>
             )}
@@ -301,14 +301,14 @@ function LoteCard({
           <div className="flex items-center gap-2 py-1.5 text-sm">
             <Stamp size={13} className="text-tx-2 shrink-0" />
             <span className="flex-1 min-w-0 truncate text-tx">{lote.comprovante.name}</span>
-            <a href={lote.comprovante.driveUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-marca-tx shrink-0 flex items-center gap-0.5">
+            <a href={lote.comprovante.driveUrl} target="_blank" rel="noopener noreferrer" className="text-etiqueta text-marca-tx shrink-0 flex items-center gap-0.5">
               abrir <ExternalLink size={10} />
             </a>
           </div>
         )}
       </div>
 
-      {error && <p className="text-[11px] text-urgente mt-2">{error}</p>}
+      {error && <p className="text-etiqueta text-urgente mt-2">{error}</p>}
 
       {editavel && (
         <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-regua">
@@ -696,7 +696,7 @@ function SelecaoModal({
                 <button
                   onClick={aplicarSugestoes}
                   title={sugestao?.motivo}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-marca-tx hover:underline shrink-0"
+                  className="flex items-center gap-1 text-etiqueta font-semibold text-marca-tx hover:underline shrink-0"
                 >
                   <Sparkles size={11} /> Usar sugestão ({sugeridosPendentes.length})
                 </button>
@@ -723,19 +723,19 @@ function SelecaoModal({
                     <Icon size={14} className="text-tx-2 shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
                     {!checked && sugeridosSet.has(a.id) && (
-                      <span title={sugestao?.motivo} className="flex items-center gap-0.5 text-[10px] font-semibold text-marca-tx shrink-0">
+                      <span title={sugestao?.motivo} className="flex items-center gap-0.5 text-etiqueta font-semibold text-marca-tx shrink-0">
                         <Sparkles size={10} /> sugerido
                       </span>
                     )}
                     {jaProtocolado && (
                       <span
                         title={`Já protocolado em "${jaProtocolado.loteTitulo}"${jaProtocolado.numeroProtocolo ? ` (nº ${jaProtocolado.numeroProtocolo})` : ""}`}
-                        className="flex items-center gap-0.5 text-[10px] font-semibold text-aviso shrink-0"
+                        className="flex items-center gap-0.5 text-etiqueta font-semibold text-aviso shrink-0"
                       >
                         <AlertTriangle size={10} /> já protocolado
                       </span>
                     )}
-                    <span className="text-[10px] text-tx-2 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
+                    <span className="text-etiqueta text-tx-2 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>
                   </label>
                 );
               })}

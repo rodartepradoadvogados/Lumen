@@ -70,14 +70,14 @@ function VBars({ items, color }: { items: { label: string; display: string; valu
     <div className="flex items-end gap-2 overflow-x-auto pb-1">
       {items.map((it, i) => (
         <div key={i} className="flex-1 min-w-[38px] flex flex-col items-center">
-          <span className="text-[10px] font-semibold text-tx-2 mb-1">{it.display}</span>
+          <span className="text-etiqueta font-semibold text-tx-2 mb-1">{it.display}</span>
           <div className="w-full h-32 flex items-end">
             <div
               className="w-full "
               style={{ height: `${(it.value / max) * 100}%`, minHeight: it.value > 0 ? 4 : 0, backgroundColor: color }}
             />
           </div>
-          <span className="text-[10px] text-tx-2 mt-1.5 whitespace-nowrap">{it.label}</span>
+          <span className="text-etiqueta text-tx-2 mt-1.5 whitespace-nowrap">{it.label}</span>
         </div>
       ))}
     </div>
@@ -461,7 +461,7 @@ async function PublicacoesSection({ start, end, months, officeId }: { start: Dat
                   <p className="font-bold text-xl text-tx">{t.value}</p>
                   <div className="flex items-center justify-center gap-1.5 mt-1">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: triageColor[t.status] }} />
-                    <span className="text-[11px] text-tx-2">{triageLabels[t.status]}</span>
+                    <span className="text-etiqueta text-tx-2">{triageLabels[t.status]}</span>
                   </div>
                 </div>
               ))}
@@ -542,7 +542,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
             {/* "Pago" não é --urgente: só dado vencido é vermelho no sistema (DESIGN-SYSTEM.md §2),
                 e despesa paga em dia não é isso — pintá-la de vermelho confundiria com "algo
                 furou". Usa o grafite neutro da escala base; "Recebido" fica em --concluido. */}
-            <div className="flex items-center gap-3 text-[11px]">
+            <div className="flex items-center gap-3 text-etiqueta">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-concluido" /> Recebido
               </span>
@@ -554,7 +554,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
           <div className="flex items-end gap-2 overflow-x-auto pb-1">
             {financeMonthly.map((m) => (
               <div key={m.label} className="flex-1 min-w-[52px] flex flex-col items-center">
-                <div className="flex flex-col items-center text-[9px] leading-tight mb-1">
+                <div className="flex flex-col items-center text-etiqueta leading-tight mb-1">
                   <span className="text-concluido font-semibold">{compactBRL(m.receita)}</span>
                   <span className="text-tx-3 font-semibold">{compactBRL(m.despesa)}</span>
                 </div>
@@ -570,7 +570,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
                     title={`Pago: ${formatCurrency(m.despesa)}`}
                   />
                 </div>
-                <span className="text-[10px] text-tx-2 mt-1.5 whitespace-nowrap">{m.label}</span>
+                <span className="text-etiqueta text-tx-2 mt-1.5 whitespace-nowrap">{m.label}</span>
               </div>
             ))}
           </div>
@@ -591,7 +591,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
           </div>
           <div>
             <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide mb-3">Inadimplência atual</p>
-            <div className="border-t-2 border-urgente bg-urgente-bg rounded-lg p-5">
+            <div className="border-t-2 border-urgente bg-urgente-bg p-5">
               <p className="font-bold text-2xl tabular-nums text-urgente">{formatCurrency(inadimplenciaTotal)}</p>
               <p className="text-xs text-tx-2 mt-1">
                 {inadimplenciaCount} conta(s) a receber vencida(s)
@@ -604,7 +604,7 @@ async function FinanceiroSection({ start, end, months, now, officeId }: { start:
           <div>
             <div className="flex items-center gap-1.5 mb-3">
               <p className="text-xs font-semibold text-tx-2 uppercase tracking-wide">Adiantamentos a Clientes</p>
-              <span className="text-[10px] font-semibold text-tx-3">(informativo — fora da Receita/Despesa acima)</span>
+              <span className="text-etiqueta font-semibold text-tx-3">(informativo — fora da Receita/Despesa acima)</span>
             </div>
             <div className=" border border-dashed border-regua-forte p-5">
               <div className="flex items-start gap-2 text-xs text-tx-2 mb-4">

@@ -33,7 +33,7 @@ export default function GuiasBar() {
         />
       ))}
       {limitReached && (
-        <span className="ml-2 text-[11px] font-semibold text-atencao whitespace-nowrap shrink-0 animate-fade-in">
+        <span className="ml-2 text-etiqueta font-semibold text-atencao whitespace-nowrap shrink-0 animate-fade-in">
           Limite de {maxTabs} guias — feche uma para abrir outra
         </span>
       )}
@@ -67,7 +67,7 @@ function Chip({
         // (--sf-apoio) pra continuar se destacando da faixa (--sf) — só o filete de --acao no
         // topo não bastaria. As inativas usam --tx-2 (não mais --rail-tx, que pressupunha fundo
         // sempre escuro).
-        "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-[11px] font-semibold border-t-2 rounded-t-lg transition-colors",
+        "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-etiqueta font-semibold border-t-2 transition-colors",
         active ? "bg-sf-apoio text-tx border-acao" : "text-tx-2 border-transparent hover:bg-sf-apoio/60 hover:text-tx"
       )}
     >

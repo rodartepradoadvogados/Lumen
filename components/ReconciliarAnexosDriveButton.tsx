@@ -19,7 +19,7 @@ export default function ReconciliarAnexosDriveButton({ scope, compact }: { scope
         title="Confere o conteúdo real desta pasta no Google Drive contra os anexos já cadastrados"
         className={
           compact
-            ? "flex items-center gap-1 text-[11px] font-semibold text-tx-2 hover:text-tx px-2 py-1.5 rounded-md hover:bg-sf-apoio"
+            ? "flex items-center gap-1 text-etiqueta font-semibold text-tx-2 hover:text-tx px-2 py-1.5 rounded-md hover:bg-sf-apoio"
             : "inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2 hover:text-tx border border-regua hover:border-regua-forte px-3 py-1.5 rounded-md bg-sf hover:bg-sf-apoio transition-colors"
         }
       >

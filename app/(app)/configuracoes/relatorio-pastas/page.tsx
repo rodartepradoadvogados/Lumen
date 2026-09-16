@@ -94,7 +94,7 @@ export default async function RelatorioPastasPage() {
           {raizes.map((r) => (
             <div key={r} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-regua">
               <span className="text-xs text-tx-2 shrink-0">{RAIZ_ROTULO[r]}</span>
-              <span className="text-[11px] font-mono text-tx truncate">{nomeacao.raizes[r]}</span>
+              <span className="text-etiqueta font-mono text-tx truncate">{nomeacao.raizes[r]}</span>
             </div>
           ))}
         </div>
@@ -190,7 +190,7 @@ function FolderTable({
                 <Link href={r.href} className="text-acao hover:underline font-medium">
                   {r.titulo}
                 </Link>
-                <div className="text-[11px] text-tx-3 tabular-nums">{r.detalhe ?? r.tag}</div>
+                <div className="text-etiqueta text-tx-3 tabular-nums">{r.detalhe ?? r.tag}</div>
               </td>
               <td className="px-4 py-2.5 align-top text-tx-2 font-mono text-xs">{r.caminho}</td>
               <td className="px-4 py-2.5 align-top">

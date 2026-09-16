@@ -202,7 +202,7 @@ export default function DocumentTypeSelect({
 
               {grupos.map((g) => (
                 <div key={g.grupo} className="mb-1">
-                  <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-tx-3 uppercase tracking-wide">{g.grupo}</p>
+                  <p className="px-3 pt-2 pb-1 text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">{g.grupo}</p>
                   {g.tipos.map((t) => {
                     const Icon = t.icon;
                     return (

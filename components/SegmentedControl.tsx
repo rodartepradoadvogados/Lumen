@@ -32,7 +32,7 @@ export default function SegmentedControl<T extends string>({
             aria-checked={active}
             onClick={() => onChange(opt.value)}
             className={clsx(
-              "flex-1 h-6 flex items-center justify-center rounded text-[11px] transition-colors",
+              "flex-1 h-6 flex items-center justify-center rounded text-etiqueta transition-colors",
               active ? "bg-tx text-sf font-semibold" : "bg-transparent text-tx-2 font-medium hover:text-tx"
             )}
           >

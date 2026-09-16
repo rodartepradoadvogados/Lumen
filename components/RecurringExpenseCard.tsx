@@ -37,7 +37,7 @@ export default function RecurringExpenseCard({ expense }: { expense: { id: strin
           router.refresh();
           setLoading(false);
         }}
-        className="text-[11px] font-semibold text-tx-2 hover:text-atencao px-2 py-1 hover:bg-sf-apoio shrink-0 disabled:opacity-50"
+        className="text-etiqueta font-semibold text-tx-2 hover:text-atencao px-2 py-1 hover:bg-sf-apoio shrink-0 disabled:opacity-50"
       >
         <span className="inline-flex items-center gap-1">
           <X size={12} /> Encerrar

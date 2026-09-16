@@ -125,7 +125,7 @@ export default function OfficeFaturasTab({
             <span className="text-tx-2">Última fatura:</span>
             <span className="font-semibold text-tx">{situacao.label}</span>
           </div>
-          {paymentMethod && <p className="text-[13px] text-tx-2">{entrega}</p>}
+          {paymentMethod && <p className="text-corpo text-tx-2">{entrega}</p>}
           <div className="flex items-center gap-2 pt-1">
             <span className="text-sm text-tx-2">Saúde da cobrança:</span>
             {saude ? (
@@ -140,7 +140,7 @@ export default function OfficeFaturasTab({
           {saude && saude.nivel !== "OK" && saude.motivos.length > 0 && (
             <ul className="space-y-1">
               {saude.motivos.map((motivo, i) => (
-                <li key={i} className={`text-[13px] flex items-start gap-1.5 ${NIVEL_TEXT_CLASS[saude.nivel]}`}>
+                <li key={i} className={`text-corpo flex items-start gap-1.5 ${NIVEL_TEXT_CLASS[saude.nivel]}`}>
                   <span className="mt-1.5 h-1 w-1 rounded-full bg-current shrink-0" />
                   {motivo}
                 </li>
@@ -175,9 +175,9 @@ export default function OfficeFaturasTab({
             <img src={`data:image/png;base64,${pendingInvoice.pixQrCodeImage}`} alt="QR Code Pix da fatura pendente" className="h-28 w-28 rounded-sm shrink-0" />
           )}
           <div className="flex-1 min-w-[200px]">
-            <p className="text-[11px] text-tx-3 mb-1">Pix Copia e Cola da fatura {pendingInvoice.competencia}:</p>
+            <p className="text-etiqueta text-tx-3 mb-1">Pix Copia e Cola da fatura {pendingInvoice.competencia}:</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11px] text-tx bg-sf-superficie border border-regua-forte rounded-sm px-2 py-1.5 break-all">{pendingInvoice.pixQrCodePayload}</code>
+              <code className="flex-1 text-etiqueta text-tx bg-sf-superficie border border-regua-forte rounded-sm px-2 py-1.5 break-all">{pendingInvoice.pixQrCodePayload}</code>
               <CopyButton text={pendingInvoice.pixQrCodePayload} label="Copiar" />
             </div>
           </div>

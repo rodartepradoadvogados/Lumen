@@ -114,7 +114,7 @@ export default function CaseQuickViewButton({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold text-tx-3 uppercase tracking-wide">{label}</p>
+      <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-wide">{label}</p>
       <p className="text-sm text-tx mt-0.5">{children}</p>
     </div>
   );

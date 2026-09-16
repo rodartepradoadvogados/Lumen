@@ -58,7 +58,7 @@ export default function ApiKeysManager({ initialKeys }: { initialKeys: ApiKeyRow
       </p>
 
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[10px] font-semibold text-tx-2 uppercase tracking-[.12em]">Chaves</h3>
+        <h3 className="text-etiqueta font-semibold text-tx-2 uppercase tracking-[.12em]">Chaves</h3>
         <button
           type="button"
           onClick={() => setCreating(true)}
@@ -74,7 +74,7 @@ export default function ApiKeysManager({ initialKeys }: { initialKeys: ApiKeyRow
         <div className="overflow-x-auto border-t border-regua">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold uppercase tracking-[.1em] text-tx-2 border-b border-regua">
+              <tr className="text-left text-etiqueta font-semibold uppercase tracking-[.1em] text-tx-2 border-b border-regua">
                 <th className="py-2 pr-2 font-semibold">Nome</th>
                 <th className="py-2 pr-2 font-semibold">Prefixo</th>
                 <th className="py-2 pr-2 font-semibold">Escopo</th>

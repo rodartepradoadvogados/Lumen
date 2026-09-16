@@ -28,7 +28,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-[13px] font-semibold px-3 py-1.5 border transition-colors ${
+          className={`text-corpo font-semibold px-3 py-1.5 border transition-colors ${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua"
@@ -41,7 +41,7 @@ function Segmented<T extends string>({
   );
 }
 
-const labelCls = "text-[13px] font-medium text-tx-2";
+const labelCls = "text-corpo font-medium text-tx-2";
 
 // Versão compacta do NewPayableModal do desktop: sem parcelamento e sem cadastro rápido de
 // fornecedor/centro de custo (usa <select> simples em vez do EntityPicker com busca) — mantém só
@@ -111,7 +111,7 @@ export default function MobileNewPayableForm({
         </div>
       )}
 
-      {error && <p role="alert" className="text-[13px] text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {
@@ -183,7 +183,7 @@ export default function MobileNewPayableForm({
             />
           </div>
         </div>
-        <label className="flex items-center gap-2 text-[13px] text-tx-2">
+        <label className="flex items-center gap-2 text-corpo text-tx-2">
           <input type="checkbox" checked={semVencimento} onChange={(e) => setSemVencimento(e.target.checked)} />
           Sem vencimento definido
         </label>
@@ -272,11 +272,11 @@ export default function MobileNewPayableForm({
             </div>
             {expensePayer === "CLIENTE" && (
               <div className=" bg-acao-bg px-3 py-2.5">
-                <label className="flex items-center gap-2 text-[13px] font-medium text-tx-2">
+                <label className="flex items-center gap-2 text-corpo font-medium text-tx-2">
                   <input type="checkbox" checked={createReimbursement} onChange={(e) => setCreateReimbursement(e.target.checked)} />
                   Criar conta a receber vinculada para reembolso deste valor pelo cliente?
                 </label>
-                <p className="text-[13px] text-tx-2 mt-1 ml-6">
+                <p className="text-corpo text-tx-2 mt-1 ml-6">
                   Gera automaticamente uma Conta a Receber (Reembolso) do cliente do processo, no valor total desta despesa.
                 </p>
               </div>

@@ -71,11 +71,11 @@ export default function MobileParecerDetail({
     <>
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-lg font-bold text-tx leading-tight">{parecer.name}</h1>
-        <Link href={`/m/assessoria/${assessoriaId}/pareceres/${parecer.id}/editar`} className="flex items-center gap-1 text-[13px] font-semibold text-tx-2 shrink-0 px-2 py-1">
+        <Link href={`/m/assessoria/${assessoriaId}/pareceres/${parecer.id}/editar`} className="flex items-center gap-1 text-corpo font-semibold text-tx-2 shrink-0 px-2 py-1">
           <Pencil size={13} /> Editar
         </Link>
       </div>
-      <p className="text-[13px] text-tx-2 mt-0.5">{formatDate(parecer.date)}</p>
+      <p className="text-corpo text-tx-2 mt-0.5">{formatDate(parecer.date)}</p>
 
       <Card className="p-4 mt-3">
         <h2 className="font-bold text-tx text-sm mb-2">Dados da demanda</h2>
@@ -109,7 +109,7 @@ export default function MobileParecerDetail({
                     <Icon size={15} className="shrink-0 text-tx-2" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-tx truncate">{d.name}</p>
-                      <p className="text-[13px] text-tx-2 mt-0.5">{getDocumentTypeLabel(d.docType)} · {formatDate(d.date)}</p>
+                      <p className="text-corpo text-tx-2 mt-0.5">{getDocumentTypeLabel(d.docType)} · {formatDate(d.date)}</p>
                     </div>
                     <ExternalLink size={13} className="text-tx-3 shrink-0" />
                   </a>
@@ -127,15 +127,15 @@ export default function MobileParecerDetail({
             })}
           </div>
         )}
-        {docDeleteError && <p className="text-[13px] text-urgente mt-1">{docDeleteError}</p>}
+        {docDeleteError && <p className="text-corpo text-urgente mt-1">{docDeleteError}</p>}
         {storageConnected ? <MobileDocumentUpload assessoriaId={assessoriaId} parecerId={parecer.id} /> : <StorageDisconnectedNotice message={storageMessage} />}
       </Card>
 
       <div className="mt-4 px-1">
-        <button type="button" onClick={handleDeleteParecer} disabled={pending} className="flex items-center gap-1 text-[13px] font-semibold text-tx-2 disabled:opacity-50">
+        <button type="button" onClick={handleDeleteParecer} disabled={pending} className="flex items-center gap-1 text-corpo font-semibold text-tx-2 disabled:opacity-50">
           <Trash2 size={12} /> Excluir pasta
         </button>
-        {deleteError && <p className="text-[13px] text-urgente mt-1">{deleteError}</p>}
+        {deleteError && <p className="text-corpo text-urgente mt-1">{deleteError}</p>}
       </div>
     </>
   );

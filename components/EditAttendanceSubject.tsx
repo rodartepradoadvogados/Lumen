@@ -67,7 +67,7 @@ export default function EditAttendanceSubject({ attendanceId, subject }: { atten
       <button type="button" onClick={cancelar} disabled={pending} className="p-1 text-tx-3 hover:text-atencao disabled:opacity-50" title="Cancelar">
         <X size={15} />
       </button>
-      {error && <span className="text-[11px] text-urgente">{error}</span>}
+      {error && <span className="text-etiqueta text-urgente">{error}</span>}
     </div>
   );
 }

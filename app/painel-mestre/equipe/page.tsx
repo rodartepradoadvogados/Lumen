@@ -43,7 +43,7 @@ export default async function EquipeLumenPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[10px] font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
+              <tr className="text-left text-etiqueta font-semibold text-white/40 uppercase tracking-wide border-b border-white/10">
                 <th className="px-5 py-2.5 font-semibold">Nome</th>
                 <th className="px-3 py-2.5 font-semibold">E-mail</th>
                 <th className="px-3 py-2.5 font-semibold">Papel</th>

@@ -20,7 +20,7 @@ export default function LumenTopStrip({ memberName }: { memberName: string }) {
             P0-5: bg-marca-bg/text-marca sobre este header (grafite-800 fixo) reprovava WCAG AA —
             trocado pelo par bg-rail-marca-bg/text-rail-marca que o NavRail já usa para exatamente
             este caso (bordô como badge/texto sobre superfície fixa escura). */}
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-rail-marca-bg text-rail-marca">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-etiqueta font-semibold uppercase tracking-wide bg-rail-marca-bg text-rail-marca">
           Sócio
         </span>
         <PainelMestreThemeToggle />

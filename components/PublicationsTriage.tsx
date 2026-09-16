@@ -412,7 +412,7 @@ function FilaCard({
         {/* Portal Noturno (DESIGN.md): rótulo de fonte em font-display (Barlow Condensed) — o
             mesmo papel que a fonte condensada cumpre em rótulo/aba no CowData (referência
             aprovada). Filete lateral por fonte (sourceBorderColor) não muda. */}
-        <span className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2 truncate">
+        <span className="font-display text-etiqueta font-bold uppercase tracking-[0.12em] text-tx-2 truncate">
           {pub.source}
           {hasMultiple && (
             <span className="inline-flex items-center gap-0.5 ml-1.5 text-bordo">
@@ -421,13 +421,13 @@ function FilaCard({
           )}
           {!group.allRead && <span className="ml-1.5 text-marca-tx">· não triada</span>}
         </span>
-        <span className="font-display text-[11px] text-tx-3 shrink-0 tabular-nums">{formatDate(pub.publishedAt)}</span>
+        <span className="font-display text-etiqueta text-tx-3 shrink-0 tabular-nums">{formatDate(pub.publishedAt)}</span>
       </div>
       <p className="text-sm text-tx mt-1 line-clamp-2">{pub.content}</p>
       {pub.case ? (
-        <p className="text-[13px] font-extrabold text-tx mt-1 truncate">{pub.case.title}</p>
+        <p className="text-corpo font-extrabold text-tx mt-1 truncate">{pub.case.title}</p>
       ) : (
-        <span className="inline-block mt-1.5 text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5 rounded-sm">
+        <span className="inline-block mt-1.5 text-etiqueta font-semibold text-aviso bg-aviso-bg px-2 py-0.5 rounded-sm">
           sem processo vinculado{pub.tribunalDetectado && ` · ${pub.tribunalDetectado}`}
         </span>
       )}
@@ -462,7 +462,7 @@ function Teor({
     // cartões do produto (mesmo token que a FilaCard da fila já usa).
     <div className="flex-1 flex flex-col min-h-0 bg-sf">
       <div className="px-6 pt-5 pb-4 border-b border-regua shrink-0">
-        <p className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2">
+        <p className="font-display text-etiqueta font-bold uppercase tracking-[0.12em] text-tx-2">
           {pub.source} · {pub.kind === "PUBLICACAO" ? "Publicação" : "Andamento"} · {formatDate(pub.publishedAt)}
           {assignedToName && <> · responsável: {assignedToName}</>}
         </p>
@@ -480,7 +480,7 @@ function Teor({
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           {pub.case?.processNumber && <ProcessNumberChip processNumber={pub.case.processNumber} />}
           {!pub.case && pub.tribunalDetectado && (
-            <span className="text-[11px] font-semibold text-aviso bg-aviso-bg px-2 py-0.5 rounded-sm">
+            <span className="text-etiqueta font-semibold text-aviso bg-aviso-bg px-2 py-0.5 rounded-sm">
               Tribunal identificado pelo número: {pub.tribunalDetectado}
             </span>
           )}
@@ -495,11 +495,11 @@ function Teor({
           {group.items.map((item) => (
             <div key={item.id} className={group.items.length > 1 ? "border-t-2 border-regua-forte pt-4 first:border-t-0 first:pt-0" : ""}>
               {group.items.length > 1 && (
-                <p className="font-display text-[10px] font-bold uppercase tracking-[0.12em] text-tx-2 mb-1.5">
+                <p className="font-display text-etiqueta font-bold uppercase tracking-[0.12em] text-tx-2 mb-1.5">
                   {item.source} · {formatDate(item.publishedAt)}
                 </p>
               )}
-              <p className="text-[15px] leading-[1.6] text-tx whitespace-pre-wrap">{item.content}</p>
+              <p className="text-corpo leading-[1.6] text-tx whitespace-pre-wrap">{item.content}</p>
             </div>
           ))}
         </div>
@@ -553,7 +553,7 @@ function Teor({
           <CopyButton text={pub.content} label="Copiar conteúdo" />
           <PeticionarButton compact caseId={pub.case?.id} />
         </div>
-        <span className="text-[13px] text-tx-3 whitespace-nowrap">J / K navega · Enter cria tarefa · A arquiva · L marca como lida</span>
+        <span className="text-corpo text-tx-3 whitespace-nowrap">J / K navega · Enter cria tarefa · A arquiva · L marca como lida</span>
       </div>
     </div>
   );

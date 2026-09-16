@@ -60,7 +60,7 @@ export default function AssessoriaRecurringExpensesCard({
 
   return (
     <div className="p-3.5 border border-regua bg-sf">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-tx-2 mb-1 flex items-center gap-1.5">
+      <p className="text-etiqueta font-semibold uppercase tracking-wide text-tx-2 mb-1 flex items-center gap-1.5">
         <Repeat2 size={12} className="text-marca-tx" /> Despesas recorrentes (repasse a parceiros)
       </p>
 

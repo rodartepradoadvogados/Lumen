@@ -46,7 +46,7 @@ export default function BreakGlassField({
       <span className="inline-flex items-center gap-1.5 border-l-4 border-atencao pl-2 tabular-nums">
         <Unlock size={11} className="text-atencao shrink-0" aria-hidden />
         <span>{revelado}</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-atencao">break-glass</span>
+        <span className="text-etiqueta font-bold uppercase tracking-[0.1em] text-atencao">break-glass</span>
       </span>
     );
   }
@@ -73,7 +73,7 @@ export default function BreakGlassField({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="text-[11px] font-semibold text-atencao hover:underline"
+          className="text-etiqueta font-semibold text-atencao hover:underline"
         >
           Revelar
         </button>
@@ -83,7 +83,7 @@ export default function BreakGlassField({
 
   return (
     <div className="mt-1.5 border-l-4 border-atencao bg-sf-apoio p-3 text-xs space-y-2 max-w-sm">
-      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-atencao">Break-glass</p>
+      <p className="text-etiqueta font-bold uppercase tracking-[0.1em] text-atencao">Break-glass</p>
       <p className="text-tx-2">
         Revelar exige um motivo — fica registrado na trilha de auditoria do escritório e a revelação dura 15 minutos.
       </p>
@@ -95,8 +95,8 @@ export default function BreakGlassField({
         placeholder="Motivo (mínimo 20 caracteres)…"
         className="w-full border border-regua bg-sf text-tx px-2 py-1.5"
       />
-      <p className="text-[11px] text-tx-3">{reason.trim().length}/{REASON_MIN_LENGTH}</p>
-      {error && <p className="text-[11px] font-medium text-atencao">{error}</p>}
+      <p className="text-etiqueta text-tx-3">{reason.trim().length}/{REASON_MIN_LENGTH}</p>
+      {error && <p className="text-etiqueta font-medium text-atencao">{error}</p>}
       <div className="flex items-center gap-2">
         <button
           type="button"

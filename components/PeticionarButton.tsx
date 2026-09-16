@@ -38,7 +38,7 @@ export default function PeticionarButton({ compact, caseId }: { compact?: boolea
         title="Gera uma cópia nova do timbrado do escritório no Google Docs para peticionar"
         className={
           compact
-            ? "flex items-center gap-1 text-[11px] font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-sm bg-acao-bg hover:bg-acao/20"
+            ? "flex items-center gap-1 text-etiqueta font-semibold text-acao hover:text-acao-hover px-2.5 py-1 rounded-sm bg-acao-bg hover:bg-acao/20"
             : "hidden sm:flex items-center gap-1.5 h-8 bg-acao hover:bg-acao-hover text-acao-tx text-sm font-medium px-3.5 rounded-md transition-colors"
         }
       >

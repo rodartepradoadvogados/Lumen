@@ -171,9 +171,9 @@ export default async function PublicacoesPage({
     <div className="h-full flex flex-col animate-fade-in">
       <header className="shrink-0 border-b-2 border-regua-forte px-6 pt-5">
         <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
-          <h1 className="text-[26px] font-extrabold text-tx">Publicações</h1>
+          <h1 className="text-autuacao font-extrabold text-tx">Publicações</h1>
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="font-display text-[13px] text-tx-2">
+            <span className="font-display text-corpo text-tx-2">
               DJEN {formatHora(ultimoRunDjen?.startedAt)} · Datajud {formatHora(ultimoRunDatajud?.startedAt)}
             </span>
             <SyncPublicationsButton />
