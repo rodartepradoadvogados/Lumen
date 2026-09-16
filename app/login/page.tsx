@@ -3,8 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPlatformMember } from "@/lib/platformMember";
-import LumenMark from "@/components/LumenMark";
 import LoginForm from "@/components/LoginForm";
+import TelaSessao from "@/components/site/TelaSessao";
 
 // Página real de login (documento 09 do redesenho: a barra do site público tem só um link
 // "Entrar", sem card embutido no hero — o formulário de fato mora aqui). Substitui o antigo
@@ -23,25 +23,26 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-sf-fundo flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <Link href="/" className="flex items-center gap-2 mb-8 justify-center">
-          <LumenMark size={30} />
-          <span className="font-extrabold text-xl tracking-[.16em] text-tx">LÚMEN</span>
-        </Link>
-        <div className="bg-sf border-t-2 border-regua-forte p-6">
-          {/* A página não tinha `<h1>` nenhum (auditoria de 2026-09-16): navegação por títulos
-              pulava a tela inteira, e o leitor de tela não anunciava onde estava. */}
-          <h1 className="text-guia font-bold text-tx mb-1">Entrar no Lúmen</h1>
-          <p className="text-corpo text-tx-2 mb-5">Use o e-mail do seu escritório.</p>
-          <Suspense fallback={null}>
-            <LoginForm />
-          </Suspense>
+    <TelaSessao
+      titulo="Entrar no Lúmen"
+      apoio="Use o e-mail do seu escritório."
+      rodape={
+        <div className="flex flex-col gap-3">
+          {/* O caminho do cadastro não existia nesta tela: quem chegava aqui sem conta só tinha a
+              porta de volta ao site. Numa tela de funil, o desvio para "criar conta" é o link mais
+              caro que pode faltar. */}
+          <Link href="/cadastro" className="text-corpo font-semibold text-tx-2 hover:text-tx underline underline-offset-4 transition-colors duration-100 ease-out">
+            Ainda não tem conta? Criar a conta do escritório
+          </Link>
+          <Link href="/" className="text-etiqueta font-semibold text-tx-3 hover:text-tx transition-colors duration-100 ease-out">
+            ← Voltar ao site
+          </Link>
         </div>
-        <Link href="/" className="block text-center text-xs font-semibold text-tx-3 hover:text-tx mt-5">
-          ← Voltar ao site
-        </Link>
-      </div>
-    </div>
+      }
+    >
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
+    </TelaSessao>
   );
 }
