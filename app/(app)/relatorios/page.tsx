@@ -658,7 +658,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: {
   ];
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <PageHeader
         title="Relatórios"
         subtitle={`Painel consolidado (BI) · ${months[0].label} a ${months[months.length - 1].label}`}

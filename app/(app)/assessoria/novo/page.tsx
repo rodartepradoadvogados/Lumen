@@ -16,7 +16,7 @@ export default async function NewAssessoriaPage() {
   ]);
 
   return (
-    <div className="p-6 max-w-xl mx-auto animate-fade-in">
+    <div className="tela">
       <PageHeader title="Nova Assessoria" subtitle="Vincule uma empresa (cliente PJ) já cadastrada a um contrato de assessoria" />
       <Card className="p-6">
         <NewAssessoriaForm clients={clientsWithoutAssessoria} users={users} />

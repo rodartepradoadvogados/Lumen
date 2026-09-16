@@ -21,7 +21,7 @@ export default async function PrivacidadePage() {
   const pedidos = await listPedidosTitular();
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <Link href="/configuracoes" className="text-xs font-semibold text-tx-3 hover:text-tx">
         ← Configurações
       </Link>

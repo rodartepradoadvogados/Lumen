@@ -53,7 +53,7 @@ export default async function KanbanPage() {
   }));
 
   return (
-    <div className="p-6 h-full flex flex-col max-w-[1600px] mx-auto animate-fade-in">
+    <div className="tela tela-alta">
       <PageHeader
         title="Kanban de Gestão da Agenda"
         subtitle="Cada card representa uma tarefa, evento, audiência, perícia ou prazo — arraste entre colunas para atualizar o status"

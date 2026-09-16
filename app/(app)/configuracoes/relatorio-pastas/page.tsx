@@ -59,7 +59,7 @@ export default async function RelatorioPastasPage() {
   const raizes = Object.keys(RAIZ_ROTULO) as RaizKey[];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <Link href="/conexoes" className="inline-flex items-center gap-1.5 text-xs text-tx-2 hover:text-tx">
         <ArrowLeft size={13} /> Voltar para Conexões
       </Link>

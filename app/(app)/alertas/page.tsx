@@ -69,7 +69,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
     : [];
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-4">
+    <div className="tela space-y-4">
       <PageHeader title="Central de Alertas" subtitle={tab === "pendentes" ? `${alerts.length} pendente(s)` : `${todayItems.length} item(ns) para hoje`} />
 
       <div className="flex gap-2">
@@ -110,7 +110,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
             {alerts.length === 0 ? (
               <EmptyState title="Tudo em dia!" subtitle="Nenhum alerta pendente no momento" />
             ) : (
-              <div className="divide-y divide-regua stagger-in">
+              <div className="divide-y divide-regua">
                 {alerts.map((a) => {
                   const meta = kindMeta[a.kind];
                   const Icon = meta.icon;
@@ -147,7 +147,7 @@ export default async function AlertasPage({ searchParams }: { searchParams: { ta
           {todayItems.length === 0 ? (
             <EmptyState title="Nada para hoje" subtitle="Nenhum compromisso ou vencimento hoje" />
           ) : (
-            <div className="divide-y divide-regua stagger-in">
+            <div className="divide-y divide-regua">
               {todayItems.map((item) => {
                 const meta = todayMeta[item.kind];
                 const Icon = meta.icon;

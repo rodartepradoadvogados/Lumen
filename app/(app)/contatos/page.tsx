@@ -58,7 +58,7 @@ export default async function ContatosPage() {
   ];
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto animate-fade-in">
+    <div className="tela">
       <PageHeader title="Contatos" subtitle="Banco de dados de clientes e advogados" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {modules.map((m) => (

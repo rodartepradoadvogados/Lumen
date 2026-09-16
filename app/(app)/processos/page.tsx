@@ -142,7 +142,7 @@ export default async function ProcessosPage({
   const isFiltered = Boolean(q || searchParams.area || searchParams.responsibleId || searchParams.status);
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
+    <div className="tela">
       <PageHeader
         title="Processos e Casos"
         subtitle={isFiltered ? `${cases.length} de ${totalCount} processo(s)` : `${cases.length} registro(s)`}

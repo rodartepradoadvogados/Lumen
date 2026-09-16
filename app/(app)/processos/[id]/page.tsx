@@ -333,7 +333,7 @@ export default async function CaseDetailPage({
   // fixo aqui desperdiçava a tela larga e deixava faixas vazias dos dois lados justamente no
   // modo que existe para caber mais informação.
   return (
-    <div className="p-6 w-full animate-fade-in">
+    <div className="tela">
       <Link href="/processos" className="inline-flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-tx mb-3">
         <ArrowLeft size={13} /> Processos e Casos
       </Link>
@@ -607,7 +607,7 @@ export default async function CaseDetailPage({
             {c.tasks.length === 0 ? (
               <EmptyState title="Nenhuma atividade cadastrada" />
             ) : (
-              <div className="divide-y divide-regua stagger-in">
+              <div className="divide-y divide-regua">
                 {c.tasks.map((t) => (
                   <TaskActivityRow
                     key={t.id}

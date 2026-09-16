@@ -109,7 +109,7 @@ export default function ReceivablesList({
 
   return (
     <div>
-      <div className="divide-y divide-regua stagger-in">
+      <div className="divide-y divide-regua">
         {receivables.map((r) => {
           const isApurar = r.effectiveStatus === "A_APURAR";
           const selectable = r.status !== "PAGO" && !isApurar;

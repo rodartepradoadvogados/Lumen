@@ -98,7 +98,7 @@ export default function MobileCaseFinanceTab({
         {soltas.length === 0 && honorarioLancamentos.length === 0 && recurringFees.length === 0 ? (
           <EmptyState title="Nenhum lançamento" />
         ) : (
-          <div className="divide-y divide-regua stagger-in">
+          <div className="divide-y divide-regua">
             {soltas.map((r) => {
               const isApurar = r.status === "A_APURAR";
               const liquido = valorLiquido(r.amount, r.discount, r.surcharge);
@@ -161,7 +161,7 @@ export default function MobileCaseFinanceTab({
         {payables.length === 0 ? (
           <EmptyState title="Nenhum lançamento" />
         ) : (
-          <div className="divide-y divide-regua stagger-in">
+          <div className="divide-y divide-regua">
             {payables.map((p) => {
               const liquido = valorLiquido(p.amount, p.discount, p.surcharge);
               const paidSum = p.payments.reduce((s, x) => s + x.amount, 0);

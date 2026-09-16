@@ -242,7 +242,7 @@ export default async function ConfiguracoesPage({
   }
 
   return (
-    <div className="p-6 max-w-[1320px] mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <PageHeader
         title="Configurações"
         subtitle={isAdmin ? "Equipe, identidade visual, colunas do Kanban, plano de contas e importação" : "Importação de dados e sua senha"}

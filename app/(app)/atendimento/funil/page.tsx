@@ -67,7 +67,7 @@ export default async function FunilPage() {
   const conversionRate = closed + lost > 0 ? (closed / (closed + lost)) * 100 : null;
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto animate-fade-in">
+    <div className="tela">
       <PageHeader
         title="Funil Comercial"
         subtitle="Acompanhamento da captação de novos clientes por estágio"

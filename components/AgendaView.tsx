@@ -563,7 +563,7 @@ function ListView({
                 {date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </p>
             </div>
-            <div className="divide-y divide-regua stagger-in">
+            <div className="divide-y divide-regua">
               {items.map((t) => {
                 const done = t.status === "CONCLUIDO";
                 const isSafety = t.entryKind === "seguranca";
@@ -637,7 +637,7 @@ function DayPanel({
         </div>
         <NewTaskModal key={selected} cases={cases} users={users} columns={columns} defaultDate={selected} label="+ Nova neste dia" tone="accent" />
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua stagger-in">
+      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-regua">
         {totalCount === 0 && <p className="text-center text-sm text-tx-3 py-10">Nada agendado para este dia</p>}
         {selectedTasks.map((t) => (
           <DayPanelTaskRow key={`${t.id}-${t.entryKind}`} t={t} onToggle={onToggle} />

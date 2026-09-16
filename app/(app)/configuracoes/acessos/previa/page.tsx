@@ -176,7 +176,7 @@ export default async function PreviaSuportePage() {
   ]);
 
   return (
-    <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <Link
         href="/configuracoes/acessos"
         className="text-xs font-semibold text-tx-3 hover:text-tx"

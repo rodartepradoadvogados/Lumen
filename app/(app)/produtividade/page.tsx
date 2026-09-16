@@ -78,7 +78,7 @@ export default async function ProdutividadePage({
     });
 
     return (
-      <div className="p-6 max-w-[700px] mx-auto animate-fade-in space-y-6">
+      <div className="tela space-y-6">
         <PageHeader title="Produtividade" subtitle="Delegue tarefas e compromissos para outros membros da equipe" />
         {tabs}
 
@@ -93,7 +93,7 @@ export default async function ProdutividadePage({
     const history = await getUserHistory(viewer.id, 30);
 
     return (
-      <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
+      <div className="tela space-y-6">
         <PageHeader title="Produtividade" subtitle="Acompanhamento de tarefas concluídas e tempo de uso do sistema" />
         {tabs}
 
@@ -185,7 +185,7 @@ export default async function ProdutividadePage({
   const rows = Array.from(byUser.values()).sort((a, b) => b.points - a.points || b.count - a.count);
 
   return (
-    <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
+    <div className="tela space-y-6">
       <PageHeader
         title="Produtividade"
         subtitle="Histórico de tarefas concluídas por membro da equipe"
