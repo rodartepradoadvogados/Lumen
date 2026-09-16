@@ -111,8 +111,8 @@ export default function NewCaseAttachmentsField({ driveConnected }: { driveConne
           onClick={() => fileInputRef.current?.click()}
           className={`mt-1 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
             dragOver
-              ? "border-acao bg-acao-bg"
-              : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
+              ? "border-marca-tx bg-acao-bg"
+              : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
           }`}
         >
           <UploadCloud size={18} className="text-tx-3" />

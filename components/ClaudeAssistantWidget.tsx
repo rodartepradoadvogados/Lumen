@@ -103,7 +103,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
           {/* Grafite fixo nos dois temas — mesmo tratamento do botão flutuante acima. */}
           <div className="shrink-0 h-14 px-4 flex items-center justify-between bg-grafite-800 text-white">
             <div className="flex items-center gap-2">
-              {/* P0-5: text-marca sobre bg-grafite-800 reprova WCAG AA (2,15:1). */}
+              {/* P0-5: text-marca-tx sobre bg-grafite-800 reprova WCAG AA (2,15:1). */}
               <Sparkles size={18} className="text-rail-marca" />
               <span className="font-medium text-sm">Assistente Lúmen</span>
             </div>
@@ -147,7 +147,7 @@ export default function ClaudeAssistantWidget({ userName }: { userName: string }
               onKeyDown={onKeyDown}
               placeholder="Pergunte sobre processos, agenda, clientes..."
               rows={1}
-              className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 max-h-28"
+              className="flex-1 resize-none border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx max-h-28"
             />
             <button
               type="button"

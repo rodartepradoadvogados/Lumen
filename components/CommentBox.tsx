@@ -42,7 +42,7 @@ export default function CommentBox({
         onChange={(e) => setContent(e.target.value)}
         placeholder={`Escreva um comentário... use @${users[0]?.name.split(" ")[0] ?? "Nome"} para mencionar alguém da equipe`}
         rows={2}
-        className="w-full border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-acao/40 resize-y max-h-[40vh]"
+        className="w-full border border-regua px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-marca-tx resize-y max-h-[40vh]"
       />
       <div className="flex items-center justify-between mt-2">
         <div className="flex gap-1 flex-wrap">
@@ -51,7 +51,7 @@ export default function CommentBox({
               key={u.id}
               type="button"
               onClick={() => setContent((c) => `${c}${c.endsWith(" ") || c === "" ? "" : " "}@${u.name} `)}
-              className="text-etiqueta font-medium px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2 hover:bg-acao-bg hover:text-acao"
+              className="text-etiqueta font-medium px-2 py-0.5 rounded-full bg-sf-apoio text-tx-2 hover:bg-acao-bg hover:text-marca-tx"
             >
               @{u.name.split(" ")[0]}
             </button>

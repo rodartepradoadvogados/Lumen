@@ -70,7 +70,7 @@ export default function PageSectionTabs({
             onClick={(e) => handleClick(e, item.href, item.label)}
             className={clsx(
               "shrink-0 h-full flex items-center text-sm border-b-2 -mb-0.5 transition-colors",
-              active ? "font-extrabold text-tx border-acao" : "font-normal text-tx-2 border-transparent hover:text-tx"
+              active ? "font-extrabold text-tx border-marca-tx" : "font-normal text-tx-2 border-transparent hover:text-tx"
             )}
           >
             {item.label}

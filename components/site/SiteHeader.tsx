@@ -96,12 +96,12 @@ export default function SiteHeader({
     "inline-block py-2 text-sm font-semibold border-b-2 transition-[color,border-color] duration-150 ease-out";
   const itemNav = `${baseNav} text-tx border-transparent hover:border-regua-forte`;
   const marca = (secao: Secao) =>
-    ativa === secao ? `${baseNav} text-marca-tx border-acao` : itemNav;
+    ativa === secao ? `${baseNav} text-marca-tx border-marca-tx` : itemNav;
 
   return (
     <header
       className={`sticky top-0 z-30 bg-sf border-b-2 transition-[border-color] duration-150 ease-out ${
-        rolado ? "border-acao" : "border-regua-forte"
+        rolado ? "border-marca-tx" : "border-regua-forte"
       }`}
     >
       <div className="max-w-[1120px] mx-auto px-6 h-[76px] flex items-center justify-between gap-6">

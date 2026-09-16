@@ -291,10 +291,10 @@ export default async function ConexoesPage({
             </p>
           </div>
           <RenameCasesToConventionButton />
-          <Link href="/configuracoes/relatorio-pastas" className="text-xs font-semibold text-acao hover:underline">
+          <Link href="/configuracoes/relatorio-pastas" className="text-xs font-semibold text-marca-tx hover:underline">
             Ver relatório de pastas →
           </Link>
-          <Link href="/configuracoes/duplicados" className="text-xs font-semibold text-acao hover:underline">
+          <Link href="/configuracoes/duplicados" className="text-xs font-semibold text-marca-tx hover:underline">
             Ver e unificar clientes duplicados →
           </Link>
         </div>

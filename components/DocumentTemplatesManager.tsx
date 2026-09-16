@@ -99,7 +99,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
                     <a href={t.driveUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-tx truncate flex-1 hover:underline">
                       {t.name}
                     </a>
-                    <ExternalLink size={11} className="text-acao shrink-0" />
+                    <ExternalLink size={11} className="text-marca-tx shrink-0" />
                     <button
                       onClick={() => handleDelete(t.id)}
                       disabled={pending}
@@ -175,7 +175,7 @@ export default function DocumentTemplatesManager({ templates, driveConnected }: 
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
-              dragOver ? "border-acao bg-acao-bg" : "border-regua-forte hover:border-acao hover:bg-sf-apoio"
+              dragOver ? "border-marca-tx bg-acao-bg" : "border-regua-forte hover:border-marca-tx hover:bg-sf-apoio"
             }`}
           >
             <UploadCloud size={20} className="text-tx-3" />

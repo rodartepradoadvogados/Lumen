@@ -129,7 +129,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
             <label
               key={c.id}
               className={`flex items-start gap-3 p-3 border cursor-pointer transition-colors ${
-                c.id === canonicoId ? "border-acao bg-acao-bg" : "border-regua hover:bg-sf-apoio"
+                c.id === canonicoId ? "border-marca-tx bg-acao-bg" : "border-regua hover:bg-sf-apoio"
               }`}
             >
               <input
@@ -145,7 +145,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-tx">{c.nome}</span>
-                  {c.id === canonicoId && <span className="text-etiqueta font-bold text-acao uppercase tracking-wide">Manter este</span>}
+                  {c.id === canonicoId && <span className="text-etiqueta font-bold text-marca-tx uppercase tracking-wide">Manter este</span>}
                 </div>
                 <p className="text-etiqueta text-tx-3">Cadastrado em {dataBR(c.criadoEm)}</p>
                 <p className="text-etiqueta text-tx-2">{resumoAtividade(c)}</p>
@@ -193,7 +193,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                 </div>
 
                 {simulacao.avisos.map((a, i) => (
-                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2 flex gap-2">
+                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca-tx px-3 py-2 flex gap-2">
                     <AlertTriangle size={14} className="text-marca-tx shrink-0 mt-0.5" /> {a}
                   </p>
                 ))}
@@ -247,7 +247,7 @@ function GrupoCard({ grupo }: { grupo: GrupoClientesDuplicados }) {
                   <p className="text-xs text-tx-2">A pasta duplicada no Drive ainda tem conteúdo em conflito — não foi enviada à Lixeira.</p>
                 )}
                 {resultado.avisos.map((a, i) => (
-                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2">
+                  <p key={i} className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca-tx px-3 py-2">
                     {a}
                   </p>
                 ))}

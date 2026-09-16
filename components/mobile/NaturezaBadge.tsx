@@ -7,7 +7,7 @@ import { NATUREZA_LABELS, type CaseNatureza } from "@/lib/caseNatureza";
 // legados Atendimento/Consultivo, ver lib/caseNatureza.ts). Ouro fica reservado à marca e
 // à seção ativa (DESIGN-SYSTEM.md §7) — não é mais cor de categoria aqui.
 const TONE: Record<CaseNatureza, string> = {
-  JUDICIAL: "bg-acao-bg text-acao",
+  JUDICIAL: "bg-acao-bg text-marca-tx",
   ADMINISTRATIVO: "bg-sf-apoio text-tx-2",
   CASO: "bg-sf-apoio text-tx",
 };

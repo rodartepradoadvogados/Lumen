@@ -37,6 +37,14 @@
         "message": "Cor crua da paleta do Tailwind. Ela NÃO retematiza — fica igual no tema claro e no escuro — e fura o sistema de tokens inteiro. Use os papéis: urgente, aviso, concluido, acao, grave, faixa-*, tx, sf, regua. Havia 210 destas no produto em 2026-09-16, e eram as cores mais berrantes da tela."
       },
       {
+        "selector": "Literal[value=/\\b(text|ring)-(acao|marca)(-hover)?(?![\\w-])/]",
+        "message": "Bordô FIXO usado como primeiro plano. --acao, --acao-hover e --marca valem #8a2f42 nos DOIS temas: como fundo de botão estão certos (com text-acao-tx por cima), mas como texto, ícone ou anel de foco sobre uma superfície que retematiza medem 1,88:1 na ficha escura e 1,90:1 sobre acao-bg — reprovam WCAG AA (4,5:1). Use text-marca-tx / ring-marca-tx, que acompanham o tema (8,18:1 no claro, 5,58:1 no escuro) e valem EXATAMENTE o mesmo hex no tema claro. Sobre superfície fixa grafite (rail, barra de menus, masthead), use text-rail-marca. Havia 250 destas em 2026-09-16."
+      },
+      {
+        "selector": "TemplateElement[value.raw=/\\b(text|ring)-(acao|marca)(-hover)?(?![\\w-])/]",
+        "message": "Bordô FIXO usado como primeiro plano — ver a regra equivalente para Literal. Use text-marca-tx / ring-marca-tx."
+      },
+      {
         "selector": "TemplateElement[value.raw=/text-\\[[0-9.]/]",
         "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
       }

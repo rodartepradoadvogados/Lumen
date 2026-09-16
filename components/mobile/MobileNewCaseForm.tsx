@@ -17,7 +17,7 @@ import AssuntosField from "@/components/processo/AssuntosField";
 import MoneyInput from "@/components/MoneyInput";
 
 const inputClass =
-  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx";
 const labelClass = "text-corpo font-medium text-tx-2";
 
 // Mesma máscara do desktop (ver formatCnj em components/NovoCaseNaturezaSection.tsx) — duplicada
@@ -226,11 +226,11 @@ export default function MobileNewCaseForm({
           aria-pressed={natureza === "JUDICIAL"}
           className={`flex flex-col items-center gap-1 border-2 py-3 transition-colors ${
             natureza === "JUDICIAL"
-              ? "border-acao bg-acao-bg"
+              ? "border-marca-tx bg-acao-bg"
               : "border-regua bg-sf"
           }`}
         >
-          <Scale size={18} className={natureza === "JUDICIAL" ? "text-acao" : "text-tx-3"} />
+          <Scale size={18} className={natureza === "JUDICIAL" ? "text-marca-tx" : "text-tx-3"} />
           <span className={`text-sm font-semibold ${natureza === "JUDICIAL" ? "text-tx" : "text-tx-2"}`}>
             Judicial
           </span>

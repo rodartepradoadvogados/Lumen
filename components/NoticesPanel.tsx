@@ -140,7 +140,7 @@ export default function NoticesPanel({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-tx">{n.author.name}</p>
-                  {n.pinned && <Pin size={12} className="text-marca fill-marca" />}
+                  {n.pinned && <Pin size={12} className="text-marca-tx fill-marca-tx" />}
                   <span className="text-etiqueta text-tx-3">{relativeTime(n.createdAt)}</span>
                   <span className="ml-auto flex items-center gap-0.5">
                     {isAdmin && (

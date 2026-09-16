@@ -43,7 +43,7 @@ export default function MobileNovaAnotacaoForm({ linkType, entityId }: { linkTyp
         onChange={(e) => setText(e.target.value)}
         placeholder="Escreva sua anotação..."
         rows={4}
-        className="w-full border border-regua bg-sf-apoio text-tx text-sm px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-acao/40"
+        className="w-full border border-regua bg-sf-apoio text-tx text-sm px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-marca-tx"
       />
       <div className="flex items-center gap-1.5">
         <label className="sr-only" htmlFor="mobile-anotacao-data">
@@ -54,7 +54,7 @@ export default function MobileNovaAnotacaoForm({ linkType, entityId }: { linkTyp
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="flex-1 min-w-0 border border-regua bg-sf-apoio text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-acao/40"
+          className="flex-1 min-w-0 border border-regua bg-sf-apoio text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-marca-tx"
         />
         <button
           type="button"

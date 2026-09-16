@@ -30,7 +30,7 @@ type SpeechRecognitionLike = {
 type StagedAttachment = { key: string; file: File; name: string; docType: string };
 
 const inputClass =
-  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40";
+  "w-full mt-1 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx";
 const labelClass = "text-corpo font-medium text-tx-2";
 
 function toDatetimeLocal(d: Date): string {
@@ -250,7 +250,7 @@ export default function MobileNewAttendanceForm({
             required
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="flex-1 min-w-0 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-acao/40"
+            className="flex-1 min-w-0 border border-regua px-3 py-2 text-sm text-tx bg-sf focus:outline-none focus:ring-2 focus:ring-marca-tx"
             placeholder="Do que se trata"
           />
           {speechSupported && (
@@ -271,7 +271,7 @@ export default function MobileNewAttendanceForm({
       {error && <p role="alert" className="text-corpo font-semibold text-urgente">{error}</p>}
 
       {loading && progressText && (
-        <p className="text-corpo font-semibold text-acao">{progressText}</p>
+        <p className="text-corpo font-semibold text-marca-tx">{progressText}</p>
       )}
 
       <button
@@ -409,7 +409,7 @@ export default function MobileNewAttendanceForm({
           <button
             type="button"
             onClick={() => setShowPendencias(true)}
-            className="flex items-center gap-1.5 text-corpo font-semibold text-acao"
+            className="flex items-center gap-1.5 text-corpo font-semibold text-marca-tx"
           >
             <Plus size={15} /> Adicionar pendência
           </button>
@@ -440,8 +440,8 @@ export default function MobileNewAttendanceForm({
               onClick={() => fileInputRef.current?.click()}
               className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors ${
                 dragOver
-                  ? "border-acao bg-acao-bg"
-                  : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
+                  ? "border-marca-tx bg-acao-bg"
+                  : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
               }`}
             >
               <UploadCloud size={18} className="text-tx-2" />

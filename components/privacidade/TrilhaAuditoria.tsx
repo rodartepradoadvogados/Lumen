@@ -99,7 +99,7 @@ export default function TrilhaAuditoria() {
       {aba === "SUPORTE" ? (
         <div className="py-6 text-sm text-tx-2 space-y-2">
           <p>Acessos do suporte da Lúmen ao seu escritório — política, sessão ativa e histórico completo (90 dias).</p>
-          <Link href="/configuracoes/acessos" className="text-xs font-semibold text-acao hover:text-acao-hover">
+          <Link href="/configuracoes/acessos" className="text-xs font-semibold text-marca-tx hover:text-tx">
             Ver acessos da Lúmen →
           </Link>
         </div>

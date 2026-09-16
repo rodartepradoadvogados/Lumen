@@ -27,7 +27,7 @@ function NoteBox({ storageKey, index }: { storageKey: string; index: number }) {
         localStorage.setItem(storageKey, e.target.value);
       }}
       placeholder={`Anotação ${index + 1}`}
-      className="w-full h-40 resize-none border border-regua bg-sf text-tx p-3 text-sm focus:outline-none focus:border-acao"
+      className="w-full h-40 resize-none border border-regua bg-sf text-tx p-3 text-sm focus:outline-none focus:border-marca-tx"
     />
   );
 }
@@ -50,7 +50,7 @@ export default function PeticionarWorkspace() {
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm font-semibold text-tx bg-sf border border-regua px-3.5 py-2 hover:border-acao"
+            className="flex items-center gap-1.5 text-sm font-semibold text-tx bg-sf border border-regua px-3.5 py-2 hover:border-marca-tx"
           >
             {link.label} <ExternalLink size={13} />
           </a>

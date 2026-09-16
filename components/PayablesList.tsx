@@ -145,7 +145,7 @@ export default function PayablesList({
                     checked={selected.has(p.id)}
                     onChange={() => toggle(p.id)}
                     data-tip="Selecionar para baixa em bloco"
-                    className="h-4 w-4 rounded border-regua-forte focus:ring-acao"
+                    className="h-4 w-4 rounded border-regua-forte focus:ring-marca-tx"
                   />
                 ) : (
                   <span className="inline-block w-4" />

@@ -192,7 +192,7 @@ export default function NewTaskModal({
                     // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio
                     // + filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
                     <div className={`reuniao-panel border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
-                      <p className={`text-etiqueta font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
+                      <p className={`text-etiqueta font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-marca-tx"}`}>
                         {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                       </p>
                       <div className="flex gap-4">

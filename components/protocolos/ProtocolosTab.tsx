@@ -719,7 +719,8 @@ function SelecaoModal({
                 const jaProtocolado = jaProtocolados[a.id];
                 return (
                   <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-sf-apoio">
-                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua-forte text-acao focus:ring-acao/40 shrink-0" />
+                    {/* eslint-disable-next-line no-restricted-syntax -- em <input type="checkbox">, `text-*` pinta o PREENCHIMENTO do controle, não texto: o marcador por cima é branco, e o par branco-sobre-bordô é fixo e aprova nos dois temas. Trocar por marca-tx poria marcador branco sobre rosa claro. */}
+                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua-forte text-acao focus:ring-marca-tx shrink-0" />
                     <Icon size={14} className="text-tx-2 shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
                     {!checked && sugeridosSet.has(a.id) && (
@@ -857,7 +858,7 @@ function RegistrarModal({ caseId, lote, onClose }: { caseId: string; lote: Lote;
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-acao/40 py-3 text-xs text-tx-2"
+                className="w-full flex items-center justify-center gap-1.5 border-2 border-dashed border-regua hover:border-marca-tx/40 py-3 text-xs text-tx-2"
               >
                 Anexar comprovante devolvido pelo tribunal/órgão
               </button>

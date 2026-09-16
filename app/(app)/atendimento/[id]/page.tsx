@@ -137,7 +137,7 @@ export default async function AttendanceDetailPage({ params }: { params: { id: s
                 {a.convertedCase && (
                   <div className="flex justify-between text-sm border-b border-regua pb-2">
                     <span className="text-tx-3">Convertido em</span>
-                    <Link href={`/processos/${a.convertedCase.id}`} className="font-medium text-acao hover:underline text-right">
+                    <Link href={`/processos/${a.convertedCase.id}`} className="font-medium text-marca-tx hover:underline text-right">
                       {a.convertedCase.title}
                     </Link>
                   </div>

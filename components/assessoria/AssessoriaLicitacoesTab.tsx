@@ -246,7 +246,7 @@ export default function AssessoriaLicitacoesTab({
             setError(null);
             setModalMode("create");
           }}
-          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover px-3 py-1.5 "
+          className="flex items-center gap-1.5 text-sm font-semibold text-marca-tx hover:text-tx px-3 py-1.5 "
         >
           <Plus size={14} /> Nova licitação
         </button>
@@ -334,7 +334,7 @@ export default function AssessoriaLicitacoesTab({
                 setError(null);
                 setModalMode("edit");
               }}
-              className="flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-acao px-1.5 py-1"
+              className="flex items-center gap-1 text-xs font-semibold text-tx-2 hover:text-marca-tx px-1.5 py-1"
             >
               <Pencil size={13} /> Editar
             </button>
@@ -353,7 +353,7 @@ export default function AssessoriaLicitacoesTab({
                 <div className="flex justify-between items-center">
                   <span className="text-tx-2">Edital</span>
                   {selected.editalUrl ? (
-                    <a href={selected.editalUrl} target="_blank" rel="noopener noreferrer" className="text-acao hover:text-acao-hover font-semibold">↗ Abrir no Drive</a>
+                    <a href={selected.editalUrl} target="_blank" rel="noopener noreferrer" className="text-marca-tx hover:text-tx font-semibold">↗ Abrir no Drive</a>
                   ) : (
                     <span className="text-tx-3">Não anexado</span>
                   )}
@@ -377,7 +377,7 @@ export default function AssessoriaLicitacoesTab({
             <div className="bg-sf-apoio border border-regua p-4">
               <div className="flex items-center justify-between mb-2.5">
                 <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Tarefas &amp; Prazos</h4>
-                <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-acao hover:text-acao-hover">
+                <button onClick={() => setTaskFormOpen((v) => !v)} className="text-xs font-semibold text-marca-tx hover:text-tx">
                   + Nova tarefa
                 </button>
               </div>

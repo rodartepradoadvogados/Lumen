@@ -61,7 +61,7 @@ export default function MobileSearchCasesModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-corpo font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1 shrink-0"
+        className="flex items-center gap-1 text-corpo font-semibold text-marca-tx bg-acao-bg hover:bg-acao-bg px-2.5 py-1 shrink-0"
       >
         <Search size={12} /> Pesquisar
       </button>
@@ -115,7 +115,7 @@ export default function MobileSearchCasesModal({
                       <button
                         onClick={() => handleLink(c.id)}
                         disabled={pending}
-                        className="inline-flex items-center gap-1 text-corpo font-semibold text-acao bg-acao-bg hover:bg-acao-bg px-2.5 py-1.5 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-corpo font-semibold text-marca-tx bg-acao-bg hover:bg-acao-bg px-2.5 py-1.5 disabled:opacity-50"
                       >
                         <Link2 size={12} /> {pending && linkingId === c.id ? "..." : "Vincular"}
                       </button>

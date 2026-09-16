@@ -188,7 +188,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                     <span className="text-xs text-tx-3">{formatDate(p.publishedAt)}</span>
                   </div>
                   {p.case && (
-                    <Link href={`/processos/${p.case.id}`} className="text-xs font-medium text-acao hover:underline mt-0.5 block">
+                    <Link href={`/processos/${p.case.id}`} className="text-xs font-medium text-marca-tx hover:underline mt-0.5 block">
                       {p.case.title}
                     </Link>
                   )}

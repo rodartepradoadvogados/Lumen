@@ -67,7 +67,7 @@ export default function MobileTeamMonitor() {
                 Último login: {formatDateTime(s.lastLoginAt)} · Timesheet: {formatHMS(s.todaySeconds)}
               </p>
             </div>
-            <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-corpo font-semibold text-acao shrink-0">
+            <button onClick={() => toggleHistory(s.id)} className="flex items-center gap-0.5 text-corpo font-semibold text-marca-tx shrink-0">
               Histórico
               <ChevronDown size={12} className={`transition-transform ${expanded === s.id ? "rotate-180" : ""}`} />
             </button>

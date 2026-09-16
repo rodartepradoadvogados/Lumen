@@ -41,7 +41,7 @@ export default function MobileLicitacoesSection({ assessoriaId, licitacoes }: { 
     <Card>
       <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2">
         <h2 className="font-bold text-tx text-sm">Licitações</h2>
-        <Link href={`/m/assessoria/${assessoriaId}/licitacoes/nova`} className="flex items-center gap-1 text-corpo font-semibold text-acao px-2.5 py-1 shrink-0">
+        <Link href={`/m/assessoria/${assessoriaId}/licitacoes/nova`} className="flex items-center gap-1 text-corpo font-semibold text-marca-tx px-2.5 py-1 shrink-0">
           <Plus size={12} /> Nova licitação
         </Link>
       </div>

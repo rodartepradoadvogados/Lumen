@@ -60,7 +60,7 @@ export default function NewDocumentTypeDialog({
               autoFocus
               value={secao}
               onChange={(e) => setSecao(e.target.value)}
-              className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx focus:outline-none focus:ring-2 focus:ring-acao/40"
+              className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx focus:outline-none focus:ring-2 focus:ring-marca-tx"
             >
               {secoes.map((s) => (
                 <option key={s} value={s}>
@@ -77,7 +77,7 @@ export default function NewDocumentTypeDialog({
               value={rotulo}
               onChange={(e) => setRotulo(e.target.value)}
               placeholder="Ex.: Print de conversa"
-              className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
+              className="w-full mt-1 border border-regua-forte px-3 py-2 text-sm bg-sf text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-marca-tx"
             />
             <p className="text-etiqueta text-tx-3 mt-1">Este nome também vira o nome da pasta correspondente no armazenamento em nuvem.</p>
           </div>

@@ -149,7 +149,7 @@ export default function AssessoriaRecurringExpensesCard({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover"
+          className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx"
         >
           <Plus size={13} /> Nova despesa recorrente
         </button>

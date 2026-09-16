@@ -29,7 +29,7 @@ export default function PhotoPickerGrid({
             onClick={() => onSelect(fileUrl)}
             data-tip={photo.caption || photo.category}
             className={` overflow-hidden border-2 transition-colors ${
-              selected ? "border-acao" : "border-transparent hover:border-regua"
+              selected ? "border-marca-tx" : "border-transparent hover:border-regua"
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}

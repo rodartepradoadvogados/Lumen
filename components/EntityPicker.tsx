@@ -147,7 +147,7 @@ export default function EntityPicker({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full pl-8 pr-2 py-1.5 text-sm border border-fonte-pje dark:border-fonte-pje/30 focus:outline-none focus:ring-2 focus:ring-fonte-pje/50 bg-sf text-tx placeholder:text-tx-3"
+                  className="w-full pl-8 pr-2 py-1.5 text-sm border border-fonte-pje dark:border-fonte-pje/30 focus:outline-none focus:ring-2 focus:ring-fonte-pje bg-sf text-tx placeholder:text-tx-3"
                 />
               </div>
             </div>
@@ -199,7 +199,7 @@ export default function EntityPicker({
                       }}
                       autoFocus
                       placeholder={addLabel ?? "Nome"}
-                      className="flex-1 text-sm border border-fonte-pje dark:border-fonte-pje/30 px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-fonte-pje/50 bg-sf text-tx"
+                      className="flex-1 text-sm border border-fonte-pje dark:border-fonte-pje/30 px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-fonte-pje bg-sf text-tx"
                     />
                     <button
                       type="button"

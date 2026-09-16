@@ -104,7 +104,7 @@ export default function LumenNavRail() {
                       href={item.href}
                       className={`flex items-center gap-2.5 px-3 py-2 text-sm border-l-2 transition-colors ${
                         active
-                          ? "border-marca bg-gaveta-fundo text-gaveta-tinta font-semibold"
+                          ? "border-marca-tx bg-gaveta-fundo text-gaveta-tinta font-semibold"
                           : "border-transparent text-gaveta-tinta-2 hover:bg-gaveta-fundo hover:text-gaveta-tinta"
                       }`}
                     >

@@ -70,7 +70,7 @@ export default function NomeacaoDriveForm({
       </div>
 
       {mudou && (
-        <p className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca px-3 py-2.5 flex gap-2">
+        <p className="text-xs text-tx-2 bg-marca-bg border-l-[3px] border-marca-tx px-3 py-2.5 flex gap-2">
           <AlertTriangle size={15} className="text-marca-tx shrink-0 mt-0.5" />
           <span>
             As pastas que <strong className="text-tx">já existem</strong> continuam com o nome atual e seguem funcionando — o

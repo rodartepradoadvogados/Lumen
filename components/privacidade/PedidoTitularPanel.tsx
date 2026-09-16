@@ -97,7 +97,7 @@ export default function PedidoTitularPanel({ requests, isAdmin }: { requests: Da
                   <button
                     type="button"
                     onClick={() => setAvaliarId(r.id)}
-                    className="text-xs font-semibold text-acao hover:text-acao-hover mt-1.5"
+                    className="text-xs font-semibold text-marca-tx hover:text-tx mt-1.5"
                   >
                     Avaliar
                   </button>
@@ -106,7 +106,7 @@ export default function PedidoTitularPanel({ requests, isAdmin }: { requests: Da
                   <button
                     type="button"
                     onClick={() => setExecutarId(r.id)}
-                    className="text-xs font-semibold text-acao hover:text-acao-hover mt-1.5"
+                    className="text-xs font-semibold text-marca-tx hover:text-tx mt-1.5"
                   >
                     Marcar como executado
                   </button>

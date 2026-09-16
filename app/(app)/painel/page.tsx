@@ -206,8 +206,8 @@ export default async function DashboardPage() {
           Antes este espaço era uma saudação com o nome do usuário, gastando o maior tipo da
           página, o único gradiente e a única textura do produto. O contrato de direção "Guias"
           é explícito: o tipo é matéria, o número É o bloco, e existe um por tela. */}
-      <div className="bg-campo-risco border-t-2 border-acao px-5 py-4 flex items-baseline gap-4 flex-wrap">
-        <span className="font-display text-tarja leading-none font-bold tabular-nums text-acao">{emRiscoAgora}</span>
+      <div className="bg-campo-risco border-t-2 border-marca-tx px-5 py-4 flex items-baseline gap-4 flex-wrap">
+        <span className="font-display text-tarja leading-none font-bold tabular-nums text-marca-tx">{emRiscoAgora}</span>
         <span className="text-destaque font-semibold leading-tight text-tx">
           em risco agora,<br />no escritório inteiro
         </span>
@@ -230,7 +230,7 @@ export default async function DashboardPage() {
                   : `Por severidade — nenhum prazo vencido`
               }
               action={
-                <Link href="/agenda" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
+                <Link href="/agenda" className="text-xs font-semibold text-marca-tx hover:text-tx flex items-center gap-1">
                   Ver agenda <ArrowRight size={13} strokeWidth={1.5} />
                 </Link>
               }
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
               ))}
             </div>
             {dayQueueRestCount > 0 && (
-              <Link href="/agenda" className="block text-center text-xs font-semibold text-acao hover:text-acao-hover px-5 py-3 border-t border-regua">
+              <Link href="/agenda" className="block text-center text-xs font-semibold text-marca-tx hover:text-tx px-5 py-3 border-t border-regua">
                 Ver os outros {dayQueueRestCount}
               </Link>
             )}
@@ -259,7 +259,7 @@ export default async function DashboardPage() {
                   {unreadGroups.length > 0 && (
                     <span className="live-dot" aria-hidden="true" title="Publicações chegam automaticamente" />
                   )}
-                  <Link href="/publicacoes" className="text-xs font-semibold text-acao hover:text-acao-hover flex items-center gap-1">
+                  <Link href="/publicacoes" className="text-xs font-semibold text-marca-tx hover:text-tx flex items-center gap-1">
                     Triar <ArrowRight size={13} strokeWidth={1.5} />
                   </Link>
                 </div>
@@ -374,7 +374,7 @@ export default async function DashboardPage() {
                           {urgencia === "vencida" ? "Venceu " : "Vence "}{formatRelativeDueDate(r.dueDate)}
                         </p>
                         {r.case && (
-                          <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-acao hover:underline">
+                          <Link href={`/processos/${r.case.id}`} className="text-xs font-semibold text-marca-tx hover:underline">
                             {r.case.processNumber || r.case.title}
                           </Link>
                         )}
@@ -416,7 +416,7 @@ export default async function DashboardPage() {
                           {urgencia === "vencida" ? "Venceu " : "Vence "}{formatRelativeDueDate(p.dueDate)}
                         </p>
                         {p.case && (
-                          <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-acao hover:underline">
+                          <Link href={`/processos/${p.case.id}`} className="text-xs font-semibold text-marca-tx hover:underline">
                             {p.case.processNumber || p.case.title}
                           </Link>
                         )}
@@ -456,7 +456,7 @@ export default async function DashboardPage() {
                 </p>
               ))}
             </div>
-            <Link href="/atendimento/funil" className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover mt-2">
+            <Link href="/atendimento/funil" className="inline-flex items-center gap-1 text-xs font-semibold text-marca-tx hover:text-tx mt-2">
               Ver funil <ArrowRight size={13} strokeWidth={1.5} />
             </Link>
           </div>

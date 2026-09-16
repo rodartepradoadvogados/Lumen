@@ -60,7 +60,7 @@ export default async function EscolherPage() {
             href={porta.href}
             // Mesma resposta de régua dos cartões de preço do site (D5): a régua vira bordô e o
             // fundo acompanha. Nenhuma elevação, nenhuma sombra.
-            className="block border-2 border-regua-forte bg-sf rounded-[2px] p-6 transition-[border-color,background-color] duration-100 ease-out hover:border-acao hover:bg-acao-bg"
+            className="block border-2 border-regua-forte bg-sf rounded-[2px] p-6 transition-[border-color,background-color] duration-100 ease-out hover:border-marca-tx hover:bg-acao-bg"
           >
             <div className="text-etiqueta font-extrabold uppercase tracking-[.1em] text-tx-3 mb-1">{porta.etiqueta}</div>
             <div className="text-destaque font-extrabold text-tx">{porta.titulo}</div>

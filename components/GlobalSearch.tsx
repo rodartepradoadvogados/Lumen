@@ -225,7 +225,7 @@ export default function GlobalSearch({
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="Pesquisar processo, cliente, ação..."
-                className="w-full h-[34px] pl-9 pr-3 border-2 border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 shadow-menu focus:outline-none focus:ring-2 focus:ring-marca/40"
+                className="w-full h-[34px] pl-9 pr-3 border-2 border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 shadow-menu focus:outline-none focus:ring-2 focus:ring-marca-tx"
               />
             </div>
 

@@ -84,7 +84,7 @@ export default function TimbradoForm({
         <div className="flex items-center gap-3 border border-regua bg-sf-apoio px-3 py-2.5">
           <FileText size={17} className="text-tx-2 shrink-0" />
           <div className="min-w-0 flex-1">
-            <a href={atual.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-acao hover:underline truncate block">
+            <a href={atual.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-marca-tx hover:underline truncate block">
               {atual.nome ?? "Papel timbrado"}
             </a>
             <p className="text-etiqueta text-tx-2">
@@ -118,7 +118,7 @@ export default function TimbradoForm({
         }}
         onClick={() => inputRef.current?.click()}
         className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 cursor-pointer transition-colors ${
-          arrastando ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
+          arrastando ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
         }`}
       >
         {enviando ? <Loader2 size={20} className="text-tx-2 animate-spin" /> : <UploadCloud size={20} className="text-tx-2" />}

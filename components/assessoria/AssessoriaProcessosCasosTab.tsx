@@ -199,7 +199,7 @@ export default function AssessoriaProcessosCasosTab({
             <EnviarDocumentosButton entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} attachments={todosDocumentos} />
             <button
               onClick={() => setParecerFormOpen((v) => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
+              className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
             >
               <Plus size={13} /> Adicionar demanda
             </button>
@@ -264,19 +264,19 @@ export default function AssessoriaProcessosCasosTab({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
+              className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
             >
               <Search size={13} /> Pesquisar processos
             </button>
             <Link
               href={`/processos/novo?assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
+              className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
             >
               <Plus size={13} /> Novo processo
             </Link>
             <Link
               href={`/processos/novo?type=EXTRAJUDICIAL&assessoriaId=${assessoria.id}`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
+              className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
             >
               <Plus size={13} /> Novo caso
             </Link>
@@ -336,7 +336,7 @@ export default function AssessoriaProcessosCasosTab({
               baixo, que depois pode virar um Processo/Caso de verdade. */}
           <Link
             href={`/atendimento?novo=1&assessoriaId=${assessoria.id}`}
-            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
+            className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
           >
             <Plus size={13} /> Novo caso
           </Link>
@@ -431,7 +431,7 @@ export default function AssessoriaProcessosCasosTab({
                       <button
                         onClick={() => handleLinkFromSearch(c.id)}
                         disabled={pending}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1.5 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1.5 disabled:opacity-50"
                       >
                         <Link2 size={12} /> {pending && linkingId === c.id ? "Vinculando..." : "Vincular"}
                       </button>
@@ -465,7 +465,7 @@ export default function AssessoriaProcessosCasosTab({
             <div className="pt-2 mt-1 border-t border-regua">
               <Link
                 href={`/atendimento/${openAttendance.id}`}
-                className="flex items-center justify-center gap-1.5 text-sm font-semibold text-acao hover:underline py-1"
+                className="flex items-center justify-center gap-1.5 text-sm font-semibold text-marca-tx hover:underline py-1"
               >
                 Abrir atendimento completo <ArrowRight size={14} />
               </Link>

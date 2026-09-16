@@ -197,7 +197,7 @@ export default function AssessoriaDocumentosTab({
               setLinkDocType("CONTRATO_SOCIAL");
               setFormOpen(true);
             }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover px-2.5 py-1 "
+            className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
           >
             <Plus size={13} /> Adicionar documento da empresa
           </button>
@@ -287,7 +287,7 @@ export default function AssessoriaDocumentosTab({
         </div>
         <button
           onClick={() => setFormOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-acao hover:text-acao-hover hover:bg-sf-apoio px-3 py-1.5 "
+          className="flex items-center gap-1.5 text-sm font-semibold text-marca-tx hover:text-tx hover:bg-sf-apoio px-3 py-1.5 "
         >
           <Plus size={14} /> Colar link
         </button>
@@ -384,7 +384,7 @@ export default function AssessoriaDocumentosTab({
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed p-4 cursor-pointer transition-colors mb-4 ${
-            dragOver ? "border-acao bg-acao-bg" : "border-regua hover:border-acao/40 hover:bg-sf-apoio"
+            dragOver ? "border-marca-tx bg-acao-bg" : "border-regua hover:border-marca-tx/40 hover:bg-sf-apoio"
           }`}
         >
           <UploadCloud size={20} className="text-tx-2" />
@@ -454,7 +454,7 @@ export default function AssessoriaDocumentosTab({
                 href={d.driveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-sf-apoio border border-regua p-3 hover:border-acao/40 transition-colors flex flex-col items-center text-center gap-1.5"
+                className="bg-sf-apoio border border-regua p-3 hover:border-marca-tx/40 transition-colors flex flex-col items-center text-center gap-1.5"
               >
                 <div className="h-10 w-10 bg-sf text-tx-2 flex items-center justify-center">
                   <Icon size={18} />

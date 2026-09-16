@@ -167,7 +167,7 @@ export default function DocumentTypeSelect({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar tipo de documento..."
-                  className="w-full pl-8 pr-3 py-2 border border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-acao/40"
+                  className="w-full pl-8 pr-3 py-2 border border-regua-forte bg-sf text-sm text-tx placeholder:text-tx-3 focus:outline-none focus:ring-2 focus:ring-marca-tx"
                 />
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function DocumentTypeSelect({
                 <button
                   type="button"
                   onClick={() => setCreateOpen(true)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-acao hover:text-acao-hover"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx"
                 >
                   <Plus size={13} /> Novo tipo
                 </button>

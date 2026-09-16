@@ -13,14 +13,14 @@ import type { ReactNode } from "react";
 // (regra §0.2), o filete continua em `--marca`.
 //
 // As cores em si vêm de classes utilitárias Tailwind que apontam para os tokens semânticos
-// (`text-acao`, `text-marca-tx`, ...), nunca de hex solto (`bg-[#...]`) — Tailwind não gera
+// (`text-marca-tx`, `text-marca-tx`, ...), nunca de hex solto (`bg-[#...]`) — Tailwind não gera
 // classes para strings montadas em runtime a partir de uma prop (`tone`), então
 // `text-[var(--secao-${tone})]` simplesmente não seria compilado; por isso o mapa abaixo lista
 // a classe inteira por tom.
 export type SecaoTone = "palha" | "azul" | "ouro" | "verde" | "rosa";
 
 const labelToneClassName: Record<SecaoTone, string> = {
-  azul: "text-acao", // Contato / Identificação
+  azul: "text-marca-tx", // Contato / Identificação
   palha: "text-tx-2", // Assunto e matéria
   ouro: "text-marca-tx", // Honorário
   rosa: "text-atencao", // Pendências

@@ -111,7 +111,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
           <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-4">
             {task.case && (
               <div className="space-y-0.5">
-                <Link href={`/processos/${task.case.id}`} className="text-xs font-semibold text-acao hover:underline block">
+                <Link href={`/processos/${task.case.id}`} className="text-xs font-semibold text-marca-tx hover:underline block">
                   {task.case.processNumber || task.case.title}
                 </Link>
                 <p className="text-xs text-tx-2">{task.case.title}</p>
@@ -184,7 +184,7 @@ export default function TaskDetailModal({ taskId, onClose }: { taskId: string; o
                   // Mesmo padrão das seções de formulário (DESIGN-SYSTEM.md §11): fundo de apoio +
                   // filete esquerdo de 3px na cor do tipo, em vez do fundo dourado cheio de antes.
                   <div className={`reuniao-panel border-l-[3px] ${(typeMeta[type] || typeMeta.EVENTO).filete} bg-sf-apoio p-3 space-y-3`}>
-                    <p className={`text-etiqueta font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-acao"}`}>
+                    <p className={`text-etiqueta font-semibold uppercase tracking-wide ${type === "AUDIENCIA" ? "text-marca-tx" : "text-marca-tx"}`}>
                       {type === "AUDIENCIA" ? "Local da Audiência (opcional)" : "Reunião"}
                     </p>
                     <div className="flex gap-4">

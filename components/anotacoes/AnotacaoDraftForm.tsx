@@ -154,7 +154,7 @@ export default function AnotacaoDraftForm({ draft, splitView }: { draft: Anotaca
             type="date"
             value={draft.referenceDate}
             onChange={(e) => updateDraft(draft.id, { referenceDate: e.target.value })}
-            className="flex-1 min-w-0 border border-regua bg-sf text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-acao/40"
+            className="flex-1 min-w-0 border border-regua bg-sf text-tx text-sm px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-marca-tx"
           />
           <button
             type="button"

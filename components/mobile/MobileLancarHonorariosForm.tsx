@@ -728,14 +728,14 @@ export default function MobileLancarHonorariosForm({
           {recorrente ? (
             <>
               <span className="block text-corpo uppercase tracking-wide text-tx-2">Valor mensal</span>
-              <span className="text-base font-bold tabular-nums text-acao">
+              <span className="text-base font-bold tabular-nums text-marca-tx">
                 {formatCurrency(parseFloat(amountMensal || "0") || 0)}
               </span>
             </>
           ) : (
             <>
               <span className="block text-corpo uppercase tracking-wide text-tx-2">Líquido</span>
-              <span className="text-base font-bold tabular-nums text-acao">{formatCurrency(liquido)}</span>
+              <span className="text-base font-bold tabular-nums text-marca-tx">{formatCurrency(liquido)}</span>
             </>
           )}
         </div>

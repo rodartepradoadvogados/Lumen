@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 function TemplateLink({ href }: { href: string }) {
   return (
-    <a href={href} download className="inline-flex items-center gap-1 text-xs font-semibold text-acao hover:text-acao-hover">
+    <a href={href} download className="inline-flex items-center gap-1 text-xs font-semibold text-marca-tx hover:text-tx">
       <Download size={12} /> Baixar modelo .xlsx
     </a>
   );
@@ -73,7 +73,7 @@ export default async function ImportarPage() {
             <TemplateLink href="/templates/modelo-contatos.xlsx" />
             <p className="text-xs text-tx-3">
               Para importar contatos avulsos, cadastre diretamente em{" "}
-              <Link href="/contatos/clientes" className="text-acao hover:underline">
+              <Link href="/contatos/clientes" className="text-marca-tx hover:underline">
                 Contatos → Clientes
               </Link>{" "}
               — clientes citados nas planilhas de Processos e Financeiro já são criados automaticamente.

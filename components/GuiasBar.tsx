@@ -68,7 +68,7 @@ function Chip({
         // topo não bastaria. As inativas usam --tx-2 (não mais --rail-tx, que pressupunha fundo
         // sempre escuro).
         "shrink-0 flex-1 min-w-[90px] max-w-[260px] h-8 flex items-center gap-1.5 pl-3 pr-1.5 text-etiqueta font-semibold border-t-2 transition-colors",
-        active ? "bg-sf-apoio text-tx border-acao" : "text-tx-2 border-transparent hover:bg-sf-apoio/60 hover:text-tx"
+        active ? "bg-sf-apoio text-tx border-marca-tx" : "text-tx-2 border-transparent hover:bg-sf-apoio/60 hover:text-tx"
       )}
     >
       <FileText size={11} className="shrink-0" />

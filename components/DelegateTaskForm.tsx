@@ -299,7 +299,7 @@ export default function DelegateTaskForm({
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleResponsible(u.id)}
-                    className="h-4 w-4 rounded border-regua text-acao focus:ring-acao/40"
+                    className="h-4 w-4 rounded border-regua text-marca-tx focus:ring-marca-tx"
                   />
                   <span className="text-tx">{u.name}</span>
                 </label>
@@ -488,7 +488,7 @@ export default function DelegateTaskForm({
             </select>
           </div>
           {(state.type === "EVENTO" || state.type === "AUDIENCIA") && (
-            <div className=" border border-marca/25 bg-marca-bg p-3 space-y-3">
+            <div className=" border border-marca-tx/25 bg-marca-bg p-3 space-y-3">
               <p className="text-xs font-semibold text-marca-tx uppercase tracking-wide">
                 {state.type === "AUDIENCIA" ? "Local da audiência (opcional)" : "Reunião (opcional)"}
               </p>

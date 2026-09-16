@@ -416,7 +416,8 @@ function EnvioModal({ entity, attachments, onClose }: { entity: EnvioEntity; att
                 const Icon = getDocumentTypeIcon(a.docType);
                 return (
                   <label key={a.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-sf-apoio">
-                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua text-acao focus:ring-acao/40 shrink-0" />
+                    {/* eslint-disable-next-line no-restricted-syntax -- em <input type="checkbox">, `text-*` pinta o PREENCHIMENTO do controle, não texto: o marcador por cima é branco, e o par branco-sobre-bordô é fixo e aprova nos dois temas. Trocar por marca-tx poria marcador branco sobre rosa claro. */}
+                    <input type="checkbox" checked={checked} onChange={() => toggle(a.id)} className="h-4 w-4 rounded border-regua text-acao focus:ring-marca-tx shrink-0" />
                     <Icon size={14} className="text-tx-3 shrink-0" />
                     <span className="flex-1 min-w-0 truncate text-tx">{a.name}</span>
                     <span className="text-etiqueta text-tx-3 font-mono shrink-0">{getDocumentTypeLabel(a.docType)}</span>

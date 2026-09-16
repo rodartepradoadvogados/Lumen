@@ -110,7 +110,7 @@ export default function MobileGlobalSearch() {
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder="Buscar processo, contato ou tarefa..."
-        className="w-full rounded-md pl-9 pr-3 py-3 border border-regua bg-sf text-sm text-tx placeholder:text-tx-3 shadow-card focus:outline-none focus:ring-2 focus:ring-acao/40"
+        className="w-full rounded-md pl-9 pr-3 py-3 border border-regua bg-sf text-sm text-tx placeholder:text-tx-3 shadow-card focus:outline-none focus:ring-2 focus:ring-marca-tx"
       />
 
       {showDropdown && (

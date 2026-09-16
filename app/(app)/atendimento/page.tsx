@@ -163,7 +163,7 @@ export default async function AtendimentoPage({
 
       <p className="text-xs text-tx-3 mt-4">
         Assim que um atendimento evoluir para um processo, crie o card em{" "}
-        <Link href="/processos/novo" className="text-acao hover:underline">
+        <Link href="/processos/novo" className="text-marca-tx hover:underline">
           Processos e Casos
         </Link>
         .

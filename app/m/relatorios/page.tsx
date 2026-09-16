@@ -143,7 +143,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
 
       <Link href="/m/relatorios/personalizado" className="block">
         <Card className="flex items-center gap-3 px-4 py-3.5">
-          <span className="h-9 w-9 bg-acao-bg text-acao flex items-center justify-center shrink-0">
+          <span className="h-9 w-9 bg-acao-bg text-marca-tx flex items-center justify-center shrink-0">
             <SlidersHorizontal size={16} />
           </span>
           <div className="flex-1 min-w-0">

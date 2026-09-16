@@ -12,7 +12,7 @@ const options = ["NOVO", "EM_TRIAGEM", "CONVERTIDO", "ARQUIVADO"];
 // concluido (êxito).
 const colors: Record<string, string> = {
   NOVO: "bg-aviso-bg text-aviso border-aviso/25",
-  EM_TRIAGEM: "bg-acao-bg text-acao border-acao/25",
+  EM_TRIAGEM: "bg-acao-bg text-marca-tx border-marca-tx/25",
   CONVERTIDO: "bg-concluido-bg text-concluido border-concluido/25",
   ARQUIVADO: "bg-sf-apoio text-tx-2 border-regua",
   RASCUNHO: "bg-sf-apoio text-tx-2 border-regua",

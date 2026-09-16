@@ -34,7 +34,7 @@ export default function FichaMateria({
       href={`/blog/${slug}`}
       // Mesma resposta de régua do resto do site (D5): a régua vira bordô e o fundo acompanha.
       // Nenhuma elevação, nenhuma sombra — a casa trocou altura por filete em F3.
-      className="bg-sf border-2 border-regua-forte rounded-[2px] overflow-hidden flex flex-col transition-[border-color,background-color] duration-100 ease-out hover:border-acao hover:bg-acao-bg"
+      className="bg-sf border-2 border-regua-forte rounded-[2px] overflow-hidden flex flex-col transition-[border-color,background-color] duration-100 ease-out hover:border-marca-tx hover:bg-acao-bg"
     >
       {imagem && (
         // eslint-disable-next-line @next/next/no-img-element

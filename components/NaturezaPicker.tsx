@@ -23,12 +23,12 @@ export default function NaturezaPicker({ value, onChange }: Props) {
         onClick={() => onChange("JUDICIAL")}
         aria-pressed={value === "JUDICIAL"}
         className={`flex items-start gap-3 border-2 p-4 text-left transition-colors ${
-          value === "JUDICIAL" ? "border-acao bg-acao-bg" : "border-regua bg-sf hover:border-acao/40"
+          value === "JUDICIAL" ? "border-marca-tx bg-acao-bg" : "border-regua bg-sf hover:border-marca-tx/40"
         }`}
       >
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center ${
-            value === "JUDICIAL" ? "bg-acao text-acao-tx" : "bg-acao-bg text-acao"
+            value === "JUDICIAL" ? "bg-acao text-acao-tx" : "bg-acao-bg text-marca-tx"
           }`}
         >
           <Scale size={18} />
@@ -44,12 +44,12 @@ export default function NaturezaPicker({ value, onChange }: Props) {
         onClick={() => onChange("ADMINISTRATIVO")}
         aria-pressed={value === "ADMINISTRATIVO"}
         className={`flex items-start gap-3 border-2 p-4 text-left transition-colors ${
-          value === "ADMINISTRATIVO" ? "border-acao bg-acao-bg" : "border-regua bg-sf hover:border-acao/40"
+          value === "ADMINISTRATIVO" ? "border-marca-tx bg-acao-bg" : "border-regua bg-sf hover:border-marca-tx/40"
         }`}
       >
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center ${
-            value === "ADMINISTRATIVO" ? "bg-acao text-acao-tx" : "bg-acao-bg text-acao"
+            value === "ADMINISTRATIVO" ? "bg-acao text-acao-tx" : "bg-acao-bg text-marca-tx"
           }`}
         >
           <Landmark size={18} />

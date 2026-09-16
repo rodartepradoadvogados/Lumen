@@ -81,7 +81,7 @@ const MONTHS = [
 // ao ouro fora da marca (ver §7); as demais batem 1:1 com um token semântico já existente.
 export const typeMeta: Record<string, { dot: string; chip: string; filete: string }> = {
   TAREFA: { dot: "bg-tx-2", chip: "bg-sf-apoio text-tx-2", filete: "border-tx-2" },
-  EVENTO: { dot: "bg-acao", chip: "bg-acao-bg text-acao", filete: "border-acao" },
+  EVENTO: { dot: "bg-acao", chip: "bg-acao-bg text-marca-tx", filete: "border-acao" },
   AUDIENCIA: { dot: "bg-marca", chip: "bg-marca-bg text-marca-tx rounded-sm", filete: "border-marca" },
   PERICIA: { dot: "bg-aviso", chip: "bg-aviso-bg text-aviso rounded-sm", filete: "border-aviso" },
   PRAZO: { dot: "bg-urgente", chip: "bg-urgente-bg text-urgente rounded-sm", filete: "border-urgente" },
@@ -393,7 +393,7 @@ function MonthView({
           <Link href={prevMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-acao rounded-sm px-2 py-1 hover:bg-acao-bg">
+          <Link href={buildHref({ year: String(today.getFullYear()), month: String(today.getMonth()) })} className="text-xs font-semibold text-marca-tx rounded-sm px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
           <Link href={nextMonthHref} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
@@ -430,7 +430,7 @@ function MonthView({
               className={clsx(
                 "rounded-md p-1 sm:p-1.5 text-left flex flex-col min-h-[56px] sm:min-h-[86px] transition-colors",
                 inMonth ? "bg-sf" : "bg-sf-apoio/50 text-tx-3",
-                isSelected && "bg-acao-bg ring-1 ring-inset ring-acao"
+                isSelected && "bg-acao-bg ring-1 ring-inset ring-marca-tx"
               )}
             >
               <span
@@ -487,7 +487,7 @@ function WeekView({
           <Link href={buildHref({ week: ymd(prevWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
             <ChevronLeft size={18} />
           </Link>
-          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-acao rounded-sm px-2 py-1 hover:bg-acao-bg">
+          <Link href={buildHref({ week: ymd(today) })} className="text-xs font-semibold text-marca-tx rounded-sm px-2 py-1 hover:bg-acao-bg">
             Hoje
           </Link>
           <Link href={buildHref({ week: ymd(nextWeek) })} className="p-1.5 hover:bg-sf-apoio text-tx/80 rounded-md">
@@ -582,7 +582,7 @@ function ListView({
                       </div>
                       <p className={clsx("text-sm font-medium text-tx mt-1", done && "line-through text-tx-3")}>{t.title}</p>
                       {t.case && (
-                        <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline block truncate">
+                        <Link href={`/processos/${t.case.id}`} className="text-xs text-marca-tx hover:underline block truncate">
                           {t.case.title}
                         </Link>
                       )}
@@ -676,7 +676,7 @@ function FinanceListRow({ f }: { f: FinanceEntryData }) {
           <Badge color={statusColor}>{isApurar ? "A apurar" : f.effectiveStatus}</Badge>
         </div>
         <p className="text-sm font-medium text-tx mt-1">{f.description}</p>
-        {f.case && <p className="text-xs text-acao mt-1 truncate">{f.case.title}</p>}
+        {f.case && <p className="text-xs text-marca-tx mt-1 truncate">{f.case.title}</p>}
       </div>
       <p className="text-sm font-semibold text-tx tabular-nums shrink-0">{f.amount === null ? "—" : formatCurrency(f.amount)}</p>
     </Link>
@@ -758,12 +758,12 @@ function DayPanelTaskRow({ t, onToggle }: { t: TaskData; onToggle: (id: string) 
           {t.meetingType === "PRESENCIAL" && t.location && <p className="text-etiqueta text-tx-3 mt-1">📍 {t.location}</p>}
         </button>
         {t.case && (
-          <Link href={`/processos/${t.case.id}`} className="text-xs text-acao hover:underline mt-1 block truncate">
+          <Link href={`/processos/${t.case.id}`} className="text-xs text-marca-tx hover:underline mt-1 block truncate">
             {t.case.title}
           </Link>
         )}
         {t.meetingType === "ONLINE" && safeMeetingUrl && (
-          <a href={safeMeetingUrl} target="_blank" rel="noopener noreferrer" className="text-etiqueta text-acao hover:underline mt-1 block truncate">
+          <a href={safeMeetingUrl} target="_blank" rel="noopener noreferrer" className="text-etiqueta text-marca-tx hover:underline mt-1 block truncate">
             🔗 {safeMeetingUrl}
           </a>
         )}

@@ -77,7 +77,7 @@ export default async function RelatorioPastasPage() {
         </p>
         <p>
           Os nomes vêm de{" "}
-          <Link href="/configuracoes?secao=geral" className="text-acao font-semibold hover:underline">
+          <Link href="/configuracoes?secao=geral" className="text-marca-tx font-semibold hover:underline">
             Configurações → Geral → Pastas no armazenamento
           </Link>
           . Mudar a configuração lá muda o caminho das pastas <strong className="text-tx">novas</strong>; as que já existem
@@ -187,7 +187,7 @@ function FolderTable({
           {rows.map((r) => (
             <tr key={r.id}>
               <td className="px-4 py-2.5 align-top">
-                <Link href={r.href} className="text-acao hover:underline font-medium">
+                <Link href={r.href} className="text-marca-tx hover:underline font-medium">
                   {r.titulo}
                 </Link>
                 <div className="text-etiqueta text-tx-3 tabular-nums">{r.detalhe ?? r.tag}</div>

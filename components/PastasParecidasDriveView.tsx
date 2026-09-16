@@ -84,7 +84,7 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
             <label
               key={p.id}
               className={`flex items-start gap-3 p-3 border cursor-pointer transition-colors ${
-                p.id === canonicoId ? "border-acao bg-acao-bg" : "border-regua hover:bg-sf-apoio"
+                p.id === canonicoId ? "border-marca-tx bg-acao-bg" : "border-regua hover:bg-sf-apoio"
               }`}
             >
               <input
@@ -100,7 +100,7 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-tx break-all">{p.nome}</span>
-                  {p.id === canonicoId && <span className="text-etiqueta font-bold text-acao uppercase tracking-wide shrink-0">Manter esta</span>}
+                  {p.id === canonicoId && <span className="text-etiqueta font-bold text-marca-tx uppercase tracking-wide shrink-0">Manter esta</span>}
                 </div>
                 <p className="text-etiqueta text-tx-2 flex items-center gap-1">
                   {p.vinculada ? (
@@ -117,7 +117,7 @@ function GrupoPastasCard({ grupo }: { grupo: GrupoPastasParecidas }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-etiqueta text-acao hover:underline inline-flex items-center gap-1 mt-0.5"
+                    className="text-etiqueta text-marca-tx hover:underline inline-flex items-center gap-1 mt-0.5"
                   >
                     Abrir no Drive <ExternalLink size={10} />
                   </a>
@@ -265,7 +265,7 @@ export default function PastasParecidasDriveView() {
               <li key={p.id} className="py-1 flex items-center justify-between gap-2">
                 <span className="truncate">{p.nome}</span>
                 {p.webViewLink && (
-                  <a href={p.webViewLink} target="_blank" rel="noopener noreferrer" className="text-acao hover:underline inline-flex items-center gap-1 shrink-0">
+                  <a href={p.webViewLink} target="_blank" rel="noopener noreferrer" className="text-marca-tx hover:underline inline-flex items-center gap-1 shrink-0">
                     Abrir <ExternalLink size={10} />
                   </a>
                 )}
