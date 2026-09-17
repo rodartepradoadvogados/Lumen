@@ -357,9 +357,9 @@ input[type="radio"] {
   width: 100%;
   margin-top: 0.25rem;
   border: 1px solid var(--regua-forte);
-  border-radius: 0.375rem;
+  border-radius: 2px;
   padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.9375rem; /* `corpo` — o campo do PWA estava em 14px, fora da rampa */
   background-color: var(--sf-superficie);
   color: var(--tx);
 }
@@ -375,7 +375,7 @@ input[type="radio"] {
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: var(--regua-forte);
-  border-radius: 8px;
+  border-radius: 2px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
   background-color: transparent;
@@ -720,11 +720,13 @@ html:has(.site-publico) {
     transform: translateX(-50%);
     background: var(--grafite-800);
     color: #ffffff;
-    font-size: 11px;
+    /* 12px, não 11: o piso da rampa é absoluto, e a tooltip não é exceção — era o único texto do
+       produto abaixo dele. Raio de 2px pelo mesmo motivo: 6px era o único raio fora do sistema. */
+    font-size: 12px;
     font-weight: 500;
     line-height: 1.2;
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: 2px;
     white-space: nowrap;
     box-shadow: var(--sombra-menu);
     opacity: 0;
