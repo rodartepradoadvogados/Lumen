@@ -80,6 +80,10 @@ export default async function ProcessosPage({
   if (!viewer) redirect("/");
 
   const q = (searchParams.q || "").trim();
+  // Há filtro ativo? Decide qual das duas mensagens de vazio a lista mostra (ver EmptyState abaixo).
+  const temFiltro = Boolean(
+    q || searchParams.natureza || searchParams.esfera || searchParams.materia || searchParams.status || searchParams.area || searchParams.responsibleId,
+  );
   const sortKey = searchParams.sort && SORTS[searchParams.sort] ? searchParams.sort : "nome";
   // Ausente ou inválido = "Todos" (padrão pedido pelo dono do escritório: ver tudo de antemão).
   const natureza = parseNaturezaParam(searchParams.natureza);
@@ -243,7 +247,34 @@ export default async function ProcessosPage({
 
       <Card>
         {cases.length === 0 ? (
-          <EmptyState title="Nenhum processo encontrado" />
+          // "Nenhum processo encontrado" não distinguia duas situações muito diferentes: o
+          // escritório que acabou de entrar e ainda não cadastrou nada, e o filtro que não casou.
+          // A primeira precisa de um caminho; a segunda precisa saber que é o filtro.
+          <EmptyState
+            title={temFiltro ? "Nenhum processo com esses filtros" : "Nenhum processo cadastrado ainda"}
+            subtitle={
+              temFiltro
+                ? "Limpe os filtros para ver a lista inteira do escritório."
+                : "Cada processo cadastrado aqui vira uma pasta no Drive do escritório, com subpasta por tipo de documento."
+            }
+            action={
+              temFiltro ? (
+                <Link
+                  href="/processos"
+                  className="text-corpo font-semibold text-marca-tx underline underline-offset-4 transition-colors duration-100 ease-out hover:text-tx"
+                >
+                  Limpar filtros
+                </Link>
+              ) : (
+                <Link
+                  href="/processos/novo"
+                  className="inline-flex items-center h-10 px-5 bg-acao hover:bg-acao-hover text-acao-tx font-extrabold text-corpo rounded-[2px] transition-[background-color,transform] duration-100 ease-out active:translate-y-px"
+                >
+                  Cadastrar o primeiro processo
+                </Link>
+              )
+            }
+          />
         ) : (
           <div className="divide-y divide-regua">
             {cases.map((c) => {

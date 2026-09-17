@@ -145,11 +145,27 @@ export function ConclusionChip({ children, className }: { children: ReactNode; c
 // dele antes, e o comentário lá explica por quê. Se voltar a fazer falta, o que faz falta é a
 // FAIXA de peso desigual (ver app/(app)/financeiro/page.tsx), não o cartão.
 
-export function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
+// Estado vazio. Ganhou um slot de AÇÃO em 2026-09-17: o componente não tinha nenhum, e 66 dos 74
+// usos do produto diziam só um título. "Nenhuma tarefa pendente" informa; não ajuda. O vazio que um
+// escritório novo encontra na primeira semana é a primeira impressão do produto inteiro, e ele
+// estava mudo.
+//
+// `subtitle` explica POR QUE está vazio; `action` dá a saída. Nem todo vazio precisa dos dois — um
+// filtro sem resultado precisa do primeiro, uma tela que nunca foi usada precisa dos dois.
+export function EmptyState({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
   return (
-    <div className="text-center py-12 text-tx-3">
-      <p className="font-medium">{title}</p>
-      {subtitle && <p className="text-sm mt-1">{subtitle}</p>}
+    <div className="text-center py-12">
+      <p className="text-corpo font-semibold text-tx-2">{title}</p>
+      {subtitle && <p className="text-corpo text-tx-3 mt-1 max-w-[46ch] mx-auto">{subtitle}</p>}
+      {action && <div className="mt-4 inline-flex">{action}</div>}
     </div>
   );
 }
