@@ -121,17 +121,28 @@ export default async function FunilPage() {
                     const followupLate =
                       a.nextContactAt && a.nextContactAt < now && !["FECHADO", "PERDIDO"].includes(a.stage);
                     return (
-                      // Filete esquerdo de 3px na cor do estágio — extensão do mesmo princípio
-                      // visual do Kanban de tarefas (DESIGN-SYSTEM.md §12/§7): o cartão sinaliza
-                      // sua categoria por uma faixa lateral, aqui aplicada ao estágio do funil.
+                      // O filete lateral era a cor do ESTÁGIO — e o cartão já está dentro da
+                      // coluna daquele estágio, com o ponto colorido no cabeçalho dela. A faixa
+                      // repetia o que a coluna diz, ou seja: decoração vestida de dado. O
+                      // comentário anterior a justificava por analogia ao Kanban de tarefas, mas
+                      // lá o filete carrega a CATEGORIA, que a coluna não diz — aqui a analogia
+                      // não se sustenta.
+                      //
+                      // O filete passa a marcar RISCO, que é a regra da casa ("cor = risco, nunca
+                      // categoria"): fica bordô no cartão cujo follow-up venceu, que é o único do
+                      // quadro sobre o qual há algo a fazer agora. Nos demais, não existe.
+                      //
+                      // A sombra saiu junto: a casa trocou altura por filete em F3, e cartão em
+                      // fluxo dentro de uma coluna não está flutuando sobre nada.
                       <div
                         key={a.id}
-                        className="bg-sf border border-regua shadow-card border-l-[3px]"
-                        style={{ borderLeftColor: stageDot[stage] }}
+                        className={`bg-sf border-2 rounded-[2px] ${
+                          followupLate ? "border-urgente" : "border-regua-forte"
+                        }`}
                       >
                         <Link href={`/atendimento/${a.id}`} className="block p-3 hover:bg-sf-apoio transition-colors">
-                          <p className="text-sm font-medium text-tx leading-snug">{a.clientName}</p>
-                          <p className="text-xs text-tx-3 mt-0.5 line-clamp-2">{a.subject}</p>
+                          <p className="text-corpo font-semibold text-tx leading-snug">{a.clientName}</p>
+                          <p className="text-etiqueta text-tx-3 mt-0.5 line-clamp-2">{a.subject}</p>
                           <div className="flex items-center gap-1.5 flex-wrap mt-2">
                             {a.estimatedValue != null && a.estimatedValue > 0 && (
                               <Badge color="green">{formatCurrency(a.estimatedValue)}</Badge>

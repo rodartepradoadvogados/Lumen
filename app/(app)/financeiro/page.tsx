@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, StatCard, Card, formatCurrency } from "@/components/ui";
+import { PageHeader, formatCurrency } from "@/components/ui";
 import { valorLiquido } from "@/lib/financeCalc";
 import { listarMovimentosCaixa } from "@/lib/caixaMovimentos";
-import { TrendingDown, TrendingUp, Wallet, BookOpen, PieChart, ArrowRight, ListChecks } from "lucide-react";
+
 
 export const dynamic = "force-dynamic";
 
@@ -24,45 +24,104 @@ export default async function FinanceiroPage() {
     listarMovimentosCaixa(viewer.officeId, { de: startOfMonth() }),
   ]);
 
-  const totalPayable = payablesPending.reduce((s, p) => s + valorLiquido(p.amount, p.discount, p.surcharge), 0);
-  const totalReceivable = receivablesPending.reduce((s, r) => s + valorLiquido(r.amount, r.discount, r.surcharge), 0);
+  const liquido = (x: { amount: number; discount?: number | null; surcharge?: number | null }) =>
+    valorLiquido(x.amount, x.discount ?? 0, x.surcharge ?? 0);
+
+  const totalPayable = payablesPending.reduce((s, p) => s + liquido(p), 0);
+  const totalReceivable = receivablesPending.reduce((s, r) => s + liquido(r), 0);
   const paidThisMonth = movimentosDoMes.filter((m) => m.tipo === "SAIDA").reduce((s, m) => s + m.valor, 0);
   const receivedThisMonth = movimentosDoMes.filter((m) => m.tipo === "ENTRADA").reduce((s, m) => s + m.valor, 0);
+  const resultadoDoMes = receivedThisMonth - paidThisMonth;
 
-  const modules = [
-    { href: "/financeiro/receitas", label: "Receitas", icon: TrendingUp, desc: "Honorários contratuais, sucumbenciais e reembolsos" },
-    { href: "/financeiro/despesas", label: "Despesas", icon: TrendingDown, desc: "Despesas fixas, custas processuais e fornecedores" },
-    { href: "/financeiro/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Wallet, desc: "Entradas e saídas projetadas por mês" },
-    { href: "/financeiro/dre", label: "DRE", icon: PieChart, desc: "Resultado do exercício por categoria" },
-    { href: "/financeiro/livro-caixa", label: "Livro Caixa", icon: BookOpen, desc: "Extrato cronológico de todas as movimentações" },
-  ];
+  // O QUE ESTÁ VENCIDO — a pergunta que esta tela não respondia. As duas consultas acima já
+  // trazem ATRASADO junto com PENDENTE, e os quatro cartões somavam os dois num número só
+  // chamado "pendente": a conta que venceu ontem e a que vence daqui a três semanas entravam no
+  // mesmo total, e o risco desaparecia dentro dele. Separar não custa consulta nenhuma — é um
+  // filtro sobre o que já está na memória.
+  const receberAtrasado = receivablesPending.filter((r) => r.status === "ATRASADO");
+  const pagarAtrasado = payablesPending.filter((p) => p.status === "ATRASADO");
+  const contasVencidas = receberAtrasado.length + pagarAtrasado.length;
+  const valorAReceberVencido = receberAtrasado.reduce((s, r) => s + liquido(r), 0);
+  const valorAPagarVencido = pagarAtrasado.reduce((s, p) => s + liquido(p), 0);
+  const composicao = [
+    receberAtrasado.length > 0 ? `${formatCurrency(valorAReceberVencido)} a receber` : null,
+    pagarAtrasado.length > 0 ? `${formatCurrency(valorAPagarVencido)} a pagar` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="tela">
-      <PageHeader title="Financeiro" subtitle="Controle completo de fluxo de caixa do escritório" />
+      <PageHeader title="Financeiro" subtitle="O caixa do escritório — o que venceu, o que entrou e o que está em aberto" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="A Receber (pendente)" value={formatCurrency(totalReceivable)} tone="green" icon={<TrendingUp size={18} />} hint={`${receivablesPending.length} contas`} />
-        <StatCard label="A Pagar (pendente)" value={formatCurrency(totalPayable)} tone="red" icon={<TrendingDown size={18} />} hint={`${payablesPending.length} contas`} />
-        <StatCard label="Recebido este mês" value={formatCurrency(receivedThisMonth)} tone="green" icon={<ListChecks size={18} />} />
-        <StatCard label="Pago este mês" value={formatCurrency(paidThisMonth)} tone="navy" icon={<ListChecks size={18} />} />
+      {/* A TARJA DE RISCO — uma por tela, mesma peça do /painel (ver o comentário lá: o tipo é
+          matéria, o número É o bloco). Aqui ela responde "o que venceu e não foi pago", que era
+          exatamente a pergunta que este Resumo não respondia. */}
+      <div className="bg-campo-risco border-t-2 border-marca-tx px-5 py-4 flex items-baseline gap-4 flex-wrap">
+        <span className="font-display text-tarja leading-none font-bold tabular-nums text-marca-tx">{contasVencidas}</span>
+        <span className="text-destaque font-semibold leading-tight text-tx">
+          conta{contasVencidas === 1 ? "" : "s"} vencida{contasVencidas === 1 ? "" : "s"},<br />a receber e a pagar
+        </span>
+        <span className="ml-auto text-etiqueta font-semibold uppercase tracking-[.09em] text-tx-2 self-center">
+          {composicao || "nada vencido"}
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {modules.map((m) => (
-          <Link key={m.href} href={m.href}>
-            <Card className="p-5 h-full hover:bg-sf-apoio transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="p-2.5 bg-sf-apoio text-tx-2">
-                  <m.icon size={20} />
-                </div>
-                <ArrowRight size={16} className="text-tx-3" />
-              </div>
-              <h3 className="font-bold text-tx mt-3">{m.label}</h3>
-              <p className="text-xs text-tx-2 mt-1">{m.desc}</p>
-            </Card>
-          </Link>
-        ))}
+      {/* Peso desigual, e cada número LEVA ao módulo que o explica. Antes eram quatro cartões
+          iguais — a arrumação que o contrato de direção recusa por escrito — e abaixo deles cinco
+          cartões de módulo que repetiam, com ícone e seta, exatamente os mesmos cinco destinos que
+          a barra de seção já mostra no topo de TODA tela do Financeiro (PageSectionTabs +
+          lib/navSections.ts). Metade de um "Resumo" era uma segunda cópia do próprio menu. */}
+      <div className="flex flex-wrap items-stretch border-2 border-regua-forte bg-sf rounded-[2px] mt-5">
+        <Link
+          href="/financeiro/fluxo-de-caixa"
+          className="flex-1 min-w-[240px] px-5 py-4 transition-colors duration-100 ease-out hover:bg-acao-bg"
+        >
+          <p className="text-etiqueta font-extrabold uppercase tracking-[.1em] text-tx-3">Resultado de caixa do mês</p>
+          <p
+            className={`text-guia font-bold tabular-nums mt-1 ${
+              resultadoDoMes < 0 ? "text-urgente" : resultadoDoMes > 0 ? "text-concluido" : "text-tx"
+            }`}
+          >
+            {formatCurrency(resultadoDoMes)}
+          </p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">o que entrou menos o que saiu, neste mês</p>
+        </Link>
+        <Link
+          href="/financeiro/livro-caixa"
+          className="flex-1 min-w-[170px] px-5 py-4 border-l border-regua transition-colors duration-100 ease-out hover:bg-acao-bg"
+        >
+          <p className="text-destaque font-bold text-tx tabular-nums">{formatCurrency(receivedThisMonth)}</p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">Recebido este mês</p>
+        </Link>
+        <Link
+          href="/financeiro/livro-caixa"
+          className="flex-1 min-w-[170px] px-5 py-4 border-l border-regua transition-colors duration-100 ease-out hover:bg-acao-bg"
+        >
+          <p className="text-destaque font-bold text-tx tabular-nums">{formatCurrency(paidThisMonth)}</p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">Pago este mês</p>
+        </Link>
+      </div>
+
+      <div className="flex flex-wrap items-stretch border-2 border-regua-forte border-t-0 bg-sf rounded-[2px]">
+        <Link
+          href="/financeiro/receitas"
+          className="flex-1 min-w-[240px] px-5 py-4 transition-colors duration-100 ease-out hover:bg-acao-bg"
+        >
+          <p className="text-destaque font-bold text-tx tabular-nums">{formatCurrency(totalReceivable)}</p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">
+            A receber em aberto · {receivablesPending.length} conta{receivablesPending.length === 1 ? "" : "s"}
+          </p>
+        </Link>
+        <Link
+          href="/financeiro/despesas"
+          className="flex-1 min-w-[240px] px-5 py-4 border-l border-regua transition-colors duration-100 ease-out hover:bg-acao-bg"
+        >
+          <p className="text-destaque font-bold text-tx tabular-nums">{formatCurrency(totalPayable)}</p>
+          <p className="text-etiqueta text-tx-2 mt-0.5">
+            A pagar em aberto · {payablesPending.length} conta{payablesPending.length === 1 ? "" : "s"}
+          </p>
+        </Link>
       </div>
     </div>
   );
