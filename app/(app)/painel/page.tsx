@@ -6,6 +6,7 @@ import { valorLiquido, saldoEmAberto } from "@/lib/financeCalc";
 import { stageLabels } from "@/lib/funil";
 import { getBlockedProcessNumberSet, isBlockedForViewer } from "@/lib/blockedProcessNumbers";
 import { groupPublicationsByProcess } from "@/lib/publicationGrouping";
+import { getAlertsCount } from "@/lib/alerts";
 import {
   Card,
   CardHeader,
@@ -58,6 +59,7 @@ export default async function DashboardPage() {
     unreadPublicationsRaw,
     blockedSet,
     funilHoje,
+    totalAlertas,
   ] = await Promise.all([
     hasFinanceAccess
       ? prisma.payable.findMany({
@@ -114,6 +116,11 @@ export default async function DashboardPage() {
       orderBy: { nextContactAt: "asc" },
       take: 6,
     }),
+    // A Central inteira — mesma função e mesmos quatro argumentos do sino (TopBarActions e
+    // app/m/layout.tsx). A tarja abaixo precisa dela para se declarar como o RECORTE que é, em
+    // vez de ser um terceiro número solto na tela. Roda em paralelo com as outras consultas
+    // desta tela, então não custa latência nova — só contagens indexadas.
+    getAlertsCount(viewer.officeId, hasFinanceAccess, viewer.id, viewer.isAdmin)
   ]);
 
   const totalReceivableSoon = receivablesSoon.reduce((s, r) => s + saldoEmAberto(r.amount, r.discount, r.surcharge, r.payments.reduce((a, x) => a + x.amount, 0)), 0);
@@ -215,9 +222,29 @@ export default async function DashboardPage() {
         <span className="text-destaque font-semibold leading-tight text-tx">
           em risco agora,<br />no escritório inteiro
         </span>
-        <span className="ml-auto text-etiqueta font-semibold uppercase tracking-[.09em] text-tx-2 self-center">
-          {composicao || "nada vencido"}
-        </span>
+        {/* OS DOIS NÚMEROS, LADO A LADO — retorno do dono de 2026-09-17: "tem vários números
+            diferentes. Compatibilize e me mostre."
+            A tarja e o sino respondem perguntas diferentes e vão continuar diferindo: a tarja
+            conta RISCO IMEDIATO (vencido ou de hoje, mais conta vencida) e o sino conta a
+            Central inteira (que inclui menção não lida, parcela sem vencimento, delegação sem
+            ciência, inconsistência de Drive...). O erro não era serem dois — era a tela mostrar
+            um sem nunca nomear o outro, deixando a pessoa achar que um dos dois estava errado.
+            Agora a tarja diz do que é feita E diz quantos alertas existem ao todo, com o caminho
+            até eles. Deliberadamente NÃO escrito como fração ("14 de 22"): a tarja conta também
+            o que vence hoje, que a Central não conta, então a contenção não é garantida e a
+            fração poderia virar mentira num dia movimentado. */}
+        <div className="ml-auto self-center text-right flex flex-col gap-1">
+          <span className="text-etiqueta font-semibold uppercase tracking-[.09em] text-tx-2">
+            {composicao || "nada vencido"}
+          </span>
+          <Link
+            href="/alertas?tab=pendentes"
+            className="text-etiqueta font-semibold uppercase tracking-[.09em] text-marca-tx hover:text-tx inline-flex items-center gap-1 justify-end"
+          >
+            Central de Alertas · <span className="tabular-nums">{totalAlertas}</span> pendente{totalAlertas === 1 ? "" : "s"}
+            <ArrowRight size={12} strokeWidth={1.5} />
+          </Link>
+        </div>
       </div>
       <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-[.09em] mt-2 mb-5">
         {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
