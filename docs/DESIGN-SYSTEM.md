@@ -1,3 +1,18 @@
+> ## ⚠️ DOCUMENTO HISTÓRICO — não é a regra em vigor
+>
+> Este arquivo descreve o sistema **anterior** ao redesenho "Guias" (paleta Ardósia), concluído em
+> setembro de 2026. Ele não foi reescrito de propósito: dezenas de comentários no código citam as
+> suas seções por número (§2, §3, §7, §12) para explicar *por que* uma decisão foi tomada na época,
+> e apagá-lo tornaria esses comentários ilegíveis.
+>
+> **A regra em vigor está em `DESIGN.md`**, na raiz, reescrita a partir do produto construído.
+>
+> Onde os dois divergirem, vale o `DESIGN.md`. Onde este aqui explicar a origem de uma decisão que
+> sobreviveu — os trilhos grafite fixos, a linguagem própria do Painel da Empresa, a separação entre
+> cor de dado e cor de marca —, ele continua sendo a fonte da história.
+
+---
+
 # Sistema de cor e detalhe — Lúmen
 
 Fonte única de verdade para a implementação do redesenho. **Nenhum valor aqui é sugestão.**

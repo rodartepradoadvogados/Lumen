@@ -11,8 +11,8 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F4, F5, F6 e F7 concluídas · os 4 P0 fechados**. Em curso: **F8** |
-| **Próximo passo concreto** | **F9** — `documenter`, `extract`, `hooks`, `doctor`, e reescrever o DESIGN.md a partir do produto construído |
+| **Fase atual** | **TODAS AS FASES CONCLUÍDAS** (F0–F9). Aberto: a conferência visual na máquina do dono |
+| **Próximo passo concreto** | **Conferência visual do dono.** Cada rodada dela achou defeito que o gate técnico não pegou — é a única verificação que sobrou, e a única que eu não consigo fazer |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -463,9 +463,9 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F6 | PWA — o resto | `adapt`, `layout`, `onboard` | ⬜ | — | — | as rotas de `app/m/**` que não são tira de filtro |
 | F7 | Painel Mestre | `extract`, `layout` | ✅ | #216 | 2026-09-17 | As abas saem de dentro de `[officeId]` e viram peça (`LumenAbas`/`LumenAba`). O Cofre — três tabelas de 5-6 colunas empilhadas, o caso extremo do diagnóstico — ganha as três abas. Identidade de tela nas 9 telas. A linguagem do Painel **continua distinta** do lado escritório, que é decisão do diagnóstico |
 | F8a | `audit` das 4 superfícies restantes | `audit`, `harden`, `optimize` | ✅ | #218 | 2026-09-17 | **18/20.** Nenhum P0. 10 `dark:` mortos no portal, 2 telas sem `<h1>`, as 4 folhas impressas sem título semântico, 6 imagens sem carregamento preguiçoso. Relatório em `diagnostico/05-audit-portal-pwa-painel-blog.md` |
-| F8 | `delight` e `overdrive` | `delight`, `overdrive` | ⬜ | — | — | — |
-| F8 | Verificação final | `audit`, `critique`, `polish` | ⬜ | — | — | comparar com F1 |
-| F9 | Consolidação | `documenter`, `extract`, `hooks`, `doctor` | ⬜ | — | — | reescreve DESIGN.md |
+| F8b | `delight` — o estado vazio | `delight` | ✅ | #219 | 2026-09-17 | 74 usos de `EmptyState`, 66 dizendo só um título, e o componente nem aceitava ação. Ganhou slot de saída; `/processos` passa a distinguir "ainda não cadastrou" de "o filtro não casou" |
+| F8 | Verificação final | `audit`, `critique`, `polish` | ⬜ | — | — | **só a conferência visual na máquina do dono** — a única verificação deste plano que eu não consigo fazer |
+| F9 | Consolidação | `documenter`, `doctor` | ✅ | #220 | 2026-09-17 | DESIGN.md reescrito a partir do produto construído; `docs/DESIGN-SYSTEM.md` marcado como histórico (dezenas de comentários citam suas seções); `doctor`: o código e o sistema documentado passam a concordar — **zero avisos** no detector |
 
 ---
 

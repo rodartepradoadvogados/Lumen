@@ -37,6 +37,13 @@ colors:
   campo-risco-escuro: "#401e24"
   campo-risco-linha-escuro: "#734249"
   grave: "#670224"
+  grave-bg: "rgba(103, 2, 36, .14)"
+  fonte-pje-bg: "rgba(47, 93, 115, .14)"
+  linha-urgente: "#dfa6ac"
+  linha-aviso: "#ceb38d"
+  linha-concluido: "#9bc2b1"
+  linha-fonte: "#a2bcc9"
+  linha-grave: "#e1a5ac"
   grave-tx: "#fdf7f8"
   grave-escuro: "#b56f79"
   grave-tx-escuro: "#14161a"
@@ -95,6 +102,11 @@ typography:
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.55
+  artigo:
+    fontFamily: "Lora, Georgia, serif"
+    fontSize: "17px"
+    fontWeight: 400
+    lineHeight: 1.72
   etiqueta:
     fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "12px"
@@ -142,416 +154,221 @@ components:
     typography: { fontWeight: 650, fontSize: "12px" }
 
 ---
+# Sistema de design do Lúmen — "Guias"
 
-> ⚠️ **ESTE DOCUMENTO ESTÁ EM PROCESSO DE SUBSTITUIÇÃO — 2026-09-16.**
+> Este documento **descreve o que foi construído**. Não é intenção nem proposta: cada número aqui
+> sai de `tailwind.config.ts`, de `app/globals.css` ou de uma medição registrada em
+> `.impeccable/plano-mestre/`. Reescrito em 2026-09-17, fase F9 do redesenho.
 >
-> O dono autorizou um **redesign completo** (cor de marca, tipografia e temas podem mudar). Enquanto
-> ele não for reescrito no fim do trabalho (fase F9 do plano mestre), leia o que está abaixo como
-> **registro do que existe hoje**, não como regra a seguir.
->
-> **O cabeçalho acima já é o mundo novo.** Ele foi reescrito em 2026-09-16, na fase F3, a partir do
-> que foi de fato construído em `tailwind.config.ts` e `app/globals.css` — não é uma intenção, é uma
-> descrição. Antes disso ele documentava uma rampa (24/16/14/12) que o código não usava em lugar
-> nenhum, e um token de texto (`--tx-3`) que reprovava WCAG AA nas cinco superfícies. Sem essa
-> correção o detector mede contra um alvo morto e acusa o sistema novo como deriva.
->
-> **O texto abaixo do cabeçalho ainda é o mundo antigo** e continua valendo só como registro. Ele é
-> reescrito por inteiro na fase F9, a partir do produto construído.
->
-> Diagnóstico completo: `.impeccable/plano-mestre/diagnostico/`. Plano: `.impeccable/plano-mestre/PLANO-MESTRE-REDESIGN.md`.
+> A versão anterior documentava uma rampa tipográfica de 24/16/14/12 que **o código não usava em
+> lugar nenhum** — o uso real era 11px em 440 ocorrências, 13px em 402, 10px em 133, num total de
+> 16 tamanhos distintos. Documentação que descreve um sistema que não existe é pior que nenhuma:
+> o detector mede contra um alvo morto e acusa o sistema vivo como deriva.
 
+---
 
-# Design System: Lúmen
+## 1. A tese
 
-## Overview
+**O Lúmen é o armário de arquivo do escritório com as guias todas para cima.**
 
-**Creative North Star: "O Arquivo Vivo"**
+Cada seção do trabalho ocupa uma faixa horizontal própria e permanente, e o risco do escritório
+inteiro é a primeira coisa que a tela diz.
 
-O Lúmen é o dossiê de um escritório de advocacia que se mantém atualizado sozinho: publicações
-chegam triadas, prazos se recalculam, um lançamento financeiro nasce onde a régua do livro-caixa
-sempre esteve. A tela nunca finge ser um aplicativo de consumo — ela se parece com o processo,
-o livro-razão contábil e a pauta de audiência que substitui, só que vivos. Uma régua de 1–2px
-separa cada seção, exatamente como uma linha de tabela separaria um lançamento do próximo; a
-sombra só aparece em algo que está literalmente flutuando sobre o resto (um modal, um menu, um
-cartão sendo arrastado). Isso é o que o torna **caloroso e acessível sem decoração**: a calidez
-não vem de gradiente, ilustração ou cor extra — vem de rótulo direto, alinhado à esquerda, de
-verde de conclusão que celebra o que foi resolvido, e de nunca esconder atrás de jargão de
-sistema o que é, no fundo, "isso está pago", "esse prazo venceu", "essa publicação foi lida".
+O que o produto **recusa**, e recusa por escrito:
 
-Uma única cor de ação percorre o produto inteiro — o Bordô Editorial. Ele não decora; ele marca
-o que pede ação ou identifica a marca, e nada mais. Fora dele, a tela é neutra (grafite/cinza
-morno) com três acentos de **dado**, não de marca: urgente (algo venceu), aviso (algo está perto
-de vencer) e concluído (algo foi resolvido) — a única exceção sancionada ao "uma cor só" é essa
-tríade de estado, porque comunica fato, não hierarquia visual.
+- a arrumação-padrão da categoria — barra lateral escura de ícones de linha, **quatro KPIs iguais
+  lado a lado**, rosca de pizza, **azul corporativo**;
+- o oposto previsível dela — painel neon com vidro e gradiente;
+- a saudação: o produto **nunca** gasta o maior tipo da tela no nome de quem está logado.
 
-**Key Characteristics:**
-- Régua substitui sombra: cartão parado se separa por filete de 1–2px, nunca por `box-shadow`.
-- Uma cor de ação/marca (Bordô Editorial, `#8a2f42`) — sem ouro, sem azul-tinta, sem gradiente.
-- Raio pequeno e discreto em três paradas (4/6/10px) — nunca zero, nunca "insanamente arredondado".
-- Rótulo de botão sempre alinhado à esquerda, nunca centralizado.
-- Ardósia Noturna (`#16191d`) é a única superfície que não retematiza entre Manhã e Noite — a
-  âncora fixa do produto, seja qual for o tema do usuário.
-- Movimento é sempre curto (120–200ms), sempre com um motivo nomeado — nunca decorativo.
+Essas três recusas são operacionais, não retóricas. A grade de quatro KPIs iguais foi removida de
+`/assessoria/[id]` e do hub do Financeiro por causa da primeira; não há um pixel de azul no
+produto por causa dela também — e quando os e-mails transacionais apareceram em azul-marinho, foram
+corrigidos (PR #217).
 
-## Colors
+## 2. Cor
 
-A paleta é deliberadamente estreita: uma cor de marca, uma escala neutra morna, e uma tríade de
-estado que descreve fatos (vencido / próximo de vencer / resolvido), nunca hierarquia.
+### 2.1 A regra que governa tudo
 
-### Primary
-- **Bordô Editorial** (`#8a2f42`, tokens `--acao`/`--marca`): única cor de ação e de marca do
-  produto. Preenche botão primário, link ativo, filete de seção selecionada. Não retematiza
-  entre Manhã e Noite — sobre branco rende ~8:1 de contraste, por isso pode ser tanto fundo
-  (botão) quanto texto/filete sem precisar de uma variante escurecida à parte.
-  - **Hover** (`#9c3a4d`, `--acao-hover`): usado só em interação, nunca em repouso.
-  - **Sobre o Bordô** (`#f7eef0`, `--acao-tx`): texto claro que vai sobre o preenchimento sólido.
-  - **Variante clara** (`#a8495c`, `--acao-light`): reservada para diferenciar uma ação
-    secundária-mas-ainda-de-marca (ex.: "+Novo" da faixa de topo) do botão de ação mais forte da
-    tela, sem virar contorno.
-- **Vinho institucional** (`#ae1800`, `--vinho`): a única outra cor de marca — reservada
-  exclusivamente para ação destrutiva (excluir, cancelar em definitivo). Nunca usar para o que é
-  só "urgente" (isso é o token `urgente` abaixo, que é dado, não ação).
+**Cor é risco ou é seção. Nunca é categoria.**
 
-### Neutral
-- **Superfície e fundo** — `--sf-fundo` (`#f3f2f2`), `--sf-superficie` (`#ffffff`),
-  `--sf-apoio` (`#eae9e9`): três camadas de fundo/cartão/superfície de apoio, mornas (não cinza
-  puro), da rampa neutra do Modernist.
-- **Régua** — `--regua` (`#d7d3d3`) e `--regua-forte` (`#bab6b6`): filete de 1–2px que separa
-  seções, linhas de tabela e cartões. Faz o trabalho que sombra faria em outro sistema.
-- **Texto** — `--tx` (`#201e1d`, texto principal), `--tx-2` (`#605d5d`, texto secundário/legenda),
-  `--tx-3` (`#9b9797`, texto terciário/placeholder).
-- **Ardósia Noturna** (`#16191d`, `--grafite-800`): a única superfície fixa nos dois temas — o
-  rail de navegação lateral e a faixa de guias. Nunca clareia; textos sobre ela usam tokens
-  próprios (`--rail-tx`, `--rail-marca`) em vez dos tokens de texto padrão, que sumiriam sobre
-  fundo escuro na Manhã.
+Um cartão não ganha cor por ser de um tipo; ganha por estar vencido. Uma aba não ganha cor por ser
+uma aba; ganha a cor da seção a que pertence. Onde não há risco nem seção, **a ausência de cor é o
+estado normal**.
 
-### Estado (dado, não marca)
-- **Urgente** (`#b3261e`/`--urgente-bg` `rgba(179,38,30,.1)`): algo venceu — prazo atrasado,
-  conta vencida. É fato, não convite à ação; por isso nunca é a mesma cor do botão de excluir.
-- **Aviso** (`#9a6700`/`--aviso-bg`): algo está perto de vencer — vence hoje, pendência parcial.
-- **Concluído** (`#1c6b52`/`--concluido-bg`): resolvido — prazo cumprido, conta paga, tarefa
-  concluída. É o único tom "celebrativo" do sistema (`ConclusionChip`).
-- **Fonte PJE** (`#2f6fb0`): azul isolado só para diferenciar a origem de uma publicação (PJE vs.
-  DJE) — não é um acento de marca, é rótulo de proveniência.
-- **Ouro de acento** (`#a6790f`, `--ouro-acento`): acento pontual reintroduzido em setembro/2026,
-  hoje só no filete de um cartão (Assessoria Jurídica na Início). Decoração de destaque única,
-  não uma segunda cor de marca — não espalhar.
+### 2.2 Os quatro papéis
 
-### Named Rules
-**A Regra da Régua.** Sombra só existe em algo que está flutuando de verdade — modal, menu
-suspenso, cartão sendo arrastado. Um cartão parado no lugar se separa do resto por régua de
-1–2px, nunca por `box-shadow`.
+| Papel | Tokens | O que diz |
+|---|---|---|
+| **Superfície** | `papel` · `ficha` · `ficha-alt` · `gaveta*` | onde a coisa está |
+| **Tinta** | `tinta` · `tinta-2` · `tinta-3` | três patamares de contraste, nunca mais |
+| **Risco** | `risco-vencido` · `risco-hoje` · `risco-em-dia` | vocabulário próprio e separado |
+| **Faixa de seção** | `ardosia` · `anil` · `oliva` · `ocre` · `ameixa` | **a cor diz ONDE** |
 
-**A Regra da Cor Única.** O Bordô Editorial é a única cor de ação/marca do produto. A tríade
-urgente/aviso/concluído comunica fato sobre um dado, nunca hierarquia de interface — nenhuma
-delas substitui o bordô como cor de botão primário ou link.
+**Nenhum vermelho** fora do risco. O bordô `#8a2f42` é a ação; o vermelho-tijolo saiu do vocabulário
+de faixas por decisão do dono em 2026-09-16.
 
-## Typography
+### 2.3 O mapa de seções
 
-**Body/Display Font:** Inter (com fallback `system-ui, sans-serif`) — uma família só, sem
-pareamento com serifa. Substituiu Archivo em agosto/2026 por ser mais neutra e discreta em tela
-cheia de dados tabulares; `font-variant-numeric: tabular-nums` no `body` garante que números em
-tabela/relatório alinhem por coluna.
+A faixa de cada seção vive em `lib/navSections.ts`, campo `faixa` de `SectionDef`:
 
-**Character:** Neutra e funcional — a tipografia nunca é o elemento de personalidade do sistema
-(isso é papel da régua e da cor única). Peso é a ferramenta de hierarquia, não tamanho: título de
-cartão e valor de destaque diferem mais em `font-weight` do que em `font-size`.
+| Seção | Faixa |
+|---|---|
+| Agenda | ardósia |
+| Comunicação | ocre |
+| Jurídico | anil |
+| Financeiro | oliva |
+| Gestão | ameixa |
 
-### Hierarquia
-- **Display** (extrabold/800, 24px, linha 1.2): valores de destaque em `StatCard` — o número que
-  a tela mais quer que o usuário veja primeiro.
-- **Headline** (bold/700, 24px, linha 1.25): título de página (`PageHeader`).
-- **Title** (semibold/600, 16px, linha 1.3): título de cartão/seção (`CardHeader`).
-- **Body** (regular/400, 14px, linha 1.5): texto corrido, rótulo de botão, conteúdo de tabela.
-- **Label** (medium/500, 12px, `letter-spacing: .02em`, geralmente uppercase): rótulo de campo
-  acima de valor (`StatCard` label), rótulo de seção discreta.
+Use `CLASSES_FAIXA[...]`, nunca escreva `faixa-anil` à mão, e **nunca monte `faixa-${x}` em tempo de
+execução**: o Tailwind gera CSS a partir do que consegue *ler* no código-fonte, e um nome montado em
+runtime não gera regra nenhuma. Foi assim que 15 classes ficaram mortas por um dia, em 2026-09-17,
+até a conferência do CSS de produção pegá-las.
 
-### Named Rules
-**A Regra do Peso, não do Tamanho.** Hierarquia visual entre título e corpo vem primeiro de
-`font-weight`, só depois de `font-size` — a escala tipográfica é deliberadamente curta.
+### 2.4 Bordô como primeiro plano
 
-## Layout
+`--acao`, `--acao-hover` e `--marca` valem `#8a2f42` nos **dois** temas. Como fundo de botão estão
+certos, com `--acao-tx` por cima. Como **texto, ícone, borda de estado ou anel de foco** sobre uma
+superfície que retematiza, medem **1,88:1** na ficha escura — reprovam WCAG AA por larga margem.
 
-Densidade de produto de dados (tabelas, formulários financeiros, listas de processo), não de
-site de marketing: conteúdo alinhado à esquerda, sem centralizar título ou texto. Botão de
-32px de altura (`h-8`), cabeçalho de cartão em `px-5 py-4`, cartão de estatística em `p-5`
-(20px) — o ritmo geral vive na escala padrão do Tailwind (4px), sem uma escala de espaçamento
-customizada além disso.
+Use `--marca-tx`, que acompanha o tema: 8,18:1 no claro, 5,58:1 no escuro, e **exatamente o mesmo
+hex do `--acao` no tema claro**. Uma regra de lint fecha a porta.
 
-Casca única: rail de navegação lateral fixo (56px em telas médias 768–1023px, 76px com rótulo
-a partir de 1024px), sem os antigos modos de visualização alternativos. Em mobile, o rail vira
-overlay disparado por um botão fixo no canto superior esquerdo; abaixo disso, o PWA em `/m` é
-uma casca de cinco telas própria, não um espelho encolhido do desktop.
+### 2.5 Opacidade
 
-Responsivo por breakpoint padrão do Tailwind (`md`/`lg`), sem grade customizada — os módulos
-mais densos (tabela financeira, calendário) preferem rolagem horizontal contida a colapsar
-colunas.
+**Não escreva `/NN` sobre cor de token.** As cores desta casa são `var(--x)`, e o Tailwind só aplica
+modificador de opacidade a cor que traga o marcador `<alpha-value>`. Sem ele a classe **não gera
+regra nenhuma**, e o elemento cai no padrão do Tailwind — medido no navegador:
 
-## Elevation & Depth
+| Escrito | O que o navegador aplica |
+|---|---|
+| `focus:ring-marca-tx/40` | `rgba(59,130,246,.5)` — o **azul** padrão do Tailwind |
+| `border-marca-tx/40` | `rgb(229,231,235)` — cinza fixo, que não retematiza |
 
-Sistema majoritariamente plano: profundidade normal vem de régua (filete de 1–2px), não de
-sombra. Sombra existe só como vocabulário reservado para o que está literalmente flutuando sobre
-o layout — nunca em repouso, nunca em cartão parado.
+Havia 184 classes assim. Para tinta suave existe a rampa (`tx-2`, `tx-3`); para fundo suave existem
+os `-bg`; para filete suave existe a família `linha-*`. Opacidade só funciona sobre cor **literal**
+(`white`, `black`, `grafite-*`).
 
-### Shadow Vocabulary
-- **`shadow-pop`/`shadow-menu`** (`0 3px 10px rgba(45,43,43,.16)` na Manhã, mais escura na
-  Noite): popover, menu suspenso, tooltip.
-- **`shadow-modal`** (`0 12px 32px rgba(45,43,43,.22)`): modal (`ModalShell`).
-- **`shadow-arrasto`** (mesmo valor de `shadow-modal`): cartão sendo arrastado (Kanban).
-- **`shadow-card`**: deliberadamente `none` — cartão parado nunca tem sombra, mesmo que a classe
-  `shadow-card` ainda apareça em ~200 arquivos não migrados; o valor já resolve para nenhuma
-  sombra em todos eles.
+## 3. Tipografia
 
-### Named Rules
-**A Regra do Flutuar de Verdade.** Só três coisas no sistema inteiro têm sombra: modal, menu/
-popover suspenso, e cartão em arrasto ativo. Qualquer outro uso de sombra é bug de revisão.
+Seis paradas, com piso absoluto de 12px:
 
-## Shapes
+| Parada | Tamanho | Onde |
+|---|---|---|
+| `etiqueta` | 12px | rótulo, metadado, contagem |
+| `corpo` | 15px | texto corrido, campo, item de lista |
+| `destaque` | 18px | título de painel, número secundário |
+| `guia` | 22px | título de seção dentro da tela, dinheiro |
+| `autuacao` | 28px | **a identidade da tela** — o `<h1>` |
+| `tarja` | 40px | a tarja de risco, uma por tela |
 
-Escala de raio em três paradas, nunca zero e nunca exagerada: `sm` (4px) para chip/badge/tag de
-status; `DEFAULT`/`md` (6px) para botão, input, item de rail, ícone de ação; `lg`/`xl`/`2xl`/
-`3xl` (10px, um único valor prático) para cartão, linha de lista, modal, painel suspenso e o
-contêiner da própria tela. `rounded-full` (9999px) fica reservado para avatar e badge de
-contagem circular.
+Os apelidos do Tailwind (`text-xs`/`sm`/`base`/`lg`/`xl`/`2xl`/`3xl`/`4xl`) apontam para as mesmas
+paradas e continuam válidos. **Tamanho arbitrário (`text-[13px]`) é erro de lint**, porque o piso
+de 13px do PWA era um acordo tácito que todo componente compartilhado rompia de novo.
 
-Cartão não usa borda nas quatro arestas — usa filete de 2px só no topo (`border-t-2`), na cor
-neutra `--regua-forte` por padrão, ou numa cor de categoria quando o cartão aceita um "accent"
-(ex.: cartões de Início, setembro/2026). Cabeçalho de cartão usa filete de 2px embaixo, o mesmo
-peso — "abrir estrutura" pede régua mais forte que separar item de lista (que usa 1px).
+O blog é a única exceção: serifa própria (Lora) via `--font-blog-serif`, porque é vitrine e leitura
+longa, não tela de trabalho. `font-serif` do Tailwind **não** serve — é apelido de Archivo.
 
-## Components
+## 4. Forma
 
-Botão, cartão e badge compartilham a mesma frase de caráter: **direto e acolhedor** — rótulo
-alinhado à esquerda, sem jargão frio de sistema, sem decoração nova. A calidez do produto mora
-no texto (rótulo humano, "Prazo cumprido" em vez de "CONCLUÍDO") e no verde de conclusão
-celebrativo, nunca em gradiente, ilustração ou sombra extra.
+- **Raio de 2px em tudo.** `rounded-full` é só para o que é redondo por natureza: ponto de status,
+  contador de notificação, avatar, distintivo.
+- **Filete de 2px no lugar de sombra.** Não há `box-shadow` no produto. Sombra sobrevive só onde
+  algo literalmente flutua: modal, menu, folha sobreposta.
+- **Nenhum filete lateral colorido em cartão.** É o tique mais reconhecível de interface gerada por
+  máquina. Onde ele existe hoje, existe declarado em comentário como decisão de sistema — e no funil
+  comercial ele foi trocado, porque repetia a cor da coluna em que o cartão já estava.
 
-### Buttons
-- **Shape:** raio `md` (6px), altura fixa 32px (`h-8`).
-- **Primário (`ButtonPrimary`):** fundo Bordô Editorial (`--acao`), texto claro (`--acao-tx`),
-  peso 600, `hover:` → `--acao-hover`. Rótulo sempre alinhado à esquerda (`justify-start`), nunca
-  centralizado — mesmo num botão mais largo que o texto.
-- **Secundário (`ButtonSecondary`):** contorno de 2px em `--regua-forte`, fundo transparente,
-  `hover:` → `--acao-bg` (bordô a 8–16% de opacidade). Mesma altura, mesmo raio, mesmo
-  alinhamento à esquerda do primário.
-- **Desabilitado:** opacidade 60%, cursor padrão (`disabled:opacity-60 disabled:cursor-default`)
-  em ambos.
+### A guia — a assinatura formal
 
-### Badges e Chips
-- **Badge (`Badge`):** pílula (`rounded-full`), `px-2 py-0.5`, texto 11px/semibold. Cor por
-  papel semântico, nunca por escolha livre: `slate`/`navy` (neutro), `blue` (ação/prioridade
-  média), `gold` (marca — reservado quase só à Audiência), `amber` (aviso/prioridade alta),
-  `red` (urgente — é dado, não é a cor do botão destrutivo), `bordo` (vinho — destrutivo ou
-  identificação manual pontual), `green` (concluído/pago), `muted` (neutro apagado, só
-  Cancelado).
-- **ConclusionChip:** check inline + rótulo, raio `sm` (4px, mais discreto que o Badge redondo),
-  sempre no par verde `--concluido`/`--concluido-bg`. Reservado a desfecho positivo — "prazo
-  cumprido", "audiência realizada", "conta paga/recebida" — nunca a outro estado.
+A aba com chanfro de 6px no canto superior externo (`.guia-ficha`) é **o** elemento do sistema.
+Escolher aba é escolher gaveta, e é por isso que ela aparece em toda navegação por abas do produto
+do escritório: `/processos`, `/processos/[id]`, `/assessoria/[id]`, o PWA inteiro, e as telas de
+sessão, onde ela carrega o título da página.
 
-### Cards / Containers
-- **Corner Style:** `rounded-lg` (10px).
-- **Background:** `--sf-superficie` (branco na Manhã).
-- **Shadow Strategy:** nenhuma em repouso — ver Elevation & Depth. Separação por filete de topo
-  (2px, `--regua-forte` ou cor de `accent`).
-- **Border:** só no topo (`border-t-2`), nunca nas quatro arestas.
-- **Internal Padding:** cabeçalho `px-5 py-4`; corpo tipicamente `p-5` (20px, ex.: `StatCard`).
+O Painel da Empresa **não** usa a guia, e isso é decisão, não esquecimento: separar a ferramenta da
+plataforma da ferramenta do escritório é o que a torna legível. Lá o filete inferior de 2px é a
+linguagem.
 
-### Inputs / Fields
-- **Padrão do produto:** borda 1px em `--regua`, fundo `--sf-superficie`, sem preenchimento de
-  cor. `accent-color` global aplicado a checkbox/radio nativos (`--acao`) para não deixar o azul
-  padrão do sistema operacional destoar da paleta.
-- **`EntityPicker` (seletor azul):** um sub-sistema deliberadamente distinto — busca dinâmica com
-  contorno e foco em azul (`border-blue-*`, `focus:ring-blue-400/50`), reconhecível como "o
-  seletor com cadastro rápido inline" em Fornecedor/Categoria/Centro de Custo/Cliente/Processo.
-  Não é herança não-migrada: é um padrão próprio, intencionalmente diferente do resto (azul, não
-  bordô), para que o usuário reconheça a mesma interação em qualquer tela financeira.
-- **Foco:** anel de foco visível (`focus:ring-2`) nos campos que já usam o padrão EntityPicker;
-  demais campos usam o contorno padrão do navegador sobre a borda `--regua`.
+## 5. Movimento
 
-### Navigation
-- **Rail (desktop):** único modo de navegação — 56px sem rótulo (768–1023px), 76px com rótulo
-  (≥1024px), fundo fixo Ardósia Noturna nos dois temas. Ícone 19px, traço 1.5. Item ativo: pílula
-  de fundo `--rail-marca-bg` + texto `--rail-marca` (variante clara e fixa do Bordô Editorial,
-  legível sobre o grafite em qualquer tema) — sem filete lateral.
-  Item fixo no pé: atalho direto para Configurações.
-- **Mobile:** rail vira overlay disparado por botão fixo (canto superior esquerdo, fundo Ardósia
-  Noturna); abaixo de `/m`, casca própria de cinco telas com navegação inferior fixa.
+Catálogo numerado em `app/globals.css`. **Nada de decorativo**: todo movimento explica retorno,
+estado ou relação.
 
-## Exceções documentadas
+| | Movimento | Onde |
+|---|---|---|
+| 1 | deslizar | painel lateral |
+| 2–6 | pop-up, concluir, atenção | produto |
+| 7 | **arquivar** | a sequência focal única do site — a árvore do Drive se arquiva sozinha |
+| 8 | avisar | aviso de cookies |
+| 9 | abrir menu | folha do hambúrguer |
+| 10 | os diagramas demonstram o próprio mecanismo | linhas de recurso do site |
 
-Desvios deliberados da escala/vocabulário acima, escopados a uma superfície específica — mesmo
-espírito da exceção de fonte do blog (Lora, só em `app/blog/`) e da escala tipográfica própria do
-site público: um desvio real, não resíduo a convergir num sweep futuro.
+No produto (modo Operate) vale **um** movimento de navegação, e ele é o da guia. No site (modo
+Persuade) vale **uma** sequência focal ensaiada, e é proibido reinterpretar cada seção rolada como
+revelação escalonada.
 
-### Portal Noturno — escopo `app/(app)/*`
+**`prefers-reduced-motion` precisa de alternativa intencional.** O bloco global zera a *duração* mas
+não o *atraso* — toda animação com atraso precisa zerá-lo à mão, ou quem desativou movimento
+continua vendo o escalonamento que a preferência pede para não existir.
 
-Aprovado em `.impeccable/plano-portal/andamento-portal.md` (Rodada 0, 2026-09-11), depois de
-entrevista de `grilling` com o dono do projeto. Aplica-se **só** ao portal logado desktop
-(`app/(app)/*`, escopo CSS `.portal-shell` em `app/globals.css`) — o site público e o Painel
-Mestre continuam exatamente como documentado no resto deste arquivo. O PWA `/m` ganhou sua
-própria variante do mesmo sistema, ver "PWA Noturno" abaixo.
+**Conteúdo escondido por CSS e revelado por JS é conteúdo perdido.** O atributo que autoriza o CSS a
+esconder só pode existir depois que o JS rodou.
 
-- **Tema padrão é escuro** (não claro): mecanismo próprio (`lib/portalTheme.ts`, chave
-  `rp-portal-theme`), independente do tema Manhã/Noite do site (`lib/theme.ts`,
-  `rp-site-theme`) e do app mobile (`rp-mobile-theme`) — os três nunca se afetam. Manhã continua
-  disponível no portal como opção explícita (`.portal-light`), não removida.
-- **Paleta escura aproximada do Dracula Theme Official** (fundo `#1c1a22`, cinza-arroxeado — não
-  preto puro), referência trazida pelo próprio dono do projeto. Bordô Editorial, régua-em-vez-de-
-  sombra e a tríade urgente/aviso/concluído **não mudam** — só a superfície neutra (fundo/
-  cartão/régua/texto) e a atmosfera geral.
-- **Tipografia: Inter** (a mesma do resto do produto — `--font-sans` não é mais redefinido dentro
-  de `.portal-shell`). Chegou a usar Barlow no corpo + Barlow Condensed em número/rótulo/aba
-  (aproximação da tipografia do CowData, outro produto do dono do projeto) entre P1 e P5 — revertido
-  em 2026-09-11 por decisão do dono do projeto ("não ficou boa"). O token `font-display`
-  (`tailwind.config.ts`) continua existindo e sendo usado nos mesmos lugares (número de destaque/
-  rótulo/aba), só que `--font-display` agora resolve para a mesma Inter — não foi preciso remover
-  a classe de nenhum componente, só o que a variável aponta (`app/globals.css`).
-- **Raio quase reto (2px)** em vez da escala de três paradas (4/6/10px) — escopado por **seletor
-  descendente** em `app/globals.css` (`.portal-shell .rounded-lg { border-radius: 2px }` e
-  irmãos `sm`/`md`/`xl`/`2xl`/`3xl`), não por variável de tema (`tailwind.config.ts` compila
-  `rounded-*` para px fixo, não `var(--...)`) nem por edição componente a componente: a
-  especificidade de duas classes já vence uma classe só, então cobre automaticamente qualquer
-  `rounded-*` usado dentro do portal, mesmo em componentes ainda não tocados por uma rodada
-  específica. `rounded-full` fica de fora (pílula/avatar continuam circulares). A regra "Don't dar
-  raio maior que 10px" abaixo permanece a regra do resto do produto; a exceção aqui é "menor que
-  4px", não maior.
-- **Glow reservado** (`--concluido-glow`, sombra difusa verde) a um único uso por tela — hoje só o
-  indicador "ao vivo" de publicações não lidas no Painel. Não espalhar, mesma disciplina do
-  `--ouro-acento`.
-- Módulos de `app/(app)/*` ainda não redesenhados nesta rodada (ver
-  `.impeccable/plano-portal/roteiro-portal.md`) herdam cor/fonte/tema automaticamente (a casca é
-  compartilhada), mas **não** o raio 2px (que é por componente) — esperado, não regressão,
-  enquanto as rodadas seguintes não chegam neles.
+## 6. As oito cascas
 
-### PWA Noturno — escopo `app/m/*`
+Quatro superfícies × dois temas, e **cada casca é auto-contida**: declara os 66 tokens, sem herdar
+nenhum.
 
-Aprovado em `.impeccable/plano-portal/andamento-portal.md` ("PWA — próxima rodada", 2026-09-11),
-depois de nova entrevista de `grilling`. Aplica-se **só** ao PWA mobile (`app/m/*`, escopo CSS
-`.mobile-shell` em `app/globals.css`) — mesmo sistema do Portal Noturno acima, reaproveitado tal
-qual (nenhum valor de cor novo), com duas diferenças deliberadas:
+```
+:root                                    site público · claro
+.dark                                    site público · escuro
+.portal-shell                            portal · escuro
+.portal-shell.portal-light               portal · claro
+.mobile-shell                            PWA · claro
+.mobile-shell.mobile-dark                PWA · escuro
+.painel-mestre-shell                     Painel da Empresa · escuro
+.painel-mestre-shell.painel-mestre-light Painel da Empresa · claro
+```
 
-- **Tema padrão continua claro (Manhã)**, diferente do portal — o PWA é usado por qualquer
-  pessoa em qualquer situação de luz (rua, tribunal, ao lado de um cliente), não só pela equipe
-  interna o dia todo. Noite (`.mobile-dark`) fica disponível com a mesma paleta aproximada do
-  Dracula do portal, só não é o padrão de ninguém. Mecanismo próprio (`rp-mobile-theme`, já
-  existia — só o alvo da classe mudou de `.dark` em `<html>`, compartilhado com o site público,
-  para `.mobile-dark` só em `#mobile-shell`, do mesmo jeito que o portal já não depende de
-  `.dark`).
-- **Raio quase reto (2px) só quando `.mobile-dark` está ativo** — na Manhã o PWA continua na
-  escala de três paradas de sempre (4/6/10px). Mesmo seletor descendente do portal
-  (`.mobile-shell.mobile-dark .rounded-lg` e irmãos), `rounded-full` de fora pela mesma exceção.
-- **Glow reservado** (mesmo `--concluido-glow`) — primeiro uso no PWA: indicador "ao vivo" na
-  Central de Alertas do Painel (`app/m/page.tsx`), quando há alerta pendente. Visível nos dois
-  temas (a Manhã do PWA também define `--concluido-glow`, valor da Manhã do portal — variável
-  que não existe em `:root`/`.dark` fora do escopo do Portal/PWA Noturno).
-- **Ícone vira emoji só quando a coisa que ele representa está pendente de verdade** (pedido do
-  dono do projeto ao validar o protótipo — ele gostou especificamente do sino colorido com
-  contagem) — sino do cabeçalho (`app/m/layout.tsx`) e calendário da aba Agenda na barra inferior
-  (`components/mobile/MobileBottomNav.tsx`), os dois únicos lugares desta rodada onde um ícone já
-  carregava um contador de pendência. Sem pendência, ícone de linha (lucide-react) de sempre —
-  não é uma troca geral de sistema de ícone, só um reforço de estado nos dois pontos que já
-  eram "isto precisa de atenção agora". Tipografia (Inter) e demais tokens de marca não mudam.
-- Módulos de `app/m/*` fora do escopo desta rodada (Financeiro, Publicações, Assessoria etc. —
-  ver `.impeccable/plano-portal/andamento-portal.md`) herdam cor/tema automaticamente quando
-  alguém troca para Noite (a casca é compartilhada), mas não o raio 2px nem o emoji condicional
-  (ambos por componente) — esperado, não regressão, mesma lógica já documentada acima para o
-  portal.
+O portal **não** usa a classe `dark` do Tailwind. `dark:` dentro de `app/(app)` é código morto.
 
-### Painel da Empresa — escopo `app/painel-mestre/*`
+### Superfícies que não retematizam
 
-Aprovado em `.impeccable/plano-painel-mestre/andamento-painel-mestre.md`, depois de `grilling`
-com o dono do projeto. Aplica-se **só** à área de administração da plataforma (`app/painel-mestre/*`,
-escopo CSS `.painel-mestre-shell` em `app/globals.css`) — audiência restrita a Jairo/Rodrigo/
-equipe Lúmen, nunca escritório-cliente. Antes desta rodada esta área não tinha token de tema
-nenhum: casca inteira `.dark` fixo + `bg-grafite-900`/`text-white` cravados direto nos
-componentes, sem herdar nada do site/portal/PWA.
+Rail, barra de menus, masthead do blog e cabeçalho do PWA são grafite nos dois temas, de propósito.
+Sobre elas, use `rail-tx`, `rail-marca` e `rotulo` — `--tx` e `--acao` trocam de tema contra um fundo
+que não troca, e no tema claro somem.
 
-- **Rail (`LumenNavRail.tsx`) e cabeçalho (`LumenTopStrip.tsx`) continuam grafite fixo nos dois
-  temas** — mesma regra do Rail do site e do cabeçalho do PWA ("grafite nos dois temas"). Só o
-  conteúdo dentro de `<main>` (`LumenPanel` e o corpo de cada tela) retemea.
-- **Tema padrão é escuro** (mesma paleta aproximada do Dracula do Portal/PWA Noturno — nenhuma
-  cor nova, reaproveitada tal qual, pelas 3 áreas internas ficarem consistentes). Mecanismo
-  próprio (`lib/painelMestreTheme.ts`, chave `rp-painel-mestre-theme`), independente dos outros
-  três.
-- **Claro é deliberadamente "fechado", não o Manhã quase-branco do resto do produto** — pedido
-  explícito do dono do projeto ao validar o protótipo: "tudo um pouco mais escuro, como se fosse
-  um misto entre o claro e o escuro, sem perder a harmonia das cores". Mesma família de matiz
-  cinza-arroxeada da Noite, luminância invertida (`.painel-mestre-shell.painel-mestre-light`).
-- **Raio quase reto (2px)** em `LumenPanel` e nos controles de formulário novos/migrados — direto
-  via `rounded-sm` nos componentes (não por seletor descendente como no Portal/PWA): esta área
-  nunca teve raio nenhum antes (cantos sempre retos), então não havia nada pra sobrescrever.
-- **Ícone-vira-emoji-quando-pendente do PWA não se aplica aqui** — nenhum ícone desta área carrega
-  contador de pendência hoje; se algum vier a carregar, decidir separadamente.
-- **Escritórios → Assinaturas**: a antiga página `/painel-mestre/assinaturas` (visão consolidada
-  "todos os escritórios, cobrança está saudável?") foi substituída por um selo de saúde por linha
-  na lista de Escritórios (`OfficeListRow.tsx`, reaproveitando `lib/billingHealth.ts`) — a
-  configuração por escritório (ciclo/forma de pagamento/Pix) virou aba "Cobrança & Assinatura"
-  dentro do detalhe de cada escritório (`app/painel-mestre/[officeId]/page.tsx`), status/
-  histórico de fatura virou aba "Faturas". Decisão do dono do projeto: uma sub-aba, não uma
-  página própria com mais funcionalidade.
-- **Financeiro Lúmen ganhou só polimento visual** (cards mais fortes + indicador de tendência de
-  margem) — decisão explícita de NÃO replicar a granularidade do financeiro de escritório-cliente
-  (DRE/Fluxo de Caixa/Livro Caixa como páginas próprias): a plataforma não tem contas a pagar/
-  receber de cliente pra gerenciar, só MRR e despesa fixa.
-- Telas fora do escopo desta rodada (`produto`, `cofre`, `confianca`, `equipe`, `novo`) herdam
-  tema/raio automaticamente quando o conteúdo já usa `LumenPanel`/tokens — mesma lógica de
-  herança automática já documentada acima para o portal e o PWA.
+### Os dois meios onde o token não chega
 
-### Home pública — escopo `app/page.tsx`
+**Impressão** (`components/relatorios/FolhaImprimivel.tsx`) e **e-mail** (`lib/email.ts`) usam hex
+literal, e isso é exceção deliberada e documentada: nenhum dos dois lê variável CSS. Os dois são
+sempre **claros**, como papel. Ambos carregam o mapa valor-a-valor no topo do arquivo.
 
-Aprovado em `.impeccable/plano-site-publico/andamento-site-publico.md`, depois de `grilling` com
-o dono do projeto — retomando a proposta "pulso" (`.impeccable/plano-redesign/`, descartada por
-timing durante o grilling do portal, não por direção errada). **Diferente** do Portal/PWA/Painel
-da Empresa: a home pública **não adota** a paleta Dracula nem tema escuro opcional — é a vitrine
-pública do produto, audiência de visitante/cliente potencial, não de usuário logado. Bordô
-Editorial, Inter e a escala tipográfica própria do site (P3-2, já documentada acima) continuam
-exatamente como estão.
+Na impressão, mais duas regras que só aparecem no papel: o cabeçalho da tabela **repete a cada
+página** (`display: table-header-group`), e o filete da linha precisa medir pelo menos ~2:1 contra o
+branco — a laser, cinza-claro some.
 
-- **Só o raio quase reto (2px) é reaproveitado**, aplicado a botões, cartões de plano e ao novo
-  painel "ledger vivo" do hero — decisão explícita do dono do projeto ("use a mesma ideia, mas
-  pensando no marketing, sem precisar ser igual"). A home já era 100% quadrada (0px, "sem
-  gradiente/textura/canto arredondado" no comentário original do arquivo) — 2px é a intenção
-  declarada de alinhamento com o resto do produto, não um retrofit visual grande.
-- **Textura granulada (`GrainOverlay.tsx`, mesma peça já usada no Painel do produto) e halo bordô
-  radial** (mesmo motivo do Painel) no hero, na faixa de número e no fecho — feedback direto do
-  dono do projeto ao validar o protótipo ("muito geométrico... as partes sem imagem precisam ser
-  preenchidas de alguma forma"), sem depender de fotografia real (ainda não disponível,
-  `PRODUCT.md`).
-- **Hero assimétrico com "ledger vivo"**: painel de demonstração ao vivo da fila de Publicações
-  (mesmos rótulos/ações reais — "Gerar Prazo"/"Marcar Audiência"/"Delegar") no lugar de uma
-  imagem estática — o próprio mecanismo que `PRODUCT.md` → Positioning cita como diferencial real.
-- **Painel de número único**: consolida o antigo grid de 4 estatísticas (3 em branco) e a faixa
-  separada do "93 tribunais" (única real hoje) numa peça só — nunca inventar número que o
-  escritório não possa comprovar (regra já vigente, só a apresentação mudou).
-- **Peso desigual nos 5 recursos**: Publicações e Sigilo (os 2 mecanismos citados em
-  `PRODUCT.md` → Positioning) ganham tratamento "pilar" (padding maior, título maior, fundo com
-  filete bordô); Painel/Peticionamento/Financeiro ficam no tratamento padrão — hierarquia real,
-  não decoração.
-- Diagramas de recurso (`FeatureDiagram`, dentro de `app/page.tsx`) ganharam densidade (badges,
-  preenchimento, texto simulado) em vez de contorno fino vazio — mesmo motivo do item acima,
-  continuam 100% token (nenhum hex cravado).
+## 7. O que o lint guarda
 
-## Do's and Don'ts
+`.eslintrc.json`, `no-restricted-syntax`:
 
-### Do:
-- **Do** usar régua de 1–2px para separar cartão/seção em repouso; reservar sombra só para
-  modal, popover e item em arrasto (A Regra do Flutuar de Verdade).
-- **Do** manter o Bordô Editorial (`#8a2f42`) como única cor de ação/marca — a tríade
-  urgente/aviso/concluído descreve dado, nunca substitui a cor de botão primário.
-- **Do** alinhar rótulo de botão à esquerda, sempre — mesmo em botão mais largo que o texto.
-- **Do** usar peso tipográfico (não tamanho) como primeira ferramenta de hierarquia dentro de uma
-  mesma tela densa em dados.
-- **Do** tratar o `EntityPicker` azul como um padrão à parte, intencional — não "corrigir" para
-  bordô sem confirmar, é reconhecimento de interação, não inconsistência.
+1. tamanho de fonte arbitrário (`text-[13px]`);
+2. rótulo claro cravado sobre fundo de risco ou de faixa (`text-white` some quando o fundo troca);
+3. cor crua da paleta do Tailwind (`text-red-500` e cia. — não retematizam);
+4. bordô fixo como primeiro plano (`text-acao`, `ring-marca`).
 
-### Don't:
-- **Don't** aplicar `box-shadow` a um cartão parado — mesmo que uma classe legada `shadow-card`
-  apareça no arquivo, ela já resolve para nenhuma sombra.
-- **Don't** introduzir ouro ou azul-tinta como cor de marca/ação — só existe o Bordô Editorial;
-  `ouro-acento` é decoração pontual isolada, não uma segunda cor de marca.
-- **Don't** usar o token `urgente` (vermelho, dado) no lugar do `vinho` (ação destrutiva) ou
-  vice-versa — um descreve um fato vencido, o outro é uma ação irreversível do usuário.
-- **Don't** centralizar rótulo de botão ou título de página — o sistema é alinhado à esquerda por
-  princípio, não por acidente de layout.
-- **Don't** dar raio maior que 10px a cartão, modal ou painel — a escala para em três paradas
-  (4/6/10px) de propósito.
+Cada regra nasceu de um defeito medido, e a mensagem de cada uma carrega a medição.
+
+## 8. O hábito que sustenta o sistema
+
+**Registre *por quê* em comentário de código.** É o que permite distinguir decisão de descuido — e
+foi o que permitiu, neste redesenho, preservar o que era deliberado (os trilhos grafite, a linguagem
+própria do Painel da Empresa, o hex literal da impressão) e corrigir o que era resíduo.
+
+**Confira a classe no CSS de produção antes de dar por feito.** Este repositório perdeu classes por
+nome inexistente (`text-sf-superficie`), por diretório fora do `content` (`lib/`), por opacidade
+sobre `var()` e por nome montado em runtime. Nenhum desses aparece no `tsc`, no lint ou no build.
+
+**Renderize.** `capitalize` numa data em português, lista sem marcador, entrelinha esmagada por um
+`sm:` posterior, anel de foco azul — nenhum desses aparece lendo código.
