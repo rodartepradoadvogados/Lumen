@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
-import { PageHeader, Card } from "@/components/ui";
-import { Users, Scale as ScaleIcon, ArrowRight, Truck, UserCog } from "lucide-react";
+import { PageHeader } from "@/components/ui";
+import { Users, Scale as ScaleIcon, Truck, UserCog } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -63,19 +63,20 @@ export default async function ContatosPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {modules.map((m) => (
           <Link key={m.href} href={m.href}>
-            <Card className="p-5 h-full hover:shadow-pop transition-shadow">
-              <div className="flex items-start justify-between">
-                <div className={`p-3.5 rounded-full ${m.iconClass}`}>
-                  <m.icon size={28} />
-                </div>
-                <ArrowRight size={16} className="text-tx-3" />
+            {/* Elevação no hover saiu: a casa trocou altura por filete de 2px em F3, e não há um
+                `box-shadow` sequer nas telas do produto — este cartão era o último a levantar. A
+                resposta agora é a régua, igual à dos cartões de preço do site e da faixa de
+                /assessoria/[id]. O círculo do ícone virou quadrado de 2px, que é o raio da casa;
+                o redondo era a única forma circular do produto inteiro. E a contagem passa para a
+                rampa nomeada. */}
+            <div className="h-full bg-sf border-2 border-regua-forte rounded-[2px] p-5 transition-[border-color,background-color] duration-100 ease-out hover:border-acao hover:bg-acao-bg">
+              <div className={`inline-flex p-3 rounded-[2px] ${m.iconClass}`}>
+                <m.icon size={24} strokeWidth={1.5} />
               </div>
-              <h3 className="font-bold text-tx mt-3">{m.label}</h3>
-              <p className="text-xs text-tx-3 mt-1 mb-2">{m.desc}</p>
-              {/* Único destaque do card, agora que o ícone perdeu a cor decorativa — em
-                  --marca-tx (DESIGN-SYSTEM.md §2, rótulo curto). */}
-              <p className="text-2xl font-bold text-marca-tx tabular-nums">{m.count}</p>
-            </Card>
+              <h3 className="text-destaque font-bold text-tx mt-3">{m.label}</h3>
+              <p className="text-etiqueta text-tx-3 mt-1 mb-3">{m.desc}</p>
+              <p className="text-guia font-bold text-marca-tx tabular-nums">{m.count}</p>
+            </div>
           </Link>
         ))}
       </div>

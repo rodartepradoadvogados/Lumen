@@ -138,46 +138,12 @@ export function ConclusionChip({ children, className }: { children: ReactNode; c
   );
 }
 
-export function StatCard({
-  label,
-  value,
-  hint,
-  tone = "navy",
-  icon,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "navy" | "gold" | "red" | "green";
-  icon?: ReactNode;
-}) {
-  // "red" contas a pagar e prazos atrasados: é urgência de DADO (algo vencido), por isso mapeia
-  // pro token `urgente`, não pro vinho da marca — mesma distinção do badgeColors acima.
-  const toneMap = {
-    navy: "text-tx",
-    gold: "text-marca-tx",
-    red: "text-urgente",
-    green: "text-concluido",
-  };
-  const iconToneMap = {
-    navy: "bg-sf-apoio text-tx",
-    gold: "bg-marca-bg text-marca-tx",
-    red: "bg-urgente-bg text-urgente",
-    green: "bg-concluido-bg text-concluido",
-  };
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-tx-2 uppercase tracking-wide">{label}</p>
-          <p className={clsx("text-2xl font-sans font-extrabold mt-1", toneMap[tone])}>{value}</p>
-          {hint && <p className="text-xs text-tx-3 mt-1">{hint}</p>}
-        </div>
-        {icon && <div className={clsx("h-10 w-10 shrink-0 rounded-full flex items-center justify-center", iconToneMap[tone])}>{icon}</div>}
-      </div>
-    </Card>
-  );
-}
+// StatCard REMOVIDO em 2026-09-17. Era o cartão de KPI genérico — rótulo, número grande, ícone
+// num quadrado colorido — e o contrato de direção recusa por escrito a arrumação que ele servia:
+// "quatro KPIs iguais lado a lado". O último consumidor era o hub do Financeiro, que passou a
+// medir risco em vez de empilhar quatro números do mesmo peso. O PendingListModal já tinha saído
+// dele antes, e o comentário lá explica por quê. Se voltar a fazer falta, o que faz falta é a
+// FAIXA de peso desigual (ver app/(app)/financeiro/page.tsx), não o cartão.
 
 export function EmptyState({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
