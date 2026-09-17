@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
 import { ACCESS_REASONS } from "@/lib/supportAccessConstants";
-import { LumenPanel, LumenPanelHeader, LumenStatusDot } from "@/components/painelMestre/LumenUi";
+import { LumenPanel, LumenPanelHeader, LumenStatusDot, LumenAbas, LumenAba } from "@/components/painelMestre/LumenUi";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,17 @@ function expiraEm(expiresAt: Date): string {
   return `expira em ${horas}h`;
 }
 
-export default async function CofrePage() {
+// O diagnóstico chamou esta tela de caso extremo do Painel da Empresa: três tabelas de cinco e
+// seis colunas empilhadas na vertical, sem abas, sem divisão, sem uso da largura — enquanto a tela
+// de escritório ([officeId]) tinha abas de verdade desde sempre. O padrão certo já estava escrito;
+// faltava propagá-lo. As três tabelas viram três abas, e a contagem entra na própria aba.
+const ABAS = [
+  { key: "sessoes", label: "Sessões ativas" },
+  { key: "pedidos", label: "Pedidos recentes" },
+  { key: "auditoria", label: "Auditoria" },
+];
+
+export default async function CofrePage({ searchParams }: { searchParams: { aba?: string } }) {
   const viewer = await getCurrentUser({ ignoreActing: true });
   if (!viewer) redirect("/");
   if (!viewer.isPlatformOwner) redirect("/painel");
@@ -85,15 +95,31 @@ export default async function CofrePage() {
     }),
   ]);
 
+  const aba = ABAS.some((a) => a.key === searchParams.aba) ? searchParams.aba! : "sessoes";
+  const contagens: Record<string, number> = {
+    sessoes: activeSessions.length,
+    pedidos: recentRequests.length,
+    auditoria: recentAudit.length,
+  };
+
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-tx">Cofre de acesso</h1>
-        <p className="text-sm text-tx-3 mt-1">
+        <h1 className="text-autuacao font-bold text-tx leading-tight">Cofre de acesso</h1>
+        <p className="text-corpo text-tx-2 mt-1">
           Visão consolidada do acesso de suporte a todos os escritórios — somente leitura
         </p>
       </div>
 
+      <LumenAbas>
+        {ABAS.map((a) => (
+          <LumenAba key={a.key} href={`/painel-mestre/cofre?aba=${a.key}`} ativa={aba === a.key} contagem={contagens[a.key]}>
+            {a.label}
+          </LumenAba>
+        ))}
+      </LumenAbas>
+
+      {aba === "sessoes" && (
       <LumenPanel>
         <LumenPanelHeader title="Sessões ativas agora" subtitle={`${activeSessions.length} sessão(ões) em andamento`} />
         {activeSessions.length === 0 ? (
@@ -127,7 +153,9 @@ export default async function CofrePage() {
           </div>
         )}
       </LumenPanel>
+      )}
 
+      {aba === "pedidos" && (
       <LumenPanel>
         <LumenPanelHeader title="Pedidos recentes" subtitle={`Últimos ${recentRequests.length} pedido(s), todos os status`} />
         <div className="overflow-x-auto">
@@ -173,7 +201,9 @@ export default async function CofrePage() {
           </table>
         </div>
       </LumenPanel>
+      )}
 
+      {aba === "auditoria" && (
       <LumenPanel>
         <LumenPanelHeader title="Auditoria recente" subtitle={`Últimas ${recentAudit.length} entrada(s), todos os escritórios`} />
         <div className="overflow-x-auto">
@@ -215,6 +245,7 @@ export default async function CofrePage() {
           </table>
         </div>
       </LumenPanel>
+      )}
     </div>
   );
 }

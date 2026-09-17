@@ -77,7 +77,7 @@ export default async function EscritoriosPage() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-tx">Escritórios</h1>
+          <h1 className="text-autuacao font-bold text-tx">Escritórios</h1>
           <p className="text-sm text-tx-2 mt-1">
             Escritórios-clientes da plataforma — acesso restrito a Jairo e Rodrigo
           </p>

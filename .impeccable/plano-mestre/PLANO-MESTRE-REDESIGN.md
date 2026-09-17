@@ -11,8 +11,8 @@ indicada.
 
 | Campo | Valor |
 |---|---|
-| **Fase atual** | **F4 e F5 concluídas · os 4 P0 fechados** (contraste, opacidade, e os três do PWA). Em curso: **F6 — PWA** |
-| **Próximo passo concreto** | **F7 — Painel Mestre** (o gabarito bom existe em 1 de 10 telas) ou o resto do PWA. Os três P0 do PWA estão fechados e a tira de filtro está unificada |
+| **Fase atual** | **F4, F5, F6 e F7 concluídas · os 4 P0 fechados**. Em curso: **F8** |
+| **Próximo passo concreto** | **F8** — `audit` das 4 superfícies restantes, os e-mails transacionais (P1-EMAIL), `harden`, `optimize`. Depois **F9** |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -461,7 +461,7 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F6a | PWA — o P0-A3 | `optimize`, `adapt` | ✅ | #214 | 2026-09-17 | 11 consultas + 9 includes em toda troca de aba → 3 a 7 conforme a aba. Alvo de toque de 33px → 44px. Histórico deixa de empilhar. A pílula vira guia. **P0-A1 e P0-A2 já tinham caído na fundação** — medidos, não supostos |
 | F6b | PWA — a guia do PWA | `extract`, `adapt`, `harden` | ✅ | #215 | 2026-09-17 | SEIS telas desenhavam a mesma tira de abas à mão, com quatro medidas e quatro estados ativos diferentes, todas em pílula e todas abaixo de 44px. Uma peça só (`components/mobile/GuiaMobile.tsx`), e a cor da seção passa a dizer ONDE também no celular |
 | F6 | PWA — o resto | `adapt`, `layout`, `onboard` | ⬜ | — | — | as rotas de `app/m/**` que não são tira de filtro |
-| F7 | Painel Mestre | `layout`, `distill`, `clarify` | ⬜ | — | — | — |
+| F7 | Painel Mestre | `extract`, `layout` | ✅ | #216 | 2026-09-17 | As abas saem de dentro de `[officeId]` e viram peça (`LumenAbas`/`LumenAba`). O Cofre — três tabelas de 5-6 colunas empilhadas, o caso extremo do diagnóstico — ganha as três abas. Identidade de tela nas 9 telas. A linguagem do Painel **continua distinta** do lado escritório, que é decisão do diagnóstico |
 | F8 | Movimento e robustez | `animate`, `delight`, `overdrive`, `harden`, `optimize` | ⬜ | — | — | — |
 | F8 | Verificação final | `audit`, `critique`, `polish` | ⬜ | — | — | comparar com F1 |
 | F9 | Consolidação | `documenter`, `extract`, `hooks`, `doctor` | ⬜ | — | — | reescreve DESIGN.md |

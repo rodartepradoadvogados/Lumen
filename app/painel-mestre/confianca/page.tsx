@@ -17,7 +17,7 @@ export default async function ConfiancaPage() {
   return (
     <div className="p-6 max-w-[900px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-tx">Confiança e LGPD</h1>
+        <h1 className="text-autuacao font-bold text-tx">Confiança e LGPD</h1>
         <p className="text-sm text-tx-3 mt-1">
           O que já está implementado tecnicamente hoje — descrição factual, não é parecer jurídico
         </p>

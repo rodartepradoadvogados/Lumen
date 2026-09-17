@@ -22,7 +22,7 @@ export default async function PrecosPage() {
   return (
     <div className="p-6 max-w-[1000px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-tx">Preços</h1>
+        <h1 className="text-autuacao font-bold text-tx">Preços</h1>
         <p className="text-sm text-tx-2 mt-1">
           Preço de cada módulo e composição de cada plano — lido ao vivo pela capa pública e pré-preenche o plano ao escolher em cada escritório
         </p>
