@@ -53,6 +53,19 @@
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #fdf7f8;
+
+  /* --- A ABA SELECIONADA: uma cor so, em todas as telas. ---
+         Ate 17/09/2026 a aba ativa era pintada com a FAIXA DA SECAO — anil no Juridico,
+         ameixa em Produtividade. Duas coisas davam errado com isso. A primeira, a que o dono
+         viu: o anil #3b4a86 tem vermelho demais para ler como azul, e a aba saia roxa.
+         ("Roxo e vermelho nao sao uma opcao.") A segunda e mais funda: ninguem nunca pediu que
+         a aba dissesse a secao — a secao ja esta dita no rail, na migalha e no titulo. A aba
+         repetia uma informacao que a tela ja dava e, para isso, gastava cinco cores.
+         Agora e bronze, escolha do dono entre cinco opcoes medidas, e e UMA cor: a aba diz
+         "e esta que esta aberta", nada mais. A faixa de secao continua viva no rail, onde ela
+         de fato responde "onde eu estou". Contraste do rotulo sobre ela: 7,49:1 no claro,
+         6,05:1 no escuro. --- */
+  --guia-ativa: #6d4a1f;
   --selecao: rgba(47, 93, 115, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(20,22,26,.16);
@@ -176,6 +189,8 @@
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #14161a;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #c08b45;
   --selecao: rgba(74, 147, 181, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
@@ -832,6 +847,8 @@ html:has(.site-publico) {
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #14161a;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #c08b45;
   --selecao: rgba(74, 147, 181, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
@@ -956,6 +973,8 @@ html:has(.site-publico) {
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #fdf7f8;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #6d4a1f;
   --selecao: rgba(47, 93, 115, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(20,22,26,.16);
@@ -1125,6 +1144,8 @@ html:has(.site-publico) {
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #fdf7f8;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #6d4a1f;
   --selecao: rgba(47, 93, 115, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(20,22,26,.16);
@@ -1248,6 +1269,8 @@ html:has(.site-publico) {
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #14161a;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #c08b45;
   --selecao: rgba(74, 147, 181, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
@@ -1402,6 +1425,8 @@ html:has(.site-publico) {
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #14161a;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #c08b45;
   --selecao: rgba(74, 147, 181, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(0,0,0,.5);
@@ -1530,6 +1555,8 @@ html:has(.site-publico) {
          pedem rotulo claro; no escuro sao claras e pedem rotulo escuro. E o mesmo defeito
          de `text-white` cravado que o diagnostico achou no Painel Mestre. --- */
   --rotulo: #fdf7f8;
+  /* A aba selecionada — ver a nota no bloco :root. */
+  --guia-ativa: #6d4a1f;
   --selecao: rgba(47, 93, 115, .26);
   --grain-opacity: 0;
   --sombra-menu: 0 3px 10px rgba(20,22,26,.16);

@@ -57,7 +57,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
         </p>
       </div>
 
-      <TiraDeGuias faixa="oliva">
+      <TiraDeGuias>
         <TabLink label="Contas a Pagar" href={`/m/financeiro/despesas?from=${from}&to=${to}`} active={tab === "abertas"} />
         <TabLink label="Pagas" href={`/m/financeiro/despesas?tab=pagas&from=${from}&to=${to}`} active={tab === "pagas"} />
         <TabLink label="Todas" href={`/m/financeiro/despesas?tab=todas&from=${from}&to=${to}`} active={tab === "todas"} />
@@ -138,7 +138,7 @@ export default async function MobileDespesas({ searchParams }: { searchParams: {
 // Guia da casa, com a faixa da seção Financeiro (oliva) — ver components/mobile/GuiaMobile.tsx.
 function TabLink({ label, href, active }: { label: string; href: string; active: boolean }) {
   return (
-    <GuiaLink href={href} faixa="oliva" ativa={active}>
+    <GuiaLink href={href} ativa={active}>
       {label}
     </GuiaLink>
   );

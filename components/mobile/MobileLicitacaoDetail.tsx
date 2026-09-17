@@ -190,9 +190,9 @@ export default function MobileLicitacaoDetail({
           </div>
         )}
         {licitacao.tasks.length > 0 && (
-          <TiraDeGuias faixa="anil" className="mb-1 -mx-1 px-1">
+          <TiraDeGuias className="mb-1 -mx-1 px-1">
             {docChips.map((c) => (
-              <GuiaBotao key={c.key} onClick={() => setDocFilter(c.key)} faixa="anil" ativa={docFilter === c.key}>
+              <GuiaBotao key={c.key} onClick={() => setDocFilter(c.key)} ativa={docFilter === c.key}>
                 {c.label}
               </GuiaBotao>
             ))}

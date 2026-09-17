@@ -30,10 +30,8 @@ import { instanciaLabel } from "@/lib/caseInstance";
 import { getCaseLinks } from "@/lib/actions/caseLinks";
 import { getCaseInstanceHistory } from "@/lib/actions/cases";
 
-import { CLASSES_FAIXA } from "@/lib/navSections";
 
 // A cor da seção Jurídico vem do mapa, não escrita à mão (lib/navSections.ts).
-const FAIXA = CLASSES_FAIXA.anil;
 
 export const dynamic = "force-dynamic";
 
@@ -414,10 +412,10 @@ export default async function MobileCaseDetail({
              "voltar" tantas vezes quantas abas tivessem sido visitadas. `replace` troca a entrada
              em vez de empilhar — a aba é estado de visualização, não destino.
           3. FORMA. Era a pílula (`rounded-full`) com `bg-acao` no ativo. Escolher aba é escolher
-             gaveta: é a guia chanfrada, a mesma do portal e do site, com a faixa da seção Jurídico
+             gaveta: é a guia chanfrada, a mesma do portal e do site. A aba ativa é bronze (`--guia-ativa`), uma cor só em todas as telas — ver a nota em app/globals.css.
              lida do mapa (lib/navSections.ts). A régua do contêiner rola junto com as abas, então
              lê como a borda contínua da gaveta mesmo quando não cabe tudo na tela. */}
-      <div className={`flex items-end gap-[3px] overflow-x-auto border-b-2 ${FAIXA.borda} -mx-0.5 px-0.5`}>
+      <div className={`flex items-end gap-[3px] overflow-x-auto border-b-2 border-guia-ativa -mx-0.5 px-0.5`}>
         {visibleTabs.map((t) => (
           <Link
             key={t.key}
@@ -426,7 +424,7 @@ export default async function MobileCaseDetail({
             aria-current={tab === t.key ? "page" : undefined}
             className={`guia-ficha shrink-0 min-h-[44px] text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
               tab === t.key
-                ? `${FAIXA.fundo} text-rotulo ${FAIXA.borda}`
+                ? "bg-guia-ativa text-rotulo border-guia-ativa"
                 : "bg-sf text-tx-2 border-regua-forte"
             }`}
           >

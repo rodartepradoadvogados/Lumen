@@ -51,14 +51,13 @@ export default function MobileLicitacoesSection({ assessoriaId, licitacoes }: { 
         <EmptyState title="Nenhuma licitação cadastrada" />
       ) : (
         <>
-          {/* Licitação vive dentro de Assessoria, que é da seção Jurídico — faixa anil. A
+          {/* Licitação vive dentro de Assessoria, que é da seção Jurídico. A
               contagem passa a ser dado da guia, não texto colado no rótulo. */}
-          <TiraDeGuias faixa="anil" className="px-4 pt-3">
+          <TiraDeGuias className="px-4 pt-3">
             {[{ value: "TODOS", label: "Todos", n: licitacoes.length }, ...STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label, n: licitacoes.filter((l) => l.status === s.value).length }))].map((c) => (
               <GuiaBotao
                 key={c.value}
                 onClick={() => setStatusFilter(c.value)}
-                faixa="anil"
                 ativa={statusFilter === c.value}
                 contagem={c.n}
               >

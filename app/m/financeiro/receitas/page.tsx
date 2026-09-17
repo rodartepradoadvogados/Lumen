@@ -56,7 +56,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
         </p>
       </div>
 
-      <TiraDeGuias faixa="oliva">
+      <TiraDeGuias>
         <TabLink label="Contas a Receber" href={`/m/financeiro/receitas?from=${from}&to=${to}`} active={tab === "abertas"} />
         <TabLink label="Recebidas" href={`/m/financeiro/receitas?tab=pagas&from=${from}&to=${to}`} active={tab === "pagas"} />
         <TabLink label="A apurar" href={`/m/financeiro/receitas?tab=apurar&from=${from}&to=${to}`} active={tab === "apurar"} />
@@ -159,7 +159,7 @@ export default async function MobileReceitas({ searchParams }: { searchParams: {
 // Guia da casa, com a faixa da seção Financeiro (oliva) — ver components/mobile/GuiaMobile.tsx.
 function TabLink({ label, href, active }: { label: string; href: string; active: boolean }) {
   return (
-    <GuiaLink href={href} faixa="oliva" ativa={active}>
+    <GuiaLink href={href} ativa={active}>
       {label}
     </GuiaLink>
   );
