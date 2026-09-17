@@ -40,10 +40,24 @@ export type SectionPanelItem = {
 
 export type SectionKey = "agenda" | "comunicacao" | "juridico" | "financeiro" | "gestao";
 
+// A FAIXA DA SEÇÃO — a cor que diz ONDE o visitante está.
+//
+// `app/globals.css` declara cinco faixas nas oito cascas, com o comentário "a cor diz ONDE. Cinco
+// hues, NENHUM vermelho". Cinco faixas para cinco seções: a intenção sempre foi essa. O que
+// faltava era o MAPA: até 2026-09-17 a única seção com cor era Jurídico, escrita à mão como
+// `faixa-anil` em três telas, e qualquer tela nova que quisesse a cor da sua seção tinha de
+// adivinhar. Uma linguagem de cinco cores aplicada por memória em três lugares não é sistema.
+//
+// Jurídico fica em anil porque já estava — a cor está em produção e o dono a conferiu. As outras
+// quatro são atribuídas aqui, e o critério é o mesmo do contrato de direção: hue distinta por
+// seção, nenhuma quente o bastante para virar risco (risco é bordô e só bordô).
+export type FaixaSecao = "ardosia" | "anil" | "oliva" | "ocre" | "ameixa";
+
 export type SectionDef = {
   key: SectionKey;
   label: string;
   icon: LucideIcon;
+  faixa: FaixaSecao;
   items: SectionPanelItem[];
 };
 
@@ -52,6 +66,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
     key: "agenda",
     label: "Agenda",
     icon: CalendarDays,
+    faixa: "ardosia",
     items: [
       { href: "/agenda", label: "Calendário" },
       { href: "/kanban", label: "Kanban" },
@@ -65,6 +80,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // "Editorial fino" aprovada em 2026-08: símbolo específico do que a seção faz (captação de
     // publicações + atendimentos entrando), não um ícone de chat de qualquer SaaS.
     icon: Inbox,
+    faixa: "ocre",
     items: [
       { href: "/publicacoes", label: "Publicações" },
       { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento" },
@@ -78,6 +94,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // Balança no lugar da pasta genérica (Briefcase) — pasta poderia ser qualquer sistema de
     // gestão de negócio; balança só tem uma leitura possível.
     icon: Scale,
+    faixa: "anil",
     items: [
       { href: "/processos", label: "Processos e casos" },
       { href: "/assessoria", label: "Assessoria jurídica", moduleKey: "assessoria" },
@@ -89,6 +106,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // Banco (Landmark) no lugar da carteira (Wallet) — lê como instituição financeira, mais
     // alinhado ao Financeiro do escritório (contas, fluxo de caixa) do que a um gasto pessoal.
     icon: Landmark,
+    faixa: "oliva",
     items: [
       // O hub do Financeiro era órfão do rail: a única tela com os quatro agregados do escritório
       // só era alcançável por um link pequeno e cinza acima do título das sub-páginas. Agora é o
@@ -105,6 +123,7 @@ export const RAIL_SECTIONS: SectionDef[] = [
     key: "gestao",
     label: "Gestão",
     icon: BarChart3,
+    faixa: "ameixa",
     items: [
       {
         href: "/relatorios",
@@ -198,4 +217,32 @@ export function resolveTwoLevelLabel(pathname: string): string | null {
   const item = def.items.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
   if (!item || def.items.length < 2) return def.label;
   return `${def.label} - ${item.label}`;
+}
+
+// A faixa da seção como classe utilitária, resolvida a partir da rota. Use isto em vez de escrever
+// `faixa-anil` à mão: a cor de uma seção passa a existir num lugar só, e uma tela nova herda a da
+// sua seção sem ninguém precisar lembrar qual é.
+//
+// Sem seção conhecida (telas fora do rail, como /peticionar), devolve a faixa ardósia — neutra e
+// declarada, em vez de nada.
+export function faixaDaRota(pathname: string | null | undefined): FaixaSecao {
+  const def = sectionForPathname(pathname ?? "");
+  return RAIL_SECTIONS.find((s) => s.key === def)?.faixa ?? "ardosia";
+}
+
+// As classes da faixa, escritas por extenso. NÃO monte `faixa-${x}` em tempo de execução: o
+// Tailwind gera CSS a partir do que consegue LER no código-fonte, e um nome montado em runtime
+// não gera regra nenhuma — o elemento sai sem cor. Este repositório já foi mordido por isso mais
+// de uma vez (ver a varredura de classes mortas de 2026-09-16), então o mapa carrega os literais.
+export const CLASSES_FAIXA: Record<FaixaSecao, { borda: string; fundo: string; texto: string }> = {
+  ardosia: { borda: "border-faixa-ardosia", fundo: "bg-faixa-ardosia", texto: "text-faixa-ardosia" },
+  anil: { borda: "border-faixa-anil", fundo: "bg-faixa-anil", texto: "text-faixa-anil" },
+  oliva: { borda: "border-faixa-oliva", fundo: "bg-faixa-oliva", texto: "text-faixa-oliva" },
+  ocre: { borda: "border-faixa-ocre", fundo: "bg-faixa-ocre", texto: "text-faixa-ocre" },
+  ameixa: { borda: "border-faixa-ameixa", fundo: "bg-faixa-ameixa", texto: "text-faixa-ameixa" },
+};
+
+// Atalho: as classes da faixa da seção a que a rota pertence.
+export function classesDaFaixa(pathname: string | null | undefined) {
+  return CLASSES_FAIXA[faixaDaRota(pathname)];
 }

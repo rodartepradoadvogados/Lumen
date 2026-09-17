@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { CLASSES_FAIXA } from "@/lib/navSections";
 import Link from "next/link";
 import { getAssessoriaDetail, retryAssessoriaDriveFolder } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +15,9 @@ import AnotacoesPessoaisList from "@/components/anotacoes/AnotacoesPessoaisList"
 import { getStorageConnectionStatus } from "@/lib/storageProvider";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getLeafCategoryOptions } from "@/lib/categories";
+
+// A cor da seção Jurídico vem do mapa, não escrita à mão (lib/navSections.ts).
+const FAIXA = CLASSES_FAIXA.anil;
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +165,7 @@ export default async function AssessoriaDetailPage({
           (Jurídico, faixa anil). Esta usava sublinhado de 2px e a outra usa a aba chanfrada que é
           a assinatura formal do sistema: duas gramáticas de navegação para o mesmo gesto, dentro
           da mesma seção. A faixa anil é a da seção, não uma escolha desta tela. */}
-      <div className="flex flex-wrap items-end gap-[3px] border-b-2 border-faixa-anil mb-6">
+      <div className={`flex flex-wrap items-end gap-[3px] border-b-2 ${FAIXA.borda} mb-6`}>
         {TABS.map((t, i) => {
           const ativa = tab === t.key;
           return (
@@ -171,7 +175,7 @@ export default async function AssessoriaDetailPage({
               aria-current={ativa ? "page" : undefined}
               className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
                 ativa
-                  ? "bg-faixa-anil text-rotulo border-faixa-anil"
+                  ? `${FAIXA.fundo} text-rotulo ${FAIXA.borda}`
                   : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
               }`}
             >
