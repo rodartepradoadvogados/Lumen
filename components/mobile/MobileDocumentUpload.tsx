@@ -140,7 +140,7 @@ export default function MobileDocumentUpload({
         type="button"
         onClick={send}
         disabled={uploading}
-        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold py-1.5 disabled:opacity-50"
+        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold py-1.5 disabled:opacity-50 min-h-[44px]"
       >
         {uploading ? "Enviando..." : "Enviar para o Drive"}
       </button>

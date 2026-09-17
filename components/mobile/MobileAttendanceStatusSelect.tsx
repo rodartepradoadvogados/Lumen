@@ -35,7 +35,11 @@ export default function MobileAttendanceStatusSelect({ attendanceId, status }: {
           router.refresh();
         })
       }
-      className={`text-corpo font-semibold px-3 py-1.5 rounded-full border cursor-pointer disabled:opacity-50 ${colors[status] ?? colors.ARQUIVADO}`}
+      // 2px e 44px, como todo controle da casa. Era pílula (`rounded-full`) e media ~30px — a mesma
+      // dupla de defeitos que a guia do PWA corrigiu em seis telas e que esta ficou de fora.
+      // AS CORES aqui ficam: elas dizem ESTADO (aguardando triagem, em andamento, êxito), que é
+      // vocabulário de risco, e não categoria de conteúdo — é o uso legítimo da regra.
+      className={`text-corpo font-semibold px-3 py-1.5 min-h-[44px] rounded-[2px] border cursor-pointer disabled:opacity-50 ${colors[status] ?? colors.ARQUIVADO}`}
     >
       {allOptions.map((o) => (
         <option key={o} value={o}>

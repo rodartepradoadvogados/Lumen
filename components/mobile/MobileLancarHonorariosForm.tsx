@@ -86,7 +86,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-corpo font-semibold px-3 py-1.5 border transition-colors ${
+          className={`text-corpo font-semibold px-3 py-1.5 border transition-colorsinline-flex items-center min-h-[44px]${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua"
@@ -330,7 +330,7 @@ export default function MobileLancarHonorariosForm({
           Já recebido neste processo: <span className="font-semibold tabular-nums text-tx">{formatCurrency(alreadyReceivedForCase)}</span>
         </p>
       )}
-      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-[2px] px-3 py-2">{error}</p>}
 
       {cases && (
         <div>
@@ -504,7 +504,7 @@ export default function MobileLancarHonorariosForm({
             </div>
 
             {Math.abs(divergencia) > 0.01 && (
-              <p className="text-corpo text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+              <p className="text-corpo text-aviso bg-aviso-bg rounded-[2px] px-3 py-1.5">
                 A soma das parcelas ({formatCurrency(parcelasSoma)}) {divergencia > 0 ? "excede" : "é menor que"} o valor total indicado (
                 {formatCurrency(totalIndicadoNum)}) em {formatCurrency(Math.abs(divergencia))}.
               </p>
@@ -642,7 +642,7 @@ export default function MobileLancarHonorariosForm({
                   <span className="font-semibold tabular-nums text-tx">{formatCurrency(percentualApurado)}</span> líquido
                 </p>
               ) : (
-                <p className="text-corpo text-aviso bg-aviso-bg rounded-md px-3 py-1.5">
+                <p className="text-corpo text-aviso bg-aviso-bg rounded-[2px] px-3 py-1.5">
                   A base escolhida ainda não tem valor cadastrado neste processo — esta parcela nasce como provisão &quot;A apurar&quot;, fora do
                   fluxo de caixa, até o desfecho do processo.
                 </p>

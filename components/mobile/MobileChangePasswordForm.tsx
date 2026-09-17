@@ -51,12 +51,12 @@ export default function MobileChangePasswordForm() {
         <input id="change-password-confirm" name="confirmPassword" type="password" required minLength={6} className={inputClass} />
       </div>
       {error && (
-        <p role="alert" className="text-corpo text-urgente bg-urgente-bg border border-urgente rounded-md px-2.5 py-1.5">
+        <p role="alert" className="text-corpo text-urgente bg-urgente-bg border border-urgente rounded-[2px] px-2.5 py-1.5">
           {error}
         </p>
       )}
       {success && (
-        <p className="text-corpo text-concluido bg-concluido-bg border border-linha-concluido rounded-md px-2.5 py-1.5">
+        <p className="text-corpo text-concluido bg-concluido-bg border border-linha-concluido rounded-[2px] px-2.5 py-1.5">
           Senha alterada com sucesso.
         </p>
       )}

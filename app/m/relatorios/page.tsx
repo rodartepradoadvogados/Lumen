@@ -131,7 +131,7 @@ export default async function MobileRelatorios({ searchParams }: { searchParams:
             <Link
               key={opt.value}
               href={`/m/relatorios?meses=${opt.value}`}
-              className={`text-corpo font-semibold px-2.5 py-1 transition-colors ${
+              className={`text-corpo font-semibold px-2.5 py-1 transition-colorsinline-flex items-center min-h-[44px]${
                 meses === opt.value ? "bg-tx text-sf" : "text-tx-2"
               }`}
             >

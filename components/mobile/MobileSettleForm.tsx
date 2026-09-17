@@ -75,7 +75,7 @@ export default function MobileSettleForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-corpo font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1.5 "
+        className="flex items-center gap-1 text-corpo font-semibold text-acao-tx bg-acao hover:bg-acao-hover px-2.5 py-1.5min-h-[44px]"
       >
         <Check size={12} /> Dar Baixa
       </button>
@@ -83,7 +83,7 @@ export default function MobileSettleForm({
   }
 
   return (
-    <div className="w-full border border-linha-concluido bg-concluido-bg rounded-md p-3 space-y-2.5">
+    <div className="w-full border border-linha-concluido bg-concluido-bg rounded-[2px] p-3 space-y-2.5">
       <div className="flex items-center justify-between">
         <p className="text-corpo font-semibold text-tx">Confirmar baixa</p>
         <button type="button" onClick={() => setOpen(false)} className="text-tx-2" aria-label="Cancelar">
@@ -135,7 +135,7 @@ export default function MobileSettleForm({
           </div>
         </div>
         {ficaParcial && (
-          <p className="text-corpo text-aviso bg-aviso-bg rounded-md px-2.5 py-1.5">
+          <p className="text-corpo text-aviso bg-aviso-bg rounded-[2px] px-2.5 py-1.5">
             Valor menor que o saldo em aberto — esta conta ficará <strong>Parcial</strong>.
           </p>
         )}
@@ -167,7 +167,7 @@ export default function MobileSettleForm({
           <label className="text-corpo font-medium text-tx-2" htmlFor={`settle-${id}-receipt-number`}>Nº do comprovante (opcional)</label>
           <input id={`settle-${id}-receipt-number`} name="receiptNumber" placeholder="Ex: nº PIX/transferência" className="mobile-input" />
         </div>
-        {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-md px-2.5 py-1.5">{error}</p>}
+        {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-[2px] px-2.5 py-1.5">{error}</p>}
         <button
           type="submit"
           disabled={loading || paidAmountNum <= 0}

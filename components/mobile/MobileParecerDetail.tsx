@@ -71,7 +71,7 @@ export default function MobileParecerDetail({
     <>
       <div className="flex items-start justify-between gap-3">
         <h1 className="text-lg font-bold text-tx leading-tight">{parecer.name}</h1>
-        <Link href={`/m/assessoria/${assessoriaId}/pareceres/${parecer.id}/editar`} className="flex items-center gap-1 text-corpo font-semibold text-tx-2 shrink-0 px-2 py-1">
+        <Link href={`/m/assessoria/${assessoriaId}/pareceres/${parecer.id}/editar`} className="flex items-center gap-1 text-corpo font-semibold text-tx-2 shrink-0 px-2 py-1 min-h-[44px]">
           <Pencil size={13} /> Editar
         </Link>
       </div>
