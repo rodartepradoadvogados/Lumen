@@ -72,7 +72,7 @@ export default async function DrePage({
 
   return (
     <div className="tela">
-      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader
@@ -128,7 +128,7 @@ export default async function DrePage({
             Filtrar
           </button>
           {usingCustomRange && (
-            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx px-2">
+            <Link href={`/financeiro/dre${costCenterId ? `?costCenterId=${costCenterId}` : ""}`} className="text-xs font-semibold text-tx-2 hover:text-tx px-2">
               Voltar para visão mensal
             </Link>
           )}

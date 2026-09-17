@@ -68,7 +68,7 @@ export default async function FluxoDeCaixaPage() {
 
   return (
     <div className="tela">
-      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader

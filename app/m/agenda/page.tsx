@@ -133,6 +133,10 @@ async function DayView({
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
+      {/* Oculto: o seletor de dia/semana logo abaixo já mostra a data em tipo grande, e é ele o
+          título visual. O que faltava era o título SEMÂNTICO — a tela não tinha <h1> nenhum, e a
+          navegação por títulos pulava a agenda inteira. */}
+      <h1 className="sr-only">Agenda</h1>
       <ViewToggle view="day" d={toISODate(start)} />
 
       {novo && (
@@ -294,6 +298,10 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in">
+      {/* Oculto: o seletor de dia/semana logo abaixo já mostra a data em tipo grande, e é ele o
+          título visual. O que faltava era o título SEMÂNTICO — a tela não tinha <h1> nenhum, e a
+          navegação por títulos pulava a agenda inteira. */}
+      <h1 className="sr-only">Agenda</h1>
       <ViewToggle view="week" d={toISODate(day)} />
 
       <div className="flex items-center justify-between gap-2">

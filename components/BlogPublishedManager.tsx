@@ -71,7 +71,7 @@ export default function BlogPublishedManager({ posts, photos = [] }: { posts: Pu
             >
               {post.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.imageUrl} alt="" className="h-12 w-16 object-cover border border-regua shrink-0" />
+                <img src={post.imageUrl} alt="" className="h-12 w-16 object-cover border border-regua shrink-0" loading="lazy" decoding="async" />
               ) : (
                 <div className="h-12 w-16 bg-sf-apoio border border-regua shrink-0" />
               )}

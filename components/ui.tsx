@@ -158,8 +158,12 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
   return (
     <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-tx">{title}</h1>
-        {subtitle && <p className="text-sm text-tx-2 mt-1">{subtitle}</p>}
+        {/* `text-autuacao` (28px), a mesma parada que /processos/[id], /assessoria/[id] e as
+            nove telas do Painel da Empresa usam para dizer DE QUE É ESTA TELA. Este <h1> serve a
+            maior parte do portal e era o último fora da rampa — ficava em 22px, empatado com o
+            `text-guia`, sem degrau entre a identidade da tela e um título de painel. */}
+        <h1 className="text-autuacao font-bold text-tx leading-tight">{title}</h1>
+        {subtitle && <p className="text-corpo text-tx-2 mt-1">{subtitle}</p>}
       </div>
       {action}
     </div>

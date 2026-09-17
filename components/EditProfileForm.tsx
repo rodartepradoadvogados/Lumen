@@ -79,7 +79,7 @@ export default function EditProfileForm({ profile, userId, initials }: { profile
         >
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+            <img src={photoUrl} alt="Foto de perfil" className="h-full w-full object-cover" loading="lazy" decoding="async" />
           ) : (
             initials
           )}
