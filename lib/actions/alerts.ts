@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/currentUser";
 import { prisma } from "@/lib/prisma";
-import { getAlertsCount } from "@/lib/alerts";
+import { getAlerts, getAlertsCount } from "@/lib/alerts";
 
 // Tipos de alerta sem nenhuma ação de "resolver" (ver lib/alerts.ts) ganham um botão "Lido" —
 // por usuário, igual PublicationRead: dispensar não afeta os outros advogados do escritório.
@@ -47,4 +47,44 @@ export async function getUnreadAlertsCount(): Promise<number> {
   if (!user) return 0;
   const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
   return getAlertsCount(user.officeId, hasFinanceAccess, user.id, user.isAdmin);
+}
+
+// PRÉVIA DA CENTRAL — alimenta o painel que desce do sino na barra de topo
+// (components/SinoAlertas.tsx), pedido do dono em 17/09/2026: "quando clicar nesse sino, não
+// abre nova tela da central de alertas, mas desliza para baixo os alertas, e só muda de tela se
+// clicar em uma das pendências."
+//
+// Buscada SOB DEMANDA, na primeira abertura do painel, e não junto com o resto da barra de topo.
+// A razão é custo: `getAlerts` roda as mesmas consultas de `getAlertsCount` MAIS os includes de
+// case/comment/author que ela precisa para montar cada linha. A barra de topo renderiza em toda
+// navegação do portal; pagar os includes em cada uma delas, para uma gaveta que quase sempre fica
+// fechada, seria trocar uma tela inteira mais lenta por uma gaveta mais rápida.
+//
+// `date` sai como ISO porque atravessa a fronteira servidor→cliente. O limite de 8 linhas é da
+// PRÉVIA, não da Central: o rodapé do painel leva à tela completa, e o número do sino continua
+// sendo o total (é ele que diz quantas existem, não o tamanho desta lista).
+export type AlertaPrevia = {
+  id: string;
+  kind: string;
+  title: string;
+  subtitle?: string;
+  date: string;
+  href: string;
+  severity: "alta" | "media" | "baixa";
+};
+
+export async function listarPreviaAlertas(): Promise<AlertaPrevia[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const hasFinanceAccess = Boolean(user.isAdmin || user.financeAccess);
+  const alertas = await getAlerts(user.officeId, hasFinanceAccess, user.id, user.isAdmin);
+  return alertas.slice(0, 8).map((a) => ({
+    id: a.id,
+    kind: a.kind,
+    title: a.title,
+    subtitle: a.subtitle,
+    date: a.date.toISOString(),
+    href: a.href,
+    severity: a.severity,
+  }));
 }
