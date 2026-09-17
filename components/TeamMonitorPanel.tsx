@@ -138,8 +138,13 @@ export default function TeamMonitorPanel({
         </div>
       </button>
 
+      {/* DESLIZA, não escala — pedido do dono em 17/09/2026: "se clicar na foto do perfil, anime
+          a abertura do quadro deslizando para baixo." Estava em `popupIn` (Movimento 5: escala
+          0,96→1 + fade), que nasce do gatilho mas não desce de lugar nenhum. `menuDesce`
+          (Movimento 9, 160ms) é a mesma entrada que a busca e o sino ao lado usam agora — três
+          gavetas vizinhas na mesma barra, um movimento só. */}
       {open && (
-        <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf border border-regua shadow-menu z-50 overflow-hidden origin-top-right animate-popup-in">
+        <div className="solid-popover absolute right-0 top-full mt-2 w-96 max-w-[90vw] bg-sf border border-regua shadow-menu z-50 overflow-hidden origin-top animate-menu-desce">
           {/* Ordem do menu (DESIGN-SYSTEM.md §5): identificação → tema → Meu perfil → Sair
               (vinho, separado por régua). O bloco "Modo de visualização" saiu — Régua/Bancada
               não existem mais, ver components/AppShell.tsx e documento 02 do handoff. */}

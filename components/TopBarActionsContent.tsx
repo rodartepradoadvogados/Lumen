@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Bell, Lock, Newspaper } from "lucide-react";
+import { Lock, Newspaper } from "lucide-react";
+import SinoAlertas from "@/components/SinoAlertas";
 import PeticionarButton from "@/components/PeticionarButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import TimesheetTimer from "@/components/TimesheetTimer";
@@ -62,26 +63,10 @@ export default function TopBarActionsContent({
         </Link>
       )}
 
-      {/* O SINO — mesma contagem, mesmo teto de exibição e mesmo rótulo acessível do sino do PWA
-          (app/m/layout.tsx). Ver o comentário longo em components/TopBarActions.tsx: aqui o
-          número vinha de "o que vence hoje" e lá da Central inteira, então o site dizia 1 com o
-          PWA dizendo 22. O teto também divergia — 9+ aqui, 99+ lá: com 22 pendências o site
-          escrevia "9+" e escondia a escala do problema justamente de quem precisa vê-la. */}
-      <Link
-        href="/alertas?tab=pendentes"
-        aria-label={`Central de Alertas${alertsCount > 0 ? `, ${alertsCount} pendente(s)` : ""}`}
-        className="relative p-2 hover:bg-sf-apoio transition-colors rounded-md"
-      >
-        <Bell size={20} className="text-tx" />
-        {alertsCount > 0 && (
-          <span // Bordô, igual ao badge do sino do PWA (app/m/layout.tsx) — pedido do dono em 2026-09-16:
-            // contagem não é risco, o vermelho/âmbar fica para prazo vencido. Este era o terceiro
-            // desalinhamento entre os dois sinos, junto com a contagem e o teto de exibição.
-            className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full text-etiqueta font-bold flex items-center justify-center bg-acao text-acao-tx tabular-nums">
-            {alertsCount > 99 ? "99+" : alertsCount}
-          </span>
-        )}
-      </Link>
+      {/* O SINO — agora uma gaveta que desce, não um link que troca a tela. Ver a nota longa em
+          components/SinoAlertas.tsx; a contagem continua vindo de getAlertsCount, a mesma do sino
+          do PWA (components/TopBarActions.tsx). */}
+      <SinoAlertas count={alertsCount} />
 
       <div className="flex items-center gap-2 pl-3 border-l border-regua">
         {user ? (

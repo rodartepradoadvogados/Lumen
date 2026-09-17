@@ -88,7 +88,7 @@ export default function NavRail({
           sempre escuro, Manhã e Noite) — documento 02 do handoff. */}
       <aside
         className={clsx(
-          "w-16 md:w-14 lg:w-[76px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-gaveta transition-transform duration-200 md:translate-x-0",
+          "w-16 md:w-14 lg:w-[112px] shrink-0 flex flex-col items-center h-full fixed md:static top-0 left-0 z-50 bg-gaveta transition-transform duration-200 md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -100,7 +100,15 @@ export default function NavRail({
           <LumenMark size={38} />
         </Link>
 
-        <nav className="flex-1 flex flex-col items-center gap-1 w-full px-2 overflow-y-auto scrollbar-thin">
+        {/* `overflow-x-hidden` explícito: a barra de rolagem HORIZONTAL que o dono viu no pé do rail
+            (17/09/2026) nascia aqui. `overflow-y-auto` sozinho deixa o eixo x em `auto` também, e
+            o rótulo "Comunicação" — escrito para não quebrar — transbordava os 62px úteis que
+            sobravam num rail de 76px. Medido no Chromium: 93px de texto em 53px de caixa, conteúdo
+            de 104px numa faixa de 75px. Eram a mesma falha contada como duas queixas.
+            A correção de verdade é a largura (112px acima, onde a palavra cabe inteira em uma
+            linha); este `overflow-x-hidden` é o cinto de segurança para o dia em que alguém
+            acrescentar uma seção de nome mais longo. */}
+        <nav className="flex-1 flex flex-col items-center gap-2 w-full px-2 pt-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
           <RailButton
             href="/painel"
             label="Painel"
@@ -178,29 +186,41 @@ function RailButton({
         // Portal Noturno (DESIGN.md): raio quase reto (2px), não o rounded-md (6px) do resto do
         // produto — exceção documentada, aplicada por componente (ver comentário em
         // tailwind.config.ts sobre por que não dá pra escopar por token aqui).
-        "relative w-full flex flex-col items-center gap-0.5 py-2.5 rounded-[2px] transition-colors",
-        active
-          ? // Item ativo — pílula (proposta "Editorial fino"/"Pílula bordô" de 2026-08, ver
-            // docs/DESIGN-SYSTEM.md): fundo bordô suave + ícone/rótulo na cor de marca, no lugar
-            // do antigo fundo #2d2b2b + filete de 4px à esquerda.
-            "bg-rail-marca-bg text-rail-marca font-semibold"
-          : "text-rail-tx hover:bg-gaveta-fundo hover:text-gaveta-tinta"
+        "relative w-full flex flex-col items-center gap-1.5 py-2 rounded-[2px] transition-colors",
+        // O FUNDO DO ITEM não muda mais com a seleção — quem responde por ela é a caixa do ícone,
+        // logo abaixo. Antes o item ativo era uma pílula bordô inteira ("Editorial fino", 2026-08),
+        // o que gastava a cor da AÇÃO num estado de navegação: bordô é a marca e é o risco, e o
+        // rail o usava para dizer "você está aqui". Escolha do dono em 17/09/2026, entre três
+        // opções mostradas em artefato.
+        active ? "text-gaveta-tinta font-bold" : "text-rail-tx hover:bg-gaveta-fundo hover:text-gaveta-tinta"
       )}
     >
-      <span className="relative">
-        <Icon size={19} strokeWidth={1.5} />
+      {/* A CAIXA — existe só no item selecionado, e some por completo nos demais (pedido explícito
+          do dono: "mostra o colorido com caixa apenas quando selecionado; quando não selecionado,
+          mantenha sem caixa"). Bronze, o mesmo `--guia-ativa` da aba de ficha: um lugar aceso e
+          uma linguagem só para "é este que está aberto". O quadrado de 36px existe nos dois
+          estados, sem borda nem fundo quando inativo, para o ícone não pular de posição na troca. */}
+      <span
+        className={clsx(
+          "relative h-9 w-9 flex items-center justify-center rounded-[2px] transition-colors",
+          active && "bg-guia-ativa text-rotulo"
+        )}
+      >
+        <Icon size={22} strokeWidth={1.6} />
         {badge > 0 && (
           <span // Bordô, não vermelho (pedido do dono, 2026-09-16): contagem não é risco, e o vermelho
           // fica reservado a prazo vencido. O bordô é escuro nos dois temas, então o rótulo claro
           // vale sempre.
-          className="absolute -top-1.5 -right-2 min-w-[17px] h-[17px] px-1 rounded-full bg-acao text-acao-tx text-etiqueta font-bold flex items-center justify-center">
+          className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-acao text-acao-tx text-etiqueta font-bold flex items-center justify-center">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
       </span>
-      {/* Barlow Condensed (Portal Noturno, DESIGN.md) — rótulo pequeno de navegação é
-          exatamente o papel que a fonte condensada cumpre no CowData (número/rótulo/aba). */}
-      <span className="hidden lg:block font-display font-semibold text-etiqueta leading-none tracking-wide">{label}</span>
+      {/* `whitespace-nowrap`: com 112px de rail o rótulo mais longo ("Comunicação") cabe inteiro
+          numa linha, e é assim que ele deve ficar — quebrar "Comunicaç/ão" seria trocar um defeito
+          por outro. Renomear a seção para caber num espaço menor foi considerado e recusado: o
+          espaço é que estava errado. */}
+      <span className="hidden lg:block font-display font-semibold text-etiqueta leading-none tracking-wide whitespace-nowrap">{label}</span>
     </Link>
   );
 }

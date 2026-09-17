@@ -1,3 +1,4 @@
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -364,26 +365,30 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
 }
 
 function ViewToggle({ view, d }: { view: "day" | "week"; d: string }) {
-  // Controle segmentado de dois estados — mesmo padrão de inversão do menu de tema/modo de
-  // visualização (DESIGN-SYSTEM.md §5): opção ativa inverte fundo/texto, sem cor de acento.
+  // O SELETOR DE MODO — retorno do dono em 17/09/2026: "na agenda do PWA, o seletor de dia ou
+  // semana é apenas separado por uma barra, e não mostra do que se trata."
+  //
+  // Era um controle segmentado de dois estados, com o ativo invertendo fundo e texto. Dois
+  // problemas, e o segundo é o mais fundo:
+  //
+  //   1. nada dizia que aquilo era um seletor de modo de VISUALIZAÇÃO — só "Dia | Semana" solto;
+  //   2. o estado invertido lê como "botão apertado", não como "aba aberta" — e era a SEXTA
+  //      gramática de navegação do PWA para o mesmo gesto (processo, atendimento, financeiro e
+  //      licitações já usavam a guia chanfrada, via components/mobile/GuiaMobile.tsx).
+  //
+  // Agora usa a guia da casa, com rótulo dizendo o que ela faz. Escolhido pelo dono entre três
+  // formas mostradas em artefato.
   return (
-    <div className="flex gap-1 bg-sf-apoio border border-regua p-1">
-      <Link
-        href={`/m/agenda?view=day&d=${d}`}
-        className={`flex-1 text-center text-corpo font-semibold py-1.5 transition-colors ${
-          view === "day" ? "bg-tx text-sf" : "text-tx-2"
-        }`}
-      >
-        Dia
-      </Link>
-      <Link
-        href={`/m/agenda?view=week&d=${d}`}
-        className={`flex-1 text-center text-corpo font-semibold py-1.5 transition-colors ${
-          view === "week" ? "bg-tx text-sf" : "text-tx-2"
-        }`}
-      >
-        Semana
-      </Link>
+    <div>
+      <span className="block text-etiqueta font-bold uppercase tracking-[.09em] text-tx-3 mb-1.5">Ver por</span>
+      <TiraDeGuias>
+        <GuiaLink href={`/m/agenda?view=day&d=${d}`} ativa={view === "day"}>
+          Dia
+        </GuiaLink>
+        <GuiaLink href={`/m/agenda?view=week&d=${d}`} ativa={view === "week"}>
+          Semana
+        </GuiaLink>
+      </TiraDeGuias>
     </div>
   );
 }

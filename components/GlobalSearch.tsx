@@ -195,27 +195,48 @@ export default function GlobalSearch({
   }
 
   return (
-    <>
+    // O ANCORAMENTO — retorno do dono em 17/09/2026: "o quadro de buscar está muito estreito,
+    // muito discreto... colocar mais largo um pouco, e quando clicar, não precisa abrir a janela
+    // suspensa no centro da tela, pode abrir deslizando para baixo logo abaixo dessa barra."
+    //
+    // Era uma paleta ⌘K clássica: painel fixo, centralizado a 80px do topo, com véu escuro por
+    // cima da tela inteira. Quer dizer: para buscar, o produto apagava o que a pessoa estava
+    // vendo — e a busca aqui quase nunca é "vou a outro lugar", é "preciso de um dado enquanto
+    // trabalho nisto". O véu saiu junto com a centralização: ele só fazia sentido para uma
+    // sobreposição modal, e esta deixou de ser.
+    //
+    // `relative` aqui e `absolute` no painel: ele desce colado no gatilho em vez de ignorar onde
+    // o gatilho está. O ref cobre o conjunto (gatilho + painel), não só o painel, senão o clique
+    // no próprio gatilho contaria como "clique fora" e fecharia antes de reabrir.
+    <div ref={panelRef} className="relative">
       {/* Borda + raio própria (ajuste de tema, agosto/2026): a faixa de topo deixou de ter uma
           "ilha clara" (bg-sf) por baixo do gatilho — sem contorno próprio, o botão ficaria só
-          texto solto direto na faixa, sem nenhuma pista de que é clicável. */}
+          texto solto direto na faixa, sem nenhuma pista de que é clicável.
+          Largura: de ~120px fixos para até 340px fluidos, com o texto dizendo o que se busca. */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((v) => !v)}
         aria-label="Abrir busca (⌘K)"
-        className="flex items-center gap-2 h-8 px-3 rounded-md border border-regua hover:bg-sf-apoio text-sm text-tx-2 hover:text-tx transition-colors"
+        aria-expanded={open}
+        className="flex items-center gap-2 h-8 w-[clamp(168px,20vw,340px)] px-3 rounded-[2px] border border-regua-forte hover:bg-sf-apoio text-sm text-tx-2 hover:text-tx transition-colors"
       >
-        <Search size={15} />
-        <span className="hidden lg:inline">Buscar...</span>
-        <kbd className="hidden lg:inline text-etiqueta font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5 rounded-sm">⌘K</kbd>
+        <Search size={15} className="shrink-0" />
+        <span className="hidden lg:inline truncate">Buscar processo, cliente, documento…</span>
+        <span className="lg:hidden truncate">Buscar…</span>
+        <kbd className="hidden lg:inline ml-auto shrink-0 text-etiqueta font-semibold text-tx-3 border border-regua-forte px-1.5 py-0.5 rounded-sm">⌘K</kbd>
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40 bg-grafite-900/40" aria-hidden="true" />
-          {/* 440px (documento 02) — painel centralizado, mesma posição fixa qualquer que seja o
-              tamanho/posição do botão-gatilho que abriu. */}
-          <div ref={panelRef} className="fixed left-1/2 top-20 z-50 w-[440px] max-w-[92vw] -translate-x-1/2">
+          {/* A LARGURA DO PAINEL — segundo retorno do dono, no mesmo dia: "quando clicar, não pode
+              abrir somente com a largura da caixa de busca, que fica ruim para ler. Tem que abrir
+              mais larga para o lado esquerdo, pelo menos no dobro da largura da caixa, ou até 3x."
+              `right-0` é o que faz o painel crescer para a ESQUERDA: a borda direita fica presa à
+              do gatilho e a largura se estende no sentido contrário. 720px é ~2x a largura máxima
+              do gatilho (340px) e ~4x a mínima; o `min()` com a viewport impede que ele passe da
+              tela em janela estreita. O resultado que importa é a linha de resultado caber sem
+              truncar — título de processo com número CNJ e subtítulo não cabiam em 340px. */}
+          <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[min(720px,calc(100vw-32px))] animate-menu-desce origin-top">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-tx-3 pointer-events-none" />
               <input
@@ -272,6 +293,6 @@ export default function GlobalSearch({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
