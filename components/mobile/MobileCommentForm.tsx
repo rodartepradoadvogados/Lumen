@@ -96,7 +96,7 @@ export default function MobileCommentForm({
           type="button"
           onClick={submit}
           disabled={pending || !content.trim()}
-          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-40 text-acao-tx text-corpo font-semibold px-3 py-1.5 transition-colors"
+          className="flex items-center gap-1.5 bg-acao hover:bg-acao-hover disabled:opacity-40 text-acao-tx text-corpo font-semibold px-3 py-1.5 transition-colors min-h-[44px]"
         >
           <Send size={13} /> {pending ? "Enviando..." : "Enviar"}
         </button>

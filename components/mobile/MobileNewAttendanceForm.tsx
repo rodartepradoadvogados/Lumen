@@ -288,7 +288,7 @@ export default function MobileNewAttendanceForm({
       </ButtonSecondary>
 
       {uploadWarnings.length > 0 && (
-        <div className="flex items-start gap-2 text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-md px-3 py-2">
+        <div className="flex items-start gap-2 text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-[2px] px-3 py-2">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Atendimento criado, mas {uploadWarnings.length} anexo(s) não foram enviados.</p>
@@ -352,7 +352,7 @@ export default function MobileNewAttendanceForm({
               key={m}
               type="button"
               onClick={() => setFeeMode(m)}
-              className={`text-corpo font-semibold px-2.5 py-1.5 border transition-colors ${
+              className={`text-corpo font-semibold px-2.5 py-1.5 border transition-colorsinline-flex items-center min-h-[44px]${
                 feeMode === m
                   ? "bg-acao text-acao-tx border-acao"
                   : "bg-sf text-tx-2 border-regua"
@@ -420,7 +420,7 @@ export default function MobileNewAttendanceForm({
         <p className="text-corpo font-semibold text-tx-2 uppercase tracking-wide mb-2">Anexos</p>
 
         {!driveConnected ? (
-          <p className="text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-md px-2.5 py-1.5">
+          <p className="text-corpo text-aviso bg-aviso-bg border border-linha-aviso rounded-[2px] px-2.5 py-1.5">
             Drive ainda não conectado. Peça a um administrador para conectar em Configurações — depois de criar o atendimento,
             você ainda pode anexar documentos pelo computador.
           </p>

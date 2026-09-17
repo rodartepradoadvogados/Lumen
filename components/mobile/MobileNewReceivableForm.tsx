@@ -52,7 +52,7 @@ export default function MobileNewReceivableForm({
         </button>
       </div>
 
-      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-[2px] px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {

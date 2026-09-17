@@ -119,7 +119,7 @@ export default function MobileLicitacaoDocumentUpload({
       />
       <DocumentTypeSelect value={docType} onChange={setDocType} className="w-full text-corpo border border-regua bg-sf text-tx px-2.5 py-1.5" allowCreate />
       {showTaskPicker && (
-        <select value={assignTaskId} onChange={(e) => setAssignTaskId(e.target.value)} className="w-full text-corpo border border-regua bg-sf text-tx px-2.5 py-1.5">
+        <select value={assignTaskId} onChange={(e) => setAssignTaskId(e.target.value)} className="w-full text-corpo border border-regua bg-sf text-tx px-2.5 py-1.5 min-h-[44px]">
           <option value="">Geral da licitação</option>
           {taskOptions!.map((t) => (
             <option key={t.id} value={t.id}>{t.title}</option>
@@ -131,7 +131,7 @@ export default function MobileLicitacaoDocumentUpload({
         type="button"
         onClick={send}
         disabled={uploading}
-        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold py-1.5 disabled:opacity-50"
+        className="w-full bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold py-1.5 disabled:opacity-50 min-h-[44px]"
       >
         {uploading ? "Enviando..." : "Enviar para o Drive"}
       </button>

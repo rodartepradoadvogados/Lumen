@@ -141,7 +141,7 @@ export default function NotificationPreferences() {
           type="button"
           disabled={busy}
           onClick={subscribed ? handleDisable : handleEnable}
-          className={`text-corpo font-semibold px-3 py-1.5 transition-colors disabled:opacity-50 ${
+          className={`text-corpo font-semibold px-3 py-1.5 transition-colors disabled:opacity-50inline-flex items-center min-h-[44px]${
             subscribed
               ? "bg-sf-apoio text-tx-2"
               : "bg-acao hover:bg-acao-hover text-acao-tx"

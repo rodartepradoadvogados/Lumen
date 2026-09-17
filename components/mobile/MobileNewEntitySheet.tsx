@@ -42,7 +42,7 @@ export default function MobileNewEntitySheet({
   return (
     <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
-        className="bg-sf shadow-pop w-full sm:max-w-md rounded-t-2xl sm:rounded-lg max-h-[85vh] flex flex-col overflow-hidden animate-fade-in"
+        className="bg-sf shadow-pop w-full sm:max-w-md rounded-t-2xl sm:rounded-[2px] max-h-[85vh] flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-regua shrink-0">
@@ -85,7 +85,7 @@ function EntityGroup({ label, items, onClose }: { label: string; items: Item[]; 
             key={href}
             href={href}
             onClick={onClose}
-            className="flex flex-col items-center gap-1.5 py-2 rounded-md hover:bg-sf-apoio transition-colors"
+            className="flex flex-col items-center gap-1.5 py-2 rounded-[2px] hover:bg-sf-apoio transition-colors"
           >
             <span className="h-12 w-12 rounded-full bg-sf-apoio flex items-center justify-center text-tx">
               <Icon size={20} strokeWidth={1.75} />

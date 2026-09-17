@@ -275,7 +275,7 @@ export default async function MobileConfiguracoes({
                     {processosMonitoradosCount} processo(s) monitorado(s) — API oficial, não sofre o bloqueio do DJEN.
                   </p>
                   {ultimoLogDatajud ? (
-                    <p className={`text-corpo px-2.5 py-1.5 rounded-md ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
+                    <p className={`text-corpo px-2.5 py-1.5 rounded-[2px] ${ultimoLogDatajud.sucesso ? "bg-concluido-bg text-concluido" : "bg-urgente-bg text-urgente"}`}>
                       Última execução {formatRelativeTimeMobile(ultimoLogDatajud.executadoEm)}: {ultimoLogDatajud.sucesso ? "sucesso" : "falhou"}
                     </p>
                   ) : (
@@ -430,7 +430,7 @@ export default async function MobileConfiguracoes({
                   <div className="p-4 flex gap-2 flex-wrap">
                     <Link
                       href="/m/configuracoes?blogTab=revisao"
-                      className={`text-corpo font-semibold px-3 py-1.5 transition-colors ${
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colorsinline-flex items-center min-h-[44px]${
                         blogTab === "revisao" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >
@@ -438,7 +438,7 @@ export default async function MobileConfiguracoes({
                     </Link>
                     <Link
                       href="/m/configuracoes?blogTab=publicadas"
-                      className={`text-corpo font-semibold px-3 py-1.5 transition-colors ${
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colorsinline-flex items-center min-h-[44px]${
                         blogTab === "publicadas" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >
@@ -446,7 +446,7 @@ export default async function MobileConfiguracoes({
                     </Link>
                     <Link
                       href="/m/configuracoes?blogTab=fotos"
-                      className={`text-corpo font-semibold px-3 py-1.5 transition-colors ${
+                      className={`text-corpo font-semibold px-3 py-1.5 transition-colorsinline-flex items-center min-h-[44px]${
                         blogTab === "fotos" ? "bg-acao text-acao-tx" : "bg-sf-apoio text-tx-2 border border-regua"
                       }`}
                     >

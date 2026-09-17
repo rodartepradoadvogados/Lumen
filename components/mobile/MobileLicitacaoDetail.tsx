@@ -91,7 +91,7 @@ export default function MobileLicitacaoDetail({
         <h1 className="text-lg font-bold text-tx leading-tight">{licitacao.nome || licitacao.objeto}</h1>
         <Link
           href={`/m/assessoria/${assessoriaId}/licitacoes/${licitacao.id}/editar`}
-          className="flex items-center gap-1 text-corpo font-semibold text-tx-2 shrink-0 px-2 py-1"
+          className="flex items-center gap-1 text-corpo font-semibold text-tx-2 shrink-0 px-2 py-1 min-h-[44px]"
         >
           <Pencil size={13} /> Editar
         </Link>
@@ -122,7 +122,7 @@ export default function MobileLicitacaoDetail({
             value={licitacao.status}
             onChange={(e) => handleStatusChange(e.target.value)}
             disabled={pending}
-            className="text-corpo font-semibold border border-regua-forte bg-sf-superficie text-tx px-2 py-1"
+            className="text-corpo font-semibold border border-regua-forte bg-sf-superficie text-tx px-2 py-1 min-h-[44px]"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -148,7 +148,7 @@ export default function MobileLicitacaoDetail({
             </select>
             {error && <p role="alert" className="text-corpo text-urgente">{error}</p>}
             <div className="flex gap-2">
-              <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-1.5 disabled:opacity-50">
+              <button type="submit" disabled={pending} className="bg-acao hover:bg-acao-hover text-acao-tx text-corpo font-semibold px-3 py-1.5 disabled:opacity-50 inline-flex items-center min-h-[44px]">
                 Adicionar
               </button>
               <button type="button" onClick={() => setTaskFormOpen(false)} className="text-corpo font-semibold text-tx-2">Cancelar</button>

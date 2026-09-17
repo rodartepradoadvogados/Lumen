@@ -59,7 +59,7 @@ export default function MobileNovaAnotacaoForm({ linkType, entityId }: { linkTyp
         <button
           type="button"
           onClick={() => setDate(todayIsoDate())}
-          className="shrink-0 text-corpo font-semibold px-2.5 py-1.5 bg-sf-apoio text-tx-2"
+          className="shrink-0 text-corpo font-semibold px-2.5 py-1.5 bg-sf-apoio text-tx-2 inline-flex items-center min-h-[44px]"
         >
           Hoje
         </button>

@@ -28,7 +28,7 @@ function Segmented<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-corpo font-semibold px-3 py-1.5 border transition-colors ${
+          className={`text-corpo font-semibold px-3 py-1.5 border transition-colorsinline-flex items-center min-h-[44px]${
             value === opt.value
               ? "bg-acao text-acao-tx border-acao"
               : "bg-sf text-tx-2 border-regua"
@@ -111,7 +111,7 @@ export default function MobileNewPayableForm({
         </div>
       )}
 
-      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-md px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-corpo text-urgente bg-urgente-bg rounded-[2px] px-3 py-2">{error}</p>}
 
       <form
         action={async (formData) => {

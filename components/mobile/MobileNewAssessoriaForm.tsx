@@ -71,7 +71,7 @@ export default function MobileNewAssessoriaForm({ clients, users }: { clients: C
 
       {error && <p role="alert" className="text-corpo font-semibold text-urgente">{error}</p>}
 
-      <button type="submit" disabled={pending} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-md transition-colors disabled:opacity-50">
+      <button type="submit" disabled={pending} className="w-full bg-acao hover:bg-acao-hover text-acao-tx font-semibold py-2.5 rounded-[2px] transition-colors disabled:opacity-50">
         {pending ? "Criando..." : "Criar Assessoria"}
       </button>
     </form>
