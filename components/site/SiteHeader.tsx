@@ -104,7 +104,7 @@ export default function SiteHeader({
         rolado ? "border-marca-tx" : "border-regua-forte"
       }`}
     >
-      <div className="max-w-[1120px] mx-auto px-6 h-[76px] flex items-center justify-between gap-6">
+      <div className="faixa-site h-[76px] flex items-center justify-between gap-6">
         <Link href="/" className="flex items-center gap-2.5 font-extrabold text-lg tracking-[.16em] shrink-0">
           <LumenMark size={26} /> LÚMEN
         </Link>

@@ -34,9 +34,6 @@ export default async function LoginPage() {
           <Link href="/cadastro" className="text-corpo font-semibold text-tx-2 hover:text-tx underline underline-offset-4 transition-colors duration-100 ease-out">
             Ainda não tem conta? Criar a conta do escritório
           </Link>
-          <Link href="/" className="text-etiqueta font-semibold text-tx-3 hover:text-tx transition-colors duration-100 ease-out">
-            ← Voltar ao site
-          </Link>
         </div>
       }
     >

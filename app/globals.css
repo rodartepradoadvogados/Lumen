@@ -1387,26 +1387,27 @@ html:has(.site-publico) {
    ("grafite nos dois temas", DESIGN.md §3). Só a área de CONTEÚDO (`.painel-mestre-shell`,
    LumenPanel e o corpo de cada tela) retemea entre os dois estados abaixo. */
 .painel-mestre-shell {
-  /* --- superficies: Ardosia, cinza-pedra frio (escolha do dono, 2026-09-16) --- */
-  --papel: #181b1f;
-  --ficha: #212529;
-  --ficha-alt: #131518;
-  --linha: #32383f;
-  --linha-forte: #474f5a;
+  /* --- a face escura do mesmo cinza neutro-quente do bloco claro abaixo (ver a nota longa la).
+         Nao e o escuro do CowData, que e tingido de vinho — a marca DELE. Aqui o que se copia e
+         a NEUTRALIDADE quente, para as duas faces do Painel serem o mesmo lugar e nenhuma delas
+         ser o ardosia frio do portal. --- */
+  --papel: #191816;
+  --ficha: #22211e;
+  --ficha-alt: #131211;
+  --linha: #383631;
+  --linha-forte: #504c45;
 
-  /* --- o rail e superficie PROPRIA e retematiza. Antes era grafite fixo nos dois temas,
-         que era a "barra preta a esquerda" do tema claro. --- */
-  --gaveta: #0f1113;
-  --gaveta-fundo: #0a0b0d;
-  --gaveta-tinta: #b1b3b8;
-  --gaveta-tinta-2: #8b8f96;
-  --gaveta-linha: #23272e;
+  /* --- o rail do Painel, na mesma familia --- */
+  --gaveta: #100f0e;
+  --gaveta-fundo: #0a0a09;
+  --gaveta-tinta: #b4afa8;
+  --gaveta-tinta-2: #8f8981;
+  --gaveta-linha: #26241f;
 
-  /* --- tinta, com folga deliberada: 13:1 / 8:1 / 5,2:1. A queixa de "letras apagadas"
-         vinha do teto de contraste do fundo creme, que era 11:1. --- */
-  --tinta: #e9ebef;
-  --tinta-2: #b8bbbf;
-  --tinta-3: #93969d;
+  /* --- tinta: 13,8:1 / 8,2:1 / 5,2:1 sobre a ficha --- */
+  --tinta: #efede9;
+  --tinta-2: #bdb8b0;
+  --tinta-3: #979188;
 
   /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
          decisao do dono, e o anil entrou no lugar dele. --- */
@@ -1517,26 +1518,39 @@ html:has(.site-publico) {
    claramente mais fechada/cinza-arroxeada, deliberadamente distinta. Mesma família de matiz da
    Noite acima (grafite-arroxeado), só invertida em luminância — não um cinza neutro genérico. */
 .painel-mestre-shell.painel-mestre-light {
-  /* --- superficies: Ardosia, cinza-pedra frio (escolha do dono, 2026-09-16) --- */
-  --papel: #eaedf0;
+  /* --- O CINZA DO PAINEL: copiado do painel CowData, a pedido do dono (17/09/2026) ---
+         "Veja nos dois últimos prints o painel CowData, que é compatível com o painel mestre do
+         Lúmen. Ele tem uma cor cinza. Quero colocar exatamente essa mesma cor para o painel
+         mestre, para mostrar a diferença de um local para o outro."
+         O problema era real: o Painel Mestre usava as MESMAS superfícies ardósia do portal, então
+         nada na tela dizia que a pessoa tinha trocado de lugar. Os valores abaixo são os do tema
+         claro do CowData, lidos do repositório (frontend/app/globals.css, bloco
+         :root[data-theme="claro"]), não estimados de captura de tela: um cinza neutro de viés
+         quente, sem o azul do ardósia.
+         A escala de tinta do CowData só declara dois degraus (texto e texto-mudo); o Lúmen usa
+         três (13:1 / 8:1 / 5,2:1). Os dois do CowData entram como --tinta e --tinta-3, e o degrau
+         do meio foi interpolado na mesma família — medido: 17,1:1 / 7,9:1 / 5,7:1 sobre a ficha.
+         O CowData tem um terceiro tema ("misto"); o dono dispensou: "não precisa de cor mista,
+         só escuro e claro já é suficiente". Por isso o escuro abaixo não copia o escuro do
+         CowData (que é tingido de vinho, a marca DELE) — ele é o mesmo cinza neutro-quente
+         invertido, para as duas faces do Painel serem o mesmo lugar. --- */
+  --papel: #f1f1ef;
   --ficha: #ffffff;
-  --ficha-alt: #dfe3e8;
-  --linha: #cbd1da;
-  --linha-forte: #a5b1bf;
+  --ficha-alt: #e9e9e6;
+  --linha: #dbdbd7;
+  --linha-forte: #c7c7c2;
 
-  /* --- o rail e superficie PROPRIA e retematiza. Antes era grafite fixo nos dois temas,
-         que era a "barra preta a esquerda" do tema claro. --- */
-  --gaveta: #d8dde3;
-  --gaveta-fundo: #cdd4dc;
-  --gaveta-tinta: #2c2f32;
-  --gaveta-tinta-2: #51555c;
-  --gaveta-linha: #bec7d2;
+  /* --- o rail do Painel, na mesma familia neutra-quente --- */
+  --gaveta: #e9e9e6;
+  --gaveta-fundo: #dbdbd7;
+  --gaveta-tinta: #1e1b18;
+  --gaveta-tinta-2: #575047;
+  --gaveta-linha: #c7c7c2;
 
-  /* --- tinta, com folga deliberada: 13:1 / 8:1 / 5,2:1. A queixa de "letras apagadas"
-         vinha do teto de contraste do fundo creme, que era 11:1. --- */
-  --tinta: #14161a;
-  --tinta-2: #3d4045;
-  --tinta-3: #585c63;
+  /* --- tinta: 17,1:1 / 7,9:1 / 5,7:1 sobre a ficha (ver a nota acima) --- */
+  --tinta: #1e1b18;
+  --tinta-2: #575047;
+  --tinta-3: #6e665c;
 
   /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
          decisao do dono, e o anil entrou no lugar dele. --- */
@@ -1838,6 +1852,23 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 }
 .medida-curta { max-width: 720px; }
 .medida-media { max-width: 1000px; }
+
+/* FAIXA DO SITE — a medida das seções da página pública e do blog.
+   Retorno do dono em 17/09/2026: "página pública está com o conteúdo concentrado no centro.
+   Precisa harmonizar com a largura da tela." E, sobre o blog: "também tá concentrado no meio."
+   Era o mesmo defeito que o portal já tinha corrigido, e pela mesma causa: um teto FIXO. As
+   seções travavam em 1120px, então num monitor de 1920px sobravam 400px mortos de cada lado, e a
+   página parecia uma coluna estreita flutuando no vazio.
+   O teto agora acompanha a tela — `min(92vw, 1560px)` — em vez de ignorá-la. O que NÃO muda é a
+   medida do texto: os parágrafos continuam com o seu próprio `max-w-[44ch]`, porque linha longa
+   demais é tão ruim de ler quanto coluna estreita demais. Quem cresce é o layout (grade, cartões,
+   figuras); a linha de leitura fica onde estava. */
+.faixa-site {
+  width: 100%;
+  max-width: min(92vw, 1560px);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
 
 /* ============================================================================
    GUIA — a aba de uma ficha, com o chanfro que é a assinatura do mundo "Guias".

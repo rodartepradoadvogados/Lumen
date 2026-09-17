@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Lock } from "lucide-react";
+import { Bell, Lock, Newspaper } from "lucide-react";
 import PeticionarButton from "@/components/PeticionarButton";
 import NewEntityMenu from "@/components/NewEntityMenu";
 import TimesheetTimer from "@/components/TimesheetTimer";
@@ -29,6 +29,27 @@ export default function TopBarActionsContent({
       <NewEntityMenu />
 
       {user && <TimesheetTimer initialSeconds={sessionSeconds} />}
+
+      {/* O CAMINHO ATÉ O BLOG — pedido do dono em 17/09/2026: "no painel precisa colocar um local
+          para ir para o blog, ainda que discreto. Não sei se no painel, se na barra superior, se
+          no rail fixo... mas preciso disso de alguma forma."
+          Ficou na barra superior, e não no Painel, justamente porque a barra está em TODA tela do
+          portal: o caminho passa a existir de onde quer que a pessoa esteja, não só na home. Abre
+          em aba nova porque o blog é o site público — trocar a tela do trabalho por ele seria
+          fazer a pessoa refazer o caminho de volta.
+          A administração do blog (revisar, publicar) continua em Configurações → Blog Jurídico,
+          que é onde se AGE sobre ele; este atalho é para VER o que está no ar. */}
+      <a
+        href="/blog"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-tip="Blog Jurídico (abre em nova aba)"
+        data-tip-pos="bottom"
+        className="p-2 hover:bg-sf-apoio transition-colors text-tx-3 hover:text-tx rounded-md"
+      >
+        <Newspaper size={18} />
+        <span className="sr-only">Blog Jurídico</span>
+      </a>
 
       {user?.isPlatformOwner && (
         <Link

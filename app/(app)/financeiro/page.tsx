@@ -13,12 +13,37 @@ export default async function FinanceiroPage() {
   const viewer = await getCurrentUser();
   if (!viewer) redirect("/");
 
+  // O RECORTE DO MÊS — pedido do dono na conferência visual de 17/09/2026: "os números de resumo
+  // de financeiro devem considerar os resultados realizados e em aberto e tudo mais apenas dentro
+  // do mês corrente."
+  //
+  // O realizado (recebido/pago, regime de caixa) já era do mês. O EM ABERTO não era: "a receber
+  // em aberto" somava toda conta pendente do escritório, de qualquer vencimento — uma parcela de
+  // março de 2027 entrava no mesmo número da que vence semana que vem, e o Resumo do mês virava
+  // um saldo perpétuo que não respondia pergunta nenhuma.
+  //
+  // O corte é `dueDate <= fim do mês corrente`, não `dueDate dentro do mês`. A diferença importa:
+  // a conta que venceu em agosto e continua aberta ainda é uma conta em aberto HOJE, e sumir com
+  // ela seria esconder justamente o risco. Com este corte, a tarja de vencidas continua sendo um
+  // subconjunto estrito dos dois totais — o mesmo cuidado de coerência entre números que o sino e
+  // a tarja do Painel receberam. O que sai são os vencimentos de meses futuros.
+  //
+  // Conta sem vencimento (`noDueDate`) fica de fora dos dois: ela não pertence a mês nenhum. Já
+  // tem alerta próprio na Central (PARCELA_SEM_VENCIMENTO), que é onde ela precisa ser resolvida.
+  //
   // status in ["PENDENTE","ATRASADO"] já exclui A_APURAR (provisão sem valor real, Fase 1) e
   // PARCIAL (que tem saldo em aberto próprio, ver alertas/relatórios) das somas de "a receber" —
-  // o ajuste desta fase é trocar o amount BRUTO por valorLiquido() (desconto/acréscimo).
+  // e o valor é o líquido (desconto/acréscimo), não o amount bruto.
+  const fimDoMes = endOfMonth();
+  const emAbertoNoMes = {
+    officeId: viewer.officeId,
+    status: { in: ["PENDENTE", "ATRASADO"] },
+    noDueDate: false,
+    dueDate: { lte: fimDoMes },
+  };
   const [payablesPending, receivablesPending, movimentosDoMes] = await Promise.all([
-    prisma.payable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] } } }),
-    prisma.receivable.findMany({ where: { officeId: viewer.officeId, status: { in: ["PENDENTE", "ATRASADO"] } } }),
+    prisma.payable.findMany({ where: emAbertoNoMes }),
+    prisma.receivable.findMany({ where: emAbertoNoMes }),
     // "Recebido/Pago este mês" é regime de caixa: lê FinancePayment, então inclui baixa PARCIAL
     // e conta cada pagamento no mês em que ele ocorreu. Ver lib/caixaMovimentos.ts.
     listarMovimentosCaixa(viewer.officeId, { de: startOfMonth() }),
@@ -43,6 +68,9 @@ export default async function FinanceiroPage() {
   const contasVencidas = receberAtrasado.length + pagarAtrasado.length;
   const valorAReceberVencido = receberAtrasado.reduce((s, r) => s + liquido(r), 0);
   const valorAPagarVencido = pagarAtrasado.reduce((s, p) => s + liquido(p), 0);
+  // O rótulo diz o recorte, em vez de deixar a pessoa supor: "em aberto" sem data é a ambiguidade
+  // que gerou o apontamento.
+  const rotuloFimDoMes = fimDoMes.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const composicao = [
     receberAtrasado.length > 0 ? `${formatCurrency(valorAReceberVencido)} a receber` : null,
     pagarAtrasado.length > 0 ? `${formatCurrency(valorAPagarVencido)} a pagar` : null,
@@ -52,7 +80,10 @@ export default async function FinanceiroPage() {
 
   return (
     <div className="tela">
-      <PageHeader title="Financeiro" subtitle="O caixa do escritório — o que venceu, o que entrou e o que está em aberto" />
+      <PageHeader
+        title="Financeiro"
+        subtitle={`O caixa do escritório neste mês — o que venceu, o que entrou e o que está em aberto até ${rotuloFimDoMes}`}
+      />
 
       {/* A TARJA DE RISCO — uma por tela, mesma peça do /painel (ver o comentário lá: o tipo é
           matéria, o número É o bloco). Aqui ela responde "o que venceu e não foi pago", que era
@@ -110,7 +141,7 @@ export default async function FinanceiroPage() {
         >
           <p className="text-destaque font-bold text-tx tabular-nums">{formatCurrency(totalReceivable)}</p>
           <p className="text-etiqueta text-tx-2 mt-0.5">
-            A receber em aberto · {receivablesPending.length} conta{receivablesPending.length === 1 ? "" : "s"}
+            A receber em aberto até {rotuloFimDoMes} · {receivablesPending.length} conta{receivablesPending.length === 1 ? "" : "s"}
           </p>
         </Link>
         <Link
@@ -119,7 +150,7 @@ export default async function FinanceiroPage() {
         >
           <p className="text-destaque font-bold text-tx tabular-nums">{formatCurrency(totalPayable)}</p>
           <p className="text-etiqueta text-tx-2 mt-0.5">
-            A pagar em aberto · {payablesPending.length} conta{payablesPending.length === 1 ? "" : "s"}
+            A pagar em aberto até {rotuloFimDoMes} · {payablesPending.length} conta{payablesPending.length === 1 ? "" : "s"}
           </p>
         </Link>
       </div>
@@ -130,4 +161,10 @@ export default async function FinanceiroPage() {
 function startOfMonth() {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+// Último instante do mês corrente — o teto do recorte "em aberto" (ver a nota longa acima).
+function endOfMonth() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }

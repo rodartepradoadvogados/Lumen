@@ -8,6 +8,7 @@ import { processNumberIncludes } from "@/lib/processNumber";
 import { Badge, formatDate } from "@/components/ui";
 import { Plus, Search, ExternalLink, Link2, X, ChevronRight, ArrowRight } from "lucide-react";
 import { EnviarDocumentosButton, HistoricoEnvios, type Envio } from "@/components/DocumentoEnvios";
+import SecaoRecolhivel from "@/components/SecaoRecolhivel";
 import ParecerCard from "@/components/assessoria/ParecerCard";
 import ParecerSoltoRow from "@/components/assessoria/ParecerSoltoRow";
 import StorageDisconnectedNotice from "@/components/assessoria/StorageDisconnectedNotice";
@@ -176,10 +177,11 @@ export default function AssessoriaProcessosCasosTab({
 
   return (
     <div className="space-y-5">
-      <div className="bg-sf border border-regua p-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Demandas</h4>
-          <div className="flex items-center gap-2 flex-wrap">
+      <SecaoRecolhivel
+        titulo="Demandas"
+        contagem={pareceresOrdenados.length + pareceresSoltosOrdenados.length}
+        acoes={
+          <>
             {(assessoria.pareceres.length > 0 || pareceresSoltos.length > 0) && (
               <label className="flex items-center gap-1.5 text-etiqueta text-tx-2">
                 Ordenar
@@ -203,9 +205,9 @@ export default function AssessoriaProcessosCasosTab({
             >
               <Plus size={13} /> Adicionar demanda
             </button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {!driveConnected && (
           <div className="mb-3">
             <StorageDisconnectedNotice message={storageMessage} />
@@ -256,12 +258,13 @@ export default function AssessoriaProcessosCasosTab({
         )}
 
         <HistoricoEnvios entity={{ tipo: "ASSESSORIA", id: assessoria.id, titulo: assessoria.client.name }} envios={envios} />
-      </div>
+      </SecaoRecolhivel>
 
-      <div className="bg-sf border border-regua p-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Processos vinculados</h4>
-          <div className="flex items-center gap-2">
+      <SecaoRecolhivel
+        titulo="Processos vinculados"
+        contagem={assessoria.linkedCases.length}
+        acoes={
+          <>
             <button
               onClick={() => setSearchOpen(true)}
               className="flex items-center gap-1.5 text-xs font-semibold text-marca-tx hover:text-tx px-2.5 py-1 "
@@ -280,9 +283,9 @@ export default function AssessoriaProcessosCasosTab({
             >
               <Plus size={13} /> Novo caso
             </Link>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {assessoria.linkedCases.length === 0 ? (
           <p className="text-sm text-tx-3">Nenhum processo vinculado a esta empresa ainda.</p>
         ) : (
@@ -325,11 +328,13 @@ export default function AssessoriaProcessosCasosTab({
             ))}
           </div>
         )}
-      </div>
+      </SecaoRecolhivel>
 
-      <div className="bg-sf border border-regua p-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <h4 className="text-etiqueta font-bold uppercase tracking-wide text-tx-2">Casos vinculados</h4>
+      <SecaoRecolhivel
+        titulo="Casos vinculados"
+        contagem={assessoria.linkedAttendances.length}
+        acoes={
+          <>
           {/* Abre o modal "Novo Atendimento" (components/NewAttendanceModal.tsx) já aberto
               (?novo=1), com esta assessoria pré-selecionada (?assessoriaId=...). O rótulo é "Novo
               caso" de propósito (o termo do dia a dia) — continua criando um Atendimento por
@@ -340,7 +345,9 @@ export default function AssessoriaProcessosCasosTab({
           >
             <Plus size={13} /> Novo caso
           </Link>
-        </div>
+          </>
+        }
+      >
         {assessoria.linkedAttendances.length === 0 ? (
           <p className="text-sm text-tx-3">Nenhum atendimento vinculado a esta assessoria ainda.</p>
         ) : (
@@ -378,7 +385,7 @@ export default function AssessoriaProcessosCasosTab({
             ))}
           </div>
         )}
-      </div>
+      </SecaoRecolhivel>
 
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-grafite-900/40 flex items-center justify-center p-4">

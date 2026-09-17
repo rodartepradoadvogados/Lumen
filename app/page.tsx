@@ -350,7 +350,7 @@ export default async function HomePage() {
               contrato de direção — "se um elemento não carrega dado ou estado, ele não existe"),
               então a div renderizava nada. */}
           <GrainOverlay />
-          <div className="relative max-w-[1120px] mx-auto px-6 pt-24 pb-20 grid md:grid-cols-[1fr_0.92fr] gap-12 items-center">
+          <div className="relative faixa-site pt-24 pb-20 grid md:grid-cols-[1fr_0.92fr] gap-12 items-center">
             <div>
               <p className="text-etiqueta font-extrabold uppercase tracking-[.14em] text-marca-tx mb-4">
                 Software de gestão para escritórios de advocacia
@@ -442,7 +442,7 @@ export default async function HomePage() {
             }}
           />
           <GrainOverlay />
-          <div className="relative max-w-[1120px] mx-auto px-6 py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
+          <div className="relative faixa-site py-16 flex flex-col md:flex-row items-baseline gap-4 md:gap-10">
             <div className="text-[clamp(56px,9vw,108px)] font-extrabold leading-none tracking-[-.02em] text-white tabular-nums">
               93
             </div>
@@ -454,7 +454,7 @@ export default async function HomePage() {
 
         {/* 4. Linhas de recurso */}
         <section id="recursos" className="border-t-2 border-regua-forte">
-          <div className="max-w-[1120px] mx-auto px-6">
+          <div className="faixa-site">
             <h2 className="sr-only">Recursos</h2>
             {/* Peso desigual (retomado de "pulso"): Publicações e Sigilo — os 2 mecanismos que
                 PRODUCT.md → Positioning cita como diferencial real — ganham tratamento "pilar"
@@ -485,7 +485,7 @@ export default async function HomePage() {
             "Substituir"; vira preço real sozinho assim que o operador preencher o preço do
             módulo. */}
         <section id="preco" className="border-t-2 border-regua-forte py-20">
-          <div className="max-w-[1120px] mx-auto px-6">
+          <div className="faixa-site">
             <h2 className="text-autuacao font-extrabold tracking-[-.015em] mb-11">Um plano para cada tamanho de escritório</h2>
             {/* Auditoria de 2026-09-16: a grade não tinha `gap`, então cartões `border-2` adjacentes
                 encostavam e produziam filete duplo de 4px — e o cartão recomendado, de borda em cor
@@ -572,7 +572,7 @@ export default async function HomePage() {
             style={{ background: "radial-gradient(ellipse at bottom right, rgba(255,255,255,0.12), transparent 70%)" }}
           />
           <GrainOverlay />
-          <div className="relative max-w-[1120px] mx-auto px-6">
+          <div className="relative faixa-site">
             <h2 className="font-extrabold text-[clamp(32px,5vw,52px)] tracking-[-.02em] max-w-[18ch]">
               Leve a triagem, a agenda e o financeiro do escritório para um só lugar.
             </h2>
@@ -607,7 +607,7 @@ export default async function HomePage() {
 
       {/* 7. Rodapé */}
       <footer className="border-t-2 border-regua-forte py-14">
-        <div className="max-w-[1120px] mx-auto px-6">
+        <div className="faixa-site">
           <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-8">
             <div>
               <div className="flex items-center gap-2 font-extrabold text-base tracking-[.16em] mb-3">
