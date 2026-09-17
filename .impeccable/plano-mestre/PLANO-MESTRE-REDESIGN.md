@@ -12,7 +12,7 @@ indicada.
 | Campo | Valor |
 |---|---|
 | **Fase atual** | **F4 e F5 concluídas · os 4 P0 fechados** (contraste, opacidade, e os três do PWA). Em curso: **F6 — PWA** |
-| **Próximo passo concreto** | **F6 — o resto do PWA** (26 rotas além de `/m/processos/[id]`). Os três P0 do diagnóstico do PWA estão fechados |
+| **Próximo passo concreto** | **F7 — Painel Mestre** (o gabarito bom existe em 1 de 10 telas) ou o resto do PWA. Os três P0 do PWA estão fechados e a tira de filtro está unificada |
 | **Superfície-âncora da direção visual** | Portal/SaaS (`app/(app)/*`) — contrato gravado em `.impeccable/surfaces/app-app.md`, seed `2cac85b3`, candidato 4 de 7 |
 | **Comandos executados** | 15 dos 24 fluxos (`context`, `init`, `critique`, `shape`, `new-work`, `colorize`, `typeset`, `layout`, `extract`, `distill`, `clarify`, `adapt`, `audit`, `bolder`, `animate`) + 3 scripts de apoio (`detect`, `concept-seed`, `surface-brief`). `audit` já rodou no site público (PR #203); falta nas outras 4 superfícies — ver seção 10 |
 | **Superfícies redesenhadas** | Portal: casca, `/painel`, `/processos/[id]`, `/publicacoes` e `/alertas` — as quatro telas de uso diário. As 5 superfícies já estão no mundo novo de cor, tipo e raio (fundação F3) |
@@ -459,7 +459,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído · ⏭️ pulado (c
 | F5e | Site — as quatro telas de sessão | `distill`, `clarify` | ✅ | #207 | 2026-09-16 | Casca única (`components/site/TelaSessao.tsx`) + guia de sessão. `/cadastro` perde o fundo grafite e ganha marca e saída; `/escolher` ganha o `h1` que não tinha; `/redefinir-senha` troca "Link inválido" por um erro que diz o que fazer; `/login` ganha o caminho do cadastro, que não existia |
 | F5f | Blog | `layout`, `typeset`, `clarify` | ✅ | #208 | 2026-09-16 | Renderizador de markdown simples (as regras de `.artigo h2/ul/blockquote/strong` eram letra morta: o corpo virava sempre `<p>`); a ÁREA do direito passa a aparecer; tempo de leitura real; fontes por domínio; "Continuar lendo"; um cabeçalho só; teste de mesa com 24 casos (`npm run testar`) |
 | F6a | PWA — o P0-A3 | `optimize`, `adapt` | ✅ | #214 | 2026-09-17 | 11 consultas + 9 includes em toda troca de aba → 3 a 7 conforme a aba. Alvo de toque de 33px → 44px. Histórico deixa de empilhar. A pílula vira guia. **P0-A1 e P0-A2 já tinham caído na fundação** — medidos, não supostos |
-| F6 | PWA — o resto | `adapt`, `layout`, `harden`, `onboard` | ⬜ | — | — | as outras 26 rotas do `app/m/**` |
+| F6b | PWA — a guia do PWA | `extract`, `adapt`, `harden` | ✅ | #215 | 2026-09-17 | SEIS telas desenhavam a mesma tira de abas à mão, com quatro medidas e quatro estados ativos diferentes, todas em pílula e todas abaixo de 44px. Uma peça só (`components/mobile/GuiaMobile.tsx`), e a cor da seção passa a dizer ONDE também no celular |
+| F6 | PWA — o resto | `adapt`, `layout`, `onboard` | ⬜ | — | — | as rotas de `app/m/**` que não são tira de filtro |
 | F7 | Painel Mestre | `layout`, `distill`, `clarify` | ⬜ | — | — | — |
 | F8 | Movimento e robustez | `animate`, `delight`, `overdrive`, `harden`, `optimize` | ⬜ | — | — | — |
 | F8 | Verificação final | `audit`, `critique`, `polish` | ⬜ | — | — | comparar com F1 |

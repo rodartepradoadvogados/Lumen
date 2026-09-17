@@ -10,6 +10,7 @@ import { effectiveCaseClients, joinCaseNames } from "@/lib/caseParties";
 import { naturezaOf, naturezaWhere, parseNaturezaParam, MATERIA_LABELS, type CaseNatureza } from "@/lib/caseNatureza";
 import NaturezaBadge from "@/components/mobile/NaturezaBadge";
 import { Scale, Search } from "lucide-react";
+import { TiraDeGuias, GuiaLink } from "@/components/mobile/GuiaMobile";
 
 export const dynamic = "force-dynamic";
 
@@ -106,27 +107,21 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
         <p className="text-sm text-tx-2">{activeTotal} registro(s)</p>
       </div>
 
-      {/* Pílulas de natureza roláveis horizontalmente — padrão de toque, não abas de desktop
-          (ver FilterLink em app/(app)/processos/page.tsx para o equivalente com mouse). */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-thin -mx-1 px-1 pb-0.5">
-        {PILLS.map((p) => {
-          const active = p.natureza === natureza;
-          return (
-            <Link
-              key={p.label}
-              href={pillHref(p.natureza)}
-              className={`shrink-0 inline-flex items-center gap-1.5 text-corpo font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                active
-                  ? "bg-acao border-acao text-acao-tx"
-                  : "bg-sf border-regua text-tx-2"
-              }`}
-            >
-              {p.label}
-              <span className={active ? "opacity-80" : "opacity-60"}>{countByPill[p.label]}</span>
-            </Link>
-          );
-        })}
-      </div>
+      {/* Escolher a natureza é escolher a gaveta — a mesma guia de /processos no desktop e de
+          /m/processos/[id] aqui. Ver components/mobile/GuiaMobile.tsx. */}
+      <TiraDeGuias faixa="anil" className="-mx-1 px-1">
+        {PILLS.map((p) => (
+          <GuiaLink
+            key={p.label}
+            href={pillHref(p.natureza)}
+            faixa="anil"
+            ativa={p.natureza === natureza}
+            contagem={countByPill[p.label]}
+          >
+            {p.label}
+          </GuiaLink>
+        ))}
+      </TiraDeGuias>
 
       <form className="flex gap-2">
         {/* Mantém a natureza escolhida ao buscar — sem isso, submeter o formulário voltaria
