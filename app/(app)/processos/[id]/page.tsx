@@ -492,6 +492,7 @@ export default async function CaseDetailPage({
           return (
             <Link
               key={t.key}
+              replace
               href={`/processos/${c.id}?tab=${t.key}`}
               aria-current={ativa ? "page" : undefined}
               className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
