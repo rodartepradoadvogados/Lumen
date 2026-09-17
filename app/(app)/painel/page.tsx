@@ -324,14 +324,14 @@ export default async function DashboardPage() {
                 rotulo={`prazo${prazosSemana === 1 ? "" : "s"} até ${soon.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`}
                 nota={prazosVencidos > 0 ? `${prazosVencidos} vencido${prazosVencidos === 1 ? "" : "s"}` : undefined}
                 preenchido={prazosSemana / Math.max(1, prazosSemana + prazosVencidos)}
-                cor="var(--faixa-anil)"
+                cor="var(--faixa-ardosia)"
                 href="/agenda"
               />
               <Regua
                 valor={String(audienciasSemana)}
                 rotulo={`audiência${audienciasSemana === 1 ? "" : "s"} na semana`}
                 preenchido={audienciasSemana / Math.max(1, upcomingTasks.length)}
-                cor="var(--faixa-ameixa)"
+                cor="var(--faixa-ocre)"
                 href="/agenda"
               />
               <Regua

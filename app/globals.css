@@ -36,13 +36,15 @@
   --tinta-2: #3d4045;
   --tinta-3: #585c63;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: a cor diz ONDE. TRES hues, nenhum vermelho e nenhum roxo.
+         Eram cinco: o anil (#3b4a86) e a ameixa (#5f3468) sairam em 17/09/2026, por decisao do
+         dono — "tire o roxo completamente". O anil era o caso mais instrutivo: eu o chamei de
+         azul-indigo, mas ele tem vermelho demais para ler como azul e azul demais para ler como
+         cinza, e na tela saia roxo. Os dois usos que restavam (duas reguas do Painel e a barra de
+         alertas pessoais) passaram para ardosia/ocre, que ja existiam. --- */
   --faixa-ardosia: #2f5d73;
-  --faixa-anil: #3b4a86;
   --faixa-oliva: #4a6b33;
   --faixa-ocre: #835f13;
-  --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #8a2f42;
@@ -172,13 +174,10 @@
   --tinta-2: #b8bbbf;
   --tinta-3: #93969d;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #4a93b5;
-  --faixa-anil: #7988c4;
   --faixa-oliva: #699848;
   --faixa-ocre: #b4821a;
-  --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #c98b92;
@@ -830,13 +829,10 @@ html:has(.site-publico) {
   --tinta-2: #b8bbbf;
   --tinta-3: #93969d;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #4a93b5;
-  --faixa-anil: #7988c4;
   --faixa-oliva: #699848;
   --faixa-ocre: #b4821a;
-  --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #c98b92;
@@ -956,13 +952,10 @@ html:has(.site-publico) {
   --tinta-2: #3d4045;
   --tinta-3: #585c63;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #2f5d73;
-  --faixa-anil: #3b4a86;
   --faixa-oliva: #4a6b33;
   --faixa-ocre: #835f13;
-  --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #8a2f42;
@@ -1127,13 +1120,10 @@ html:has(.site-publico) {
   --tinta-2: #3d4045;
   --tinta-3: #585c63;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #2f5d73;
-  --faixa-anil: #3b4a86;
   --faixa-oliva: #4a6b33;
   --faixa-ocre: #835f13;
-  --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #8a2f42;
@@ -1252,13 +1242,10 @@ html:has(.site-publico) {
   --tinta-2: #b8bbbf;
   --tinta-3: #93969d;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #4a93b5;
-  --faixa-anil: #7988c4;
   --faixa-oliva: #699848;
   --faixa-ocre: #b4821a;
-  --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #c98b92;
@@ -1409,13 +1396,10 @@ html:has(.site-publico) {
   --tinta-2: #bdb8b0;
   --tinta-3: #979188;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #4a93b5;
-  --faixa-anil: #7988c4;
   --faixa-oliva: #699848;
   --faixa-ocre: #b4821a;
-  --faixa-ameixa: #af76bb;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #c98b92;
@@ -1552,13 +1536,10 @@ html:has(.site-publico) {
   --tinta-2: #575047;
   --tinta-3: #6e665c;
 
-  /* --- faixa de secao: a cor diz ONDE. Cinco hues, NENHUM vermelho — o tijolo saiu por
-         decisao do dono, e o anil entrou no lugar dele. --- */
+  /* --- faixa de secao: tres hues, nenhum vermelho e nenhum roxo (ver a nota no :root). --- */
   --faixa-ardosia: #2f5d73;
-  --faixa-anil: #3b4a86;
   --faixa-oliva: #4a6b33;
   --faixa-ocre: #835f13;
-  --faixa-ameixa: #5f3468;
 
   /* --- risco: a cor diz O QUE. O vermelho existe SO aqui. --- */
   --risco-vencido: #8a2f42;

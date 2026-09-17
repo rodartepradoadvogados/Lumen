@@ -577,11 +577,10 @@ export default async function ConfiguracoesPage({
             de uma identidade que saiu há duas rodadas. */}
         <div className="p-5 flex gap-4 flex-wrap">
           <Swatch color="var(--acao)" label="Ação (bordô)" />
+          <Swatch color="var(--guia-ativa)" label="Aba aberta (bronze)" />
           <Swatch color="var(--faixa-ardosia)" label="Ardósia" />
-          <Swatch color="var(--faixa-anil)" label="Anil" />
           <Swatch color="var(--faixa-oliva)" label="Oliva" />
           <Swatch color="var(--faixa-ocre)" label="Ocre" />
-          <Swatch color="var(--faixa-ameixa)" label="Ameixa" />
           <Swatch color="var(--risco-vencido)" label="Vencido" />
           <Swatch color="var(--risco-hoje)" label="Hoje" />
           <Swatch color="var(--risco-em-dia)" label="Em dia" />

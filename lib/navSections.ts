@@ -40,24 +40,10 @@ export type SectionPanelItem = {
 
 export type SectionKey = "agenda" | "comunicacao" | "juridico" | "financeiro" | "gestao";
 
-// A FAIXA DA SEÇÃO — a cor que diz ONDE o visitante está.
-//
-// `app/globals.css` declara cinco faixas nas oito cascas, com o comentário "a cor diz ONDE. Cinco
-// hues, NENHUM vermelho". Cinco faixas para cinco seções: a intenção sempre foi essa. O que
-// faltava era o MAPA: até 2026-09-17 a única seção com cor era Jurídico, escrita à mão como
-// `faixa-anil` em três telas, e qualquer tela nova que quisesse a cor da sua seção tinha de
-// adivinhar. Uma linguagem de cinco cores aplicada por memória em três lugares não é sistema.
-//
-// Jurídico fica em anil porque já estava — a cor está em produção e o dono a conferiu. As outras
-// quatro são atribuídas aqui, e o critério é o mesmo do contrato de direção: hue distinta por
-// seção, nenhuma quente o bastante para virar risco (risco é bordô e só bordô).
-export type FaixaSecao = "ardosia" | "anil" | "oliva" | "ocre" | "ameixa";
-
 export type SectionDef = {
   key: SectionKey;
   label: string;
   icon: LucideIcon;
-  faixa: FaixaSecao;
   items: SectionPanelItem[];
 };
 
@@ -66,7 +52,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
     key: "agenda",
     label: "Agenda",
     icon: CalendarDays,
-    faixa: "ardosia",
     items: [
       { href: "/agenda", label: "Calendário" },
       { href: "/kanban", label: "Kanban" },
@@ -80,7 +65,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // "Editorial fino" aprovada em 2026-08: símbolo específico do que a seção faz (captação de
     // publicações + atendimentos entrando), não um ícone de chat de qualquer SaaS.
     icon: Inbox,
-    faixa: "ocre",
     items: [
       { href: "/publicacoes", label: "Publicações" },
       { href: "/atendimento", label: "Atendimentos", moduleKey: "atendimento" },
@@ -94,7 +78,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // Balança no lugar da pasta genérica (Briefcase) — pasta poderia ser qualquer sistema de
     // gestão de negócio; balança só tem uma leitura possível.
     icon: Scale,
-    faixa: "anil",
     items: [
       { href: "/processos", label: "Processos e casos" },
       { href: "/assessoria", label: "Assessoria jurídica", moduleKey: "assessoria" },
@@ -106,7 +89,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
     // Banco (Landmark) no lugar da carteira (Wallet) — lê como instituição financeira, mais
     // alinhado ao Financeiro do escritório (contas, fluxo de caixa) do que a um gasto pessoal.
     icon: Landmark,
-    faixa: "oliva",
     items: [
       // O hub do Financeiro era órfão do rail: a única tela com os quatro agregados do escritório
       // só era alcançável por um link pequeno e cinza acima do título das sub-páginas. Agora é o
@@ -123,7 +105,6 @@ export const RAIL_SECTIONS: SectionDef[] = [
     key: "gestao",
     label: "Gestão",
     icon: BarChart3,
-    faixa: "ameixa",
     items: [
       {
         href: "/relatorios",
@@ -219,14 +200,12 @@ export function resolveTwoLevelLabel(pathname: string): string | null {
   return `${def.label} - ${item.label}`;
 }
 
-// A FAIXA DA SEÇÃO, hoje: só um dado declarado.
+// A FAIXA DA SEÇÃO saiu daqui por completo em 17/09/2026.
 //
-// Até 17/09/2026 este arquivo também exportava `CLASSES_FAIXA`, `faixaDaRota` e
-// `classesDaFaixa` — o maquinário que pintava a ABA SELECIONADA com a cor da seção. O dono
-// apontou na conferência visual que o anil do Jurídico (#3b4a86) lia como roxo, e a correção
-// foi mais funda que trocar o tom: a aba não precisa dizer a seção, porque o rail, a migalha e
-// o título já dizem. A aba passou a ser bronze, uma cor só, via `--guia-ativa` (app/globals.css).
-//
-// Com isso as três funções ficaram sem nenhum chamador e saíram. O campo `faixa` de cada seção
-// continua aqui porque ele ainda é o REGISTRO de qual tom pertence a qual seção — lido por
-// /configuracoes (a paleta) e pelos gráficos do Painel, que usam `var(--faixa-*)` direto.
+// Ela nasceu como "a cor que diz ONDE o visitante está" e, na prática, só chegou a pintar a ABA
+// selecionada. Quando o dono trocou a aba por uma cor única (bronze), o maquinário ficou sem
+// chamador e saiu; ficou só o campo `faixa` de cada seção, como registro de qual tom pertencia a
+// qual. Agora que dois dos cinco tons foram removidos por serem roxos, esse registro passou a
+// descrever uma paleta que não existe mais — e um dado que ninguém lê e que está errado é pior
+// que dado nenhum. O registro de quais faixas existem é a paleta em /configuracoes, que lê
+// `var(--faixa-*)` direto de app/globals.css.
