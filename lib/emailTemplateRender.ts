@@ -41,8 +41,8 @@ export function renderTemplateBody(html: string, vars: TemplateVarValues): strin
   return kept.map((line) => line.replace(/\{\{(\w+)\}\}/g, (_, key: string) => escapeHtml(vars[key as TemplateVar]))).join("\n");
 }
 
-const NAVY = "#0b1730";
-const GOLD = "#c6a05c";
+const NAVY = "#181b1f";
+const GOLD = "#c9707f";
 
 // Rodapé OBRIGATÓRIO (documento 06) — de propósito NÃO é um campo editável do EmailTemplate:
 // texto de cancelamento/LGPD não pode ser removido por engano ao editar o corpo. A aba "Rodapé e
@@ -59,7 +59,7 @@ export const RODAPE_OBRIGATORIO = "Você recebe este resumo uma vez por dia. Alt
 export function buildDigestEmailHtml(params: { subject: string; bodyHtml: string; url?: string; vars: TemplateVarValues }): string {
   const corpo = renderTemplateBody(params.bodyHtml, params.vars);
   const prazoLinha = params.vars.prazo
-    ? `<tr><td style="padding:16px 24px 0;"><div style="border-left:3px solid ${GOLD};background:#f9f6ef;padding:10px 14px;font-size:13px;color:${NAVY};">Prazo: <strong>${escapeHtml(params.vars.prazo)}</strong></div></td></tr>`
+    ? `<tr><td style="padding:16px 24px 0;"><div style="border-left:3px solid ${GOLD};background:#ffffff;padding:10px 14px;font-size:13px;color:${NAVY};">Prazo: <strong>${escapeHtml(params.vars.prazo)}</strong></div></td></tr>`
     : "";
   const botao = params.url
     ? `<tr><td style="padding:20px 24px;text-align:center;"><a href="${params.url}" style="background:${NAVY};color:#fff;padding:12px 24px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block;">Abrir no Lúmen</a></td></tr>`
@@ -79,12 +79,12 @@ export function buildDigestEmailHtml(params: { subject: string; bodyHtml: string
     </td>
   </tr>
   <tr>
-    <td style="padding:12px 24px 0;font-size:14px;line-height:1.6;color:#222;">${corpo}</td>
+    <td style="padding:12px 24px 0;font-size:14px;line-height:1.6;color:#14161a;">${corpo}</td>
   </tr>
   ${prazoLinha}
   ${botao}
   <tr>
-    <td style="padding:20px 24px;border-top:1px solid #e5e0d5;font-size:11px;color:#888;">${RODAPE_OBRIGATORIO}</td>
+    <td style="padding:20px 24px;border-top:1px solid #dfe3e8;font-size:11px;color:#585c63;">${RODAPE_OBRIGATORIO}</td>
   </tr>
 </table>`;
 }
