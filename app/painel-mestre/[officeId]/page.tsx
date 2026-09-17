@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { contarOabsMonitoradas, contarProcessos } from "@/lib/officeLimits";
 import { avaliarSaudeCobranca } from "@/lib/billingHealth";
 import { isAsaasConfigured } from "@/lib/asaas";
-import { LumenPanel, LumenPanelHeader, LumenStatusDot } from "@/components/painelMestre/LumenUi";
+import { LumenPanel, LumenPanelHeader, LumenStatusDot, LumenAbas, LumenAba } from "@/components/painelMestre/LumenUi";
 import OfficeCobrancaTab from "@/components/painelMestre/OfficeCobrancaTab";
 import OfficeFaturasTab from "@/components/painelMestre/OfficeFaturasTab";
 
@@ -101,7 +101,7 @@ export default async function OfficeDetailPage({
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-tx">{office.name}</h1>
+          <h1 className="text-autuacao font-bold text-tx">{office.name}</h1>
           <p className="text-xs text-tx-2 mt-0.5">Cliente desde {office.createdAt.toLocaleDateString("pt-BR")}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-tx-2">
@@ -109,19 +109,15 @@ export default async function OfficeDetailPage({
         </span>
       </div>
 
-      <div className="flex gap-1 border-b border-regua overflow-x-auto">
+      {/* As abas saíram daqui para components/painelMestre/LumenUi.tsx — este era o ÚNICO lugar
+          do Painel da Empresa que tinha abas de verdade, e o diagnóstico pediu para propagar. */}
+      <LumenAbas>
         {TABS.map((t) => (
-          <Link
-            key={t.key}
-            href={`/painel-mestre/${office.id}?tab=${t.key}`}
-            className={`shrink-0 text-corpo font-semibold px-3.5 py-2.5 border-b-2 -mb-px ${
-              tab === t.key ? "text-tx border-marca-tx" : "text-tx-2 border-transparent hover:text-tx"
-            }`}
-          >
+          <LumenAba key={t.key} href={`/painel-mestre/${office.id}?tab=${t.key}`} ativa={tab === t.key}>
             {t.label}
-          </Link>
+          </LumenAba>
         ))}
-      </div>
+      </LumenAbas>
 
       {tab === "visao-geral" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

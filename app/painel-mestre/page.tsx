@@ -33,7 +33,7 @@ export default async function CockpitPage() {
   return (
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-tx">Cockpit</h1>
+        <h1 className="text-autuacao font-bold text-tx">Cockpit</h1>
         <p className="text-sm text-tx-2 mt-1">Visão executiva da plataforma Lúmen</p>
       </div>
 

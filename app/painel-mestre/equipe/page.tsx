@@ -28,7 +28,7 @@ export default async function EquipeLumenPage() {
     <div className="p-6 max-w-[1100px] mx-auto animate-fade-in space-y-6">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-tx">Equipe Lúmen</h1>
+          <h1 className="text-autuacao font-bold text-tx">Equipe Lúmen</h1>
           <p className="text-sm text-tx-3 mt-1">
             Quadro e papéis da empresa — dono ou membro ativo já entra direto no Painel Mestre ao logar (achado A12 da
             revisão gauntlet); a ladder de visibilidade por papel (canManageBilling/canManageMembers/canApproveAccess) segue

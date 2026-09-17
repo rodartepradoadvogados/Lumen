@@ -1,3 +1,4 @@
+import Link from "next/link";
 // Peças visuais próprias do Painel da Empresa Lúmen — deliberadamente distintas dos
 // componentes do lado escritório (components/ui.tsx: Card/Badge não são reaproveitados
 // aqui). Mais retas e densas: bordas finas (border-regua, nunca a sombra `shadow-pop`
@@ -35,4 +36,48 @@ export function LumenStat({ label, value, tone = "default" }: { label: string; v
 export function LumenStatusDot({ tone }: { tone: "ok" | "warn" | "risk" | "slate" }) {
   const cls = { ok: "bg-concluido", warn: "bg-aviso", risk: "bg-urgente", slate: "bg-tx-3" }[tone];
   return <span className={`inline-block h-1.5 w-1.5 rounded-full ${cls}`} />;
+}
+
+// Abas do Painel da Empresa. Existiam numa tela só — `[officeId]`, escritas ali dentro — e o
+// diagnóstico registrou o efeito: "abas reais + layout largo existe em 1 de 10 telas", com o
+// Cofre como caso extremo (três tabelas de cinco e seis colunas empilhadas na vertical, sem abas,
+// sem divisão, sem uso da largura). O padrão certo já tinha sido escrito uma vez; o trabalho aqui
+// é PROPAGAR, não inventar.
+//
+// Deliberadamente NÃO é a guia chanfrada do lado escritório. O diagnóstico também registrou que
+// separar a ferramenta da plataforma da ferramenta do escritório é decisão certa, e que a
+// separação deve sobreviver ao redesenho: aqui o filete inferior de 2px é a linguagem da casa,
+// mais reta e mais densa, como o resto do LumenUi.
+export function LumenAbas({ children }: { children: React.ReactNode }) {
+  return <div className="flex gap-1 border-b border-regua overflow-x-auto scrollbar-thin">{children}</div>;
+}
+
+export function LumenAba({
+  href,
+  ativa,
+  children,
+  contagem,
+}: {
+  href: string;
+  ativa: boolean;
+  children: React.ReactNode;
+  contagem?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      // `replace`: a aba é estado de visualização, não destino — sem isto cada troca empilha uma
+      // entrada no histórico. Mesmo defeito corrigido no portal e no PWA.
+      replace
+      aria-current={ativa ? "page" : undefined}
+      className={`shrink-0 text-corpo font-semibold px-3.5 py-2.5 border-b-2 -mb-px transition-colors ${
+        ativa ? "text-tx border-marca-tx" : "text-tx-2 border-transparent hover:text-tx"
+      }`}
+    >
+      {children}
+      {contagem !== undefined && (
+        <span className="ml-1.5 font-mono tabular-nums text-tx-3">({contagem})</span>
+      )}
+    </Link>
+  );
 }
