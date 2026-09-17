@@ -150,7 +150,7 @@ async function DayView({
           <ChevronLeft size={18} />
         </Link>
         <div className="text-center min-w-0 flex-1">
-          <p className="font-bold text-tx text-sm capitalize truncate">{label}</p>
+          <p className="font-bold text-tx text-sm inicial-maiuscula truncate">{label}</p>
           {!isToday && (
             <Link href="/m/agenda" className="text-corpo font-semibold text-marca-tx">
               Voltar para hoje
@@ -304,7 +304,7 @@ async function WeekView({ day, officeId }: { day: Date; officeId: string }) {
         >
           <ChevronLeft size={18} />
         </Link>
-        <p className="font-bold text-tx text-sm capitalize text-center flex-1 truncate">
+        <p className="font-bold text-tx text-sm inicial-maiuscula text-center flex-1 truncate">
           {monthLabel}
         </p>
         <Link

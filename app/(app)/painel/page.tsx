@@ -215,7 +215,7 @@ export default async function DashboardPage() {
           {composicao || "nada vencido"}
         </span>
       </div>
-      <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-[.09em] mt-2 mb-5 capitalize">
+      <p className="text-etiqueta font-semibold text-tx-3 uppercase tracking-[.09em] mt-2 mb-5">
         {now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
       </p>
 

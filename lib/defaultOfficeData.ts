@@ -15,10 +15,10 @@ import type { AppPrismaTx } from "@/lib/prisma";
 type Db = AppPrismaTx;
 
 export const DEFAULT_KANBAN_COLUMNS: { name: string; color: string; isDoneCol?: boolean }[] = [
-  { name: "A Fazer", color: "#94a3b8" },
-  { name: "Em Andamento", color: "#b8904f" },
-  { name: "Aguardando", color: "#6b7fae" },
-  { name: "Concluído", color: "#2f7d4f", isDoneCol: true },
+  { name: "A Fazer", color: "#a5b1bf" },
+  { name: "Em Andamento", color: "#c9707f" },
+  { name: "Aguardando", color: "#585c63" },
+  { name: "Concluído", color: "#1c6b52", isDoneCol: true },
 ];
 
 export type CatNode = { code: string; name: string; kind: string; children?: CatNode[] };

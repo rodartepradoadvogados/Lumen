@@ -128,6 +128,45 @@ async function sendCriticalEmailCascade(officeId: string, to: string, subject: s
   };
 }
 
+// ============================================================================
+// A PALETA DOS E-MAILS — 2026-09-17.
+//
+// Esta superfície não tinha sido olhada em nenhuma fase do redesenho, e o detector nunca tinha
+// sido rodado em `lib/`. Quando foi, achou 36 ocorrências aqui, e a leitura delas mostrou o que
+// ninguém tinha percebido: os e-mails transacionais estavam numa paleta INTEIRA de outra marca.
+//
+//   azul-marinho  #0f1f3d · #0b1730 · #0a1128   — e o produto não tem azul em lugar nenhum; o
+//                                                 contrato de direção recusa "azul corporativo"
+//                                                 com todas as letras
+//   ouro          #c6a05c · #b8904f             — o acento da marca ANTERIOR; hoje é bordô
+//   creme         #f3efe6 · #ece7d9 · #f9f6ef   — a paleta que o dono recusou por escrito em
+//                                                 2026-09-16 ("impressão de coisa velha")
+//
+// Era a voz do produto dentro da caixa de entrada do cliente, contradizendo tudo o que as telas
+// passaram a dizer — e mandando ao cliente justamente o creme que foi recusado.
+//
+// Agora os literais são o tema CLARO do produto, valor por valor. Literal é obrigatório aqui:
+// cliente de e-mail não lê variável CSS, e esta é a mesma exceção deliberada já documentada em
+// components/relatorios/FolhaImprimivel.tsx. E-mail é sempre claro, como papel — mandar o tema
+// escuro gastaria tinta de quem imprime e não acompanha o tema de ninguém.
+//
+//   tinta      #14161a / #3d4045 / #585c63     fundo   #ffffff / #eaedf0 / #dfe3e8
+//   filete     #cbd1da / #a5b1bf               escuro  #181b1f / #0f1113
+//   acento sobre o bloco escuro  #c9707f       ação    #8a2f42
+//   risco      #8a2f42 vencido · #8a5c00 hoje · #1c6b52 em dia
+//
+// Os onze pares em uso foram medidos contra WCAG AA: o pior é 4,95:1 (aviso sobre o chip claro),
+// e nenhum reprova.
+// ============================================================================
+
+// `text-transform: capitalize` numa data em português maiúscula CADA palavra — "Quinta-Feira, 17
+// De Setembro De 2026". Em português só a primeira letra sobe. O CSS não sabe fazer isso numa
+// frase (`::first-letter` não é confiável em cliente de e-mail), então a frase chega pronta.
+// Achado na renderização real do template, não na leitura do código.
+function primeiraMaiuscula(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 const typeLabels: Record<string, string> = { TAREFA: "Tarefa", EVENTO: "Evento", AUDIENCIA: "Audiência", PERICIA: "Perícia", PRAZO: "Prazo" };
 
 export async function buildDailyAgendaHtml(officeId: string, officeName: string) {
@@ -153,10 +192,10 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
     .map(
       (t) => `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${t.dueTime ?? "—"}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${typeLabels[t.type] ?? t.type}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${escapeHtml(t.title)}${t.case ? `<br/><span style="color:#888;font-size:12px;">${escapeHtml(t.case.title)}</span>` : ""}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#555;">${escapeHtml(t.responsible?.name) || "—"}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #cbd1da;font-size:13px;color:#14161a;">${t.dueTime ?? "—"}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #cbd1da;font-size:13px;"><span style="background:#eaedf0;color:#8a5c00;padding:2px 8px;border-radius:10px;font-weight:600;">${typeLabels[t.type] ?? t.type}</span></td>
+        <td style="padding:8px 12px;border-bottom:1px solid #cbd1da;font-size:13px;color:#14161a;">${escapeHtml(t.title)}${t.case ? `<br/><span style="color:#585c63;font-size:12px;">${escapeHtml(t.case.title)}</span>` : ""}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #cbd1da;font-size:13px;color:#3d4045;">${escapeHtml(t.responsible?.name) || "—"}</td>
       </tr>`
     )
     .join("");
@@ -166,44 +205,44 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
     .map(
       (p) => `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;"><span style="background:#f3efe6;color:#8a6a1f;padding:2px 8px;border-radius:10px;font-weight:600;">${pubKindLabels[p.kind] ?? p.kind}</span> <span style="color:#999;font-size:11px;">${escapeHtml(p.source)}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px;color:#0f1f3d;">${escapeHtml(p.content.slice(0, 220))}${p.content.length > 220 ? "…" : ""}${p.case ? `<br/><span style="color:#888;font-size:12px;">${escapeHtml(p.case.title)}</span>` : ""}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #cbd1da;font-size:13px;"><span style="background:#eaedf0;color:#8a5c00;padding:2px 8px;border-radius:10px;font-weight:600;">${pubKindLabels[p.kind] ?? p.kind}</span> <span style="color:#585c63;font-size:11px;">${escapeHtml(p.source)}</span></td>
+        <td style="padding:8px 12px;border-bottom:1px solid #cbd1da;font-size:13px;color:#14161a;">${escapeHtml(p.content.slice(0, 220))}${p.content.length > 220 ? "…" : ""}${p.case ? `<br/><span style="color:#585c63;font-size:12px;">${escapeHtml(p.case.title)}</span>` : ""}</td>
       </tr>`
     )
     .join("");
 
   return `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">${officeName.toUpperCase()}</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">AGENDA DO DIA</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">AGENDA DO DIA</p>
     </div>
     <div style="padding:20px;background:#fff;">
-      <p style="font-family:Arial,sans-serif;font-size:14px;color:#0f1f3d;text-transform:capitalize;">${dateLabel}</p>
+      <p style="font-family:Arial,sans-serif;font-size:14px;color:#14161a;">${primeiraMaiuscula(dateLabel)}</p>
       ${
         tasks.length === 0
-          ? `<p style="font-family:Arial,sans-serif;color:#888;">Nenhum compromisso agendado para hoje.</p>`
+          ? `<p style="font-family:Arial,sans-serif;color:#585c63;">Nenhum compromisso agendado para hoje.</p>`
           : `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
               <thead>
-                <tr style="background:#f3efe6;">
-                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Hora</th>
-                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Tipo</th>
-                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Compromisso</th>
-                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Responsável</th>
+                <tr style="background:#eaedf0;">
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#14161a;">Hora</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#14161a;">Tipo</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#14161a;">Compromisso</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#14161a;">Responsável</th>
                 </tr>
               </thead>
               <tbody>${rows}</tbody>
             </table>`
       }
-      <p style="font-family:Arial,sans-serif;font-size:13px;color:#0f1f3d;font-weight:700;margin:24px 0 8px;">Publicações e andamentos capturados hoje</p>
+      <p style="font-family:Arial,sans-serif;font-size:13px;color:#14161a;font-weight:700;margin:24px 0 8px;">Publicações e andamentos capturados hoje</p>
       ${
         publications.length === 0
-          ? `<p style="font-family:Arial,sans-serif;color:#888;">Nenhuma publicação ou andamento capturado hoje.</p>`
+          ? `<p style="font-family:Arial,sans-serif;color:#585c63;">Nenhuma publicação ou andamento capturado hoje.</p>`
           : `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
               <thead>
-                <tr style="background:#f3efe6;">
-                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Tipo / fonte</th>
-                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#0f1f3d;">Conteúdo</th>
+                <tr style="background:#eaedf0;">
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#14161a;">Tipo / fonte</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:11px;color:#14161a;">Conteúdo</th>
                 </tr>
               </thead>
               <tbody>${pubRows}</tbody>
@@ -218,17 +257,17 @@ export async function buildDailyAgendaHtml(officeId: string, officeName: string)
 export async function sendPasswordResetEmail(to: string, resetUrl: string, officeName: string, officeId: string): Promise<{ sent: boolean; reason?: string }> {
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">${officeName.toUpperCase()}</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">REDEFINIÇÃO DE SENHA</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">REDEFINIÇÃO DE SENHA</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
-      <p style="font-size:14px;color:#0f1f3d;">Recebemos um pedido para redefinir a senha da sua conta no sistema.</p>
-      <p style="font-size:14px;color:#0f1f3d;">Clique no botão abaixo para escolher uma nova senha. Este link expira em 1 hora.</p>
+      <p style="font-size:14px;color:#14161a;">Recebemos um pedido para redefinir a senha da sua conta no sistema.</p>
+      <p style="font-size:14px;color:#14161a;">Clique no botão abaixo para escolher uma nova senha. Este link expira em 1 hora.</p>
       <p style="text-align:center;margin:24px 0;">
-        <a href="${resetUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Redefinir minha senha</a>
+        <a href="${resetUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Redefinir minha senha</a>
       </p>
-      <p style="font-size:12px;color:#888;">Se você não pediu essa redefinição, pode ignorar este e-mail — sua senha atual continua válida.</p>
+      <p style="font-size:12px;color:#585c63;">Se você não pediu essa redefinição, pode ignorar este e-mail — sua senha atual continua válida.</p>
     </div>
   </div>`;
 
@@ -305,17 +344,17 @@ export async function sendOfficeInviteEmail(to: string, adminName: string, reset
 
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">BEM-VINDO(A)</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">BEM-VINDO(A)</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
-      <p style="font-size:14px;color:#0f1f3d;">Olá, ${adminName}!</p>
-      <p style="font-size:14px;color:#0f1f3d;">O escritório <strong>${officeName}</strong> já está cadastrado no Lúmen. Clique no botão abaixo para definir sua senha de acesso — o link expira em 1 hora.</p>
+      <p style="font-size:14px;color:#14161a;">Olá, ${adminName}!</p>
+      <p style="font-size:14px;color:#14161a;">O escritório <strong>${officeName}</strong> já está cadastrado no Lúmen. Clique no botão abaixo para definir sua senha de acesso — o link expira em 1 hora.</p>
       <p style="text-align:center;margin:24px 0;">
-        <a href="${resetUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Definir minha senha</a>
+        <a href="${resetUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Definir minha senha</a>
       </p>
-      <p style="font-size:12px;color:#888;">Se você não esperava este e-mail, pode ignorá-lo com segurança.</p>
+      <p style="font-size:12px;color:#585c63;">Se você não esperava este e-mail, pode ignorá-lo com segurança.</p>
     </div>
   </div>`;
 
@@ -337,11 +376,11 @@ type PixEmailOpts = { pixPayload?: string | null; pixImage?: string | null };
 function pixHtmlBlock(opts?: PixEmailOpts | null): string {
   if (!opts?.pixPayload) return "";
   return `
-      <div style="margin:20px 0;padding:16px;background:#f3efe6;border-radius:8px;text-align:center;">
-        <p style="font-size:13px;color:#0f1f3d;font-weight:700;margin:0 0 8px;">Pagar com Pix</p>
+      <div style="margin:20px 0;padding:16px;background:#eaedf0;border-radius:8px;text-align:center;">
+        <p style="font-size:13px;color:#14161a;font-weight:700;margin:0 0 8px;">Pagar com Pix</p>
         ${opts.pixImage ? `<img src="data:image/png;base64,${opts.pixImage}" alt="QR Code Pix" style="width:180px;height:180px;margin:0 auto 8px;display:block;" />` : ""}
-        <p style="font-size:12px;color:#555;margin:0 0 4px;">Pix Copia e Cola:</p>
-        <p style="font-size:11px;color:#0f1f3d;word-break:break-all;background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px;margin:0;user-select:all;">${opts.pixPayload}</p>
+        <p style="font-size:12px;color:#3d4045;margin:0 0 4px;">Pix Copia e Cola:</p>
+        <p style="font-size:11px;color:#14161a;word-break:break-all;background:#fff;border:1px solid #cbd1da;border-radius:6px;padding:8px;margin:0;user-select:all;">${opts.pixPayload}</p>
       </div>`;
 }
 
@@ -366,20 +405,20 @@ export async function sendInvoiceEmail(
 
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">FATURA MENSAL</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">FATURA MENSAL</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
-      <p style="font-size:14px;color:#0f1f3d;">Olá! Segue a fatura referente à mensalidade do Lúmen — ${officeName}.</p>
-      <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
+      <p style="font-size:14px;color:#14161a;">Olá! Segue a fatura referente à mensalidade do Lúmen — ${officeName}.</p>
+      <p style="font-size:14px;color:#14161a;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
       ${pixHtmlBlock(opts)}
       ${
         boletoUrl
-          ? `<p style="text-align:center;margin:24px 0;"><a href="${boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${boletoUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
           : opts?.pixPayload
             ? ""
-            : `<p style="font-size:13px;color:#888;">O boleto será combinado diretamente com o Rodarte Prado Advogados.</p>`
+            : `<p style="font-size:13px;color:#585c63;">O boleto será combinado diretamente com o Rodarte Prado Advogados.</p>`
       }
     </div>
   </div>`;
@@ -412,20 +451,20 @@ export async function sendPaymentReminderEmail(
 
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">LEMBRETE DE FATURA</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">LEMBRETE DE FATURA</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
-      <p style="font-size:14px;color:#0f1f3d;">Olá! A fatura da mensalidade do Lúmen — ${officeName} vence em breve.</p>
-      <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
+      <p style="font-size:14px;color:#14161a;">Olá! A fatura da mensalidade do Lúmen — ${officeName} vence em breve.</p>
+      <p style="font-size:14px;color:#14161a;">Valor: <strong>${amountLabel}</strong><br/>Vencimento: <strong>${dueLabel}</strong></p>
       ${pixHtmlBlock(opts)}
       ${
         opts?.boletoUrl
-          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
           : ""
       }
-      <p style="font-size:13px;color:#888;">Se o pagamento já foi feito, pode ignorar este lembrete.</p>
+      <p style="font-size:13px;color:#585c63;">Se o pagamento já foi feito, pode ignorar este lembrete.</p>
     </div>
   </div>`;
 
@@ -461,21 +500,21 @@ export async function sendOverdueReminderEmail(
 
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">FATURA VENCIDA</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">FATURA VENCIDA</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
-      <p style="font-size:14px;color:#0f1f3d;">A fatura da mensalidade do Lúmen — ${officeName} venceu em <strong>${dueLabel}</strong> e ainda não identificamos o pagamento.</p>
-      <p style="font-size:14px;color:#0f1f3d;">Valor: <strong>${amountLabel}</strong></p>
-      <p style="font-size:14px;color:#0f1f3d;font-weight:700;">${prazoLabel}.</p>
+      <p style="font-size:14px;color:#14161a;">A fatura da mensalidade do Lúmen — ${officeName} venceu em <strong>${dueLabel}</strong> e ainda não identificamos o pagamento.</p>
+      <p style="font-size:14px;color:#14161a;">Valor: <strong>${amountLabel}</strong></p>
+      <p style="font-size:14px;color:#14161a;font-weight:700;">${prazoLabel}.</p>
       ${pixHtmlBlock(opts)}
       ${
         opts?.boletoUrl
-          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#0b1730;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
+          ? `<p style="text-align:center;margin:24px 0;"><a href="${opts.boletoUrl}" style="background:#181b1f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ver boleto</a></p>`
           : ""
       }
-      <p style="font-size:13px;color:#888;">Se o pagamento já foi feito, pode ignorar este lembrete — a confirmação pode levar algumas horas para refletir aqui.</p>
+      <p style="font-size:13px;color:#585c63;">Se o pagamento já foi feito, pode ignorar este lembrete — a confirmação pode levar algumas horas para refletir aqui.</p>
     </div>
   </div>`;
 
@@ -497,13 +536,13 @@ export async function sendOfficeSuspendedEmail(to: string, officeName: string): 
 
   const html = `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;">
-    <div style="background:#0b1730;padding:24px;text-align:center;">
+    <div style="background:#181b1f;padding:24px;text-align:center;">
       <h1 style="color:#fff;font-size:20px;margin:0;">LÚMEN</h1>
-      <p style="color:#c6a05c;font-size:11px;letter-spacing:3px;margin:4px 0 0;">ACESSO SUSPENSO</p>
+      <p style="color:#c9707f;font-size:11px;letter-spacing:3px;margin:4px 0 0;">ACESSO SUSPENSO</p>
     </div>
     <div style="padding:20px;background:#fff;font-family:Arial,sans-serif;">
-      <p style="font-size:14px;color:#0f1f3d;">O acesso do escritório <strong>${officeName}</strong> ao Lúmen foi suspenso por falta de pagamento da mensalidade.</p>
-      <p style="font-size:14px;color:#0f1f3d;">Entre em contato com o Rodarte Prado Advogados para regularizar a situação e liberar o acesso novamente.</p>
+      <p style="font-size:14px;color:#14161a;">O acesso do escritório <strong>${officeName}</strong> ao Lúmen foi suspenso por falta de pagamento da mensalidade.</p>
+      <p style="font-size:14px;color:#14161a;">Entre em contato com o Rodarte Prado Advogados para regularizar a situação e liberar o acesso novamente.</p>
     </div>
   </div>`;
 
@@ -534,13 +573,13 @@ function digestSection(opts: { color: string; title: string; count: number; item
   const rows = opts.items
     .map(
       (i) => `
-      <div style="border-bottom:1px solid #ece7d9;padding:10px 2px;">
-        <p style="font-size:13.5px;color:#0a1128;margin:0 0 2px;line-height:1.4;">${
+      <div style="border-bottom:1px solid #dfe3e8;padding:10px 2px;">
+        <p style="font-size:13.5px;color:#0f1113;margin:0 0 2px;line-height:1.4;">${
           i.urgent
-            ? `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#fbe9e6;color:#8a1f1f;">${escapeHtml(i.meta)}</span>`
-            : `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#ece3d2;color:#7a5c14;">${escapeHtml(i.meta)}</span>`
+            ? `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#f5e5e6;color:#8a2f42;">${escapeHtml(i.meta)}</span>`
+            : `<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-right:7px;background:#dfe3e8;color:#8a5c00;">${escapeHtml(i.meta)}</span>`
         }${escapeHtml(i.title)}</p>
-        ${i.subtitle ? `<p style="font-size:11.5px;color:#948e7d;margin:0;">${escapeHtml(i.subtitle)}</p>` : ""}
+        ${i.subtitle ? `<p style="font-size:11.5px;color:#585c63;margin:0;">${escapeHtml(i.subtitle)}</p>` : ""}
       </div>`
     )
     .join("");
@@ -549,9 +588,9 @@ function digestSection(opts: { color: string; title: string; count: number; item
   <div style="margin:0 0 26px;">
     <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px;">
       <span style="width:7px;height:7px;border-radius:50%;background:${opts.color};display:inline-block;"></span>
-      <p style="font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;margin:0;color:${opts.color};">${opts.title} <span style="font-size:11px;color:#9a9484;font-weight:400;letter-spacing:0;text-transform:none;">— ${opts.count}</span></p>
+      <p style="font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;margin:0;color:${opts.color};">${opts.title} <span style="font-size:11px;color:#585c63;font-weight:400;letter-spacing:0;text-transform:none;">— ${opts.count}</span></p>
     </div>
-    ${opts.items.length === 0 ? `<p style="font-size:12.5px;color:#a39d8c;font-style:italic;padding:4px 2px 2px;">${opts.emptyLabel}</p>` : rows}
+    ${opts.items.length === 0 ? `<p style="font-size:12.5px;color:#a5b1bf;font-style:italic;padding:4px 2px 2px;">${opts.emptyLabel}</p>` : rows}
   </div>`;
 }
 
@@ -562,29 +601,29 @@ function digestFinanceSection(rows: DigestFinanceRow[]): string {
 
   const body =
     rows.length === 0
-      ? `<p style="font-size:12.5px;color:#a39d8c;font-style:italic;padding:4px 2px 2px;">Nada vencendo hoje.</p>`
+      ? `<p style="font-size:12.5px;color:#a5b1bf;font-style:italic;padding:4px 2px 2px;">Nada vencendo hoje.</p>`
       : `
     <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
       ${rows
         .map(
           (r) => `
       <tr>
-        <td style="padding:7px 2px;border-bottom:1px solid #ece7d9;color:#0a1128;">${r.kind === "pagar" ? "A pagar" : "A receber"}<br/><span style="color:#948e7d;font-size:11px;">${escapeHtml(r.label)}${r.sub ? ` — ${escapeHtml(r.sub)}` : ""}</span></td>
-        <td style="padding:7px 2px;border-bottom:1px solid #ece7d9;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:${r.kind === "pagar" ? "#8a1f1f" : "#2f6b4f"};">${r.kind === "pagar" ? "− " : "+ "}${money(r.amount)}</td>
+        <td style="padding:7px 2px;border-bottom:1px solid #dfe3e8;color:#0f1113;">${r.kind === "pagar" ? "A pagar" : "A receber"}<br/><span style="color:#585c63;font-size:11px;">${escapeHtml(r.label)}${r.sub ? ` — ${escapeHtml(r.sub)}` : ""}</span></td>
+        <td style="padding:7px 2px;border-bottom:1px solid #dfe3e8;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:${r.kind === "pagar" ? "#8a2f42" : "#1c6b52"};">${r.kind === "pagar" ? "− " : "+ "}${money(r.amount)}</td>
       </tr>`
         )
         .join("")}
     </table>
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding:10px 12px;border-radius:8px;background:${positive ? "#e6f1ea" : "#fbe9e6"};">
-      <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:${positive ? "#2f6b4f" : "#8a1f1f"};">Saldo do dia</span>
-      <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:${positive ? "#2f6b4f" : "#8a1f1f"};">${positive ? "+ " : "− "}${money(total)}</span>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding:10px 12px;border-radius:8px;background:${positive ? "#e4efea" : "#f5e5e6"};">
+      <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:${positive ? "#1c6b52" : "#8a2f42"};">Saldo do dia</span>
+      <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:${positive ? "#1c6b52" : "#8a2f42"};">${positive ? "+ " : "− "}${money(total)}</span>
     </div>`;
 
   return `
   <div style="margin:0 0 26px;">
     <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px;">
-      <span style="width:7px;height:7px;border-radius:50%;background:#445070;display:inline-block;"></span>
-      <p style="font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;margin:0;color:#445070;">Financeiro do dia</p>
+      <span style="width:7px;height:7px;border-radius:50%;background:#3d4045;display:inline-block;"></span>
+      <p style="font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;margin:0;color:#3d4045;">Financeiro do dia</p>
     </div>
     ${body}
   </div>`;
@@ -600,23 +639,23 @@ function buildDailyDigestHtml(params: {
 }): string {
   return `
   <div style="width:600px;max-width:100%;margin:0 auto;background:#ffffff;font-family:Georgia,'Times New Roman',serif;">
-    <div style="background:#0a1128;padding:28px 32px 24px;text-align:center;">
+    <div style="background:#0f1113;padding:28px 32px 24px;text-align:center;">
       <img src="data:image/png;base64,${LUMEN_LOGO_BASE64}" width="46" height="46" alt="Lúmen" style="width:46px;height:46px;border-radius:10px;display:block;margin:0 auto 10px;" />
       <p style="color:#ffffff;font-size:25px;margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:0.01em;">Lúmen</p>
-      <p style="color:#8f1c38;font-family:Arial,sans-serif;font-size:10.5px;letter-spacing:3.5px;margin:5px 0 0;font-weight:700;">GESTÃO&nbsp;JURÍDICA</p>
+      <p style="color:#8a2f42;font-family:Arial,sans-serif;font-size:10.5px;letter-spacing:3.5px;margin:5px 0 0;font-weight:700;">GESTÃO&nbsp;JURÍDICA</p>
     </div>
     <div style="padding:28px 32px 8px;font-family:Arial,sans-serif;">
-      <p style="font-family:Georgia,serif;font-size:17px;color:#0a1128;margin:0 0 2px;">Bom dia, ${params.firstName}</p>
-      <p style="font-size:12.5px;color:#7c7666;margin:0 0 26px;text-transform:capitalize;">${params.dateLabel}</p>
+      <p style="font-family:Georgia,serif;font-size:17px;color:#0f1113;margin:0 0 2px;">Bom dia, ${params.firstName}</p>
+      <p style="font-size:12.5px;color:#585c63;margin:0 0 26px;">${primeiraMaiuscula(params.dateLabel)}</p>
 
-      ${digestSection({ color: "#0a1128", title: "Notificações não lidas", count: params.notifications.length, items: params.notifications, emptyLabel: "Nenhuma notificação pendente." })}
-      ${digestSection({ color: "#6e0d25", title: "Atrasados", count: params.overdue.length, items: params.overdue, emptyLabel: "Nenhum prazo atrasado." })}
-      ${digestSection({ color: "#b8860b", title: "Hoje", count: params.today.length, items: params.today, emptyLabel: "Nenhum compromisso para hoje." })}
+      ${digestSection({ color: "#0f1113", title: "Notificações não lidas", count: params.notifications.length, items: params.notifications, emptyLabel: "Nenhuma notificação pendente." })}
+      ${digestSection({ color: "#670224", title: "Atrasados", count: params.overdue.length, items: params.overdue, emptyLabel: "Nenhum prazo atrasado." })}
+      ${digestSection({ color: "#8a5c00", title: "Hoje", count: params.today.length, items: params.today, emptyLabel: "Nenhum compromisso para hoje." })}
       ${params.finance ? digestFinanceSection(params.finance) : ""}
     </div>
-    <div style="background:#f4efe4;border-top:3px solid #6e0d25;padding:18px 32px 22px;margin-top:18px;">
-      <p style="font-family:Arial,sans-serif;font-size:11px;color:#5c5748;margin:0 0 8px;"><span style="margin-right:14px;">lumen.com.br</span><span style="margin-right:14px;">contato@lumen.com.br</span><span>+55 62 0000-0000</span></p>
-      <p style="font-family:Arial,sans-serif;font-size:10.5px;color:#9a947f;margin:0;line-height:1.5;">Você recebe este resumo porque tem uma conta ativa no Lúmen.</p>
+    <div style="background:#eaedf0;border-top:3px solid #670224;padding:18px 32px 22px;margin-top:18px;">
+      <p style="font-family:Arial,sans-serif;font-size:11px;color:#3d4045;margin:0 0 8px;"><span style="margin-right:14px;">lumen.com.br</span><span style="margin-right:14px;">contato@lumen.com.br</span><span>+55 62 0000-0000</span></p>
+      <p style="font-family:Arial,sans-serif;font-size:10.5px;color:#585c63;margin:0;line-height:1.5;">Você recebe este resumo porque tem uma conta ativa no Lúmen.</p>
     </div>
   </div>`;
 }

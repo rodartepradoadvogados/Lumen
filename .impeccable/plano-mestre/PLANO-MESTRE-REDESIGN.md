@@ -562,17 +562,29 @@ invisível para quem navega por teclado. Corrigido junto.
 
 ---
 
-### P1-EMAIL · a superfície que ninguém olhou neste redesenho
+### ~~P1-EMAIL~~ · RESOLVIDO no PR #217 · a superfície que ninguém tinha olhado
 
 O detector nunca foi rodado em `lib/`. Rodado agora: **36 achados**, todos concentrados em
 `lib/email.ts`, `lib/emailTemplateRender.ts`, `lib/defaultOfficeData.ts` e `lib/pwaIcon.tsx` — 90
 cores literais, 54 tamanhos de fonte literais, 23 famílias tipográficas.
 
 Em e-mail, cor e fonte literais são **obrigatórias** (cliente de e-mail não lê variável CSS nem
-Tailwind), então o detector está tecnicamente errado nesses arquivos. A pergunta que ele levanta,
-porém, é legítima e não foi feita ainda: **os e-mails transacionais ainda estão na paleta velha?**
-É a voz do produto dentro da caixa de entrada do cliente, e nenhuma fase deste plano olhou para ela.
-Vai para F8.
+Tailwind), então o detector estava tecnicamente errado nesses arquivos. Mas a pergunta que ele
+levantou era legítima, e a resposta foi **sim**: os e-mails estavam numa paleta inteira de outra
+marca — azul-marinho `#0f1f3d`/`#0b1730`/`#0a1128` num produto que não tem azul, ouro `#c6a05c`
+(o acento da marca anterior) e o **creme** `#f3efe6`/`#ece7d9`/`#f9f6ef` que o dono recusou por
+escrito em 2026-09-16. Era a voz do produto na caixa de entrada do cliente, mandando justamente o
+creme recusado.
+
+38 cores mapeadas valor por valor para o tema claro do produto. Os 11 pares em uso medidos contra
+WCAG AA: pior caso 4,95:1, nenhum reprovando.
+
+**E um defeito que só a renderização achou:** `text-transform: capitalize` numa data em português
+maiúscula CADA palavra — "Quinta-Feira, 17 De Setembro De 2026". Em português só a primeira letra
+sobe. Estava em dois e-mails e em dois lugares da agenda do PWA. No e-mail a frase passa a chegar
+pronta do servidor (`::first-letter` não é confiável em cliente de e-mail); no navegador, a classe
+`.inicial-maiuscula` resolve. No `/painel` o `capitalize` era classe **morta** — `uppercase` na
+mesma string já vencia.
 
 ---
 
