@@ -157,7 +157,7 @@ export default function PhotoLibraryManager({ photos }: { photos: Photo[] }) {
           {photos.map((photo) => (
             <div key={photo.id} className="border-t-2 border-regua-forte overflow-hidden bg-sf">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photoFileUrl(photo.id)} alt={photo.caption || photo.category} className="w-full h-28 object-cover" />
+              <img src={photoFileUrl(photo.id)} alt={photo.caption || photo.category} className="w-full h-28 object-cover" loading="lazy" decoding="async" />
               <div className="p-2 space-y-1">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Badge color="navy">{photo.category}</Badge>

@@ -37,7 +37,7 @@ export default async function LivroCaixaPage({ searchParams }: { searchParams: {
 
   return (
     <div className="tela">
-      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader title="Livro Caixa" subtitle="Extrato cronológico de todas as movimentações efetivadas" />
@@ -56,7 +56,7 @@ export default async function LivroCaixaPage({ searchParams }: { searchParams: {
             Filtrar
           </button>
           {temFiltro && (
-            <Link href="/financeiro/livro-caixa" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx px-2">
+            <Link href="/financeiro/livro-caixa" className="text-xs font-semibold text-tx-2 hover:text-tx px-2">
               Limpar filtro
             </Link>
           )}

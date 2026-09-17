@@ -59,7 +59,7 @@ export default async function ReceitasPage({
 
   return (
     <div className="tela">
-      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx">
+      <Link href="/financeiro" className="text-xs font-semibold text-tx-2 hover:text-tx">
         ← Financeiro
       </Link>
       <PageHeader
@@ -156,7 +156,7 @@ export default async function ReceitasPage({
             <Download size={15} /> Exportar .xlsx
           </a>
           {(searchParams.from || searchParams.to || searchParams.costCenterId || searchParams.q || searchParams.categoryId) && (
-            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx px-2">
+            <Link href={qs({ from: undefined, to: undefined, costCenterId: undefined, q: undefined, categoryId: undefined })} className="text-xs font-semibold text-tx-2 hover:text-tx px-2">
               Limpar filtros
             </Link>
           )}

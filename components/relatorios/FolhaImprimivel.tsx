@@ -59,7 +59,9 @@ export function FolhaCabecalho({
         {officeCnpj && <div style={{ fontSize: 9.5, color: "#3d4045" }}>CNPJ {officeCnpj}</div>}
       </div>
       <div style={{ textAlign: "right", fontSize: 9.5, color: "#3d4045" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#14161a" }}>{titulo}</div>
+        {/* <h1>, não <div>: é o título da folha, e as quatro folhas imprimíveis não tinham
+            nenhum título semântico — só texto grande. */}
+        <h1 style={{ fontSize: 12, fontWeight: 700, color: "#14161a", margin: 0 }}>{titulo}</h1>
         <div>{subtitulo}</div>
         <div>
           emitido em {new Date().toLocaleDateString("pt-BR")} por {emitidoPor}

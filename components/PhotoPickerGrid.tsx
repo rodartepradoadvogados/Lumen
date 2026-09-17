@@ -33,7 +33,7 @@ export default function PhotoPickerGrid({
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={fileUrl} alt={photo.caption || photo.category} className="h-14 w-full object-cover" />
+            <img src={fileUrl} alt={photo.caption || photo.category} className="h-14 w-full object-cover" loading="lazy" decoding="async" />
           </button>
         );
       })}

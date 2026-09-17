@@ -202,6 +202,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="tela">
+      {/* A tela abria direto na tarja, sem <h1>: navegação por títulos pulava a home inteira e o
+          leitor de tela não anunciava onde estava. O título é visualmente oculto de propósito — a
+          tarja JÁ é o título visual, e repeti-la em texto seria dizer a mesma coisa duas vezes. */}
+      <h1 className="sr-only">Painel do escritório</h1>
       {/* A TARJA — a primeira coisa que a tela diz, e ela fala do ESCRITÓRIO.
           Antes este espaço era uma saudação com o nome do usuário, gastando o maior tipo da
           página, o único gradiente e a única textura do produto. O contrato de direção "Guias"

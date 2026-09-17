@@ -244,7 +244,7 @@ export default async function ProdutividadePage({
           {responsibleId && (
             <Link
               href={`/produtividade${searchParams.mes ? `?mes=${searchParams.mes}` : ""}`}
-              className="text-xs font-semibold text-tx-2 hover:text-tx dark:hover:text-tx px-2"
+              className="text-xs font-semibold text-tx-2 hover:text-tx px-2"
             >
               Limpar filtro
             </Link>

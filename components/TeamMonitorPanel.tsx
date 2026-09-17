@@ -125,7 +125,7 @@ export default function TeamMonitorPanel({
         <div className="h-8 w-8 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+            <img src={photoUrl} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
           ) : (
             initials
           )}
@@ -147,7 +147,7 @@ export default function TeamMonitorPanel({
             <div className="h-9 w-9 rounded-full bg-grafite-800 text-rail-marca flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0">
               {photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+                <img src={photoUrl} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 initials
               )}
