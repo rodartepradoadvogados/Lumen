@@ -22,6 +22,13 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // `lib/` FALTAVA, e isso torna morta toda classe escrita ali — o Tailwind gera CSS a partir
+    // dos arquivos que consegue LER, e o que não está nesta lista não existe. Havia 21 classes em
+    // lib/: as do mapa de faixas de seção (lib/navSections.ts) e as do classificador de prazo
+    // (lib/dueStatus.ts). As de dueStatus funcionavam por COINCIDÊNCIA — os mesmos nomes também
+    // aparecem em app/ e components/, e era de lá que a regra vinha. Bastava a última ocorrência
+    // fora de lib/ sumir numa refatoração para o prazo vencido perder a cor, sem erro nenhum.
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {

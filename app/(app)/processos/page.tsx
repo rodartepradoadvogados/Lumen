@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CLASSES_FAIXA } from "@/lib/navSections";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,9 @@ import {
   MATERIA_LABELS,
 } from "@/lib/caseNatureza";
 import { Scale } from "lucide-react";
+
+// A cor da seção Jurídico vem do mapa, não escrita à mão (lib/navSections.ts).
+const FAIXA = CLASSES_FAIXA.anil;
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +165,7 @@ export default async function ProcessosPage({
       {/* Escolher a natureza é escolher a GAVETA — é o gesto que a guia chanfrada nomeia, e é
           aqui que ela cabe melhor do que em qualquer outro lugar do produto. Faixa anil porque é
           a cor da seção Jurídico, a mesma de /processos/[id]. */}
-      <div className="flex flex-wrap items-end gap-[3px] border-b-2 border-faixa-anil mb-5 overflow-x-auto">
+      <div className={`flex flex-wrap items-end gap-[3px] border-b-2 ${FAIXA.borda} mb-5 overflow-x-auto`}>
         <NaturezaTab
           label="Todos"
           count={countTodos}
@@ -338,7 +342,7 @@ function NaturezaTab({ label, count, href, active }: { label: string; count: num
       aria-current={active ? "page" : undefined}
       className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
         active
-          ? "bg-faixa-anil text-rotulo border-faixa-anil"
+          ? `${FAIXA.fundo} text-rotulo ${FAIXA.borda}`
           : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
       }`}
     >
