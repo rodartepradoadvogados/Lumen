@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Cabeçalho único do blog. Antes havia dois: o índice trazia um masthead central de `py-10` com
 // marca grande, tarja "BLOG JURÍDICO", dois botões e um parágrafo de descrição; a matéria trazia
@@ -24,8 +25,8 @@ export default function CabecalhoBlog({
   nomeDaSecao?: boolean;
 }) {
   return (
-    <header className="bg-grafite-800 px-4 sm:px-6 py-4">
-      <div className="max-w-5xl mx-auto flex items-center gap-4 flex-wrap">
+    <header className="bg-grafite-800 py-4">
+      <div className="faixa-site flex items-center gap-4 flex-wrap">
         <Link
           href="/blog"
           className="font-extrabold text-destaque tracking-[.16em] text-rail-marca transition-colors duration-100 ease-out hover:text-rotulo"
@@ -47,6 +48,10 @@ export default function CabecalhoBlog({
             (auditoria de 2026-09-16). Todo tráfego orgânico chegava e não tinha para onde ir, e a
             marca do cabeçalho nem link era. */}
         <div className="ml-auto flex items-center gap-2.5">
+          {/* Manhã/Noite — o blog era a única superfície pública sem alternador. A variante
+              `cromo` existe porque esta barra é grafite fixo nos dois temas; ver o comentário
+              em components/ThemeToggle.tsx. */}
+          <ThemeToggle variant="cromo" />
           <Link
             href="/"
             className="inline-flex items-center h-9 px-4 border border-gaveta-linha text-rail-tx hover:text-rotulo text-etiqueta font-semibold uppercase tracking-[.07em] rounded-sm transition-colors duration-100 ease-out"
