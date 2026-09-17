@@ -29,7 +29,7 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
 // lógica de leitura/persistência do tema continua só aqui, o controle segmentado só invoca
 // setMode(). O app mobile tem seu próprio toggle, decoupled deste (ver
 // components/mobile/MobileThemeToggle.tsx — 3 estados, Dia/Tarde/Noite, não 2).
-export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" }) {
+export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "menu" | "segmented" | "cromo" }) {
   const [mode, setMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -71,7 +71,7 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
 
   if (!mounted) {
     // Evita mismatch de hidratação até sabermos a preferência real; ocupa o mesmo espaço do botão.
-    return <span className={variant === "icon" ? "h-9 w-9 shrink-0" : "block h-9"} aria-hidden="true" />;
+    return <span className={variant === "icon" || variant === "cromo" ? "h-9 w-9 shrink-0" : "block h-9"} aria-hidden="true" />;
   }
 
   const Icon = ICONS[mode];
@@ -85,6 +85,27 @@ export default function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "
         onChange={applyMode}
         options={THEME_ORDER.map((m) => ({ value: m, label: THEME_LABEL[m] }))}
       />
+    );
+  }
+
+  // SOBRE CROMO — barra que NÃO retematiza (o cabeçalho do blog, o rail, o cabeçalho do PWA:
+  // grafite fixo nos dois temas, DESIGN.md §3). A variante `icon` usa `text-tx`/`hover:bg-sf-apoio`,
+  // que trocam com o tema: sobre um fundo que não troca, no Manhã o ícone sumiria. Aqui valem as
+  // variantes criadas justamente para essa superfície — `rail-tx`, `rotulo`, `gaveta-fundo`.
+  //
+  // Acrescentada em 17/09/2026: o blog era a única superfície pública sem alternador. O tema
+  // escuro sempre alcançou o blog (o script em app/layout.tsx aplica a classe em qualquer rota),
+  // e a página de marketing já tinha a porta desde F5 — faltava esta.
+  if (variant === "cromo") {
+    return (
+      <button
+        type="button"
+        onClick={cycle}
+        aria-label={`Tema atual: ${THEME_LABEL[mode]}. Clique para mudar para ${nextLabel}`}
+        className="inline-flex items-center justify-center h-9 w-9 shrink-0 rounded-sm border border-gaveta-linha text-rail-tx hover:text-rotulo hover:bg-gaveta-fundo transition-colors duration-100 ease-out"
+      >
+        <Icon size={16} />
+      </button>
     );
   }
 

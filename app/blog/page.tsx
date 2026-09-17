@@ -51,7 +51,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
     <div className="min-h-screen bg-sf-fundo">
       <CabecalhoBlog nomeDaSecao={false} />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="faixa-site py-10">
         {/* A identidade editorial desceu do cromo para o papel. Antes ela vivia dentro do masthead
             grafite, centralizada, com a marca repetida em tipo grande — quase uma tela de cromo
             antes da primeira matéria. Aqui ela é conteúdo, que é o que ela sempre foi. */}
@@ -82,8 +82,20 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {posts.map((post) => (
+          // MANCHETE E COLUNAS — forma escolhida pelo dono em 17/09/2026, entre três propostas,
+          // depois do apontamento "precisa de um jeito mais criativo de mostrar as matérias; não
+          // precisa ser tudo do mesmo tamanho, quadrático".
+          //
+          // Eram duas colunas de fichas idênticas: a matéria de hoje e a de três semanas atrás
+          // ocupavam exatamente o mesmo espaço, então a página não dizia por onde começar. A
+          // manchete devolve essa hierarquia, e ela é de TEMPO — o que é mais novo é maior —, que
+          // é a ordem que a lista já seguia (orderBy publishedAt desc) sem nunca mostrar.
+          //
+          // `[&>*:first-child]:sm:col-span-full`: a primeira ficha atravessa a grade inteira em
+          // qualquer contagem de colunas. Escrito como seletor, e não como `posts.map` com if,
+          // para a manchete não exigir um ramo de renderização próprio — é a mesma peça.
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 [&>*:first-child]:sm:col-span-full">
+            {posts.map((post, i) => (
               <FichaMateria
                 key={post.id}
                 slug={post.slug}
@@ -94,6 +106,9 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
                 minutos={minutosDeLeitura(post.content)}
                 publicadoEm={post.publishedAt}
                 imagem={post.imageUrl}
+                // Só na PRIMEIRA PÁGINA: na página 3 a "manchete" seria a 25ª matéria mais
+                // recente, e destacá-la mentiria sobre o que ela é.
+                manchete={i === 0 && page === 1}
               />
             ))}
           </div>
@@ -124,7 +139,7 @@ export default async function BlogPage({ searchParams }: { searchParams: { page?
       </main>
 
       <footer className="border-t-2 border-regua-forte mt-10">
-        <p className="max-w-5xl mx-auto px-4 sm:px-6 py-8 text-etiqueta text-tx-3">
+        <p className="faixa-site py-8 text-etiqueta text-tx-3">
           Lúmen — conteúdo informativo, não substitui consulta jurídica.
         </p>
       </footer>
