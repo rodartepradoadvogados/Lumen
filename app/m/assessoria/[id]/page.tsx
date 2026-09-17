@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getStorageConnectionStatus } from "@/lib/storageProvider";
 import { Card, Badge, EmptyState, formatCurrency, formatDate } from "@/components/ui";
+import SecaoRecolhivel from "@/components/SecaoRecolhivel";
 import { FinanceStatusBadge } from "@/lib/financeStatus";
 import MobileSearchCasesModal from "@/components/mobile/MobileSearchCasesModal";
 import MobileAssessoriaDocumentsSection from "@/components/mobile/MobileAssessoriaDocumentsSection";
@@ -117,15 +118,19 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
 
       <MobileLicitacoesSection assessoriaId={assessoria.id} licitacoes={assessoria.licitacoes} />
 
-      <Card>
-        <div className="px-4 py-3 border-b border-regua flex items-center justify-between gap-2 flex-wrap">
-          <h2 className="font-bold text-tx text-sm">Processos vinculados</h2>
+      {/* Recolhidas por padrão — mesmo pedido da conferência de 17/09/2026 que mudou a aba
+          "Demandas, Processos e Casos" no portal, aqui também: "tanto no saas como no mobile".
+          Ver components/SecaoRecolhivel.tsx. */}
+      <SecaoRecolhivel
+        titulo="Processos vinculados"
+        contagem={assessoria.linkedCases.length}
+        acoes={
+          <>
           {/* Auditoria apontou que esta tela só vinculava processo existente — nenhuma criação
               (ver AssessoriaProcessosCasosTab.tsx no desktop, que já tem os dois atalhos). "Novo
               processo" abre o formulário no ramo Judicial; "Novo caso" força EXTRAJUDICIAL — os
               dois levam a assessoriaId na querystring, que app/m/processos/novo/page.tsx agora lê
               e repassa como pré-seleção pro MobileNewCaseForm (ver AssessoriaSelect). */}
-          <div className="flex items-center gap-1 flex-wrap">
             <MobileSearchCasesModal assessoriaId={assessoria.id} availableCases={availableCases} />
             <Link
               href={`/m/processos/novo?assessoriaId=${assessoria.id}`}
@@ -139,8 +144,9 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             >
               <Plus size={12} /> Novo caso
             </Link>
-          </div>
-        </div>
+          </>
+        }
+      >
         {assessoria.linkedCases.length === 0 ? (
           <EmptyState title="Nenhum processo vinculado" />
         ) : (
@@ -153,12 +159,9 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             ))}
           </div>
         )}
-      </Card>
+      </SecaoRecolhivel>
 
-      <Card>
-        <div className="px-4 py-3 border-b border-regua">
-          <h2 className="font-bold text-tx text-sm">Atendimentos vinculados</h2>
-        </div>
+      <SecaoRecolhivel titulo="Atendimentos vinculados" contagem={assessoria.linkedAttendances.length}>
         {assessoria.linkedAttendances.length === 0 ? (
           <EmptyState title="Nenhum atendimento vinculado" />
         ) : (
@@ -171,7 +174,7 @@ export default async function MobileAssessoriaDetail({ params }: { params: { id:
             ))}
           </div>
         )}
-      </Card>
+      </SecaoRecolhivel>
 
       <Card className="p-4">
         <h2 className="font-bold text-tx text-sm mb-3">Anotações pessoais</h2>

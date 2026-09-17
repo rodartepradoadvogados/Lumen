@@ -29,6 +29,9 @@ export default async function EscolherPage() {
       titulo="Para onde você vai?"
       apoio={`Olá, ${user.name.split(" ")[0]}. Você tem acesso aos dois mundos.`}
       largura="md"
+      // A saída da casca fica de fora aqui: quem está nesta tela JÁ entrou, e a porta certa é o
+      // logout abaixo — "voltar ao site" deixaria a pessoa logada num limbo.
+      saida={false}
       rodape={
         <form action={logout}>
           <button

@@ -17,6 +17,20 @@ import LumenMark from "@/components/LumenMark";
 //              saber de que produto era a conta que estava criando, nem como voltar;
 //   saída    · presente em duas de quatro.
 //
+// A SAÍDA, revisitada em 17/09/2026. O dono: "se eu clico em começar, abre um quadro de criar
+// conta ou entrar. Não tem botão de sair ou voltar. Precisa. Só tem o botão na hora efetiva do
+// login, e não na tela de cadastro."
+//
+// Estava certo, e a causa era a saída morar no `rodape` de CADA tela em vez de na casca: /login
+// escrevia "← Voltar ao site" no rodapé dela, /cadastro não escrevia, e nada no sistema obrigava.
+// O wordmark LÚMEN no topo era link para "/" desde F5, mas um wordmark não se anuncia como botão
+// de voltar — ninguém clica numa marca esperando sair.
+//
+// Agora a saída é da CASCA e fica no alto, à esquerda, onde se procura por um "voltar" — não num
+// rodapé abaixo do cartão. Nenhuma tela de sessão pode mais nascer sem ela: para abrir mão é
+// preciso dizer `saida={false}` de propósito, e só /escolher faz isso, porque lá a saída correta
+// é o logout (a pessoa já entrou; "voltar ao site" seria deixá-la logada num limbo).
+//
 // A sombra sai das duas telas que a tinham. Havia um comentário em /redefinir-senha defendendo-a
 // ("cartão sobre fundo vazio: aqui a sombra é legítima"), e o argumento era razoável quando foi
 // escrito. Deixou de ser em F3, quando a casa trocou elevação por filete de 2px e removeu
@@ -31,19 +45,32 @@ export default function TelaSessao({
   apoio,
   largura = "sm",
   rodape,
+  saida = true,
   children,
 }: {
   titulo: string;
   apoio?: React.ReactNode;
   largura?: "sm" | "md";
   rodape?: React.ReactNode;
+  /** `false` só quando a tela tem uma saída própria mais correta — hoje, apenas /escolher. */
+  saida?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-sf-fundo flex items-center justify-center p-4">
       <div className={largura === "md" ? "w-full max-w-md" : "w-full max-w-sm"}>
-        {/* A marca é link para "/" em todas as quatro — é a porta de volta que /cadastro e
-            /redefinir-senha não tinham. */}
+        {/* A SAÍDA — sempre, no alto e à esquerda. Alvo de 44px de altura, como o resto do
+            produto. Ver a nota longa acima. */}
+        {saida ? (
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 min-h-[44px] -ml-2 px-2 mb-1 text-etiqueta font-semibold uppercase tracking-[.06em] text-tx-2 hover:text-tx transition-colors duration-100 ease-out"
+          >
+            <span aria-hidden="true">←</span> Voltar ao site
+          </Link>
+        ) : null}
+        {/* A marca também é link para "/", mas é a marca — quem procura a porta procura o botão
+            acima, não o logotipo. */}
         <Link href="/" className="flex items-center gap-2 mb-8 justify-center">
           <LumenMark size={30} />
           <span className="font-extrabold text-xl tracking-[.16em] text-tx">LÚMEN</span>
