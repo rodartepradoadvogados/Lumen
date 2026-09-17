@@ -291,6 +291,7 @@ export default function UserRow({ user, canManage }: { user: User; canManage: bo
 
   return (
     <div className="flex items-center gap-3 px-5 py-3 relative">
+      {/* eslint-disable-next-line no-restricted-syntax -- Círculo com a cor escolhida pelo usuário (style inline). */}
       <span className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: user.color }}>
         {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
       </span>

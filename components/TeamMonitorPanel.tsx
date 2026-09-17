@@ -240,6 +240,7 @@ export default function TeamMonitorPanel({
             {summaries?.map((s) => (
               <div key={s.id} className="border-b border-regua last:border-0">
                 <div className="flex items-center gap-3 px-4 py-3">
+                  {/* eslint-disable-next-line no-restricted-syntax -- Círculo com a cor escolhida pelo usuário (style inline). */}
                   <span className="h-7 w-7 rounded-full flex items-center justify-center text-white text-etiqueta font-bold shrink-0" style={{ backgroundColor: s.color }}>
                     {s.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                   </span>

@@ -135,7 +135,13 @@ export default function ComunicadosForm({ initial }: { initial: ComunicadoPrefer
                   onClick={() => toggleBreakthrough(key)}
                   className={`h-4 w-4 shrink-0 border flex items-center justify-center ${checked ? "bg-atencao border-atencao" : "border-regua-forte bg-sf"}`}
                 >
-                  {checked && <Check size={11} className="text-white" />}
+                  {/* text-rotulo: o fundo aqui é bg-atencao (--vinho -> --grave), que é #670224 no
+                      tema Manhã e #b56f79 no Noite. Branco sobre ele mede 13,04:1 no Manhã e 3,81:1 no
+                      Noite — reprova AA. Este caso escapou da regra de lint porque o fundo está no
+                      <span> PAI e o text-white estava no ícone FILHO: a regra só conseguia ler os dois
+                      quando vinham no mesmo literal. A regra nova, abaixo dela em .eslintrc.json,
+                      passa a cobrar declaração explícita quando não consegue ver o fundo. */}
+                  {checked && <Check size={11} className="text-rotulo" />}
                 </span>
                 {BREAKTHROUGH_EVENTOS[key]}
               </label>

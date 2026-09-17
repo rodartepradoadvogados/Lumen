@@ -39,6 +39,7 @@ export default function CookieConsent() {
     >
       <p className="text-xs leading-relaxed text-neutro-300">
         Usamos cookies essenciais para o site funcionar e, com sua permissão, cookies de análise. Veja a{" "}
+        {/* eslint-disable-next-line no-restricted-syntax -- Aviso bg-grafite-800, fixo nos dois temas. */}
         <Link href="/privacidade" className="text-white underline underline-offset-2">
           política de privacidade
         </Link>

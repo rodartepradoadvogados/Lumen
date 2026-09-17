@@ -180,6 +180,7 @@ function TaskCard({ task, onToggle }: { task: TaskCardData; onToggle: () => void
           {task.responsible && (
             <span
               title={task.responsible.name}
+              // eslint-disable-next-line no-restricted-syntax -- Círculo com a cor ESCOLHIDA PELO USUÁRIO (style inline); não há token para cima dela.
               className="h-5 w-5 rounded-full flex items-center justify-center text-white text-etiqueta font-bold"
               style={{ backgroundColor: task.responsible.color }}
             >

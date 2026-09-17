@@ -29,8 +29,35 @@
         "message": "Tamanho de fonte fora da rampa. Use text-etiqueta (12px), text-corpo (15px), text-destaque (18px), text-guia (22px), text-autuacao (28px) ou text-tarja (40px). A rampa está em tailwind.config.ts e o piso de 12px é absoluto."
       },
       {
-        "selector": "Literal[value=/bg-(urgente|aviso|concluido|vinho|atencao|risco-|faixa-)[^\"]*text-(white|acao-tx)\\b/]",
-        "message": "Rótulo claro cravado sobre fundo de risco ou de faixa. Essas cores são ESCURAS no tema claro e CLARAS no tema escuro — texto branco fixo some. Use text-rotulo, que troca com o tema. (text-acao-tx continua certo sobre bg-acao, que é bordô nos dois temas.)"
+        // BRECHA 1, fechada em 17/09/2026: a lista de prefixos não tinha `fonte-pje` nem
+        // `guia-ativa` nem `grave`. Foi por isso que os chips de Anotações passaram com
+        // `bg-fonte-pje text-white` (3,42:1 no Noite) e o botão "OK" do EntityPicker também.
+        // Regra prática para quem for editar esta lista: entra aqui TODO token de fundo que
+        // troca de claridade entre as cascas — se ele é escuro no Manhã e claro no Noite,
+        // nenhum rótulo de cor fixa serve.
+        "selector": "Literal[value=/bg-(urgente|aviso|concluido|vinho|atencao|grave|fonte-pje|guia-ativa|risco-|faixa-)[^\"]*text-(white|acao-tx)\\b/]",
+        "message": "Rótulo claro cravado sobre fundo de risco, de faixa ou de fonte. Essas cores são ESCURAS no tema claro e CLARAS no tema escuro — texto branco fixo some. Use text-rotulo, que troca com o tema. (text-acao-tx continua certo sobre bg-acao, que é bordô nos dois temas.)"
+      },
+      {
+        // A MESMA COISA NA ORDEM INVERSA. A regra acima exige que o `bg-` venha ANTES do
+        // `text-white` na string; quem escrever `text-white bg-aviso` passava batido.
+        "selector": "Literal[value=/text-(white|acao-tx)\\b[^\"]*bg-(urgente|aviso|concluido|vinho|atencao|grave|fonte-pje|guia-ativa|risco-|faixa-)/]",
+        "message": "Rótulo claro cravado sobre fundo que troca com o tema (escrito antes do bg- na mesma classe). Use text-rotulo."
+      },
+      {
+        // BRECHA 2, fechada em 17/09/2026: as duas regras acima só enxergam o fundo quando ele
+        // está no MESMO literal. Em components/comunicados/ComunicadosForm.tsx o `bg-atencao`
+        // estava no <span> pai e o `text-white` no ícone filho — 3,81:1 no Noite, invisível para
+        // o lint. Não dá para o ESLint seguir a árvore de JSX até o pai; o que dá é COBRAR
+        // DECLARAÇÃO quando ele não consegue ver o fundo.
+        //
+        // Por isso: `text-white` sozinho, num className sem nenhum `bg-`, vira erro. Quem tem um
+        // caso legítimo (fundo grafite fixo, sobreposição preta, cor escolhida pelo usuário)
+        // escreve `eslint-disable-next-line no-restricted-syntax` com o motivo ao lado — mesmo
+        // padrão já usado para react/no-danger neste repositório. O custo é um comentário; o que
+        // se compra é que nenhum caso novo entra sem alguém ter olhado.
+        "selector": "Literal[value=/^(?![^\"]*\\bbg-)[^\"]*\\btext-white\\b/]",
+        "message": "text-white sem um bg- na mesma classe: o lint não consegue verificar sobre o que ele está. Se o fundo troca com o tema, use text-rotulo. Se for fundo fixo (grafite, preto, sobreposição) ou cor escolhida pelo usuário, declare com eslint-disable-next-line no-restricted-syntax e diga o motivo."
       },
       {
         "selector": "Literal[value=/\\b(text|bg|border|ring|divide)-(red|rose|green|emerald|amber|orange|blue|indigo|purple|violet|slate|gray|zinc|neutral|stone)-[0-9]/]",

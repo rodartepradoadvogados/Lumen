@@ -32,7 +32,13 @@ export default function ActingOfficeBanner({ officeName }: { officeName: string 
           <X size={12} /> Sair
         </button>
       </div>
-      <div className="flex items-center justify-center gap-1.5 text-xs font-normal text-white/90 text-center">
+      {/* text-rotulo, não text-white/90. Duas coisas erradas numa classe só: (1) o fundo é
+          bg-atencao, que é #670224 no Manhã e #b56f79 no Noite — branco sobre ele mede 3,81:1 no
+          Noite e reprova AA; (2) a opacidade NÃO funcionaria de qualquer jeito: `/90` sobre uma
+          cor vinda de `var()` não é aplicada pelo Tailwind — é a armadilha de opacidade já
+          documentada em DESIGN.md. A raiz deste mesmo componente já usava `text-rotulo`; esta
+          linha filha é que destoava. */}
+      <div className="flex items-center justify-center gap-1.5 text-xs font-normal text-rotulo text-center">
         <EyeOff size={12} className="shrink-0" />
         Modo Vidro Fosco: nomes, valores e conteúdo estão mascarados.
       </div>

@@ -16,6 +16,7 @@ import {
 } from "@/lib/actions/publications";
 import DelegateTaskForm, { type DelegateTaskInitial } from "@/components/DelegateTaskForm";
 import ModalShell from "@/components/ModalShell";
+import PainelDividido from "@/components/PainelDividido";
 import { useUndoToast } from "@/components/UndoToastProvider";
 import CopyButton from "@/components/CopyButton";
 import ProcessNumberChip from "@/components/ProcessNumberChip";
@@ -289,42 +290,59 @@ export default function PublicationsTriage({
 
   return (
     <div className="flex flex-1 min-h-0 w-full">
-      {/* A fila tem piso e teto em vez de largura fixa: 560px fixos ficavam largos num monitor
-          largo e apertados num notebook. O teor, que é o que se lê, fica com toda a sobra. */}
-      <div ref={listRef} className="w-[clamp(320px,30%,520px)] shrink-0 border-r-2 border-regua-forte overflow-y-auto scrollbar-thin">
-        {visible.length === 0 ? (
-          <p className="p-6 text-sm text-tx-2">Nada por aqui.</p>
-        ) : (
-          <div className="divide-y divide-regua">
-            {visible.map((g) => (
-              <FilaCard
-                key={g.key}
-                group={g}
-                selected={g.key === selectedKey}
-                dismissing={dismissing[g.key]}
-                onSelect={() => setSelectedKey(g.key)}
-              />
-            ))}
+      {/* A FILA E O TEOR, com divisória arrastável (components/PainelDividido.tsx).
+          A fila já tinha piso e teto em vez de largura fixa — `clamp(320px, 30%, 520px)`, melhor
+          que os 560px fixos de antes —, mas continuava sendo uma decisão minha sobre a tela de
+          quem lê. É a segunda tela do produto com este formato "lista à esquerda, texto à
+          direita", e a primeira (a Agenda) ganhou a divisória a pedido do dono; a razão vale
+          igual aqui, e talvez mais: aqui o painel da direita é TEXTO CORRIDO de publicação, e
+          quanto dele cabe na linha muda a leitura.
+          Amplitude de 12 pontos, não 15 como na Agenda: abaixo de 20% a fila deixa de mostrar
+          número de processo e data na mesma linha, que é o que a torna varrível. */}
+      <PainelDividido
+        className="flex-1 w-full"
+        chave="lumen:publicacoes:divisao"
+        rotulo="Largura da fila e do teor da publicação"
+        padrao={32}
+        amplitude={12}
+        esquerda={
+          <div ref={listRef} className="flex-1 min-h-0 border-r-2 border-regua-forte overflow-y-auto scrollbar-thin">
+            {visible.length === 0 ? (
+              <p className="p-6 text-sm text-tx-2">Nada por aqui.</p>
+            ) : (
+              <div className="divide-y divide-regua">
+                {visible.map((g) => (
+                  <FilaCard
+                    key={g.key}
+                    group={g}
+                    selected={g.key === selectedKey}
+                    dismissing={dismissing[g.key]}
+                    onSelect={() => setSelectedKey(g.key)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0 flex flex-col overflow-y-auto scrollbar-thin">
-        {selected ? (
-          <Teor
-            group={selected}
-            users={users}
-            busy={busy}
-            onCriarTarefa={() => openTask("PRAZO")}
-            onVincular={openLink}
-            onDelegar={() => openTask("TAREFA")}
-            onArquivar={archive}
-            onMarcarLida={marcarLida}
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-sm text-tx-3">Selecione uma publicação na fila.</div>
-        )}
-      </div>
+        }
+        direita={
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-y-auto scrollbar-thin">
+            {selected ? (
+              <Teor
+                group={selected}
+                users={users}
+                busy={busy}
+                onCriarTarefa={() => openTask("PRAZO")}
+                onVincular={openLink}
+                onDelegar={() => openTask("TAREFA")}
+                onArquivar={archive}
+                onMarcarLida={marcarLida}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-sm text-tx-3">Selecione uma publicação na fila.</div>
+            )}
+          </div>
+        }
+      />
 
       {taskModal.open && taskGroup && taskInitial && (
         <ModalShell
