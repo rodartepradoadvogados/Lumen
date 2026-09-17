@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { CLASSES_FAIXA } from "@/lib/navSections";
 import Link from "next/link";
 import { getAssessoriaDetail, retryAssessoriaDriveFolder } from "@/lib/actions/assessoria";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +16,6 @@ import { getCurrentUser } from "@/lib/currentUser";
 import { getLeafCategoryOptions } from "@/lib/categories";
 
 // A cor da seção Jurídico vem do mapa, não escrita à mão (lib/navSections.ts).
-const FAIXA = CLASSES_FAIXA.anil;
 
 export const dynamic = "force-dynamic";
 
@@ -162,10 +160,11 @@ export default async function AssessoriaDetailPage({
       </div>
 
       {/* A guia da gaveta, igual à de /processos/[id] — a tela irmã desta, na MESMA seção do rail
-          (Jurídico, faixa anil). Esta usava sublinhado de 2px e a outra usa a aba chanfrada que é
+          (Jurídico). Esta usava sublinhado de 2px e a outra usa a aba chanfrada que é
           a assinatura formal do sistema: duas gramáticas de navegação para o mesmo gesto, dentro
-          da mesma seção. A faixa anil é a da seção, não uma escolha desta tela. */}
-      <div className={`flex flex-wrap items-end gap-[3px] border-b-2 ${FAIXA.borda} mb-6`}>
+          da mesma seção.
+          A aba ativa é bronze (`--guia-ativa`), uma cor só em todas as telas — ver a nota em app/globals.css. */}
+      <div className={`flex flex-wrap items-end gap-[3px] border-b-2 border-guia-ativa mb-6`}>
         {TABS.map((t, i) => {
           const ativa = tab === t.key;
           return (
@@ -175,7 +174,7 @@ export default async function AssessoriaDetailPage({
               aria-current={ativa ? "page" : undefined}
               className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
                 ativa
-                  ? `${FAIXA.fundo} text-rotulo ${FAIXA.borda}`
+                  ? "bg-guia-ativa text-rotulo border-guia-ativa"
                   : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
               }`}
             >

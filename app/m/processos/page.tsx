@@ -109,12 +109,11 @@ export default async function MobileProcessos({ searchParams }: { searchParams: 
 
       {/* Escolher a natureza é escolher a gaveta — a mesma guia de /processos no desktop e de
           /m/processos/[id] aqui. Ver components/mobile/GuiaMobile.tsx. */}
-      <TiraDeGuias faixa="anil" className="-mx-1 px-1">
+      <TiraDeGuias className="-mx-1 px-1">
         {PILLS.map((p) => (
           <GuiaLink
             key={p.label}
             href={pillHref(p.natureza)}
-            faixa="anil"
             ativa={p.natureza === natureza}
             contagem={countByPill[p.label]}
           >

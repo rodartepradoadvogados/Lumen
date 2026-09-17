@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { CLASSES_FAIXA } from "@/lib/navSections";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getUserHistory } from "@/lib/timesheet";
 import { PageHeader, Card, Badge, EmptyState, formatDate, taskTypeLabels, taskTypeColors } from "@/components/ui";
@@ -41,16 +40,15 @@ function initials(name: string) {
 
 // Era a única PÍLULA do produto — `rounded-full` num sistema cujo raio é 2px em tudo, inclusive
 // nos botões. E era uma barra de abas: no vocabulário desta casa, abas são a guia chanfrada da
-// gaveta. A faixa vem do mapa de seções (lib/navSections.ts), não escrita à mão: Gestão é ameixa.
+// gaveta. A aba ativa é bronze (`--guia-ativa`), uma cor só em todas as telas — ver a nota em app/globals.css.
 function TabLink({ label, href, active }: { label: string; href: string; active: boolean }) {
-  const faixa = CLASSES_FAIXA.ameixa;
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
         active
-          ? `${faixa.fundo} text-rotulo ${faixa.borda}`
+          ? "bg-guia-ativa text-rotulo border-guia-ativa"
           : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
       }`}
     >
@@ -69,9 +67,9 @@ export default async function ProdutividadePage({
   if (!viewer) redirect("/");
 
   // A guia precisa de uma régua para encostar: é ela que faz a aba ler como aba, e não como um
-  // retângulo solto. Ameixa é a faixa da seção Gestão, lida do mapa (lib/navSections.ts).
+  // retângulo solto.
   const tabs = (
-    <div className={`flex flex-wrap items-end gap-[3px] border-b-2 ${CLASSES_FAIXA.ameixa.borda}`}>
+    <div className={`flex flex-wrap items-end gap-[3px] border-b-2 border-guia-ativa`}>
       <TabLink label="Histórico" href={`/produtividade${searchParams.mes ? `?mes=${searchParams.mes}` : ""}`} active={aba === "historico"} />
       <TabLink label="Timesheet" href="/produtividade?aba=timesheet" active={aba === "timesheet"} />
       <TabLink label="Delegar" href="/produtividade?aba=delegar" active={aba === "delegar"} />

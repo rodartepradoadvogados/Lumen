@@ -219,30 +219,14 @@ export function resolveTwoLevelLabel(pathname: string): string | null {
   return `${def.label} - ${item.label}`;
 }
 
-// A faixa da seção como classe utilitária, resolvida a partir da rota. Use isto em vez de escrever
-// `faixa-anil` à mão: a cor de uma seção passa a existir num lugar só, e uma tela nova herda a da
-// sua seção sem ninguém precisar lembrar qual é.
+// A FAIXA DA SEÇÃO, hoje: só um dado declarado.
 //
-// Sem seção conhecida (telas fora do rail, como /peticionar), devolve a faixa ardósia — neutra e
-// declarada, em vez de nada.
-export function faixaDaRota(pathname: string | null | undefined): FaixaSecao {
-  const def = sectionForPathname(pathname ?? "");
-  return RAIL_SECTIONS.find((s) => s.key === def)?.faixa ?? "ardosia";
-}
-
-// As classes da faixa, escritas por extenso. NÃO monte `faixa-${x}` em tempo de execução: o
-// Tailwind gera CSS a partir do que consegue LER no código-fonte, e um nome montado em runtime
-// não gera regra nenhuma — o elemento sai sem cor. Este repositório já foi mordido por isso mais
-// de uma vez (ver a varredura de classes mortas de 2026-09-16), então o mapa carrega os literais.
-export const CLASSES_FAIXA: Record<FaixaSecao, { borda: string; fundo: string; texto: string }> = {
-  ardosia: { borda: "border-faixa-ardosia", fundo: "bg-faixa-ardosia", texto: "text-faixa-ardosia" },
-  anil: { borda: "border-faixa-anil", fundo: "bg-faixa-anil", texto: "text-faixa-anil" },
-  oliva: { borda: "border-faixa-oliva", fundo: "bg-faixa-oliva", texto: "text-faixa-oliva" },
-  ocre: { borda: "border-faixa-ocre", fundo: "bg-faixa-ocre", texto: "text-faixa-ocre" },
-  ameixa: { borda: "border-faixa-ameixa", fundo: "bg-faixa-ameixa", texto: "text-faixa-ameixa" },
-};
-
-// Atalho: as classes da faixa da seção a que a rota pertence.
-export function classesDaFaixa(pathname: string | null | undefined) {
-  return CLASSES_FAIXA[faixaDaRota(pathname)];
-}
+// Até 17/09/2026 este arquivo também exportava `CLASSES_FAIXA`, `faixaDaRota` e
+// `classesDaFaixa` — o maquinário que pintava a ABA SELECIONADA com a cor da seção. O dono
+// apontou na conferência visual que o anil do Jurídico (#3b4a86) lia como roxo, e a correção
+// foi mais funda que trocar o tom: a aba não precisa dizer a seção, porque o rail, a migalha e
+// o título já dizem. A aba passou a ser bronze, uma cor só, via `--guia-ativa` (app/globals.css).
+//
+// Com isso as três funções ficaram sem nenhum chamador e saíram. O campo `faixa` de cada seção
+// continua aqui porque ele ainda é o REGISTRO de qual tom pertence a qual seção — lido por
+// /configuracoes (a paleta) e pelos gráficos do Painel, que usam `var(--faixa-*)` direto.

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CLASSES_FAIXA } from "@/lib/navSections";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, formatCurrency, formatDate, EmptyState } from "@/components/ui";
@@ -50,7 +49,6 @@ import { buildCaseTimeline } from "@/lib/caseTimeline";
 import CaseTimeline from "@/components/processos/CaseTimeline";
 
 // A cor da seção Jurídico vem do mapa, não escrita à mão (lib/navSections.ts).
-const FAIXA = CLASSES_FAIXA.anil;
 
 export const dynamic = "force-dynamic";
 
@@ -480,7 +478,7 @@ export default async function CaseDetailPage({
           assinatura formal do sistema. O número não é decoração: o diagnóstico registrou que a
           barra muda de tamanho conforme o registro (quatro das nove abas são condicionais), de
           modo que não existe memória muscular de POSIÇÃO. Existe, agora, de NÚMERO. */}
-      <div className={`flex flex-wrap items-end gap-[3px] border-b-2 ${FAIXA.borda} mb-6`}>
+      <div className={`flex flex-wrap items-end gap-[3px] border-b-2 border-guia-ativa mb-6`}>
         {TABS.filter(
           (t) =>
             (t.key !== "financeiro" || hasFinanceAccess) &&
@@ -497,7 +495,7 @@ export default async function CaseDetailPage({
               aria-current={ativa ? "page" : undefined}
               className={`guia-ficha text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
                 ativa
-                  ? `${FAIXA.fundo} text-rotulo ${FAIXA.borda}`
+                  ? "bg-guia-ativa text-rotulo border-guia-ativa"
                   : "bg-sf text-tx-2 border-regua-forte hover:bg-sf-apoio hover:text-tx"
               }`}
             >

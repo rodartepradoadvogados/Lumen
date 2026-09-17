@@ -107,6 +107,13 @@ const config: Config = {
           anil: "var(--faixa-anil)",
           ameixa: "var(--faixa-ameixa)",
         },
+        // A ABA SELECIONADA — uma cor so, independente da secao. Ate 17/09/2026 a aba ativa
+        // usava a faixa da secao (anil no Juridico, ameixa em Produtividade); o anil lia como
+        // roxo na tela e, pior, a aba repetia uma informacao que o rail ja dava. Bronze,
+        // escolhido pelo dono entre cinco opcoes medidas. Ver a nota longa em app/globals.css.
+        guia: {
+          ativa: "var(--guia-ativa)",
+        },
         // VOCABULARIO DE RISCO — a cor diz O QUE ESTA ACONTECENDO. Deliberadamente separado das
         // faixas: um prazo vencido e vermelho em qualquer secao.
         risco: {

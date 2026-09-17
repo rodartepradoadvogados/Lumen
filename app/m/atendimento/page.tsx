@@ -92,12 +92,11 @@ export default async function MobileAtendimento({
         </Link>
       </div>
 
-      <TiraDeGuias faixa="ocre" className="-mx-4 px-4">
+      <TiraDeGuias className="-mx-4 px-4">
         {TABS.map((t) => (
           <GuiaLink
             key={t.label}
             href={tabHref(t.status)}
-            faixa="ocre"
             ativa={t.status ? searchParams.status === t.status : !searchParams.status}
           >
             {t.label}
