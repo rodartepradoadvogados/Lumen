@@ -10,6 +10,7 @@ import { sanitizeExternalUrl } from "@/lib/urlSafety";
 import { Badge, ConclusionChip, formatCurrency, taskConclusionLabel, taskTypeLabels, taskTypeColors, priorityColors } from "@/components/ui";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import NewTaskModal from "@/components/NewTaskModal";
+import PainelDividido from "@/components/PainelDividido";
 import TaskDetailModal from "@/components/TaskDetailModal";
 import { classificarPrazo, PRAZO_URGENCIA_BORDER, PRAZO_URGENCIA_TEXT } from "@/lib/dueStatus";
 import { formatRelativeDueDate } from "@/lib/formatRelativeDueDate";
@@ -257,44 +258,57 @@ export default function AgendaView({
       {visao === "lista" ? (
         <ListView tasksByDay={tasksByDay} financeByDay={financeByDay} />
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 flex-1 min-h-0">
-          {visao === "semana" ? (
-            <WeekView
-              weekStart={weekStart}
+        // A DIVISÃO — era `xl:grid-cols-[1fr_360px]`: o painel do dia tinha 360px FIXOS, o que
+        // valia 19% numa tela de 1900px e 25% num notebook de 1440px. O dono pediu o calendário
+        // 10 pontos mais estreito e o painel 10 mais largo, com uma divisória arrastável de
+        // ±15 pontos. Ver components/PainelDividido.tsx para o porquê de cada número.
+        <PainelDividido
+          className="flex-1"
+          chave="lumen:agenda:divisao"
+          rotulo="Largura do calendário e do painel do dia"
+          padrao={70}
+          amplitude={15}
+          esquerda={
+            visao === "semana" ? (
+              <WeekView
+                weekStart={weekStart}
+                tasksByDay={tasksByDay}
+                financeByDay={financeByDay}
+                selected={selected}
+                setSelected={setSelected}
+                today={today}
+                buildHref={buildHref}
+              />
+            ) : (
+              <MonthView
+                year={year}
+                month={month}
+                tasksByDay={tasksByDay}
+                financeByDay={financeByDay}
+                selected={selected}
+                setSelected={setSelected}
+                today={today}
+                buildHref={buildHref}
+              />
+            )
+          }
+          direita={
+            <DayPanel
+              selected={selected}
               tasksByDay={tasksByDay}
               financeByDay={financeByDay}
-              selected={selected}
-              setSelected={setSelected}
-              today={today}
-              buildHref={buildHref}
+              onToggle={(id) =>
+                startTransition(async () => {
+                  await toggleTaskDone(id);
+                  router.refresh();
+                })
+              }
+              cases={cases}
+              users={users}
+              columns={columns}
             />
-          ) : (
-            <MonthView
-              year={year}
-              month={month}
-              tasksByDay={tasksByDay}
-              financeByDay={financeByDay}
-              selected={selected}
-              setSelected={setSelected}
-              today={today}
-              buildHref={buildHref}
-            />
-          )}
-          <DayPanel
-            selected={selected}
-            tasksByDay={tasksByDay}
-            financeByDay={financeByDay}
-            onToggle={(id) =>
-              startTransition(async () => {
-                await toggleTaskDone(id);
-                router.refresh();
-              })
-            }
-            cases={cases}
-            users={users}
-            columns={columns}
-          />
-        </div>
+          }
+        />
       )}
     </div>
   );

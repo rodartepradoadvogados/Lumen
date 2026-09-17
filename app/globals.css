@@ -1853,6 +1853,65 @@ table, .tabular, input[type="number"], time { font-variant-numeric: tabular-nums
 .medida-curta { max-width: 720px; }
 .medida-media { max-width: 1000px; }
 
+/* PAINEL DIVIDIDO — duas colunas com divisória arrastável (components/PainelDividido.tsx).
+   Abaixo de 1280px as colunas empilham e a divisória não existe: não há o que dividir numa
+   coluna só, e arrastar com o polegar numa alça de 18px seria pior que o empilhamento.
+   A LARGURA vem de `--divisao`, escrita em linha pelo componente — é o único jeito de um valor
+   contínuo chegar ao CSS, já que o Tailwind gera regras a partir de literais que ele consegue
+   LER no código-fonte, e uma classe montada em tempo de execução não gera regra nenhuma (este
+   repositório já foi mordido por isso mais de uma vez). */
+.painel-dividido {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  min-height: 0;
+}
+@media (min-width: 1280px) {
+  .painel-dividido {
+    /* A coluna do meio É o vão: 18px de alvo para o ponteiro, com a linha de 2px por dentro. */
+    grid-template-columns: var(--divisao, 70%) 18px minmax(0, 1fr);
+    gap: 0;
+  }
+}
+.painel-dividido > .divisor {
+  position: relative;
+  align-self: stretch;
+  cursor: col-resize;
+  /* Sem isto o navegador interpreta o arrasto como rolagem da página e a divisória não anda. */
+  touch-action: none;
+}
+/* A LINHA — invisível até o ponteiro chegar, exatamente como pedido. Ela existe sempre (só a
+   opacidade muda), para não haver deslocamento de layout ao aparecer. */
+.painel-dividido > .divisor::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--regua-forte);
+  opacity: 0;
+  transition: opacity 120ms ease-out, background-color 120ms ease-out;
+}
+.painel-dividido > .divisor:hover::before,
+.painel-dividido > .divisor:focus-visible::before {
+  opacity: 1;
+}
+/* Enquanto arrasta, a linha assume a cor de marca: confirma que o gesto pegou, mesmo quando o
+   ponteiro corre mais rápido que a coluna. */
+.painel-dividido > .divisor[data-arrastando="true"]::before {
+  opacity: 1;
+  background: var(--marca-tx);
+}
+/* O anel de foco padrão desenharia um retângulo de 18px em volta de uma linha de 2px; aqui o
+   próprio acender da linha é o estado de foco, e ele é visível. */
+.painel-dividido > .divisor:focus-visible {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .painel-dividido > .divisor::before { transition: none; }
+}
+
 /* FAIXA DO SITE — a medida das seções da página pública e do blog.
    Retorno do dono em 17/09/2026: "página pública está com o conteúdo concentrado no centro.
    Precisa harmonizar com a largura da tela." E, sobre o blog: "também tá concentrado no meio."
