@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -28,6 +29,11 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { instanciaLabel } from "@/lib/caseInstance";
 import { getCaseLinks } from "@/lib/actions/caseLinks";
 import { getCaseInstanceHistory } from "@/lib/actions/cases";
+
+import { CLASSES_FAIXA } from "@/lib/navSections";
+
+// A cor da seção Jurídico vem do mapa, não escrita à mão (lib/navSections.ts).
+const FAIXA = CLASSES_FAIXA.anil;
 
 export const dynamic = "force-dynamic";
 
@@ -80,71 +86,152 @@ export default async function MobileCaseDetail({
   if (!viewer) notFound();
   const hasFinanceAccess = Boolean(viewer.isAdmin || viewer.financeAccess);
 
-  // clients e tribunais alimentam o <select> de Cliente e o TribunalFields dentro do
-  // EditCaseModal; os demais (receivables/payables/publications/attachments/protocoloLotes/
-  // honorarioLancamentos) são as quatro seções novas desta fase — mesmas queries da versão
-  // desktop (app/(app)/processos/[id]/page.tsx).
-  const [c, publications, users, clients, tribunais, recurringFees, termosVigilancia, bankAccounts, assessoriasRaw, caseLinks, instanceHistory] = await Promise.all([
+  // P0-A3 do diagnóstico: esta tela disparava ONZE consultas em paralelo e uma árvore de
+  // `include` com nove relações — tarefas, comentários, recebíveis, pagáveis, anexos, lotes de
+  // protocolo, envios de documento, lançamentos de honorário e anotações — em TODA troca de aba,
+  // independentemente da aba aberta. Abrir "Comentários" carregava o financeiro inteiro do
+  // processo; abrir "Anexos" carregava a vigilância. No celular, na rua, com 3G.
+  //
+  // Agora cada aba pede o que a aba usa. A decisão é tomada por `searchParams.tab` ANTES da
+  // consulta — de propósito, e não pela aba já validada: validar exige saber a natureza do
+  // processo, que só existe depois de consultar. Uma aba pedida à mão e inválida cai em Visão
+  // Geral e terá buscado uma relação que não será desenhada; é o preço de uma consulta a mais
+  // num caso de borda, contra onze a menos em todos os outros.
+  const abaPedida = searchParams.tab || "visao-geral";
+  const naAba = (...abas: string[]) => abas.includes(abaPedida);
+  const vazio = <T,>(): Promise<T[]> => Promise.resolve([]);
+
+  const [
+    c,
+    tasks,
+    comments,
+    receivables,
+    payables,
+    attachments,
+    protocoloLotes,
+    documentoEnvios,
+    honorarioLancamentos,
+    anotacoes,
+    publications,
+    users,
+    clients,
+    tribunais,
+    recurringFees,
+    termosVigilancia,
+    bankAccounts,
+    assessoriasRaw,
+    caseLinks,
+    instanceHistory,
+  ] = await Promise.all([
     prisma.case.findFirst({
       where: { id: params.id, officeId: viewer.officeId },
+      // Só o que o CABEÇALHO precisa, que é o que aparece em toda aba. As nove relações pesadas
+      // que viviam aqui viraram consultas próprias, logo abaixo, cada uma atrás da sua aba.
       include: {
         client: true,
         clients: { include: { client: true } },
         parties: true,
         responsible: true,
-        tasks: {
-          where: { status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
-          orderBy: { dueDate: "asc" },
-          take: 20,
-        },
-        comments: { include: { author: true }, orderBy: { createdAt: "desc" }, take: 15 },
-        receivables: {
-          orderBy: { dueDate: "asc" },
-          include: { payments: { select: { amount: true } }, reimbursesPayable: { select: { id: true, description: true } } },
-        },
-        payables: {
-          orderBy: { dueDate: "asc" },
-          include: { payments: { select: { amount: true } }, reimbursementReceivable: { select: { id: true, amount: true, status: true } } },
-        },
-        attachments: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
-        protocoloLotes: {
-          orderBy: { createdAt: "desc" },
-          include: { comprovante: { select: { id: true, name: true, driveUrl: true } }, itens: { orderBy: { ordem: "asc" }, select: { id: true, nomeSnapshot: true, attachment: { select: { driveUrl: true } } } } },
-        },
-        // Histórico do botão "Enviar E-mail/WhatsApp" (aba Protocolos) — só leitura no mobile,
-        // mesma ideia de protocoloLotes acima (ver components/mobile/MobileCaseProtocolosTab.tsx).
-        documentoEnvios: {
-          orderBy: { enviadoEm: "desc" },
-          include: { enviadoPor: { select: { name: true } }, itens: { select: { id: true, nomeSnapshot: true, docTypeSnapshot: true } } },
-        },
-        honorarioLancamentos: {
-          orderBy: { createdAt: "desc" },
-          include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: { select: { amount: true } } } } },
-        },
-        anotacoes: { where: { authorId: viewer.id }, orderBy: { referenceDate: "desc" } },
       },
     }),
-    prisma.publication.findMany({
-      where: { caseId: params.id, officeId: viewer.officeId },
-      include: { reads: { where: { userId: viewer.id }, select: { userId: true } } },
-      orderBy: { publishedAt: "desc" },
-      take: 15,
-    }),
-    prisma.user.findMany({
-      where: { active: true, officeId: viewer.officeId },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } }),
-    prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] }),
-    prisma.recurringFee.findMany({ where: { caseId: params.id, active: true }, orderBy: { createdAt: "asc" } }),
-    prisma.termoVigilancia.findMany({ where: { caseId: params.id, officeId: viewer.officeId }, orderBy: { createdAt: "desc" } }),
-    prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    naAba("atividades")
+      ? prisma.task.findMany({
+          where: { caseId: params.id, status: { notIn: ["CONCLUIDO", "CANCELADO"] } },
+          orderBy: { dueDate: "asc" },
+          take: 20,
+        })
+      : vazio<Prisma.TaskGetPayload<true>>(),
+    naAba("comentarios")
+      ? prisma.comment.findMany({
+          where: { caseId: params.id },
+          include: { author: true },
+          orderBy: { createdAt: "desc" },
+          take: 15,
+        })
+      : vazio<Prisma.CommentGetPayload<{ include: { author: true } }>>(),
+    naAba("financeiro")
+      ? prisma.receivable.findMany({
+          where: { caseId: params.id },
+          orderBy: { dueDate: "asc" },
+          include: { payments: { select: { amount: true } }, reimbursesPayable: { select: { id: true, description: true } } },
+        })
+      : vazio<Prisma.ReceivableGetPayload<{ include: { payments: { select: { amount: true } }; reimbursesPayable: { select: { id: true; description: true } } } }>>(),
+    naAba("financeiro")
+      ? prisma.payable.findMany({
+          where: { caseId: params.id },
+          orderBy: { dueDate: "asc" },
+          include: { payments: { select: { amount: true } }, reimbursementReceivable: { select: { id: true, amount: true, status: true } } },
+        })
+      : vazio<Prisma.PayableGetPayload<{ include: { payments: { select: { amount: true } }; reimbursementReceivable: { select: { id: true; amount: true; status: true } } } }>>(),
+    naAba("anexos")
+      ? prisma.attachment.findMany({ where: { caseId: params.id }, include: { uploadedBy: true }, orderBy: { createdAt: "desc" } })
+      : vazio<Prisma.AttachmentGetPayload<{ include: { uploadedBy: true } }>>(),
+    naAba("protocolos")
+      ? prisma.protocoloLote.findMany({
+          where: { caseId: params.id },
+          orderBy: { createdAt: "desc" },
+          include: { comprovante: { select: { id: true, name: true, driveUrl: true } }, itens: { orderBy: { ordem: "asc" }, select: { id: true, nomeSnapshot: true, attachment: { select: { driveUrl: true } } } } },
+        })
+      : vazio<Prisma.ProtocoloLoteGetPayload<{ include: { comprovante: { select: { id: true; name: true; driveUrl: true } }; itens: { select: { id: true; nomeSnapshot: true; attachment: { select: { driveUrl: true } } } } } }>>(),
+    // Histórico do botão "Enviar E-mail/WhatsApp" (aba Protocolos) — só leitura no mobile.
+    naAba("protocolos")
+      ? prisma.documentoEnvio.findMany({
+          where: { caseId: params.id },
+          orderBy: { enviadoEm: "desc" },
+          include: { enviadoPor: { select: { name: true } }, itens: { select: { id: true, nomeSnapshot: true, docTypeSnapshot: true } } },
+        })
+      : vazio<Prisma.DocumentoEnvioGetPayload<{ include: { enviadoPor: { select: { name: true } }; itens: { select: { id: true; nomeSnapshot: true; docTypeSnapshot: true } } } }>>(),
+    naAba("financeiro")
+      ? prisma.honorarioLancamento.findMany({
+          where: { caseId: params.id },
+          orderBy: { createdAt: "desc" },
+          include: { parcelas: { orderBy: { dueDate: "asc" }, include: { payments: { select: { amount: true } } } } },
+        })
+      : vazio<Prisma.HonorarioLancamentoGetPayload<{ include: { parcelas: { include: { payments: { select: { amount: true } } } } } }>>(),
+    naAba("anotacoes-pessoais")
+      ? prisma.anotacao.findMany({ where: { caseId: params.id, authorId: viewer.id }, orderBy: { referenceDate: "desc" } })
+      : vazio<Prisma.AnotacaoGetPayload<true>>(),
+    naAba("publicacoes")
+      ? prisma.publication.findMany({
+          where: { caseId: params.id, officeId: viewer.officeId },
+          include: { reads: { where: { userId: viewer.id }, select: { userId: true } } },
+          orderBy: { publishedAt: "desc" },
+          take: 15,
+        })
+      : vazio<Prisma.PublicationGetPayload<{ include: { reads: { select: { userId: true } } } }>>(),
+    // `users` aparece na Visão Geral (EditCaseModal) e em Atividades (seletor de responsável).
+    naAba("visao-geral", "atividades")
+      ? prisma.user.findMany({
+          where: { active: true, officeId: viewer.officeId },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : vazio<{ id: string; name: string }>(),
+    // `clients` e `tribunais` só alimentam o EditCaseModal, que vive na Visão Geral. São as duas
+    // listas mais caras da tela — o catálogo de tribunais tem 93 registros e a base de clientes do
+    // escritório inteiro — e vinham em toda troca de aba.
+    naAba("visao-geral")
+      ? prisma.client.findMany({ where: { officeId: viewer.officeId }, orderBy: { name: "asc" } })
+      : vazio<Prisma.ClientGetPayload<true>>(),
+    naAba("visao-geral")
+      ? prisma.tribunal.findMany({ orderBy: [{ categoria: "asc" }, { ordem: "asc" }] })
+      : vazio<Prisma.TribunalGetPayload<true>>(),
+    naAba("financeiro")
+      ? prisma.recurringFee.findMany({ where: { caseId: params.id, active: true }, orderBy: { createdAt: "asc" } })
+      : vazio<Prisma.RecurringFeeGetPayload<true>>(),
+    naAba("vigilancia")
+      ? prisma.termoVigilancia.findMany({ where: { caseId: params.id, officeId: viewer.officeId }, orderBy: { createdAt: "desc" } })
+      : vazio<Prisma.TermoVigilanciaGetPayload<true>>(),
+    naAba("financeiro")
+      ? prisma.bankAccount.findMany({ where: { officeId: viewer.officeId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+      : vazio<{ id: string; name: string }>(),
+    // `assessorias` fica no CABEÇALHO (CaseAssessoriaSelect), então é a única lista do escritório
+    // que continua vindo em toda aba.
     prisma.assessoria.findMany({ where: { officeId: viewer.officeId, status: "ATIVA" }, include: { client: true }, orderBy: { client: { name: "asc" } } }),
     // Vínculos com outros processos (ver components/processo/CaseLinkField.tsx) — usa params.id
     // direto em vez de c.id porque c só resolve depois deste Promise.all (mesmo id de qualquer forma).
-    getCaseLinks(params.id),
-    getCaseInstanceHistory(params.id),
+    naAba("visao-geral") ? getCaseLinks(params.id) : vazio<Awaited<ReturnType<typeof getCaseLinks>>[number]>(),
+    naAba("visao-geral") ? getCaseInstanceHistory(params.id) : vazio<Awaited<ReturnType<typeof getCaseInstanceHistory>>[number]>(),
   ]);
 
   if (!c) notFound();
@@ -183,7 +270,7 @@ export default async function MobileCaseDetail({
   // mais de uma fonte (DJEN, Datajud, e-mail do Jusbrasil...).
   const publicationGroups = groupPublicationsByProcess(serializedPublications);
 
-  const serializedAttachments = c.attachments.map((att) => ({
+  const serializedAttachments = attachments.map((att) => ({
     id: att.id,
     name: att.name,
     driveUrl: att.driveUrl,
@@ -193,7 +280,7 @@ export default async function MobileCaseDetail({
     uploadedBy: att.uploadedBy ? { name: att.uploadedBy.name } : null,
   }));
 
-  const serializedLotes = c.protocoloLotes.map((lote) => ({
+  const serializedLotes = protocoloLotes.map((lote) => ({
     id: lote.id,
     titulo: lote.titulo,
     status: lote.status,
@@ -205,7 +292,7 @@ export default async function MobileCaseDetail({
     itens: lote.itens.map((item) => ({ id: item.id, nomeSnapshot: item.nomeSnapshot, driveUrl: item.attachment?.driveUrl ?? null })),
   }));
 
-  const serializedEnvios = c.documentoEnvios.map((envio) => ({
+  const serializedEnvios = documentoEnvios.map((envio) => ({
     id: envio.id,
     metodo: envio.metodo,
     destinatarioNome: envio.destinatarioNome,
@@ -223,7 +310,7 @@ export default async function MobileCaseDetail({
     ultimoHitAt: t.ultimoHitAt ? t.ultimoHitAt.toISOString() : null,
   }));
 
-  const serializedHonorarioLancamentos = c.honorarioLancamentos.map((h) => ({
+  const serializedHonorarioLancamentos = honorarioLancamentos.map((h) => ({
     id: h.id,
     valorTotalIndicado: h.valorTotalIndicado,
     payerType: h.payerType,
@@ -247,7 +334,7 @@ export default async function MobileCaseDetail({
     })),
   }));
 
-  const serializedAnotacoes = c.anotacoes.map((n) => ({
+  const serializedAnotacoes = anotacoes.map((n) => ({
     id: n.id,
     content: n.content,
     referenceDate: n.referenceDate.toISOString(),
@@ -319,17 +406,28 @@ export default async function MobileCaseDetail({
         </p>
       </div>
 
-      {/* Pílulas de aba — mesmo padrão de TabLink já usado em app/m/financeiro/receitas/page.tsx,
-          rolagem horizontal quando não couber tudo na largura da tela. */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
+      {/* As abas, com três correções do P0-A3:
+          1. ALVO DE TOQUE. Eram ~33px de altura (text-corpo + py-1.5) num aparelho onde o resto
+             do PWA respeita 44px (`h-11 w-11` na navegação de dias). `min-h-[44px]` põe a aba no
+             mesmo piso do resto da superfície.
+          2. HISTÓRICO. Cada troca de aba empilhava uma entrada: sair da tela exigia apertar
+             "voltar" tantas vezes quantas abas tivessem sido visitadas. `replace` troca a entrada
+             em vez de empilhar — a aba é estado de visualização, não destino.
+          3. FORMA. Era a pílula (`rounded-full`) com `bg-acao` no ativo. Escolher aba é escolher
+             gaveta: é a guia chanfrada, a mesma do portal e do site, com a faixa da seção Jurídico
+             lida do mapa (lib/navSections.ts). A régua do contêiner rola junto com as abas, então
+             lê como a borda contínua da gaveta mesmo quando não cabe tudo na tela. */}
+      <div className={`flex items-end gap-[3px] overflow-x-auto border-b-2 ${FAIXA.borda} -mx-0.5 px-0.5`}>
         {visibleTabs.map((t) => (
           <Link
             key={t.key}
+            replace
             href={`/m/processos/${c.id}?tab=${t.key}`}
-            className={`shrink-0 text-corpo font-semibold px-3 py-1.5 rounded-full transition-colors ${
+            aria-current={tab === t.key ? "page" : undefined}
+            className={`guia-ficha shrink-0 min-h-[44px] text-etiqueta font-semibold uppercase tracking-[.06em] whitespace-nowrap transition-colors ${
               tab === t.key
-                ? "bg-acao text-acao-tx"
-                : "bg-sf text-tx-2 border border-regua"
+                ? `${FAIXA.fundo} text-rotulo ${FAIXA.borda}`
+                : "bg-sf text-tx-2 border-regua-forte"
             }`}
           >
             {t.label}
@@ -492,11 +590,11 @@ export default async function MobileCaseDetail({
           <div className="px-4 py-3 border-b border-regua">
             <h2 className="font-bold text-tx text-sm">Próximas tarefas</h2>
           </div>
-          {c.tasks.length === 0 ? (
+          {tasks.length === 0 ? (
             <EmptyState title="Nenhuma tarefa pendente" />
           ) : (
             <div className="divide-y divide-regua">
-              {c.tasks.map((t) => (
+              {tasks.map((t) => (
                 <div key={t.id} className="flex items-start gap-2.5 px-4 py-3">
                   <div className="pt-0.5">
                     <MobileTaskToggle taskId={t.id} done={t.status === "CONCLUIDO"} />
@@ -522,11 +620,11 @@ export default async function MobileCaseDetail({
 
       {tab === "comentarios" && (
         <Card className="p-4 space-y-4">
-          {c.comments.length === 0 ? (
+          {comments.length === 0 ? (
             <p className="text-sm text-tx-2">Nenhum comentário ainda.</p>
           ) : (
             <div className="space-y-3">
-              {c.comments.map((cm) => {
+              {comments.map((cm) => {
                 const authorName = authorDisplayName(cm.author, viewer.officeId);
                 return (
                 <div key={cm.id} className="flex gap-2.5">
@@ -552,7 +650,7 @@ export default async function MobileCaseDetail({
       {tab === "financeiro" && hasFinanceAccess && (
         <MobileCaseFinanceTab
           caseId={c.id}
-          receivables={c.receivables.map((r) => ({
+          receivables={receivables.map((r) => ({
             id: r.id,
             description: r.description,
             amount: r.amount,
@@ -567,7 +665,7 @@ export default async function MobileCaseDetail({
             payments: r.payments,
             reimbursesPayable: r.reimbursesPayable ? { description: r.reimbursesPayable.description } : null,
           }))}
-          payables={c.payables.map((p) => ({
+          payables={payables.map((p) => ({
             id: p.id,
             description: p.description,
             amount: p.amount,
